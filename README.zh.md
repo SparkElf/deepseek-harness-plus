@@ -3,8 +3,8 @@
 [English](README.md) · [规划中的内容](PRESETS.md) · [参与贡献](CONTRIBUTING.md)
 
 <p align="center">
-  <strong>你不该为了修好最后一个阻塞 agent 的问题，苦等别人处理。</strong><br>
-  <em>修掉关键问题，尝鲜下一步，让你的工作持续向前。</em>
+  <strong>不必为了一个卡住 agent 的问题，站在原地等上游。</strong><br>
+  <em>把眼前的问题修好，把值得尝鲜的功能跑起来，让工作继续往前走。</em>
 </p>
 
 <p align="center">
@@ -15,24 +15,24 @@
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
 <p align="center">
-  <img src="assets/plus-overview.png" alt="DeepSeek Harness Plus 介绍板：修复阻塞问题、提前试用 RFC、共享维护好的插件编排" width="100%">
+  <img src="assets/plus-overview.zh.png" alt="DeepSeek Harness Plus 介绍板：修复阻塞问题、提前试用实验性功能、共享维护好的插件编排" width="100%">
 </p>
 
-你已经用 DeepSeek Harness 做成了一些有用的事。然后你碰到一个会打断流程的问题，想在 RFC 落地前先试试它，或是发现一组插件还不能放心交给团队使用。DeepSeek Harness Plus 给你一个公开解决这些问题的地方。
+你会来到这里，通常不是因为 DeepSeek Harness 完全不能用。恰恰相反，它已经帮你完成了大部分工作，只是关键时刻碰上了一个卡住流程的问题，或者你想提前试试上游正在讨论的功能，又或者一组插件还不敢直接交给整个团队使用。
 
-你保留上游的插件架构。你得到的是可以审查的聚焦修复、可以明确启用的实验，以及一条逐步长成的预设路径，让团队不必从聊天碎片中重新拼装配置。Plus 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的独立社区 fork。
+这时你需要的不是再等一次回复，也不是从聊天记录里东拼西凑配置。DeepSeek Harness Plus 是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的独立社区 fork。这里会持续跟进上游，把值得解决的问题、值得提前验证的实验性功能，以及适合团队复用的插件组合，做成能看懂、能审查、能验证的改动。预设会把插件和相关配置一起装好，你选中后直接使用，不必再逐个拼装。
 
 <a id="run"></a>
 
-## 🚀 快速入门
+## 🚀 快速上手
 
 <a id="run-from-source"></a>
 
-### 三步运行
+### 三步跑起来
 
-1. 克隆仓库并安装锁定的依赖。
-2. 构建源码并启动本地 Web UI。
-3. 打开 UI，选择模型提供方，然后开始会话。
+1. 克隆仓库并安装锁定版本的依赖。
+2. 构建源码，启动本地 Web UI。
+3. 打开页面，配置模型提供方，开始第一个会话。
 
 你需要 Node.js 22.19+ 或 24+、Corepack 和 pnpm。
 
@@ -45,68 +45,68 @@ pnpm run build
 pnpm dsh web
 ```
 
-打开 `http://127.0.0.1:3080`。凭据保存在本地配置中，不能提交到 Git。
+浏览器打开 `http://127.0.0.1:3080` 即可。模型凭据保存在本地配置里，不要提交到 Git。
 
-## 💡 当你需要这些事时
+## 💡 什么时候你会需要 Plus
 
-| 你正在尝试... | 你需要... |
+| 你遇到的情况 | Plus 要解决的事 |
 | --- | --- |
-| 跨过一个阻塞真实工作的缺陷 | 一个范围明确、带验证证据并说明上游关系的小补丁。 |
-| 试用一个上游想法，但不想押上整套环境 | 一个边界清楚的实现，你可以检查、测试、保留或移除。 |
-| 给团队共享一组插件 | 围绕路由、工具、设置、权限和 UI 贡献维护好的编排。 |
-| 不再从旧聊天记录里重建同一套配置 | 带安装、凭据、权限和验证说明的版本化预设。 |
+| 一个缺陷已经影响了真实工作 | 提供范围清楚、能追溯上游关系、带验证证据的补丁。 |
+| 你想提前验证一个上游方向 | 提供边界明确的实验性功能，你可以自己判断要不要继续使用。 |
+| 你要把插件组合交给团队 | 维护路由、工具、配置、权限和 UI 扩展之间的编排关系。 |
+| 你不想每次都从旧聊天记录里重建环境 | 一套插件和相关配置都已经配好的预设，安装后直接使用。 |
 
-## 📦 你今天可以使用的内容
+## 📦 现在可以用什么
 
-- 你可以从本仓库运行完整的上游 Harness 源码和 Web UI。
-- 你可以通过维护中的 `upstream` remote 跟进上游。
-- 你可以创建 Issue、发起 Discussion、提交 Pull Request，并私下报告安全问题。
-- 你可以在这个专门用于审查补丁、社区插件、预设和部署工作的仓库中提出改进。
+- 可以直接运行完整的上游 Harness 源码和 Web UI。
+- 可以通过维护中的 `upstream` remote 持续跟进上游。
+- 可以提交 Issue、发起 Discussion、提交 Pull Request，也可以私下报告安全问题。
+- 可以提出补丁、社区插件、预设和部署方案，并让它们经过公开审查。
 
 <a id="not-shipped-yet"></a>
 
-## 🧭 暂未发布
+## 🧭 还在开发，暂时不要依赖
 
-请不要安装或依赖下列内容。它们是你可以关注并参与塑造的开发工作：
+下面这些是我们正在推进的方向，不包含在当前 checkout 或安装器中：
 
 | 规划工作 | 状态 |
 | --- | --- |
-| 子智能体跟随你在 UI 中选择的模型 | 开发中 |
+| 子智能体跟随你在 UI 中选定的模型 | 开发中 |
 | 桌面安装引导和托盘守护进程 | 开发中 |
 | 代码交付预设 | 暂未实现 |
 | 社区运营预设 | 暂未实现 |
 | 多用户运行时预设 | 暂未实现 |
 | 智能问数预设 | 暂未实现 |
 
-你可以在 [PRESETS.md](PRESETS.md) 阅读发布条件。一个预设只有在你能运行它、理解它的权限、安装它并验证结果后，才会被标记为可用。
+完整发布条件见 [PRESETS.md](PRESETS.md)。一个预设只有在能把可用的插件组合和相关配置一起装好、权限说得清、结果可验证时，才会被标记为可用。
 
-## ❓ 快速问答
+## ❓ 常见问题
 
-**这是 DeepSeek 的官方项目吗？** 不是。你使用的是一个遵循上游源码和许可证的独立社区 fork。
+**这是 DeepSeek 官方项目吗？** 不是。你使用的是一个独立维护的社区 fork，它遵循上游的源码和许可证。
 
-**你今天能用它吗？** 可以，从源码运行。桌面安装器仍在开发，所以暂时没有可下载的安装包。
+**现在能用吗？** 能。从源码运行即可。桌面安装器还在开发，目前没有可下载的安装包。
 
-**你今天能安装预设吗？** 不能。代码交付、社区运营、多用户运行时和智能问数都明确标注为暂未实现。
+**现在能安装预设吗？** 不能。代码交付、社区运营、多用户运行时和智能问数都还没有实现，也不会被包装成现成功能。
 
-**你能把它直接暴露到公网给团队使用吗？** 不能。多用户部署预设尚未提供，你应保持本地 Harness runtime 私有。
+**能直接部署到公网给团队使用吗？** 不能。多用户部署预设尚未交付。当前应把 Harness runtime 放在私有网络中运行。
 
-**同步上游时，你的本地变更会不会莫名消失？** 不应该。受支持的变更在进入 Plus 前都会记录目的、影响文件和验证路径。
+**同步上游会不会把本地改动弄丢？** 不应该。准备进入 Plus 的改动会记录目的、影响文件和验证方式，避免留下无法解释的补丁。
 
-## 🤝 让它真正有用
+## 🤝 一起把它做得更好
 
-碰到一个浪费你时间的失败，请创建 Issue。团队每周都在重复一套工作流，请发起 Discussion。有经过验证的聚焦改动，请提交 Pull Request。
+一个问题已经浪费了你很多时间，就创建 Issue。团队总在重复同一套流程，就发起 Discussion。你已经有一个经过验证的改动，就提交 Pull Request。
 
-你可以贡献缺陷修复、提前实现的 RFC、社区插件、预设、部署资产、文档和审查。请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请通过 [SECURITY.md](SECURITY.md) 报告，不要公开提交 Issue。
+欢迎提交缺陷修复、实验性功能、社区插件、预设、部署资产、文档和评审意见。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请通过 [SECURITY.md](SECURITY.md) 报告，不要公开提交 Issue。
 
-## 🔄 紧跟上游
+## 🔄 跟上游保持同步
 
 ```sh
 git fetch upstream
 git merge upstream/master
 ```
 
-你应该始终能看清这个 fork 为什么与上游不同。每一项受支持的差异都记录改了什么、为什么存在、影响哪些部分，以及你如何验证它。
+你应该始终能看清这个 fork 和上游之间有什么不同。每一项受支持的差异都会记录改了什么、为什么要改、影响哪些部分，以及如何验证。
 
 ## 许可证
 
-你可以在上游 [MIT 许可证](LICENSE) 下使用 DeepSeek Harness Plus。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本项目为独立社区项目，不隶属于 DeepSeek，也未获得 DeepSeek 背书。
+DeepSeek Harness Plus 沿用上游 [MIT 许可证](LICENSE)。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本项目为独立社区项目，不隶属于 DeepSeek，也未获得 DeepSeek 背书。

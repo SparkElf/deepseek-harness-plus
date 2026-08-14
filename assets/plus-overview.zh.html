@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek Harness Plus</title>
+    <style>
+      :root { color-scheme: light; --ink:#111318; --muted:#69707c; --line:#d9dee7; --panel:#f4f6f9; --accent:#2367d1; --accent-soft:#dbe9ff; }
+      * { box-sizing: border-box; }
+      body { margin:0; min-width:1600px; min-height:900px; background:#e8edf3; color:var(--ink); font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+      main { width:1600px; height:900px; padding:48px; display:grid; grid-template-columns:minmax(0,1.65fr) minmax(360px,.85fr); grid-template-rows:auto 1fr auto; gap:24px; }
+      .topbar,.footer,.hero,.status-panel { border:1px solid var(--line); background:#fff; }
+      .topbar { grid-column:1/-1; min-height:72px; padding:0 26px; display:flex; align-items:center; justify-content:space-between; }
+      .brand { display:flex; align-items:center; gap:12px; font-size:18px; font-weight:700; }
+      .mark { width:18px; height:18px; border:4px solid var(--ink); border-radius:50%; position:relative; }
+      .mark::after { content:""; position:absolute; width:7px; height:7px; right:-8px; bottom:-8px; background:var(--accent); }
+      .eyebrow,.tiny-label { color:var(--muted); font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; letter-spacing:.08em; text-transform:uppercase; }
+      .hero { padding:58px 58px 48px; display:flex; flex-direction:column; justify-content:space-between; min-height:628px; }
+      .hero h1 { max-width:790px; margin:22px 0 20px; font-size:62px; line-height:1.04; letter-spacing:0; font-weight:760; }
+      .hero p { max-width:670px; margin:0; color:#444b56; font-size:21px; line-height:1.48; }
+      .actions { display:flex; align-items:center; gap:12px; margin-top:42px; }
+      .action { display:inline-flex; min-height:46px; align-items:center; padding:0 18px; border:1px solid var(--ink); color:#fff; background:var(--ink); font-size:15px; font-weight:650; }
+      .action.secondary { border-color:var(--line); color:var(--ink); background:#fff; }
+      .track { display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); margin-top:54px; }
+      .track-item { padding:20px 20px 0 0; }
+      .track-item + .track-item { padding-left:20px; border-left:1px solid var(--line); }
+      .track-item strong { display:block; margin:8px 0 6px; font-size:17px; }
+      .track-item span { color:var(--muted); font-size:14px; line-height:1.35; }
+      .status-panel { padding:30px; min-height:628px; display:flex; flex-direction:column; }
+      .status-panel h2 { margin:10px 0 28px; font-size:29px; line-height:1.13; letter-spacing:0; }
+      .status-list { margin:0; padding:0; list-style:none; border-top:1px solid var(--line); }
+      .status-list li { padding:18px 0; border-bottom:1px solid var(--line); }
+      .status-row { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:15px; font-weight:650; }
+      .status-copy { margin:7px 0 0; color:var(--muted); font-size:13px; line-height:1.4; }
+      .badge { flex:none; padding:5px 8px; border-radius:999px; background:var(--accent-soft); color:#17498f; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:10px; letter-spacing:.04em; }
+      .badge.planned { background:var(--panel); color:#5b6470; }
+      .note { margin-top:auto; padding:18px; border-left:3px solid var(--accent); background:var(--panel); color:#404754; font-size:14px; line-height:1.5; }
+      .footer { grid-column:1/-1; min-height:104px; padding:0 26px; display:grid; grid-template-columns:1.65fr 1fr; align-items:center; gap:24px; }
+      .footer-copy { font-size:17px; font-weight:650; }
+      .footer-copy span { color:var(--accent); }
+      .footer-meta { color:var(--muted); font-size:13px; line-height:1.45; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <div class="brand"><span class="mark" aria-hidden="true"></span>DeepSeek Harness Plus</div>
+        <div class="eyebrow">独立社区 fork</div>
+      </header>
+      <section class="hero" aria-labelledby="intro-title">
+        <div>
+          <div class="eyebrow">为了不必再等</div>
+          <h1 id="intro-title">你的 agent 流程，不该卡在“差一点”。</h1>
+          <p>你可以跟进上游，也可以修掉阻塞团队的问题，提前试用下一步需要的想法，并把真正可复用的配置交给团队。</p>
+          <div class="actions" aria-label="仓库入口">
+            <span class="action">从源码运行</span>
+            <span class="action secondary">关注首个版本</span>
+          </div>
+        </div>
+        <div class="track" aria-label="社区方向">
+          <div class="track-item"><div class="tiny-label">01</div><strong>带着上下文修复</strong><span>每个小补丁都记录与上游的关系和验证方式。</span></div>
+          <div class="track-item"><div class="tiny-label">02</div><strong>有边界地尝鲜</strong><span>可以检查、测试、保留或移除的早期 RFC 实现。</span></div>
+          <div class="track-item"><div class="tiny-label">03</div><strong>可靠地共享</strong><span>面向团队维护插件编排和预设，而不是只留在一次聊天中。</span></div>
+        </div>
+      </section>
+      <aside class="status-panel" aria-labelledby="release-title">
+        <div class="eyebrow">首个版本</div>
+        <h2 id="release-title">公开开发，也诚实说明哪些内容尚未到来。</h2>
+        <ul class="status-list">
+          <li><div class="status-row"><span>子智能体跟随 UI 模型</span><span class="badge">开发中</span></div><p class="status-copy">子智能体跟随父会话中选择的模型。</p></li>
+          <li><div class="status-row"><span>桌面安装引导和托盘守护进程</span><span class="badge">开发中</span></div><p class="status-copy">引导完成本地配置，并提供启动、停止和打开入口。</p></li>
+          <li><div class="status-row"><span>社区预设目录</span><span class="badge planned">暂未实现</span></div><p class="status-copy">代码交付、社区运营、多用户运行时和智能问数。</p></li>
+        </ul>
+        <div class="note">只有当你能安装、理解权限并验证结果时，一个预设才会被交付给你。</div>
+      </aside>
+      <footer class="footer">
+        <div class="footer-copy">快速开始：<span>克隆，选择模型提供方，开始会话。</span></div>
+        <div class="footer-meta">你今天可以从源码运行。桌面安装器和精选预设会在准备好前持续保持明确状态。</div>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -20,7 +20,7 @@
 
 You already have DeepSeek Harness doing useful work. Then you find the bug that breaks your flow, the RFC you want to try before it lands, or the plugin combination you cannot safely hand to the rest of your team. DeepSeek Harness Plus gives you a place to solve that problem in the open.
 
-You keep the upstream plugin architecture. You get focused fixes you can review, experiments you can turn on deliberately, and a growing path toward presets your team can install instead of rebuilding from chat fragments. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+You keep the upstream plugin architecture. You get focused fixes you can review, experiments you can turn on deliberately, and a path toward presets that install a ready-to-run plugin collection with its configuration already in place. Your team should not have to rebuild that setup from chat fragments. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
 <a id="run"></a>
 
@@ -54,7 +54,7 @@ Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, neve
 | Get past a bug that stops real work | A small patch with a clear scope, evidence, and upstream relationship. |
 | Try an upstream idea without betting your whole setup on it | A bounded implementation you can inspect, test, keep, or remove. |
 | Share a plugin stack with a team | A maintained composition around routes, tools, settings, permissions, and UI contributions. |
-| Stop recreating the same setup from old conversations | A versioned preset with installation, credential, permission, and verification guidance. |
+| Stop recreating the same setup from old conversations | A ready-to-run plugin collection with the relevant configuration already assembled for you. |
 
 ## 📦 What you can use today
 
@@ -78,7 +78,7 @@ Do not install or depend on these yet. They are the work you can watch and help 
 | Multi-user runtime preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |
 
-You can read the release conditions in [PRESETS.md](PRESETS.md). A preset is not called available until you can run it, understand its permissions, install it, and verify it.
+You can read the release conditions in [PRESETS.md](PRESETS.md). A preset is not called available until it installs its working plugin collection and configuration together, makes its permissions clear, and can be verified.
 
 ## ❓ Quick answers
 
