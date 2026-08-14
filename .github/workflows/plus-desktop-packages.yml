@@ -32,7 +32,7 @@ jobs:
             script: package:mac
             artifact: apps/plus-desktop/dist/*.dmg
           - platform: macos-x64
-            runner: macos-13
+            runner: macos-15-intel
             script: package:mac:x64
             artifact: apps/plus-desktop/dist/*.dmg
           - platform: windows
