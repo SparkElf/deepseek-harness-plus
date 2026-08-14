@@ -1,4 +1,4 @@
-# Plus Desktop Installer
+# Plus Tray Manager
 
 Status: in development
 
@@ -6,32 +6,31 @@ Status: in development
 
 ## User goal
 
-You want a local Harness workspace without hand-cloning a repository, remembering a home directory, or opening a terminal to start and stop the service. The installer sets up one isolated local runtime and leaves a tray control available after the window closes.
+You use DeepSeek Harness through its Web page. The desktop application provides a one-time initial setup guide, then stays in the system tray so you can manage the local runtime without returning to a terminal.
 
-## First-release path
+## Initial setup
 
-1. Choose an empty installation directory and an existing workspace directory.
-2. Choose Code Mode, a local port, and whether the daemon starts after installation.
-3. Enter a DeepSeek API key, default model, and optional reasoning effort.
-4. The installer clones SparkElf/deepseek-harness-plus, installs locked dependencies, builds the source, writes an isolated DSH_HOME, and starts the local Web service when requested.
-5. The tray menu opens the local UI, starts or stops the service, opens the log directory, or exits the daemon.
+Before the local service exists, the installer guide asks for an empty installation folder, local port, DeepSeek API key, default model, and optional reasoning effort. It clones and builds Plus, writes those initial values into its isolated DSH_HOME, starts the service, opens the browser page, and closes the guide.
 
-The isolated DSH_HOME lives under the chosen installation directory. It prevents the Plus runtime from overwriting another local Harness installation. The API key is written only to the local runtime environment file with owner-only filesystem permissions where the platform supports them.
+![Initial setup guide](assets/plus-installer-model.png)
 
-The source-build installer currently requires Git and pnpm on the local machine. It checks both before cloning any repository and reports a missing tool in the setup window. A self-contained toolchain is deferred until the release package can validate that additional ownership.
+The guide is not a second settings center. After installation, the Web page owns model changes, credentials, presets, workspace choices, and every agent interaction. The tray manager has no menu item for those settings and does not read credential files after the initial install. Once the checkout is cloned, a later dependency or build failure leaves the tray repair action available instead of claiming installation completed.
 
-## Provider scope
+## Tray actions
 
-The first installer release configures the native deepseek-official route. It applies the selected default model and reasoning effort through the Harness settings document. A custom endpoint or OpenAI-compatible provider remains configurable through the existing Web UI after installation; the installer does not claim to import a provider configuration it cannot verify.
+- Install Plus: open the initial guide when no local runtime exists.
+- Start service: launch the configured local Web service and wait until it reports its listening URL.
+- Stop service: end the local Web service while leaving its state intact.
+- Open DeepSeek Harness: open the configured local URL in your browser.
+- Upgrade Plus: fast-forward the checkout, restore locked dependencies, build it, and restart it when it was running.
+- Repair installation: restore locked dependencies and rebuild the configured checkout.
 
-## UI contract
+The source-build installer requires Git and pnpm on the local machine. It checks both before cloning any repository and reports a missing tool in the installer guide.
 
-The installer uses the existing Harness visual language: quiet near-white surfaces, compact controls, black primary actions, muted gray structure, and a restrained blue state accent. The first window is a real setup tool, not a landing page. It has three steps: location, model, and confirmation. Every field reports its validation at the field that owns it. The confirmation screen shows the target directory, isolated home, provider route, model, port, and start behavior before any filesystem mutation begins.
+## Platforms
 
-## Acceptance
+Release targets are macOS DMG, Linux AppImage and deb, and Windows NSIS. The same guide and tray source runs on all three platforms. Each installer target must be built and verified on its matching runner before a release is published.
 
-- You can complete setup with an empty target directory, a workspace directory, a DeepSeek key, and a model id.
-- The app clones the fork into that directory, creates an isolated Harness home, and writes the selected native provider settings without modifying another Harness home.
-- You can use the tray to start, stop, open, and exit the local service after setup.
-- A failed clone, dependency install, build, settings write, or service start remains visible in the installer and leaves no claim that setup completed.
-- The generated desktop package contains the app, renderer, and daemon code required for this path.
+## Current release status
+
+The initial guide, tray manager source, and Linux AppImage/deb artifacts are implemented locally. No downloadable installer or Plus release is available yet. Windows and macOS artifacts, native desktop verification, and human PR approval are required before release.

@@ -1,18 +1,11 @@
 import { spawn } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
-
-function environmentFrom(text) {
-  return Object.fromEntries(text.split(/\r?\n/).flatMap((line) => {
-    const separator = line.indexOf('=')
-    return separator > 0 ? [[line.slice(0, separator), line.slice(separator + 1)]] : []
-  }))
-}
 
 export class HarnessDaemon {
   constructor(onStatus) {
     this.onStatus = onStatus
     this.process = undefined
     this.config = undefined
+    this.stopRequested = false
   }
 
   configure(config) {
@@ -25,15 +18,15 @@ export class HarnessDaemon {
 
   async start() {
     if (this.process !== undefined) return
-    if (this.config === undefined) throw new Error('Complete setup before starting the local service.')
-    const secrets = environmentFrom(await readFile(this.config.envPath, 'utf8'))
+    if (this.config === undefined) throw new Error('Install DeepSeek Harness Plus before starting the local service.')
     const child = spawn('pnpm', ['dsh', 'web', '--port', String(this.config.port)], {
       cwd: this.config.installPath,
-      env: { ...process.env, ...secrets, DSH_HOME: this.config.dshHome, DSH_TOOLS_MODE: this.config.mode },
+      env: { ...process.env, DSH_HOME: this.config.dshHome, DSH_TOOLS_MODE: this.config.mode },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     this.process = child
-    this.onStatus({ state: 'running', message: 'Local service is starting.' })
+    this.stopRequested = false
+    this.onStatus({ state: 'starting', message: 'Local service is starting.' })
     await new Promise((resolve, reject) => {
       let ready = false
       const timeout = setTimeout(() => {
@@ -50,10 +43,11 @@ export class HarnessDaemon {
       }
       const forward = (chunk) => {
         const message = chunk.toString().trim()
-        if (message) this.onStatus({ state: 'running', message })
+        if (message) this.onStatus({ state: 'starting', message })
         if (!ready && /https?:\/\//.test(message)) {
           ready = true
           clearTimeout(timeout)
+          this.onStatus({ state: 'running', message: 'Local service is running.' })
           resolve()
         }
       }
@@ -62,17 +56,25 @@ export class HarnessDaemon {
       child.once('error', fail)
       child.once('exit', (code, signal) => {
         this.process = undefined
+        const stoppedByUser = this.stopRequested
+        this.stopRequested = false
         if (!ready) {
           fail(new Error('The local service exited before listening: ' + (signal ?? 'exit code ' + String(code)) + '.'))
           return
         }
-        this.onStatus({ state: code === 0 ? 'stopped' : 'error', message: code === 0 ? 'Local service stopped.' : 'Local service stopped with ' + (signal ?? 'exit code ' + String(code)) + '.' })
+        this.onStatus({ state: code === 0 || stoppedByUser ? 'stopped' : 'error', message: code === 0 || stoppedByUser ? 'Local service stopped.' : 'Local service stopped with ' + (signal ?? 'exit code ' + String(code)) + '.' })
       })
     })
   }
 
-  stop() {
+  async stop() {
     if (this.process === undefined) return
-    this.process.kill('SIGTERM')
+    const child = this.process
+    if (child.exitCode !== null || child.signalCode !== null) return
+    this.stopRequested = true
+    await new Promise((resolve) => {
+      child.once('exit', resolve)
+      if (!child.kill('SIGTERM')) resolve()
+    })
   }
 }

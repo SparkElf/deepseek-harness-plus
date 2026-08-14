@@ -30,8 +30,8 @@ records:
     status: planned
     title: Desktop installation guide and tray-managed local daemon
     features:
-      - Guide an operator through installation path, DeepSeek model configuration, Code Mode, and local runtime startup.
-      - Clone an isolated Plus runtime with its own DSH_HOME and control it from the system tray.
+      - Collect installation path and initial DeepSeek model settings once, then keep the user in Harness Web while the system tray starts, stops, opens, upgrades, and repairs the local runtime.
+      - Run an isolated Plus checkout with its own DSH_HOME on macOS, Linux, and Windows.
     repositories:
       - name: SparkElf/deepseek-harness-plus
         url: https://github.com/SparkElf/deepseek-harness-plus
@@ -42,8 +42,8 @@ records:
       - INSTALLER.md
       - pnpm-workspace.yaml
     plugins: []
-    compatibility: The desktop installer source is under development; no released installer artifact or daemon package is available yet.
+    compatibility: The tray manager source is under development; no released macOS, Linux, or Windows installer artifact is available yet.
     owner: plus-desktop
     verification:
-      - Installer end-to-end workflow
-      - Tray lifecycle verification
+      - Tray lifecycle and Web open workflow
+      - macOS, Linux, and Windows package verification

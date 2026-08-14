@@ -2,13 +2,21 @@
   "name": "@deepseek-ai/dsh-plus-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "DeepSeek Harness Plus desktop installer and tray daemon",
-  "author": "SparkElf",
+  "description": "DeepSeek Harness Plus system tray manager",
+  "author": {
+    "name": "SparkElf",
+    "email": "58362707+SparkElf@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/SparkElf/deepseek-harness-plus#readme",
+  "desktopName": "deepseek-harness-plus",
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
     "dev": "electron .",
     "package:dir": "electron-builder --dir",
+    "package:linux": "electron-builder --linux",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
     "package": "electron-builder"
   },
   "build": {
@@ -16,20 +24,26 @@
     "productName": "DeepSeek Harness Plus",
     "executableName": "DeepSeekHarnessPlus",
     "electronDist": "node_modules/electron/dist",
+    "icon": "build/icon.png",
     "files": [
       "src/**/*",
       "renderer/**/*",
+      "build/icon.png",
       "package.json"
     ],
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Development"
+      "artifactName": "deepseek-harness-plus-${version}.${ext}",
+      "category": "Development",
+      "syncDesktopName": true,
+      "maintainer": "SparkElf <58362707+SparkElf@users.noreply.github.com>"
     },
     "win": {
       "target": ["nsis"]
     },
     "mac": {
-      "target": ["dmg"]
+      "target": ["dmg"],
+      "category": "public.app-category.developer-tools"
     }
   },
   "devDependencies": {
