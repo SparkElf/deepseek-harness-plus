@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek Harness Plus</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #111318;
+        --muted: #69707c;
+        --line: #d9dee7;
+        --panel: #f4f6f9;
+        --accent: #2367d1;
+        --accent-soft: #dbe9ff;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-width: 1600px;
+        min-height: 900px;
+        background: #e8edf3;
+        color: var(--ink);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: 1600px;
+        height: 900px;
+        padding: 48px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(360px, 0.85fr);
+        grid-template-rows: auto 1fr auto;
+        gap: 24px;
+      }
+
+      .topbar,
+      .footer,
+      .hero,
+      .status-panel {
+        border: 1px solid var(--line);
+        background: #fff;
+      }
+
+      .topbar {
+        grid-column: 1 / -1;
+        min-height: 72px;
+        padding: 0 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 0;
+      }
+
+      .mark {
+        width: 18px;
+        height: 18px;
+        border: 4px solid var(--ink);
+        border-radius: 50%;
+        position: relative;
+      }
+
+      .mark::after {
+        content: "";
+        position: absolute;
+        width: 7px;
+        height: 7px;
+        right: -8px;
+        bottom: -8px;
+        background: var(--accent);
+      }
+
+      .eyebrow,
+      .tiny-label {
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .hero {
+        padding: 58px 58px 48px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        min-height: 628px;
+      }
+
+      .hero h1 {
+        max-width: 790px;
+        margin: 22px 0 20px;
+        font-size: 68px;
+        line-height: 0.98;
+        letter-spacing: 0;
+        font-weight: 760;
+      }
+
+      .hero p {
+        max-width: 620px;
+        margin: 0;
+        color: #444b56;
+        font-size: 22px;
+        line-height: 1.42;
+      }
+
+      .actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 42px;
+      }
+
+      .action {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        padding: 0 18px;
+        border: 1px solid var(--ink);
+        color: #fff;
+        background: var(--ink);
+        font-size: 15px;
+        font-weight: 650;
+      }
+
+      .action.secondary {
+        border-color: var(--line);
+        color: var(--ink);
+        background: #fff;
+      }
+
+      .track {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border-top: 1px solid var(--line);
+        margin-top: 54px;
+      }
+
+      .track-item {
+        padding: 20px 20px 0 0;
+      }
+
+      .track-item + .track-item {
+        padding-left: 20px;
+        border-left: 1px solid var(--line);
+      }
+
+      .track-item strong {
+        display: block;
+        margin: 8px 0 6px;
+        font-size: 17px;
+      }
+
+      .track-item span {
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.35;
+      }
+
+      .status-panel {
+        padding: 30px;
+        min-height: 628px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .status-panel h2 {
+        margin: 10px 0 28px;
+        font-size: 30px;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .status-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 1px solid var(--line);
+      }
+
+      .status-list li {
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 15px;
+        font-weight: 650;
+      }
+
+      .status-copy {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.4;
+      }
+
+      .badge {
+        flex: none;
+        padding: 5px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #17498f;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .badge.planned {
+        background: var(--panel);
+        color: #5b6470;
+      }
+
+      .note {
+        margin-top: auto;
+        padding: 18px;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        color: #404754;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .footer {
+        grid-column: 1 / -1;
+        min-height: 104px;
+        padding: 0 26px;
+        display: grid;
+        grid-template-columns: 1.65fr 1fr;
+        align-items: center;
+        gap: 24px;
+      }
+
+      .footer-copy {
+        font-size: 17px;
+        font-weight: 650;
+      }
+
+      .footer-copy span {
+        color: var(--accent);
+      }
+
+      .footer-meta {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="topbar">
+        <div class="brand"><span class="mark" aria-hidden="true"></span>DeepSeek Harness Plus</div>
+        <div class="eyebrow">Independent community fork</div>
+      </header>
+
+      <section class="hero" aria-labelledby="intro-title">
+        <div>
+          <div class="eyebrow">For the work that cannot wait</div>
+          <h1 id="intro-title">Your agent flow should not stop at almost.</h1>
+          <p>You can follow upstream and still fix the issue blocking your team, try the idea you need next, and share a setup that is safe to repeat.</p>
+          <div class="actions" aria-label="Repository actions">
+            <span class="action">Run from source</span>
+            <span class="action secondary">Follow the first release</span>
+          </div>
+        </div>
+        <div class="track" aria-label="Community tracks">
+          <div class="track-item">
+            <div class="tiny-label">01</div>
+            <strong>Fix with context</strong>
+            <span>Small patches with their upstream relationship and verification recorded.</span>
+          </div>
+          <div class="track-item">
+            <div class="tiny-label">02</div>
+            <strong>Try deliberately</strong>
+            <span>Early RFC work that you can inspect, test, keep, or remove.</span>
+          </div>
+          <div class="track-item">
+            <div class="tiny-label">03</div>
+            <strong>Share reliably</strong>
+            <span>Plugin composition and presets maintained for a team, not a single chat.</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="status-panel" aria-labelledby="release-title">
+        <div class="eyebrow">First release</div>
+        <h2 id="release-title">Built in public. Honest about what is not here yet.</h2>
+        <ul class="status-list">
+          <li>
+            <div class="status-row"><span>UI-selected model inheritance</span><span class="badge">In development</span></div>
+            <p class="status-copy">Subagents follow the model selected in the parent UI session.</p>
+          </li>
+          <li>
+            <div class="status-row"><span>Desktop installer and tray daemon</span><span class="badge">In development</span></div>
+            <p class="status-copy">A guided local setup with start, stop, and open controls.</p>
+          </li>
+          <li>
+            <div class="status-row"><span>Community preset catalog</span><span class="badge planned">Not implemented</span></div>
+            <p class="status-copy">Code delivery, community operations, multi-user runtime, and intelligent data Q&A.</p>
+          </li>
+        </ul>
+        <div class="note">You only get a preset when you can install it, understand its permissions, and verify the result.</div>
+      </aside>
+
+      <footer class="footer">
+        <div class="footer-copy">Quick start: <span>clone, choose a provider, start a session.</span></div>
+        <div class="footer-meta">You can run the source today. The desktop installer and curated presets are clearly marked until they are ready.</div>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -3,8 +3,8 @@
 [中文](README.zh.md) · [What is planned](PRESETS.md) · [Contributing](CONTRIBUTING.md)
 
 <p align="center">
-  <strong>The community build of DeepSeek Harness.</strong><br>
-  <em>Fix the sharp edges. Try the next idea. Keep shipping.</em>
+  <strong>You should not have to wait on somebody else to fix the last thing blocking your agent.</strong><br>
+  <em>Patch the sharp edge. Try the next idea. Keep your work moving.</em>
 </p>
 
 <p align="center">
@@ -15,18 +15,26 @@
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
 <p align="center">
-  <img src="docs/user/guide/providers-models-page.png" alt="DeepSeek Harness model provider settings" width="960">
+  <img src="assets/plus-overview.png" alt="DeepSeek Harness Plus introduction board: fix blockers, try RFCs early, share maintained plugin compositions" width="100%">
 </p>
 
-If DeepSeek Harness is almost the tool your team needs, this is the place to close the gap. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) for developers who need a bug fixed, an RFC tried, or a workflow made repeatable before an upstream release arrives.
+You already have DeepSeek Harness doing useful work. Then you find the bug that breaks your flow, the RFC you want to try before it lands, or the plugin combination you cannot safely hand to the rest of your team. DeepSeek Harness Plus gives you a place to solve that problem in the open.
 
-It keeps the upstream plugin architecture intact, then gives the community a public place to review the changes that matter in daily use: fixes you can trace, experiments you can switch on deliberately, and plugin compositions you can trust in a shared setup.
+You keep the upstream plugin architecture. You get focused fixes you can review, experiments you can turn on deliberately, and a growing path toward presets your team can install instead of rebuilding from chat fragments. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-## Run
+<a id="run"></a>
 
-### Run from source
+## 🚀 Quick start
 
-Requires Node.js 22.19+ or 24+, Corepack, and pnpm.
+<a id="run-from-source"></a>
+
+### Run it in three steps
+
+1. Clone the repository and install the locked dependencies.
+2. Build the source and start the local Web UI.
+3. Open the UI, choose your model provider, and start a session.
+
+You need Node.js 22.19+ or 24+, Corepack, and pnpm.
 
 ```sh
 git clone https://github.com/SparkElf/deepseek-harness-plus.git
@@ -37,54 +45,68 @@ pnpm run build
 pnpm dsh web
 ```
 
-Open `http://127.0.0.1:3080`, choose a provider, and start a session. Keep credentials in local configuration, never in Git.
+Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, never in Git.
 
-## Why Plus exists
+## 💡 This helps you when...
 
-| When you need... | Plus is here to provide... |
+| You are trying to... | You need... |
 | --- | --- |
-| A bug fix you can actually deploy | A focused patch with its scope, verification evidence, and upstream relationship recorded. |
-| An upstream idea worth trying early | A bounded RFC implementation that can be discussed, tested, and either carried forward or removed. |
-| A plugin stack your team can share | Maintained composition around routes, tools, settings, permissions, and UI contributions. |
-| A setup that is more than a chat transcript | Versioned presets with installation, credential, permission, and verification guidance. |
+| Get past a bug that stops real work | A small patch with a clear scope, evidence, and upstream relationship. |
+| Try an upstream idea without betting your whole setup on it | A bounded implementation you can inspect, test, keep, or remove. |
+| Share a plugin stack with a team | A maintained composition around routes, tools, settings, permissions, and UI contributions. |
+| Stop recreating the same setup from old conversations | A versioned preset with installation, credential, permission, and verification guidance. |
 
-## What you can use today
+## 📦 What you can use today
 
-- The full upstream Harness source, with a source-based Web UI workflow.
-- A public upstream-tracking fork and a maintained `upstream` remote.
-- Issues, Discussions, pull requests, security reporting, and a community review path.
-- A home for reviewed patches, community plugins, preset proposals, and deployment work.
+- You can run the full upstream Harness source and Web UI from this repository.
+- You can follow the upstream through the maintained `upstream` remote.
+- You can open Issues, start Discussions, send pull requests, and report security problems privately.
+- You can propose patches, plugins, presets, and deployment work in a repository built to review them.
 
-## Not shipped yet
+<a id="not-shipped-yet"></a>
 
-The items below are being built in public. They are not included in the current checkout or installer.
+## 🧭 Not shipped yet
+
+Do not install or depend on these yet. They are the work you can watch and help shape:
 
 | Planned work | Status |
 | --- | --- |
-| UI-selected model inheritance for subagents | In development |
+| Subagents follow the model you selected in the UI | In development |
 | Desktop installer and tray-managed local daemon | In development |
 | Code delivery preset | Not implemented |
 | Community operations preset | Not implemented |
 | Multi-user runtime preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |
 
-The full scope and release requirements live in [PRESETS.md](PRESETS.md). A preset is not called available until it has a runnable configuration, defined permissions, an install path, and verification evidence.
+You can read the release conditions in [PRESETS.md](PRESETS.md). A preset is not called available until you can run it, understand its permissions, install it, and verify it.
 
-## Build with us
+## ❓ Quick answers
 
-Found a failure that blocks real work? Open an Issue. Have a workflow your team repeats every week? Start a Discussion. Have a focused improvement with evidence behind it? Send a pull request.
+**Is this an official DeepSeek project?** No. You are using an independent community fork that follows the upstream source and license.
 
-We welcome bug fixes, early RFC implementations, community plugins, presets, deployment assets, documentation, and review. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues through [SECURITY.md](SECURITY.md), not a public issue.
+**Can you use it today?** Yes, from source. The desktop installer is still in development, so there is no packaged installer to download yet.
 
-## Keep close to upstream
+**Can you install a preset today?** No. Code delivery, community operations, multi-user runtime, and intelligent data Q&A are all explicitly not implemented yet.
+
+**Can you expose this directly to the public internet for a team?** No. The multi-user deployment preset is not available. Keep your local Harness runtime private.
+
+**Will your local changes disappear during an upstream sync?** They should not be mysterious. Supported changes are recorded with their purpose, affected files, and verification path before they become part of Plus.
+
+## 🤝 Help make it useful
+
+If you hit a failure that costs you time, open an Issue. If your team repeats a workflow, start a Discussion. If you have a focused improvement with proof behind it, send a pull request.
+
+You are welcome to contribute bug fixes, early RFC implementations, community plugins, presets, deployment assets, documentation, and review. Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Report security issues through [SECURITY.md](SECURITY.md), not a public issue.
+
+## 🔄 Stay close to upstream
 
 ```sh
 git fetch upstream
 git merge upstream/master
 ```
 
-Plus stays useful only when its patches remain understandable. Every supported divergence records what changed, why it exists, what it touches, and how it is verified.
+You should always be able to see why this fork differs. Every supported divergence records what changed, why it exists, what it touches, and how you can verify it.
 
 ## License
 
-DeepSeek Harness Plus remains available under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This is an independent community project and is not affiliated with or endorsed by DeepSeek.
+You can use DeepSeek Harness Plus under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This is an independent community project and is not affiliated with or endorsed by DeepSeek.
