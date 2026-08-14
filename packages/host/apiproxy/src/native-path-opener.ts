@@ -8,7 +8,6 @@
  * GUI. The text-editor intent never consults the browser.
  */
 
-import { release as osRelease } from 'node:os'
 import { extname } from 'node:path'
 import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-native-command'
 
@@ -90,11 +89,10 @@ function present(value: string | undefined): boolean {
   return value !== undefined && value !== ''
 }
 
-/** Distinguish WSL from desktop Linux using its process and kernel markers. */
+/** Distinguish WSL from desktop Linux using environment interop markers. */
 function isWsl(internals: PathOpenerInternals): boolean {
   const env = internals.env ?? process.env
-  if (present(env.WSL_DISTRO_NAME) || present(env.WSL_INTEROP)) return true
-  return (internals.osRelease ?? osRelease()).toLowerCase().includes('microsoft')
+  return present(env.WSL_DISTRO_NAME) || present(env.WSL_INTEROP)
 }
 
 /** Open one Windows-resolvable path through its registered desktop application. */

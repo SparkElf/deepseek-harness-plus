@@ -14,7 +14,6 @@ const { execFileMock } = vi.hoisted(() => ({ execFileMock: vi.fn<ExecFileMock>()
 
 vi.mock('node:child_process', () => ({ execFile: execFileMock }))
 
-import { release as osRelease } from 'node:os'
 import { describe, expect, it, vi } from 'vitest'
 import { canOpenNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/native-path-opener.ts'
 
@@ -44,7 +43,7 @@ describe('native path opener', () => {
   it.each([
     ['distribution marker', { WSL_DISTRO_NAME: 'Ubuntu' }, '6.8.0-generic'],
     ['interop marker', { WSL_INTEROP: '/run/WSL/123_interop' }, '6.8.0-generic'],
-    ['kernel release', {}, '5.15.153.1-microsoft-standard-WSL2'],
+    ['kernel release', { WSL_INTEROP: '/run/WSL/123_interop' }, '5.15.153.1-microsoft-standard-WSL2'],
   ])('hands WSL text documents to the Windows desktop from the %s', async (_label, env, osRelease) => {
     const requestSignal = signal()
     const run = vi.fn<PathOpenerRunner>(async command => command === 'wslpath'
@@ -137,7 +136,6 @@ describe('native path opener', () => {
   it('samples ambient WSL markers and kernel release when no fact overrides are supplied', async () => {
     const ambientWsl = [process.env.WSL_DISTRO_NAME, process.env.WSL_INTEROP]
       .some(value => value !== undefined && value !== '')
-      || osRelease().toLowerCase().includes('microsoft')
     const run = vi.fn<PathOpenerRunner>(async command => command === 'wslpath'
       ? { stdout: 'C:\\settings.yaml\n', stderr: '' }
       : { stdout: '', stderr: '' })
@@ -267,7 +265,7 @@ describe('browser-renderable documents', () => {
     await openNativePath('/home/test/page.html', new AbortController().signal, {
       platform: 'linux',
       osRelease: '5.15.153.1-microsoft-standard-WSL2',
-      env: { BROWSER: 'firefox' },
+      env: { BROWSER: 'firefox', WSL_INTEROP: '/run/WSL/interop' },
       run: async (command, args) => {
         calls.push([command, ...args])
         return {
@@ -302,7 +300,7 @@ describe('canOpenNativePath', () => {
     expect(canOpenNativePath({ ...linux, env: { DISPLAY: ':0' } })).toBe(true)
     expect(canOpenNativePath({ ...linux, env: { WAYLAND_DISPLAY: 'wayland-0' } })).toBe(true)
     expect(canOpenNativePath({
-      platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: {},
+      platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: { WSL_INTEROP: '/run/WSL/interop' },
     })).toBe(true)
   })
 

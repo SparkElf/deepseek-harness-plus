@@ -52,7 +52,7 @@ export class SettingsDocumentStore {
         return
       }
       this.store.update((state) => {
-        state.status = result.value.hasDocument ? 'ready' : 'unavailable'
+        state.status = result.value.hasDocument && result.value.canOpenDocument !== false ? 'ready' : 'unavailable'
         state.error = null
       })
     } catch (error) {

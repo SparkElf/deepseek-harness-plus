@@ -22,6 +22,7 @@ import {
   DEEPSEEK_DEFAULT_MODEL,
 } from './provider.ts'
 import type { DeepSeekSearchProviderOptions } from './provider.ts'
+import { CurrentModelSearchProvider } from './current.ts'
 
 export {
   DeepSeekSearchProvider,
@@ -33,6 +34,7 @@ export {
   DEEPSEEK_PROVIDER_ID,
 } from './provider.ts'
 export type { DeepSeekSearchLlmRequest, DeepSeekSearchProviderOptions } from './provider.ts'
+export { CurrentModelSearchProvider, CURRENT_MODEL_PROVIDER_ID } from './current.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-deepseek'
@@ -44,6 +46,8 @@ const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
 
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
 export interface Config {
+  /** Search route selected by the composition. */
+  selection?: 'deepseek' | 'current-model'
   /** Literal DeepSeek API key; prefer {@link apiKeyEnv} so no secret enters configuration files. */
   apiKey?: string
   /** Credential reference resolved for each search; defaults to `DEEPSEEK_API_KEY`. */
@@ -61,6 +65,7 @@ export interface Config {
 }
 
 export const Config: z<Config> = z.object({
+  selection: z.union(['deepseek', 'current-model'] as const).default('deepseek'),
   apiKey: z.string().role('secret'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   // Declared here rather than only at the use site: a configuration surface
@@ -134,5 +139,7 @@ export function apply(ctx: Context, config: Config): void {
     // section per search, so a committed change needs no re-registration.
     onChange: () => {},
   })
-  ctx.web.registerSearchProvider(new DeepSeekSearchProvider(() => resolveOptions(ctx, current())))
+  ctx.web.registerSearchProvider(config.selection === 'current-model'
+    ? new CurrentModelSearchProvider(ctx)
+    : new DeepSeekSearchProvider(() => resolveOptions(ctx, current())))
 }
