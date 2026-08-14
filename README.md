@@ -3,8 +3,8 @@
 [中文](README.zh.md) · [What is planned](PRESETS.md) · [Contributing](CONTRIBUTING.md)
 
 <p align="center">
-  <strong>You should not have to wait on somebody else to fix the last thing blocking your agent.</strong><br>
-  <em>Patch the sharp edge. Try the next idea. Keep your work moving.</em>
+  <strong>Fix the blocker. Try the next feature. Make Harness fit the work in front of you.</strong><br>
+  <em>DeepSeek Harness Plus is the community layer that moves useful Harness improvements into your hands sooner.</em>
 </p>
 
 <p align="center">
@@ -15,16 +15,34 @@
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
 <p align="center">
-  <img src="assets/plus-overview.png" alt="DeepSeek Harness Plus introduction board: fix blockers, try RFCs early, share maintained plugin compositions" width="100%">
+  <img src="assets/plus-overview.png" alt="DeepSeek Harness Plus: fix blockers sooner, try new features early, and use community extensions and presets" width="100%">
 </p>
 
-You already have DeepSeek Harness doing useful work. Then you find the bug that breaks your flow, the RFC you want to try before it lands, or the plugin combination you cannot safely hand to the rest of your team. DeepSeek Harness Plus gives you a place to solve that problem in the open.
+## What Plus does for you
 
-You keep the upstream plugin architecture. You get focused fixes you can review, experiments you can turn on deliberately, and a path toward presets that install a ready-to-run plugin collection with its configuration already in place. Your team should not have to rebuild that setup from chat fragments. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
+You use Plus when Harness is already useful, but the official release cycle has not caught up with what your work needs next. A bug is blocking a real task. A feature is still being discussed upstream. Or your team needs a setup built for a specific job rather than another blank configuration.
+
+### Fix blockers sooner
+
+When DeepSeek has not released a fix for a problem that stops your work, Plus can carry a focused repair first. Every supported repair records its purpose, relationship to upstream, affected files, and verification evidence, so you know what changed before you depend on it.
+
+### Try new features early
+
+When an upstream capability is still under RFC discussion, Plus can turn it into an optional experimental feature. You can inspect it, test it on real work, keep it if it helps, or remove it without confusing an early idea with an official release.
+
+### Use extensions and themed presets
+
+Plus is where community plugins and user-facing extensions can be delivered alongside task-focused presets. A preset means a versioned collection of Harness plugins and their required configuration, ready to select and use rather than manually assemble.
+
+Planned preset themes include intelligent data Q&A, multi-user runtime, code development, AIGC, and community operations. These are product directions, not current downloads: no preset is installable until its plugin collection, configuration, permissions, and verification instructions ship together.
+
+## Why you can trust the extra layer
+
+Plus remains close to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It keeps upstream changes visible and records every supported community difference with an owner, scope, compatibility note, and verification path. That lets you use faster fixes and early functionality without turning your environment into an unexplained patch collection.
 
 <a id="run"></a>
 
-## 🚀 Quick start
+## Run from source today
 
 <a id="run-from-source"></a>
 
@@ -47,48 +65,42 @@ pnpm dsh web
 
 Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, never in Git.
 
-## 💡 This helps you when...
-
-| You are trying to... | You need... |
-| --- | --- |
-| Get past a bug that stops real work | A small patch with a clear scope, evidence, and upstream relationship. |
-| Try an upstream idea without betting your whole setup on it | A bounded implementation you can inspect, test, keep, or remove. |
-| Share a plugin stack with a team | A maintained composition around routes, tools, settings, permissions, and UI contributions. |
-| Stop recreating the same setup from old conversations | A ready-to-run plugin collection with the relevant configuration already assembled for you. |
-
 ## 📦 What you can use today
 
 - You can run the full upstream Harness source and Web UI from this repository.
 - You can follow the upstream through the maintained `upstream` remote.
-- You can open Issues, start Discussions, send pull requests, and report security problems privately.
-- You can propose patches, plugins, presets, and deployment work in a repository built to review them.
+- You can use the subagent model-inheritance repair in the Plus source branch, with focused regression coverage.
+- You can report a blocker, propose an experimental feature, or contribute an extension, preset, documentation, or deployment improvement in the open.
 
 <a id="not-shipped-yet"></a>
 
-## 🧭 Not shipped yet
+## What is still being built
 
-Do not install or depend on these yet. They are the work you can watch and help shape:
+Do not depend on the following until a release marks them available:
 
-| Planned work | Status |
+| Capability | Status |
 | --- | --- |
-| Subagents follow the model you selected in the UI | In development |
-| Desktop installer and tray-managed local daemon | In development |
-| Code delivery preset | Not implemented |
-| Community operations preset | Not implemented |
-| Multi-user runtime preset | Not implemented |
+| Fast fixes and early experimental features | Ongoing community work; each item needs its own evidence before use |
+| Desktop setup guide and tray-managed local runtime | Source implementation exists; macOS, Linux, and Windows packages are not published |
+| Code development preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |
+| Multi-user runtime preset | Not implemented |
+| AIGC preset | Not implemented |
+| Community operations preset | Not implemented |
 
-You can read the release conditions in [PRESETS.md](PRESETS.md). A preset is not called available until it installs its working plugin collection and configuration together, makes its permissions clear, and can be verified.
+Read [PRESETS.md](PRESETS.md) for the preset release rule. Keep a local runtime private: no multi-user or public-internet deployment preset is available yet.
 
 ## ❓ Quick answers
 
-**Is this an official DeepSeek project?** No. You are using an independent community fork that follows the upstream source and license.
+**Is this an official DeepSeek project?** No. It is an independent community project that tracks the upstream source and follows its license.
 
-**Can you use it today?** Yes, from source. The desktop installer is still in development, so there is no packaged installer to download yet.
+**Why not wait for the official release?** You may choose a Plus repair or experimental feature when it solves an immediate need. Plus keeps the difference explicit, reviewed, and verifiable instead of hiding it in a private patch.
 
-**Can you install a preset today?** No. Code delivery, community operations, multi-user runtime, and intelligent data Q&A are all explicitly not implemented yet.
+**Can you install a preset today?** No. A theme is only called a preset when its plugins and configuration install together, permissions are clear, and the result has verification evidence.
 
-**Can you expose this directly to the public internet for a team?** No. The multi-user deployment preset is not available. Keep your local Harness runtime private.
+**Can you download the desktop installer today?** No. The guided setup and tray manager source are in development; there are no published macOS, Linux, or Windows installers yet.
+
+**Can you expose this directly to the public internet for a team?** No. The multi-user runtime preset is not available. Keep your current Harness runtime private.
 
 **Will your local changes disappear during an upstream sync?** They should not be mysterious. Supported changes are recorded with their purpose, affected files, and verification path before they become part of Plus.
 
@@ -105,7 +117,7 @@ git fetch upstream
 git merge upstream/master
 ```
 
-You should always be able to see why this fork differs. Every supported divergence records what changed, why it exists, what it touches, and how you can verify it.
+You should always be able to see why Plus differs from upstream. Every supported community difference records what changed, why it exists, what it touches, and how you can verify it.
 
 ## License
 
