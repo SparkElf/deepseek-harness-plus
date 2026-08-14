@@ -21,7 +21,7 @@ import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import UserQuestionService from '@deepseek-ai/dsh-user-questions'
 import type { RpcRequest } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
 import { RpcId } from '@deepseek-ai/dsh-host-apiproxy/api/rpc'
-import { createApiProxy } from '../src/api-proxy.ts'
+import { createApiProxy, resolveSubagentModelSelection } from '../src/api-proxy.ts'
 
 let nextRpc = 1
 function request<P>(payload: P): RpcRequest<P> {
@@ -305,6 +305,27 @@ describe('Web session model selection', () => {
       },
     ])
     await ctx.fiber.dispose()
+  })
+
+  it("uses a new subagent's resolved route before the global model default", () => {
+    const child = {
+      session: { header: { origin: 'subagent' } },
+      options: {
+        provider: 'child-provider',
+        model: 'child-model',
+        reasoningEffort: ReasoningEffortId('max'),
+      },
+    } as unknown as Agent
+
+    expect(resolveSubagentModelSelection(child)).toEqual({
+      provider: 'child-provider',
+      model: 'child-model',
+      reasoningEffort: 'max',
+    })
+    expect(resolveSubagentModelSelection({
+      ...child,
+      session: { header: {} },
+    } as unknown as Agent)).toBeUndefined()
   })
 
   it('accepts an advisory-unlisted model, rejects an unavailable provider, and switches only after the next assembly', async () => {

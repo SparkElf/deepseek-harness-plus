@@ -1,0 +1,27 @@
+version: 1
+records:
+  - id: core-subagent-ui-model-inheritance
+    status: active
+    title: Inherit the active parent UI model selection in child agents
+    features:
+      - Child agents use the provider, model, and model limits active in the parent session.
+    repositories:
+      - name: deepseek-ai/deepseek-harness
+        url: https://github.com/deepseek-ai/deepseek-harness
+        baseline: 47f943859bef60e4160492346772ded9b24f765a
+    files:
+      - packages/core/agent/src/runtime-types.ts
+      - packages/host/apiproxy/src/api-proxy.ts
+      - packages/host/apiproxy/tests/api-proxy-models.spec.ts
+      - packages/subagent/subagent-in-process-driver/tests/inheritance.spec.ts
+      - packages/subagent/subagent/src/child-agent.ts
+    plugins:
+      - package: '@deepseek-ai/dsh-subagent'
+        role: child-agent consumer
+      - package: '@deepseek-ai/dsh-host-apiproxy'
+        role: session model-selection provider
+    compatibility: Parent session selection takes precedence over the global default for newly created child agents.
+    owner: plus-runtime
+    verification:
+      - Focused subagent regression coverage
+      - Session-level UI model-selection reproduction

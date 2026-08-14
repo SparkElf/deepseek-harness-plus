@@ -1098,6 +1098,25 @@ function changedWorkspaceView(workspaceId: string, value: unknown): WorkspaceVie
 }
 
 /**
+ * Resolve the creation route captured for a child whose session has not yet
+ * logged its own model request.
+ * @param agent - The live child candidate.
+ * @returns the child route, or undefined for ordinary sessions and incomplete options.
+ */
+export function resolveSubagentModelSelection(agent: Agent): ModelSelection | undefined {
+  if (agent.session.header.origin !== 'subagent'
+    || agent.options.provider === undefined
+    || agent.options.model === undefined) return undefined
+  return {
+    provider: agent.options.provider,
+    model: agent.options.model,
+    ...agent.options.reasoningEffort === undefined
+      ? {}
+      : { reasoningEffort: agent.options.reasoningEffort },
+  }
+}
+
+/**
  * Implement ApiProxy over a composed host context.
  * @param ctx - a context with the Host spine and Workspace registry mounted.
  * @param defaults - host routing and project-directory defaults.
@@ -1144,12 +1163,12 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
    *
    * Precedence, resolved on EVERY read rather than seeded once: a selection
    * made in this process, else the session's own latest logged request/header,
-   * else the live Agent default. Re-reading keeps the two tiers exact in both
-   * directions: a session with a recorded request derives its selection from
-   * its log, while a blank session (New Session reuses one rather than minting
-   * another) reads any default saved after it was created. There is no create-time
-   * per-session override tier on this wire — if one returns (a create-options
-   * contribution), it must fold in between the selection and the log.
+   * else a subagent's resolved creation route, else the live Agent default.
+   * Re-reading keeps ordinary blank sessions dynamic while a child starts under
+   * the route captured from its delegating parent. There is no create-time
+   * per-session override tier on the ordinary Web wire — if one returns
+   * (a create-options contribution), it must fold in between the selection and
+   * the log.
    */
   function selectionFor(agent: Agent): WebModelSelectionRef {
     const installed = selections.get(agent)
@@ -1161,14 +1180,16 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
         // Incrementally folded by the session, so a per-step read costs
         // O(new events) rather than a rescan.
         const logged = agent.session.requestHeader()?.config
-        if (logged === undefined) return defaults.defaultModelSelection()
-        return {
-          provider: logged.provider,
-          model: logged.model,
-          ...logged.reasoningEffort === undefined
-            ? {}
-            : { reasoningEffort: logged.reasoningEffort },
+        if (logged !== undefined) {
+          return {
+            provider: logged.provider,
+            model: logged.model,
+            ...logged.reasoningEffort === undefined
+              ? {}
+              : { reasoningEffort: logged.reasoningEffort },
+          }
         }
+        return resolveSubagentModelSelection(agent) ?? defaults.defaultModelSelection()
       },
       set current(next: ModelSelection) {
         picked = next

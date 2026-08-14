@@ -1,13 +1,49 @@
-<!-- 写 Fixes #NN 表示解决并自动关闭；写 Related to #NN 仅关联。 -->
-<!-- 进入评审的非 Draft 人类 PR 至少引用一个同仓库 Issue。 -->
-<!-- 解决型 PR 与 Issue 同步 Priority；解决多个 Issue 时取最高值。 -->
+<!-- Use Fixes #NN to close an issue. Use Related to #NN to associate without closing. -->
+<!-- Do not include credentials, customer data, private workspaces, or hidden model prompts. -->
 
-关联 Issue：
+## Product design
 
-<details>
-<summary>变更与验证</summary>
+- User and problem:
+- Current availability and release claim:
+- Observable result and recovery path:
 
-- 变更：
-- 验证：
+## Architecture
 
-</details>
+- Owning packages and plugin composition:
+- Permission, credential, and persistence ownership:
+- Conflict and compatibility considerations:
+
+## Implementation
+
+- Changed behavior:
+- Deliberate exclusions:
+
+## Code review
+
+- Findings and resolutions:
+- Human reviewer:
+
+## Test governance
+
+- Required user-path or metadata evidence:
+- Commands selected:
+
+## Verification
+
+- Commands run and outcomes:
+- Residual risk:
+
+## AI committee review
+
+- Skills followed: product-design, architecture-planning, implementation, code-review, test-governance, verification
+- AI review evidence:
+
+## Diff records
+
+- Core record: none | `diffs/core/registry.yaml#<id>`
+- Community record: none | `diffs/community/registry.yaml#<id>`
+- Composition record: none | `presets/compositions/registry.yaml#<id>`
+
+## Related issue
+
+- Fixes #NN | Related to #NN
