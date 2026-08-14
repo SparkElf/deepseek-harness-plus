@@ -23,19 +23,16 @@ jobs:
         include:
           - platform: linux
             runner: ubuntu-24.04
-            shell: bash
             script: package:linux
             artifact: |
               apps/plus-desktop/dist/*.AppImage
               apps/plus-desktop/dist/*.deb
           - platform: macos
             runner: macos-15
-            shell: bash
             script: package:mac
             artifact: apps/plus-desktop/dist/*.dmg
           - platform: windows
             runner: windows-2025
-            shell: pwsh
             script: package:win
             artifact: apps/plus-desktop/dist/*.exe
     runs-on: ${{ matrix.runner }}
@@ -53,7 +50,6 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Package
-        shell: ${{ matrix.shell }}
         run: pnpm --filter @deepseek-ai/dsh-plus-desktop run ${{ matrix.script }}
       - uses: actions/upload-artifact@v4
         with:
