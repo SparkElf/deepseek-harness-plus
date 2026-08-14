@@ -42,7 +42,7 @@ records:
       - INSTALLER.md
       - pnpm-workspace.yaml
     plugins: []
-    compatibility: The tray manager source is under development; no released Linux or Windows installer artifact is available yet, and macOS packaging is deferred pending signing and notarization.
+    compatibility: Linux and Windows installer artifacts are publicly released as Plus 0.1.0; macOS packaging is deferred pending signing and notarization.
     owner: plus-desktop
     verification:
       - Tray lifecycle and Web open workflow
