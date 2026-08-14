@@ -1,0 +1,49 @@
+version: 1
+records:
+  - id: community-governance-and-composition
+    status: active
+    title: AI PR governance, diff protocol, and plugin composition registry
+    features:
+      - Require six-skill evidence and human code-owner review for Plus pull requests.
+      - Track core and community divergences separately.
+      - Detect duplicate active plugin claims before review.
+    repositories:
+      - name: SparkElf/deepseek-harness-plus
+        url: https://github.com/SparkElf/deepseek-harness-plus
+        baseline: 70688b1
+    files:
+      - GOVERNANCE.md
+      - DIFFS.md
+      - diffs/core/registry.yaml
+      - diffs/community/registry.yaml
+      - presets/compositions/registry.yaml
+      - scripts/verify-plus-governance.ts
+      - .github/pull_request_template.md
+      - .github/workflows/plus-governance.yml
+      - .github/CODEOWNERS
+    plugins: []
+    compatibility: The governance protocol adds review evidence and does not alter Harness runtime behavior.
+    owner: plus-community
+    verification:
+      - pnpm run verify:plus-governance
+  - id: community-desktop-installer
+    status: planned
+    title: Desktop installation guide and tray-managed local daemon
+    features:
+      - Collect installation path and initial DeepSeek model settings once, then keep the user in Harness Web while the system tray starts, stops, opens, upgrades, and repairs the local runtime.
+      - Run an isolated Plus checkout with its own DSH_HOME on Linux and Windows; defer public macOS packaging until signing and notarization are configured.
+    repositories:
+      - name: SparkElf/deepseek-harness-plus
+        url: https://github.com/SparkElf/deepseek-harness-plus
+        baseline: 70688b1
+    files:
+      - apps/plus-desktop/**
+      - assets/plus-installer-model.png
+      - INSTALLER.md
+      - pnpm-workspace.yaml
+    plugins: []
+    compatibility: The tray manager source is under development; no released Linux or Windows installer artifact is available yet, and macOS packaging is deferred pending signing and notarization.
+    owner: plus-desktop
+    verification:
+      - Tray lifecycle and Web open workflow
+      - Linux and Windows package verification

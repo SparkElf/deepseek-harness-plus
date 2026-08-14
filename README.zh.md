@@ -3,8 +3,8 @@
 [English](README.md) · [规划中的内容](PRESETS.md) · [参与贡献](CONTRIBUTING.md)
 
 <p align="center">
-  <strong>DeepSeek Harness 的社区增强版。</strong><br>
-  <em>修好关键问题，尝鲜下一步，让 agent 持续交付。</em>
+  <strong>阻塞问题先修好，新功能先用上，让 Harness 更适配眼前的工作。✨</strong><br>
+  <em>DeepSeek Harness Plus，帮你更早用上真正有用的社区增强。</em>
 </p>
 
 <p align="center">
@@ -15,20 +15,46 @@
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
 <p align="center">
-  <img src="docs/user/guide/providers-models-page.png" alt="DeepSeek Harness 模型提供方设置" width="960">
+  <img src="assets/plus-hero.png" alt="DeepSeek Harness Plus 海报：修好阻塞问题、探索新能力、组合主题工具" width="100%">
 </p>
 
-当 DeepSeek Harness 已经接近你团队需要的工具，Plus 就是补齐最后一段路的地方。它是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的独立社区 fork，面向需要在上游发布前修一个问题、试一个 RFC，或把一套工作流沉淀为可重复配置的开发者。
+> 💡 **一句话说清 Plus：** 卡住了先修，想尝鲜先试，换个任务就带上一套更合适的能力。
 
-它保留上游插件架构，同时给社区一个公开的地方审查日常真正重要的变化：可追溯的修复、可明确启用的实验，以及能在团队环境中放心使用的插件编排。
+## ✨ Plus 能为你做什么
+
+Harness 明明已经很好用，偏偏就差最后一步。可能一个缺陷卡住了真实工作，可能你想要的能力还在上游讨论，也可能团队不想再从空白配置重搭一遍。别急，这正是 Plus 想帮你解决的事。
+
+### 🚑 阻塞问题更快修好
+
+会话、模型或工具出了关键问题，不该让你的工作停在原地。DeepSeek 还没发布修复时，Plus 会先带来范围明确的修复，让你清楚知道改了什么、能不能放心用。
+
+### 🧪 新功能抢先体验
+
+好点子不用等到过时才试。上游能力还在 RFC 讨论时，Plus 会把它做成可选的实验性功能，先放进你的真实工作流。好用就留下，不适合就关掉，轻松尝鲜不被绑住。
+
+### 🧩 扩展和主题预设直接可用
+
+Plus 是社区插件和面向用户扩展能力的集合地，也会带来围绕具体任务的预设。预设是一套带版本的 Harness 插件和相关配置，选中后就能用，不需要再手动一项项拼。
+
+智能问数、多用户运行时、代码开发、AIGC 和社区运营都是规划中的主题。它们不是现成下载：只有插件集合、相关配置、权限说明和验证说明同时到位，才会成为可安装预设。
+
+## 🛡️ 为什么可以放心用 Plus
+
+Plus 会持续跟进 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，让你知道一个增强从哪里来、会怎样影响你的工作、有没有被认真检查过。你可以用上额外能力，也不用把 Harness 环境变成一堆来路不明的补丁。
 
 <a id="run"></a>
 
-## 运行
+## 🚀 从源码运行
 
-### 从源码运行
+<a id="run-from-source"></a>
 
-需要 Node.js 22.19+ 或 24+、Corepack 和 pnpm。
+### 三步跑起来
+
+1. 克隆仓库并安装锁定版本的依赖。
+2. 构建源码，启动本地 Web UI。
+3. 打开页面，配置模型提供方，开始第一个会话。
+
+你需要 Node.js 22.19+ 或 24+、Corepack 和 pnpm。
 
 ```sh
 git clone https://github.com/SparkElf/deepseek-harness-plus.git
@@ -39,55 +65,61 @@ pnpm run build
 pnpm dsh web
 ```
 
-打开 `http://127.0.0.1:3080`，选择模型提供方后即可开始会话。凭据应保存在本地配置中，不能提交到 Git。
+浏览器打开 `http://127.0.0.1:3080` 即可。模型凭据保存在本地配置里，不要提交到 Git。
 
-## Plus 为什么存在
+## ✅ 今天可以用什么
 
-| 当你需要... | Plus 希望提供... |
-| --- | --- |
-| 一个可以真正部署的缺陷修复 | 带范围、验证证据和上游关系记录的聚焦补丁。 |
-| 提前试用一个值得关注的上游想法 | 边界清楚的 RFC 实现，可以讨论、测试，并决定延续或移除。 |
-| 能在团队里共享的插件组合 | 围绕路由、工具、设置、权限和 UI 贡献维护的编排。 |
-| 不止存在于聊天记录里的团队配置 | 带安装、凭据、权限和验证说明的版本化预设。 |
-
-## 今天可以使用的内容
-
-- 完整上游 Harness 源码和从源码启动 Web UI 的流程。
-- 一个公开的上游同步 fork，并保留 `upstream` remote。
-- Issues、Discussions、Pull Request、安全报告和社区审查入口。
-- 用于承接审查后补丁、社区插件、预设提案和部署工作的仓库。
+- 可以直接运行完整的上游 Harness 源码和 Web UI。
+- 可以通过维护中的 `upstream` remote 持续跟进上游。
+- 可以使用 Plus 源码分支中的子智能体模型继承修复，以及对应的回归覆盖。
+- 可以公开报告阻塞问题、提出实验性功能，或贡献扩展、预设、文档和部署改进。
 
 <a id="not-shipped-yet"></a>
 
-## 暂未发布
+## 🛠️ 还在构建的能力
 
-下列内容正在公开开发，不包含在当前 checkout 或安装器中。
+以下能力在 release 明确标记为可用前，请不要依赖：
 
-| 规划工作 | 状态 |
+| 能力 | 状态 |
 | --- | --- |
-| 子智能体跟随 UI 当前模型选择 | 开发中 |
-| 桌面安装引导和托盘守护进程 | 开发中 |
-| 代码交付预设 | 暂未实现 |
-| 社区运营预设 | 暂未实现 |
-| 多用户运行时预设 | 暂未实现 |
+| 更快的修复和提前的实验性功能 | 持续社区工作；每一项都必须先具备自己的验证证据 |
+| 桌面安装引导和 tray 管理的本地 runtime | 源码已实现；Linux/Windows 安装包尚未发布，macOS 延后到配置好签名和 notarization 后再恢复 |
+| 代码开发预设 | 暂未实现 |
 | 智能问数预设 | 暂未实现 |
+| 多用户运行时预设 | 暂未实现 |
+| AIGC 预设 | 暂未实现 |
+| 社区运营预设 | 暂未实现 |
 
-完整范围和发布条件见 [PRESETS.md](PRESETS.md)。一个预设只有具备可运行配置、明确权限、安装路径和验证证据后，才会被标记为可用。
+预设发布规则见 [PRESETS.md](PRESETS.md)。当前没有可用的多用户或公网部署预设，请把本地 Harness runtime 保持在私有环境中。
 
-## 一起建设
+## 💬 常见问题
 
-遇到真正阻塞工作的失败，请创建 Issue。有团队每周都在重复的工作流，请发起 Discussion。有经过验证的聚焦改动，请提交 Pull Request。
+**这是 DeepSeek 官方项目吗？** 不是。这是一个持续跟进上游源码并遵循上游许可证的独立社区项目。
 
-我们欢迎缺陷修复、提前实现的 RFC、社区插件、预设、部署资产、文档和审查。请从 [CONTRIBUTING.md](CONTRIBUTING.md) 开始。安全问题请通过 [SECURITY.md](SECURITY.md) 报告，不要公开提交 Issue。
+**为什么不等官方发布？** 当 Plus 的修复或实验性功能正好解决你的紧急需要时，你可以选择使用它。Plus 会让差异保持明确、经过审查并可验证，而不是把它藏成私有 patch。
 
-## 紧跟上游
+**现在能安装预设吗？** 不能。只有插件和相关配置能一起安装、权限明确、结果有验证证据时，一个主题才会被称为预设。
+
+**现在能下载桌面安装器吗？** 不能。安装引导和托盘管理器源码仍在开发，Linux 和 Windows 安装器尚未发布；macOS 延后到配置好签名和 notarization 后再恢复。
+
+**能直接部署到公网给团队使用吗？** 不能。多用户运行时预设还未交付，当前应把 Harness runtime 放在私有环境中运行。
+
+**同步上游会不会把本地改动弄丢？** 不应该。准备进入 Plus 的改动会记录目的、影响文件和验证方式，避免留下无法解释的补丁。
+
+## 🤝 一起把 Plus 做出来
+
+一个问题已经浪费了你很多时间，就创建 Issue。团队总在重复同一套流程，就发起 Discussion。你已经有一个经过验证的改动，就提交 Pull Request。
+
+欢迎提交缺陷修复、实验性功能、社区插件、预设、部署资产、文档和评审意见。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全问题请通过 [SECURITY.md](SECURITY.md) 报告，不要公开提交 Issue。
+
+## 🔄 持续跟进上游
 
 ```sh
 git fetch upstream
 git merge upstream/master
 ```
 
-Plus 只有在补丁保持可理解时才有价值。每一项受支持的差异都记录改了什么、为什么存在、影响哪些部分，以及如何验证。
+你应该始终能看清 Plus 和上游之间有什么不同。每一项受支持的社区差异都会记录改了什么、为什么要改、影响哪些部分，以及如何验证。
 
 ## 许可证
 

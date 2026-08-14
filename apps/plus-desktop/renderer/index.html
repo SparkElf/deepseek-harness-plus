@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Install DeepSeek Harness Plus</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail">
+        <div class="brand"><span class="mark"></span>DeepSeek Harness Plus</div>
+        <ol class="steps">
+          <li class="active"><span>1</span><div><strong>Location</strong><small>Local runtime</small></div></li>
+          <li><span>2</span><div><strong>Model</strong><small>Initial default</small></div></li>
+          <li><span>3</span><div><strong>Install</strong><small>Review and start</small></div></li>
+        </ol>
+      </aside>
+      <section class="content">
+        <header><p class="eyebrow">Initial setup</p><h1 id="title">Choose a local installation</h1></header>
+        <form novalidate>
+          <section class="panel active" data-step="0">
+            <p class="intro">Choose an empty folder for the Plus runtime. Its local state stays inside this installation.</p>
+            <label>Installation folder<input id="installPath" required placeholder="/Users/you/DeepSeekHarnessPlus"></label>
+            <button class="path-button" type="button" id="chooseDirectory">Choose folder</button>
+            <label>Local port<input id="port" required inputmode="numeric" value="3080"></label>
+          </section>
+          <section class="panel" data-step="1">
+            <p class="intro">Set the initial DeepSeek route. After installation, continue managing models and credentials from the Harness Web page.</p>
+            <div class="provider"><span>DeepSeek official</span><small>deepseek-official</small></div>
+            <label>DeepSeek API key<input id="apiKey" required type="password" autocomplete="off" placeholder="sk-..."></label>
+            <label>Default model<input id="model" required value="deepseek-chat"></label>
+            <label>Reasoning effort<select id="reasoningEffort"><option value="">Provider default</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="max">Max</option></select></label>
+          </section>
+          <section class="panel" data-step="2">
+            <p class="intro">Review the initial runtime before Plus writes files and opens the browser.</p>
+            <dl id="summary"></dl>
+            <div class="notice">The tray manager will remain available for start, stop, open, upgrade, and repair. Everyday configuration stays on the Web page.</div>
+          </section>
+          <p id="error" class="error" role="alert"></p>
+          <div id="progress" class="progress" hidden><span class="spinner"></span><span id="progressText">Preparing installation...</span></div>
+          <footer><button id="back" type="button" class="secondary" hidden>Back</button><span></span><button id="next" type="button" class="primary">Continue</button></footer>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

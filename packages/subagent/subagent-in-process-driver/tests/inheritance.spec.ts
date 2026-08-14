@@ -12,7 +12,7 @@ import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 import SandboxedFileSystem from '@deepseek-ai/dsh-fs-sandbox'
-import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+import { ReasoningEffortId, type ContentBlock } from '@deepseek-ai/dsh-llm'
 import SandboxPolicyService, { setSandboxMode } from '@deepseek-ai/dsh-sandbox-policy'
 import { SessionId, type SessionEvent } from '@deepseek-ai/dsh-session'
 import * as ToolFs from '@deepseek-ai/dsh-tool-fs'
@@ -205,6 +205,36 @@ describe('in-process policy inheritance', () => {
         { seq: 0, data: { policy: 'never', source: 'delegation' } },
       ])
       expect(child.session.firstLiveSeq).toBe(0)
+    } finally {
+      await run.dispose()
+    }
+  })
+
+  it('inherits the parent session route and limits before the parent options', async () => {
+    const script: Script = [textResponse('child done')]
+    const { ctx, parent } = await setupWalled(script)
+    ctx.llm.registerAdapter(['session-provider'], new MockAdapter(script))
+    parent.session.append('request/header', {
+      header: {
+        config: {
+          provider: 'session-provider',
+          model: 'session-model',
+          reasoningEffort: ReasoningEffortId('high'),
+          maxTokens: 333,
+        },
+      },
+      reason: 'initial',
+    } as never)
+
+    const run = await startInProcessRun(spawnRequest(parent), {})
+    try {
+      await run.result
+      expect((run.localAgent as Agent).options).toMatchObject({
+        provider: 'session-provider',
+        model: 'session-model',
+        reasoningEffort: 'high',
+        maxTokens: 333,
+      })
     } finally {
       await run.dispose()
     }

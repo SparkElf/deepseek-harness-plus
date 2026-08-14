@@ -1,0 +1,70 @@
+name: Plus Desktop Packages
+
+on:
+  pull_request:
+    paths:
+      - apps/plus-desktop/**
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - .github/workflows/plus-desktop-packages.yml
+  push:
+    tags: [plus-v*]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    name: desktop / ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            runner: ubuntu-24.04
+            script: package:linux
+            artifact: |
+              apps/plus-desktop/dist/*.AppImage
+              apps/plus-desktop/dist/*.deb
+          - platform: windows
+            runner: windows-2025
+            script: package:win
+            artifact: apps/plus-desktop/dist/*.exe
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Package
+        run: pnpm --filter @deepseek-ai/dsh-plus-desktop run ${{ matrix.script }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plus-desktop-${{ matrix.platform }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/plus-v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: dist/**/*

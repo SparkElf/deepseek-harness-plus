@@ -57,9 +57,10 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the child's `AgentOptions`: the parent's provider/model/maxTokens
- * route unless the request overrides it, stamped with the child's own
- * delegation depth.
+ * Resolve the child's `AgentOptions`: the parent session's latest request
+ * route and limits, then the parent's own options when no request has run,
+ * unless the request overrides them, stamped with the child's own delegation
+ * depth.
  * @param parent - the delegating parent whose route the child inherits.
  * @param requested - per-child overrides, if any.
  * @param childDepth - the resolved delegation depth to stamp.
@@ -70,12 +71,15 @@ export function resolveChildAgentOptions(
   requested: AgentOptions | undefined,
   childDepth: number,
 ): AgentOptions {
-  const parentProvider = parent.options.provider
-  const parentModel = parent.options.model
-  const parentMaxTokens = parent.options.maxTokens
+  const selected = parent.session.requestHeader()?.config
+  const parentProvider = selected?.provider ?? parent.options.provider
+  const parentModel = selected?.model ?? parent.options.model
+  const parentReasoningEffort = selected?.reasoningEffort ?? parent.options.reasoningEffort
+  const parentMaxTokens = selected?.maxTokens ?? parent.options.maxTokens
   return {
     ...parentProvider !== undefined ? { provider: parentProvider } : {},
     ...parentModel !== undefined ? { model: parentModel } : {},
+    ...parentReasoningEffort !== undefined ? { reasoningEffort: parentReasoningEffort } : {},
     ...parentMaxTokens !== undefined ? { maxTokens: parentMaxTokens } : {},
     ...requested,
     subagentDepth: childDepth,

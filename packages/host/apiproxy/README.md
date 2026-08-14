@@ -8,7 +8,7 @@ The API gateway shared by every client consists of the TypeScript API contract (
 
 `ApiProxyService` consumes `ctx.agentDefaultModel`; it does not own a provider/model config or settings section. The shared service registers `{provider, model, reasoningEffort?}` under `agent-default-model`: the base bundle's composition entry is the lower layer and `settings.yaml` layers the user's choice over it.
 
-A session resolves its model selection from three tiers on every access: a selection made in this process, otherwise the session's latest logged `request/header`, otherwise this default. A session that has run a turn derives its selection from its log, while a blank session observes a default saved after it was created.
+An ordinary session resolves its model selection from three tiers on every access: a selection made in this process, otherwise the session's latest logged `request/header`, otherwise this default. A session that has run a turn derives its selection from its log, while a blank session observes a default saved after it was created. A fresh subagent is the explicit exception: it starts from its resolved child options, captured from the delegating parent's latest request route and limits, before the shared default is considered.
 
 `session.selectModel` saves an accepted switch as the deployment default; there is no separate gesture. It stores the resolved `ModelSelection`, including an adapter-materialized default effort. The complete-section write clears a stored effort when the selected model has none. A storage failure is logged without undoing the session selection. A deployment with no settings provider keeps the composition entry and the switch remains session-local.
 
