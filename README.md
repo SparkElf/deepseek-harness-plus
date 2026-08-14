@@ -1,12 +1,26 @@
 # DeepSeek Harness Plus
 
-[中文](README.zh.md) | [Preset charter](PRESETS.md) | [Contributing](CONTRIBUTING.md)
+[中文](README.zh.md) · [What is planned](PRESETS.md) · [Contributing](CONTRIBUTING.md)
 
-> An independent, community-maintained distribution of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) for teams that need a faster path from upstream releases to dependable operation.
+<p align="center">
+  <strong>The community build of DeepSeek Harness.</strong><br>
+  <em>Fix the sharp edges. Try the next idea. Keep shipping.</em>
+</p>
+
+<p align="center">
+  <a href="#run"><img src="https://img.shields.io/badge/Run%20from%20source-pnpm-111111?style=for-the-badge&logo=pnpm&logoColor=white" alt="Run DeepSeek Harness Plus from source"></a>
+  <a href="#not-shipped-yet"><img src="https://img.shields.io/badge/See%20what%27s%20next-First%20release-0b7285?style=for-the-badge" alt="See first release work"></a>
+</p>
 
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
-DeepSeek Harness Plus tracks the upstream plugin architecture and maintains a community release path for operational fixes, curated presets, and deployment assets. It is an independent project and is not affiliated with or endorsed by DeepSeek.
+<p align="center">
+  <img src="docs/user/guide/providers-models-page.png" alt="DeepSeek Harness model provider settings" width="960">
+</p>
+
+If DeepSeek Harness is almost the tool your team needs, this is the place to close the gap. Plus is an independent community fork of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) for developers who need a bug fixed, an RFC tried, or a workflow made repeatable before an upstream release arrives.
+
+It keeps the upstream plugin architecture intact, then gives the community a public place to review the changes that matter in daily use: fixes you can trace, experiments you can switch on deliberately, and plugin compositions you can trust in a shared setup.
 
 ## Run
 
@@ -23,43 +37,54 @@ pnpm run build
 pnpm dsh web
 ```
 
-The local Web UI starts at `http://127.0.0.1:3080`. Configure a model provider through the UI before starting a session. Do not commit provider credentials or workspace secrets.
+Open `http://127.0.0.1:3080`, choose a provider, and start a session. Keep credentials in local configuration, never in Git.
 
-## Why Plus
+## Why Plus exists
 
-- **Upstream-aware maintenance**: preserve a direct `upstream` remote, review each sync, and publish focused fixes when an operational defect blocks users.
-- **Community-owned contributions**: accept bug reports, documentation, presets, deployment assets, and code through Issues, Discussions, and pull requests.
-- **Runnable preset releases**: publish a preset only with its configuration, install path, capability limits, and verification instructions.
-- **Deployment-ready direction**: support a shared UI and authenticated gateway with isolated user runtimes rather than exposing local Harness APIs to the public network.
-
-## Community preset charter
-
-The catalog is defined in [PRESETS.md](PRESETS.md). Each release track becomes installable only when it includes a versioned configuration and a documented operating model.
-
-| Track | Intended outcome |
+| When you need... | Plus is here to provide... |
 | --- | --- |
-| Code delivery | Repository-aware implementation, review, verification, and release workflows. |
-| Community operations | Issue triage, discussion moderation, release notes, and contributor coordination. |
-| Multi-user runtime | A shared UI and gateway that route each authenticated user to an isolated Harness runtime. |
-| Intelligent data Q&A | Governed analysis over approved data sources, semantic metrics, query review, and audit records. |
+| A bug fix you can actually deploy | A focused patch with its scope, verification evidence, and upstream relationship recorded. |
+| An upstream idea worth trying early | A bounded RFC implementation that can be discussed, tested, and either carried forward or removed. |
+| A plugin stack your team can share | Maintained composition around routes, tools, settings, permissions, and UI contributions. |
+| A setup that is more than a chat transcript | Versioned presets with installation, credential, permission, and verification guidance. |
 
-## Contribute
+## What you can use today
 
-Start a discussion for product direction, open an issue for a reproducible defect, or submit a focused pull request. The project labels work by kind and area so contributors can find maintained entry points. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+- The full upstream Harness source, with a source-based Web UI workflow.
+- A public upstream-tracking fork and a maintained `upstream` remote.
+- Issues, Discussions, pull requests, security reporting, and a community review path.
+- A home for reviewed patches, community plugins, preset proposals, and deployment work.
 
-## Upstream synchronization
+## Not shipped yet
+
+The items below are being built in public. They are not included in the current checkout or installer.
+
+| Planned work | Status |
+| --- | --- |
+| UI-selected model inheritance for subagents | In development |
+| Desktop installer and tray-managed local daemon | In development |
+| Code delivery preset | Not implemented |
+| Community operations preset | Not implemented |
+| Multi-user runtime preset | Not implemented |
+| Intelligent data Q&A preset | Not implemented |
+
+The full scope and release requirements live in [PRESETS.md](PRESETS.md). A preset is not called available until it has a runnable configuration, defined permissions, an install path, and verification evidence.
+
+## Build with us
+
+Found a failure that blocks real work? Open an Issue. Have a workflow your team repeats every week? Start a Discussion. Have a focused improvement with evidence behind it? Send a pull request.
+
+We welcome bug fixes, early RFC implementations, community plugins, presets, deployment assets, documentation, and review. Start with [CONTRIBUTING.md](CONTRIBUTING.md). Report security issues through [SECURITY.md](SECURITY.md), not a public issue.
+
+## Keep close to upstream
 
 ```sh
 git fetch upstream
 git merge upstream/master
 ```
 
-Every sync is reviewed before release. Community patches remain small, documented, and independently testable so they can be carried forward or retired cleanly.
-
-## Security
-
-Run Harness runtimes on private infrastructure. A production multi-user deployment must authenticate at the gateway, keep each runtime unreachable from the public internet, and scope model and data credentials to the intended user or workspace. See [SECURITY.md](SECURITY.md) for reporting guidance.
+Plus stays useful only when its patches remain understandable. Every supported divergence records what changed, why it exists, what it touches, and how it is verified.
 
 ## License
 
-This repository remains available under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+DeepSeek Harness Plus remains available under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This is an independent community project and is not affiliated with or endorsed by DeepSeek.
