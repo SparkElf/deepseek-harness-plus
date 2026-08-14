@@ -3,8 +3,8 @@
 [中文](README.zh.md) · [What is planned](PRESETS.md) · [Contributing](CONTRIBUTING.md)
 
 <p align="center">
-  <strong>Fix the blocker. Try the next feature. Make Harness fit the work in front of you.</strong><br>
-  <em>DeepSeek Harness Plus is the community layer that moves useful Harness improvements into your hands sooner.</em>
+  <strong>Fix the blocker. Try the next feature. Make Harness fit the work in front of you. ✨</strong><br>
+  <em>DeepSeek Harness Plus brings useful community improvements to your hands sooner.</em>
 </p>
 
 <p align="center">
@@ -15,34 +15,36 @@
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
 <p align="center">
-  <img src="assets/plus-overview.png" alt="DeepSeek Harness Plus: fix blockers sooner, try new features early, and use community extensions and presets" width="100%">
+  <img src="assets/plus-hero.png" alt="DeepSeek Harness Plus visual poster: repair blockers, explore emerging capabilities, and assemble themed tools" width="100%">
 </p>
 
-## What Plus does for you
+> 💡 **The short version:** get unstuck sooner, try the next capability early, and use a setup that matches the job instead of rebuilding one from zero.
 
-You use Plus when Harness is already useful, but the official release cycle has not caught up with what your work needs next. A bug is blocking a real task. A feature is still being discussed upstream. Or your team needs a setup built for a specific job rather than another blank configuration.
+## ✨ What Plus does for you
 
-### Fix blockers sooner
+Harness is already doing useful work, until one last thing gets in the way. Maybe a bug blocks a real task. Maybe the feature you want is still being discussed upstream. Maybe your team is tired of rebuilding the same blank setup. That is when Plus is here for you.
 
-When DeepSeek has not released a fix for a problem that stops your work, Plus can carry a focused repair first. Every supported repair records its purpose, relationship to upstream, affected files, and verification evidence, so you know what changed before you depend on it.
+### 🚑 Fix blockers sooner
 
-### Try new features early
+A session, model, or tool problem should not put your work on pause. When DeepSeek has not released the fix yet, Plus can bring you a focused repair first, with the change and its verification kept clear.
 
-When an upstream capability is still under RFC discussion, Plus can turn it into an optional experimental feature. You can inspect it, test it on real work, keep it if it helps, or remove it without confusing an early idea with an official release.
+### 🧪 Try new features early
 
-### Use extensions and themed presets
+Do not wait for a promising idea to become old news. When an upstream capability is still under RFC discussion, Plus can offer it as an optional experimental feature for your real workflow. Try it, keep it when it helps, and leave it behind when it does not.
 
-Plus is where community plugins and user-facing extensions can be delivered alongside task-focused presets. A preset means a versioned collection of Harness plugins and their required configuration, ready to select and use rather than manually assemble.
+### 🧩 Use extensions and themed presets
 
-Planned preset themes include intelligent data Q&A, multi-user runtime, code development, AIGC, and community operations. These are product directions, not current downloads: no preset is installable until its plugin collection, configuration, permissions, and verification instructions ship together.
+Plus is where community plugins and user-facing extensions show up for real work. A preset is a versioned collection of Harness plugins and the configuration they need, ready to choose instead of manually assemble.
 
-## Why you can trust the extra layer
+Intelligent data Q&A, multi-user runtime, code development, AIGC, and community operations are planned themes. They are not current downloads: a preset only becomes available when its plugins, configuration, permissions, and verification instructions arrive together.
 
-Plus remains close to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness). It keeps upstream changes visible and records every supported community difference with an owner, scope, compatibility note, and verification path. That lets you use faster fixes and early functionality without turning your environment into an unexplained patch collection.
+## 🛡️ Why you can trust Plus
+
+Plus stays close to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), so you can tell where an improvement came from, what it changes for your work, and how it was checked. You get the extra capability without turning your Harness environment into a mysterious pile of patches.
 
 <a id="run"></a>
 
-## Run from source today
+## 🚀 Run from source today
 
 <a id="run-from-source"></a>
 
@@ -65,7 +67,7 @@ pnpm dsh web
 
 Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, never in Git.
 
-## 📦 What you can use today
+## ✅ What you can use today
 
 - You can run the full upstream Harness source and Web UI from this repository.
 - You can follow the upstream through the maintained `upstream` remote.
@@ -74,7 +76,7 @@ Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, neve
 
 <a id="not-shipped-yet"></a>
 
-## What is still being built
+## 🛠️ What is still being built
 
 Do not depend on the following until a release marks them available:
 
@@ -90,7 +92,7 @@ Do not depend on the following until a release marks them available:
 
 Read [PRESETS.md](PRESETS.md) for the preset release rule. Keep a local runtime private: no multi-user or public-internet deployment preset is available yet.
 
-## ❓ Quick answers
+## 💬 Quick answers
 
 **Is this an official DeepSeek project?** No. It is an independent community project that tracks the upstream source and follows its license.
 
@@ -104,7 +106,7 @@ Read [PRESETS.md](PRESETS.md) for the preset release rule. Keep a local runtime 
 
 **Will your local changes disappear during an upstream sync?** They should not be mysterious. Supported changes are recorded with their purpose, affected files, and verification path before they become part of Plus.
 
-## 🤝 Help make it useful
+## 🤝 Help shape Plus
 
 If you hit a failure that costs you time, open an Issue. If your team repeats a workflow, start a Discussion. If you have a focused improvement with proof behind it, send a pull request.
 
