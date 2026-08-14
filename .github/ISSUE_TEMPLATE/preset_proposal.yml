@@ -1,0 +1,35 @@
+name: Preset proposal
+description: Propose a runnable community preset or deployment bundle.
+title: "[Preset]: "
+labels: ["kind/feature", "area/presets", "needs-design"]
+body:
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User outcome
+      description: Name the target user and the result the preset makes repeatable.
+    validations:
+      required: true
+  - type: textarea
+    id: operating-model
+    attributes:
+      label: Operating model
+      description: Describe tools, permissions, external systems, and the human approval point.
+    validations:
+      required: true
+  - type: textarea
+    id: installation
+    attributes:
+      label: Installation and verification
+      description: Describe how an operator installs it and observes a successful result.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Preset family
+      options:
+        - Code delivery
+        - Community operations
+        - Multi-user runtime
+        - Intelligent data Q&A

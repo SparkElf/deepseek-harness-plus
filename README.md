@@ -1,57 +1,65 @@
-# DeepSeek Harness
+# DeepSeek Harness Plus
 
-English | [中文](README.zh.md)
+[中文](README.zh.md) | [Preset charter](PRESETS.md) | [Contributing](CONTRIBUTING.md)
 
-DeepSeek Harness (`dsh`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+> An independent, community-maintained distribution of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) for teams that need a faster path from upstream releases to dependable operation.
 
-It uses an architecture where **everything is a plugin**, and is powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://github.com/cordiverse/paper).
+[![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
 
-## Developer preview
-
-DeepSeek Harness is currently in _developer preview_ and is iterating rapidly. **THERE WILL BE COMPATIBILITY-BREAKING CHANGES.**
+DeepSeek Harness Plus tracks the upstream plugin architecture and maintains a community release path for operational fixes, curated presets, and deployment assets. It is an independent project and is not affiliated with or endorsed by DeepSeek.
 
 ## Run
 
-### Run from `npm`
-
-Install `Node.js`, then run:
-
-```sh
-npx @deepseek-ai/dsh web
-```
-
-The command starts the Web UI, served at `http://127.0.0.1:3080` by default. See [Web UI guide](docs/user/guide/index.md).
-
 ### Run from source
 
-To run from a repository checkout:
+Requires Node.js 22.19+ or 24+, Corepack, and pnpm.
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/SparkElf/deepseek-harness-plus.git
+cd deepseek-harness-plus
+corepack enable
 pnpm install
 pnpm run build
 pnpm dsh web
 ```
 
-## Community and support
+The local Web UI starts at `http://127.0.0.1:3080`. Configure a model provider through the UI before starting a session. Do not commit provider credentials or workspace secrets.
 
-- Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/Ycq5dCaS4">DeepSeek Harness Discord community</a>.
+## Why Plus
 
-## Contributing
+- **Upstream-aware maintenance**: preserve a direct `upstream` remote, review each sync, and publish focused fixes when an operational defect blocks users.
+- **Community-owned contributions**: accept bug reports, documentation, presets, deployment assets, and code through Issues, Discussions, and pull requests.
+- **Runnable preset releases**: publish a preset only with its configuration, install path, capability limits, and verification instructions.
+- **Deployment-ready direction**: support a shared UI and authenticated gateway with isolated user runtimes rather than exposing local Harness APIs to the public network.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+## Community preset charter
 
-## Development
+The catalog is defined in [PRESETS.md](PRESETS.md). Each release track becomes installable only when it includes a versioned configuration and a documented operating model.
 
-Start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
+| Track | Intended outcome |
+| --- | --- |
+| Code delivery | Repository-aware implementation, review, verification, and release workflows. |
+| Community operations | Issue triage, discussion moderation, release notes, and contributor coordination. |
+| Multi-user runtime | A shared UI and gateway that route each authenticated user to an isolated Harness runtime. |
+| Intelligent data Q&A | Governed analysis over approved data sources, semantic metrics, query review, and audit records. |
 
-For agents, follow [AGENTS.md](AGENTS.md).
+## Contribute
+
+Start a discussion for product direction, open an issue for a reproducible defect, or submit a focused pull request. The project labels work by kind and area so contributors can find maintained entry points. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
+
+## Upstream synchronization
+
+```sh
+git fetch upstream
+git merge upstream/master
+```
+
+Every sync is reviewed before release. Community patches remain small, documented, and independently testable so they can be carried forward or retired cleanly.
+
+## Security
+
+Run Harness runtimes on private infrastructure. A production multi-user deployment must authenticate at the gateway, keep each runtime unreachable from the public internet, and scope model and data credentials to the intended user or workspace. See [SECURITY.md](SECURITY.md) for reporting guidance.
 
 ## License
 
-[MIT](LICENSE)
-
-Third-party dependencies and their licenses are disclosed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+This repository remains available under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

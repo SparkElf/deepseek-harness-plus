@@ -1,23 +1,26 @@
 # Contributing
 
-English | [中文](CONTRIBUTING.zh.md)
+[中文](CONTRIBUTING.zh.md)
 
-Thank you for your interest in contributing to DeepSeek Harness!
+DeepSeek Harness Plus accepts community contributions that improve reliability, deployment, presets, documentation, and the developer experience.
 
-We deeply believe in the power of open source communities, and that belief has shaped this project from the very beginning.
+## Start with the right channel
 
-DeepSeek Harness is still at an early stage and under active development. We are sorry that we cannot accept external pull requests at the moment. However, contributing code to this repository is far from the only way to help. There are many other ways to get involved:
+- Use **Discussions** for product direction, preset proposals, and operating-model questions.
+- Use **Issues** for reproducible defects and bounded feature requests.
+- Use **Pull Requests** for focused, reviewable changes with documentation and relevant verification evidence.
+- Use private reporting for security vulnerabilities as described in [SECURITY.md](SECURITY.md).
 
-- Identify and report issues or bugs in GitHub Discussions:
-  - Upvote discussions that you would like to bring to the team's attention. We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources.
-- Contribute to the ecosystem:
-  - Create a plugin that excites you and share it with others:
-    - Associate your GitHub project with the `dsh-plugin` topic to help others discover your plugin.
-  - Write blog posts and how-to guides about DeepSeek Harness.
-  - Answer questions and help other members of the community.
+## Pull requests
 
-DeepSeek Harness is designed to be deeply customizable. We do not believe that packages in the official repository are inherently more important than packages created by the community. You may consider this repository an idea, an official showcase, and a source of inspiration, but not a mandate from us.
+Keep each pull request focused on one user-visible capability, operational repair, or documentation improvement. Explain the problem, the observable result, and the checks you ran. Changes to a preset must include its configuration, permission model, credential requirements, installation path, and verification instructions.
 
-We have already seen exciting projects emerge from the community, and we hope to see the ecosystem continue to grow in its own directions.
+Do not commit model credentials, database credentials, customer data, session logs, or generated build output. Preserve upstream license and third-party notices when synchronizing code from DeepSeek Harness.
 
-Into the unknown.
+## Labels and review
+
+Maintainers use `kind/*` and `area/*` labels to route work. Use `good first issue` and `help wanted` to find contributions with an identified owner and scope. A maintainer reviews permissions, deployment impact, documentation, and verification evidence before merge.
+
+## Development
+
+Follow [AGENTS.md](AGENTS.md), [docs/development.md](docs/development.md), and the package-specific instructions for the files you change.

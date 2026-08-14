@@ -1,0 +1,45 @@
+name: Bug report
+description: Report a reproducible defect in DeepSeek Harness Plus.
+title: "[Bug]: "
+labels: ["kind/bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include credentials, customer data, session logs, or private repository content."
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the observed result and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Provide the smallest reproducible sequence.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0-plus.0 or abc1234
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Runtime
+        - Web UI
+        - Subagent
+        - Preset
+        - Deployment
+        - Intelligent data Q&A
+        - Documentation
