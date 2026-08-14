@@ -27,14 +27,6 @@ jobs:
             artifact: |
               apps/plus-desktop/dist/*.AppImage
               apps/plus-desktop/dist/*.deb
-          - platform: macos-arm64
-            runner: macos-15
-            script: package:mac
-            artifact: apps/plus-desktop/dist/*.dmg
-          - platform: macos-x64
-            runner: macos-15-intel
-            script: package:mac:x64
-            artifact: apps/plus-desktop/dist/*.dmg
           - platform: windows
             runner: windows-2025
             script: package:win

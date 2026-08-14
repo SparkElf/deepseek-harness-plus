@@ -29,7 +29,7 @@ Plus 将为 macOS、Linux 和 Windows 提供一个常驻托盘的 Electron 管�
 - 首次服务启动前，初始引导能收集安装路径、端口、DeepSeek key、默认模型和推理强度。
 - 安装后，托盘菜单能对一套隔离的 Plus 检出执行启动、停止、打开本地 Web URL、升级和修复，且不重新打开这些设置。
 - Web 页面是之后唯一面向用户的模型、凭据、预设、工作区和 agent 表面。
-- macOS DMG、Linux AppImage/deb 和 Windows NSIS 包在对应 runner 上构建，并包含同一组引导和托盘操作。
+- Linux AppImage/deb 和 Windows NSIS 包在对应 runner 上构建，并包含同一组引导和托盘操作；macOS 打包在配置好 Developer ID 签名和 notarization 后再恢复。
 - 发布前，支持桌面的端到端环境要验证安装、服务就绪、浏览器打开、停止、升级和修复。
 
 ## Risks

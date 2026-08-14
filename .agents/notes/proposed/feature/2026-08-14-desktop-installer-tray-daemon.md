@@ -29,7 +29,7 @@ This partially revises [Source run without a managed installer](../../implemente
 - An initial guide captures installation path, port, DeepSeek key, default model, and reasoning effort before the first service starts.
 - After installation, the tray menu can start, stop, open the local Web URL, upgrade, and repair one isolated Plus checkout without reopening those settings.
 - The Web page is the only later user-facing model, credential, preset, workspace, and agent surface.
-- macOS DMG, Linux AppImage/deb, and Windows NSIS packages build on their matching runners and contain the same guide and tray actions.
+- Linux AppImage/deb and Windows NSIS packages build on their matching runners and contain the same guide and tray actions; macOS packaging resumes only after Developer ID signing and notarization are configured.
 - A desktop-capable end-to-end environment verifies installation, service readiness, browser open, stop, upgrade, and repair before publication.
 
 ## Risks

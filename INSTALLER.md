@@ -29,7 +29,7 @@ The source-build installer requires Git and pnpm on the local machine. It checks
 
 ## Platforms
 
-Release targets are macOS DMG, Linux AppImage and deb, and Windows NSIS. The same guide and tray source runs on all three platforms. Each installer target must be built and verified on its matching runner before a release is published.
+Current public package targets are Linux AppImage/deb and Windows NSIS. Each installer target must be built and verified on its matching runner before a release is published. macOS source support is deferred until Developer ID signing and notarization are configured; an unsigned DMG is not a release installer.
 
 ## Current release status
 

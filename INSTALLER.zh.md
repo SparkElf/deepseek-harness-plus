@@ -29,7 +29,7 @@ source-build 安装器要求本机已经安装 Git 和 pnpm。它会在 clone �
 
 ## 平台
 
-发行目标包括 macOS DMG、Linux AppImage 和 deb，以及 Windows NSIS。三种平台共用同一套引导和 tray 源码。每种安装器都必须在对应 runner 上完成构建和验证后才能发布。
+当前公开安装包目标是 Linux AppImage/deb 和 Windows NSIS。每种安装器都必须在对应 runner 上完成构建和验证后才能发布。macOS 源码支持延后到配置好 Developer ID 签名和 notarization 后再恢复；未签名的 DMG 不是正式安装器。
 
 ## 当前发布状态
 
