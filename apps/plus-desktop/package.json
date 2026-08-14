@@ -1,0 +1,39 @@
+{
+  "name": "@deepseek-ai/dsh-plus-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DeepSeek Harness Plus desktop installer and tray daemon",
+  "author": "SparkElf",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "dev": "electron .",
+    "package:dir": "electron-builder --dir",
+    "package": "electron-builder"
+  },
+  "build": {
+    "appId": "io.sparkelf.deepseek-harness-plus",
+    "productName": "DeepSeek Harness Plus",
+    "executableName": "DeepSeekHarnessPlus",
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Development"
+    },
+    "win": {
+      "target": ["nsis"]
+    },
+    "mac": {
+      "target": ["dmg"]
+    }
+  },
+  "devDependencies": {
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0"
+  }
+}

@@ -16,6 +16,8 @@ Status: implemented
 
 仓库不分发源码安装器、安装器测试套件，也不分发依赖受管理的 `current` 符号链接和带时间戳 staging worktree 的 skill。源码检出的存放位置、Git 更新，以及用户在仓库外创建的任何启动器均由用户负责。
 
+尚未发布的 [Plus 桌面安装器提议](../../proposed/feature/2026-08-14-desktop-installer-tray-daemon.md) 只针对独立的社区发行层，部分重新审视这项决策，不会改变这里已经发布的源码运行路径。
+
 ## 考虑过的备选方案
 
 **保留安装器，但将 `pnpm run` 记作另一条路径。**这样可以保留受管理的启动器和回滚能力，但两套生命周期约定仍会同时生效，其中包括安装器测试和依赖 staging 布局的 skill。

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek Harness Plus</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail">
+        <div class="brand"><span class="mark"></span>DeepSeek Harness Plus</div>
+        <ol class="steps" id="steps">
+          <li class="active"><span>1</span><div><strong>Location</strong><small>Where it lives</small></div></li>
+          <li><span>2</span><div><strong>Model</strong><small>How it thinks</small></div></li>
+          <li><span>3</span><div><strong>Confirm</strong><small>Review and install</small></div></li>
+        </ol>
+        <div class="rail-note">Your existing Harness home stays untouched.</div>
+      </aside>
+      <section class="content">
+        <header><div><p class="eyebrow">Local setup</p><h1 id="title">Set up your workspace</h1></div><span class="service-pill" id="service">Service stopped</span></header>
+        <form id="setup-form" novalidate>
+          <section class="panel step-panel active" data-step="0">
+            <p class="intro">Pick a clean location for Plus and the workspace where you want your agent to work.</p>
+            <label>Installation folder<input id="installPath" required placeholder="/Users/you/DeepSeekHarnessPlus"></label>
+            <button class="path-button" type="button" data-directory="installPath">Choose folder</button>
+            <label>Workspace folder<input id="workspacePath" required placeholder="/Users/you/projects"></label>
+            <button class="path-button" type="button" data-directory="workspacePath">Choose folder</button>
+            <label>Local port<input id="port" required inputmode="numeric" value="3080"></label>
+          </section>
+          <section class="panel step-panel" data-step="1">
+            <p class="intro">Set the route and model for the local service.</p>
+            <div class="provider"><span>DeepSeek official</span><small>deepseek-official</small></div>
+            <label>DeepSeek API key<input id="apiKey" required type="password" autocomplete="off" placeholder="sk-..."></label>
+            <label>Default model<input id="model" required value="deepseek-chat" placeholder="deepseek-chat"></label>
+            <label>Reasoning effort<select id="reasoningEffort"><option value="">Provider default</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="max">Max</option></select></label>
+            <label class="check"><input id="startAfterInstall" type="checkbox" checked><span>Start the local service when setup finishes</span></label>
+          </section>
+          <section class="panel step-panel" data-step="2">
+            <p class="intro">Review what will happen before the installer writes files or starts a service.</p>
+            <dl id="summary"></dl>
+            <div class="notice">The installer clones the Plus fork, creates an isolated DSH_HOME inside the installation folder, and writes your key only to that local runtime.</div>
+          </section>
+          <p class="error" id="error" role="alert"></p>
+          <div class="progress" id="progress" hidden><div class="spinner"></div><span id="progressText">Preparing setup...</span></div>
+          <footer><button id="back" type="button" class="secondary" hidden>Back</button><span></span><button id="next" type="button" class="primary">Continue</button></footer>
+        </form>
+      </section>
+    </main>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

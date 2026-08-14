@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-14-desktop-installer-tray-daemon.md
+2026-08-14-desktop-installer-tray-daemon.md: c49373db7f5c37112636d4c59ac2b1b63c2e6ccf
+2026-08-14-desktop-installer-tray-daemon.zh.md: abd09fce868dff39661347ff98f9ffbaa8aea290

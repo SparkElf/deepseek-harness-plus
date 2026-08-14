@@ -16,6 +16,8 @@ The repository supports source execution through its root `pnpm` scripts. The `d
 
 The repository does not distribute a source installer, an installer test suite, or skills that assume a managed `current` symlink and timestamped staging worktrees. Users own source checkout placement, Git updates, and any launcher they create outside the repository.
 
+The unreleased [Plus desktop installer proposal](../../proposed/feature/2026-08-14-desktop-installer-tray-daemon.md) partially revisits this decision for a separate community distribution. It does not change this released source-run path.
+
 ## Alternatives considered
 
 **Keep the installer but document `pnpm run` as another path.** This retains the managed launcher and rollback capability but keeps both lifecycle contracts active, including the installer tests and staging-aware skills.
