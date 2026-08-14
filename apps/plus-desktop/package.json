@@ -15,7 +15,8 @@
     "dev": "electron .",
     "package:dir": "electron-builder --dir",
     "package:linux": "electron-builder --linux",
-    "package:mac": "electron-builder --mac",
+    "package:mac": "electron-builder --mac --arm64",
+    "package:mac:x64": "electron-builder --mac --x64",
     "package:win": "electron-builder --win",
     "package": "electron-builder"
   },
