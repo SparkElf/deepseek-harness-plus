@@ -63,6 +63,14 @@ For every material claim, give the smallest useful proof:
 
 Do not present a passing syntax check as evidence that a user workflow works. Do not present an image as evidence that an installer, release, preset, or deployment exists.
 
+## Synchronize existing PRs before changing PR topology
+
+An aggregate or review branch is an integration workspace, not automatically a new pull-request boundary. Before creating, closing, replacing, or consolidating a PR, compare the complete accepted local change with every live PR head and classify each missing change by the PR that owns its user result.
+
+When the user has identified existing PRs as the desired review units and the aggregate branch contains later completed or accepted work, treat a remote PR that lacks that work as stale. Update the original PR branch with the complete owned implementation, tests, documentation, and follow-up fixes. Preserve its PR number, review history, base, and purpose; use a lease-protected rewrite when its history must be rebuilt. Remote lag is a synchronization defect, not evidence that the accepted local work needs a replacement PR.
+
+Do not close an existing PR, substitute an aggregate PR, change the PR split, or create a competing release line unless the user explicitly asks to change that topology. Before opening any new PR, prove that no existing user-selected PR owns the change.
+
 ## Plus-specific PR guidance
 
 Describe Plus in the language users care about:
@@ -83,6 +91,7 @@ For a release PR, make the decision explicit:
 ## Final author checklist
 
 - A new contributor can summarize the PR after reading only the first two sections.
+- Existing user-selected PRs contain every completed local change they own; no stale remote head was replaced merely because an aggregate branch was newer.
 - Every release or availability claim matches the current repository state.
 - Each required template heading is present and populated.
 - Evidence links are readable without searching the repository.
