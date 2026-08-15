@@ -27,7 +27,7 @@ records:
     verification:
       - pnpm run verify:plus-governance
   - id: community-desktop-installer
-    status: planned
+    status: active
     title: Desktop installation guide and tray-managed local daemon
     features:
       - Collect installation path and initial DeepSeek model settings once, then keep the user in Harness Web while the system tray starts, stops, opens, upgrades, and repairs the local runtime.
@@ -35,14 +35,14 @@ records:
     repositories:
       - name: SparkElf/deepseek-harness-plus
         url: https://github.com/SparkElf/deepseek-harness-plus
-        baseline: 70688b1
+        baseline: 0330f60
     files:
       - apps/plus-desktop/**
       - assets/plus-installer-model.png
       - INSTALLER.md
       - pnpm-workspace.yaml
     plugins: []
-    compatibility: Linux and Windows installer artifacts are publicly released as Plus 0.1.0; macOS packaging is deferred pending signing and notarization.
+    compatibility: Linux and Windows installer artifacts are publicly released as Plus 0.2.0; macOS packaging is deferred pending signing and notarization.
     owner: plus-desktop
     verification:
       - Tray lifecycle and Web open workflow

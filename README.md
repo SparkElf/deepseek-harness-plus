@@ -83,7 +83,7 @@ Do not depend on the following until a release marks them available:
 | Capability | Status |
 | --- | --- |
 | Fast fixes and early experimental features | Ongoing community work; each item needs its own evidence before use |
-| Desktop setup guide and tray-managed local runtime | Linux/Windows 0.1.0 packages are available on [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.1.0); macOS is deferred pending signing and notarization |
+| Desktop setup guide and tray-managed local runtime | Linux/Windows 0.2.0 packages are available on [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0); macOS is deferred pending signing and notarization |
 | Code development preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |
 | Multi-user runtime preset | Not implemented |
@@ -100,7 +100,7 @@ Read [PRESETS.md](PRESETS.md) for the preset release rule. Keep a local runtime 
 
 **Can you install a preset today?** No. A theme is only called a preset when its plugins and configuration install together, permissions are clear, and the result has verification evidence.
 
-**Can you download the desktop installer today?** Yes. [Plus 0.1.0](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.1.0) includes Linux AppImage/deb and a Windows NSIS installer. macOS is deferred until signing and notarization are configured.
+**Can you download the desktop installer today?** Yes. [Plus 0.2.0](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0) includes Linux AppImage/deb and a Windows NSIS installer. macOS is deferred until signing and notarization are configured.
 
 **Can you expose this directly to the public internet for a team?** No. The multi-user runtime preset is not available. Keep your current Harness runtime private.
 
