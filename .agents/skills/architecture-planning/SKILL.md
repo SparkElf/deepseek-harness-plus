@@ -15,4 +15,8 @@ Plan the complete path from user action to durable result. Prefer existing Harne
 - Add or update the correct `diffs/core/registry.yaml` or `diffs/community/registry.yaml` record with feature, repositories, baseline, files, compatibility, and verification.
 - Define the smallest credible test and release evidence.
 
+## User-owned edge cases
+
+Edge cases follow actual user feedback. When the user has not raised a problem and it has not occurred in the accepted experience, do not expand it into a requirement, implementation scope, review blocker, or release blocker. Keep work focused on the agreed user path; let later usage feedback define later edge-case work.
+
 Do not add queues, locks, fallback paths, or compatibility shims without a real user-visible requirement. Record the plan in the PR under `## Architecture`.
