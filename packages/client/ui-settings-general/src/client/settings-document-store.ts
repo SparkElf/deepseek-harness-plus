@@ -7,6 +7,8 @@ import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client
 export interface SettingsDocumentState {
   /** Metadata-loading phase; unavailable means the provider has no local document or the read failed. */
   status: 'idle' | 'loading' | 'ready' | 'unavailable'
+  /** Whether the Host can hand the document to a native desktop application. */
+  canOpen: boolean
   /** Whether one native-open request is in flight. */
   opening: boolean
   /** Last metadata/native-open diagnostic; UI exposes only localized copy. */
@@ -21,7 +23,7 @@ function messageOf(error: unknown): string {
 export class SettingsDocumentStore {
   /** uSES-safe state source shared by the registered header action. */
   readonly store: SnapshotStore<SettingsDocumentState> = createSnapshotStore({
-    status: 'idle', opening: false, error: null,
+    status: 'idle', canOpen: false, opening: false, error: null,
   })
 
   private generation = 0
@@ -39,6 +41,7 @@ export class SettingsDocumentStore {
     const generation = ++this.generation
     this.store.update((state) => {
       state.status = 'loading'
+      state.canOpen = false
       state.error = null
     })
     try {
@@ -47,18 +50,21 @@ export class SettingsDocumentStore {
       if (!result.ok) {
         this.store.update((state) => {
           state.status = 'unavailable'
+          state.canOpen = false
           state.error = result.error.message
         })
         return
       }
       this.store.update((state) => {
-        state.status = result.value.hasDocument && result.value.canOpenDocument !== false ? 'ready' : 'unavailable'
+        state.status = result.value.hasDocument ? 'ready' : 'unavailable'
+        state.canOpen = result.value.hasDocument && result.value.canOpenDocument !== false
         state.error = null
       })
     } catch (error) {
       if (generation !== this.generation) return
       this.store.update((state) => {
         state.status = 'unavailable'
+        state.canOpen = false
         state.error = messageOf(error)
       })
     }
@@ -70,7 +76,7 @@ export class SettingsDocumentStore {
    */
   async open(): Promise<void> {
     const current = this.store.getSnapshot()
-    if (current.status !== 'ready' || current.opening) return
+    if (current.status !== 'ready' || !current.canOpen || current.opening) return
     this.store.update((state) => {
       state.opening = true
       state.error = null

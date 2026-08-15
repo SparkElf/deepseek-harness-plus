@@ -2,16 +2,17 @@ import { describe, expect, it, vi } from 'vitest'
 import type { RpcResponse } from '@deepseek-ai/dsh-api-remotes/client'
 import { SettingsDocumentStore } from '../src/client/settings-document-store.ts'
 
-function response(hasDocument = false): RpcResponse<{
+function response(hasDocument = false, canOpenDocument = true): RpcResponse<{
   writable: boolean
   hasDocument: boolean
+  canOpenDocument: boolean
   namespaces: []
 }> {
   return {
     rpcId: 'settings-document' as never,
     result: {
       ok: true,
-      value: { writable: true, hasDocument, namespaces: [] },
+      value: { writable: true, hasDocument, canOpenDocument, namespaces: [] },
     },
   }
 }
@@ -37,7 +38,7 @@ describe('SettingsDocumentStore', () => {
     const controller = new SettingsDocumentStore({ settings: { describe, openDocument } } as never)
     await controller.load()
     expect(controller.store.getSnapshot()).toEqual({
-      status: 'ready', opening: false, error: null,
+      status: 'ready', canOpen: true, opening: false, error: null,
     })
     await controller.open()
     expect(openDocument).toHaveBeenCalledWith({})
@@ -51,6 +52,16 @@ describe('SettingsDocumentStore', () => {
     await absent.load()
     await absent.open()
     expect(absent.store.getSnapshot().status).toBe('unavailable')
+    expect(openDocument).not.toHaveBeenCalled()
+
+    const noDesktop = new SettingsDocumentStore({
+      settings: { describe: () => Promise.resolve(response(true, false)), openDocument },
+    } as never)
+    await noDesktop.load()
+    expect(noDesktop.store.getSnapshot()).toEqual({
+      status: 'ready', canOpen: false, opening: false, error: null,
+    })
+    await noDesktop.open()
     expect(openDocument).not.toHaveBeenCalled()
 
     const failed = new SettingsDocumentStore({
