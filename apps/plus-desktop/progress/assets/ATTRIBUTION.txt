@@ -1,0 +1,6 @@
+deepseek-logo.svg
+Source: https://github.com/deepseek-ai/DeepSeek-V2/blob/main/figures/logo.svg
+
+player-play.svg, refresh.svg, hammer.svg
+Source: https://github.com/tabler/tabler-icons
+License: MIT

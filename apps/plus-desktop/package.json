@@ -13,6 +13,8 @@
   "main": "src/main.mjs",
   "scripts": {
     "dev": "electron .",
+    "supervisor:command": "node src/supervisor-client.mjs",
+    "supervisor:progress": "node src/supervisor-progress-server.mjs",
     "package:dir": "electron-builder --dir",
     "package:linux": "electron-builder --linux",
     "package:mac": "electron-builder --mac",
@@ -28,26 +30,37 @@
     "files": [
       "src/**/*",
       "renderer/**/*",
+      "progress/**/*",
       "build/icon.png",
       "package.json"
     ],
     "linux": {
-      "target": ["AppImage", "deb"],
+      "target": [
+        "AppImage",
+        "deb"
+      ],
       "artifactName": "deepseek-harness-plus-${version}.${ext}",
       "category": "Development",
       "syncDesktopName": true,
       "maintainer": "SparkElf <58362707+SparkElf@users.noreply.github.com>"
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "mac": {
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "category": "public.app-category.developer-tools"
     }
   },
   "devDependencies": {
     "electron": "^39.0.0",
     "electron-builder": "^26.0.0"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }
