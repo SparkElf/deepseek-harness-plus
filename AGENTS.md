@@ -81,7 +81,11 @@ Before any local runtime edit, build, test, HMR, or restart, invoke [supervisor-
 
 ### Release notes
 
-Before creating, publishing, or materially rewriting a GitHub Release, invoke [release-notes-authoring](.agents/skills/release-notes-authoring/SKILL.md) and use its standard template.
+Use [release-notes-authoring](.agents/skills/release-notes-authoring/SKILL.md) for every GitHub Release.
+
+### Merge closeout
+
+After a PR or release merge batch, invoke [pr-merge-closeout](.agents/skills/pr-merge-closeout/SKILL.md) before reporting completion.
 
 ### Host sandbox failures
 
