@@ -6,45 +6,60 @@ Status: proposed
 
 ## Problem
 
-Desktop tray 必须能够重建并重启已安装 worktree 中的 Harness Web，而不能依赖 tray 直接持有的 child process，也不能依赖发起操作的 shell。
+桌面 tray 必须控制一个 Harness Web process，使它能 rebuild 和 restart 安装 worktree，且不依赖 tray 的 direct child process 或发起操作的 shell。开发者还需要为符合条件的 client-plugin change 使用快速 HMR path，并为必须启动新 Web process 的 change 使用隔离 path。
 
 ## Proposal
 
-由 detached Supervisor 拥有配置中的 Web process、可选 client watcher、配置端口和 rebuild lifecycle。Electron tray 通过本地 Unix socket 或 Windows named pipe 作为 client。Manifest 是 runtime identity 的事实源，记录明确的 worktree、DSH_HOME、端口、模式、branch、revision、dirty state、phase 和 child PID。
+platform service manager 拥有 production Supervisor。在当前 WSL host 上，systemd 运行一个 production Supervisor process，它拥有 3080 Web runtime、private local socket 与 3082 HTTP/SSE control page。页面属于 Supervisor process，不是独立 helper。
 
-Supervisor 拥有配置 runtime 的端口 takeover。只有 listener PID 匹配记录的 Web PID 时才停止它；明确设置 manifest 的 <code>allowPortTakeover: true</code> 才允许有意识地接管外部 listener。它会在 graceful 和 forced termination 后确认端口释放，构建记录的 worktree，再用记录的环境启动 Web。它不会从调用方 cwd 推断 branch 或 DSH_HOME。
+branch name 就是 deployment target。promotion 不接受也不比较 commit hash；manifest 可以为 source diagnostics 显示当前 revision。branch-scoped production command 切换到指定 local branch，构建该 branch，且只在 build 成功后停止当前 Web process。build failure 保留当前 3080 Web process，并报告简洁的 failure state 与 raw build output。
 
-同一时刻只有一个非 status lifecycle command 拥有 runtime；并发 lifecycle command 会失败且不改变其 state。它在最终响应前发送 language-neutral phase key 与 values。同一个 structured phase 会写回 manifest 和 runtime log。Progress page 读取配置 DSH_HOME 的 locale preference，用该语言展示当前和历史 phase；tray 与 command-line client 使用同一个 event stream。
+## Runtime modes
 
-## Owner map
+### HMR
 
-| 范围 | Owner | 职责 |
+client plugin 中的 source-only change 使用当前 production worktree 与已运行的 <code>pnpm run dev:web</code> watcher。Web shell、client runtime、Host、Supervisor、desktop process、settings/schema、dependency、lockfile、bundle composition 与 built artifact change 不支持 HMR。
+
+### Candidate runtime
+
+non-HMR change 在 candidate branch 的单独 Git worktree 中运行。systemd transient service 拥有它隔离的 DSH_HOME、3081 Web runtime 与 3083 candidate control page。production 3080 runtime 保持使用自己的 worktree 和 data directory。production control page 可以报告 candidate status，但一个 Harness runtime 不连接或观察另一个 runtime。
+
+### Promotion
+
+3081 browser acceptance 通过后，production Supervisor 接收带 candidate branch name 的 <code>rebuild-and-restart</code>。它将 production worktree 切到该 branch、构建它，然后才停止 production Web process、释放 configured port、启动 replacement，并在 3082 报告完成。该 branch 当前最新 local content 就是被 promote 的 content。
+
+## Ownership map
+
+| Area | Owner | Responsibility |
 | --- | --- | --- |
-| Runtime process | <code>apps/plus-desktop/src/supervisor.mjs</code> | IPC、source identity、端口 takeover、process group、build、watcher、progress 和 log。 |
-| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | 启动或连接 detached Supervisor，并把 lifecycle status 提供给 Electron。 |
-| User-facing tray | <code>apps/plus-desktop/src/main.mjs</code> | 持久化 manifest 路径，并提供 start、stop、rebuild-and-restart 操作。 |
-| Command-line client | <code>apps/plus-desktop/src/supervisor-client.mjs</code> | 为手动恢复和诊断打印 progress event 与最终 status。 |
-| Progress page | <code>apps/plus-desktop/src/supervisor-progress-server.mjs</code> 与 <code>apps/plus-desktop/progress</code> | 渲染 Supervisor event stream、持久 history、原始 runtime output、control、icon 和配置语言。 |
-| 明确不改 | Harness Web RPC、agent-loop、Settings 和 session persistence | 不改变 product 协议或 durable session 格式。 |
+| Production service | systemd | 让 production Supervisor 独立于 Electron 与 agent shell 持续运行。 |
+| Runtime process | <code>apps/plus-desktop/src/supervisor.mjs</code> | IPC、branch activation、source identity、port takeover、process groups、build、watcher、progress 与 logs。 |
+| Progress page | <code>apps/plus-desktop/src/supervisor-progress-server.mjs</code> 与 <code>apps/plus-desktop/progress</code> | 从 Supervisor process 提供 3082，并渲染 branch、phase、history 与 raw output。 |
+| Candidate service | systemd transient service | 拥有 candidate worktree、DSH_HOME、3081 Web runtime 与 3083 page。 |
+| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | 连接 Supervisor 并向 Electron 暴露 lifecycle status。 |
+| Explicitly untouched | Harness Web RPC、agent-loop、Settings、session persistence、providers | 不改变 product protocol 或 durable session format。 |
 
 ## Progress contract
 
-一个 command 在同一个本地连接上发送零个或多个 structured phase message，随后恰好发送一个 success 或 failure response。Phase 带有稳定 key 和 JSON values；Supervisor 不存储 localized phrase。页面使用配置语言解析 phase text，并以 structured history 写入 runtime log。原始 process output 单独存储并原样展示。Failure 会记录原始 error object，并向 client 返回简短 error。
-
-## Acceptance criteria
-
-- Tray 不直接拥有 Web child。
-- 独立启动的 Supervisor 能报告准确的 source path、branch、revision、DSH_HOME、mode、port、phase 和 child state。
-- <code>rebuild-and-restart</code> 能重新接管记录 Web PID 的 listener，或显式允许的外部 listener，构建记录的 worktree，并等待 Web ready。
-- Command-line client 能在长时间 build 运行时显示 progress。
-- 本地 progress page 在 command 运行时更新 phase 与原始 build output，刷新后保留 phase history，并跟随 <code>locale.preference</code>。
-- 只有 development mode 监管 client HMR；production rebuild 使用 build 加 restart。
-- Supervisor teardown 会等待受管 child process 退出。
-
-## Risks
-
-显式 <code>allowPortTakeover</code> 设置可能在 manifest 指向其他应用端口时停止无关 process。默认路径只重新接管记录的 Web PID，并拒绝未知 owner。Dirty worktree 会在 status 中可见，调用方可以在 rebuild 前审阅准确 source state。
+一个 runtime 同时只由一个 non-status lifecycle command 拥有。它在 final response 前 stream language-neutral phase keys 与 values。Supervisor 持久化这些 phases 与 raw process output。页面按 configured locale 解析 structured phases。phase failure message 保持简洁；runtime log 是完整 compiler 与 build output 的来源。
 
 ## Alternatives considered
 
-让 Web child 归 Electron 所有，会让 restart ownership 绑定 tray 生命周期。让 agent shell 启动 child，会让 process 绑定 tool cancellation。只有持久 progress file 能帮助诊断，但不能在 rebuild 期间更新 tray。Detached Supervisor 加本地 progress stream 让 lifecycle 只有一个 owner，并让两个交互 client 使用同一个 phase source。
+**在 branch activation 与 build 前停止 3080。** failed build 会使用户没有可用 runtime。
+
+**使用 commit hash 作为 promotion target。** 已确认的 workflow promote selected branch 的最新 content，因此 branch name 是唯一 deployment identifier。
+
+**让 3080 Harness 观察 3081 Harness。** runtime-to-runtime observation 会耦合独立的 data、session 与 process lifecycle。Supervisor control plane 拥有 cross-runtime visibility。
+
+## Acceptance criteria
+
+- agent tool invocation 结束后，systemd 仍保持 production Supervisor 与其 3082 page 存活。
+- HMR 只由 production worktree 中 active client-plugin watcher 使用。
+- candidate branch test 使用独立 worktree、DSH_HOME、3081 与 3083。
+- branch-scoped production rebuild 依次 switch branch、complete build、stop/start 3080。
+- failed branch build 保留之前的 3080 Web process，并显示 failure，且 manifest phase 不持久化完整 raw output。
+- completed production promotion 后 browser acceptance refresh 3080。
+
+## Risks
+
+branch 按设计是 mutable 的，因此 promotion 有意运行该 branch 的最新 local content，而不是历史 candidate commit。production branch switch 会在 build 结束前改动 source files；candidate test 与 build-first process lifecycle 保留运行中的 Web process，但不提供 immutable artifact deployment。显式 <code>allowPortTakeover</code> setting 在 manifest 指向另一应用 port 时可能停止无关 process；默认 path 只接管记录的 Web PID，并拒绝 unknown owner。

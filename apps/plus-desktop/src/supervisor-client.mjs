@@ -8,13 +8,16 @@ function argumentsFrom(argv) {
     if (value === '--socket') {
       values.socket = argv[index + 1]
       index += 1
+    } else if (value === '--branch') {
+      values.branch = argv[index + 1]
+      index += 1
     } else if (!value.startsWith('--')) commands.push(value)
   }
   return { ...values, command: commands[0] }
 }
 
 const args = argumentsFrom(process.argv.slice(2))
-if (!args.socket || !args.command) throw new Error('usage: node supervisor-client.mjs --socket <path> <command>')
+if (!args.socket || !args.command) throw new Error('usage: node supervisor-client.mjs --socket <path> [--branch <name>] <command>')
 
 const socket = connect(args.socket)
 let input = ''
@@ -45,4 +48,4 @@ socket.once('error', error => {
   console.error('[supervisor] connection failed:', error)
   process.exitCode = 1
 })
-socket.write(JSON.stringify({ command: args.command }) + String.fromCharCode(10))
+socket.write(JSON.stringify({ command: args.command, branch: args.branch }) + String.fromCharCode(10))

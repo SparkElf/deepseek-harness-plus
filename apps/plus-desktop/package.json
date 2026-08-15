@@ -14,7 +14,6 @@
   "scripts": {
     "dev": "electron .",
     "supervisor:command": "node src/supervisor-client.mjs",
-    "supervisor:progress": "node src/supervisor-progress-server.mjs",
     "package:dir": "electron-builder --dir",
     "package:linux": "electron-builder --linux",
     "package:mac": "electron-builder --mac",

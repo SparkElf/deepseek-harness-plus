@@ -60,6 +60,7 @@ async function assertInstalled() {
 async function saveRuntime(next) {
   const configured = {
     ...next,
+    progressPort: next.progressPort ?? 3082,
     supervisorSocketPath: next.supervisorSocketPath ?? supervisorSocketPath(),
     supervisorManifestPath: next.supervisorManifestPath ?? supervisorManifestPath(),
   }
@@ -212,6 +213,7 @@ async function loadRuntime() {
     const saved = JSON.parse(await readFile(setupPath(), 'utf8'))
     const configured = {
       ...saved,
+      progressPort: saved.progressPort ?? 3082,
       supervisorSocketPath: saved.supervisorSocketPath ?? supervisorSocketPath(),
       supervisorManifestPath: saved.supervisorManifestPath ?? supervisorManifestPath(),
     }

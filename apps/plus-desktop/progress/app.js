@@ -1,14 +1,15 @@
 import { resolveLocale, translate } from '/locales.js'
 
 const badge = document.querySelector('#statusBadge')
-const phase = document.querySelector('#phase')
 const identity = document.querySelector('#runtimeIdentity')
 const timeline = document.querySelector('#timeline')
 const log = document.querySelector('#log')
 const error = document.querySelector('#error')
+const branchInput = document.querySelector('#targetBranch')
 const buttons = [...document.querySelectorAll('[data-command]')]
 let snapshot
 let locale = 'zh'
+let branchInitialized = false
 
 function text(value) {
   return value === undefined || value === '' ? translate(locale, 'empty.unavailable') : String(value)
@@ -29,12 +30,12 @@ function statusLabel(state) {
 function applyStaticCopy() {
   document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en'
   document.title = translate(locale, 'app.supervisor')
-  document.querySelector('#brandSuffix').textContent = translate(locale, 'app.suffix')
   document.querySelector('#topbarTitle').textContent = translate(locale, 'app.supervisor')
   document.querySelector('#pageTitle').textContent = translate(locale, 'app.progress')
-  document.querySelector('#phaseLabel').textContent = translate(locale, 'label.phase')
   document.querySelector('#activityTitle').textContent = translate(locale, 'label.activity')
   document.querySelector('#logTitle').textContent = translate(locale, 'label.log')
+  document.querySelector('#branchLabel').textContent = translate(locale, 'label.targetBranch')
+  document.querySelector('#commandActions').setAttribute('aria-label', translate(locale, 'label.commands'))
   document.querySelector('#startLabel').textContent = translate(locale, 'action.start')
   document.querySelector('#restartLabel').textContent = translate(locale, 'action.restart')
   document.querySelector('#rebuildLabel').textContent = translate(locale, 'action.rebuildRestart')
@@ -79,11 +80,42 @@ function renderTimeline(entries) {
   }))
 }
 
-function renderLog(entries) {
-  log.textContent = entries.length ? entries.map(entry => entry.kind === 'phase'
+function logTone(entry) {
+  if (entry.kind === 'phase') return 'phase'
+  const value = entry.text
+  if (/\b(error|failed|fatal)\b/i.test(value)) return 'error'
+  if (/\b(warn|unsupported)\b/i.test(value)) return 'warning'
+  if (/^(✓|✔)|build complete|done in/i.test(value)) return 'success'
+  if (/^\$ |npm notice run/i.test(value)) return 'command'
+  if (/^dist\//.test(value)) return 'artifact'
+  return 'plain'
+}
+
+function logText(entry) {
+  return entry.kind === 'phase'
     ? '[' + timestamp(entry.at) + '] ' + phaseText(entry.phase)
-    : entry.text).join(String.fromCharCode(10))
-    : translate(locale, 'empty.log')
+    : entry.text
+}
+
+function renderLog(entries) {
+  if (!entries.length) {
+    log.textContent = translate(locale, 'empty.log')
+    return
+  }
+  log.replaceChildren(...entries.map(entry => {
+    const row = document.createElement('div')
+    row.className = 'log-row'
+    row.dataset.tone = logTone(entry)
+    const marker = document.createElement('span')
+    marker.className = 'log-marker'
+    marker.textContent = row.dataset.tone === 'success' ? '✓' : row.dataset.tone === 'warning' ? '!' : row.dataset.tone === 'error' ? '×' : row.dataset.tone === 'command' ? '$' : row.dataset.tone === 'artifact' ? '□' : '·'
+    const message = document.createElement('span')
+    message.className = 'log-message'
+    message.textContent = logText(entry)
+    row.append(marker, message)
+    return row
+  }))
+  log.scrollTop = log.scrollHeight
 }
 
 function render(data) {
@@ -95,8 +127,12 @@ function render(data) {
   const state = command?.state === 'failed' ? 'failed' : active ? 'working' : data.runtime.state
   badge.dataset.state = state
   badge.lastElementChild.textContent = statusLabel(state)
-  phase.textContent = phaseText(command?.phase ?? data.runtime.phase)
   renderIdentity(data.runtime)
+  if (!branchInitialized || (!active && document.activeElement !== branchInput)) {
+    branchInput.value = data.runtime.branch ?? ''
+    branchInitialized = true
+  }
+  branchInput.disabled = active
   buttons.forEach(button => {
     button.disabled = active || (button.dataset.command === 'start' && data.runtime.state === 'running') || (button.dataset.command === 'restart' && data.runtime.state !== 'running')
   })
@@ -116,10 +152,13 @@ buttons.forEach(button => button.addEventListener('click', async () => {
   buttons.forEach(item => { item.disabled = true })
   error.textContent = ''
   try {
+    const payload = { command }
+    const targetBranch = branchInput.value.trim()
+    if (command === 'rebuild-and-restart' && targetBranch !== '') payload.branch = targetBranch
     const response = await fetch('/api/command', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ command }),
+      body: JSON.stringify(payload),
     })
     const result = await response.json()
     if (!response.ok) throw new Error(result.error)

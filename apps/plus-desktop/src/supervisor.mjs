@@ -4,6 +4,7 @@ import { chmod, mkdir, readFile, unlink } from 'node:fs/promises'
 import { closeSync, openSync, writeSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { writeSupervisorManifest } from './supervisor-manifest.mjs'
+import { startProgressServer } from './supervisor-progress-server.mjs'
 
 const START_TIMEOUT_MS = 30_000
 const STOP_TIMEOUT_MS = 10_000
@@ -28,6 +29,15 @@ function pipePath(socketPath) {
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
+}
+
+class SubprocessFailure extends Error {
+  constructor(command, code, signal, output) {
+    const outcome = signal === null ? 'exit code ' + String(code) : 'signal ' + signal
+    super(output || command + ' failed with ' + outcome)
+    this.name = 'SubprocessFailure'
+    this.summary = command + ' failed with ' + outcome
+  }
 }
 
 function waitForExit(child, timeoutMs) {
@@ -65,7 +75,7 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
       clearTimeout(timer)
       if (timeoutError !== undefined) reject(timeoutError)
       else if (code === 0) resolve(output)
-      else reject(new Error(output || command + ' exited with ' + (signal ?? String(code))))
+      else reject(new SubprocessFailure(command, code, signal, output))
     })
   })
 }
@@ -87,6 +97,7 @@ async function sourceStatus(cwd) {
 class RuntimeSupervisor {
   constructor(manifestPath, socketPath) {
     this.manifestPath = manifestPath
+    this.controlSocketPath = socketPath
     this.socketPath = pipePath(socketPath)
     this.manifest = undefined
     this.web = undefined
@@ -94,6 +105,7 @@ class RuntimeSupervisor {
     this.watcher = undefined
     this.buildProcess = undefined
     this.server = undefined
+    this.progressServer = undefined
     this.logHandle = undefined
     this.phase = { key: 'idle' }
     this.source = undefined
@@ -104,8 +116,8 @@ class RuntimeSupervisor {
 
   async load() {
     this.manifest = JSON.parse(await readFile(this.manifestPath, 'utf8'))
-    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port) {
-      throw new Error('supervisor manifest needs installPath, dshHome, and port')
+    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port || !this.manifest.progressPort) {
+      throw new Error('supervisor manifest needs installPath, dshHome, port, and progressPort')
     }
     this.recordedWebPid = this.manifest.webPid
     await this.openLog()
@@ -128,6 +140,26 @@ class RuntimeSupervisor {
 
   async refreshSource() {
     this.source = await sourceStatus(this.manifest.installPath)
+  }
+
+  async prepareBranch(branch) {
+    if (branch === undefined) return undefined
+    if (typeof branch !== 'string' || branch.length === 0 || branch.length > 255) throw new Error('Supervisor branch must be a non-empty string of at most 255 characters')
+    await run('git', ['check-ref-format', '--branch', branch], this.manifest.installPath, this.environment(), 10_000)
+    await this.refreshSource()
+    if (this.source.branch === branch) return branch
+    if (this.source.dirty) throw new Error('cannot switch Supervisor branch while the worktree has local changes')
+    await run('git', ['show-ref', '--verify', '--quiet', 'refs/heads/' + branch], this.manifest.installPath, this.environment(), 10_000)
+    return branch
+  }
+
+  async activateBranch(branch) {
+    if (branch === undefined || this.source.branch === branch) return
+    this.announce('branch.switching', { branch })
+    await run('git', ['switch', '--quiet', branch], this.manifest.installPath, this.environment(), 30_000)
+    await this.refreshSource()
+    if (this.source.branch !== branch) throw new Error('Supervisor switched to an unexpected branch: ' + String(this.source.branch))
+    this.announce('branch.ready', { branch })
   }
 
   writeStatus() {
@@ -360,11 +392,14 @@ class RuntimeSupervisor {
     this.writeStatus()
   }
 
-  async restart(rebuild) {
+  /** 构建目标 branch 成功后才停止当前 Web，失败时保留正在运行的 3080 runtime。 */
+  async restart(rebuild, branch) {
+    const targetBranch = await this.prepareBranch(branch)
     const wasRunning = this.web !== undefined || await this.portOpen()
     this.announce(rebuild ? 'restart.preparingBuild' : 'restart.preparing')
-    await this.stop()
+    await this.activateBranch(targetBranch)
     if (rebuild) await this.build()
+    await this.stop()
     if (wasRunning || rebuild) await this.startWeb()
     this.announce('restart.complete')
     this.writeStatus()
@@ -378,6 +413,7 @@ class RuntimeSupervisor {
       sourcePath: this.manifest.installPath,
       dshHome: this.manifest.dshHome,
       port: this.manifest.port,
+      progressPort: this.manifest.progressPort,
       mode: this.manifest.mode ?? 'code',
       webPid: this.web?.pid ?? this.recordedWebPid,
       watcherPid: this.watcher?.pid,
@@ -386,21 +422,22 @@ class RuntimeSupervisor {
     }
   }
 
-  async command(name) {
+  async command(name, branch) {
     if (name === 'status') return this.status()
+    if (branch !== undefined && name !== 'rebuild-and-restart') throw new Error('Supervisor branch is only accepted by rebuild-and-restart')
     if (this.activeCommand !== undefined) throw new Error('Supervisor command already running: ' + this.activeCommand)
     this.activeCommand = name
     try {
       if (name === 'start') await this.startWeb()
       else if (name === 'stop') await this.stop()
-      else if (name === 'restart') await this.restart(false)
-      else if (name === 'rebuild-and-restart') await this.restart(true)
+      else if (name === 'restart') await this.restart(false, branch)
+      else if (name === 'rebuild-and-restart') await this.restart(true, branch)
       else if (name === 'build') await this.build()
       else if (name === 'start-client-watcher') await this.startWatcher()
       else throw new Error('unknown supervisor command: ' + name)
       return this.status()
     } catch (error) {
-      this.announce('failed', { message: errorMessage(error) })
+      this.announce('failed', { message: error instanceof SubprocessFailure ? error.summary : errorMessage(error) })
       throw error
     } finally {
       this.activeCommand = undefined
@@ -429,6 +466,12 @@ class RuntimeSupervisor {
     this.server.listen(this.socketPath)
     if (process.platform !== 'win32') await chmod(this.socketPath, SOCKET_MODE)
     this.writeStatus()
+    this.progressServer = await startProgressServer({
+      port: this.manifest.progressPort,
+      manifestPath: this.manifestPath,
+      socketPath: this.controlSocketPath,
+      logPath: join(this.manifest.dshHome, 'supervisor', 'runtime.log'),
+    })
   }
 
   /** 通过一个本地 socket 请求传输阶段进度和最终结果。 */
@@ -438,15 +481,19 @@ class RuntimeSupervisor {
       if (!socket.destroyed) socket.write(JSON.stringify({ event: 'progress', message }) + String.fromCharCode(10))
     }
     if (receivesProgress) this.progressListeners.add(progress)
-    try { socket.write(JSON.stringify({ ok: true, value: await this.command(request.command) }) + String.fromCharCode(10)) }
+    try { socket.write(JSON.stringify({ ok: true, value: await this.command(request.command, request.branch) }) + String.fromCharCode(10)) }
     catch (error) {
       console.error('[supervisor] command failed', error)
-      socket.write(JSON.stringify({ ok: false, error: errorMessage(error) }) + String.fromCharCode(10))
+      const message = error instanceof SubprocessFailure ? error.summary : errorMessage(error)
+      socket.write(JSON.stringify({ ok: false, error: message }) + String.fromCharCode(10))
     }
     finally { if (receivesProgress) this.progressListeners.delete(progress) }
   }
 
   async close() {
+    const progressServer = this.progressServer
+    this.progressServer = undefined
+    if (progressServer !== undefined) await progressServer.close()
     this.progressListeners.clear()
     for (const socket of this.sockets) socket.end()
     this.sockets.clear()
