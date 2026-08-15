@@ -79,6 +79,10 @@ pnpm run demo:acp       # ACP automation server (needs DEEPSEEK_API_KEY)
 
 Before any local runtime edit, build, test, HMR, or restart, invoke [supervisor-runtime-control](.agents/skills/supervisor-runtime-control/SKILL.md); candidate-first is mandatory and verified production HMR is its only exception.
 
+### Release notes
+
+Before creating, publishing, or materially rewriting a GitHub Release, invoke [release-notes-authoring](.agents/skills/release-notes-authoring/SKILL.md) and use its standard template.
+
 ### Host sandbox failures
 
 When required `gh`, `pnpm`, build, test, or generator commands fail because the agent sandbox blocks credentials, network, IPC, file watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation before diagnosing authentication or project failure. Require sandbox evidence; never bypass genuine test failures or the product sandbox under test.
