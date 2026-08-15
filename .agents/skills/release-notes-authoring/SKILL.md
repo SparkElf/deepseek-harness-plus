@@ -5,7 +5,7 @@ description: Use before creating, publishing, or materially rewriting any Plus G
 
 # User-Focused Release Notes
 
-Release notes are the complete user-facing record of one shipped version. They help a reader decide whether to install or upgrade, understand every material change, use the new behavior, and recognize the release limits without reading pull requests or source code.
+Release notes are the complete user-facing record of one shipped version. They help a reader decide whether to install or upgrade, understand every material change, use the new behavior, and recognize the release limits without reading pull requests or source code. Public Plus releases are bilingual in Chinese and English so both audiences receive the same complete account.
 
 ## Start from the release boundary
 
@@ -31,9 +31,13 @@ For each material change, explain:
 
 Lead with observable results. Include module or protocol names only when they help the reader understand ownership, compatibility, configuration, or troubleshooting.
 
+## Bilingual publication
+
+Write one complete Chinese section followed by one complete English section, separated clearly in the same GitHub Release. Keep headings, feature coverage, workflows, platform information, compatibility, limitations, evidence, artifact metadata, and links equivalent across languages. Neither language may be a summary of the other. Translate for natural reading without adding claims or changing release scope.
+
 ## Default template
 
-Start from [TEMPLATE.md](TEMPLATE.md) for every new or rewritten release. Keep its section order so releases remain comparable over time. Replace every placeholder, add one subsection per material change, and delete a section only when it genuinely does not apply. Do not replace the template's complete feature section with Highlights.
+Start from [TEMPLATE.md](TEMPLATE.md) for every new or rewritten release. Keep its bilingual section order so releases remain comparable over time. Replace every placeholder, add one subsection per material change in both languages, and delete a section only when it genuinely does not apply to either language. Do not replace either language's complete feature section with Highlights.
 
 ## Required sections
 
@@ -94,8 +98,9 @@ Never rewrite history to match current behavior. Later releases may be named onl
 
 ## Final publishing checklist
 
-- The notes started from [TEMPLATE.md](TEMPLATE.md), preserve its applicable section order, and contain no placeholders.
-- The opening is a concise summary, not a compressed substitute for the body.
+- The notes started from [TEMPLATE.md](TEMPLATE.md), preserve its applicable bilingual section order, and contain no placeholders.
+- Chinese and English contain equivalent features, workflows, compatibility, limitations, evidence, artifact metadata, and links.
+- The opening in each language is a concise summary, not a compressed substitute for the body.
 - Every material user-facing change has a complete subsection.
 - A reader can decide whether and how to upgrade without opening a PR.
 - Artifact names, links, sizes, checksums, platforms, and signing status are accurate where included.
