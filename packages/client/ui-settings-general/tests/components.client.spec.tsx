@@ -122,6 +122,33 @@ describe('SettingsDocumentAction', () => {
     expect(describe).toHaveBeenCalledTimes(2)
   })
 
+  it('keeps a disabled action visible when the Host has no desktop opener', async () => {
+    const openDocument = vi.fn()
+    const controller = new SettingsDocumentStore({
+      settings: {
+        describe: vi.fn(() => Promise.resolve({
+          rpcId: 'document-action-no-desktop' as never,
+          result: {
+            ok: true as const,
+            value: { writable: true, hasDocument: true, canOpenDocument: false, namespaces: [] },
+          },
+        })),
+        openDocument,
+      },
+    } as never)
+    render(<SettingsDocumentAction
+      {...kit}
+      t={t}
+      controller={controller}
+      useSnapshot={bindSnapshotSelector(controller.store)}
+    />)
+    const action = await screen.findByRole('button', { name: 'Open configuration file' })
+    expect((action as HTMLButtonElement).disabled).toBe(true)
+    expect(action.getAttribute('title')).toBe('This runtime cannot open a desktop application')
+    fireEvent.click(action)
+    expect(openDocument).not.toHaveBeenCalled()
+  })
+
   it('keeps the action available and reports a native-open failure', async () => {
     const controller = new SettingsDocumentStore({
       settings: {

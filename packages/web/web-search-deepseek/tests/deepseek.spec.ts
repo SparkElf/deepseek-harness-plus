@@ -8,6 +8,7 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import {
+  CurrentModelSearchProvider,
   DeepSeekSearchProvider,
   DEEPSEEK_PROVIDER_ID,
 } from '@deepseek-ai/dsh-web-search-deepseek'
@@ -530,5 +531,46 @@ describe('web-search-deepseek plugin registration', () => {
     } finally {
       if (prev !== undefined) process.env.DEEPSEEK_API_KEY = prev
     }
+  })
+})
+
+describe('current-model search provider', () => {
+  it('uses the current provider, model, credential, and Responses web-search tool', async () => {
+    const ctx = new Context()
+    ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'link_api', model: 'gpt-5.6-sol' }) } as never)
+    ctx.provide('settings', {
+      describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
+    } as never)
+    ctx.provide('credentials', {
+      resolve: async () => ({ value: 'openai-key', source: 'test' }),
+    } as never)
+    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe('https://gateway.test/v1/responses')
+      expect(init.redirect).toBe('error')
+      expect(init.headers).toMatchObject({ authorization: 'Bearer openai-key' })
+      expect(JSON.parse(String(init.body))).toMatchObject({
+        model: 'gpt-5.6-sol',
+        input: 'latest Harness release',
+        tools: [{ type: 'web_search_preview' }],
+      })
+      return jsonResponse({
+        output: [{
+          type: 'message',
+          content: [{
+            type: 'output_text',
+            text: 'A current answer.',
+            annotations: [{ type: 'url_citation', url: 'https://example.test', title: 'Example' }],
+          }],
+        }],
+      })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const result = await new CurrentModelSearchProvider(ctx).search({ query: 'latest Harness release' })
+    expect(result).toEqual({
+      content: 'A current answer.',
+      sources: [{ url: 'https://example.test', title: 'Example' }],
+      truncated: false,
+    })
+    expect(fetchMock).toHaveBeenCalledOnce()
   })
 })

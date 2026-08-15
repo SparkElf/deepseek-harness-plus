@@ -61,6 +61,8 @@ export interface SettingsApi {
   describe(request: RpcRequest<{}>): Promise<RpcResponse<{
     writable: boolean
     hasDocument: boolean
+    /** Whether this Host can hand the document to a native text editor. */
+    canOpenDocument?: boolean
     namespaces: SettingsNamespaceView[]
   }>>
 

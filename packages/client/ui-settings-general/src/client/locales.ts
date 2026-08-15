@@ -7,6 +7,7 @@ export const zh = {
   'close': '关闭',
   'openDocument': '打开配置文件',
   'openDocument.error': '无法打开配置文件',
+  'openDocument.unavailable': '当前运行环境无法调用桌面应用',
   'general.nav': '通用设置',
 } satisfies Record<string, string>
 
@@ -20,5 +21,6 @@ export const en = {
   'close': 'Close',
   'openDocument': 'Open configuration file',
   'openDocument.error': 'Could not open configuration file',
+  'openDocument.unavailable': 'This runtime cannot open a desktop application',
   'general.nav': 'General',
 } satisfies Record<SettingsKey, string>
