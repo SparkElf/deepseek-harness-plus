@@ -43,19 +43,27 @@ describe('native path opener', () => {
   it.each([
     ['distribution marker', { WSL_DISTRO_NAME: 'Ubuntu' }, '6.8.0-generic'],
     ['interop marker', { WSL_INTEROP: '/run/WSL/123_interop' }, '6.8.0-generic'],
-    ['kernel release', { WSL_INTEROP: '/run/WSL/123_interop' }, '5.15.153.1-microsoft-standard-WSL2'],
+    ['kernel release', {}, '5.15.153.1-microsoft-standard-WSL2'],
   ])('hands WSL text documents to the Windows desktop from the %s', async (_label, env, osRelease) => {
     const requestSignal = signal()
-    const run = vi.fn<PathOpenerRunner>(async command => command === 'wslpath'
-      ? { stdout: '\\\\wsl.localhost\\Ubuntu\\home\\test user\\settings.yaml\r\n', stderr: '' }
-      : { stdout: '', stderr: '' })
+    const run = vi.fn<PathOpenerRunner>(async (command, args) => {
+      if (command !== 'wslpath') return { stdout: '', stderr: '' }
+      return args[0] === '-w'
+        ? { stdout: '\\\\wsl.localhost\\Ubuntu\\home\\test user\\settings.yaml\r\n', stderr: '' }
+        : { stdout: '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\n', stderr: '' }
+    })
     await openNativeTextFile('/home/test user/settings.yaml', requestSignal, {
       platform: 'linux', osRelease, env, run,
     })
     expect(run.mock.calls).toEqual([
       ['wslpath', ['-w', '/home/test user/settings.yaml'], requestSignal],
       [
-        'powershell.exe',
+        'wslpath',
+        ['-u', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'],
+        requestSignal,
+      ],
+      [
+        '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
         [
           '-NoProfile',
           '-Command',
@@ -72,6 +80,16 @@ describe('native path opener', () => {
       platform: 'linux', osRelease: '6.8.0-generic', env: { WSL_DISTRO_NAME: 'Ubuntu' }, run,
     })).rejects.toThrow('wslpath returned no Windows path')
     expect(run).toHaveBeenCalledOnce()
+  })
+
+  it('rejects an empty WSL PowerShell translation before invoking Windows', async () => {
+    const run = vi.fn<PathOpenerRunner>(async (_command, args) => ({
+      stdout: args[0] === '-w' ? 'C:\\settings.yaml\n' : '\r\n', stderr: '',
+    }))
+    await expect(openNativeTextFile('/home/test/settings.yaml', signal(), {
+      platform: 'linux', osRelease: '5.15.167.4-microsoft-standard-WSL2', env: {}, run,
+    })).rejects.toThrow('wslpath returned no PowerShell path')
+    expect(run).toHaveBeenCalledTimes(2)
   })
 
   it('does not invoke Windows when the request aborts during WSL path translation', async () => {
@@ -134,13 +152,14 @@ describe('native path opener', () => {
   })
 
   it('samples ambient WSL markers and kernel release when no fact overrides are supplied', async () => {
-    const ambientWsl = [process.env.WSL_DISTRO_NAME, process.env.WSL_INTEROP]
-      .some(value => value !== undefined && value !== '')
-    const run = vi.fn<PathOpenerRunner>(async command => command === 'wslpath'
-      ? { stdout: 'C:\\settings.yaml\n', stderr: '' }
-      : { stdout: '', stderr: '' })
+    const run = vi.fn<PathOpenerRunner>(async (command, args) => {
+      if (command !== 'wslpath') return { stdout: '', stderr: '' }
+      return args[0] === '-w'
+        ? { stdout: 'C:\\settings.yaml\n', stderr: '' }
+        : { stdout: '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\n', stderr: '' }
+    })
     await openNativePath('/tmp/ambient-facts.yaml', signal(), { platform: 'linux', run })
-    expect(run.mock.calls[0]?.[0]).toBe(ambientWsl ? 'wslpath' : 'xdg-open')
+    expect(run.mock.calls[0]?.[0]).toBe('wslpath')
   })
 
   it('runs the default command adapter without a shell and preserves command failures', async () => {
@@ -269,15 +288,20 @@ describe('browser-renderable documents', () => {
       run: async (command, args) => {
         calls.push([command, ...args])
         return {
-          stdout: command === 'wslpath' ? 'C:\\workspace\\page.html\n' : '',
+          stdout: command !== 'wslpath'
+            ? ''
+            : args[0] === '-w'
+              ? 'C:\\workspace\\page.html\n'
+              : '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe\n',
           stderr: '',
         }
       },
     })
     expect(calls).toEqual([
       ['wslpath', '-w', '/home/test/page.html'],
+      ['wslpath', '-u', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'],
       [
-        'powershell.exe',
+        '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
         '-NoProfile',
         '-Command',
         "Invoke-Item -LiteralPath 'C:\\workspace\\page.html'",
@@ -292,13 +316,10 @@ describe('canOpenNativePath', () => {
     expect(canOpenNativePath({ platform: 'win32', env: {} })).toBe(true)
   })
 
-  it('requires a display server or WSL interop on linux', () => {
-    const linux = { platform: 'linux' as const, osRelease: '6.8.0-generic' }
-    // Headless is the case the capability exists for: `xdg-open` would spawn
-    // into nothing, so a surface should show the path as text instead.
-    expect(canOpenNativePath({ ...linux, env: {} })).toBe(false)
-    expect(canOpenNativePath({ ...linux, env: { DISPLAY: ':0' } })).toBe(true)
-    expect(canOpenNativePath({ ...linux, env: { WAYLAND_DISPLAY: 'wayland-0' } })).toBe(true)
+  it('advertises Linux default-application dispatch without display heuristics', () => {
+    expect(canOpenNativePath({ platform: 'linux', env: {} })).toBe(true)
+    expect(canOpenNativePath({ platform: 'linux', env: { DISPLAY: ':0' } })).toBe(true)
+    expect(canOpenNativePath({ platform: 'linux', env: { WAYLAND_DISPLAY: 'wayland-0' } })).toBe(true)
     expect(canOpenNativePath({
       platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: { WSL_INTEROP: '/run/WSL/interop' },
     })).toBe(true)
@@ -308,12 +329,7 @@ describe('canOpenNativePath', () => {
     expect(canOpenNativePath({ platform: 'freebsd', env: {} })).toBe(false)
   })
 
-  it('samples the ambient environment when no override is supplied', () => {
-    const env = process.env
-    const marked = (value: string | undefined): boolean => value !== undefined && value !== ''
-    const expected = marked(env.WSL_DISTRO_NAME) || marked(env.WSL_INTEROP)
-      || marked(env.DISPLAY) || marked(env.WAYLAND_DISPLAY)
-
-    expect(canOpenNativePath({ platform: 'linux', osRelease: '6.8.0-generic' })).toBe(expected)
+  it('does not let ambient display variables alter Linux capability', () => {
+    expect(canOpenNativePath({ platform: 'linux', osRelease: '6.8.0-generic' })).toBe(true)
   })
 })

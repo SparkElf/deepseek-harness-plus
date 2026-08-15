@@ -8,6 +8,7 @@
  * GUI. The text-editor intent never consults the browser.
  */
 
+import { release } from 'node:os'
 import { extname } from 'node:path'
 import { runNativeCommand, type NativeCommandRunner } from '@deepseek-ai/dsh-native-command'
 
@@ -89,15 +90,18 @@ function present(value: string | undefined): boolean {
   return value !== undefined && value !== ''
 }
 
-/** Distinguish WSL from desktop Linux using environment interop markers. */
+/** Distinguish WSL from desktop Linux using interop markers or its kernel release. */
 function isWsl(internals: PathOpenerInternals): boolean {
   const env = internals.env ?? process.env
-  return present(env.WSL_DISTRO_NAME) || present(env.WSL_INTEROP)
+  const kernelRelease = internals.osRelease ?? release()
+  return present(env.WSL_DISTRO_NAME) || present(env.WSL_INTEROP) || /microsoft|wsl/iu.test(kernelRelease)
 }
 
 /** Open one Windows-resolvable path through its registered desktop application. */
-async function openWindowsPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
-  await run('powershell.exe', [
+async function openWindowsPath(
+  path: string, signal: AbortSignal, run: PathOpenerRunner, command = 'powershell.exe',
+): Promise<void> {
+  await run(command, [
     '-NoProfile',
     '-Command',
     `Invoke-Item -LiteralPath ${powershellLiteral(path)}`,
@@ -110,7 +114,11 @@ async function openWslPath(path: string, signal: AbortSignal, run: PathOpenerRun
   signal.throwIfAborted()
   const windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
   if (windowsPath === '') throw new Error('wslpath returned no Windows path')
-  await openWindowsPath(windowsPath, signal, run)
+  const executable = await run('wslpath', ['-u', 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'], signal)
+  signal.throwIfAborted()
+  const powershellPath = executable.stdout.replace(/[\r\n]+$/, '')
+  if (powershellPath === '') throw new Error('wslpath returned no PowerShell path')
+  await openWindowsPath(windowsPath, signal, run, powershellPath)
 }
 
 /** Dispatch one shell-free platform command for the requested open intent. */
@@ -153,11 +161,11 @@ async function openNativePathWithIntent(
 /**
  * Whether {@link openNativePath} plausibly reaches a desktop on this host.
  *
- * macOS and Windows always carry a desktop opener; Linux does when it is WSL
- * (the Windows desktop takes the path) or a display server is announced.
- * A headless or containerised Linux host answers false, which is what lets a
- * surface show a path as text instead of offering a button that would spawn
- * `xdg-open` into nothing.
+ * macOS and Windows always carry a default opener. Linux delegates every
+ * supported path to `xdg-open`, while WSL translates it before asking Windows
+ * to use its registered default application. An opener failure is reported at
+ * invocation time; display-environment heuristics must not hide a supported
+ * system association from a local user.
  * @param internals - platform and environment seam for deterministic tests.
  * @returns true when handing a path to the native opener can work at all.
  */
@@ -165,8 +173,7 @@ export function canOpenNativePath(internals: PathOpenerInternals = {}): boolean 
   const platform = internals.platform ?? process.platform
   if (platform === 'darwin' || platform === 'win32') return true
   if (platform !== 'linux') return false
-  const env = internals.env ?? process.env
-  return isWsl(internals) || present(env.DISPLAY) || present(env.WAYLAND_DISPLAY)
+  return true
 }
 
 /**
