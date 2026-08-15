@@ -24,3 +24,14 @@ Maintainers use `kind/*` and `area/*` labels to route work. Use `good first issu
 ## Development
 
 Follow [AGENTS.md](AGENTS.md), [docs/development.md](docs/development.md), and the package-specific instructions for the files you change.
+
+### Sync upstream
+
+Maintainers update a clean Plus checkout from DeepSeek Harness with:
+
+```sh
+git fetch upstream
+git merge upstream/master
+```
+
+Review Plus diff records and resolve conflicts before publishing the result.
