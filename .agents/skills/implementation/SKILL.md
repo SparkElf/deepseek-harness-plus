@@ -13,6 +13,7 @@ Implement the agreed user path in the owning modules. Keep changes focused, type
 - Update configuration, docs, and user-visible failure handling with the implementation.
 - Update the matching diff record in the same change. A new plugin or preset also updates the composition registry.
 - Keep secrets out of source, fixtures, screenshots, and logs.
+- Follow [user-owned edge cases](../architecture-planning/SKILL.md#user-owned-edge-cases); do not expand accepted scope around problems the user has not experienced or requested.
 - Do not label an incomplete feature as released or installable.
 
 Record the implemented scope and any deliberate exclusions in the PR under `## Implementation`. Hand completed work to code review.

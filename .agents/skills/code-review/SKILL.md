@@ -13,6 +13,7 @@ Review the change as an operator and a plugin ecosystem maintainer. Lead with co
 - Does the composition registry prevent collisions in tools, routes, settings namespaces, persistence owners, and UI slots?
 - Does the core or community diff record name every affected repository and file without pretending a planned feature is shipped?
 - Are documentation, release claims, installer screens, and preset status consistent with the actual code?
+- Does the review respect [user-owned edge cases](../architecture-planning/SKILL.md#user-owned-edge-cases) instead of blocking accepted work on unreported hypothetical problems?
 - Is the implementation simpler than the alternatives considered?
 
 Record findings, fixes, and the review result in the PR under `## Code review`. A human maintainer owns final approval.
