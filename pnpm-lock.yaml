@@ -355,6 +355,10 @@ importers:
         version: 10.0.0
 
   apps/plus-desktop:
+    dependencies:
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
     devDependencies:
       electron:
         specifier: ^39.0.0

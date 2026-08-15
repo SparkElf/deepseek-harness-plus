@@ -16,7 +16,7 @@ git status --short --branch
 git rev-parse --show-toplevel
 ```
 
-2. Verify the live PR base or stack parent, fetch that ref, and inspect the complete scope against it.
+2. Verify the live PR base or stack parent, fetch that ref, and inspect the complete scope against it. Before changing PR branches or topology, apply [the existing-PR synchronization rule](../pr-authoring/SKILL.md#synchronize-existing-prs-before-changing-pr-topology): a newer aggregate branch must update the user-selected original PRs it belongs to, not silently replace them.
 
 ```sh
 pnpm --silent run change-scope --base <verified-base-ref>

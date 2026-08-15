@@ -63,6 +63,65 @@ export type { SessionListPhase, SessionSearchResultItem, SubagentCatalogSnapshot
 export type { SubagentAddress, JobView } from '@deepseek-ai/dsh-client-connection/client'
 export type { WorkspaceListPhase } from './workspaces/manager.ts'
 export type { WorkspaceListState } from './workspaces/service.ts'
+
+const INTERRUPTED_SESSION_IDS_KEY = 'dsh.runtime.interrupted-session-ids'
+const INTERRUPTED_SESSION_READY_KEY = 'dsh.runtime.interrupted-session-ready'
+const INTERRUPTED_SESSION_PROMPT = '请继续完成任务，如果都已完成则回复没有未完成的任务即可'
+
+function browserStorage(): Storage | undefined {
+  return typeof sessionStorage === 'undefined' ? undefined : sessionStorage
+}
+
+function readInterruptedSessionIds(storage: Storage): SessionId[] {
+  try {
+    const value: unknown = JSON.parse(storage.getItem(INTERRUPTED_SESSION_IDS_KEY) ?? '[]')
+    return Array.isArray(value) ? value.filter((id): id is SessionId => typeof id === 'string') : []
+  } catch {
+    storage.removeItem(INTERRUPTED_SESSION_IDS_KEY)
+    return []
+  }
+}
+
+function writeInterruptedSessionIds(storage: Storage, ids: readonly SessionId[]): void {
+  if (ids.length === 0) storage.removeItem(INTERRUPTED_SESSION_IDS_KEY)
+  else storage.setItem(INTERRUPTED_SESSION_IDS_KEY, JSON.stringify(ids))
+}
+
+function rememberRunningSessions(sessions: SessionRuntime): void {
+  const storage = browserStorage()
+  if (storage === undefined) return
+  const current = readInterruptedSessionIds(storage)
+  const running = Object.values(sessions.list.getSnapshot().byId)
+    .filter(summary => summary.running)
+    .map(summary => summary.id)
+  writeInterruptedSessionIds(storage, [...new Set([...current, ...running])])
+}
+
+async function recoverInterruptedSessions(sessions: SessionRuntime): Promise<void> {
+  const storage = browserStorage()
+  if (storage === undefined || storage.getItem(INTERRUPTED_SESSION_READY_KEY) !== '1') return
+  const ids = readInterruptedSessionIds(storage)
+  storage.removeItem(INTERRUPTED_SESSION_READY_KEY)
+  if (ids.length === 0) return
+  try {
+    await sessions.refresh()
+  } catch {
+    storage.setItem(INTERRUPTED_SESSION_READY_KEY, '1')
+    return
+  }
+  const remaining: SessionId[] = []
+  for (const id of ids) {
+    const binding = sessions.binding(id)
+    if (binding === undefined) {
+      if (sessions.list.getSnapshot().byId[id] !== undefined) remaining.push(id)
+      continue
+    }
+    const result = await binding.session.prompt([{ type: 'text', text: INTERRUPTED_SESSION_PROMPT }], 'queue')
+    if (!result.ok) remaining.push(id)
+  }
+  writeInterruptedSessionIds(storage, remaining)
+  if (remaining.length > 0) storage.setItem(INTERRUPTED_SESSION_READY_KEY, '1')
+}
 export type {
   DirectoryEntry, DirectoryListing, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-client-connection/client'
@@ -218,6 +277,7 @@ export function apply(ctx: Context): void {
     onConnected: () => {
       sessions.handleConnected()
       workspaces.handleConnected()
+      void recoverInterruptedSessions(sessions)
       ctx.emit('connection/reset')
     },
     onStateChange: (state) => {
@@ -225,6 +285,7 @@ export function apply(ctx: Context): void {
       // (reconnect replays flow from stream open, ahead of onConnected):
       // the only safe moment to drop generation-scoped interaction state.
       if (state === 'reconnecting') {
+        rememberRunningSessions(sessions)
         sessions.handleDisconnected()
       }
     },

@@ -8,6 +8,8 @@ import { HarnessDaemon } from './daemon.mjs'
 const repository = 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const setupPath = () => join(app.getPath('userData'), 'runtime.json')
+const supervisorSocketPath = () => join(app.getPath('userData'), 'runtime-supervisor.sock')
+const supervisorManifestPath = () => join(app.getPath('userData'), 'runtime-supervisor.json')
 let tray
 let installerWindow
 let runtime
@@ -56,10 +58,16 @@ async function assertInstalled() {
 }
 
 async function saveRuntime(next) {
+  const configured = {
+    ...next,
+    progressPort: next.progressPort ?? 3082,
+    supervisorSocketPath: next.supervisorSocketPath ?? supervisorSocketPath(),
+    supervisorManifestPath: next.supervisorManifestPath ?? supervisorManifestPath(),
+  }
   await mkdir(dirname(setupPath()), { recursive: true })
-  await writeFile(setupPath(), JSON.stringify(next, null, 2) + '\n', { mode: 0o600 })
-  runtime = next
-  daemon.configure(next)
+  await writeFile(setupPath(), JSON.stringify(configured, null, 2) + '\n', { mode: 0o600 })
+  runtime = configured
+  daemon.configure(configured)
 }
 
 function sendInstaller(channel, payload) {
@@ -102,6 +110,7 @@ function refreshTray() {
     { label: running ? 'Service running' : 'Service stopped', enabled: false },
     { label: 'Start service', enabled: runtime !== undefined && !running && !maintenanceBusy, click: () => action('Starting local service...', () => daemon.start()) },
     { label: 'Stop service', enabled: running && !maintenanceBusy, click: () => action('Stopping local service...', () => daemon.stop()) },
+    { label: 'Rebuild and restart', enabled: running && !maintenanceBusy, click: () => action('Rebuilding local service...', () => daemon.restart(true)) },
     { type: 'separator' },
     { label: 'Install Plus...', enabled: runtime === undefined && !maintenanceBusy, click: openInstaller },
     { label: 'Upgrade Plus', enabled: runtime !== undefined && !maintenanceBusy, click: () => upgrade() },
@@ -197,13 +206,19 @@ async function openWeb() {
 const daemon = new HarnessDaemon((next) => {
   status = next
   refreshTray()
-})
+}, join(currentDirectory, 'supervisor.mjs'))
 
 async function loadRuntime() {
   try {
     const saved = JSON.parse(await readFile(setupPath(), 'utf8'))
-    runtime = saved
-    daemon.configure(saved)
+    const configured = {
+      ...saved,
+      progressPort: saved.progressPort ?? 3082,
+      supervisorSocketPath: saved.supervisorSocketPath ?? supervisorSocketPath(),
+      supervisorManifestPath: saved.supervisorManifestPath ?? supervisorManifestPath(),
+    }
+    runtime = configured
+    daemon.configure(configured)
   } catch (error) {
     if (error?.code === 'ENOENT') {
       runtime = undefined

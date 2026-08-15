@@ -2,10 +2,6 @@
 
 DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
-## Pre-release stance: foundation over blast radius
-
-**Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
-
 ## Repository layout
 
 ```
@@ -78,6 +74,10 @@ pnpm dsh --profile headless "task"  # run one task from source (needs DEEPSEEK_A
 pnpm run demo:cordis    # the agent modifies its own runtime (needs key)
 pnpm run demo:acp       # ACP automation server (needs DEEPSEEK_API_KEY)
 ```
+
+### Supervisor-managed local runtime
+
+Before any local runtime edit, build, test, HMR, or restart, invoke [supervisor-runtime-control](.agents/skills/supervisor-runtime-control/SKILL.md); candidate-first is mandatory and verified production HMR is its only exception.
 
 ### Host sandbox failures
 

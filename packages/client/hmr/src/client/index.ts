@@ -165,6 +165,26 @@ export function apply(ctx: Context): void {
 
   ctx.effect(() => {
     const source = new EventSource(EVENTS_ENDPOINT)
+    let opened = false
+    let disconnected = false
+    let reloading = false
+    source.addEventListener('open', () => {
+      if (!opened) {
+        opened = true
+        return
+      }
+      if (!disconnected || reloading) return
+      reloading = true
+      try {
+        if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('dsh.runtime.interrupted-session-ready', '1')
+      } catch (error) {
+        console.warn('client-hmr: could not arm interrupted-session recovery', error)
+      }
+      location.reload()
+    })
+    source.addEventListener('error', () => {
+      if (opened) disconnected = true
+    })
     source.addEventListener('message', (event: MessageEvent<string>) => {
       let frame: PluginsEventFrame
       try {
