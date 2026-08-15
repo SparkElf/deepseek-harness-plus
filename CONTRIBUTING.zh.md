@@ -24,3 +24,14 @@ DeepSeek Harness Plus 接受能够改善可靠性、部署、预设、文档和�
 ## 开发
 
 请遵循 [AGENTS.md](AGENTS.md)、[docs/development.md](docs/development.md) 和所改文件目录中的专属说明。
+
+### 同步上游
+
+维护者在干净的 Plus checkout 中执行：
+
+```sh
+git fetch upstream
+git merge upstream/master
+```
+
+发布结果前检查 Plus 差异记录并解决冲突。
