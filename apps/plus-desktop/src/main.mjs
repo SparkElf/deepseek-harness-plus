@@ -156,6 +156,10 @@ function openInstaller() {
     minHeight: 620,
     show: false,
     frame: false,
+    resizable: true,
+    minimizable: true,
+    maximizable: true,
+    closable: true,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#151517' : '#f9fafb',
     title: 'DeepSeek Harness Plus',
     webPreferences: {
@@ -451,7 +455,7 @@ ipcMain.handle('installer:window-control', (_event, command) => {
   else if (command === 'toggle-maximize') installerWindow.isMaximized() ? installerWindow.unmaximize() : installerWindow.maximize()
   else if (command === 'close') installerWindow.close()
   else throw new Error('Unsupported installer window action.')
-  return true
+  return { maximized: installerWindow.isMaximized() }
 })
 ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   installerLocale = appearance.locale

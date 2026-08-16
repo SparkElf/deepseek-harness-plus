@@ -1,6 +1,6 @@
 const messages = {
   zh: {
-    'window.minimize': '最小化', 'window.maximize': '最大化', 'window.close': '关闭',
+    'window.minimize': '最小化', 'window.maximize': '最大化', 'window.restore': '还原窗口', 'window.close': '关闭',
     'step.appearance': '外观', 'step.location': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'title.appearance': '选择界面外观', 'title.location': '选择安装位置', 'title.model': '选择模型', 'title.review': '确认安装',
     'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口',
@@ -23,7 +23,7 @@ const messages = {
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
-    'window.minimize': 'Minimize', 'window.maximize': 'Maximize', 'window.close': 'Close',
+    'window.minimize': 'Minimize', 'window.maximize': 'Maximize', 'window.restore': 'Restore window', 'window.close': 'Close',
     'step.appearance': 'Appearance', 'step.location': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'title.appearance': 'Choose the interface', 'title.location': 'Choose where to install', 'title.model': 'Choose a model', 'title.review': 'Ready to install',
     'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port',
@@ -475,8 +475,16 @@ function validate() {
 document.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => { locale = button.dataset.locale; applyAppearance() }))
 async function handleWindowControl(command) {
   if (sendWindowControl === undefined) return
-  try { await sendWindowControl(command) }
-  catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught) }
+  try {
+    const result = await sendWindowControl(command)
+    if (command === 'toggle-maximize') {
+      const maximized = Boolean(result?.maximized)
+      const control = document.querySelector('#toggleMaximize')
+      control.dataset.maximized = String(maximized)
+      control.setAttribute('aria-pressed', String(maximized))
+      control.setAttribute('aria-label', text(maximized ? 'window.restore' : 'window.maximize'))
+    }
+  } catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught) }
 }
 document.querySelector('#minimizeWindow').addEventListener('click', () => { void handleWindowControl('minimize') })
 document.querySelector('#toggleMaximize').addEventListener('click', () => { void handleWindowControl('toggle-maximize') })

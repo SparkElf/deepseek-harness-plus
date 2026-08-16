@@ -53,7 +53,7 @@ body[data-theme='dark'] .brand-lockup img { filter: brightness(0) invert(1); }
 .brand-divider { width: 1px; height: 16px; background: var(--border-strong); }
 .brand-lockup strong { font-size: 14px; line-height: 18px; font-weight: 600; white-space: nowrap; }
 .window-controls { display: flex; align-items: center; gap: 2px; -webkit-app-region: no-drag; }
-.window-control { width: 32px; height: 28px; border: 0; border-radius: 4px; color: var(--text-secondary); background: transparent; font-size: 15px; line-height: 1; -webkit-app-region: no-drag; }
+.window-control { width: 32px; height: 28px; border: 0; border-radius: 4px; color: var(--text-secondary); background: transparent; font-size: 15px; line-height: 1; -webkit-app-region: no-drag !important; pointer-events: auto; }
 .window-control:hover { color: var(--text-primary); background: var(--bg-hover); }
 .window-control.close:hover { color: white; background: rgb(220, 38, 38); }
 
