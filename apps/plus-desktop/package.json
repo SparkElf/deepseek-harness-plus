@@ -25,7 +25,6 @@
     "appId": "io.sparkelf.deepseek-harness-plus",
     "productName": "DeepSeek Harness Plus",
     "executableName": "DeepSeekHarnessPlus",
-    "electronDist": "node_modules/electron/dist",
     "icon": "build/icon.png",
     "files": [
       "src/**/*",
