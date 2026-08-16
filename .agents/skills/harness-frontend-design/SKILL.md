@@ -67,7 +67,7 @@ Use the project Playwright UI flow for the actual user path. For a fixed desktop
 - one trailing checkmark appears for the selected option and none for unselected options
 - console and network output remain clean
 - frameless minimize, maximize, and close controls run through the real Electron preload and main-process IPC on the native target platform
-- native window state is published only after the corresponding Electron state event
+- native window state is published only after the corresponding Electron state event or a completed platform bounds fallback
 - the Electron package includes changed renderer and main-process files
 
 Wait for entry animations before screenshots. A screenshot is evidence of a visible result, not a substitute for operating the UI. State which native OS behaviors still require Windows or macOS acceptance.

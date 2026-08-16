@@ -454,27 +454,19 @@ ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
 ipcMain.handle('installer:window-control', async (_event, command) => {
   if (installerWindow === undefined || installerWindow.isDestroyed()) throw new Error('The installer window is unavailable.')
   if (command === 'minimize') {
-    const minimized = new Promise(resolve => installerWindow.once('minimize', resolve))
     installerWindow.minimize()
-    await minimized
-    await new Promise(resolve => setImmediate(resolve))
-    return { minimized: true, maximized: installerWindow.isMaximized() }
+    return { minimized: true, maximized: installerMaximized }
   }
   if (command === 'toggle-maximize') {
     if (installerMaximized) {
-      const restored = new Promise(resolve => installerWindow.once('unmaximize', resolve))
       installerWindow.unmaximize()
-      await restored
       if (installerRestoreBounds !== undefined) installerWindow.setBounds(installerRestoreBounds)
       installerMaximized = false
       return { maximized: false }
     }
     installerRestoreBounds = installerWindow.getBounds()
-    const maximized = new Promise(resolve => installerWindow.once('maximize', resolve))
     installerWindow.maximize()
-    await maximized
-    await new Promise(resolve => setImmediate(resolve))
-    if (!installerWindow.isMaximized()) installerWindow.setBounds(screen.getDisplayMatching(installerWindow.getBounds()).workArea)
+    installerWindow.setBounds(screen.getDisplayMatching(installerWindow.getBounds()).workArea)
     installerMaximized = true
     return { maximized: true }
   }
