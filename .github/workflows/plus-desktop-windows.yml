@@ -9,6 +9,14 @@ on:
       - 'packages/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/plus-desktop-windows.yml'
+      - 'apps/plus-desktop/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
   workflow_dispatch:
 
 permissions:
