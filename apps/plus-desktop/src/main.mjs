@@ -455,6 +455,7 @@ ipcMain.handle('installer:window-control', async (_event, command) => {
     const minimized = new Promise(resolve => installerWindow.once('minimize', resolve))
     installerWindow.minimize()
     await minimized
+    await new Promise(resolve => setImmediate(resolve))
     return { minimized: true, maximized: installerWindow.isMaximized() }
   }
   if (command === 'toggle-maximize') {
@@ -467,6 +468,7 @@ ipcMain.handle('installer:window-control', async (_event, command) => {
       installerWindow.maximize()
       await maximized
     }
+    await new Promise(resolve => setImmediate(resolve))
     return { maximized: installerWindow.isMaximized() }
   }
   if (command === 'close') {
