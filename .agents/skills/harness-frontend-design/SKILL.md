@@ -60,12 +60,14 @@ The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot impor
 
 Use the project Playwright UI flow for the actual user path. For a fixed desktop installer, verify:
 
-- the 980x780 renderer has no window or workspace overflow
+- the 900x680 renderer has no window or workspace overflow
 - the centered 1440x900 preview uses the inverse outer canvas and a borderless card with the intended shadow
 - light and dark themes keep the same control geometry
 - each styled menu opens, selects, closes, returns focus, and reflects dynamic options
 - one trailing checkmark appears for the selected option and none for unselected options
 - console and network output remain clean
+- frameless minimize, maximize, and close controls run through the real Electron preload and main-process IPC on the native target platform
+- native window state is published only after the corresponding Electron state event
 - the Electron package includes changed renderer and main-process files
 
 Wait for entry animations before screenshots. A screenshot is evidence of a visible result, not a substitute for operating the UI. State which native OS behaviors still require Windows or macOS acceptance.

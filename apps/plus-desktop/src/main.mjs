@@ -449,13 +449,31 @@ ipcMain.handle('installer:list-directories', (_event, target, path) => listDirec
 ipcMain.handle('installer:create-directory', (_event, target, path, name) => createDirectoryEntry(target, path, name))
 ipcMain.handle('installer:select-directory', (_event, target, path) => new TargetRuntime(target).pathFromDirectoryPicker(directoryBrowserPath(target, path)))
 ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
-ipcMain.handle('installer:window-control', (_event, command) => {
+ipcMain.handle('installer:window-control', async (_event, command) => {
   if (installerWindow === undefined || installerWindow.isDestroyed()) throw new Error('The installer window is unavailable.')
-  if (command === 'minimize') installerWindow.minimize()
-  else if (command === 'toggle-maximize') installerWindow.isMaximized() ? installerWindow.unmaximize() : installerWindow.maximize()
-  else if (command === 'close') installerWindow.close()
-  else throw new Error('Unsupported installer window action.')
-  return { maximized: installerWindow.isMaximized() }
+  if (command === 'minimize') {
+    const minimized = new Promise(resolve => installerWindow.once('minimize', resolve))
+    installerWindow.minimize()
+    await minimized
+    return { minimized: true, maximized: installerWindow.isMaximized() }
+  }
+  if (command === 'toggle-maximize') {
+    if (installerWindow.isMaximized()) {
+      const restored = new Promise(resolve => installerWindow.once('unmaximize', resolve))
+      installerWindow.unmaximize()
+      await restored
+    } else {
+      const maximized = new Promise(resolve => installerWindow.once('maximize', resolve))
+      installerWindow.maximize()
+      await maximized
+    }
+    return { maximized: installerWindow.isMaximized() }
+  }
+  if (command === 'close') {
+    installerWindow.close()
+    return { closing: true, maximized: false }
+  }
+  throw new Error('Unsupported installer window action.')
 })
 ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   installerLocale = appearance.locale
