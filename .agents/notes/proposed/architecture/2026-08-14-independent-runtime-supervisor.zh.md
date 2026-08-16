@@ -10,7 +10,9 @@ Status: proposed
 
 ## Proposal
 
-platform service manager 拥有 production Supervisor。在当前 WSL host 上，systemd 运行一个 production Supervisor process，它拥有 3080 Web runtime、private local socket 与 3082 HTTP/SSE control page。页面属于 Supervisor process，不是独立 helper。
+当前 developer deployment 使用 systemd，让 production Supervisor 独立于 agent shell 持续运行。打包后的桌面安装则由 Electron 在选定 native 或 WSL target 中启动一个 detached Supervisor。在两类 deployment 中，该 Supervisor 都拥有 production Web runtime、private local socket 或 named pipe 与 HTTP/SSE control page；页面属于 Supervisor process，不是独立 helper。
+
+桌面安装选择一个 runtime target。原生安装直接在 host 执行。Windows host 上的 WSL 安装把 checkout、文件、Git 与 pnpm 命令、Supervisor、Web process、watcher 和 process lifecycle 留在选定发行版内。<code>TargetRuntime</code> 拥有这项差异；Electron 继续负责托盘和浏览器交接。Windows tray 会在该发行版内调用 WSL Supervisor client，不解释 Linux path、PID 或 Unix socket。
 
 branch name 就是 deployment target。promotion 不接受也不比较 commit hash；manifest 可以为 source diagnostics 显示当前 revision。branch-scoped production command 切换到指定 local branch，构建该 branch，且只在 build 成功后停止当前 Web process。build failure 保留当前 3080 Web process，并报告简洁的 failure state 与 raw build output。
 
@@ -32,11 +34,13 @@ non-HMR change 在 candidate branch 的单独 Git worktree 中运行。systemd t
 
 | Area | Owner | Responsibility |
 | --- | --- | --- |
-| Production service | systemd | 让 production Supervisor 独立于 Electron 与 agent shell 持续运行。 |
+| Developer production service | systemd | 让当前 developer Supervisor 独立于 agent shell 持续运行。 |
+| Packaged production service | Electron desktop manager | 在选定 native 或 WSL target 中启动一个 detached Supervisor。 |
 | Runtime process | <code>apps/plus-desktop/src/supervisor.mjs</code> | IPC、branch activation、source identity、port takeover、process groups、build、watcher、progress 与 logs。 |
 | Progress page | <code>apps/plus-desktop/src/supervisor-progress-server.mjs</code> 与 <code>apps/plus-desktop/progress</code> | 从 Supervisor process 提供 3082，并渲染 branch、phase、history 与 raw output。 |
 | Candidate service | systemd transient service | 拥有 candidate worktree、DSH_HOME、3081 Web runtime 与 3083 page。 |
-| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | 连接 Supervisor 并向 Electron 暴露 lifecycle status。 |
+| Runtime target | <code>apps/plus-desktop/src/target-runtime.mjs</code> | 在选定 native host 或 WSL 发行版内执行 target 文件、命令、Supervisor 启动和控制。 |
+| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | 连接 target Supervisor 并向 Electron 暴露 lifecycle status。 |
 | Explicitly untouched | Harness Web RPC、agent-loop、Settings、session persistence、providers | 不改变 product protocol 或 durable session format。 |
 
 ## Progress contract
@@ -53,7 +57,8 @@ non-HMR change 在 candidate branch 的单独 Git worktree 中运行。systemd t
 
 ## Acceptance criteria
 
-- agent tool invocation 结束后，systemd 仍保持 production Supervisor 与其 3082 page 存活。
+- agent tool invocation 结束后，systemd 仍保持当前 developer Supervisor 与其 3082 page 存活；打包后的桌面安装在选定 target 中启动 detached Supervisor。
+- WSL 安装把 source、configuration、process、lifecycle command 和 Supervisor state 留在选定发行版内，同时由 Windows tray 打开 loopback 页面。
 - HMR 只由 production worktree 中 active client-plugin watcher 使用。
 - candidate branch test 使用独立 worktree、DSH_HOME、3081 与 3083。
 - branch-scoped production rebuild 依次 switch branch、complete build、stop/start 3080。
