@@ -2610,6 +2610,8 @@ export interface Config {
 export interface Config {
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
+  /** Optional settings namespace for live child-default overrides. */
+  settingsNamespace?: string
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.

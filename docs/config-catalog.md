@@ -2608,6 +2608,8 @@ Requires: `tools` · `subagents` · `systemPrompt`
 export interface Config {
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
+  /** Optional settings namespace for live child-default overrides. */
+  settingsNamespace?: string
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.
@@ -2660,7 +2662,7 @@ export interface Config {
 
 Depends on: [`AgentOptions`](subsystems/core.md)
 
-Source: [`packages/subagent/tool-subagent/src/index.ts:29`](../packages/subagent/tool-subagent/src/index.ts)
+Source: [`packages/subagent/tool-subagent/src/index.ts:30`](../packages/subagent/tool-subagent/src/index.ts)
 
 <a id="deepseek-aidsh-tool-subagent-report"></a>
 
