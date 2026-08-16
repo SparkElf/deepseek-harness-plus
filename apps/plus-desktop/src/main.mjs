@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, screen, shell, Tray } from 'electron'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
@@ -24,6 +24,8 @@ let supervisorSnapshot
 let candidateAvailable = false
 let installerLocale = 'zh'
 let trayMenu
+let installerMaximized = false
+let installerRestoreBounds
 
 const trayMessages = {
   zh: {
@@ -170,7 +172,7 @@ function openInstaller() {
   })
   installerWindow.loadFile(join(currentDirectory, '..', 'renderer', 'index.html'))
   installerWindow.once('ready-to-show', () => installerWindow?.show())
-  installerWindow.on('closed', () => { installerWindow = undefined })
+  installerWindow.on('closed', () => { installerWindow = undefined; installerMaximized = false; installerRestoreBounds = undefined })
 }
 
 function targetLabel() {
@@ -459,17 +461,22 @@ ipcMain.handle('installer:window-control', async (_event, command) => {
     return { minimized: true, maximized: installerWindow.isMaximized() }
   }
   if (command === 'toggle-maximize') {
-    if (installerWindow.isMaximized()) {
+    if (installerMaximized) {
       const restored = new Promise(resolve => installerWindow.once('unmaximize', resolve))
       installerWindow.unmaximize()
       await restored
-    } else {
-      const maximized = new Promise(resolve => installerWindow.once('maximize', resolve))
-      installerWindow.maximize()
-      await maximized
+      if (installerRestoreBounds !== undefined) installerWindow.setBounds(installerRestoreBounds)
+      installerMaximized = false
+      return { maximized: false }
     }
+    installerRestoreBounds = installerWindow.getBounds()
+    const maximized = new Promise(resolve => installerWindow.once('maximize', resolve))
+    installerWindow.maximize()
+    await maximized
     await new Promise(resolve => setImmediate(resolve))
-    return { maximized: installerWindow.isMaximized() }
+    if (!installerWindow.isMaximized()) installerWindow.setBounds(screen.getDisplayMatching(installerWindow.getBounds()).workArea)
+    installerMaximized = true
+    return { maximized: true }
   }
   if (command === 'close') {
     installerWindow.close()
