@@ -13,9 +13,10 @@ Use this skill for visible Harness Web, Electron, installer, tray, settings, and
 - Read `packages/client/ui-theme/src/styles/` for semantic aliases, typography, motion, shadows, and theme values.
 - Read `packages/client/ui-primitives/` for the exact icon, menu, button, focus, and check primitives.
 - Read the nearest working settings or model-selection component for dimensions and state treatment.
+- For folder selection, read `packages/client/ui-directory-picker-browse` and its browse capability before adding a dialog or native picker.
 - Read the owning `AGENTS.md` and, for Plus Desktop, `apps/plus-desktop/README.md` and its preview verifier.
 
-The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot import React components directly. Reuse the same icon paths, dimensions, state semantics, and token mapping. Do not invent a visually similar second component system.
+The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot import React components directly. Reuse the same icon paths, dimensions, state semantics, and token mapping. A directory browser carries the existing browse contract through preload and main-process list, create, and select operations; do not substitute an unverified system dialog. Do not invent a visually similar second component system.
 
 ## Repository and GitHub Targets
 

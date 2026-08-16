@@ -85,8 +85,9 @@
               <label><span class="field-label" data-i18n="label.reasoning">推理强度</span><select id="reasoningEffort"></select></label>
             </div>
             <div class="custom-provider" id="customProvider" hidden>
-              <label><span class="field-label" data-i18n="label.providerName">服务名称</span><input id="customName" autocomplete="off"></label>
-              <label><span class="field-label" data-i18n="label.baseURL">服务地址</span><input id="baseURL" type="url" autocomplete="off" placeholder="https://api.example.com/v1"></label>
+              <label><span class="field-label" data-i18n="label.providerName">服务名称</span><input id="customName" required autocomplete="off" aria-describedby="customProviderError"></label>
+              <label><span class="field-label" data-i18n="label.baseURL">服务地址</span><input id="baseURL" required type="url" autocomplete="off" placeholder="例如 https://api.example.com/v1" aria-describedby="customProviderError"></label>
+              <p id="customProviderError" class="field-error" role="alert" hidden></p>
             </div>
           </div>
 
@@ -104,6 +105,33 @@
           <button id="next" type="button" class="primary" data-i18n="action.continue">继续</button>
         </footer>
       </form>
+
+      <div id="directoryBrowser" class="directory-browser" role="dialog" aria-modal="true" aria-labelledby="directoryBrowserTitle" hidden>
+        <section class="directory-browser-card">
+          <header class="directory-browser-header">
+            <h2 id="directoryBrowserTitle" data-i18n="directory.title">选择安装目录</h2>
+            <div class="directory-path-row">
+              <button id="directoryUp" class="directory-icon-button" type="button" data-i18n-title="directory.up" aria-label="返回上级"></button>
+              <input id="directoryPath" autocomplete="off" aria-label="安装目录路径">
+              <button id="directoryPathEdit" class="directory-icon-button" type="button" data-i18n-title="directory.edit" aria-label="编辑路径"></button>
+            </div>
+          </header>
+          <p id="directoryBrowserError" class="directory-browser-error" role="alert" hidden></p>
+          <div id="directoryList" class="directory-list" role="list"></div>
+          <div id="directoryCreate" class="directory-create" hidden>
+            <input id="directoryNewName" autocomplete="off" data-i18n-placeholder="directory.newFolderPlaceholder" placeholder="文件夹名称">
+            <button id="directoryCreateConfirm" class="secondary" type="button" data-i18n="directory.create">创建</button>
+            <button id="directoryCreateCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
+          </div>
+          <footer class="directory-browser-footer">
+            <button id="directoryNewFolder" class="directory-new-folder" type="button" data-i18n="directory.newFolder">新建文件夹</button>
+            <button id="directoryShowHidden" class="directory-hidden-toggle" type="button" aria-pressed="false" data-i18n="directory.showHidden">显示隐藏文件</button>
+            <span></span>
+            <button id="directoryCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
+            <button id="directoryOpen" class="primary" type="button" data-i18n="directory.open">打开</button>
+          </footer>
+        </section>
+      </div>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

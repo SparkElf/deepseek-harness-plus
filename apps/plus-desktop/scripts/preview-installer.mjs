@@ -21,7 +21,7 @@ createServer(async (request, response) => {
       'html,body{width:100%;min-height:100%;margin:0}' +
       'body{background:' + outsideBackground + '}' +
       'main{min-height:100vh;display:grid;place-items:center;padding:32px}' +
-      'iframe{display:block;width:min(980px,calc((100vh - 64px) * 1.25641),calc(100vw - 64px));aspect-ratio:980 / 780;border:0;border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.2);background:' + (cardIsDark ? '#232324' : '#ffffff') + '}' +
+      'iframe{display:block;width:min(900px,calc((100vh - 64px) * 1.32353),calc(100vw - 64px));aspect-ratio:900 / 680;border:0;border-radius:8px;box-shadow:0 18px 44px rgba(0,0,0,.2);background:' + (cardIsDark ? '#232324' : '#ffffff') + '}' +
       '</style></head><body><main><iframe title="DeepSeek Harness Plus installer" src="' + frameUrl + '"></iframe></main></body></html>'
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
     response.end(preview)

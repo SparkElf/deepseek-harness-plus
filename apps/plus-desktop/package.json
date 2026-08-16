@@ -19,6 +19,7 @@
     "package:linux": "electron-builder --linux",
     "package:mac": "electron-builder --mac",
     "package:win": "electron-builder --win",
+    "test:electron": "playwright test --config=playwright.config.mjs",
     "package": "electron-builder"
   },
   "build": {
@@ -57,7 +58,8 @@
   },
   "devDependencies": {
     "electron": "^39.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "playwright": "^1.49.0"
   },
   "dependencies": {
     "yaml": "^2.9.0"

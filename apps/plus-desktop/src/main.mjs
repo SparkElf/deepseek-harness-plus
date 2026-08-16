@@ -1,6 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { request } from 'node:http'
 import { parse as parseYaml } from 'yaml'
@@ -149,10 +150,10 @@ function openInstaller() {
     return
   }
   installerWindow = new BrowserWindow({
-    width: 980,
-    height: 780,
-    minWidth: 720,
-    minHeight: 760,
+    width: 900,
+    height: 680,
+    minWidth: 760,
+    minHeight: 620,
     show: false,
     frame: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#151517' : '#f9fafb',
@@ -406,20 +407,51 @@ async function loadRuntime() {
   }
 }
 
-ipcMain.handle('installer:choose-directory', async (_event, target) => {
-  const targetRuntime = new TargetRuntime(target)
-  const result = await dialog.showOpenDialog(installerWindow, {
-    title: installerLocale === 'zh' ? '选择安装目录' : 'Choose installation folder',
-    defaultPath: target.kind === 'wsl' ? ['', '', 'wsl.localhost', target.distribution, 'home'].join('\\') : undefined,
-    properties: ['openDirectory', 'createDirectory'],
-  })
-  return result.canceled ? undefined : targetRuntime.pathFromDirectoryPicker(result.filePaths[0])
-})
+function directoryBrowserRoot(target) {
+  if (target?.kind === 'native') return homedir()
+  if (target?.kind !== 'wsl' || !target.distribution || process.platform !== 'win32') throw new Error('Choose a supported installation target.')
+  return ['', '', 'wsl.localhost', target.distribution, 'home'].join('\\')
+}
+
+function directoryBrowserPath(target, requested) {
+  const root = directoryBrowserRoot(target)
+  const candidate = requested ?? root
+  if (!isAbsolute(candidate)) throw new Error('Choose an absolute directory.')
+  const path = resolve(candidate)
+  if (target.kind === 'wsl' && !path.toLowerCase().startsWith(root.toLowerCase() + '\\') && path.toLowerCase() !== root.toLowerCase()) throw new Error('Choose a folder inside the selected Linux distribution.')
+  return path
+}
+
+async function listDirectoryEntries(target, requested) {
+  const root = directoryBrowserRoot(target)
+  const path = directoryBrowserPath(target, requested)
+  const entries = (await readdir(path, { withFileTypes: true }))
+    .filter(entry => entry.isDirectory())
+    .map(entry => ({ name: entry.name, path: join(path, entry.name), hidden: entry.name.startsWith('.') }))
+    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
+  return { path, root, parent: path.toLowerCase() === root.toLowerCase() ? null : dirname(path), entries }
+}
+
+async function createDirectoryEntry(target, parent, name) {
+  const path = directoryBrowserPath(target, parent)
+  const folder = name.trim()
+  if (!folder || folder === '.' || folder === '..' || /[\\/]/u.test(folder)) throw new Error('Enter one folder name without path separators.')
+  const created = join(path, folder)
+  await mkdir(created)
+  return created
+}
+
+ipcMain.handle('installer:list-directories', (_event, target, path) => listDirectoryEntries(target, path))
+ipcMain.handle('installer:create-directory', (_event, target, path, name) => createDirectoryEntry(target, path, name))
+ipcMain.handle('installer:select-directory', (_event, target, path) => new TargetRuntime(target).pathFromDirectoryPicker(directoryBrowserPath(target, path)))
 ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
 ipcMain.handle('installer:window-control', (_event, command) => {
-  if (command === 'minimize') installerWindow?.minimize()
-  else if (command === 'toggle-maximize') installerWindow?.isMaximized() ? installerWindow.unmaximize() : installerWindow?.maximize()
-  else if (command === 'close') installerWindow?.close()
+  if (installerWindow === undefined || installerWindow.isDestroyed()) throw new Error('The installer window is unavailable.')
+  if (command === 'minimize') installerWindow.minimize()
+  else if (command === 'toggle-maximize') installerWindow.isMaximized() ? installerWindow.unmaximize() : installerWindow.maximize()
+  else if (command === 'close') installerWindow.close()
+  else throw new Error('Unsupported installer window action.')
+  return true
 })
 ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   installerLocale = appearance.locale
