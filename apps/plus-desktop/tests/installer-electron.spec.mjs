@@ -38,6 +38,7 @@ test('installer lets an operator choose a directory and complete custom provider
 
     const maximize = page.getByRole('button', { name: '最大化' })
     await maximize.click()
+    await expect(page.locator('#error')).toHaveText('')
     await expect(maximize).toHaveAttribute('aria-pressed', 'true')
     await expect(maximize).toHaveAccessibleName('还原窗口')
     const closed = page.waitForEvent('close')

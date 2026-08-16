@@ -46,7 +46,8 @@ button { cursor: pointer; }
 button:disabled { cursor: default; opacity: 0.5; }
 
 .installer-shell { width: 100%; height: 100vh; display: flex; flex-direction: column; }
-.brand-bar { height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 24px; border-bottom: 1px solid var(--border); -webkit-app-region: drag; }
+.brand-bar { height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px 0 24px; border-bottom: 1px solid var(--border); }
+.brand-drag-region { flex: 1; align-self: stretch; display: flex; align-items: center; -webkit-app-region: drag; }
 .brand-lockup { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-lockup img { width: 94px; height: auto; display: block; }
 body[data-theme='dark'] .brand-lockup img { filter: brightness(0) invert(1); }
