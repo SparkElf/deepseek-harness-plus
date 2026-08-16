@@ -1,48 +1,154 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Install DeepSeek Harness Plus</title>
+    <title>安装 DeepSeek Harness Plus</title>
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="./styles.css">
   </head>
   <body>
-    <main class="shell">
-      <aside class="rail">
-        <div class="brand"><span class="mark"></span>DeepSeek Harness Plus</div>
-        <ol class="steps">
-          <li class="active"><span>1</span><div><strong>Location</strong><small>Local runtime</small></div></li>
-          <li><span>2</span><div><strong>Model</strong><small>Initial default</small></div></li>
-          <li><span>3</span><div><strong>Install</strong><small>Review and start</small></div></li>
-        </ol>
-      </aside>
-      <section class="content">
-        <header><p class="eyebrow">Initial setup</p><h1 id="title">Choose a local installation</h1></header>
-        <form novalidate>
-          <section class="panel active" data-step="0">
-            <p class="intro">Choose an empty folder for the Plus runtime. Its local state stays inside this installation.</p>
-            <label>Installation folder<input id="installPath" required placeholder="/Users/you/DeepSeekHarnessPlus"></label>
-            <button class="path-button" type="button" id="chooseDirectory">Choose folder</button>
-            <label>Local port<input id="port" required inputmode="numeric" value="3080"></label>
-          </section>
-          <section class="panel" data-step="1">
-            <p class="intro">Set the initial DeepSeek route. After installation, continue managing models and credentials from the Harness Web page.</p>
-            <div class="provider"><span>DeepSeek official</span><small>deepseek-official</small></div>
-            <label>DeepSeek API key<input id="apiKey" required type="password" autocomplete="off" placeholder="sk-..."></label>
-            <label>Default model<input id="model" required value="deepseek-chat"></label>
-            <label>Reasoning effort<select id="reasoningEffort"><option value="">Provider default</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="max">Max</option></select></label>
-          </section>
-          <section class="panel" data-step="2">
-            <p class="intro">Review the initial runtime before Plus writes files and opens the browser.</p>
-            <dl id="summary"></dl>
-            <div class="notice">The tray manager will remain available for start, stop, open, upgrade, and repair. Everyday configuration stays on the Web page.</div>
-          </section>
+    <main class="installer-shell">
+      <header class="brand-bar">
+        <div class="brand-lockup">
+          <img src="../progress/assets/deepseek-logo.svg" alt="DeepSeek">
+          <span class="brand-divider" aria-hidden="true"></span>
+          <strong>Harness Plus</strong>
+          <span class="setup-badge" data-i18n="brand.setup">安装</span>
+        </div>
+      </header>
+
+      <nav class="stepper" aria-label="安装进度" id="stepper">
+        <button type="button" data-step-target="0"><span>1</span><strong data-i18n="step.appearance">外观</strong></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-step-target="1"><span>2</span><strong data-i18n="step.environment">运行环境</strong></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-step-target="2"><span>3</span><strong data-i18n="step.runtime">安装位置</strong></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-step-target="3"><span>4</span><strong data-i18n="step.model">模型</strong></button>
+        <i aria-hidden="true"></i>
+        <button type="button" data-step-target="4"><span>5</span><strong data-i18n="step.review">确认</strong></button>
+      </nav>
+
+      <form novalidate>
+        <section class="workspace">
+          <div class="panel active" data-step="0">
+            <header class="panel-heading">
+              <p class="eyebrow" data-i18n="eyebrow.initial">初始设置</p>
+              <h1 data-i18n="title.appearance">选择界面外观</h1>
+              <p data-i18n="intro.appearance">这些选择会立即应用，并成为 Harness 的默认界面设置。</p>
+            </header>
+
+            <div class="setting-row">
+              <div>
+                <label class="setting-label" data-i18n="label.language">默认语言</label>
+                <p class="setting-help" data-i18n="help.language">安装向导和 Harness 使用相同语言。</p>
+              </div>
+              <div class="segmented compact" role="group" aria-label="默认语言" id="localeControl">
+                <button type="button" data-locale="zh">中文</button>
+                <button type="button" data-locale="en">English</button>
+              </div>
+            </div>
+
+            <div class="setting-row theme-row">
+              <div>
+                <label class="setting-label" data-i18n="label.theme">默认主题</label>
+                <p class="setting-help" data-i18n="help.theme">选择后即可预览整个安装界面。</p>
+              </div>
+              <div class="segmented theme-control" role="group" aria-label="默认主题" id="themeControl">
+                <button type="button" data-theme="system"><span class="theme-swatch system-swatch"></span><span data-i18n="theme.system">跟随系统</span></button>
+                <button type="button" data-theme="light"><span class="theme-swatch light-swatch"></span><span data-i18n="theme.light">浅色</span></button>
+                <button type="button" data-theme="dark"><span class="theme-swatch dark-swatch"></span><span data-i18n="theme.dark">深色</span></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel" data-step="1">
+            <header class="panel-heading">
+              <p class="eyebrow" data-i18n="eyebrow.environment">运行方式</p>
+              <h1 data-i18n="title.environment">选择运行环境</h1>
+              <p data-i18n="intro.environment">选择 Harness 实际安装和运行的位置。</p>
+            </header>
+
+            <div class="target-options" id="targetControl" role="radiogroup" aria-label="运行环境">
+              <button type="button" data-target-kind="native" role="radio">
+                <span class="target-icon">W</span>
+                <span><strong data-i18n="target.windows">Windows</strong><small data-i18n="target.windowsHelp">直接安装到 Windows 文件系统</small></span>
+              </button>
+              <button type="button" data-target-kind="wsl" role="radio">
+                <span class="target-icon">›_</span>
+                <span><strong>WSL</strong><small data-i18n="target.wslHelp">安装到选定的 Linux 发行版</small></span>
+              </button>
+            </div>
+
+            <div class="wsl-options" id="wslOptions" hidden>
+              <label class="field-label" for="wslDistribution" data-i18n="label.distribution">WSL 发行版</label>
+              <div class="input-action">
+                <select id="wslDistribution"></select>
+                <button class="secondary" type="button" id="refreshDistributions" data-i18n="action.refresh">刷新</button>
+              </div>
+              <p class="setting-help" id="distributionHelp" data-i18n="help.distribution">Harness 的依赖、构建和运行都在此发行版内完成。</p>
+            </div>
+          </div>
+
+          <div class="panel" data-step="2">
+            <header class="panel-heading">
+              <p class="eyebrow" data-i18n="eyebrow.runtime">本地运行</p>
+              <h1 data-i18n="title.runtime">选择安装位置</h1>
+              <p data-i18n="intro.runtime">Plus 会在所选目录中准备独立的 Harness 运行环境。</p>
+            </header>
+
+            <label class="field-label" for="installPath" data-i18n="label.installPath">安装目录</label>
+            <div class="input-action">
+              <input id="installPath" required placeholder="/Users/you/DeepSeekHarnessPlus" autocomplete="off">
+              <button class="secondary" type="button" id="chooseDirectory" data-i18n="action.choose">选择</button>
+            </div>
+
+            <label class="field-label" for="port" data-i18n="label.port">正式 Harness 端口</label>
+            <input id="port" required inputmode="numeric" value="3080">
+            <p class="setting-help field-help" data-i18n="help.port">建议使用 3080；3081 至 3083 保留给测试版 Harness 与 Supervisor。</p>
+          </div>
+
+          <div class="panel" data-step="3">
+            <header class="panel-heading">
+              <p class="eyebrow" data-i18n="eyebrow.model">初始模型</p>
+              <h1 data-i18n="title.model">连接 DeepSeek</h1>
+              <p data-i18n="intro.model">完成安装后，可以继续在 Harness 设置中管理模型与凭据。</p>
+            </header>
+
+            <div class="provider-line">
+              <span class="provider-dot" aria-hidden="true"></span>
+              <div><strong>DeepSeek official</strong><small>deepseek-official</small></div>
+            </div>
+
+            <label class="field-label" for="apiKey" data-i18n="label.apiKey">DeepSeek API 密钥</label>
+            <input id="apiKey" required type="password" autocomplete="off" placeholder="sk-...">
+
+            <div class="field-grid">
+              <label><span class="field-label" data-i18n="label.model">默认模型</span><input id="model" required value="deepseek-chat"></label>
+              <label><span class="field-label" data-i18n="label.reasoning">推理强度</span><select id="reasoningEffort"></select></label>
+            </div>
+          </div>
+
+          <div class="panel" data-step="4">
+            <header class="panel-heading">
+              <p class="eyebrow" data-i18n="eyebrow.review">准备安装</p>
+              <h1 data-i18n="title.review">确认初始设置</h1>
+              <p data-i18n="intro.review">确认后将准备本地运行环境并打开 Harness。</p>
+            </header>
+            <dl class="summary" id="summary"></dl>
+          </div>
+
           <p id="error" class="error" role="alert"></p>
-          <div id="progress" class="progress" hidden><span class="spinner"></span><span id="progressText">Preparing installation...</span></div>
-          <footer><button id="back" type="button" class="secondary" hidden>Back</button><span></span><button id="next" type="button" class="primary">Continue</button></footer>
-        </form>
-      </section>
+          <div id="progress" class="progress" hidden><span class="spinner" aria-hidden="true"></span><span id="progressText"></span></div>
+        </section>
+
+        <footer class="action-bar">
+          <button id="back" type="button" class="secondary" hidden data-i18n="action.back">返回</button>
+          <span></span>
+          <button id="next" type="button" class="primary" data-i18n="action.continue">继续</button>
+        </footer>
+      </form>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

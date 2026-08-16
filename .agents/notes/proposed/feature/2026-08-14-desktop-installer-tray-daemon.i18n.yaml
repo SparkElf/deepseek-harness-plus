@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-14-desktop-installer-tray-daemon.md
-2026-08-14-desktop-installer-tray-daemon.md: 507c6c07a582b695e03f8a7cb8a7d2e15724cbac
-2026-08-14-desktop-installer-tray-daemon.zh.md: 585b99344ba7807da4ea2d5992924ada2eb6058b
+2026-08-14-desktop-installer-tray-daemon.md: 154f6c67652a15b73744c1368ab89286e9bdcd20
+2026-08-14-desktop-installer-tray-daemon.zh.md: 89c29c4aeaccf06c365721d7c5349e3ed1787c73

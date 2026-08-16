@@ -10,7 +10,9 @@ The desktop tray must control a Harness Web process that can rebuild and restart
 
 ## Proposal
 
-A platform service manager owns the production Supervisor. On the current WSL host, systemd runs one production Supervisor process that owns the 3080 Web runtime, its private local socket, and the 3082 HTTP/SSE control page. The page is part of the Supervisor process; it is not a separate helper.
+The current developer deployment uses systemd to keep the production Supervisor independent of agent shells. A packaged desktop installation instead starts one detached Supervisor through Electron in its selected native or WSL target. In both deployments, that Supervisor owns the production Web runtime, its private local socket or named pipe, and the HTTP/SSE control page; the page is part of the Supervisor process, not a separate helper.
+
+A desktop installation selects one runtime target. Native installations execute directly on the host. A Windows-hosted WSL installation executes its checkout, files, Git and pnpm commands, Supervisor, Web process, watcher, and process lifecycle inside the selected distribution. <code>TargetRuntime</code> owns this difference; Electron remains the tray and browser handoff process. The Windows tray invokes the WSL Supervisor client inside that distribution rather than interpreting Linux paths, PIDs, or Unix sockets.
 
 The branch name is the deployment target. Promotion does not accept or compare a commit hash; the manifest may display the current revision for source diagnostics. A branch-scoped production command switches to the requested local branch, builds that branch, and stops the current Web process only after the build succeeds. A build failure leaves the current 3080 Web process running and reports the concise failure state plus raw build output.
 
@@ -32,11 +34,13 @@ After browser acceptance on 3081, the production Supervisor receives <code>rebui
 
 | Area | Owner | Responsibility |
 | --- | --- | --- |
-| Production service | systemd | Keep the production Supervisor alive independently of Electron and agent shells. |
+| Developer production service | systemd | Keep the current developer Supervisor alive independently of agent shells. |
+| Packaged production service | Electron desktop manager | Start one detached Supervisor in the selected native or WSL target. |
 | Runtime process | <code>apps/plus-desktop/src/supervisor.mjs</code> | IPC, branch activation, source identity, port takeover, process groups, build, watcher, progress, and logs. |
 | Progress page | <code>apps/plus-desktop/src/supervisor-progress-server.mjs</code> and <code>apps/plus-desktop/progress</code> | Serve 3082 from the Supervisor process and render branch, phase, history, and raw output. |
 | Candidate service | systemd transient service | Own the candidate worktree, DSH_HOME, 3081 Web runtime, and 3083 page. |
-| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | Connect to the Supervisor and expose lifecycle status to Electron. |
+| Runtime target | <code>apps/plus-desktop/src/target-runtime.mjs</code> | Execute target files, commands, Supervisor launch and control in the selected native host or WSL distribution. |
+| Desktop client | <code>apps/plus-desktop/src/daemon.mjs</code> | Connect to the target Supervisor and expose lifecycle status to Electron. |
 | Explicitly untouched | Harness Web RPC, agent-loop, Settings, session persistence, providers | No product protocol or durable session format changes. |
 
 ## Progress contract
@@ -53,7 +57,8 @@ One non-status lifecycle command owns a runtime at a time. It streams language-n
 
 ## Acceptance criteria
 
-- systemd keeps the production Supervisor and its 3082 page alive when an agent tool invocation ends.
+- systemd keeps the current developer Supervisor and its 3082 page alive when an agent tool invocation ends; a packaged desktop installation starts its detached Supervisor in the selected target.
+- A WSL installation keeps source, configuration, processes, lifecycle commands, and Supervisor state in the selected distribution while the Windows tray opens its loopback pages.
 - HMR is used only by an active client-plugin watcher in the production worktree.
 - Candidate branch testing uses a separate worktree, DSH_HOME, 3081, and 3083.
 - A branch-scoped production rebuild switches the branch, completes the build, then stops and starts 3080.

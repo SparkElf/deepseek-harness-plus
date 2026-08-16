@@ -13,6 +13,7 @@
   "main": "src/main.mjs",
   "scripts": {
     "dev": "electron .",
+    "preview:installer": "node scripts/preview-installer.mjs",
     "supervisor:command": "node src/supervisor-client.mjs",
     "package:dir": "electron-builder --dir",
     "package:linux": "electron-builder --linux",
