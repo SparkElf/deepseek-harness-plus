@@ -231,6 +231,33 @@ describe('PiAiAdapter provider routing', () => {
         },
       },
     })
+    const secondHistory = createAssistantMessage({
+      content: [{ type: 'reasoning', text: 'second summary' }, { type: 'text', text: 'second answer' }],
+      source: {
+        provider: 'acme-gateway',
+        model: 'acme-model',
+        replayState: {
+          kind: 'pi-ai',
+          version: 1,
+          api: 'openai-responses',
+          provider: 'acme-gateway',
+          model: 'acme-model',
+          stopReason: 'stop',
+          blocks: [
+            {
+              type: 'reasoning',
+              thinkingSignature: JSON.stringify({
+                type: 'reasoning',
+                id: 'rs_history_second',
+                summary: [],
+                status: 'completed',
+              }),
+            },
+            { type: 'text', textSignature: JSON.stringify({ v: 1, id: 'msg_history_second' }) },
+          ],
+        },
+      },
+    })
     const compatible = adapterOf({
       'acme-gateway': {
         api: 'openai-responses',
@@ -250,7 +277,7 @@ describe('PiAiAdapter provider routing', () => {
       for await (const _chunk of adapter.stream({ provider: 'acme-gateway', model: 'acme-model', messages })) { /* drain */ }
     }
 
-    await drain(compatible, [history])
+    await drain(compatible, [history, secondHistory])
     await drain(compatible, [createAssistantMessage({
       content: [{ type: 'reasoning', text: 'summary without status' }, { type: 'text', text: 'text only' }],
       source: {
@@ -270,18 +297,17 @@ describe('PiAiAdapter provider routing', () => {
         },
       },
     })])
-    await drain(plain, [history])
+    await drain(plain, [history, secondHistory])
 
     const compatibleRequest = server.requests[0] as { model: string; input: Record<string, unknown>[] }
     expect(compatibleRequest.model).toBe('acme-model')
     const compatibleInput = compatibleRequest.input
-    expect(compatibleInput.map(item => item.type)).toEqual(['reasoning', 'message'])
-    expect(compatibleInput.find(item => item.type === 'reasoning')).toEqual({
-      type: 'reasoning',
-      id: 'rs_history',
-      summary: [],
-    })
-    expect(compatibleInput.find(item => item.type === 'message')).toMatchObject({ status: 'completed' })
+    expect(compatibleInput.map(item => item.type)).toEqual(['reasoning', 'message', 'reasoning', 'message'])
+    expect(compatibleInput.filter(item => item.type === 'reasoning')).toEqual([
+      { type: 'reasoning', id: 'rs_history', summary: [] },
+      { type: 'reasoning', id: 'rs_history_second', summary: [] },
+    ])
+    expect(compatibleInput.filter(item => item.type === 'message').every(item => item.status === 'completed')).toBe(true)
     const withoutStatusInput = (server.requests[1] as { input: Record<string, unknown>[] }).input
     expect(withoutStatusInput.find(item => item.type === 'reasoning')).toEqual({
       type: 'reasoning',
@@ -290,13 +316,11 @@ describe('PiAiAdapter provider routing', () => {
     })
     expect(withoutStatusInput.find(item => item.type === 'message')).toMatchObject({ status: 'completed' })
     const plainInput = (server.requests[2] as { input: Record<string, unknown>[] }).input
-    expect(plainInput.map(item => item.type)).toEqual(['reasoning', 'message'])
-    expect(plainInput.find(item => item.type === 'reasoning')).toEqual({
-      type: 'reasoning',
-      id: 'rs_history',
-      summary: [],
-      status: 'completed',
-    })
+    expect(plainInput.map(item => item.type)).toEqual(['reasoning', 'message', 'reasoning', 'message'])
+    expect(plainInput.filter(item => item.type === 'reasoning')).toEqual([
+      { type: 'reasoning', id: 'rs_history', summary: [], status: 'completed' },
+      { type: 'reasoning', id: 'rs_history_second', summary: [], status: 'completed' },
+    ])
   })
 
   it('resolves an attachment service mounted after the adapter when dispatching an image', async () => {

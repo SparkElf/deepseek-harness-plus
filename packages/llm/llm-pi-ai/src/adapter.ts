@@ -78,16 +78,18 @@ export interface PiAiAdapterOptions {
   resolveAttachments?: () => AttachmentStore | undefined
 }
 
-/** Remove response-only status metadata from replayed reasoning input items. */
+/** Whether one Responses input item is replayed reasoning with response status metadata. */
+function hasReasoningInputStatus(item: unknown): boolean {
+  const inputItem = item as Record<string, unknown>
+  return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
+}
+
+/** Remove response-only status metadata from every replayed reasoning input item. */
 function omitReasoningInputStatus(payload: unknown): unknown {
   const request = payload as Record<string, unknown> & { input: unknown[] }
-  const statusAt = request.input.findIndex((item) => {
-    const inputItem = item as Record<string, unknown>
-    return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
-  })
-  if (statusAt === -1) return undefined
-  const input = request.input.map((item, index) => {
-    if (index !== statusAt) return item
+  if (!request.input.some(hasReasoningInputStatus)) return undefined
+  const input = request.input.map((item) => {
+    if (!hasReasoningInputStatus(item)) return item
     const { status: _status, ...withoutStatus } = item as Record<string, unknown>
     return withoutStatus
   })
