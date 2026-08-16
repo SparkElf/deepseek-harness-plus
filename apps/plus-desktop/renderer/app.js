@@ -88,22 +88,42 @@ const nativeTarget = document.querySelector('[data-target-kind="native"]')
 const wslTarget = document.querySelector('[data-target-kind="wsl"]')
 const windowControl = window.plusInstaller?.windowControl ?? (() => Promise.resolve())
 const selectControls = new Map()
+const iconNamespace = 'http://www.w3.org/2000/svg'
+const chevronPath = 'M11.8486 5.5L11.4238 5.92383L8.69727 8.65137C8.44157 8.90706 8.21562 9.13382 8.01172 9.29785C7.79912 9.46883 7.55595 9.61756 7.25 9.66602C7.08435 9.69222 6.91565 9.69222 6.75 9.66602C6.44405 9.61756 6.20088 9.46883 5.98828 9.29785C5.78438 9.13382 5.55843 8.90706 5.30273 8.65137L2.57617 5.92383L2.15137 5.5L3 4.65137L3.42383 5.07617L6.15137 7.80273C6.42595 8.07732 6.59876 8.24849 6.74023 8.3623C6.87291 8.46904 6.92272 8.47813 6.9375 8.48047C6.97895 8.48703 7.02105 8.48703 7.0625 8.48047C7.07728 8.47813 7.12709 8.46904 7.25977 8.3623C7.40124 8.24849 7.57405 8.07732 7.84863 7.80273L10.5762 5.07617L11 4.65137L11.8486 5.5Z'
+const checkPath = 'M15.0498 3.92579L8.49512 12.3818C8.25774 12.6881 8.04517 12.9645 7.84668 13.1689C7.63957 13.3823 7.38732 13.5841 7.04492 13.6719C6.86373 13.7183 6.6757 13.7346 6.48926 13.7197C6.13666 13.6915 5.8528 13.5355 5.6123 13.3604C5.38201 13.1926 5.12573 12.9567 4.83984 12.6953L1.03125 9.21289L1.96875 8.1875L5.77734 11.6699C6.08684 11.9529 6.27773 12.1249 6.43066 12.2363C6.50183 12.2882 6.54699 12.3135 6.57324 12.3252C6.58525 12.3305 6.59269 12.3322 6.5957 12.333C6.59802 12.3336 6.59961 12.334 6.59961 12.334C6.63317 12.3367 6.66758 12.3335 6.7002 12.3252C6.7002 12.3252 6.70211 12.3251 6.7041 12.3242C6.70698 12.3229 6.71348 12.319 6.72461 12.3115C6.74849 12.2956 6.78843 12.2642 6.84961 12.2012C6.98138 12.0654 7.13957 11.8628 7.39648 11.5313L13.9502 3.07422L15.0498 3.92579Z'
+
+function createIcon(path, viewBox, className) {
+  const icon = document.createElementNS(iconNamespace, 'svg')
+  icon.setAttribute('viewBox', viewBox)
+  icon.setAttribute('fill', 'none')
+  icon.setAttribute('aria-hidden', 'true')
+  icon.classList.add(className)
+  const shape = document.createElementNS(iconNamespace, 'path')
+  shape.setAttribute('d', path)
+  shape.setAttribute('fill', 'currentColor')
+  icon.append(shape)
+  return icon
+}
 
 /** 用 Harness surface 渲染原生 select 的选项和选中态，原生字段仍是唯一值来源。 */
 function syncSelectControl(select) {
   const control = selectControls.get(select)
   if (control === undefined) return
-  const selected = select.selectedOptions[0]
+  const selected = [...select.options].find(option => option.value === select.value)
   control.value.textContent = selected?.textContent ?? ''
-  control.chevron.textContent = control.root.classList.contains('open') ? '⌃' : '⌄'
   control.trigger.setAttribute('aria-expanded', String(control.root.classList.contains('open')))
   control.menu.replaceChildren(...[...select.options].map(option => {
     const choice = document.createElement('button')
     choice.type = 'button'
     choice.className = 'select-option'
     choice.setAttribute('role', 'option')
-    choice.setAttribute('aria-selected', String(option.selected))
-    choice.textContent = option.textContent
+    const isSelected = option.value === select.value
+    choice.setAttribute('aria-selected', String(isSelected))
+    const label = document.createElement('span')
+    label.textContent = option.textContent
+    const check = createIcon(checkPath, '0 0 16 16', 'select-check')
+    check.hidden = !isSelected
+    choice.append(label, check)
     choice.addEventListener('click', () => {
       select.value = option.value
       select.dispatchEvent(new Event('change', { bubbles: true }))
@@ -135,10 +155,7 @@ function enhanceSelect(select) {
   trigger.setAttribute('aria-label', select.labels[0]?.textContent?.trim() ?? '')
   const value = document.createElement('span')
   value.className = 'select-value'
-  const chevron = document.createElement('span')
-  chevron.className = 'select-chevron'
-  chevron.setAttribute('aria-hidden', 'true')
-  chevron.textContent = '⌄'
+  const chevron = createIcon(chevronPath, '0 0 14 14', 'select-chevron')
   trigger.append(value, chevron)
   const menu = document.createElement('div')
   menu.className = 'select-menu'
