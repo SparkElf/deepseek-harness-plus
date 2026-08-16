@@ -17,6 +17,13 @@ Use this skill for visible Harness Web, Electron, installer, tray, settings, and
 
 The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot import React components directly. Reuse the same icon paths, dimensions, state semantics, and token mapping. Do not invent a visually similar second component system.
 
+## Repository and GitHub Targets
+
+- Resolve the target repository before any GitHub command. Check `git remote get-url origin` and confirm the community repository with `gh repo view SparkElf/deepseek-harness-plus`.
+- Every `gh` command must include `-R SparkElf/deepseek-harness-plus`. Never let the CLI infer a repository when both `origin` and `upstream` exist. Use the explicit target for `gh pr`, `gh workflow`, `gh run`, `gh artifact`, and `gh release` commands.
+- Treat Git SSH authentication and the GitHub CLI API token as separate credentials. Check `gh auth status` and repository permissions before diagnosing a PR or workflow failure; do not request token changes until the repository target is confirmed.
+- When master is branch-protected, aggregate the work on one branch, create one PR, wait for required checks and artifacts, then merge through the target repository.
+
 ## Design Contract
 
 - Use semantic Harness colors and typography. Keep light and dark themes as deliberate pairs.
