@@ -55,18 +55,59 @@ function icon() {
   return nativeImage.createFromPath(join(currentDirectory, '..', 'build', 'icon.png'))
 }
 
+const catalogProviders = new Set(['deepseek-official', 'openai', 'anthropic', 'google', 'openrouter', 'groq', 'mistral', 'xai'])
+
+/** 将自定义服务名称转换为 Harness 内部使用的稳定 provider 标识。 */
+function customProviderRoute(name) {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-+|-+$/gu, '')
+  return 'custom-' + (slug || 'provider')
+}
+
+/** 返回该安装所选 provider 在 Harness 设置中使用的 route 名称。 */
+function providerRoute(form) {
+  return form.provider === 'custom' ? customProviderRoute(form.customName) : form.provider
+}
+
+/** 为安装器写入的密钥生成符合凭据存储要求的引用名称。 */
+function credentialReference(form) {
+  return 'DSH_INSTALLER_' + providerRoute(form).toUpperCase().replace(/[^A-Z0-9]/gu, '_') + '_API_KEY'
+}
+
+/** 生成 Harness 热加载的模型、provider 和界面设置。 */
 function settingsDocument(form) {
-  return [
+  const route = providerRoute(form)
+  const credential = credentialReference(form)
+  const lines = [
     'locale:',
     '  preference: ' + JSON.stringify(form.locale),
     'ui-theme:',
     '  preference: ' + JSON.stringify(form.theme),
     'agent-default-model:',
-    '  provider: "deepseek-official"',
+    '  provider: ' + JSON.stringify(route),
     '  model: ' + JSON.stringify(form.model),
     ...(form.reasoningEffort ? ['  reasoningEffort: ' + JSON.stringify(form.reasoningEffort)] : []),
-    '',
-  ].join('\n')
+  ]
+  if (form.provider === 'deepseek-official') {
+    lines.push('llm-deepseek:', '  apiKeyEnv: ' + credential)
+  } else {
+    lines.push('llm-pi-ai:', '  providers:', '    ' + route + ':')
+    if (form.provider === 'custom') {
+      lines.push(
+        '      displayName: ' + JSON.stringify(form.customName),
+        '      api: openai-completions',
+        '      baseURL: ' + JSON.stringify(form.baseURL),
+        '      models:',
+        '        - id: ' + JSON.stringify(form.model),
+      )
+    }
+    lines.push('      apiKeyEnv: ' + credential)
+  }
+  return lines.concat('').join('\n')
+}
+
+/** 密钥只写入 Harness 管理的凭据文档，不进入设置或进程环境。 */
+function credentialsDocument(form) {
+  return credentialReference(form) + ': ' + JSON.stringify(form.apiKey) + '\n'
 }
 
 function runtimeFor(form, port) {
@@ -211,15 +252,19 @@ async function action(label, work) {
   }
 }
 
+/** 在 Electron IPC 入口确认安装表单能生成一个可用的 Harness 设置。 */
 function validateInstall(form) {
-  if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation directory and provide a DeepSeek key and default model.')
-  if (form.target?.kind !== 'native' && form.target?.kind !== 'wsl') throw new Error('Choose Windows or WSL as the runtime environment.')
+  if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation folder, API key, and model.')
+  if (!catalogProviders.has(form.provider) && form.provider !== 'custom') throw new Error('Choose a supported model provider.')
+  if (form.provider === 'custom' && (!form.customName || !form.baseURL)) throw new Error('Enter a name and URL for the custom provider.')
+  if (form.provider === 'custom' && (!URL.canParse(form.baseURL) || !['http:', 'https:'].includes(new URL(form.baseURL).protocol))) throw new Error('Enter a valid HTTP or HTTPS URL for the custom provider.')
+  if (form.target?.kind !== 'native' && form.target?.kind !== 'wsl') throw new Error('Choose Windows or WSL as the installation location.')
   if (form.target.kind === 'wsl' && (!form.target.distribution || process.platform !== 'win32')) throw new Error('Choose an installed WSL distribution.')
   if (form.locale !== 'zh' && form.locale !== 'en') throw new Error('Choose a supported interface language.')
   if (!['system', 'light', 'dark'].includes(form.theme)) throw new Error('Choose a supported interface theme.')
   const port = Number(form.port)
   if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) throw new Error('Choose a local port between 1024 and 65535.')
-  if (port === candidatePort || port === progressPort || port === candidateProgressPort) throw new Error('Ports 3081 through 3083 are reserved for candidate Harness and Supervisor.')
+  if (port === candidatePort || port === progressPort || port === candidateProgressPort) throw new Error('Choose another local port.')
   return port
 }
 
@@ -237,20 +282,23 @@ async function install(form) {
       sendInstaller('install:progress', { message })
       refreshTray()
     }
-    report('Checking Git and pnpm...')
-    await targetRuntime.run('git', ['--version'], undefined, report)
-    await targetRuntime.run('pnpm', ['--version'], undefined, report)
+    const installText = form.locale === 'zh'
+      ? { preparing: '正在准备安装…', downloading: '正在下载 Harness…', installing: '正在安装…', starting: '正在启动 Harness…' }
+      : { preparing: 'Preparing installation…', downloading: 'Downloading Harness…', installing: 'Installing Harness…', starting: 'Starting Harness…' }
+    report(installText.preparing)
+    await targetRuntime.run('git', ['--version'])
+    await targetRuntime.run('pnpm', ['--version'])
     await targetRuntime.assertEmptyDirectory(form.installPath)
-    report('Cloning DeepSeek Harness Plus...')
-    await targetRuntime.run('git', ['clone', '--depth', '1', repository, form.installPath], undefined, report)
+    report(installText.downloading)
+    await targetRuntime.run('git', ['clone', '--depth', '1', repository, form.installPath])
     await targetRuntime.makeDirectory(targetRuntime.join(form.installPath, '.dsh-plus', 'logs'))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, 'settings.yaml'), settingsDocument(form))
-    await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.env'), 'DEEPSEEK_API_KEY=' + form.apiKey + '\n')
-    report('Installing locked dependencies...')
-    await targetRuntime.run('pnpm', ['install', '--frozen-lockfile'], form.installPath, report)
-    report('Building the local runtime...')
-    await targetRuntime.run('pnpm', ['run', 'build'], form.installPath, report)
+    await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.credentials.yaml'), credentialsDocument(form))
+    report(installText.installing)
+    await targetRuntime.run('pnpm', ['install', '--frozen-lockfile'], form.installPath)
+    await targetRuntime.run('pnpm', ['run', 'build'], form.installPath)
     daemon.configure(configured)
+    report(installText.starting)
     await daemon.start()
     await saveRuntime(configured)
     void shell.openExternal('http://127.0.0.1:' + String(configured.port)).catch(error => {
@@ -359,12 +407,13 @@ async function loadRuntime() {
 }
 
 ipcMain.handle('installer:choose-directory', async (_event, target) => {
-  if (target.kind === 'wsl') return undefined
+  const targetRuntime = new TargetRuntime(target)
   const result = await dialog.showOpenDialog(installerWindow, {
-    title: installerLocale === 'zh' ? '选择 DeepSeek Harness Plus 的空目录' : 'Choose an empty folder for DeepSeek Harness Plus',
+    title: installerLocale === 'zh' ? '选择安装目录' : 'Choose installation folder',
+    defaultPath: target.kind === 'wsl' ? ['', '', 'wsl.localhost', target.distribution, 'home'].join('\\') : undefined,
     properties: ['openDirectory', 'createDirectory'],
   })
-  return result.canceled ? undefined : result.filePaths[0]
+  return result.canceled ? undefined : targetRuntime.pathFromDirectoryPicker(result.filePaths[0])
 })
 ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
 ipcMain.handle('installer:window-control', (_event, command) => {

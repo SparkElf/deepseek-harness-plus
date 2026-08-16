@@ -2,11 +2,13 @@
 
 [English](README.md) | 中文
 
-桌面管理器安装并控制一套本地 Harness runtime。安装引导以单栏复用 Harness 视觉系统；语言和主题选择会立即改变引导外观，并写入已安装 DSH_HOME settings document 的 <code>locale.preference</code> 与 <code>ui-theme.preference</code>。
+桌面管理器安装并控制一套本地 Harness runtime。紧凑的四步安装引导会立即应用语言和主题，让用户选择安装位置，并把 <code>locale.preference</code> 与 <code>ui-theme.preference</code> 写入已安装 DSH_HOME 的 settings document。
 
-在 Windows 上，引导可以直接安装到 Windows，也可以安装到选定的已安装 WSL 发行版。安装目录、Git 与 pnpm 命令、settings、Supervisor、Harness Web process、rebuild、repair 和 update 都留在该 target 内。Linux 与 macOS package 使用本机环境。
+在 Windows 上，引导可选择 Windows 或已安装的 WSL 发行版，然后通过系统文件选择器选择安装目录。选择 WSL 目录时，文件管理器会打开该发行版，并返回对应的 Linux 路径。安装目录、命令、settings、Supervisor、Harness Web process、rebuild、repair 和 update 都留在所选 target 内。Linux 与 macOS package 使用本机环境。
 
 托盘读取 Supervisor status，并分别打开正式 Harness 页面和 Supervisor 页面。只有 candidate workflow 的 3083 Supervisor 报告 3081 Web runtime 时，托盘才启用测试版 Harness 入口。它还提供启动、停止、构建并重启、只检查而不安装上游更新、升级、修复和打开目标数据目录。
+
+引导会配置一个初始默认模型，支持 DeepSeek、OpenAI、Anthropic、Google、OpenRouter、Groq、Mistral、xAI 与 OpenAI-compatible 自定义提供方。它将 provider profile 写入 <code>settings.yaml</code>，将密钥写入受管理的 <code>.credentials.yaml</code>。之后添加或编辑 provider 和模型仍由 Harness Web 完成。
 
 ## 预览安装引导
 
@@ -16,7 +18,7 @@
 pnpm --filter @deepseek-ai/dsh-plus-desktop preview:installer
 ~~~
 
-打开 <code>http://127.0.0.1:4177</code>。Query parameter 可以选择审阅状态，例如 <code>?theme=dark&locale=zh&target=wsl&step=1</code>。预览会模拟 Windows 与已安装的 WSL 发行版；打包后的应用会读取真实平台和发行版列表。
+打开 <code>http://127.0.0.1:4177</code>。预览会将真实的 980×780 安装卡片居中显示在反向主题画布中：深色卡片使用浅色画布，浅色卡片使用深色画布。Query parameter 可以选择审阅状态，例如 <code>?theme=dark&locale=zh&target=wsl&step=1</code>。预览会模拟 Windows 与已安装的 WSL 发行版；打包后的应用会读取真实平台和发行版列表。
 
 ## Supervisor commands
 

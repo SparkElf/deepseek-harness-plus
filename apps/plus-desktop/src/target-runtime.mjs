@@ -163,6 +163,18 @@ export class TargetRuntime {
     return shell.openPath(windowsPath)
   }
 
+  /** 将文件选择结果限制在选中的 WSL 发行版，并转换为该发行版内路径。 */
+  async pathFromDirectoryPicker(path) {
+    if (!this.isWsl) return path
+    const normalized = path.toLowerCase()
+    const roots = [
+      ['', '', 'wsl.localhost', this.target.distribution, ''].join('\\').toLowerCase(),
+      ['', '', 'wsl$', this.target.distribution, ''].join('\\').toLowerCase(),
+    ]
+    if (!roots.some(root => normalized.startsWith(root))) throw new Error('Choose a folder inside the selected Linux distribution.')
+    return (await this.run('wslpath', ['-u', path])).trim()
+  }
+
   /** 启动目标环境内的 Supervisor；WSL 进程和其子进程始终留在所选发行版。 */
   async startSupervisor(config, nativeSupervisorPath) {
     if (!this.isWsl) {

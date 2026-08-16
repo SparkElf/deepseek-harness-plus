@@ -2,11 +2,13 @@
 
 English | [中文](README.zh.md)
 
-The desktop manager installs and controls one local Harness runtime. Its setup guide uses the Harness visual system in one column; language and theme selections update the guide immediately and become <code>locale.preference</code> and <code>ui-theme.preference</code> in the installed DSH_HOME settings document.
+The desktop manager installs and controls one local Harness runtime. Its compact four-step guide applies language and theme selections immediately, lets a person choose an installation location, and writes <code>locale.preference</code> and <code>ui-theme.preference</code> into the installed DSH_HOME settings document.
 
-On Windows, the guide can install directly on Windows or inside a selected installed WSL distribution. The installation directory, Git and pnpm commands, settings, Supervisor, Harness Web process, rebuilds, repairs, and updates remain in that target. Linux and macOS packages use their native environment.
+On Windows, the guide offers Windows or a selected installed WSL distribution, then opens its native file picker for the installation folder. Selecting a WSL folder opens that distribution in Explorer and returns its Linux path. The installation directory, commands, settings, Supervisor, Harness Web process, rebuilds, repairs, and updates remain in the selected target. Linux and macOS packages use their native environment.
 
 The tray reads Supervisor status and opens the production Harness page and Supervisor page independently. It enables the candidate Harness entry only while the candidate workflow's 3083 Supervisor reports a Web runtime on 3081. It also starts, stops, rebuilds, checks for available upstream commits without installing them, upgrades, repairs, and opens the target data directory.
+
+The guide configures one initial default model. It supports DeepSeek, OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, xAI, and an OpenAI-compatible custom provider. It writes the provider profile to <code>settings.yaml</code> and the key to the managed <code>.credentials.yaml</code> document. Harness Web remains the later interface for adding or editing providers and models.
 
 ## Preview the setup guide
 
@@ -16,7 +18,7 @@ Run the renderer-only preview without installing or writing configuration:
 pnpm --filter @deepseek-ai/dsh-plus-desktop preview:installer
 ~~~
 
-Open <code>http://127.0.0.1:4177</code>. Query parameters select a review state, for example <code>?theme=dark&locale=zh&target=wsl&step=1</code>. The preview simulates Windows and installed WSL distributions; the packaged app reads the real platform and distribution list.
+Open <code>http://127.0.0.1:4177</code>. The preview centers the actual 980×780 installer card on a reverse-theme canvas: a dark card uses a light canvas and a light card uses a dark canvas. Query parameters select a review state, for example <code>?theme=dark&locale=zh&target=wsl&step=1</code>. The preview simulates Windows and installed WSL distributions; the packaged app reads the real platform and distribution list.
 
 ## Supervisor commands
 
