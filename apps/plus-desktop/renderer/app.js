@@ -87,6 +87,92 @@ const wslDistribution = document.querySelector('#wslDistribution')
 const nativeTarget = document.querySelector('[data-target-kind="native"]')
 const wslTarget = document.querySelector('[data-target-kind="wsl"]')
 const windowControl = window.plusInstaller?.windowControl ?? (() => Promise.resolve())
+const selectControls = new Map()
+
+/** 用 Harness surface 渲染原生 select 的选项和选中态，原生字段仍是唯一值来源。 */
+function syncSelectControl(select) {
+  const control = selectControls.get(select)
+  if (control === undefined) return
+  const selected = select.selectedOptions[0]
+  control.value.textContent = selected?.textContent ?? ''
+  control.chevron.textContent = control.root.classList.contains('open') ? '⌃' : '⌄'
+  control.trigger.setAttribute('aria-expanded', String(control.root.classList.contains('open')))
+  control.menu.replaceChildren(...[...select.options].map(option => {
+    const choice = document.createElement('button')
+    choice.type = 'button'
+    choice.className = 'select-option'
+    choice.setAttribute('role', 'option')
+    choice.setAttribute('aria-selected', String(option.selected))
+    choice.textContent = option.textContent
+    choice.addEventListener('click', () => {
+      select.value = option.value
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+      control.root.classList.remove('open')
+      syncSelectControl(select)
+      control.trigger.focus()
+    })
+    return choice
+  }))
+}
+
+function closeSelectControls(except) {
+  selectControls.forEach((control, select) => {
+    if (select === except) return
+    control.root.classList.remove('open')
+    syncSelectControl(select)
+  })
+}
+
+/** 将一个安装器 select 变为带键盘操作的 Harness 选择控件。 */
+function enhanceSelect(select) {
+  const root = document.createElement('div')
+  root.className = 'select-control'
+  const trigger = document.createElement('button')
+  trigger.type = 'button'
+  trigger.className = 'select-trigger'
+  trigger.setAttribute('aria-haspopup', 'listbox')
+  trigger.setAttribute('aria-expanded', 'false')
+  trigger.setAttribute('aria-label', select.labels[0]?.textContent?.trim() ?? '')
+  const value = document.createElement('span')
+  value.className = 'select-value'
+  const chevron = document.createElement('span')
+  chevron.className = 'select-chevron'
+  chevron.setAttribute('aria-hidden', 'true')
+  chevron.textContent = '⌄'
+  trigger.append(value, chevron)
+  const menu = document.createElement('div')
+  menu.className = 'select-menu'
+  menu.setAttribute('role', 'listbox')
+  select.before(root)
+  root.append(select, trigger, menu)
+  select.classList.add('select-native')
+  select.tabIndex = -1
+  select.setAttribute('aria-hidden', 'true')
+  selectControls.set(select, { root, trigger, value, chevron, menu })
+  trigger.addEventListener('click', () => {
+    const open = !root.classList.contains('open')
+    closeSelectControls(select)
+    root.classList.toggle('open', open)
+    syncSelectControl(select)
+  })
+  trigger.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { root.classList.remove('open'); syncSelectControl(select); return }
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); trigger.click(); return }
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
+    event.preventDefault()
+    const index = [...select.options].findIndex(option => option.selected)
+    const next = (index + (event.key === 'ArrowDown' ? 1 : select.options.length - 1)) % select.options.length
+    select.value = select.options[next].value
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  })
+  select.addEventListener('change', () => syncSelectControl(select))
+  syncSelectControl(select)
+}
+
+[provider, reasoning, wslDistribution].forEach(enhanceSelect)
+document.addEventListener('pointerdown', event => { if (![...selectControls.values()].some(control => control.root.contains(event.target))) closeSelectControls() })
+document.addEventListener('keydown', event => { if (event.key === 'Escape') closeSelectControls() })
+
 let step = Number(params.get('step') ?? 0)
 let locale = params.get('locale') === 'en' ? 'en' : 'zh'
 let theme = ['light', 'dark', 'system'].includes(params.get('theme')) ? params.get('theme') : 'system'
@@ -111,6 +197,7 @@ function renderReasoningOptions() {
     const option = document.createElement('option'); option.value = value; option.textContent = text(key); return option
   }))
   reasoning.value = selected
+  syncSelectControl(reasoning)
 }
 function renderProviderOptions() {
   const selected = provider.value || 'deepseek-official'
@@ -118,6 +205,7 @@ function renderProviderOptions() {
     const option = document.createElement('option'); option.value = id; option.textContent = text('provider.' + id); return option
   }))
   provider.value = providerIds.includes(selected) ? selected : 'deepseek-official'
+  syncSelectControl(provider)
 }
 function renderProvider() {
   customProvider.hidden = provider.value !== 'custom'
@@ -159,6 +247,7 @@ async function loadDistributions() {
     const distributions = await bridge.listWslDistributions()
     wslDistribution.replaceChildren(...distributions.map(name => { const option = document.createElement('option'); option.value = name; option.textContent = name; return option }))
     if (distributions.includes(selected)) wslDistribution.value = selected
+    syncSelectControl(wslDistribution)
     distributionsLoaded = true
     if (distributions.length === 0) error.textContent = text('error.distributions')
   } catch (caught) {
