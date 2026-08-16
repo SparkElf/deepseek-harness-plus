@@ -66,8 +66,8 @@ Use the project Playwright UI flow for the actual user path. For a fixed desktop
 - each styled menu opens, selects, closes, returns focus, and reflects dynamic options
 - one trailing checkmark appears for the selected option and none for unselected options
 - console and network output remain clean
-- frameless minimize, maximize, and close controls run through the real Electron preload and main-process IPC on the native target platform
-- native window state is published only after the corresponding Electron state event or a completed platform bounds fallback
+- the frameless close path runs through the real Electron preload and main-process IPC on the native target platform
+- minimize and maximize require an interactive Windows, macOS, or Linux desktop acceptance check; do not gate CI on hosted-runner window geometry or state events
 - the Electron package includes changed renderer and main-process files
 
 Wait for entry animations before screenshots. A screenshot is evidence of a visible result, not a substitute for operating the UI. State which native OS behaviors still require Windows or macOS acceptance.

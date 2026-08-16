@@ -36,11 +36,6 @@ test('installer lets an operator choose a directory and complete custom provider
     await page.getByRole('button', { name: '继续' }).click()
     await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
 
-    const maximize = page.getByRole('button', { name: '最大化' })
-    await maximize.click()
-    await expect(page.locator('#error')).toHaveText('')
-    await expect(maximize).toHaveAttribute('aria-pressed', 'true')
-    await expect(maximize).toHaveAccessibleName('还原窗口')
     const closed = page.waitForEvent('close')
     await page.getByRole('button', { name: '关闭' }).click()
     await closed
