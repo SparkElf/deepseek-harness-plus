@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('plusInstaller', {
   listWslDistributions: () => ipcRenderer.invoke('installer:list-wsl-distributions'),
   install: (form) => ipcRenderer.invoke('installer:install', form),
   applyAppearance: (appearance) => ipcRenderer.invoke('installer:apply-appearance', appearance),
+  windowControl: (command) => ipcRenderer.invoke('installer:window-control', command),
   onProgress: (listener) => ipcRenderer.on('install:progress', (_event, value) => listener(value)),
 })

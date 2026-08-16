@@ -1,6 +1,6 @@
 const messages = {
   zh: {
-    'brand.setup': '安装',
+    'brand.setup': '安装', 'window.minimize': '最小化', 'window.maximize': '最大化', 'window.close': '关闭',
     'step.appearance': '外观', 'step.environment': '运行环境', 'step.runtime': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'eyebrow.initial': '初始设置', 'eyebrow.environment': '运行方式', 'eyebrow.runtime': '本地运行', 'eyebrow.model': '初始模型', 'eyebrow.review': '准备安装',
     'title.appearance': '选择界面外观', 'title.environment': '选择运行环境', 'title.runtime': '选择安装位置', 'title.model': '连接 DeepSeek', 'title.review': '确认初始设置',
@@ -26,7 +26,7 @@ const messages = {
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
-    'brand.setup': 'Setup',
+    'brand.setup': 'Setup', 'window.minimize': 'Minimize', 'window.maximize': 'Maximize', 'window.close': 'Close',
     'step.appearance': 'Appearance', 'step.environment': 'Environment', 'step.runtime': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'eyebrow.initial': 'Initial setup', 'eyebrow.environment': 'Runtime target', 'eyebrow.runtime': 'Local runtime', 'eyebrow.model': 'Initial model', 'eyebrow.review': 'Ready to install',
     'title.appearance': 'Choose the interface', 'title.environment': 'Choose the runtime environment', 'title.runtime': 'Choose the install location', 'title.model': 'Connect DeepSeek', 'title.review': 'Review the initial setup',
@@ -82,6 +82,7 @@ const summary = document.querySelector('#summary')
 const reasoning = document.querySelector('#reasoningEffort')
 const installPath = document.querySelector('#installPath')
 const chooseDirectory = document.querySelector('#chooseDirectory')
+const windowControl = window.plusInstaller?.windowControl ?? (() => Promise.resolve())
 const wslOptions = document.querySelector('#wslOptions')
 const wslDistribution = document.querySelector('#wslDistribution')
 const nativeTarget = document.querySelector('[data-target-kind="native"]')
@@ -137,6 +138,7 @@ function applyAppearance() {
   document.querySelector('#stepper').setAttribute('aria-label', locale === 'zh' ? '安装进度' : 'Installation progress')
   document.querySelector('#localeControl').setAttribute('aria-label', text('label.language'))
   document.querySelector('#themeControl').setAttribute('aria-label', text('label.theme'))
+  document.querySelectorAll('[data-window-action]').forEach(button => button.setAttribute('aria-label', text('window.' + button.dataset.windowAction)))
   document.querySelector('#targetControl').setAttribute('aria-label', text('step.environment'))
   document.querySelectorAll('[data-locale]').forEach(button => { const selected = button.dataset.locale === locale; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   document.querySelectorAll('[data-theme]').forEach(button => { const selected = button.dataset.theme === theme; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
@@ -193,6 +195,9 @@ function validate() {
 }
 
 document.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => { locale = button.dataset.locale; applyAppearance() }))
+document.querySelector('#minimizeWindow').addEventListener('click', () => { void windowControl('minimize') })
+document.querySelector('#toggleMaximize').addEventListener('click', () => { void windowControl('toggle-maximize') })
+document.querySelector('#closeWindow').addEventListener('click', () => { void windowControl('close') })
 document.querySelectorAll('[data-theme]').forEach(button => button.addEventListener('click', () => { theme = button.dataset.theme; applyAppearance() }))
 document.querySelectorAll('[data-target-kind]').forEach(button => button.addEventListener('click', async () => {
   targetKind = button.dataset.targetKind; distributionsLoaded = false; installPath.value = ''; renderTarget(); if (targetKind === 'wsl') await loadDistributions()

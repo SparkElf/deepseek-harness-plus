@@ -43,11 +43,11 @@ body[data-theme='dark'] {
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { min-width: 720px; min-height: 100%; }
+html, body { width: 100%; min-width: 720px; min-height: 100%; }
 body {
   margin: 0;
   overflow: hidden;
-  background: var(--bg-base);
+  background: var(--bg-layer);
   color: var(--text-primary);
   letter-spacing: 0;
   transition: background-color 180ms var(--ease), color 180ms var(--ease);
@@ -57,10 +57,10 @@ button { cursor: pointer; }
 button:disabled { cursor: default; opacity: 0.5; }
 
 .installer-shell {
-  width: min(880px, calc(100% - 56px));
+  width: 100%;
   height: 100vh;
-  margin: 0 auto;
-  padding: 34px 0 28px;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
 }
@@ -70,9 +70,17 @@ button:disabled { cursor: default; opacity: 0.5; }
   flex: 0 0 48px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  padding: 0 18px 0 48px;
+  background: var(--bg-layer);
   border-bottom: 1px solid var(--border);
+  -webkit-app-region: drag;
 }
-.brand-lockup { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand-lockup { display: flex; align-items: center; gap: 12px; min-width: 0; -webkit-app-region: drag; }
+.window-controls { display: flex; align-items: center; gap: 2px; -webkit-app-region: no-drag; }
+.window-control { width: 36px; height: 30px; border: 0; border-radius: 4px; color: var(--text-secondary); background: transparent; font-size: 17px; line-height: 1; }
+.window-control:hover { color: var(--text-primary); background: var(--bg-hover); }
+.window-control.close:hover { color: white; background: rgb(220, 38, 38); }
 .brand-lockup img { width: 122px; height: auto; display: block; }
 body[data-theme='dark'] .brand-lockup img { filter: brightness(0) invert(1); }
 .brand-divider { width: 1px; height: 20px; background: var(--border-strong); }
@@ -93,7 +101,8 @@ body[data-theme='dark'] .brand-lockup img { filter: brightness(0) invert(1); }
   display: grid;
   grid-template-columns: max-content minmax(24px, 1fr) max-content minmax(24px, 1fr) max-content minmax(24px, 1fr) max-content minmax(24px, 1fr) max-content;
   align-items: center;
-  padding: 16px 2px 8px;
+  padding: 16px 48px 8px;
+  background: var(--bg-layer);
 }
 .stepper button {
   border: 0;
@@ -126,9 +135,9 @@ form {
   display: flex;
   flex-direction: column;
   background: var(--bg-layer);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
 }
 .workspace { flex: 1; min-height: 0; overflow-y: auto; padding: 42px 48px 24px; }

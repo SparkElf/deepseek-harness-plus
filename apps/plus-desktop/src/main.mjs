@@ -113,6 +113,7 @@ function openInstaller() {
     minWidth: 720,
     minHeight: 760,
     show: false,
+    frame: false,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#151517' : '#f9fafb',
     title: 'DeepSeek Harness Plus',
     webPreferences: {
@@ -366,10 +367,15 @@ ipcMain.handle('installer:choose-directory', async (_event, target) => {
   return result.canceled ? undefined : result.filePaths[0]
 })
 ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
+ipcMain.handle('installer:window-control', (_event, command) => {
+  if (command === 'minimize') installerWindow?.minimize()
+  else if (command === 'toggle-maximize') installerWindow?.isMaximized() ? installerWindow.unmaximize() : installerWindow?.maximize()
+  else if (command === 'close') installerWindow?.close()
+})
 ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   installerLocale = appearance.locale
   nativeTheme.themeSource = appearance.theme
-  installerWindow?.setBackgroundColor(appearance.resolvedTheme === 'dark' ? '#151517' : '#f9fafb')
+  installerWindow?.setBackgroundColor(appearance.resolvedTheme === 'dark' ? '#232324' : '#ffffff')
   installerWindow?.setTitle(appearance.title)
 })
 ipcMain.handle('installer:install', (_event, form) => install(form))
