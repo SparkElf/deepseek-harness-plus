@@ -9,6 +9,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { AgentOptions } from '@deepseek-ai/dsh-agent'
@@ -29,6 +30,8 @@ const SUBAGENT_SECTION_ORDER = 116.5
 export interface Config {
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
+  /** Optional settings namespace for live child-default overrides. */
+  settingsNamespace?: string
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.
@@ -80,6 +83,7 @@ export interface Config {
 
 export const Config: z<Config> = z.object({
   provider: z.string().required(),
+  settingsNamespace: z.string(),
   toolName: z.string().default('subagent'),
   enableRunInBackground: z.boolean().default(true),
   backgroundMode: z.union(['one-shot', 'continuable'] as const).default('one-shot'),
@@ -97,6 +101,36 @@ export const Config: z<Config> = z.object({
   }).default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(3),
 })
+
+/** User-owned child defaults that can change without rebuilding the model-facing tool. */
+export interface SubagentSettings {
+  /** Provider and model overrides; omission follows the parent agent. */
+  agentOptions?: Partial<Pick<AgentOptions, 'provider' | 'model' | 'maxTokens'>>
+  /** Child persona that shadows the deployment persona when set. */
+  persona?: string
+  /** Global tool names the child keeps or removes. */
+  toolFilter?: Config['toolFilter']
+  /** Maximum child depth, or provider-owned recursion management. */
+  maxDepth?: Config['maxDepth']
+}
+
+/** Schema for the live user-owned child defaults. */
+export const SUBAGENT_SETTINGS_SCHEMA = z.object({
+  agentOptions: z.object({
+    provider: z.string().default(undefined as unknown as string),
+    model: z.string().default(undefined as unknown as string),
+    maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(undefined as unknown as number),
+  }).default(undefined as unknown as { provider: string; model: string; maxTokens: number }),
+  persona: z.string().default(undefined as unknown as string),
+  toolFilter: z.object({
+    allow: z.array(z.string()).default(undefined as unknown as string[]),
+    deny: z.array(z.string()).default(undefined as unknown as string[]),
+  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  maxDepth: z.union([
+    z.natural().max(Number.MAX_SAFE_INTEGER),
+    z.const('provider-managed' as const),
+  ]).default(undefined as unknown as number | 'provider-managed'),
+}) as z<SubagentSettings>
 
 /** Render text blocks from the canonical JSON block array without trusting arbitrary values. */
 function outputValueText(values: JsonValue[]): string {
@@ -264,14 +298,55 @@ function resolveDelegationRun(
   }
 }
 
-export function apply(ctx: Context, config: Config): void {
-  // Direct apply() bypasses Schemastery's numeric constraints. A direct-apply
-  // omission stays capless (the schema default only runs through the loader).
-  if (config.maxDepth !== 'provider-managed') assertSubagentMaxDepth(config.maxDepth)
-  // Reject an empty explicit filter at load instead of failing every delegation.
-  if (config.toolFilter !== undefined && config.toolFilter.allow === undefined && config.toolFilter.deny === undefined) {
+/** Project the deployment defaults into the live user-owned settings section. */
+function settingsFromConfig(config: Config): SubagentSettings {
+  const agentOptions = config.agentOptions
+  return {
+    ...agentOptions === undefined ? {} : {
+      agentOptions: {
+        ...agentOptions.provider === undefined ? {} : { provider: agentOptions.provider },
+        ...agentOptions.model === undefined ? {} : { model: agentOptions.model },
+        ...agentOptions.maxTokens === undefined ? {} : { maxTokens: agentOptions.maxTokens },
+      },
+    },
+    ...config.persona === undefined ? {} : { persona: config.persona },
+    ...config.toolFilter === undefined ? {} : { toolFilter: config.toolFilter },
+    ...config.maxDepth === undefined ? {} : { maxDepth: config.maxDepth },
+  }
+}
+
+/** Validate live defaults at the earliest point the provider can enforce them. */
+function validateSettings(value: SubagentSettings, provider: SubagentProvider | undefined): void {
+  if (value.maxDepth !== undefined && value.maxDepth !== 'provider-managed') {
+    assertSubagentMaxDepth(value.maxDepth)
+  }
+  if (value.toolFilter !== undefined && value.toolFilter.allow === undefined && value.toolFilter.deny === undefined) {
     throw new Error('tool-subagent: `toolFilter` is configured but names neither `allow` nor `deny` — remove the key or fill the filter')
   }
+  if (provider === undefined) return
+  if (typeof value.maxDepth === 'number' && !provider.capabilities.depthLimit) {
+    throw new Error(`tool-subagent: provider "${provider.name}" cannot enforce maxDepth (no depthLimit capability) — set maxDepth: 'provider-managed' to leave the recursion budget to the provider`)
+  }
+  if (value.persona !== undefined && !provider.capabilities.persona) {
+    throw new Error('tool-subagent: provider \"' + provider.name + '\" cannot apply persona (no persona capability)')
+  }
+  if (value.toolFilter !== undefined && !provider.capabilities.toolFilter) {
+    throw new Error('tool-subagent: provider \"' + provider.name + '\" cannot apply toolFilter (no toolFilter capability)')
+  }
+}
+
+export function apply(ctx: Context, config: Config): void {
+  let settingsSource: () => SubagentSettings = () => settingsFromConfig(config)
+  if (config.settingsNamespace !== undefined) {
+    const namespace = settingsNamespace(config.settingsNamespace)
+    installSettingsSection(ctx, namespace, SUBAGENT_SETTINGS_SCHEMA, settingsFromConfig(config), {
+      validate: (value) => { validateSettings(value, ctx.subagents.getProvider(config.provider)) },
+      setSource: (source) => { settingsSource = source },
+      onChange: () => {},
+    })
+  }
+  // Direct apply() bypasses Schemastery's constraints, so validate the initial source too.
+  validateSettings(settingsSource(), undefined)
   const backgroundEnabled = config.enableRunInBackground !== false
   const continuable = (config.backgroundMode ?? 'one-shot') === 'continuable'
   const toolName = config.toolName ?? 'subagent'
@@ -279,15 +354,8 @@ export function apply(ctx: Context, config: Config): void {
   // can change provider availability while this fiber remains active.
   let disposeTool: (() => void) | undefined
   const mount = (provider: SubagentProvider): void => {
-    // A numeric cap the provider cannot enforce is a misconfiguration — fail at
-    // mount (the earliest point the provider's capabilities are known), not on
-    // the first delegation.
-    if (typeof config.maxDepth === 'number' && !provider.capabilities.depthLimit) {
-      throw new Error(
-        `tool-subagent: provider "${provider.name}" cannot enforce maxDepth (no depthLimit capability) — `
-        + 'set maxDepth: \'provider-managed\' to leave the recursion budget to the provider',
-      )
-    }
+    // Provider capabilities become authoritative when the provider mounts.
+    validateSettings(settingsSource(), provider)
     const wording = providerWording(provider.inheritsParentContext)
     if (continuable && provider.prepareContinuable === undefined) {
       throw new Error(
@@ -373,14 +441,15 @@ export function apply(ctx: Context, config: Config): void {
           throw new Error('subagent tool requires a calling agent (exec.agent was undefined)')
         }
 
-        const maxDepth = typeof config.maxDepth === 'number' ? config.maxDepth : undefined
+        const settings = settingsSource()
+        const maxDepth = typeof settings.maxDepth === 'number' ? settings.maxDepth : undefined
         const request = {
           label: args.description,
           prompt: [{ type: 'text', text: args.prompt }] as ContentBlock[],
           parent,
-          ...config.agentOptions !== undefined ? { agentOptions: config.agentOptions } : {},
-          ...config.persona !== undefined ? { persona: config.persona } : {},
-          ...config.toolFilter !== undefined ? { toolFilter: config.toolFilter } : {},
+          ...settings.agentOptions !== undefined ? { agentOptions: settings.agentOptions } : {},
+          ...settings.persona !== undefined ? { persona: settings.persona } : {},
+          ...settings.toolFilter !== undefined ? { toolFilter: settings.toolFilter } : {},
           ...maxDepth !== undefined ? { maxDepth } : {},
         }
 
