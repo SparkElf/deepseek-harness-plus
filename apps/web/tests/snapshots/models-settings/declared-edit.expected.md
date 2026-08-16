@@ -43,9 +43,11 @@
           - text: https://gateway.acme.example/v1
         - text: API 协议
         - combobox "API 协议":
-          - option "openai-completions" [selected]
-          - option "openai-responses"
+          - option "openai-completions"
+          - option "openai-responses" [selected]
           - option "anthropic-messages"
+        - checkbox "中转站兼容模式"
+        - text: 中转站兼容模式
         - region "模型目录":
           - text: 模型目录 已自定义模型目录
           - button "恢复默认模型"
@@ -55,8 +57,16 @@
             - text: acme-large
           - textbox "显示名称 1":
             - /placeholder: 显示名称
-          - button "容量 1"
+          - button "模型能力 1" [expanded]
           - button "删除模型 1"
+          - text: 上下文窗口
+          - textbox "上下文窗口 1":
+            - /placeholder: 256K
+          - text: 最大输出 token
+          - textbox "最大输出 token 1":
+            - /placeholder: 32K
+          - checkbox "支持图片输入 1" [checked]
+          - text: 支持图片输入
           - button "添加模型"
       - button "取消"
       - button "保存"

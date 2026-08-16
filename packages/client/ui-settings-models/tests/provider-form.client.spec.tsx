@@ -33,6 +33,10 @@ const PiAiConfig = Schema.object({
       maxTokens: Schema.number(),
     })),
     reasoning: Schema.union(['off', 'high']),
+    responsesCompatibility: Schema.object({
+      omitReasoningInputStatus: Schema.boolean(),
+      preserve: Schema.string(),
+    }),
   })),
 })
 
@@ -200,6 +204,7 @@ describe('model list editing', () => {
     fireEvent.change(screen.getByLabelText(`${en.modelId} 1`), { target: { value: 'acme-large' } })
     expandModel(1)
     fireEvent.change(screen.getByLabelText(`${en.modelContextWindow} 1`), { target: { value: '65536' } })
+    fireEvent.click(screen.getByLabelText(`${en.modelImageInput} 1`))
     fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: 'Acme' } })
     // Clearing an optional field must drop it rather than store an empty value.
     fireEvent.change(screen.getByLabelText(`${en.modelName} 1`), { target: { value: '' } })
@@ -209,8 +214,34 @@ describe('model list editing', () => {
     expect(firstMutate(mutate)).toMatchObject({
       ns: 'llm-pi-ai',
       expectedRevision: 3,
-      ops: [{ op: 'set', path: ['providers', 'openai', 'models'], value: [{ id: 'acme-large', contextWindow: 65_536 }] }],
+      ops: [{
+        op: 'set',
+        path: ['providers', 'openai', 'models'],
+        value: [{ id: 'acme-large', contextWindow: 65_536, input: ['text', 'image'] }],
+      }],
     })
+  })
+
+  it('restores image capability and can narrow a model back to text without dropping other fields', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          models: [{ id: 'vision', input: ['text', 'image'], compat: { preserve: true } }],
+        },
+      },
+    })
+    openEditor('openai')
+    expandModel(1)
+
+    const imageInput = screen.getByLabelText<HTMLInputElement>(`${en.modelImageInput} 1`)
+    expect(imageInput.checked).toBe(true)
+    fireEvent.click(imageInput)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalled() })
+    expect(firstMutate(mutate).ops[0]?.value).toEqual([
+      { id: 'vision', input: ['text'], compat: { preserve: true } },
+    ])
   })
 
   it('names a duplicate model id in the edit flow too', async () => {
@@ -855,6 +886,155 @@ describe('hand-declared providers', () => {
       ops: [{ op: 'set', path: ['providers', 'acme-gateway', 'api'], value: 'anthropic-messages' }],
       expectedRevision: 3,
     })
+  })
+
+  it('shows the Responses compatibility toggle only for an effective openai-responses protocol', async () => {
+    await mountSection({
+      providers: { openai: { api: 'openai-completions' } },
+      declaredRoutes: ['openai'],
+    })
+    openEditor('openai')
+    expect(screen.queryByLabelText(en.omitReasoningInputStatus)).toBeNull()
+
+    const protocol = screen.getByLabelText<HTMLSelectElement>(en.customApi)
+    fireEvent.change(protocol, { target: { value: 'openai-responses' } })
+    expect(screen.getByLabelText(en.omitReasoningInputStatus)).toBeTruthy()
+
+    fireEvent.change(protocol, { target: { value: 'anthropic-messages' } })
+    expect(screen.queryByLabelText(en.omitReasoningInputStatus)).toBeNull()
+
+    cleanup()
+    await mountSection({
+      providers: { openai: { api: 'openai-responses' } },
+      userProviders: { openai: {} },
+      baseProviders: { openai: { api: 'openai-responses' } },
+    })
+    openEditor('openai')
+    expect(screen.getByLabelText(en.omitReasoningInputStatus)).toBeTruthy()
+  })
+
+  it('unsets Responses compatibility when the selected protocol leaves openai-responses', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        'acme-gateway': {
+          api: 'openai-responses',
+          responsesCompatibility: { omitReasoningInputStatus: true, preserve: 'sibling' },
+        },
+      },
+      declaredRoutes: ['acme-gateway'],
+    })
+    openEditor('acme-gateway')
+
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'anthropic-messages' } })
+    expect(screen.queryByLabelText(en.omitReasoningInputStatus)).toBeNull()
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate).ops).toEqual([
+      { op: 'set', path: ['providers', 'acme-gateway', 'api'], value: 'anthropic-messages' },
+      {
+        op: 'unset',
+        path: ['providers', 'acme-gateway', 'responsesCompatibility', 'omitReasoningInputStatus'],
+      },
+    ])
+  })
+
+  it('writes false when an inherited Responses compatibility toggle is unchecked', async () => {
+    const inherited = {
+      api: 'openai-responses',
+      responsesCompatibility: { omitReasoningInputStatus: true, preserve: 'sibling' },
+    }
+    const { mutate } = await mountSection({
+      providers: { openai: inherited },
+      userProviders: { openai: {} },
+      baseProviders: { openai: inherited },
+    })
+    openEditor('openai')
+
+    const toggle = screen.getByLabelText<HTMLInputElement>(en.omitReasoningInputStatus)
+    expect(toggle.checked).toBe(true)
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate).ops).toEqual([{
+      op: 'set',
+      path: ['providers', 'openai', 'responsesCompatibility', 'omitReasoningInputStatus'],
+      value: false,
+    }])
+  })
+
+  it('writes false for inherited compatibility when the protocol changes away', async () => {
+    const inherited = {
+      api: 'openai-responses',
+      responsesCompatibility: { omitReasoningInputStatus: true, preserve: 'sibling' },
+    }
+    const { mutate } = await mountSection({
+      providers: { 'acme-gateway': inherited },
+      userProviders: { 'acme-gateway': {} },
+      baseProviders: { 'acme-gateway': inherited },
+      declaredRoutes: ['acme-gateway'],
+    })
+    openEditor('acme-gateway')
+
+    expect(screen.getByLabelText<HTMLInputElement>(en.omitReasoningInputStatus).checked).toBe(true)
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'anthropic-messages' } })
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate).ops).toEqual([
+      { op: 'set', path: ['providers', 'acme-gateway', 'api'], value: 'anthropic-messages' },
+      {
+        op: 'set',
+        path: ['providers', 'acme-gateway', 'responsesCompatibility', 'omitReasoningInputStatus'],
+        value: false,
+      },
+    ])
+  })
+
+  it('sets and unsets only the curated Responses compatibility leaf', async () => {
+    const { mutate } = await mountSection({
+      providers: {
+        openai: {
+          api: 'openai-responses',
+          responsesCompatibility: { preserve: 'sibling' },
+        },
+      },
+    })
+    openEditor('openai')
+
+    const toggle = screen.getByLabelText<HTMLInputElement>(en.omitReasoningInputStatus)
+    expect(toggle.checked).toBe(false)
+    fireEvent.click(toggle)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(mutate).ops).toEqual([{
+      op: 'set',
+      path: ['providers', 'openai', 'responsesCompatibility', 'omitReasoningInputStatus'],
+      value: true,
+    }])
+
+    cleanup()
+    const second = await mountSection({
+      providers: {
+        openai: {
+          api: 'openai-responses',
+          responsesCompatibility: { omitReasoningInputStatus: true, preserve: 'sibling' },
+        },
+      },
+    })
+    openEditor('openai')
+    const restored = screen.getByLabelText<HTMLInputElement>(en.omitReasoningInputStatus)
+    expect(restored.checked).toBe(true)
+    fireEvent.click(restored)
+    fireEvent.click(screen.getByText(en.apply))
+
+    await waitFor(() => { expect(second.mutate).toHaveBeenCalledTimes(1) })
+    expect(firstMutate(second.mutate).ops).toEqual([{
+      op: 'unset',
+      path: ['providers', 'openai', 'responsesCompatibility', 'omitReasoningInputStatus'],
+    }])
   })
 
   it('selects nothing for a declared route whose profile names no protocol', async () => {

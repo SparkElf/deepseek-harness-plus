@@ -10,7 +10,8 @@
  * both families, DeepSeek's id/name/context-window model catalog, and the
  * display name and wire protocol of a pi-ai route the adapter does not ship —
  * the two fields the create card asked that route for, editable here for the
- * same reason).
+ * same reason — plus the reasoning-input status omission for a pi-ai route
+ * whose effective protocol is exactly `openai-responses`).
  * Reasoning effort is deliberately absent: it is a per-MODEL capability, and
  * the models under one provider disagree about it, so a provider-scoped
  * control can only be set to a value some of them reject. The composer's
@@ -42,6 +43,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
 
 /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
+
+/** Leaf path of the curated OpenAI Responses compatibility setting. */
+const OMIT_REASONING_INPUT_STATUS_PATH = ['responsesCompatibility', 'omitReasoningInputStatus'] as const
 
 /** Props of {@link ProviderEditor}. */
 export interface ProviderEditorProps {
@@ -121,6 +125,33 @@ export function pathOps(
   return ops
 }
 
+/**
+ * Produce profile edits while keeping Responses compatibility siblings out of
+ * parent-object replacements. The card owns one leaf in that object; every
+ * other compatibility field remains owned by settings.yaml.
+ */
+function providerPathOps(
+  base: readonly string[],
+  before: unknown,
+  after: Record<string, unknown>,
+): SettingsPathOpView[] {
+  const previous = typeof before === 'object' && before !== null && !Array.isArray(before)
+    ? before as Record<string, unknown>
+    : {}
+  const ops = pathOps(
+    base,
+    deletePath(previous, ['responsesCompatibility']),
+    deletePath(after, ['responsesCompatibility']),
+  )
+  const previousValue = getPath(previous, OMIT_REASONING_INPUT_STATUS_PATH)
+  const nextValue = getPath(after, OMIT_REASONING_INPUT_STATUS_PATH)
+  if (previousValue === nextValue) return ops
+  ops.push(nextValue === undefined
+    ? { op: 'unset', path: [...base, ...OMIT_REASONING_INPUT_STATUS_PATH] }
+    : { op: 'set', path: [...base, ...OMIT_REASONING_INPUT_STATUS_PATH], value: nextValue })
+  return ops
+}
+
 /** The editor layout the owning namespace selects. */
 function layoutOf(ns: string): EditorLayout {
   if (ns === 'llm-deepseek') return 'deepseek'
@@ -159,6 +190,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   const root = useMemo(() => rehydrateSchema(namespace.schema), [namespace.schema])
   const node = useMemo(() => nodeAtPath(root, settingsPath), [root, settingsPath])
   const fallback = getPath(namespace.value, settingsPath)
+  const inheritedOmitReasoningInputStatus = getPath(
+    namespace.base,
+    [...settingsPath, ...OMIT_REASONING_INPUT_STATUS_PATH],
+  ) === true
   const disabled = props.readOnly || busy
   const layout = layoutOf(namespace.ns)
   const keyRef = refFor(namespace, settingsPath, props.provider)
@@ -192,6 +227,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     const value = getPath(source, [key])
     return typeof value === 'string' && value.trim().length > 0 ? value : undefined
   }
+  const disableOmitReasoningInputStatus = (current: Record<string, unknown>): Record<string, unknown> => {
+    return inheritedOmitReasoningInputStatus
+      ? setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, false)
+      : deletePath(current, OMIT_REASONING_INPUT_STATUS_PATH)
+  }
   const setField = (key: string, next: string | undefined): void => {
     // A value of nothing but whitespace is cleared, not stored: `stringAt`
     // already reports it as absent, so the field would otherwise render empty
@@ -218,6 +258,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   // What the form currently shows, which is what an interrogation must ask:
   // an edited-but-unsaved endpoint, and a key typed but not yet stored.
   const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
+  const omitReasoningInputStatus = hasPath(draft, OMIT_REASONING_INPUT_STATUS_PATH)
+    ? getPath(draft, OMIT_REASONING_INPUT_STATUS_PATH) === true
+    : getPath(fallback, OMIT_REASONING_INPUT_STATUS_PATH) === true
   const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
   const probe = {
     settingsNs: namespace.ns,
@@ -266,7 +309,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       ? []
       : materializesNativeProfile
         ? [{ op: 'set', path: [...settingsPath], value: {} }]
-        : pathOps(settingsPath, committedOriginal, next)
+        : providerPathOps(settingsPath, committedOriginal, next)
     if (ops.length > 0) {
       const response = await api.settings.mutate({ ns, ops, expectedRevision })
       if (!response.result.ok) {
@@ -433,7 +476,17 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     value={probeApi ?? ''}
                     aria-label={t('customApi')}
                     disabled={disabled}
-                    onChange={(event) => { setField('api', event.target.value) }}
+                    onChange={(event) => {
+                      const api = event.target.value
+                      setDraft((current) => {
+                        const next = api.trim().length === 0
+                          ? deletePath(current, ['api'])
+                          : setPath(current, ['api'], api)
+                        return api === 'openai-responses'
+                          ? next
+                          : disableOmitReasoningInputStatus(next)
+                      })
+                    }}
                   >
                     {/* A profile naming no protocol — hand-written into
                         settings.yaml with no model to need one — selects
@@ -447,9 +500,27 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                 </div>
               )
               : null}
-            {/* Both families edit the same rows through the same contract; only
-                the extras differ — DeepSeek's inherited capacities, pi-ai's
-                endpoint interrogation. */}
+            {family === 'pi-ai' && probeApi === 'openai-responses'
+              ? (
+                <label className={styles['settingToggle']}>
+                  <input
+                    className={styles['settingCheckbox']}
+                    type="checkbox"
+                    checked={omitReasoningInputStatus}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      setDraft(current => event.target.checked
+                        ? setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, true)
+                        : disableOmitReasoningInputStatus(current))
+                    }}
+                  />
+                  <span>{t('omitReasoningInputStatus')}</span>
+                </label>
+              )
+              : null}
+            {/* Both families edit model identity and capacities; DeepSeek adds
+                inherited capacity hints, while pi-ai adds endpoint discovery and
+                an explicit image-input capability. */}
             {family === 'deepseek'
               ? (
                 <DeepSeekModelsEditor

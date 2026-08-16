@@ -78,6 +78,22 @@ export interface PiAiAdapterOptions {
   resolveAttachments?: () => AttachmentStore | undefined
 }
 
+/** Remove response-only status metadata from replayed reasoning input items. */
+function omitReasoningInputStatus(payload: unknown): unknown {
+  const request = payload as Record<string, unknown> & { input: unknown[] }
+  const statusAt = request.input.findIndex((item) => {
+    const inputItem = item as Record<string, unknown>
+    return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
+  })
+  if (statusAt === -1) return undefined
+  const input = request.input.map((item, index) => {
+    if (index !== statusAt) return item
+    const { status: _status, ...withoutStatus } = item as Record<string, unknown>
+    return withoutStatus
+  })
+  return { ...request, input }
+}
+
 /** Copy profile stream knobs into pi-ai's common option vocabulary. */
 function profileOptions(
   profile: ResolvedPiAiProviderProfile,
@@ -93,6 +109,7 @@ function profileOptions(
     ...profile.transport === undefined ? {} : { transport: profile.transport },
     ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
     ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
+    ...profile.responsesCompatibility?.omitReasoningInputStatus === true ? { onPayload: omitReasoningInputStatus } : {},
     // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
     maxRetries: 0,
   }

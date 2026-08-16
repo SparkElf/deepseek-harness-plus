@@ -944,6 +944,8 @@ export interface PiAiProviderProfile {
    * detection.
    */
   compat?: PiAiCompatProfile
+  /** OpenAI Responses input-item adjustments for compatible gateways. */
+  responsesCompatibility?: PiAiResponsesCompatibility
   /**
    * Context capacity for a model this route lists that neither the entry nor
    * the installed catalog sizes (default 262,144). A guess by construction, so
@@ -1051,6 +1053,12 @@ export interface PiAiCompatProfile {
   supportsReasoningEffort?: boolean
 }
 
+/** OpenAI Responses request adjustments for gateways with narrower input-item support. */
+export interface PiAiResponsesCompatibility {
+  /** Omit the response-only `status` field when replaying top-level reasoning items. */
+  omitReasoningInputStatus?: boolean
+}
+
 /** One request modality a pi-ai model may accept. */
 export type PiAiModality = Model<Api>['input'][number]
 
@@ -1079,7 +1087,7 @@ type WithheldThinkingFormat = 'chat-template' | 'qwen-chat-template'
 
 Depends on: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`)
 
-Source: [`packages/llm/llm-pi-ai/src/config.ts:172`](../packages/llm/llm-pi-ai/src/config.ts)
+Source: [`packages/llm/llm-pi-ai/src/config.ts:180`](../packages/llm/llm-pi-ai/src/config.ts)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 
