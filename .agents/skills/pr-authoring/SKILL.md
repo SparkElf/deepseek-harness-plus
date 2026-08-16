@@ -63,6 +63,12 @@ For every material claim, give the smallest useful proof:
 
 Do not present a passing syntax check as evidence that a user workflow works. Do not present an image as evidence that an installer, release, preset, or deployment exists.
 
+## Create PRs only on explicit instruction
+
+Implementation, review, verification, a completed candidate, or a request to push changes does not authorize a new PR. Keep work on its candidate or aggregate branch until the user explicitly asks to gather changes into a PR, names a PR unit, or requests release integration. Do not create one PR per completed change by default.
+
+When the user requests a consolidated PR, first inventory the accepted changes and group them by the requested review boundary. Do not split that batch into extra PRs unless the user asks for a different topology.
+
 ## Synchronize existing PRs before changing PR topology
 
 An aggregate or review branch is an integration workspace, not automatically a new pull-request boundary. Before creating, closing, replacing, or consolidating a PR, compare the complete accepted local change with every live PR head and classify each missing change by the PR that owns its user result.

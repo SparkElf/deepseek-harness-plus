@@ -345,28 +345,37 @@ class RuntimeSupervisor {
     })
   }
 
+  /** 停止受管 process tree；Windows 必须终止 pnpm launcher 的全部 descendants。 */
   async stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return
-    if (process.platform !== 'win32' && child.pid !== undefined) {
-      try { process.kill(-child.pid, 'SIGTERM') } catch { child.kill('SIGTERM') }
-    } else child.kill('SIGTERM')
+    if (process.platform === 'win32' && child.pid !== undefined) {
+      await run('taskkill', ['/PID', String(child.pid), '/T'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+    } else if (child.pid !== undefined) {
+      try { process.kill(-child.pid, 'SIGTERM') }
+      catch (error) { console.info('[supervisor] process group termination fell back to child signal', error); child.kill('SIGTERM') }
+    }
     try { await waitForExit(child, STOP_TIMEOUT_MS) }
-    catch {
-      if (process.platform !== 'win32' && child.pid !== undefined) {
-        try { process.kill(-child.pid, 'SIGKILL') } catch { child.kill('SIGKILL') }
-      } else child.kill('SIGKILL')
+    catch (error) {
+      console.info('[supervisor] graceful process tree stop timed out', error)
+      if (process.platform === 'win32' && child.pid !== undefined) {
+        await run('taskkill', ['/PID', String(child.pid), '/T', '/F'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+      } else if (child.pid !== undefined) {
+        try { process.kill(-child.pid, 'SIGKILL') }
+        catch (killError) { console.info('[supervisor] process group kill fell back to child kill', killError); child.kill('SIGKILL') }
+      }
       await waitForExit(child, STOP_TIMEOUT_MS)
     }
   }
 
   async stop() {
     const watcher = this.watcher
-    this.watcher = undefined
     if (watcher !== undefined) await this.stopProcess(watcher)
+    this.watcher = undefined
     const web = this.web
+    if (web !== undefined) await this.stopProcess(web)
+    if (await this.portOpen()) throw new Error('Harness Web stopped but the configured port remains in use')
     this.web = undefined
     this.recordedWebPid = undefined
-    if (web !== undefined) await this.stopProcess(web)
     this.writeStatus()
   }
 

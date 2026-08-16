@@ -1,0 +1,57 @@
+name: Build Plus Desktop for Windows
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/plus-desktop-windows.yml'
+      - 'apps/plus-desktop/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  pull_request:
+    branches: [master]
+    paths:
+      - '.github/workflows/plus-desktop-windows.yml'
+      - 'apps/plus-desktop/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-installer:
+    name: Windows NSIS installer
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.7.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Windows installer
+        run: pnpm --filter @deepseek-ai/dsh-plus-desktop package:win
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-harness-plus-windows-installer
+          path: apps/plus-desktop/dist/*Setup*.exe
+          if-no-files-found: error
+          retention-days: 14

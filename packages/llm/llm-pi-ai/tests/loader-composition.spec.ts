@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
-import LlmRuntime from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { createAssistantMessage } from '@deepseek-ai/dsh-llm'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
@@ -112,5 +112,68 @@ describe('llm-pi-ai real dormant composition', () => {
     const result = await assemble(ctx, { provider: 'deepseek', model: 'deepseek-v4-flash', messages: [] })
     expect(result.message.content).toEqual([{ type: 'text', text: 'hello' }])
     expect(server.headers[0]?.authorization).toBe('Bearer key-from-store')
+  })
+
+  it('applies the Responses reasoning-status option from the settings document', async () => {
+    vi.stubEnv('PI_COMPOSITION_KEY', '')
+    const server = await mockServer([{
+      status: 400,
+      body: JSON.stringify({ error: { message: 'expected mock failure' } }),
+    }])
+    const { ctx, settingsPath } = await loadComposition()
+    await writeFile(settingsPath, [
+      'llm-pi-ai:',
+      '  providers:',
+      '    compatible-gateway:',
+      '      apiKeyEnv: PI_COMPOSITION_KEY',
+      '      api: openai-responses',
+      `      baseURL: ${server.url}/v1`,
+      '      models:',
+      '        - id: compatible-model',
+      '          contextWindow: 65536',
+      '          maxTokens: 4096',
+      '      responsesCompatibility:',
+      '        omitReasoningInputStatus: true',
+      '',
+    ].join('\n'))
+    await vi.waitFor(() => {
+      expect(ctx.llm.listProviders().map(provider => provider.id)).toEqual(['compatible-gateway'])
+    }, { timeout: 5000 })
+
+    const result = await assemble(ctx, {
+      provider: 'compatible-gateway',
+      model: 'compatible-model',
+      messages: [createAssistantMessage({
+        content: [{ type: 'reasoning', text: 'summary' }, { type: 'text', text: 'answer' }],
+        source: {
+          provider: 'compatible-gateway',
+          model: 'compatible-model',
+          replayState: {
+            kind: 'pi-ai',
+            version: 1,
+            api: 'openai-responses',
+            provider: 'compatible-gateway',
+            model: 'compatible-model',
+            stopReason: 'stop',
+            blocks: [
+              {
+                type: 'reasoning',
+                thinkingSignature: JSON.stringify({
+                  type: 'reasoning',
+                  id: 'rs_composition',
+                  summary: [],
+                  status: 'completed',
+                }),
+              },
+              { type: 'text', textSignature: JSON.stringify({ v: 1, id: 'msg_composition' }) },
+            ],
+          },
+        },
+      })],
+    })
+    expect(result.finish).toMatchObject({ kind: 'error' })
+    const input = (server.requests[0] as { input: Record<string, unknown>[] }).input
+    expect(input.find(item => item.type === 'reasoning')).not.toHaveProperty('status')
+    expect(input.find(item => item.type === 'message')).toMatchObject({ status: 'completed' })
   })
 })

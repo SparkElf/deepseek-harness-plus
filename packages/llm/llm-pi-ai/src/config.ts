@@ -61,6 +61,12 @@ export type {
   PiAiThinkingFormat,
 } from './catalog.ts'
 
+/** OpenAI Responses request adjustments for gateways with narrower input-item support. */
+export interface PiAiResponsesCompatibility {
+  /** Omit the response-only `status` field when replaying top-level reasoning items. */
+  omitReasoningInputStatus?: boolean
+}
+
 /** Configuration for one pi-ai provider route; the `providers` dict key IS the route. */
 export interface PiAiProviderProfile {
   /** Credential reference (environment-variable name) resolved per request through `ctx.credentials`. */
@@ -97,6 +103,8 @@ export interface PiAiProviderProfile {
    * detection.
    */
   compat?: PiAiCompatProfile
+  /** OpenAI Responses input-item adjustments for compatible gateways. */
+  responsesCompatibility?: PiAiResponsesCompatibility
   /**
    * Context capacity for a model this route lists that neither the entry nor
    * the installed catalog sizes (default 262,144). A guess by construction, so
@@ -229,6 +237,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
 /** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
 const modelOverride: z<PiAiModelOverride> = z.object(modelFields)
 
+const responsesCompatibility: z<PiAiResponsesCompatibility> = z.object({
+  omitReasoningInputStatus: z.boolean(),
+})
+
 const profile = z.object({
   apiKeyEnv: z.string().role('credential-ref'),
   displayName: z.string(),
@@ -237,6 +249,7 @@ const profile = z.object({
   models: z.array(modelProfile),
   modelOverrides: z.dict(modelOverride),
   compat: compatProfile,
+  responsesCompatibility,
   defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
   defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
   defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
@@ -314,6 +327,11 @@ export function resolveProfiles(
     }
     if (source.displayName !== undefined && source.displayName.length === 0) {
       throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
+    }
+    if (source.responsesCompatibility?.omitReasoningInputStatus === true && source.api !== 'openai-responses') {
+      throw new Error(
+        `llm-pi-ai: provider "${provider}" responsesCompatibility.omitReasoningInputStatus requires api "openai-responses"`,
+      )
     }
     const streamIdleTimeoutMs = source.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS
     if (!Number.isFinite(streamIdleTimeoutMs)

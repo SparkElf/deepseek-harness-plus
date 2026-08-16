@@ -27,8 +27,8 @@ import styles from './ModelsSection.module.css'
 /**
  * One configured model row. Structurally open, exactly like the DeepSeek
  * catalog editor's rows: a profile field this card does not edit — one a future
- * schema adds, or one hand-written in `settings.yaml` — has to survive being
- * edited here rather than being dropped by a rebuild.
+ * schema adds, or one hand-written in `settings.yaml` outside the curated id,
+ * name, capacity, and image-input fields — has to survive an edit here.
  */
 export type ModelDraft = DeepSeekModelDraft
 
@@ -42,6 +42,11 @@ function textOf(model: ModelDraft, key: string): string {
 function numberOf(model: ModelDraft, key: string): number | undefined {
   const value = model[key]
   return typeof value === 'number' ? value : undefined
+}
+
+/** Whether the model explicitly declares image input. */
+function acceptsImage(model: ModelDraft): boolean {
+  return Array.isArray(model.input) && model.input.includes('image')
 }
 
 /** What an interrogation needs, taken from the live form. */
@@ -164,8 +169,8 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
   const [failure, setFailure] = useState<string | undefined>(undefined)
   const [candidates, setCandidates] = useState<readonly DiscoveredModelView[] | undefined>(undefined)
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set())
-  // Rows carry an id and a name; capacities are the exception, so they stay
-  // folded until asked for rather than crowding every row with four inputs.
+  // Rows keep id and name visible; capacities and input capability stay folded
+  // until asked for rather than crowding every row with secondary controls.
   const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set())
   // Capacities are edited as text, so a field's keystrokes are held here rather
   // than re-derived from the parsed count on every change — that would rewrite
@@ -210,7 +215,7 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
     })
   }
 
-  const patch = (index: number, next: Record<string, string | number | undefined>): void => {
+  const patch = (index: number, next: Record<string, unknown>): void => {
     onChange(models.map((model, at) => {
       if (at !== index) return model
       // Rebuilt rather than spread over: an emptied optional field has to leave
@@ -416,6 +421,19 @@ export function ModelListEditor(props: ModelListEditorProps): ReactNode {
                     disabled={disabled}
                     onChange={(event) => { editCapacity(index, 'maxTokens', event.target.value) }}
                   />
+                </label>
+                <label className={`${styles['settingToggle']} ${styles['modelCapabilityToggle']}`}>
+                  <input
+                    className={styles['settingCheckbox']}
+                    type="checkbox"
+                    checked={acceptsImage(model)}
+                    aria-label={`${t('modelImageInput')} ${index + 1}`}
+                    disabled={disabled}
+                    onChange={(event) => {
+                      patch(index, { input: event.target.checked ? ['text', 'image'] : ['text'] })
+                    }}
+                  />
+                  <span>{t('modelImageInput')}</span>
                 </label>
               </div>
             )

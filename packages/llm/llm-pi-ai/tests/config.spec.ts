@@ -37,6 +37,28 @@ describe('reasoning schema boundary', () => {
   })
 })
 
+describe('OpenAI Responses compatibility schema boundary', () => {
+  it('accepts reasoning-status omission only on an explicit Responses route', () => {
+    const enabled = routeWith({
+      api: 'openai-responses',
+      responsesCompatibility: { omitReasoningInputStatus: true },
+    })() as { providers: Record<string, { responsesCompatibility?: unknown }> }
+    expect(enabled.providers['acme-gateway']?.responsesCompatibility).toEqual({ omitReasoningInputStatus: true })
+    expect(() => { assertServiceable(enabled as Config) }).not.toThrow()
+
+    expect(() => {
+      assertServiceable(routeWith({
+        responsesCompatibility: { omitReasoningInputStatus: true },
+      })() as Config)
+    }).toThrow(/requires api "openai-responses"/)
+    expect(() => {
+      assertServiceable(routeWith({
+        responsesCompatibility: { omitReasoningInputStatus: false },
+      })() as Config)
+    }).not.toThrow()
+  })
+})
+
 describe('modality schema boundary', () => {
   it('rejects a modality pi-ai does not know, at either level', () => {
     expect(configWith({ input: ['audio'] })).toThrow(/expected/)
