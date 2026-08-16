@@ -486,9 +486,14 @@ async function handleWindowControl(command) {
     }
   } catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught) }
 }
-document.querySelector('#minimizeWindow').addEventListener('click', () => { void handleWindowControl('minimize') })
-document.querySelector('#toggleMaximize').addEventListener('click', () => { void handleWindowControl('toggle-maximize') })
-document.querySelector('#closeWindow').addEventListener('click', () => { void handleWindowControl('close') })
+function bindWindowControl(selector, command) {
+  const control = document.querySelector(selector)
+  control.addEventListener('pointerdown', event => { event.stopPropagation(); void handleWindowControl(command) })
+  control.addEventListener('click', event => { if (event.detail === 0) void handleWindowControl(command) })
+}
+bindWindowControl('#minimizeWindow', 'minimize')
+bindWindowControl('#toggleMaximize', 'toggle-maximize')
+bindWindowControl('#closeWindow', 'close')
 document.querySelectorAll('[data-theme]').forEach(button => button.addEventListener('click', () => { theme = button.dataset.theme; applyAppearance() }))
 document.querySelectorAll('[data-target-kind]').forEach(button => button.addEventListener('click', async () => {
   targetKind = button.dataset.targetKind; distributionsLoaded = false; installPath.value = ''; renderTarget(); if (targetKind === 'wsl') await loadDistributions()
