@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, screen, shell, Tray } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
@@ -24,8 +24,6 @@ let supervisorSnapshot
 let candidateAvailable = false
 let installerLocale = 'zh'
 let trayMenu
-let installerMaximized = false
-let installerRestoreBounds
 
 const trayMessages = {
   zh: {
@@ -157,7 +155,8 @@ function openInstaller() {
     minWidth: 760,
     minHeight: 620,
     show: false,
-    frame: false,
+    titleBarStyle: process.platform === 'win32' ? 'hidden' : 'default',
+    titleBarOverlay: process.platform === 'win32' ? { color: '#232324', symbolColor: '#adb2b8', height: 44 } : false,
     resizable: true,
     minimizable: true,
     maximizable: true,
@@ -172,7 +171,7 @@ function openInstaller() {
   })
   installerWindow.loadFile(join(currentDirectory, '..', 'renderer', 'index.html'))
   installerWindow.once('ready-to-show', () => installerWindow?.show())
-  installerWindow.on('closed', () => { installerWindow = undefined; installerMaximized = false; installerRestoreBounds = undefined })
+  installerWindow.on('closed', () => { installerWindow = undefined })
 }
 
 function targetLabel() {
@@ -451,35 +450,12 @@ ipcMain.handle('installer:list-directories', (_event, target, path) => listDirec
 ipcMain.handle('installer:create-directory', (_event, target, path, name) => createDirectoryEntry(target, path, name))
 ipcMain.handle('installer:select-directory', (_event, target, path) => new TargetRuntime(target).pathFromDirectoryPicker(directoryBrowserPath(target, path)))
 ipcMain.handle('installer:list-wsl-distributions', () => listWslDistributions())
-ipcMain.handle('installer:window-control', async (_event, command) => {
-  if (installerWindow === undefined || installerWindow.isDestroyed()) throw new Error('The installer window is unavailable.')
-  if (command === 'minimize') {
-    installerWindow.minimize()
-    return { minimized: true, maximized: installerMaximized }
-  }
-  if (command === 'toggle-maximize') {
-    if (installerMaximized) {
-      installerWindow.unmaximize()
-      if (installerRestoreBounds !== undefined) installerWindow.setBounds(installerRestoreBounds)
-      installerMaximized = false
-      return { maximized: false }
-    }
-    installerRestoreBounds = installerWindow.getBounds()
-    installerWindow.maximize()
-    installerWindow.setBounds(screen.getDisplayMatching(installerWindow.getBounds()).workArea)
-    installerMaximized = true
-    return { maximized: true }
-  }
-  if (command === 'close') {
-    installerWindow.close()
-    return { closing: true, maximized: false }
-  }
-  throw new Error('Unsupported installer window action.')
-})
 ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   installerLocale = appearance.locale
   nativeTheme.themeSource = appearance.theme
-  installerWindow?.setBackgroundColor(appearance.resolvedTheme === 'dark' ? '#232324' : '#ffffff')
+  const dark = appearance.resolvedTheme === 'dark'
+  installerWindow?.setBackgroundColor(dark ? '#232324' : '#ffffff')
+  if (process.platform === 'win32') installerWindow?.setTitleBarOverlay({ color: dark ? '#232324' : '#ffffff', symbolColor: dark ? '#adb2b8' : '#61666b' })
   installerWindow?.setTitle(appearance.title)
 })
 ipcMain.handle('installer:install', (_event, form) => install(form))

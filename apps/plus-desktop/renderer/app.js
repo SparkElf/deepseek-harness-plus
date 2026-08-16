@@ -1,6 +1,5 @@
 const messages = {
   zh: {
-    'window.minimize': '最小化', 'window.maximize': '最大化', 'window.restore': '还原窗口', 'window.close': '关闭',
     'step.appearance': '外观', 'step.location': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'title.appearance': '选择界面外观', 'title.location': '选择安装位置', 'title.model': '选择模型', 'title.review': '确认安装',
     'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口',
@@ -23,7 +22,6 @@ const messages = {
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
-    'window.minimize': 'Minimize', 'window.maximize': 'Maximize', 'window.restore': 'Restore window', 'window.close': 'Close',
     'step.appearance': 'Appearance', 'step.location': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'title.appearance': 'Choose the interface', 'title.location': 'Choose where to install', 'title.model': 'Choose a model', 'title.review': 'Ready to install',
     'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port',
@@ -113,7 +111,6 @@ const wslOptions = document.querySelector('#wslOptions')
 const wslDistribution = document.querySelector('#wslDistribution')
 const nativeTarget = document.querySelector('[data-target-kind="native"]')
 const wslTarget = document.querySelector('[data-target-kind="wsl"]')
-const sendWindowControl = window.plusInstaller?.windowControl
 const selectControls = new Map()
 const iconNamespace = 'http://www.w3.org/2000/svg'
 const chevronPath = 'M11.8486 5.5L11.4238 5.92383L8.69727 8.65137C8.44157 8.90706 8.21562 9.13382 8.01172 9.29785C7.79912 9.46883 7.55595 9.61756 7.25 9.66602C7.08435 9.69222 6.91565 9.69222 6.75 9.66602C6.44405 9.61756 6.20088 9.46883 5.98828 9.29785C5.78438 9.13382 5.55843 8.90706 5.30273 8.65137L2.57617 5.92383L2.15137 5.5L3 4.65137L3.42383 5.07617L6.15137 7.80273C6.42595 8.07732 6.59876 8.24849 6.74023 8.3623C6.87291 8.46904 6.92272 8.47813 6.9375 8.48047C6.97895 8.48703 7.02105 8.48703 7.0625 8.48047C7.07728 8.47813 7.12709 8.46904 7.25977 8.3623C7.40124 8.24849 7.57405 8.07732 7.84863 7.80273L10.5762 5.07617L11 4.65137L11.8486 5.5Z'
@@ -473,27 +470,6 @@ function validate() {
 }
 
 document.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => { locale = button.dataset.locale; applyAppearance() }))
-async function handleWindowControl(command) {
-  if (sendWindowControl === undefined) return
-  try {
-    const result = await sendWindowControl(command)
-    if (command === 'toggle-maximize') {
-      const maximized = Boolean(result?.maximized)
-      const control = document.querySelector('#toggleMaximize')
-      control.dataset.maximized = String(maximized)
-      control.setAttribute('aria-pressed', String(maximized))
-      control.setAttribute('aria-label', text(maximized ? 'window.restore' : 'window.maximize'))
-    }
-  } catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught) }
-}
-function bindWindowControl(selector, command) {
-  const control = document.querySelector(selector)
-  control.addEventListener('pointerdown', event => { event.stopPropagation(); void handleWindowControl(command) })
-  control.addEventListener('click', event => { if (event.detail === 0) void handleWindowControl(command) })
-}
-bindWindowControl('#minimizeWindow', 'minimize')
-bindWindowControl('#toggleMaximize', 'toggle-maximize')
-bindWindowControl('#closeWindow', 'close')
 document.querySelectorAll('[data-theme]').forEach(button => button.addEventListener('click', () => { theme = button.dataset.theme; applyAppearance() }))
 document.querySelectorAll('[data-target-kind]').forEach(button => button.addEventListener('click', async () => {
   targetKind = button.dataset.targetKind; distributionsLoaded = false; installPath.value = ''; renderTarget(); if (targetKind === 'wsl') await loadDistributions()

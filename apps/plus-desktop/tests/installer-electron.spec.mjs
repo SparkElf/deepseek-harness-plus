@@ -36,9 +36,6 @@ test('installer lets an operator choose a directory and complete custom provider
     await page.getByRole('button', { name: '继续' }).click()
     await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
 
-    const closed = page.waitForEvent('close')
-    await page.getByRole('button', { name: '关闭' }).click()
-    await closed
   } finally {
     await application.close()
   }
