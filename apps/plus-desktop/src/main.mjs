@@ -1,5 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray, utilityProcess } from 'electron'
-import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
+import { appendFile, mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -582,17 +582,21 @@ async function openDataFolder() {
 
 /** 使用 Electron utility process 启动 native Supervisor，确保打包 Windows helper 正确加载 unpacked ESM 入口。 */
 function launchNativeSupervisor(scriptPath, args, config, environment) {
+  const recordFailure = detail => {
+    console.error('[plus-desktop] native Supervisor utility process failed', detail)
+    void appendFile(config.supervisorStartupErrorPath, String(detail) + String.fromCharCode(10), { mode: 0o600 }).catch(error => console.error('[plus-desktop] native Supervisor diagnostic write failed', error))
+  }
   const child = utilityProcess.fork(scriptPath, args, {
     cwd: config.installPath,
-    env: { ...process.env, ...environment, ELECTRON_RUN_AS_NODE: '1' },
+    env: { ...process.env, ...environment },
     stdio: 'pipe',
     serviceName: 'DeepSeek Harness Plus Supervisor',
   })
   child.stdout?.on('data', chunk => console.info('[plus-desktop] native Supervisor stdout', chunk.toString('utf8').trim()))
-  child.stderr?.on('data', chunk => console.error('[plus-desktop] native Supervisor stderr', chunk.toString('utf8').trim()))
-  child.once('error', (type, location, report) => console.error('[plus-desktop] native Supervisor utility process failed', { type, location, report }))
+  child.stderr?.on('data', chunk => recordFailure(chunk.toString('utf8').trim()))
+  child.once('error', (type, location, report) => recordFailure(JSON.stringify({ type, location, report })))
   child.once('exit', (code, signal) => {
-    if (code !== 0) console.error('[plus-desktop] native Supervisor utility process exited', { code, signal })
+    if (code !== 0) recordFailure(JSON.stringify({ code, signal }))
   })
   return child
 }
