@@ -6,6 +6,7 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, stat } from 'node:fs/promises'
 import { dirname } from 'node:path'
+import { exportUserBackup, restoreUserBackup, validateUserBackup, type ValidatedUserBackup } from './backup.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
@@ -3340,6 +3341,56 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       update: request => settingsWrite(request, request.payload.ns, 'update', request.payload.patch, request.payload.expectedRevision),
       replace: request => settingsWrite(request, request.payload.ns, 'replace', request.payload.section, request.payload.expectedRevision),
       mutate: request => settingsWrite(request, request.payload.ns, 'mutate', request.payload.ops, request.payload.expectedRevision),
+      backupExport(request) {
+        const settings = ctx.get('settings')
+        if (settings === undefined) return Promise.resolve(err(request, settingsAbsent()))
+        if (settings.documentPath === undefined) {
+          return Promise.resolve(err(request, {
+            code: 'internal',
+            message: 'backup requires a file-backed settings provider',
+            details: {},
+          }))
+        }
+        try {
+          return Promise.resolve(ok(request, exportUserBackup(dirname(settings.documentPath))))
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'internal',
+            message: 'backup export failed: ' + (error instanceof Error ? error.message : String(error)),
+            details: {},
+          }))
+        }
+      },
+      backupImport(request) {
+        const settings = ctx.get('settings')
+        if (settings === undefined) return Promise.resolve(err(request, settingsAbsent()))
+        if (settings.documentPath === undefined) {
+          return Promise.resolve(err(request, {
+            code: 'internal',
+            message: 'backup requires a file-backed settings provider',
+            details: {},
+          }))
+        }
+        let validated: ValidatedUserBackup
+        try {
+          validated = validateUserBackup(request.payload.archiveBase64)
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'internal',
+            message: error instanceof Error ? error.message : String(error),
+            details: {},
+          }))
+        }
+        try {
+          return Promise.resolve(ok(request, restoreUserBackup(validated, dirname(settings.documentPath))))
+        } catch (error: unknown) {
+          return Promise.resolve(err(request, {
+            code: 'internal',
+            message: 'backup restore failed: ' + (error instanceof Error ? error.message : String(error)),
+            details: {},
+          }))
+        }
+      },
     },
 
     credentials: {

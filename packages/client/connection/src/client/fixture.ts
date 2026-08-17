@@ -2925,6 +2925,8 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         message: 'fixture: no settings namespaces are registered',
         details: { ns: request.payload.ns },
       }),
+      backupExport: request => ok(request, { archiveBase64: 'AA==', entries: 1 }),
+      backupImport: request => ok(request, { entries: 1 }),
     },
     credentials: {
       describe: request => ok(request, {
@@ -3123,6 +3125,8 @@ export class FixtureApiClient extends AbstractApiClient {
       case 'settings.update': return this.api.settings.update(request)
       case 'settings.replace': return this.api.settings.replace(request)
       case 'settings.mutate': return this.api.settings.mutate(request)
+      case 'settings.backupExport': return this.api.settings.backupExport(request)
+      case 'settings.backupImport': return this.api.settings.backupImport(request)
       case 'credentials.describe': return this.api.credentials.describe(request)
       case 'credentials.set': return this.api.credentials.set(request)
       case 'credentials.unset': return this.api.credentials.unset(request)

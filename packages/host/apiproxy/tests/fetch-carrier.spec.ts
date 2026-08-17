@@ -259,6 +259,12 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
       async mutate(request) {
         return { rpcId: request.rpcId, result: { ok: false, error: { code: 'settings-rejected', message: 'stub', details: { ns: request.payload.ns } } } }
       },
+      async backupExport(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { archiveBase64: 'AA==', entries: 1 } } }
+      },
+      async backupImport(request) {
+        return { rpcId: request.rpcId, result: { ok: true, value: { entries: 1 } } }
+      },
     },
     credentials: {
       async describe(request) {
