@@ -205,6 +205,8 @@ test('backup window exports and restores the user data archive', async ({}, test
     expect(settingsEntry.getData().toString('utf8')).toContain('agent-default-model')
     const credentialsEntry = archive.getEntries().find(entry => entry.entryName === '.credentials.yaml')
     expect(credentialsEntry.getData().toString('utf8')).toContain('sk-electron-backup-test')
+    expect(entryNames).toContain('storages/workspace.json')
+    expect(entryNames.some(name => name.startsWith('profiles/'))).toBe(false)
 
     const invalidArchivePath = testInfo.outputPath('invalid.zip')
     const invalidArchive = new AdmZip()
