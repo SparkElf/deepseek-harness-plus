@@ -17,8 +17,9 @@ const messages = {
     'summary.language': '语言', 'summary.theme': '主题', 'summary.location': '安装位置', 'summary.distribution': '发行版',
     'summary.folder': '安装目录', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
     'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。',
-    'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。',
-    'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在开始安装…', 'progress.preview': '预览完成。',
+    'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。', 'error.preview': '预览页面不能选择本机目录或执行安装。',
+    'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus',
+    'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在开始安装…',
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
@@ -39,8 +40,9 @@ const messages = {
     'summary.language': 'Language', 'summary.theme': 'Theme', 'summary.location': 'Install location', 'summary.distribution': 'Linux distribution',
     'summary.folder': 'Installation folder', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
     'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.',
-    'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.',
-    'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Starting installation…', 'progress.preview': 'Preview complete.',
+    'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.', 'error.preview': 'The preview cannot choose local folders or install Harness.',
+    'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus',
+    'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Starting installation…',
     'window.title': 'Install DeepSeek Harness Plus',
   },
 }
@@ -63,15 +65,11 @@ const preview = window.plusInstaller === undefined
 let progressListener = () => {}
 const bridge = window.plusInstaller ?? {
   platform: 'win32',
-  listDirectories: async (_target, path) => {
-    const root = 'C:\\Users\\you'
-    const current = path ?? root
-    return { path: current, root, parent: current === root ? null : root, entries: ['DeepSeekHarnessPlus', 'Projects', '.config'].map(name => ({ name, path: current + '\\' + name, hidden: name.startsWith('.') })) }
-  },
-  createDirectory: async (_target, path, name) => path + '\\' + name,
-  selectDirectory: async (_target, path) => path,
-  listWslDistributions: async () => ['Ubuntu-24.04', 'Ubuntu', 'Debian'],
-  install: async () => { progressListener({ message: text('progress.preparing') }); await new Promise(resolve => setTimeout(resolve, 700)); progressListener({ message: text('progress.preview') }) },
+  listDirectories: async () => { throw new Error(text('error.preview')) },
+  createDirectory: async () => { throw new Error(text('error.preview')) },
+  selectDirectory: async () => { throw new Error(text('error.preview')) },
+  listWslDistributions: async () => [],
+  install: async () => { throw new Error(text('error.preview')) },
   applyAppearance: async () => undefined,
   onProgress: listener => { progressListener = listener },
 }
@@ -91,13 +89,16 @@ const customProvider = document.querySelector('#customProvider')
 const installPath = document.querySelector('#installPath')
 const chooseDirectory = document.querySelector('#chooseDirectory')
 const directoryBrowser = document.querySelector('#directoryBrowser')
+const directoryPathBar = document.querySelector('#directoryPathBar')
+const directoryCrumbs = document.querySelector('#directoryCrumbs')
 const directoryPath = document.querySelector('#directoryPath')
-const directoryList = document.querySelector('#directoryList')
+const directoryColumns = document.querySelector('#directoryColumns')
 const directoryBrowserError = document.querySelector('#directoryBrowserError')
-const directoryUp = document.querySelector('#directoryUp')
 const directoryPathEdit = document.querySelector('#directoryPathEdit')
 const directoryNewFolder = document.querySelector('#directoryNewFolder')
 const directoryCreate = document.querySelector('#directoryCreate')
+const directoryCreateIn = document.querySelector('#directoryCreateIn')
+const directoryCreateError = document.querySelector('#directoryCreateError')
 const directoryNewName = document.querySelector('#directoryNewName')
 const directoryCreateConfirm = document.querySelector('#directoryCreateConfirm')
 const directoryCreateCancel = document.querySelector('#directoryCreateCancel')
@@ -293,7 +294,7 @@ function renderTarget() {
   nativeTarget.querySelector('.target-icon').textContent = bridge.platform === 'darwin' ? 'M' : bridge.platform === 'linux' ? 'L' : 'W'
   nativeTarget.querySelector('strong').textContent = nativeTargetName()
   wslOptions.hidden = targetKind !== 'wsl'
-  installPath.placeholder = targetKind === 'wsl' ? '/home/you/deepseek-harness-plus' : 'C:\Users\you\DeepSeekHarnessPlus'
+  installPath.placeholder = text(targetKind === 'wsl' ? 'placeholder.installPathWsl' : 'placeholder.installPathNative')
 }
 function applyAppearance() {
   const actualTheme = resolvedTheme()
@@ -311,7 +312,7 @@ function applyAppearance() {
   document.querySelectorAll('[data-window-action]').forEach(button => button.setAttribute('aria-label', text('window.' + button.dataset.windowAction)))
   document.querySelectorAll('[data-locale]').forEach(button => { const selected = button.dataset.locale === locale; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   document.querySelectorAll('[data-theme]').forEach(button => { const selected = button.dataset.theme === theme; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
-  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); showStep(step)
+  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); syncHiddenDirectoryToggle(); showStep(step)
   void bridge.applyAppearance({ theme, locale, resolvedTheme: actualTheme, title: text('window.title') })
 }
 async function loadDistributions() {
@@ -348,106 +349,282 @@ function renderSummary() {
   if (config.reasoningEffort) rows.push(addSummary(text('summary.reasoning'), text('reasoning.' + config.reasoningEffort)))
   summary.replaceChildren(...rows)
 }
-let directoryListing
-let directorySelectedPath
+let directoryParent
+let directorySelected
+let directoryChild
 let directoryTarget
+let directoryRequest = 0
+let directoryPathEditing = false
 let showHiddenDirectories = false
 let directoryBusy = false
 
-function renderDirectoryList() {
-  directoryList.replaceChildren()
-  const entries = directoryListing?.entries.filter(entry => showHiddenDirectories || !entry.hidden) ?? []
+function directoryFailure(caught) {
+  return caught instanceof Error ? caught.message : String(caught)
+}
+
+function activeDirectoryListing() {
+  return directoryChild ?? directoryParent
+}
+
+function visibleDirectoryEntries(listing) {
+  return listing.entries.filter(entry => showHiddenDirectories || !entry.hidden || entry.path === directorySelected?.path)
+}
+
+function displayDirectoryCrumbs(listing) {
+  const homeIndex = listing.crumbs.findIndex(crumb => crumb.path === listing.home)
+  if (homeIndex === -1) return listing.crumbs
+  return [{ name: text('directory.home'), path: listing.home, hidden: false }, ...listing.crumbs.slice(homeIndex + 1)]
+}
+
+function renderDirectoryBreadcrumbs() {
+  const listing = activeDirectoryListing()
+  directoryCrumbs.replaceChildren()
+  directoryCrumbs.hidden = directoryPathEditing
+  directoryPath.hidden = !directoryPathEditing
+  directoryPathEdit.hidden = directoryPathEditing
+  if (listing === undefined) return
+  if (!directoryPathEditing) directoryPath.value = listing.path
+  displayDirectoryCrumbs(listing).forEach((crumb, index) => {
+    const seat = document.createElement('span')
+    seat.className = 'directory-crumb-seat'
+    if (index > 0) seat.append(createIcon(chevronRightPath, '0 0 14 14', 'directory-crumb-chevron'))
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'directory-crumb'
+    button.textContent = crumb.name
+    button.addEventListener('click', () => { void navigateDirectory(crumb.path) })
+    seat.append(button)
+    directoryCrumbs.append(seat)
+  })
+}
+
+function createDirectoryRow(entry, selected, onPick) {
+  const row = document.createElement('button')
+  row.type = 'button'
+  row.className = 'directory-row'
+  row.setAttribute('role', 'listitem')
+  row.setAttribute('aria-current', selected ? 'true' : 'false')
+  if (selected) row.classList.add('selected')
+  row.append(createIcon(folderPath, '0 0 16 16', selected ? 'directory-folder-selected' : 'directory-folder'))
+  const label = document.createElement('span')
+  label.className = 'directory-row-name'
+  label.textContent = entry.name
+  row.append(label, createIcon(chevronRightPath, '0 0 14 14', 'directory-chevron'))
+  row.addEventListener('click', () => { void onPick(entry) })
+  return row
+}
+
+function renderDirectoryColumn(listing, selectedPath, onPick) {
+  const column = document.createElement('div')
+  column.className = 'directory-column'
+  const entries = visibleDirectoryEntries(listing)
   if (entries.length === 0) {
     const empty = document.createElement('p')
     empty.className = 'directory-empty'
     empty.textContent = text('directory.empty')
-    directoryList.append(empty)
+    column.append(empty)
+    return column
+  }
+  entries.forEach(entry => column.append(createDirectoryRow(entry, entry.path === selectedPath, onPick)))
+  return column
+}
+
+function renderDirectoryColumns() {
+  directoryColumns.replaceChildren()
+  directoryColumns.setAttribute('aria-busy', String(directoryBusy))
+  if (directoryParent === undefined) return
+  directoryColumns.append(renderDirectoryColumn(directoryParent, directorySelected?.path, selectDirectoryEntry))
+  if (directorySelected === undefined) return
+  const divider = document.createElement('span')
+  divider.className = 'directory-divider'
+  directoryColumns.append(divider)
+  if (directoryChild === undefined) {
+    const loading = document.createElement('p')
+    loading.className = 'directory-column-status'
+    loading.textContent = text('progress.distributions')
+    directoryColumns.append(loading)
     return
   }
-  entries.forEach(entry => {
-    const row = document.createElement('button')
-    row.type = 'button'
-    row.className = 'directory-row'
-    row.setAttribute('role', 'listitem')
-    row.classList.toggle('selected', entry.path === directorySelectedPath)
-    row.append(createIcon(folderPath, '0 0 16 16', 'directory-folder'))
-    const label = document.createElement('span')
-    label.textContent = entry.name
-    const chevron = createIcon(chevronRightPath, '0 0 14 14', 'directory-chevron')
-    row.append(label, chevron)
-    row.addEventListener('click', () => { directorySelectedPath = entry.path; renderDirectoryList() })
-    row.addEventListener('dblclick', () => { void loadDirectory(entry.path) })
-    directoryList.append(row)
-  })
+  directoryColumns.append(renderDirectoryColumn(directoryChild, undefined, advanceDirectoryEntry))
+}
+
+function renderDirectoryBrowser() {
+  renderDirectoryBreadcrumbs()
+  renderDirectoryColumns()
 }
 
 function syncHiddenDirectoryToggle() {
+  directoryShowHiddenToggle.replaceChildren(document.createTextNode(text('directory.showHidden')))
   directoryShowHiddenToggle.setAttribute('aria-pressed', String(showHiddenDirectories))
+  if (showHiddenDirectories) directoryShowHiddenToggle.append(createIcon(checkPath, '0 0 16 16', 'directory-hidden-check'))
 }
 
-async function loadDirectory(path) {
+async function navigateDirectory(path) {
+  const request = ++directoryRequest
   directoryBusy = true
-  directoryList.setAttribute('aria-busy', 'true')
   directoryBrowserError.hidden = true
+  renderDirectoryColumns()
   try {
-    directoryListing = await bridge.listDirectories(directoryTarget, path)
-    directorySelectedPath = undefined
-    directoryPath.value = directoryListing.path
-    directoryUp.disabled = directoryListing.parent === null
-    renderDirectoryList()
+    const listing = await bridge.listDirectories(directoryTarget, path)
+    if (request !== directoryRequest) return false
+    if (listing.parent !== null) {
+      const parent = await bridge.listDirectories(directoryTarget, listing.parent)
+      if (request !== directoryRequest) return false
+      const selected = parent.entries.find(entry => entry.path.toLowerCase() === listing.path.toLowerCase())
+      if (selected !== undefined) {
+        directoryParent = parent
+        directorySelected = selected
+        directoryChild = listing
+      } else {
+        directoryParent = listing
+        directorySelected = undefined
+        directoryChild = undefined
+      }
+    } else {
+      directoryParent = listing
+      directorySelected = undefined
+      directoryChild = undefined
+    }
+    directoryPathEditing = false
+    renderDirectoryBrowser()
+    return true
   } catch (caught) {
-    directoryBrowserError.textContent = caught instanceof Error ? caught.message : String(caught)
-    directoryBrowserError.hidden = false
+    if (request === directoryRequest) {
+      directoryBrowserError.textContent = directoryFailure(caught)
+      directoryBrowserError.hidden = false
+    }
+    return false
   } finally {
-    directoryBusy = false
-    directoryList.setAttribute('aria-busy', 'false')
+    if (request === directoryRequest) {
+      directoryBusy = false
+      renderDirectoryColumns()
+    }
   }
+}
+
+async function selectDirectoryEntry(entry) {
+  if (directoryParent === undefined || directoryBusy) return
+  const request = ++directoryRequest
+  directorySelected = entry
+  directoryChild = undefined
+  directoryBusy = true
+  directoryBrowserError.hidden = true
+  renderDirectoryBrowser()
+  try {
+    const child = await bridge.listDirectories(directoryTarget, entry.path)
+    if (request !== directoryRequest) return
+    directoryChild = child
+    renderDirectoryBrowser()
+  } catch (caught) {
+    if (request === directoryRequest) {
+      directorySelected = undefined
+      directoryBrowserError.textContent = directoryFailure(caught)
+      directoryBrowserError.hidden = false
+      renderDirectoryBrowser()
+    }
+  } finally {
+    if (request === directoryRequest) {
+      directoryBusy = false
+      renderDirectoryColumns()
+    }
+  }
+}
+
+async function advanceDirectoryEntry(entry) {
+  if (directoryChild === undefined) return
+  directoryParent = directoryChild
+  directorySelected = undefined
+  directoryChild = undefined
+  await selectDirectoryEntry(entry)
 }
 
 function closeDirectoryBrowser() {
   directoryBrowser.hidden = true
   directoryCreate.hidden = true
   directoryNewName.value = ''
-  directoryListing = undefined
-  directorySelectedPath = undefined
+  directoryParent = undefined
+  directorySelected = undefined
+  directoryChild = undefined
   directoryTarget = undefined
+  directoryPathEditing = false
   directoryBrowserError.hidden = true
+  directoryCreateError.hidden = true
 }
 
 async function openDirectoryBrowser() {
+  if (preview) {
+    error.textContent = text('error.preview')
+    return
+  }
   directoryTarget = target()
   showHiddenDirectories = false
+  directoryPathEditing = false
   syncHiddenDirectoryToggle()
   directoryBrowser.hidden = false
-  directoryPath.value = ''
-  await loadDirectory()
+  await navigateDirectory()
 }
 
 async function confirmDirectoryBrowser() {
-  if (directoryBusy || directoryListing === undefined) return
+  if (directoryBusy || directoryParent === undefined) return
   try {
-    const selected = directorySelectedPath ?? directoryListing.path
+    const selected = directorySelected?.path ?? directoryParent.path
     installPath.value = await bridge.selectDirectory(directoryTarget, selected)
     closeDirectoryBrowser()
   } catch (caught) {
-    directoryBrowserError.textContent = caught instanceof Error ? caught.message : String(caught)
+    directoryBrowserError.textContent = directoryFailure(caught)
     directoryBrowserError.hidden = false
   }
 }
 
+function beginDirectoryPathEdit() {
+  const listing = activeDirectoryListing()
+  if (listing === undefined) return
+  directoryPathEditing = true
+  const separator = listing.home.includes('\\') ? '\\' : '/'
+  directoryPath.value = listing.path.endsWith(separator) ? listing.path : listing.path + separator
+  renderDirectoryBreadcrumbs()
+  directoryPath.focus()
+  directoryPath.select()
+}
+
+async function submitDirectoryPath() {
+  if (!directoryPath.value.trim()) return
+  const landed = await navigateDirectory(directoryPath.value)
+  if (!landed) {
+    directoryPathEditing = true
+    renderDirectoryBreadcrumbs()
+    directoryPath.focus()
+  }
+}
+
+function openDirectoryCreate() {
+  const listing = activeDirectoryListing()
+  if (listing === undefined) return
+  const name = directorySelected?.name ?? displayDirectoryCrumbs(listing).at(-1)?.name ?? listing.path
+  directoryCreateIn.textContent = name
+  directoryCreateError.hidden = true
+  directoryCreate.hidden = false
+  directoryNewName.value = ''
+  directoryNewName.focus()
+}
+
 async function createDirectoryFromBrowser() {
-  if (directoryBusy || directoryListing === undefined || !directoryNewName.value.trim()) return
+  const parent = directorySelected?.path ?? directoryParent?.path
+  if (directoryBusy || parent === undefined || !directoryNewName.value.trim()) return
+  directoryBusy = true
+  directoryCreateError.hidden = true
   try {
-    const parent = directoryListing.path
-    const created = await bridge.createDirectory(directoryTarget, parent, directoryNewName.value)
+    const name = directoryNewName.value
+    const created = await bridge.createDirectory(directoryTarget, parent, name)
     directoryCreate.hidden = true
-    directoryNewName.value = ''
-    await loadDirectory(parent)
-    directorySelectedPath = created
-    renderDirectoryList()
+    await navigateDirectory(parent)
+    if (directoryParent?.path === parent) await selectDirectoryEntry({ name, path: created, hidden: false })
   } catch (caught) {
-    directoryBrowserError.textContent = caught instanceof Error ? caught.message : String(caught)
-    directoryBrowserError.hidden = false
+    directoryCreateError.textContent = directoryFailure(caught)
+    directoryCreateError.hidden = false
+  } finally {
+    directoryBusy = false
+    renderDirectoryColumns()
   }
 }
 
@@ -476,19 +653,20 @@ document.querySelectorAll('[data-target-kind]').forEach(button => button.addEven
 }))
 provider.addEventListener('change', () => { document.querySelector('#model').value = providerDefaults[provider.value]; renderProvider() })
 stepButtons.forEach(button => button.addEventListener('click', () => { const targetStep = Number(button.dataset.stepTarget); if (targetStep <= step) showStep(targetStep) }))
-directoryUp.append(createIcon(chevronLeftPath, '0 0 14 14', 'directory-up-icon'))
 directoryPathEdit.append(createIcon(editPath, '0 0 16 16', 'directory-edit-icon'))
 directoryNewFolder.prepend(createIcon(plusPath, '0 0 16 16', 'directory-new-icon'))
 
 chooseDirectory.addEventListener('click', () => { void openDirectoryBrowser() })
 directoryCancel.addEventListener('click', closeDirectoryBrowser)
-directoryBrowser.addEventListener('pointerdown', event => { if (event.target === directoryBrowser) closeDirectoryBrowser() })
-directoryUp.addEventListener('click', () => { if (directoryListing?.parent) void loadDirectory(directoryListing.parent) })
-directoryPathEdit.addEventListener('click', () => directoryPath.focus())
-directoryPath.addEventListener('keydown', event => { if (event.key === 'Enter' && directoryPath.value.trim()) { event.preventDefault(); void loadDirectory(directoryPath.value.trim()) } })
-directoryShowHiddenToggle.addEventListener('click', () => { showHiddenDirectories = !showHiddenDirectories; syncHiddenDirectoryToggle(); renderDirectoryList() })
-directoryNewFolder.addEventListener('click', () => { directoryCreate.hidden = false; directoryNewName.focus() })
-directoryCreateCancel.addEventListener('click', () => { directoryCreate.hidden = true; directoryNewName.value = '' })
+directoryBrowser.addEventListener('pointerdown', event => { if (event.target === directoryBrowser && directoryCreate.hidden) closeDirectoryBrowser() })
+directoryPathEdit.addEventListener('click', beginDirectoryPathEdit)
+directoryPath.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { directoryPathEditing = false; renderDirectoryBreadcrumbs(); return }
+  if (event.key === 'Enter' && directoryPath.value.trim()) { event.preventDefault(); void submitDirectoryPath() }
+})
+directoryShowHiddenToggle.addEventListener('click', () => { showHiddenDirectories = !showHiddenDirectories; syncHiddenDirectoryToggle(); renderDirectoryBrowser() })
+directoryNewFolder.addEventListener('click', openDirectoryCreate)
+directoryCreateCancel.addEventListener('click', () => { directoryCreate.hidden = true; directoryNewName.value = ''; directoryCreateError.hidden = true })
 directoryCreateConfirm.addEventListener('click', () => { void createDirectoryFromBrowser() })
 directoryNewName.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); void createDirectoryFromBrowser() } })
 directoryOpen.addEventListener('click', () => { void confirmDirectoryBrowser() })
@@ -498,6 +676,7 @@ document.querySelector('#refreshDistributions').addEventListener('click', loadDi
 back.addEventListener('click', () => showStep(step - 1))
 next.addEventListener('click', async () => {
   const message = validate(); if (message) { error.textContent = message; return }
+  if (preview && step === 3) { error.textContent = text('error.preview'); return }
   if (step < 3) { showStep(step + 1); return }
   next.disabled = true; back.disabled = true; progress.hidden = false; progressText.textContent = text('progress.preparing')
   try { await bridge.install(values()); if (preview) { next.disabled = false; back.disabled = false } }
@@ -505,6 +684,6 @@ next.addEventListener('click', async () => {
 })
 bridge.onProgress(({ message }) => { progress.hidden = false; progressText.textContent = message })
 systemDark.addEventListener('change', () => { if (theme === 'system') applyAppearance() })
-if (preview) { document.querySelector('#apiKey').value = 'sk-preview'; installPath.value = targetKind === 'wsl' ? '/home/you/deepseek-harness-plus' : 'C:\Users\you\DeepSeekHarnessPlus' }
+if (preview) document.querySelector('#apiKey').value = 'sk-preview'
 applyAppearance()
 if (targetKind === 'wsl') void loadDistributions()

@@ -63,7 +63,7 @@
             </div>
             <label class="field-label" for="installPath" data-i18n="label.installPath">安装目录</label>
             <div class="input-action">
-              <input id="installPath" required placeholder="C:\Users\you\DeepSeekHarnessPlus" autocomplete="off">
+              <input id="installPath" required autocomplete="off">
               <button class="secondary" type="button" id="chooseDirectory" data-i18n="action.choose">选择文件夹</button>
             </div>
             <details class="advanced-options">
@@ -107,25 +107,32 @@
         <section class="directory-browser-card">
           <header class="directory-browser-header">
             <h2 id="directoryBrowserTitle" data-i18n="directory.title">选择安装目录</h2>
-            <div class="directory-path-row">
-              <button id="directoryUp" class="directory-icon-button" type="button" data-i18n-title="directory.up" aria-label="返回上级"></button>
-              <input id="directoryPath" autocomplete="off" aria-label="安装目录路径">
-              <button id="directoryPathEdit" class="directory-icon-button" type="button" data-i18n-title="directory.edit" aria-label="编辑路径"></button>
+            <div id="directoryPathBar" class="directory-path-bar">
+              <nav id="directoryCrumbs" class="directory-crumbs" aria-label="目录路径"></nav>
+              <input id="directoryPath" class="directory-path-input" autocomplete="off" aria-label="编辑目录路径" hidden>
+              <button id="directoryPathEdit" class="directory-path-edit" type="button" data-i18n-title="directory.edit" aria-label="编辑路径"></button>
             </div>
           </header>
-          <p id="directoryBrowserError" class="directory-browser-error" role="alert" hidden></p>
-          <div id="directoryList" class="directory-list" role="list"></div>
-          <div id="directoryCreate" class="directory-create" hidden>
-            <input id="directoryNewName" autocomplete="off" data-i18n-placeholder="directory.newFolderPlaceholder" placeholder="文件夹名称">
-            <button id="directoryCreateConfirm" class="secondary" type="button" data-i18n="directory.create">创建</button>
-            <button id="directoryCreateCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
-          </div>
+          <section class="directory-browser-content">
+            <div id="directoryColumns" class="directory-columns" role="list"></div>
+            <p id="directoryBrowserError" class="directory-browser-error" role="alert" hidden></p>
+          </section>
           <footer class="directory-browser-footer">
             <button id="directoryNewFolder" class="directory-new-folder" type="button" data-i18n="directory.newFolder">新建文件夹</button>
             <button id="directoryShowHidden" class="directory-hidden-toggle" type="button" aria-pressed="false" data-i18n="directory.showHidden">显示隐藏文件</button>
-            <span></span>
-            <button id="directoryCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
-            <button id="directoryOpen" class="primary" type="button" data-i18n="directory.open">打开</button>
+            <span class="directory-footer-gap"></span>
+            <button id="directoryCancel" class="directory-footer-action secondary" type="button" data-i18n="action.cancel">取消</button>
+            <button id="directoryOpen" class="directory-footer-action primary" type="button" data-i18n="directory.open">打开</button>
+          </footer>
+        </section>
+        <section id="directoryCreate" class="directory-create-dialog" role="dialog" aria-modal="true" aria-labelledby="directoryCreateTitle" hidden>
+          <h3 id="directoryCreateTitle" data-i18n="directory.newFolder">新建文件夹</h3>
+          <p id="directoryCreateIn" class="directory-create-in"></p>
+          <input id="directoryNewName" autocomplete="off" data-i18n-placeholder="directory.newFolderPlaceholder" placeholder="文件夹名称">
+          <p id="directoryCreateError" class="directory-create-error" role="alert" hidden></p>
+          <footer>
+            <button id="directoryCreateCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
+            <button id="directoryCreateConfirm" class="primary" type="button" data-i18n="directory.create">创建</button>
           </footer>
         </section>
       </div>

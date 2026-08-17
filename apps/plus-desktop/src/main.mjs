@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, isAbsolute, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { request } from 'node:http'
 import { parse as parseYaml } from 'yaml'
@@ -427,14 +427,25 @@ function directoryBrowserPath(target, requested) {
   return path
 }
 
+function directoryCrumbs(path) {
+  const crumbs = []
+  let current = path
+  for (;;) {
+    const parent = dirname(current)
+    crumbs.unshift({ name: parent === current ? current : basename(current), path: current, hidden: false })
+    if (parent === current) return crumbs
+    current = parent
+  }
+}
+
 async function listDirectoryEntries(target, requested) {
-  const root = directoryBrowserRoot(target)
+  const home = directoryBrowserRoot(target)
   const path = directoryBrowserPath(target, requested)
   const entries = (await readdir(path, { withFileTypes: true }))
     .filter(entry => entry.isDirectory())
     .map(entry => ({ name: entry.name, path: join(path, entry.name), hidden: entry.name.startsWith('.') }))
     .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
-  return { path, root, parent: path.toLowerCase() === root.toLowerCase() ? null : dirname(path), entries }
+  return { path, home, crumbs: directoryCrumbs(path), parent: path.toLowerCase() === home.toLowerCase() ? null : dirname(path), entries }
 }
 
 async function createDirectoryEntry(target, parent, name) {

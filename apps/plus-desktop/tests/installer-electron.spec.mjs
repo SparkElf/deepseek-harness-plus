@@ -16,7 +16,11 @@ test('installer lets an operator choose a directory and complete custom provider
 
     const browser = page.getByRole('dialog', { name: '选择安装目录' })
     await expect(browser).toBeVisible()
+    await expect(browser.locator('.directory-column')).toHaveCount(1)
+    await expect(browser.locator('#directoryPath')).not.toHaveValue('C:\\Users\\you')
     await browser.locator('.directory-row').first().click()
+    await expect(browser.locator('.directory-column')).toHaveCount(2)
+    await expect(browser.locator('.directory-row[aria-current="true"]')).toHaveCount(1)
     await browser.getByRole('button', { name: '打开' }).click()
     await expect(page.locator('#installPath')).not.toHaveValue('')
 
