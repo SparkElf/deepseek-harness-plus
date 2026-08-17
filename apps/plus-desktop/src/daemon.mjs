@@ -13,9 +13,10 @@ function isConnectionError(error) {
 
 /** Electron tray client for the detached local runtime Supervisor. */
 export class HarnessDaemon {
-  constructor(onStatus, supervisorPath) {
+  constructor(onStatus, supervisorPath, nativeSupervisorLauncher) {
     this.onStatus = onStatus
     this.supervisorPath = supervisorPath
+    this.nativeSupervisorLauncher = nativeSupervisorLauncher
     this.config = undefined
     this.targetRuntime = undefined
     this.running = false
@@ -43,7 +44,8 @@ export class HarnessDaemon {
     if (this.supervisorStarting !== undefined) return this.supervisorStarting
     this.supervisorStarting = (async () => {
       await this.targetRuntime.writeText(this.config.supervisorManifestPath, JSON.stringify(this.config, null, 2) + String.fromCharCode(10))
-      await this.targetRuntime.startSupervisor(this.config, this.supervisorPath)
+      await this.targetRuntime.writeText(this.config.supervisorStartupErrorPath, '')
+      await this.targetRuntime.startSupervisor(this.config, this.supervisorPath, this.nativeSupervisorLauncher)
       const deadline = Date.now() + CONNECT_TIMEOUT_MS
       let lastError
       while (Date.now() < deadline) {
@@ -55,7 +57,13 @@ export class HarnessDaemon {
           await new Promise(resolve => setTimeout(resolve, 250))
         }
       }
-      throw new Error('runtime supervisor did not start: ' + errorMessage(lastError))
+      const startupDetail = await this.targetRuntime.readText(this.config.supervisorStartupErrorPath)
+      const cause = startupDetail.trim() || errorMessage(lastError)
+      console.error('[plus-desktop] runtime Supervisor startup failed', cause)
+      const message = this.config.locale === 'zh'
+        ? `runtime supervisor 未能在端口 ${String(this.config.supervisorPort)} 启动：${cause}`
+        : `runtime supervisor did not start on port ${String(this.config.supervisorPort)}: ${cause}`
+      throw new Error(message)
     })()
     try { await this.supervisorStarting } finally { this.supervisorStarting = undefined }
   }

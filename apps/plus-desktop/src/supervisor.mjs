@@ -5,9 +5,11 @@ import { closeSync, openSync, writeSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { writeSupervisorManifest } from './supervisor-manifest.mjs'
 import { startProgressServer } from './supervisor-progress-server.mjs'
+import { decodeProcessOutput } from './process-output-encoding.mjs'
 
-const START_TIMEOUT_MS = 30_000
+const START_TIMEOUT_MS = 120_000
 const STOP_TIMEOUT_MS = 10_000
+const PORT_WAIT_HEARTBEAT_MS = 5_000
 const BUILD_TIMEOUT_MS = 15 * 60_000
 const PORT_PROBE_TIMEOUT_MS = 1_000
 const SOCKET_MODE = 0o600
@@ -36,7 +38,29 @@ class SubprocessFailure extends Error {
     const outcome = signal === null ? 'exit code ' + String(code) : 'signal ' + signal
     super(output || command + ' failed with ' + outcome)
     this.name = 'SubprocessFailure'
+    this.exitCode = code
     this.summary = command + ' failed with ' + outcome
+  }
+}
+
+/**
+ * Windows 上终止指定 PID 的进程树。taskkill 在进程已不存在时返回 128，
+ * 对"进程已停止"这一目标而言是成功，不应中断停止流程。
+ * @param {string} cwd 工作目录。
+ * @param {Record<string, string | undefined>} env 环境变量。
+ * @param {number} pid 待终止的进程。
+ * @param {number} timeoutMs 超时毫秒数。
+ * @param {boolean} [force=false] 是否强制终止。
+ * @returns {Promise<void>} 完成即表示进程树已停止或本就不存在。
+ */
+async function taskkillTree(cwd, env, pid, timeoutMs, force = false) {
+  const args = ['/PID', String(pid), '/T']
+  if (force) args.push('/F')
+  try {
+    await run('taskkill', args, cwd, env, timeoutMs)
+  } catch (error) {
+    if (error instanceof SubprocessFailure && error.exitCode === 128) return
+    throw error
   }
 }
 
@@ -53,13 +77,12 @@ function waitForExit(child, timeoutMs) {
 
 function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = false) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, env, detached, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(command, args, { cwd, env, detached, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
     onSpawn?.(child)
-    let output = ''
+    const outputChunks = []
     const capture = (chunk) => {
-      const text = chunk.toString()
-      output = (output + text).slice(-16_384)
-      onOutput?.(text.trim())
+      outputChunks.push(chunk)
+      onOutput?.(decodeProcessOutput(chunk).trim())
     }
     child.stdout.on('data', capture)
     child.stderr.on('data', capture)
@@ -73,11 +96,31 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
     child.once('error', (error) => { clearTimeout(timer); reject(error) })
     child.once('exit', (code, signal) => {
       clearTimeout(timer)
+      const output = decodeProcessOutput(Buffer.concat(outputChunks)).slice(-16_384)
       if (timeoutError !== undefined) reject(timeoutError)
       else if (code === 0) resolve(output)
       else reject(new SubprocessFailure(command, code, signal, output))
     })
   })
+}
+
+/**
+ * 直接用 PATH 上的 node 执行 Harness CLI 源码入口，绕过 pnpm script 执行。
+ * Windows 上 pnpm 经 cmd.exe 运行 script 会创建一直留存的 console 窗口；
+ * Electron 自带的 Node 无法解析 pnpm 符号链接工作区包，因此不使用 process.execPath。
+ * @param {string[]} entryArguments CLI 入口相对路径和参数。
+ * @returns {string[]} Node 参数序列。
+ */
+function sourceLaunchArgs(entryArguments) {
+  return ['--import', 'tsx/esm', ...entryArguments]
+}
+
+function pnpmCommand(environment, args) {
+  if (environment.DSH_PNPM_CLI) {
+    return { command: process.execPath, args: [environment.DSH_PNPM_CLI, ...args], environment: { ...environment, ELECTRON_RUN_AS_NODE: '1' } }
+  }
+  if (environment.DSH_PNPM_COMMAND === 'corepack') return { command: 'corepack', args: ['pnpm', ...args], environment }
+  return { command: 'pnpm', args, environment }
 }
 
 async function gitValue(cwd, args) {
@@ -89,7 +132,7 @@ async function sourceStatus(cwd) {
   const [branch, revision, dirty] = await Promise.all([
     gitValue(cwd, ['branch', '--show-current']),
     gitValue(cwd, ['rev-parse', '--short', 'HEAD']),
-    gitValue(cwd, ['status', '--porcelain']),
+    gitValue(cwd, ['status', '--porcelain', '--untracked-files=no']),
   ])
   return { branch, revision, dirty: dirty !== undefined && dirty.length > 0 }
 }
@@ -116,8 +159,8 @@ class RuntimeSupervisor {
 
   async load() {
     this.manifest = JSON.parse(await readFile(this.manifestPath, 'utf8'))
-    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port || !this.manifest.progressPort) {
-      throw new Error('supervisor manifest needs installPath, dshHome, port, and progressPort')
+    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port || !this.manifest.supervisorPort) {
+      throw new Error('supervisor manifest needs installPath, dshHome, port, and supervisorPort')
     }
     this.recordedWebPid = this.manifest.webPid
     await this.openLog()
@@ -263,7 +306,7 @@ class RuntimeSupervisor {
       try { process.kill(-knownPid, 'SIGTERM') }
       catch (error) { if (error?.code !== 'ESRCH') throw error }
     } else for (const pid of targetPids) {
-      if (process.platform === 'win32') await run('taskkill', ['/PID', String(pid), '/T'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+      if (process.platform === 'win32') await taskkillTree(this.manifest.installPath, this.environment(), pid, STOP_TIMEOUT_MS)
       else {
         try { process.kill(pid, 'SIGTERM') }
         catch (error) { if (error?.code !== 'ESRCH') throw error }
@@ -277,7 +320,7 @@ class RuntimeSupervisor {
         try { process.kill(-knownPid, 'SIGKILL') }
         catch (error) { if (error?.code !== 'ESRCH') throw error }
       } else for (const pid of targetPids) {
-        if (process.platform === 'win32') await run('taskkill', ['/PID', String(pid), '/T', '/F'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+        if (process.platform === 'win32') await taskkillTree(this.manifest.installPath, this.environment(), pid, STOP_TIMEOUT_MS, true)
         else {
           try { process.kill(pid, 'SIGKILL') }
           catch (error) { if (error?.code !== 'ESRCH') throw error }
@@ -298,11 +341,12 @@ class RuntimeSupervisor {
     this.announce('start.launchingWeb')
     const log = await this.openLog()
     this.recordedWebPid = undefined
-    const child = spawn('pnpm', ['dsh', 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)], {
+    const child = spawn('node', sourceLaunchArgs([join('apps', 'cli', 'src', 'bin.ts'), 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)]), {
       cwd: this.manifest.installPath,
       env: this.environment(),
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
+      windowsHide: true,
     })
     this.web = child
     child.once('exit', () => {
@@ -318,10 +362,15 @@ class RuntimeSupervisor {
 
   async waitForPort(child) {
     const started = Date.now()
+    let nextHeartbeat = started + PORT_WAIT_HEARTBEAT_MS
     while (Date.now() - started < START_TIMEOUT_MS) {
       if (child.exitCode !== null || child.signalCode !== null) throw new Error('Harness web exited before listening')
       if (await this.portOpen()) return
       await new Promise(resolve => setTimeout(resolve, 200))
+      if (Date.now() >= nextHeartbeat) {
+        nextHeartbeat = Date.now() + PORT_WAIT_HEARTBEAT_MS
+        this.announce('start.waitingForPort', { elapsedSeconds: Math.round((Date.now() - started) / 1000) })
+      }
     }
     await this.stopProcess(child)
     throw new Error('Harness web did not listen within ' + String(START_TIMEOUT_MS) + 'ms')
@@ -331,11 +380,12 @@ class RuntimeSupervisor {
     if (this.watcher !== undefined) return
     this.announce('watcher.starting')
     const log = await this.openLog()
-    const watcher = spawn('pnpm', ['run', 'dev:web'], {
+    const watcher = spawn('node', sourceLaunchArgs([join('scripts', 'dev-web.ts'), '--poll']), {
       cwd: this.manifest.installPath,
       env: this.environment(),
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
+      windowsHide: true,
     })
     this.watcher = watcher
     watcher.once('exit', () => {
@@ -345,11 +395,11 @@ class RuntimeSupervisor {
     })
   }
 
-  /** 停止受管 process tree；Windows 必须终止 pnpm launcher 的全部 descendants。 */
+  /** 停止受管 process tree；Windows 必须终止 launcher 的全部 descendants。 */
   async stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return
     if (process.platform === 'win32' && child.pid !== undefined) {
-      await run('taskkill', ['/PID', String(child.pid), '/T'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+      await taskkillTree(this.manifest.installPath, this.environment(), child.pid, STOP_TIMEOUT_MS)
     } else if (child.pid !== undefined) {
       try { process.kill(-child.pid, 'SIGTERM') }
       catch (error) { console.info('[supervisor] process group termination fell back to child signal', error); child.kill('SIGTERM') }
@@ -358,7 +408,7 @@ class RuntimeSupervisor {
     catch (error) {
       console.info('[supervisor] graceful process tree stop timed out', error)
       if (process.platform === 'win32' && child.pid !== undefined) {
-        await run('taskkill', ['/PID', String(child.pid), '/T', '/F'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+        await taskkillTree(this.manifest.installPath, this.environment(), child.pid, STOP_TIMEOUT_MS, true)
       } else if (child.pid !== undefined) {
         try { process.kill(-child.pid, 'SIGKILL') }
         catch (killError) { console.info('[supervisor] process group kill fell back to child kill', killError); child.kill('SIGKILL') }
@@ -385,7 +435,8 @@ class RuntimeSupervisor {
     let lastLine = ''
     this.announce('build.starting')
     try {
-      await run('pnpm', ['run', 'build'], this.manifest.installPath, this.buildEnvironment(), BUILD_TIMEOUT_MS, text => {
+      const pnpm = pnpmCommand(this.buildEnvironment(), ['run', 'build'])
+      await run(pnpm.command, pnpm.args, this.manifest.installPath, pnpm.environment, BUILD_TIMEOUT_MS, text => {
         writeSync(log, text + String.fromCharCode(10))
         const line = text.split(String.fromCharCode(10)).map(value => value.trim()).filter(Boolean).at(-1)
         if (line && line !== lastLine) {
@@ -422,7 +473,7 @@ class RuntimeSupervisor {
       sourcePath: this.manifest.installPath,
       dshHome: this.manifest.dshHome,
       port: this.manifest.port,
-      progressPort: this.manifest.progressPort,
+      supervisorPort: this.manifest.supervisorPort,
       mode: this.manifest.mode ?? 'code',
       webPid: this.web?.pid ?? this.recordedWebPid,
       watcherPid: this.watcher?.pid,
@@ -472,11 +523,17 @@ class RuntimeSupervisor {
         }
       })
     })
-    this.server.listen(this.socketPath)
+    await new Promise((resolve, reject) => {
+      const listening = () => { this.server.off('error', failed); resolve() }
+      const failed = error => { this.server.off('listening', listening); reject(error) }
+      this.server.once('listening', listening)
+      this.server.once('error', failed)
+      this.server.listen(this.socketPath)
+    })
     if (process.platform !== 'win32') await chmod(this.socketPath, SOCKET_MODE)
     this.writeStatus()
     this.progressServer = await startProgressServer({
-      port: this.manifest.progressPort,
+      port: this.manifest.supervisorPort,
       manifestPath: this.manifestPath,
       socketPath: this.controlSocketPath,
       logPath: join(this.manifest.dshHome, 'supervisor', 'runtime.log'),

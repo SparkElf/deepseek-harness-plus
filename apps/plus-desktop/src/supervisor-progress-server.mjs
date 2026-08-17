@@ -71,10 +71,27 @@ function requestBody(request) {
  * @param {{ port: number, manifestPath: string, socketPath: string, logPath?: string }} options 监听端口和 Supervisor runtime 路径。
  * @returns {Promise<{ close: () => Promise<void> }>} 可等待关闭的页面服务。
  */
+/**
+ * Windows 原位写入 manifest 不是原子操作，文件系统 watcher 可能在写入中途读到截断内容。
+ * 解析失败时短暂重试，连续失败才向上抛出。
+ * @param {string} manifestPath Supervisor manifest 路径。
+ * @returns {Promise<object>} 解析后的 manifest。
+ */
+async function readManifest(manifestPath) {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return JSON.parse(await readFile(manifestPath, 'utf8'))
+    } catch (error) {
+      if (attempt >= 4) throw error
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+  }
+}
+
 export async function startProgressServer({ port, manifestPath, socketPath, logPath }) {
   const directory = dirname(fileURLToPath(import.meta.url))
   const pageDirectory = join(directory, '..', 'progress')
-  const initialManifest = JSON.parse(await readFile(manifestPath, 'utf8'))
+  const initialManifest = await readManifest(manifestPath)
   const resolvedLogPath = logPath ?? join(initialManifest.dshHome, 'supervisor', 'runtime.log')
   const clients = new Set()
   let activeCommand
@@ -109,11 +126,10 @@ export async function startProgressServer({ port, manifestPath, socketPath, logP
   }
 
   async function readSnapshot() {
-    const [manifestText, logText] = await Promise.all([
-      readFile(manifestPath, 'utf8'),
+    const [runtime, logText] = await Promise.all([
+      readManifest(manifestPath),
       readLogTail(),
     ])
-    const runtime = JSON.parse(manifestText)
     const lines = logText.split(String.fromCharCode(10)).filter(Boolean)
     const phases = lines.filter(line => line.startsWith('[phase] ')).map(parsePhaseLine)
     return {

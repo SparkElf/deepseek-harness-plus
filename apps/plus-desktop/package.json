@@ -12,14 +12,17 @@
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
-    "dev": "electron .",
+    "dev": "pnpm run prepare:source-ref && electron .",
     "preview:installer": "node scripts/preview-installer.mjs",
     "supervisor:command": "node src/supervisor-client.mjs",
-    "package:dir": "electron-builder --dir",
-    "package:linux": "electron-builder --linux",
-    "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win",
-    "package": "electron-builder"
+    "prepare:source-ref": "node scripts/write-release-source-ref.mjs",
+    "package:dir": "pnpm run prepare:source-ref && electron-builder --dir",
+    "package:linux": "pnpm run prepare:source-ref && electron-builder --linux",
+    "package:mac": "pnpm run prepare:source-ref && electron-builder --mac",
+    "package:win": "pnpm run prepare:source-ref && electron-builder --win",
+    "test:electron": "pnpm run prepare:source-ref && playwright test --config=playwright.config.mjs",
+    "verify:unpacked-imports": "node scripts/verify-unpacked-imports.mjs",
+    "package": "pnpm run prepare:source-ref && electron-builder"
   },
   "build": {
     "appId": "io.sparkelf.deepseek-harness-plus",
@@ -32,6 +35,10 @@
       "progress/**/*",
       "build/icon.png",
       "package.json"
+    ],
+    "asarUnpack": [
+      "src/**/*.mjs",
+      "node_modules/yaml/**"
     ],
     "linux": {
       "target": [
@@ -57,9 +64,12 @@
   },
   "devDependencies": {
     "electron": "^39.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "playwright": "^1.49.0"
   },
   "dependencies": {
+    "adm-zip": "^0.6.0",
+    "pnpm": "11.7.0",
     "yaml": "^2.9.0"
   }
 }

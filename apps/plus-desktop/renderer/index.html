@@ -10,30 +10,27 @@
   <body>
     <main class="installer-shell">
       <header class="brand-bar">
-        <div class="brand-lockup">
-          <img src="../progress/assets/deepseek-logo.svg" alt="DeepSeek">
-          <span class="brand-divider" aria-hidden="true"></span>
-          <strong>Harness Plus</strong>
-        </div>
-        <div class="window-controls" aria-label="Window controls">
-          <button class="window-control" type="button" id="minimizeWindow" data-window-action="minimize" aria-label="Minimize">−</button>
-          <button class="window-control" type="button" id="toggleMaximize" data-window-action="maximize" aria-label="Maximize">□</button>
-          <button class="window-control close" type="button" id="closeWindow" data-window-action="close" aria-label="Close">×</button>
+        <div class="brand-drag-region">
+          <div class="brand-lockup">
+            <img src="../progress/assets/deepseek-logo.svg" alt="DeepSeek">
+            <span class="brand-divider" aria-hidden="true"></span>
+            <strong>Harness Plus</strong>
+          </div>
         </div>
       </header>
 
-      <nav class="stepper" aria-label="安装进度" id="stepper">
-        <button type="button" data-step-target="0"><span>1</span><strong data-i18n="step.appearance">外观</strong></button>
-        <i aria-hidden="true"></i>
-        <button type="button" data-step-target="1"><span>2</span><strong data-i18n="step.location">安装位置</strong></button>
-        <i aria-hidden="true"></i>
-        <button type="button" data-step-target="2"><span>3</span><strong data-i18n="step.model">模型</strong></button>
-        <i aria-hidden="true"></i>
-        <button type="button" data-step-target="3"><span>4</span><strong data-i18n="step.review">确认</strong></button>
-      </nav>
 
       <form novalidate>
         <section class="workspace">
+          <nav class="stepper" aria-label="安装进度" id="stepper">
+            <button type="button" data-step-target="0"><span>1</span><strong data-i18n="step.appearance">外观</strong></button>
+            <i aria-hidden="true"></i>
+            <button type="button" data-step-target="1"><span>2</span><strong data-i18n="step.location">安装位置</strong></button>
+            <i aria-hidden="true"></i>
+            <button type="button" data-step-target="2"><span>3</span><strong data-i18n="step.model">模型</strong></button>
+            <i aria-hidden="true"></i>
+            <button type="button" data-step-target="3"><span>4</span><strong data-i18n="step.review">确认</strong></button>
+          </nav>
           <div class="panel active" data-step="0">
             <header class="panel-heading"><h1 data-i18n="title.appearance">选择界面外观</h1></header>
             <div class="setting-row">
@@ -64,15 +61,29 @@
               <select id="wslDistribution"></select>
               <button class="secondary" type="button" id="refreshDistributions" data-i18n="action.refresh">刷新</button>
             </div>
+            <p id="wslLoading" class="location-loading" hidden></p>
             <label class="field-label" for="installPath" data-i18n="label.installPath">安装目录</label>
             <div class="input-action">
-              <input id="installPath" required placeholder="C:\Users\you\DeepSeekHarnessPlus" autocomplete="off">
+              <input id="installPath" required autocomplete="off">
               <button class="secondary" type="button" id="chooseDirectory" data-i18n="action.choose">选择文件夹</button>
             </div>
             <details class="advanced-options">
               <summary data-i18n="advanced.title">高级选项</summary>
-              <label class="field-label" for="port" data-i18n="label.port">端口</label>
+              <label class="field-label" for="port" data-i18n="label.port">Harness 端口</label>
               <input id="port" required inputmode="numeric" value="3080">
+              <label class="field-label" for="candidatePort" data-i18n="label.candidatePort">测试 Harness 端口</label>
+              <input id="candidatePort" required inputmode="numeric" value="3081">
+              <label class="field-label" for="supervisorPort" data-i18n="label.supervisorPort">Supervisor 端口</label>
+              <input id="supervisorPort" required inputmode="numeric" value="3082">
+              <label class="field-label" for="candidateSupervisorPort" data-i18n="label.candidateSupervisorPort">测试 Supervisor 端口</label>
+              <input id="candidateSupervisorPort" required inputmode="numeric" value="3083">
+              <label class="field-label" for="proxy" data-i18n="label.proxy">下载代理（可选）</label>
+              <input id="proxy" type="url" autocomplete="off" data-i18n-placeholder="placeholder.proxy" placeholder="例如 http://127.0.0.1:7890" aria-describedby="proxyError">
+              <p id="proxyError" class="field-error proxy-error" role="alert" hidden></p>
+              <label class="checkbox-row" for="overwriteInstall">
+                <input id="overwriteInstall" type="checkbox">
+                <span data-i18n="label.overwrite">覆盖已有安装并保留用户数据</span>
+              </label>
             </details>
           </div>
 
@@ -85,18 +96,24 @@
               <label><span class="field-label" data-i18n="label.reasoning">推理强度</span><select id="reasoningEffort"></select></label>
             </div>
             <div class="custom-provider" id="customProvider" hidden>
-              <label><span class="field-label" data-i18n="label.providerName">服务名称</span><input id="customName" autocomplete="off"></label>
-              <label><span class="field-label" data-i18n="label.baseURL">服务地址</span><input id="baseURL" type="url" autocomplete="off" placeholder="https://api.example.com/v1"></label>
+              <label><span class="field-label" data-i18n="label.providerName">服务名称</span><input id="customName" required autocomplete="off" aria-describedby="customProviderError"></label>
+              <label><span class="field-label" data-i18n="label.baseURL">服务地址</span><input id="baseURL" required type="url" autocomplete="off" placeholder="例如 https://api.example.com/v1" aria-describedby="customProviderError"></label>
+              <p id="customProviderError" class="field-error" role="alert" hidden></p>
             </div>
           </div>
 
           <div class="panel" data-step="3">
             <header class="panel-heading"><h1 data-i18n="title.review">确认安装</h1></header>
+            <div id="progress" class="progress" role="status" aria-live="polite" hidden>
+              <div class="progress-head"><span class="spinner" aria-hidden="true"></span><span id="progressText"></span><strong id="progressPercent">0%</strong></div>
+              <div id="progressBar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="安装进度"><span id="progressFill"></span></div>
+              <span id="progressDetail" class="progress-detail" hidden></span>
+            </div>
             <dl class="summary" id="summary"></dl>
           </div>
 
           <p id="error" class="error" role="alert"></p>
-          <div id="progress" class="progress" hidden><span class="spinner" aria-hidden="true"></span><span id="progressText"></span></div>
+          <button id="retryInstall" class="secondary retry-install" type="button" data-i18n="action.retry" hidden>重试</button>
         </section>
         <footer class="action-bar">
           <button id="back" type="button" class="secondary" hidden data-i18n="action.back">返回</button>
@@ -104,6 +121,40 @@
           <button id="next" type="button" class="primary" data-i18n="action.continue">继续</button>
         </footer>
       </form>
+
+      <div id="directoryBrowser" class="directory-browser" role="dialog" aria-modal="true" aria-labelledby="directoryBrowserTitle" hidden>
+        <section class="directory-browser-card">
+          <header class="directory-browser-header">
+            <h2 id="directoryBrowserTitle" data-i18n="directory.title">选择安装目录</h2>
+            <div id="directoryPathBar" class="directory-path-bar">
+              <nav id="directoryCrumbs" class="directory-crumbs" aria-label="目录路径"></nav>
+              <input id="directoryPath" class="directory-path-input" autocomplete="off" aria-label="编辑目录路径" hidden>
+              <button id="directoryPathEdit" class="directory-path-edit" type="button" data-i18n-title="directory.edit" aria-label="编辑路径"></button>
+            </div>
+          </header>
+          <section class="directory-browser-content">
+            <div id="directoryColumns" class="directory-columns" role="list"></div>
+            <p id="directoryBrowserError" class="directory-browser-error" role="alert" hidden></p>
+          </section>
+          <footer class="directory-browser-footer">
+            <button id="directoryNewFolder" class="directory-new-folder" type="button" data-i18n="directory.newFolder">新建文件夹</button>
+            <button id="directoryShowHidden" class="directory-hidden-toggle" type="button" aria-pressed="false" data-i18n="directory.showHidden">显示隐藏文件</button>
+            <span class="directory-footer-gap"></span>
+            <button id="directoryCancel" class="directory-footer-action secondary" type="button" data-i18n="action.cancel">取消</button>
+            <button id="directoryOpen" class="directory-footer-action primary" type="button" data-i18n="directory.open">打开</button>
+          </footer>
+        </section>
+        <section id="directoryCreate" class="directory-create-dialog" role="dialog" aria-modal="true" aria-labelledby="directoryCreateTitle" hidden>
+          <h3 id="directoryCreateTitle" data-i18n="directory.newFolder">新建文件夹</h3>
+          <p id="directoryCreateIn" class="directory-create-in"></p>
+          <input id="directoryNewName" autocomplete="off" data-i18n-placeholder="directory.newFolderPlaceholder" placeholder="文件夹名称">
+          <p id="directoryCreateError" class="directory-create-error" role="alert" hidden></p>
+          <footer>
+            <button id="directoryCreateCancel" class="secondary" type="button" data-i18n="action.cancel">取消</button>
+            <button id="directoryCreateConfirm" class="primary" type="button" data-i18n="directory.create">创建</button>
+          </footer>
+        </section>
+      </div>
     </main>
     <script type="module" src="./app.js"></script>
   </body>

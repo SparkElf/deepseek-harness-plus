@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek Harness Plus 备份与恢复</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./backup.css">
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div><h1 id="title">备份与恢复</h1><p id="location"></p></div>
+      </header>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <p id="error" class="error" role="alert"></p>
+      <section class="card" aria-labelledby="export-title">
+        <h2 id="export-title">导出备份</h2>
+        <p id="export-desc" class="desc"></p>
+        <button id="export" class="command primary" type="button">导出备份压缩包</button>
+      </section>
+      <section class="card" aria-labelledby="import-title">
+        <h2 id="import-title">导入备份</h2>
+        <p id="import-desc" class="desc"></p>
+        <button id="import" class="command" type="button">选择压缩包并导入</button>
+      </section>
+      <p id="warning" class="warning"></p>
+    </main>
+    <script type="module" src="./backup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeepSeek Harness Plus 版本管理</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="./updates.css">
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <div><h1 id="title">版本管理</h1><p id="current"></p></div>
+        <button id="refresh" class="icon-button" type="button" title="刷新" aria-label="刷新">&#8635;</button>
+      </header>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <p id="error" class="error" role="alert"></p>
+      <section id="versions" class="version-list" aria-label="可用版本"></section>
+    </main>
+    <script type="module" src="./updates.js"></script>
+  </body>
+</html>

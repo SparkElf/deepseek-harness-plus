@@ -50,6 +50,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@types/mdast`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
+| [`adm-zip`](https://github.com/cthackers/adm-zip) | MIT |
 | [`anser`](https://github.com/IonicaBizau/anser) | MIT |
 | [`chokidar`](https://github.com/paulmillr/chokidar) | MIT |
 | [`clsx`](https://github.com/lukeed/clsx) | MIT |
@@ -77,6 +78,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`node-addon-require-builtin`](https://www.npmjs.com/package/node-addon-require-builtin) | MIT |
 | [`node-pty`](https://github.com/microsoft/node-pty) | MIT |
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
+| [`pnpm`](https://github.com/pnpm/pnpm) | MIT |
 | [`react`](https://github.com/facebook/react) | MIT |
 | [`react-dom`](https://github.com/facebook/react) | MIT |
 | [`sharp`](https://github.com/lovell/sharp) | Apache-2.0 |

@@ -60,6 +60,7 @@ pnpm dsh web
 | --- | --- |
 | 子智能体模型继承修复 | 源码可用，并有对应的回归覆盖 |
 | 桌面安装引导和 tray 管理的本地 runtime | Linux/Windows 0.2.0 安装包已在 [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0) 发布；macOS 延后到配置好签名和 notarization 后再恢复 |
+| Windows 无控制台启动与用户数据备份恢复 | Plus 桌面应用源码可用；随下一个桌面构建发布 |
 | 代码开发预设 | 暂未实现 |
 | 智能问数预设 | 暂未实现 |
 | 多用户运行时预设 | 暂未实现；当前没有多用户或公网部署预设，请把本地 runtime 保持在私有环境中 |

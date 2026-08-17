@@ -356,6 +356,12 @@ importers:
 
   apps/plus-desktop:
     dependencies:
+      adm-zip:
+        specifier: ^0.6.0
+        version: 0.6.0
+      pnpm:
+        specifier: 11.7.0
+        version: 11.7.0
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
@@ -366,6 +372,9 @@ importers:
       electron-builder:
         specifier: ^26.0.0
         version: 26.15.3(electron-builder-squirrel-windows@26.15.3)
+      playwright:
+        specifier: ^1.49.0
+        version: 1.61.1
 
   apps/web:
     dependencies:
@@ -11723,6 +11732,10 @@ packages:
     engines: {node: '>=0.4.0'}
     hasBin: true
 
+  adm-zip@0.6.0:
+    resolution: {integrity: sha512-XleryMhbuksdKtofnWZ9Sk+4CUTbms4Mb/EU32SZwToAyZ5RgVos/ki8n+yr0LWHOGKuakbXTuuYNHLQjhddgg==}
+    engines: {node: '>=14.0'}
+
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
@@ -13998,6 +14011,11 @@ packages:
   plist@3.1.1:
     resolution: {integrity: sha512-ZIfcLJC+7E7FBFnDxm9MPmt7D+DidyQ26lewieO75AdhA2ayMtsJSES0iWzqJQbcVRSrTufQoy0DR94xHue0oA==}
     engines: {node: '>=10.4.0'}
+
+  pnpm@11.7.0:
+    resolution: {integrity: sha512-GcyFLBIMcSV2DyRD7mvgyltA+fUFmN4aCaHxd1A+AQ5Xwjx3ZG4B52HeWb+HT7IqM5jDOrlpH8E+uUa28PTWIA==}
+    engines: {node: '>=22.13'}
+    hasBin: true
 
   points-on-curve@0.2.0:
     resolution: {integrity: sha512-0mYKnYYe9ZcqMCWhUjItv/oHjvgEsfKvnUTg8sAtnHr3GVy7rGkXCb6d5cSyqrWqL4k81b9CPg3urd+T7aop3A==}
@@ -17773,6 +17791,8 @@ snapshots:
 
   acorn@8.17.0: {}
 
+  adm-zip@0.6.0: {}
+
   agent-base@7.1.4: {}
 
   ajv-formats@3.0.1(ajv@8.20.0):
@@ -20512,6 +20532,8 @@ snapshots:
       '@xmldom/xmldom': 0.9.11
       base64-js: 1.5.1
       xmlbuilder: 15.1.1
+
+  pnpm@11.7.0: {}
 
   points-on-curve@0.2.0: {}
 

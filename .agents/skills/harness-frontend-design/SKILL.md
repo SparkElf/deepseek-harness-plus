@@ -13,9 +13,10 @@ Use this skill for visible Harness Web, Electron, installer, tray, settings, and
 - Read `packages/client/ui-theme/src/styles/` for semantic aliases, typography, motion, shadows, and theme values.
 - Read `packages/client/ui-primitives/` for the exact icon, menu, button, focus, and check primitives.
 - Read the nearest working settings or model-selection component for dimensions and state treatment.
+- For folder selection, read `packages/client/ui-directory-picker-browse` and its browse capability before adding a dialog or native picker.
 - Read the owning `AGENTS.md` and, for Plus Desktop, `apps/plus-desktop/README.md` and its preview verifier.
 
-The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot import React components directly. Reuse the same icon paths, dimensions, state semantics, and token mapping. Do not invent a visually similar second component system.
+The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot import React components directly. Reuse the same icon paths, dimensions, state semantics, and token mapping. A directory browser carries the existing browse contract through preload and main-process list, create, and select operations; do not substitute an unverified system dialog. Do not invent a visually similar second component system.
 
 ## Repository and GitHub Targets
 
@@ -59,12 +60,14 @@ The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot impor
 
 Use the project Playwright UI flow for the actual user path. For a fixed desktop installer, verify:
 
-- the 980x780 renderer has no window or workspace overflow
+- the 900x680 renderer has no window or workspace overflow
 - the centered 1440x900 preview uses the inverse outer canvas and a borderless card with the intended shadow
 - light and dark themes keep the same control geometry
 - each styled menu opens, selects, closes, returns focus, and reflects dynamic options
 - one trailing checkmark appears for the selected option and none for unselected options
 - console and network output remain clean
+- Windows titlebar controls use Electron `titleBarOverlay`, while Linux and macOS retain native frames; do not reimplement them in renderer DOM
+- minimize and maximize require an interactive Windows, macOS, or Linux desktop acceptance check; do not gate CI on hosted-runner window geometry or state events
 - the Electron package includes changed renderer and main-process files
 
 Wait for entry animations before screenshots. A screenshot is evidence of a visible result, not a substitute for operating the UI. State which native OS behaviors still require Windows or macOS acceptance.
