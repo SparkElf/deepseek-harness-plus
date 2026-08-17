@@ -58,3 +58,10 @@ Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gu
 | Reusing FixtureApiClient in tests | The demo script runs on a real clock, tests need deferred hand-controlled timing — orthogonal purposes; forced reuse chains the tests to the demo's rhythm |
 | A standalone vitest config for GUI packages (once designed as vitest.gui.config.ts) | Package-level tests/ are already scanned by the root include; `vitest run packages/client packages/host` path filtering is the tight loop — zero new config |
 | Deferring hooks/component-layer unit tests | jsdom remains the coverage mainline because it gives fast per-file component behavior; the required browser replay gate complements it at the assembled tier rather than replacing it ([CI gate decision](../testing/2026-07-30-web-browser-snapshot-ci-gate.md)) |
+
+## Host-plane e2e lane mechanics
+
+- A web e2e spec that imports `apps/web/tests/scaffold.ts` is Host-plane: exclude it from `apps/web/tsconfig.json` and list it in the root `tsconfig.host.json`; one program cannot see both Context planes.
+- The lane runs with `vitest run --config vitest.web.config.ts` (the root config only collects `*.spec.ts`) and needs the full lib build plus the web dist in place; `pnpm run test:web` performs both.
+- The scaffold merges its onboarding acknowledgement into the settings document at boot. A scenario that pre-seeds user data under $DSH_HOME must create the home first and pass it as `harnessHome` to `launchWebScaffold`; seeding after boot overwrites the acknowledgement and the first-run notice blocks every gesture.
+- `scaffold.harnessHome` is the isolated $DSH_HOME for seeding settings/credentials/storages; `scaffold.workspaceCwd` is the temp project directory. credentials-local refuses a credentials document readable beyond its owner, so a seeded `.credentials.yaml` needs mode 0600 before boot.

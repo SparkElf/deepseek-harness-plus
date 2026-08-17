@@ -55,7 +55,8 @@ import {
 } from '../api/goals.schema.ts'
 import {
   settingsDescribeValueSchema, settingsMutateValueSchema, settingsOpenDocumentValueSchema,
-  settingsReplaceValueSchema, settingsUpdateValueSchema,
+  settingsReplaceValueSchema, settingsUpdateValueSchema, settingsBackupExportValueSchema,
+  settingsBackupImportValueSchema,
 } from '../api/settings.schema.ts'
 import {
   credentialsDescribeValueSchema, credentialsSetValueSchema, credentialsUnsetValueSchema,
@@ -150,6 +151,8 @@ export interface IApiClient {
     update(payload: RequestPayload<'settings.update'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.update'>>>
     replace(payload: RequestPayload<'settings.replace'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.replace'>>>
     mutate(payload: RequestPayload<'settings.mutate'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.mutate'>>>
+    backupExport(payload: RequestPayload<'settings.backupExport'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.backupExport'>>>
+    backupImport(payload: RequestPayload<'settings.backupImport'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'settings.backupImport'>>>
   }
   credentials: {
     describe(payload: RequestPayload<'credentials.describe'>, signal?: AbortSignal): Promise<RpcResponse<ResponseValue<'credentials.describe'>>>
@@ -216,6 +219,8 @@ const UNARY_VALUE_SCHEMAS: { [K in keyof RpcMethodMap]: z.ZodType<Wire<ResponseV
   'settings.update': settingsUpdateValueSchema,
   'settings.replace': settingsReplaceValueSchema,
   'settings.mutate': settingsMutateValueSchema,
+  'settings.backupExport': settingsBackupExportValueSchema,
+  'settings.backupImport': settingsBackupImportValueSchema,
   'credentials.describe': credentialsDescribeValueSchema,
   'credentials.set': credentialsSetValueSchema,
   'credentials.unset': credentialsUnsetValueSchema,
@@ -484,6 +489,8 @@ export abstract class AbstractApiClient implements IApiClient {
     describe: (payload, signal) => this.callUnary('settings.describe', payload, signal),
     openDocument: (payload, signal) => this.callUnary('settings.openDocument', payload, signal),
     update: (payload, signal) => this.callUnary('settings.update', payload, signal),
+    backupExport: (payload, signal) => this.callUnary('settings.backupExport', payload, signal),
+    backupImport: (payload, signal) => this.callUnary('settings.backupImport', payload, signal),
     replace: (payload, signal) => this.callUnary('settings.replace', payload, signal),
     mutate: (payload, signal) => this.callUnary('settings.mutate', payload, signal),
   }

@@ -114,6 +114,8 @@ function scriptedApi(overrides: {
       update: err,
       replace: err,
       mutate: err,
+      backupExport: err,
+      backupImport: err,
       ...overrides.settings,
     },
     credentials: {

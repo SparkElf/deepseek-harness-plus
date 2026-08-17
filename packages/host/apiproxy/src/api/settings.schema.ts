@@ -80,3 +80,22 @@ export const settingsMutateValueSchema = settingsNamespaceViewSchema satisfies z
 
 /** settings.replace response value. */
 export const settingsReplaceValueSchema = settingsNamespaceViewSchema satisfies z.ZodType<Wire<ResponseValue<'settings.replace'>>>
+
+/** settings.backupExport request payload. */
+export const settingsBackupExportRequestSchema = z.object({}) satisfies z.ZodType<Wire<RequestPayload<'settings.backupExport'>>>
+
+/** settings.backupExport response value: base64 zip plus entry count. */
+export const settingsBackupExportValueSchema = z.object({
+  archiveBase64: z.string().min(1),
+  entries: z.number(),
+}) satisfies z.ZodType<Wire<ResponseValue<'settings.backupExport'>>>
+
+/** settings.backupImport request payload. */
+export const settingsBackupImportRequestSchema = z.object({
+  archiveBase64: z.string().min(1),
+}) satisfies z.ZodType<Wire<RequestPayload<'settings.backupImport'>>>
+
+/** settings.backupImport response value: restored entry count. */
+export const settingsBackupImportValueSchema = z.object({
+  entries: z.number(),
+}) satisfies z.ZodType<Wire<ResponseValue<'settings.backupImport'>>>

@@ -24,7 +24,7 @@ function expectText(value: unknown, location: string): string | null {
 }
 
 function expectList(value: unknown, location: string): unknown[] | null {
-  if (Array.isArray(value) && value.length) return value
+  if (Array.isArray(value) && value.length) return value as unknown[]
   issues.push(location + ': expected a non-empty list')
   return null
 }
@@ -45,7 +45,7 @@ function verifyDiffRegistry(relativePath: string): void {
   if (!records) return
   const ids = new Set<string>()
   for (const [index, value] of records.entries()) {
-    const location = relativePath + '.records[' + index + ']'
+    const location = relativePath + '.records[' + String(index) + ']'
     const record = expectRecord(value, location)
     if (!record) continue
     const id = expectText(record.id, location + '.id')
@@ -61,11 +61,11 @@ function verifyDiffRegistry(relativePath: string): void {
     const repositories = expectList(record.repositories, location + '.repositories')
     if (repositories) {
       for (const [repoIndex, repository] of repositories.entries()) {
-        const source = expectRecord(repository, location + '.repositories[' + repoIndex + ']')
+        const source = expectRecord(repository, location + '.repositories[' + String(repoIndex) + ']')
         if (!source) continue
-        expectText(source.name, location + '.repositories[' + repoIndex + '].name')
-        expectText(source.url, location + '.repositories[' + repoIndex + '].url')
-        expectText(source.baseline, location + '.repositories[' + repoIndex + '].baseline')
+        expectText(source.name, location + '.repositories[' + String(repoIndex) + '].name')
+        expectText(source.url, location + '.repositories[' + String(repoIndex) + '].url')
+        expectText(source.baseline, location + '.repositories[' + String(repoIndex) + '].baseline')
       }
     }
     expectList(record.files, location + '.files')
@@ -87,7 +87,7 @@ function verifyCompositionRegistry(): void {
   }
   const claims = new Map<string, string>()
   for (const [index, value] of compositions.entries()) {
-    const location = relativePath + '.compositions[' + index + ']'
+    const location = relativePath + '.compositions[' + String(index) + ']'
     const composition = expectRecord(value, location)
     if (!composition) continue
     const id = expectText(composition.id, location + '.id')
@@ -101,11 +101,11 @@ function verifyCompositionRegistry(): void {
       }
       if (status !== 'active') continue
       for (const [claimIndex, claim] of values.entries()) {
-        const name = expectText(claim, location + '.' + property + '[' + claimIndex + ']')
+        const name = expectText(claim, location + '.' + property + '[' + String(claimIndex) + ']')
         if (!name || !id) continue
         const key = property + ':' + name
         const existing = claims.get(key)
-        if (existing && existing !== id) issues.push(location + '.' + property + '[' + claimIndex + ']: active claim conflicts with ' + existing)
+        if (existing && existing !== id) issues.push(location + '.' + property + '[' + String(claimIndex) + ']: active claim conflicts with ' + existing)
         claims.set(key, id)
       }
     }

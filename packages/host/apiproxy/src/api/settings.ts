@@ -105,4 +105,21 @@ export interface SettingsApi {
   mutate(
     request: RpcRequest<{ ns: string; ops: SettingsPathOpView[]; expectedRevision?: number }>,
   ): Promise<RpcResponse<SettingsNamespaceView>>
+
+  /**
+   * Export the harness home's user configuration and data (settings incl.
+   * provider/model configuration, credentials with key values, storages) as
+   * one base64 zip archive carrying a `backup-manifest.json` marker;
+   * runtime-generated `profiles` and `supervisor` directories are excluded.
+   * Requires a file-backed settings provider (`documentPath`).
+   */
+  backupExport(request: RpcRequest<{}>): Promise<RpcResponse<{ archiveBase64: string; entries: number }>>
+
+  /**
+   * Validate a base64 zip backup (marker present, no absolute/backslash/`..`
+   * entry paths) before mutating anything, then extract it over the harness
+   * home with same-named files replaced. Rejections carry the validation
+   * message so the client can localize it.
+   */
+  backupImport(request: RpcRequest<{ archiveBase64: string }>): Promise<RpcResponse<{ entries: number }>>
 }

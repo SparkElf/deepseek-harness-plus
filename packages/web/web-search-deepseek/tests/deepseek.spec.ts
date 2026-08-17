@@ -548,7 +548,7 @@ describe('current-model search provider', () => {
       expect(url).toBe('https://gateway.test/v1/responses')
       expect(init.redirect).toBe('error')
       expect(init.headers).toMatchObject({ authorization: 'Bearer openai-key' })
-      expect(JSON.parse(String(init.body))).toMatchObject({
+      expect(JSON.parse(init.body as string)).toMatchObject({
         model: 'gpt-5.6-sol',
         input: 'latest Harness release',
         tools: [{ type: 'web_search_preview' }],

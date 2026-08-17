@@ -58,3 +58,10 @@ GUI 栈需要考虑多种应用形态，同应用形态内的不同运行环境�
 | 测试复用 FixtureApiClient | 演示脚本走真实时钟，测试需要 deferred 手控时序——用途正交，硬复用把测试绑死在演示节奏上 |
 | GUI 包独立 vitest config（曾设计 vitest.gui.config.ts） | 包级 tests/ 本就被根 include 扫到，`vitest run packages/client packages/host` 路径过滤即窄循环——零新 config |
 | 钩子/组件层暂缓单测 | jsdom 仍是覆盖率主线，因为它能快速验证逐文件组件行为；必需的浏览器回放门禁在组装层与之互补，而非取代它（[CI 门禁决策](../testing/2026-07-30-web-browser-snapshot-ci-gate.md)） |
+
+## Host 面 e2e 车道机制
+
+- 导入 `apps/web/tests/scaffold.ts` 的 web e2e spec 属于 Host 面：要从 `apps/web/tsconfig.json` 排除并列进根 `tsconfig.host.json`；一个程序不能同时看到两个 Context 面。
+- 车道用 `vitest run --config vitest.web.config.ts` 运行（根配置只收集 `*.spec.ts`），且需要完整 lib 构建和 web dist 就位；`pnpm run test:web` 两者都做。
+- scaffold 在启动时把 onboarding 确认合并进设置文档。需要在 $DSH_HOME 下预置用户数据的场景必须先创建 home 并以 `harnessHome` 传入 `launchWebScaffold`；启动后覆写会抹掉确认，首跑声明会挡住所有手势。
+- `scaffold.harnessHome` 是用于预置 settings/credentials/storages 的隔离 $DSH_HOME；`scaffold.workspaceCwd` 是临时项目目录。credentials-local 拒绝owner 之外可读的凭据文档，因此预置的 `.credentials.yaml` 在启动前需要 0600 权限。
