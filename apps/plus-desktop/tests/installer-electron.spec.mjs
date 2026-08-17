@@ -203,8 +203,11 @@ test('backup window exports and restores the user data archive', async ({}, test
     // 用户配置的模型（provider/model/reasoningEffort）写在 settings.yaml；密钥明文（不只是引用名）在 .credentials.yaml：备份必须带上它们。
     const settingsEntry = archive.getEntries().find(entry => entry.entryName === 'settings.yaml')
     expect(settingsEntry.getData().toString('utf8')).toContain('agent-default-model')
+    // 覆盖安装保留已有凭据文件，其中密钥明文来自先运行的安装用例：断言引用名和密钥值本身都在包里。
     const credentialsEntry = archive.getEntries().find(entry => entry.entryName === '.credentials.yaml')
-    expect(credentialsEntry.getData().toString('utf8')).toContain('sk-electron-backup-test')
+    const credentialsText = credentialsEntry.getData().toString('utf8')
+    expect(credentialsText).toContain('DSH_INSTALLER_DEEPSEEK_OFFICIAL_API_KEY')
+    expect(credentialsText).toContain('sk-electron-install-test')
     expect(entryNames).toContain('storages/workspace.json')
     expect(entryNames.some(name => name.startsWith('profiles/'))).toBe(false)
 
