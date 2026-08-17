@@ -10,7 +10,7 @@ Plus Desktop 安装器此前使用更小的单列目录 dialog，并在 renderer
 
 ## Decision
 
-安装器继续使用 plain HTML 和 JavaScript renderer，但完整移植[Harness 目录浏览器](../../architecture/2026-07-28-directory-picker-capability-seam.md)的交互契约：680×500 dialog、带编辑入口的 breadcrumb path bar、以选择项为锚的 Miller 分栏、嵌套新建文件夹 dialog、带 check 的隐藏条目开关，以及没有选中目录时回退到当前列目录的 Open 行为。
+安装器继续使用 plain HTML 和 JavaScript renderer，但完整移植[Harness 目录浏览器](../architecture/2026-07-28-directory-picker-capability-seam.md)的交互契约：680×500 dialog、带编辑入口的 breadcrumb path bar、以选择项为锚的 Miller 分栏、嵌套新建文件夹 dialog、带 check 的隐藏条目开关，以及没有选中目录时回退到当前列目录的 Open 行为。
 
 Electron main process 通过现有 preload IPC 提供真实的平台 home 目录、文件系统 ancestry crumbs 和按名称排序且上限为 1,000 条的目录列表。renderer 不再生成 Windows 用户名或目录列表。Node directory entry 只能识别点号开头的隐藏名称；Windows hidden 和 system attribute 无法通过此 API 获取，这与现有 Harness browse 的限制一致。浏览器 preview 没有文件系统能力，因此会拒绝选择目录和安装，不再发出模拟路径或进度事件。
 

@@ -6,7 +6,7 @@
 
 在 Windows 上，引导可选择 Windows 或已安装的 WSL 发行版，然后通过系统文件选择器选择安装目录。选择 WSL 目录时，文件管理器会打开该发行版，并返回对应的 Linux 路径。安装目录、命令、settings、Supervisor、Harness Web process、rebuild、repair 和 update 都留在所选 target 内。Linux 与 macOS package 使用本机环境。
 
-托盘读取 Supervisor status，并分别打开正式 Harness 页面和 Supervisor 页面。安装器保存正式实例、测试实例、Supervisor 和测试 Supervisor 四组端口，因此测试版 Harness 入口会探测配置的测试 Supervisor，不再依赖固定端口。版本管理会按精确 commit 列出带 tag 的 Plus release，支持普通升级或回退，也会为本地源码修改打开 AI 合并会话。托盘还提供启动、停止、构建并重启、修复和打开目标数据目录。
+托盘读取 Supervisor status，并分别打开正式 Harness 页面和 Supervisor 页面。安装器保存正式实例、测试实例、Supervisor 和测试 Supervisor 四组端口，因此测试版 Harness 入口会探测配置的测试 Supervisor，不再依赖固定端口。版本管理会按精确 commit 列出带 tag 的 Plus release，支持普通升级或回退，也会为本地源码修改打开 AI 合并会话。托盘还提供启动、停止、构建并重启、修复和打开目标数据目录。备份与恢复把用户设置和数据目录导出为 zip 压缩包并可导入恢复，托盘启动在 Windows 上不再弹出控制台窗口。
 
 引导会配置一个初始默认模型，支持 DeepSeek、OpenAI、Anthropic、Google、OpenRouter、Groq、Mistral、xAI 与 OpenAI-compatible 自定义提供方。它将 provider profile 写入 <code>settings.yaml</code>，将密钥写入受管理的 <code>.credentials.yaml</code>。之后添加或编辑 provider 和模型仍由 Harness Web 完成。
 
