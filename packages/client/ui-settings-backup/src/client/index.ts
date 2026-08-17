@@ -1,7 +1,9 @@
 /**
  * Settings Backup section plugin, browser half: registers the `settings.section`
  * entry (id `backup`) whose page exports and imports the user settings and data
- * as one zip archive through the Host backup RPC pair.
+ * as one zip archive. The archive itself streams over the Host-only
+ * `/api/backup.export` / `/api/backup.upload` routes; the RPC pair carries only
+ * a download URL and an upload token, never archive bytes.
  * Export discipline: packages/client/AGENTS.md.
  */
 
@@ -45,8 +47,11 @@ export function apply(ctx: ClientContext): void {
       if (!result.ok) throw new Error(result.error.message)
       return result.value
     },
-    importArchive: async (archiveBase64: string) => {
-      const { result } = await connection.api.settings.backupImport({ archiveBase64 })
+    importArchive: async (file: File) => {
+      const upload = await fetch('/api/backup.upload', { method: 'POST', body: file })
+      if (!upload.ok) throw new Error('backup upload failed')
+      const { token } = await upload.json() as { token: string }
+      const { result } = await connection.api.settings.backupImport({ token })
       if (!result.ok) throw new Error(result.error.message)
       return result.value
     },

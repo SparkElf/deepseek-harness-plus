@@ -1,7 +1,8 @@
 /**
  * Backup settings section: export the user settings and data as one zip
- * archive (browser download) and import a zip archive back, with localized
- * status, busy, and failure copy. All live facts are component-private.
+ * archive (browser download streamed from the Host) and import such an
+ * archive back (the file streams to the Host upload route; only a token
+ * rides the RPC). All live facts are component-private.
  */
 
 import { useRef, useState } from 'react'
@@ -11,10 +12,10 @@ import css from './BackupSection.module.css'
 
 /** Registration-side business face: the two Host backup operations. */
 export interface BackupSectionInjected {
-  /** Export the harness home archive; the component triggers the download. */
-  exportArchive(): Promise<{ archiveBase64: string; entries: number }>
-  /** Validate and restore one base64 archive over the harness home. */
-  importArchive(archiveBase64: string): Promise<{ entries: number }>
+  /** Mint a single-use download URL for a fresh export archive. */
+  exportArchive(): Promise<{ downloadUrl: string; entries: number }>
+  /** Stream one picked archive to the Host and restore it. */
+  importArchive(file: File): Promise<{ entries: number }>
 }
 
 /** Full component props. */
@@ -25,24 +26,6 @@ export type BackupSectionProps =
 
 /** In-flight operation, or idle. */
 type Busy = 'export' | 'import' | null
-
-/** Local timestamp for the downloaded archive file name. */
-function downloadStamp(): string {
-  return new Date().toISOString().replaceAll(/[:.]/g, '-').slice(0, 19)
-}
-
-/** Decode base64 into bytes for the download blob. */
-function base64ToBytes(base64: string): Uint8Array<ArrayBuffer> {
-  return Uint8Array.from(atob(base64), char => char.charCodeAt(0))
-}
-
-/** Encode a picked file as base64 for the import wire payload. */
-async function fileToBase64(file: File): Promise<string> {
-  const bytes = new Uint8Array(await file.arrayBuffer())
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary)
-}
 
 /**
  * The Backup section body.
@@ -68,13 +51,11 @@ export function BackupSection(props: BackupSectionProps): ReactNode {
     setStatus(null)
     setError(null)
     try {
-      const { archiveBase64 } = await props.exportArchive()
-      const url = URL.createObjectURL(new Blob([base64ToBytes(archiveBase64)], { type: 'application/zip' }))
+      const { downloadUrl } = await props.exportArchive()
       const anchor = document.createElement('a')
-      anchor.href = url
-      anchor.download = 'deepseek-harness-backup-' + downloadStamp() + '.zip'
+      anchor.href = downloadUrl
+      anchor.download = 'deepseek-harness-backup.zip'
       anchor.click()
-      URL.revokeObjectURL(url)
       setStatus(t('exported'))
     } catch (caught) {
       setError(localize(caught))
@@ -92,7 +73,7 @@ export function BackupSection(props: BackupSectionProps): ReactNode {
       setStatus(null)
       setError(null)
       try {
-        await props.importArchive(await fileToBase64(file))
+        await props.importArchive(file)
         setStatus(t('imported'))
       } catch (caught) {
         setError(localize(caught))

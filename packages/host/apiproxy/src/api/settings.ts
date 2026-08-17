@@ -109,17 +109,21 @@ export interface SettingsApi {
   /**
    * Export the harness home's user configuration and data (settings incl.
    * provider/model configuration, credentials with key values, storages) as
-   * one base64 zip archive carrying a `backup-manifest.json` marker;
-   * runtime-generated `profiles` and `supervisor` directories are excluded.
+   * one zip archive carrying a `backup-manifest.json` marker; runtime-
+   * generated `profiles` and `supervisor` directories are excluded. The
+   * archive is written to a short-lived Host temp file and served by the
+   * loopback-only `downloadUrl` (streaming GET, single use); the RPC reply
+   * carries no archive bytes, so large homes never traverse the JSON wire.
    * Requires a file-backed settings provider (`documentPath`).
    */
-  backupExport(request: RpcRequest<{}>): Promise<RpcResponse<{ archiveBase64: string; entries: number }>>
+  backupExport(request: RpcRequest<{}>): Promise<RpcResponse<{ downloadUrl: string; entries: number }>>
 
   /**
-   * Validate a base64 zip backup (marker present, no absolute/backslash/`..`
-   * entry paths) before mutating anything, then extract it over the harness
-   * home with same-named files replaced. Rejections carry the validation
-   * message so the client can localize it.
+   * Restore a zip backup previously staged through the loopback-only upload
+   * route (the `token` names the Host temp file). Validation (marker present,
+   * no absolute/backslash/`..` entry paths) runs before mutating anything;
+   * restore extracts over the harness home with same-named files replaced.
+   * Rejections carry the validation message so the client can localize it.
    */
-  backupImport(request: RpcRequest<{ archiveBase64: string }>): Promise<RpcResponse<{ entries: number }>>
+  backupImport(request: RpcRequest<{ token: string }>): Promise<RpcResponse<{ entries: number }>>
 }

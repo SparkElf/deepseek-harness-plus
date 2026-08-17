@@ -2925,7 +2925,7 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         message: 'fixture: no settings namespaces are registered',
         details: { ns: request.payload.ns },
       }),
-      backupExport: request => ok(request, { archiveBase64: 'AA==', entries: 1 }),
+      backupExport: request => ok(request, { downloadUrl: '/api/backup.export?token=fixture', entries: 1 }),
       backupImport: request => ok(request, { entries: 1 }),
     },
     credentials: {
@@ -2994,6 +2994,12 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
     // stub is never reached through the fixture's dispatch.
     downloads: {
       sessionLog: () => Promise.resolve(new Response('fixture mode does not serve session export', { status: 404 })),
+    },
+    backups: {
+      createExport: () => Promise.resolve({ token: 'fixture', entries: 1 }),
+      download: () => Promise.resolve(undefined),
+      registerUpload: () => ({ token: 'fixture' }),
+      takeUpload: () => undefined,
     },
   }
 

@@ -315,6 +315,11 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [],
       },
       {
+        signature: 'backups: BackupsApi',
+        description: 'Host-only backup transport faces (temp-file tokens); absent from IApiClient.',
+        parameters: [],
+      },
+      {
         signature: 'respond(message: ClientResponse): Promise<RpcReceipt>',
         description: 'Response entry for server requests; not a domain method.',
         parameters: [{ name: 'message', description: 'Client response carrying the server request\'s rpcId.' }],
@@ -2716,6 +2721,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'BackendRegistry',
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
+  },
+  {
+    name: 'BackupArtifact',
+    declaration: 'export interface BackupArtifact {\n    token: string;\n}',
+  },
+  {
+    name: 'BackupsApi',
+    declaration: 'export interface BackupsApi {\n    createExport(): Promise<{\n        token: string;\n        entries: number;\n    }>;\n    download(token: string): Promise<Response | undefined>;\n    registerUpload(path: string): BackupArtifact;\n    takeUpload(token: string): string | undefined;\n}',
   },
   {
     name: 'BashEnvContributor',
