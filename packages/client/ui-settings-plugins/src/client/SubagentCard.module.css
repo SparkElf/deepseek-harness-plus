@@ -1,0 +1,37 @@
+.entries { display: flex; flex-direction: column; }
+
+.entry { padding: 14px 0 16px; }
+
+.entry + .entry { border-top: 1px solid var(--dsw-alias-border-l3); }
+
+.entryTitle { margin: 0; color: var(--dsw-alias-label-primary); font-size: 14px; font-weight: 600; line-height: 22px; }
+
+.editor { display: grid; gap: 16px; padding-top: 12px; }
+
+.group { display: grid; gap: 8px; }
+
+.group h3 { margin: 0; color: var(--dsw-alias-label-primary); font-size: 14px; font-weight: 500; line-height: 22px; }
+
+.radioRow { display: flex; align-items: center; gap: 8px; min-height: 24px; color: var(--dsw-alias-label-secondary); font-size: 14px; line-height: 22px; }
+
+.radioRow input { flex: none; margin: 0; }
+
+.field { display: grid; gap: 6px; color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 20px; }
+
+.control { display: flex !important; box-sizing: border-box; width: 100%; }
+
+.textarea { box-sizing: border-box; width: 100%; min-height: 112px; padding: 8px 10px; resize: vertical; border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; line-height: 22px; }
+
+.textarea:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+
+.select { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 32px; padding: 0 8px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 8px; background: var(--dsw-alias-bg-layer-1); color: var(--dsw-alias-label-primary); font: inherit; font-size: 14px; line-height: 22px; text-align: left; cursor: pointer; }
+
+.select:hover { border-color: var(--dsw-alias-label-dimmed); }
+
+.select:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
+
+.actions { display: flex; justify-content: flex-start; padding-top: 2px; }
+
+.status { margin: 14px 0; color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 20px; }
+
+.error { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: var(--dsw-alias-label-error); font-size: 13px; line-height: 20px; }

@@ -11,6 +11,11 @@ export type PluginsSettingsLocaleKey =
   | 'webSearchTitle' | 'webSearchDescription'
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
   | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
+  | 'subagentTitle' | 'subagentDescription' | 'subagentContinuous' | 'subagentOneShot'
+  | 'subagentModel' | 'subagentFollowParent' | 'subagentFixedModel' | 'subagentProvider' | 'subagentModelId' | 'subagentMaxTokens'
+  | 'subagentPersona' | 'subagentInheritPersona' | 'subagentOverridePersona' | 'subagentPersonaPlaceholder'
+  | 'subagentTools' | 'subagentAllTools' | 'subagentAllowTools' | 'subagentDenyTools' | 'subagentToolNamesPlaceholder'
+  | 'subagentDepth' | 'subagentProviderManaged' | 'subagentLoading' | 'subagentLoadFailed' | 'subagentRetry'
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
@@ -51,6 +56,30 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
+  subagentTitle: 'Subagents',
+  subagentDescription: 'Defaults for child delegation.',
+  subagentContinuous: 'Continuous subagent',
+  subagentOneShot: 'One-shot subagent',
+  subagentModel: 'Model',
+  subagentFollowParent: 'Follow the current agent',
+  subagentFixedModel: 'Use a fixed model',
+  subagentProvider: 'Provider',
+  subagentModelId: 'Model ID',
+  subagentMaxTokens: 'Maximum output tokens',
+  subagentPersona: 'Role prompt',
+  subagentInheritPersona: 'Use the parent role',
+  subagentOverridePersona: 'Override the role for every child',
+  subagentPersonaPlaceholder: 'Describe the child agent’s role and output contract.',
+  subagentTools: 'Tool visibility',
+  subagentAllTools: 'Use the parent tool set',
+  subagentAllowTools: 'Allow only these tools',
+  subagentDenyTools: 'Hide these tools',
+  subagentToolNamesPlaceholder: 'Tool names separated by commas',
+  subagentDepth: 'Maximum child depth',
+  subagentProviderManaged: 'Provider managed',
+  subagentLoading: 'Loading…',
+  subagentLoadFailed: 'Could not load subagent settings.',
+  subagentRetry: 'Retry',
 }
 
 /** Simplified Chinese copy. */
@@ -92,4 +121,28 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: '留空则使用提供方默认地址。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
+  subagentTitle: '子代理',
+  subagentDescription: '配置子代理委派默认值。',
+  subagentContinuous: '连续子代理',
+  subagentOneShot: '一次性子代理',
+  subagentModel: '模型',
+  subagentFollowParent: '跟随当前智能体',
+  subagentFixedModel: '固定模型',
+  subagentProvider: '提供方',
+  subagentModelId: '模型 ID',
+  subagentMaxTokens: '最大输出 token',
+  subagentPersona: '角色提示词',
+  subagentInheritPersona: '沿用父智能体角色',
+  subagentOverridePersona: '为每个子代理覆盖角色',
+  subagentPersonaPlaceholder: '描述子代理的角色和输出要求。',
+  subagentTools: '工具可见范围',
+  subagentAllTools: '沿用父智能体工具集',
+  subagentAllowTools: '仅允许这些工具',
+  subagentDenyTools: '隐藏这些工具',
+  subagentToolNamesPlaceholder: '用逗号分隔工具名称',
+  subagentDepth: '最大子代理嵌套层数',
+  subagentProviderManaged: '由提供方管理',
+  subagentLoading: '正在加载…',
+  subagentLoadFailed: '无法加载子代理设置。',
+  subagentRetry: '重试',
 }

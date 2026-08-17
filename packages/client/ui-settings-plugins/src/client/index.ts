@@ -25,11 +25,14 @@ import { BashCard } from './BashCard.tsx'
 import { ConfigurablePluginsTab } from './ConfigurablePluginsTab.tsx'
 import type { ConfigurablePluginsTabInjected } from './ConfigurablePluginsTab.tsx'
 import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
+import { SubagentCard } from './SubagentCard.tsx'
+import type { SubagentCardInjected } from './SubagentCard.tsx'
 import type { PluginsSettingsSectionInjected, PluginsSettingsTabEntry } from './PluginsSettingsSection.tsx'
 import { WebSearchCard } from './WebSearchCard.tsx'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.ts'
 import { SHELL_NS, BashCardController } from './bash-card-controller.ts'
 import { WEB_SEARCH_NS, WebSearchCardController } from './web-search-card-controller.ts'
+import { SubagentSettingsStore } from './subagent-store.ts'
 import { en, zh } from './locales.ts'
 
 export type { PluginsSettingsSectionInjected, PluginsSettingsSectionProps } from './PluginsSettingsSection.tsx'
@@ -62,6 +65,28 @@ export function apply(ctx: ClientContext): void {
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
   const agentLoop = new AgentLoopCardController(ctx.settingsScope.bind({ namespace: AGENT_LOOP_NS }))
   const webSearch = new WebSearchCardController(ctx.settingsScope.bind({ namespace: WEB_SEARCH_NS }), api)
+  const subagent = new SubagentSettingsStore(api)
+
+  const subagentInjected = (): SubagentCardInjected => ({
+    hooks: { subagentSettings: subagent.store },
+    load: () => subagent.load(),
+    stage: (entry, value) => { subagent.stage(entry, value) },
+    save: () => subagent.save(),
+    reset: (entry) => { subagent.reset(entry) },
+    discard: () => { subagent.discard() },
+  })
+
+  ctx.effect(() => {
+    const refresh = (ns?: string): void => {
+      if (ns !== undefined && ns !== 'subagent' && ns !== 'subagent-fork') return
+      void subagent.load()
+    }
+    const disposers = [
+      ctx.remote.$on('settings/document-updated', (ns) => { refresh(ns) }),
+      ctx.on('connection/reset', () => { refresh() }),
+    ]
+    return () => { for (const dispose of disposers) dispose() }
+  }, 'ui-settings-plugins: subagent refresh')
 
   // The credential a card reports is not part of any settings section, so its
   // scope publishes nothing when one is written. This is the only signal that
@@ -154,5 +179,12 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => webSearch.inject(),
     }, WebSearchCard)
+    yield ctx.slots.register({
+      name: 'settings.plugin.item',
+      id: 'subagent',
+      order: 30,
+      locale: NS,
+      inject: subagentInjected,
+    }, SubagentCard)
   })
 }

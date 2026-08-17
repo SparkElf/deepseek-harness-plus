@@ -377,11 +377,9 @@
 - id: tool-subagent-list-agents
   disabled: true
 
-- id: tool-subagent
-  disabled: true
-
-- id: tool-subagent-fork
-  disabled: true
+# The two shipped delegation entries stay mounted in Web: each owns a live
+# settings namespace consumed by the Subagents page and by newly created child
+# runs. Other subagent controls remain opt-in through an agent preset.
 
 # `tool-subagent-report` is host-plane for the same reason as the registry, not
 # because a preset may not want it: it registers a CONTINUABLE SETUP on that

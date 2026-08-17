@@ -22,7 +22,7 @@ The controls answer different questions:
 | `toolFilter` | Which deployment-global tools enter this child's visible tool view? | A scoped restriction filters globals before child-local tools are added |
 | `maxDepth` | How deep may this delegation tree grow? | A start whose child depth exceeds the absolute cap is rejected |
 
-`dsh-tool-subagent` exposes the controls as plugin configuration and copies them into each request it creates. Direct `SubagentRuntime` callers may choose them per request. The provider capability descriptor remains the source of truth for whether a backend can honor each field.
+`dsh-tool-subagent` exposes the controls as plugin configuration and copies them into each request it creates. An instance with `settingsNamespace` resolves the same fields from user settings for every later child start; [live Web subagent settings](2026-08-16-web-subagent-settings.md) own that deployment integration. Direct `SubagentRuntime` callers may choose them per request. The provider capability descriptor remains the source of truth for whether a backend can honor each field.
 
 ### Persona is a scoped shadow
 
