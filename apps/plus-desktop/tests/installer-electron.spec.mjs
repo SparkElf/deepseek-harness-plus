@@ -25,10 +25,11 @@ test('installer lets an operator choose a directory and complete custom provider
     await expect(page.locator('#installPath')).not.toHaveValue('')
 
     await page.getByRole('button', { name: '继续' }).click()
-    const provider = page.locator('.select-control:visible').first()
+    const provider = page.locator('#provider').locator('..')
     await provider.locator('.select-trigger').click()
     await expect(provider.locator('.select-check:not([hidden])')).toHaveCount(1)
     await provider.getByRole('option', { name: '自定义提供方', exact: true }).click()
+    await expect(page.locator('#customProvider')).toBeVisible()
 
     await page.locator('#model').fill('gpt-5.6')
     await page.locator('#customName').fill('Gateway')
