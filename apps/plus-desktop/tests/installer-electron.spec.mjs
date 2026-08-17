@@ -34,6 +34,13 @@ test('installer lets an operator choose a directory and complete custom provider
     await page.locator('#model').fill('gpt-5.6')
     await page.locator('#customName').fill('Gateway')
     await page.getByRole('button', { name: '继续' }).click()
+    console.log('custom validation', JSON.stringify({
+      provider: await page.locator('#provider').inputValue(),
+      step: await page.locator('.panel.active h1').textContent(),
+      globalError: await page.locator('#error').textContent(),
+      fieldError: await page.locator('#customProviderError').textContent(),
+      fieldHidden: await page.locator('#customProviderError').isHidden(),
+    }))
     await expect(page.locator('#customProviderError')).toHaveText('请填写服务地址。')
     await expect(page.locator('#baseURL')).toHaveAttribute('aria-invalid', 'true')
 
