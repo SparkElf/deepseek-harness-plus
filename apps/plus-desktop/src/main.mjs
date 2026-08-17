@@ -166,7 +166,8 @@ function openInstaller() {
     webPreferences: {
       preload: join(currentDirectory, 'preload.mjs'),
       contextIsolation: true,
-      sandbox: true,
+      // The ESM preload must run with Node access; renderer exposure remains limited to the allowlisted bridge above.
+      sandbox: false,
     },
   })
   installerWindow.loadFile(join(currentDirectory, '..', 'renderer', 'index.html'))
