@@ -7,6 +7,21 @@ import AdmZip from 'adm-zip'
 
 const desktopDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
+/** 等待备份窗口显示成功状态；期间出现错误文本则立即携带错误内容失败。 */
+async function expectResult(backup, successText, timeoutMs) {
+  const status = backup.locator('#status')
+  const error = backup.locator('#error')
+  const deadline = Date.now() + timeoutMs
+  for (;;) {
+    const statusText = await status.textContent() ?? ''
+    if (statusText.includes(successText)) return statusText
+    const errorText = (await error.textContent() ?? '').trim()
+    if (errorText !== '') throw new Error('Backup operation failed: ' + errorText)
+    if (Date.now() > deadline) throw new Error('Timed out waiting for "' + successText + '"; status="' + statusText + '"')
+    await new Promise(resolve => setTimeout(resolve, 500))
+  }
+}
+
 test('installer validates directory provider proxy and retry controls', async ({}, testInfo) => {
   const application = await electron.launch({
     args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
@@ -180,11 +195,15 @@ test('backup window exports and restores the user data archive', async ({}, test
     const exportPath = testInfo.outputPath('user-backup.zip')
     writeFileSync(dialogSelectionsPath, JSON.stringify({ savePath: exportPath }))
     await backup.getByRole('button', { name: '导出备份压缩包' }).click()
-    await expect(backup.locator('#status')).toContainText('备份已导出', { timeout: 120_000 })
+    await expectResult(backup, '备份已导出', 120_000)
     const archive = new AdmZip(exportPath)
     const entryNames = archive.getEntries().map(entry => entry.entryName)
     expect(entryNames).toContain('settings.yaml')
     expect(entryNames).toContain('backup-manifest.json')
+    // 用户配置的模型（provider/model/reasoningEffort）写在 settings.yaml，凭据在 .credentials.yaml：备份必须带上它们。
+    const settingsEntry = archive.getEntries().find(entry => entry.entryName === 'settings.yaml')
+    expect(settingsEntry.getData().toString('utf8')).toContain('agent-default-model')
+    expect(entryNames).toContain('.credentials.yaml')
 
     const invalidArchivePath = testInfo.outputPath('invalid.zip')
     const invalidArchive = new AdmZip()
@@ -199,9 +218,11 @@ test('backup window exports and restores the user data archive', async ({}, test
     writeFileSync(settingsPath, 'locale:\n  preference: en\n')
     writeFileSync(dialogSelectionsPath, JSON.stringify({ openPath: exportPath, confirm: 0 }))
     await backup.getByRole('button', { name: '选择压缩包并导入' }).click()
-    await expect(backup.locator('#status')).toContainText('备份已导入', { timeout: 6 * 60_000 })
-    await expect(backup.locator('#status')).toContainText('Harness 已重新启动')
-    expect(readFileSync(settingsPath, 'utf8')).toContain('"zh"')
+    const importedStatus = await expectResult(backup, '备份已导入', 6 * 60_000)
+    expect(importedStatus).toContain('Harness 已重新启动')
+    const restoredSettings = readFileSync(settingsPath, 'utf8')
+    expect(restoredSettings).toContain('"zh"')
+    expect(restoredSettings).toContain('agent-default-model')
   } finally {
     await application.close()
   }

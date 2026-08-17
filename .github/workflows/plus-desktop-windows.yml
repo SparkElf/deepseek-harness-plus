@@ -48,6 +48,15 @@ jobs:
       - name: Test Electron installer interaction
         run: pnpm --filter @deepseek-ai/dsh-plus-desktop test:electron
 
+      - name: Upload Electron test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-test-results
+          path: apps/plus-desktop/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Build Windows installer
         run: pnpm --filter @deepseek-ai/dsh-plus-desktop package:win
 

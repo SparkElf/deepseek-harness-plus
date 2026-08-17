@@ -17,7 +17,7 @@ function render() {
   document.querySelector('#location').textContent = t('数据目录：', 'Data folder: ') + snapshot.dshHome
   document.querySelector('#export-title').textContent = t('导出用户设置和数据', 'Export user settings and data')
   document.querySelector('#import-title').textContent = t('导入用户设置和数据', 'Import user settings and data')
-  document.querySelector('#export-desc').textContent = t('把当前设置、会话和凭据等用户数据导出为一个 zip 压缩包。', 'Export settings, sessions, credentials and other user data as one zip archive.')
+  document.querySelector('#export-desc').textContent = t('把当前设置（含 provider 和模型配置）、会话和凭据等用户数据导出为一个 zip 压缩包。', 'Export settings (including provider and model configuration), sessions, credentials and other user data as one zip archive.')
   document.querySelector('#import-desc').textContent = t('从备份压缩包恢复用户数据；同名文件会被覆盖，导入期间 Harness 会先停止、成功后自动重启。', 'Restore user data from a backup archive; same-named files are replaced. Harness stops during import and restarts after success.')
   document.querySelector('#warning').textContent = t('备份压缩包包含 API 密钥等敏感信息，请妥善保管。', 'The backup archive contains sensitive data such as API keys; store it carefully.')
   exportButton.textContent = t('导出备份压缩包', 'Export backup archive')
