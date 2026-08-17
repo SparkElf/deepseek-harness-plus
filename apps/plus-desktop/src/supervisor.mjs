@@ -38,7 +38,29 @@ class SubprocessFailure extends Error {
     const outcome = signal === null ? 'exit code ' + String(code) : 'signal ' + signal
     super(output || command + ' failed with ' + outcome)
     this.name = 'SubprocessFailure'
+    this.exitCode = code
     this.summary = command + ' failed with ' + outcome
+  }
+}
+
+/**
+ * Windows 上终止指定 PID 的进程树。taskkill 在进程已不存在时返回 128，
+ * 对"进程已停止"这一目标而言是成功，不应中断停止流程。
+ * @param {string} cwd 工作目录。
+ * @param {Record<string, string | undefined>} env 环境变量。
+ * @param {number} pid 待终止的进程。
+ * @param {number} timeoutMs 超时毫秒数。
+ * @param {boolean} [force=false] 是否强制终止。
+ * @returns {Promise<void>} 完成即表示进程树已停止或本就不存在。
+ */
+async function taskkillTree(cwd, env, pid, timeoutMs, force = false) {
+  const args = ['/PID', String(pid), '/T']
+  if (force) args.push('/F')
+  try {
+    await run('taskkill', args, cwd, env, timeoutMs)
+  } catch (error) {
+    if (error instanceof SubprocessFailure && error.exitCode === 128) return
+    throw error
   }
 }
 
@@ -284,7 +306,7 @@ class RuntimeSupervisor {
       try { process.kill(-knownPid, 'SIGTERM') }
       catch (error) { if (error?.code !== 'ESRCH') throw error }
     } else for (const pid of targetPids) {
-      if (process.platform === 'win32') await run('taskkill', ['/PID', String(pid), '/T'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+      if (process.platform === 'win32') await taskkillTree(this.manifest.installPath, this.environment(), pid, STOP_TIMEOUT_MS)
       else {
         try { process.kill(pid, 'SIGTERM') }
         catch (error) { if (error?.code !== 'ESRCH') throw error }
@@ -298,7 +320,7 @@ class RuntimeSupervisor {
         try { process.kill(-knownPid, 'SIGKILL') }
         catch (error) { if (error?.code !== 'ESRCH') throw error }
       } else for (const pid of targetPids) {
-        if (process.platform === 'win32') await run('taskkill', ['/PID', String(pid), '/T', '/F'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+        if (process.platform === 'win32') await taskkillTree(this.manifest.installPath, this.environment(), pid, STOP_TIMEOUT_MS, true)
         else {
           try { process.kill(pid, 'SIGKILL') }
           catch (error) { if (error?.code !== 'ESRCH') throw error }
@@ -377,7 +399,7 @@ class RuntimeSupervisor {
   async stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return
     if (process.platform === 'win32' && child.pid !== undefined) {
-      await run('taskkill', ['/PID', String(child.pid), '/T'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+      await taskkillTree(this.manifest.installPath, this.environment(), child.pid, STOP_TIMEOUT_MS)
     } else if (child.pid !== undefined) {
       try { process.kill(-child.pid, 'SIGTERM') }
       catch (error) { console.info('[supervisor] process group termination fell back to child signal', error); child.kill('SIGTERM') }
@@ -386,7 +408,7 @@ class RuntimeSupervisor {
     catch (error) {
       console.info('[supervisor] graceful process tree stop timed out', error)
       if (process.platform === 'win32' && child.pid !== undefined) {
-        await run('taskkill', ['/PID', String(child.pid), '/T', '/F'], this.manifest.installPath, this.environment(), STOP_TIMEOUT_MS)
+        await taskkillTree(this.manifest.installPath, this.environment(), child.pid, STOP_TIMEOUT_MS, true)
       } else if (child.pid !== undefined) {
         try { process.kill(-child.pid, 'SIGKILL') }
         catch (killError) { console.info('[supervisor] process group kill fell back to child kill', killError); child.kill('SIGKILL') }
