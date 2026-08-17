@@ -641,7 +641,8 @@ async function handleBackupImport(options = {}) {
     if (message.includes('unsafe path')) throw new Error(trayText('backupUnsafeArchive'))
     throw error
   }
-  const wasRunning = supervisorSnapshot?.state === 'running'
+  // 实时查询 Supervisor 状态；模块级缓存快照可能滞后，会把运行中的 Harness 误判为停止。
+  const wasRunning = (await daemon.snapshot()).state === 'running'
   if (wasRunning) await daemon.stop()
   const result = restoreUserBackup(validated, backupDataPath())
   if (wasRunning) await daemon.start()
