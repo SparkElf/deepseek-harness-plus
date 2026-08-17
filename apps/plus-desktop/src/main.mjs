@@ -41,7 +41,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', quit: '退出',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', quit: '退出', quitting: '正在退出…',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -49,7 +49,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', quit: 'Quit',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', quit: 'Quit', quitting: 'Quitting…',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -232,7 +232,7 @@ function refreshTray() {
     { label: trayText('openData'), enabled: installed && !maintenanceBusy, click: openDataFolder },
     { label: trayText('backup'), enabled: installed && !maintenanceBusy, click: openBackupWindow },
     { type: 'separator' },
-    { label: trayText('quit'), click: async () => { await daemon.stop(); app.quit() } },
+    { label: trayText('quit'), click: () => { void quitApp() } },
   ])
   tray.setContextMenu(trayMenu)
 }
@@ -266,6 +266,25 @@ async function syncSupervisorStatus() {
   supervisorSnapshot = await daemon.snapshot()
   candidateAvailable = await candidateRuntimeIsAvailable()
   refreshTray()
+}
+
+/** 停止 runtime 的退出宽限：超时或失败都不再阻塞退出本身。 */
+const QUIT_STOP_BUDGET_MS = 8_000
+
+/**
+ * 托盘退出：先以托盘提示"正在退出"并禁用菜单，限时尽力停止 runtime，
+ * 停止失败或超时也照常退出——退出手势永远生效，且不再弹错误框。
+ */
+async function quitApp() {
+  busy = trayText('quitting')
+  refreshTray()
+  const budget = new Promise(resolve => setTimeout(resolve, QUIT_STOP_BUDGET_MS))
+  try {
+    await Promise.race([daemon.stop(), budget])
+  } catch (error) {
+    console.error('[plus-desktop] runtime stop failed during quit', error)
+  }
+  app.quit()
 }
 
 async function action(label, work) {
