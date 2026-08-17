@@ -12,7 +12,7 @@ Windows 上从托盘启动 Harness 会留下一个一直存在的 `cmd.exe` 控�
 
 Supervisor 现在直接启动 Harness Web 和开发 watcher：在安装根目录执行 `node --import tsx/esm apps/cli/src/bin.ts web …`，使用 PATH 上的 `node`，stdio 接入 Supervisor 日志，并设置 `windowsHide: true`。这里刻意不使用 Electron 自带的 Node，因为它的 ESM 解析无法处理 pnpm 符号链接的工作区包。`pnpm` 只保留给 `pnpm run build`，其嵌套 script 链不做绕过。桌面侧所有 spawn（Supervisor 辅助命令、安装器的 git/pnpm/wsl 执行）都设置 `windowsHide: true`，GUI 进程的 console 子系统子进程不再创建窗口。
 
-托盘新增"备份与恢复"入口，打开一个包含两个操作的专用窗口。导出把完整的 `dshHome` 目录加上 `backup-manifest.json` 标记条目打包为 zip，写入路径由保存对话框选择。导入先停止运行中的 Harness，校验标记，拒绝包含绝对路径、反斜杠或 `..` 段的条目，按同名覆盖解压到 `dshHome`，若原本在运行则重新启动。缺少标记或路径不安全的压缩包在解压前就以本地化错误拒绝。窗口提示压缩包包含 API 密钥等敏感数据。WSL 目标会被明确拒绝，因为 `dshHome` 位于发行版文件系统内部。
+托盘新增"备份与恢复"入口，打开一个包含两个操作的专用窗口。导出把完整的 `dshHome` 目录加上 `backup-manifest.json` 标记条目打包为 zip，写入路径由保存对话框选择。导入先校验压缩包——标记必须存在，包含绝对路径、反斜杠或 `..` 段的条目被拒绝——然后才停止运行中的 Harness，按同名覆盖解压到 `dshHome`，若原本在运行则重新启动，因此无效压缩包不会把 runtime 停在停止状态。缺少标记或路径不安全的压缩包在解压前就以本地化错误拒绝。窗口提示压缩包包含 API 密钥等敏感数据。WSL 目标会被明确拒绝，因为 `dshHome` 位于发行版文件系统内部。
 
 ## Verification
 

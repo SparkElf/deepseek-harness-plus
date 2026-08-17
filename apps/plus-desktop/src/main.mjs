@@ -10,7 +10,7 @@ import { parse as parseYaml } from 'yaml'
 import { HarnessDaemon } from './daemon.mjs'
 import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
 import { releaseSourceRef } from './release-source.mjs'
-import { BACKUP_MANIFEST_ENTRY, exportUserBackup, importUserBackup } from './backup.mjs'
+import { BACKUP_MANIFEST_ENTRY, exportUserBackup, restoreUserBackup, validateUserBackup } from './backup.mjs'
 
 const repository = process.env.DSH_PLUS_INSTALL_REPOSITORY ?? 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const installSourceRef = process.env.DSH_PLUS_INSTALL_SOURCE_REF ?? releaseSourceRef
@@ -632,17 +632,19 @@ async function handleBackupImport(options = {}) {
     })
     if (confirmation.response !== 0) return { canceled: true }
   }
-  const wasRunning = supervisorSnapshot?.state === 'running'
-  if (wasRunning) await daemon.stop()
-  let result
+  // 先校验压缩包再停止 runtime：无效压缩包不应把 Harness 停在停止状态。
+  let validated
   try {
-    result = importUserBackup(archivePath, runtime.dshHome)
+    validated = validateUserBackup(archivePath)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     if (message.includes('missing ' + BACKUP_MANIFEST_ENTRY)) throw new Error(trayText('backupNotArchive'))
     if (message.includes('unsafe path')) throw new Error(trayText('backupUnsafeArchive'))
     throw error
   }
+  const wasRunning = supervisorSnapshot?.state === 'running'
+  if (wasRunning) await daemon.stop()
+  const result = restoreUserBackup(validated, runtime.dshHome)
   if (wasRunning) await daemon.start()
   return { canceled: false, restarted: wasRunning, ...result }
 }

@@ -24,12 +24,12 @@ export function exportUserBackup(dshHome, targetPath) {
 }
 
 /**
- * 校验并把备份包内容恢复到 dshHome；同名文件被覆盖，其余文件保留。
+ * 校验备份包：必须携带清单标记，且所有条目路径安全。校验不修改任何文件，
+ * 因此可以在停止 runtime 之前执行，无效压缩包不会把 Harness 停在停止状态。
  * @param {string} archivePath 备份包路径。
- * @param {string} dshHome Harness 用户数据目录。
- * @returns {{ entries: number }} 恢复的条目数量。
+ * @returns {{ zip: AdmZip, entries: number }} 已打开并通过校验的压缩包。
  */
-export function importUserBackup(archivePath, dshHome) {
+export function validateUserBackup(archivePath) {
   const zip = new AdmZip(archivePath)
   const entries = zip.getEntries()
   if (!entries.some(entry => entry.entryName === BACKUP_MANIFEST_ENTRY)) {
@@ -44,6 +44,26 @@ export function importUserBackup(archivePath, dshHome) {
       if (part === '' && index < parts.length - 1) throw new Error('Backup archive contains an unsafe path: ' + name)
     }
   }
-  zip.extractAllTo(dshHome, true)
-  return { entries: entries.length }
+  return { zip, entries: entries.length }
+}
+
+/**
+ * 把通过校验的备份包恢复到 dshHome；同名文件被覆盖，其余文件保留。
+ * @param {{ zip: AdmZip, entries: number }} validated validateUserBackup 的返回值。
+ * @param {string} dshHome Harness 用户数据目录。
+ * @returns {{ entries: number }} 恢复的条目数量。
+ */
+export function restoreUserBackup(validated, dshHome) {
+  validated.zip.extractAllTo(dshHome, true)
+  return { entries: validated.entries }
+}
+
+/**
+ * 校验并恢复备份包的一步式入口。
+ * @param {string} archivePath 备份包路径。
+ * @param {string} dshHome Harness 用户数据目录。
+ * @returns {{ entries: number }} 恢复的条目数量。
+ */
+export function importUserBackup(archivePath, dshHome) {
+  return restoreUserBackup(validateUserBackup(archivePath), dshHome)
 }
