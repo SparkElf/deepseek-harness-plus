@@ -2,46 +2,46 @@ const messages = {
   zh: {
     'step.appearance': '外观', 'step.location': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'title.appearance': '选择界面外观', 'title.location': '选择安装位置', 'title.model': '选择模型', 'title.review': '确认安装',
-    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口',
+    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口', 'label.proxy': '下载代理（可选）',
     'label.provider': '模型提供方', 'label.apiKey': 'API 密钥', 'label.model': '模型名称', 'label.reasoning': '推理强度',
     'label.providerName': '服务名称', 'label.baseURL': '服务地址',
     'theme.system': '跟随系统', 'theme.light': '浅色', 'theme.dark': '深色',
     'target.windows': 'Windows', 'target.linux': 'Linux', 'target.macos': 'macOS',
     'provider.deepseek-official': 'DeepSeek', 'provider.openai': 'OpenAI', 'provider.anthropic': 'Anthropic', 'provider.google': 'Google',
     'provider.openrouter': 'OpenRouter', 'provider.groq': 'Groq', 'provider.mistral': 'Mistral', 'provider.xai': 'xAI', 'provider.custom': '自定义提供方',
-    'action.choose': '选择文件夹', 'action.refresh': '刷新', 'action.back': '返回', 'action.cancel': '取消', 'action.continue': '继续', 'action.install': '安装',
+    'action.choose': '选择文件夹', 'action.refresh': '刷新', 'action.back': '返回', 'action.cancel': '取消', 'action.continue': '继续', 'action.install': '安装', 'action.retry': '重试',
     'advanced.title': '高级选项',
     'directory.title': '选择安装目录', 'directory.home': '主目录', 'directory.up': '返回上级', 'directory.edit': '编辑路径', 'directory.newFolder': '新建文件夹', 'directory.newFolderPlaceholder': '文件夹名称', 'directory.create': '创建', 'directory.showHidden': '显示隐藏文件', 'directory.open': '打开', 'directory.empty': '此目录中没有文件夹。',
     'placeholder.baseURL': '例如 https://api.example.com/v1',
     'reasoning.default': '默认', 'reasoning.low': '低', 'reasoning.medium': '中', 'reasoning.high': '高', 'reasoning.max': '最高',
     'summary.language': '语言', 'summary.theme': '主题', 'summary.location': '安装位置', 'summary.distribution': '发行版',
-    'summary.folder': '安装目录', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
-    'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。',
+    'summary.folder': '安装目录', 'summary.proxy': '下载代理', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
+    'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。', 'error.proxy': '代理地址必须是 HTTP、HTTPS 或 SOCKS5 URL。',
     'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。', 'error.preview': '预览页面不能选择本机目录或执行安装。',
-    'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus',
+    'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus', 'placeholder.proxy': '例如 http://127.0.0.1:7890',
     'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在准备安装…', 'progress.checking': '正在检查安装环境…', 'progress.downloading': '正在下载 Harness…', 'progress.configuring': '正在写入设置…', 'progress.installing': '正在安装依赖…', 'progress.building': '正在构建 Harness…', 'progress.starting': '正在启动 Harness…', 'progress.complete': '安装完成。',
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
     'step.appearance': 'Appearance', 'step.location': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'title.appearance': 'Choose the interface', 'title.location': 'Choose where to install', 'title.model': 'Choose a model', 'title.review': 'Ready to install',
-    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port',
+    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port', 'label.proxy': 'Download proxy (optional)',
     'label.provider': 'Model provider', 'label.apiKey': 'API key', 'label.model': 'Model', 'label.reasoning': 'Reasoning',
     'label.providerName': 'Service name', 'label.baseURL': 'Service URL',
     'theme.system': 'System', 'theme.light': 'Light', 'theme.dark': 'Dark',
     'target.windows': 'Windows', 'target.linux': 'Linux', 'target.macos': 'macOS',
     'provider.deepseek-official': 'DeepSeek', 'provider.openai': 'OpenAI', 'provider.anthropic': 'Anthropic', 'provider.google': 'Google',
     'provider.openrouter': 'OpenRouter', 'provider.groq': 'Groq', 'provider.mistral': 'Mistral', 'provider.xai': 'xAI', 'provider.custom': 'Custom provider',
-    'action.choose': 'Choose folder', 'action.refresh': 'Refresh', 'action.back': 'Back', 'action.cancel': 'Cancel', 'action.continue': 'Continue', 'action.install': 'Install',
+    'action.choose': 'Choose folder', 'action.refresh': 'Refresh', 'action.back': 'Back', 'action.cancel': 'Cancel', 'action.continue': 'Continue', 'action.install': 'Install', 'action.retry': 'Retry',
     'advanced.title': 'Advanced',
     'directory.title': 'Choose installation folder', 'directory.home': 'Home', 'directory.up': 'Go to parent folder', 'directory.edit': 'Edit path', 'directory.newFolder': 'New folder', 'directory.newFolderPlaceholder': 'Folder name', 'directory.create': 'Create', 'directory.showHidden': 'Show hidden files', 'directory.open': 'Open', 'directory.empty': 'This folder has no subfolders.',
     'placeholder.baseURL': 'For example https://api.example.com/v1',
     'reasoning.default': 'Default', 'reasoning.low': 'Low', 'reasoning.medium': 'Medium', 'reasoning.high': 'High', 'reasoning.max': 'Max',
     'summary.language': 'Language', 'summary.theme': 'Theme', 'summary.location': 'Install location', 'summary.distribution': 'Linux distribution',
-    'summary.folder': 'Installation folder', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
-    'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.',
+    'summary.folder': 'Installation folder', 'summary.proxy': 'Download proxy', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
+    'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.', 'error.proxy': 'Use an HTTP, HTTPS, or SOCKS5 proxy URL.',
     'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.', 'error.preview': 'The preview cannot choose local folders or install Harness.',
-    'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus',
+    'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus', 'placeholder.proxy': 'For example http://127.0.0.1:7890',
     'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Preparing installation…', 'progress.checking': 'Checking the installation environment…', 'progress.downloading': 'Downloading Harness…', 'progress.configuring': 'Writing settings…', 'progress.installing': 'Installing dependencies…', 'progress.building': 'Building Harness…', 'progress.starting': 'Starting Harness…', 'progress.complete': 'Installation complete.',
     'window.title': 'Install DeepSeek Harness Plus',
   },
@@ -80,6 +80,7 @@ const stepLines = [...document.querySelectorAll('.stepper i')]
 const back = document.querySelector('#back')
 const next = document.querySelector('#next')
 const error = document.querySelector('#error')
+const retryInstall = document.querySelector('#retryInstall')
 const progress = document.querySelector('#progress')
 const progressText = document.querySelector('#progressText')
 const progressPercent = document.querySelector('#progressPercent')
@@ -91,6 +92,8 @@ const reasoning = document.querySelector('#reasoningEffort')
 const provider = document.querySelector('#provider')
 const customProvider = document.querySelector('#customProvider')
 const installPath = document.querySelector('#installPath')
+const proxy = document.querySelector('#proxy')
+const proxyError = document.querySelector('#proxyError')
 const chooseDirectory = document.querySelector('#chooseDirectory')
 const directoryBrowser = document.querySelector('#directoryBrowser')
 const directoryPathBar = document.querySelector('#directoryPathBar')
@@ -248,7 +251,7 @@ function target() { return { kind: targetKind, distribution: targetKind === 'wsl
 function nativeTargetName() { return bridge.platform === 'darwin' ? text('target.macos') : bridge.platform === 'linux' ? text('target.linux') : text('target.windows') }
 function values() {
   return {
-    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), apiKey: document.querySelector('#apiKey').value.trim(),
+    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), proxy: proxy.value.trim(), apiKey: document.querySelector('#apiKey').value.trim(),
     provider: provider.value, model: document.querySelector('#model').value.trim(), reasoningEffort: reasoning.value,
     customName: document.querySelector('#customName').value.trim(), baseURL: document.querySelector('#baseURL').value.trim(), locale, theme, target: target(),
   }
@@ -279,6 +282,24 @@ function clearCustomProviderError() {
   baseURL.removeAttribute('aria-invalid')
   customProviderError.hidden = true
   customProviderError.textContent = ''
+}
+function clearProxyError() {
+  proxy.removeAttribute('aria-invalid')
+  proxyError.hidden = true
+  proxyError.textContent = ''
+}
+function validateProxy(config) {
+  clearProxyError()
+  if (!config.proxy) return ''
+  if (URL.canParse(config.proxy)) {
+    const url = new URL(config.proxy)
+    if (['http:', 'https:', 'socks5:', 'socks5h:'].includes(url.protocol)) return ''
+  }
+  proxy.setAttribute('aria-invalid', 'true')
+  proxyError.textContent = text('error.proxy')
+  proxyError.hidden = false
+  proxy.focus()
+  return proxyError.textContent
 }
 function validateCustomProvider(config) {
   clearCustomProviderError()
@@ -351,6 +372,12 @@ function addSummary(name, value) {
   term.textContent = name; description.textContent = value; row.append(term, description); return row
 }
 function providerName(config) { return config.provider === 'custom' ? config.customName : text('provider.' + config.provider) }
+function proxyName(value) {
+  const url = new URL(value)
+  url.username = ''
+  url.password = ''
+  return url.toString()
+}
 function renderSummary() {
   const config = values()
   const rows = [
@@ -359,7 +386,9 @@ function renderSummary() {
     addSummary(text('summary.location'), targetKind === 'wsl' ? 'Linux (WSL)' : nativeTargetName()),
   ]
   if (targetKind === 'wsl') rows.push(addSummary(text('summary.distribution'), config.target.distribution))
-  rows.push(addSummary(text('summary.folder'), config.installPath), addSummary(text('summary.provider'), providerName(config)))
+  rows.push(addSummary(text('summary.folder'), config.installPath))
+  if (config.proxy) rows.push(addSummary(text('summary.proxy'), proxyName(config.proxy)))
+  rows.push(addSummary(text('summary.provider'), providerName(config)))
   if (config.provider === 'custom') rows.push(addSummary(text('summary.url'), config.baseURL))
   rows.push(addSummary(text('summary.model'), config.model))
   if (config.reasoningEffort) rows.push(addSummary(text('summary.reasoning'), text('reasoning.' + config.reasoningEffort)))
@@ -671,13 +700,14 @@ function showStep(nextStep, resetValidation = true) {
   stepButtons.forEach((button, index) => { button.classList.toggle('active', index === step); button.classList.toggle('complete', index < step); button.setAttribute('aria-current', index === step ? 'step' : 'false') })
   stepLines.forEach((line, index) => line.classList.toggle('complete', index < step))
   back.hidden = step === 0; next.textContent = step === 3 ? text('action.install') : text('action.continue')
-  if (resetValidation) { error.textContent = ''; clearCustomProviderError() }
+  if (resetValidation) { error.textContent = ''; retryInstall.hidden = true; clearProxyError(); clearCustomProviderError() }
   if (step === 3) renderSummary()
 }
 function validate() {
   const config = values()
   if (step === 1 && targetKind === 'wsl' && (!distributionsLoaded || !config.target.distribution)) return text('error.distribution')
   if (step === 1 && !config.installPath) return text('error.location')
+  if (step === 1) return validateProxy(config)
   if (step === 1 && ['3081', '3082', '3083'].includes(config.port)) return text('error.reservedPort')
   if (step === 2 && (!config.apiKey || !config.model)) return text('error.model')
   if (step === 2 && config.provider === 'custom') return validateCustomProvider(config)
@@ -722,16 +752,38 @@ directoryNewName.addEventListener('keydown', event => {
 directoryOpen.addEventListener('click', () => { void confirmDirectoryBrowser() })
 customName.addEventListener('input', clearCustomProviderError)
 baseURL.addEventListener('input', clearCustomProviderError)
+proxy.addEventListener('input', clearProxyError)
 document.querySelector('#refreshDistributions').addEventListener('click', loadDistributions)
 back.addEventListener('click', () => showStep(step - 1))
+async function startInstallation() {
+  retryInstall.hidden = true
+  error.textContent = ''
+  next.disabled = true
+  back.disabled = true
+  setInstallProgress({ percent: 0, message: text('progress.preparing') })
+  try {
+    const result = await bridge.install(values())
+    if (result.installed) return
+    error.textContent = result.error
+    next.disabled = false
+    back.disabled = false
+    retryInstall.hidden = !result.retryable
+    progress.hidden = true
+  } catch (caught) {
+    error.textContent = caught instanceof Error ? caught.message : String(caught)
+    next.disabled = false
+    back.disabled = false
+    retryInstall.hidden = true
+    progress.hidden = true
+  }
+}
 next.addEventListener('click', async () => {
   const message = validate(); if (message) { error.textContent = message; return }
   if (preview && step === 3) { error.textContent = text('error.preview'); return }
   if (step < 3) { showStep(step + 1); return }
-  next.disabled = true; back.disabled = true; setInstallProgress({ percent: 0, message: text('progress.preparing') })
-  try { await bridge.install(values()); if (preview) { next.disabled = false; back.disabled = false } }
-  catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught); next.disabled = false; back.disabled = false; progress.hidden = true }
+  await startInstallation()
 })
+retryInstall.addEventListener('click', () => { void startInstallation() })
 bridge.onProgress(update => setInstallProgress(update))
 systemDark.addEventListener('change', () => { if (theme === 'system') applyAppearance() })
 if (preview) document.querySelector('#apiKey').value = 'sk-preview'

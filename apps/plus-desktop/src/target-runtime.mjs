@@ -1,11 +1,12 @@
 import { spawn } from 'node:child_process'
-import { mkdir, readdir, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { connect } from 'node:net'
 import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
 
 const COMMAND_TIMEOUT_MS = 15 * 60_000
 const CONNECT_TIMEOUT_MS = 30_000
+const proxyEnvironmentKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy']
 const workspaceRequire = createRequire(import.meta.url)
 const bundledPnpmCli = join(dirname(workspaceRequire.resolve('pnpm')), 'bin', 'pnpm.mjs')
 
@@ -114,17 +115,18 @@ export class TargetRuntime {
 
   join(...parts) { return this.isWsl ? posix.join(...parts) : join(...parts) }
 
-  command(command, args, cwd) {
+  command(command, args, cwd, environment) {
     if (!this.isWsl) return { command, args, cwd }
     const wslArgs = ['--distribution', this.target.distribution]
     if (cwd !== undefined) wslArgs.push('--cd', cwd)
-    wslArgs.push('--exec', command, ...args)
+    const proxyAssignments = proxyEnvironmentKeys.flatMap(key => environment?.[key] ? [key + '=' + environment[key]] : [])
+    wslArgs.push('--exec', ...(proxyAssignments.length > 0 ? ['env', ...proxyAssignments] : []), command, ...args)
     return { command: 'wsl.exe', args: wslArgs, cwd: undefined }
   }
 
   /** 在选中的目标系统执行命令，并把真实输出交给安装或维护进度。 */
   run(command, args, cwd, report, options = {}) {
-    const invocation = this.command(command, args, cwd)
+    const invocation = this.command(command, args, cwd, options.env)
     return execute(invocation.command, invocation.args, { ...options, cwd: invocation.cwd, report })
   }
 
@@ -142,10 +144,22 @@ export class TargetRuntime {
   async assertEmptyDirectory(path) {
     if (!this.isWsl) {
       await mkdir(path, { recursive: true })
+      if ((await lstat(path)).isSymbolicLink()) throw new Error('Choose a real installation directory, not a link.')
       if ((await readdir(path)).length > 0) throw new Error('Choose an empty installation directory.')
       return
     }
-    await this.run('sh', ['-lc', 'mkdir -p -- "$1" && test -z "$(ls -A -- "$1")"', 'sh', path])
+    await this.run('sh', ['-lc', 'mkdir -p -- "$1" && test ! -L "$1" && test -z "$(ls -A -- "$1")"', 'sh', path])
+  }
+
+  /** 清理本次失败 clone 留下的目标目录，使安装器可以安全重试。 */
+  async resetInstallDirectory(path) {
+    if (!this.isWsl) {
+      if ((await lstat(path)).isSymbolicLink()) throw new Error('Installation directory became a link during download.')
+      await rm(path, { recursive: true, force: true })
+      await mkdir(path, { recursive: true })
+      return
+    }
+    await this.run('sh', ['-lc', 'test ! -L "$1" && rm -rf -- "$1" && mkdir -p -- "$1"', 'sh', path])
   }
 
   async assertDirectory(path) {

@@ -111,6 +111,15 @@ function credentialsDocument(form) {
   return credentialReference(form) + ': ' + JSON.stringify(form.apiKey) + '\n'
 }
 
+function proxyEnvironment(proxy) {
+  if (!proxy) return undefined
+  return {
+    ...process.env,
+    HTTP_PROXY: proxy, HTTPS_PROXY: proxy, ALL_PROXY: proxy,
+    http_proxy: proxy, https_proxy: proxy, all_proxy: proxy,
+  }
+}
+
 function runtimeFor(form, port) {
   const targetRuntime = new TargetRuntime(form.target)
   const dshHome = targetRuntime.join(form.installPath, '.dsh-plus', 'home')
@@ -119,6 +128,7 @@ function runtimeFor(form, port) {
     version: 2,
     target: form.target,
     installPath: form.installPath,
+    proxy: form.proxy || undefined,
     dshHome,
     port,
     candidatePort,
@@ -267,9 +277,45 @@ function cloneProgressReporter(report, message) {
   }
 }
 
+class RetryableInstallError extends Error {}
+
+async function cloneWithRetry(targetRuntime, form, networkEnvironment, report, installText) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await targetRuntime.run('git', ['clone', '--depth', '1', '--progress', repository, form.installPath], undefined, cloneProgressReporter(report, installText.downloading), { env: networkEnvironment })
+      return
+    } catch (error) {
+      await targetRuntime.resetInstallDirectory(form.installPath)
+      if (attempt === 3) throw new RetryableInstallError((error instanceof Error ? error.message : String(error)) + installText.retryHint)
+      report(14, installText.retrying + ' (' + String(attempt + 1) + '/3)')
+    }
+  }
+}
+
+async function installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath, () => report(58, installText.installing), { env: networkEnvironment })
+      return
+    } catch (error) {
+      if (attempt < 3) {
+        report(48, installText.retryingDependencies + ' (' + String(attempt + 1) + '/3)')
+        continue
+      }
+      await targetRuntime.resetInstallDirectory(form.installPath)
+      throw new RetryableInstallError((error instanceof Error ? error.message : String(error)) + installText.retryHint)
+    }
+  }
+}
+
 function validateInstall(form) {
   if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation folder, API key, and model.')
   if (!catalogProviders.has(form.provider) && form.provider !== 'custom') throw new Error('Choose a supported model provider.')
+  if (form.proxy) {
+    let proxyUrl
+    try { proxyUrl = new URL(form.proxy) } catch { throw new Error('Enter a valid HTTP, HTTPS, or SOCKS5 proxy URL.') }
+    if (!['http:', 'https:', 'socks5:', 'socks5h:'].includes(proxyUrl.protocol)) throw new Error('Enter a valid HTTP, HTTPS, or SOCKS5 proxy URL.')
+  }
   if (form.provider === 'custom' && (!form.customName || !form.baseURL)) throw new Error('Enter a name and URL for the custom provider.')
   if (form.provider === 'custom' && (!URL.canParse(form.baseURL) || !['http:', 'https:'].includes(new URL(form.baseURL).protocol))) throw new Error('Enter a valid HTTP or HTTPS URL for the custom provider.')
   if (form.target?.kind !== 'native' && form.target?.kind !== 'wsl') throw new Error('Choose Windows or WSL as the installation location.')
@@ -287,6 +333,7 @@ async function install(form) {
   if (runtime !== undefined) throw new Error('DeepSeek Harness Plus is already installed.')
   const port = validateInstall(form)
   const targetRuntime = new TargetRuntime(form.target)
+  const networkEnvironment = proxyEnvironment(form.proxy)
   const configured = runtimeFor(form, port)
   busy = 'Installing DeepSeek Harness Plus...'
   refreshTray()
@@ -300,29 +347,29 @@ async function install(form) {
       ? {
           preparing: '正在准备安装…', checking: '正在检查安装环境…', downloading: '正在下载 Harness…',
           configuring: '正在写入设置…', installing: '正在安装依赖…', building: '正在构建 Harness…',
-          starting: '正在启动 Harness…', complete: '安装完成。',
+          starting: '正在启动 Harness…', retrying: '下载失败，正在重试…', retryingDependencies: '依赖下载失败，正在重试…', retryHint: ' 请检查下载代理后重试。', complete: '安装完成。',
         }
       : {
           preparing: 'Preparing installation…', checking: 'Checking the installation environment…', downloading: 'Downloading Harness…',
           configuring: 'Writing settings…', installing: 'Installing dependencies…', building: 'Building Harness…',
-          starting: 'Starting Harness…', complete: 'Installation complete.',
+          starting: 'Starting Harness…', retrying: 'Download failed, retrying…', retryingDependencies: 'Dependency download failed, retrying…', retryHint: ' Check the download proxy and retry.', complete: 'Installation complete.',
         }
     report(2, installText.preparing)
     report(7, installText.checking)
-    await targetRuntime.run('git', ['--version'])
+    await targetRuntime.run('git', ['--version'], undefined, undefined, { env: networkEnvironment })
     report(10, installText.checking)
-    await targetRuntime.runPnpm(['--version'])
+    await targetRuntime.runPnpm(['--version'], undefined, undefined, { env: networkEnvironment })
     await targetRuntime.assertEmptyDirectory(form.installPath)
     report(14, installText.downloading)
-    await targetRuntime.run('git', ['clone', '--depth', '1', '--progress', repository, form.installPath], undefined, cloneProgressReporter(report, installText.downloading))
+    await cloneWithRetry(targetRuntime, form, networkEnvironment, report, installText)
     report(40, installText.configuring)
     await targetRuntime.makeDirectory(targetRuntime.join(form.installPath, '.dsh-plus', 'logs'))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, 'settings.yaml'), settingsDocument(form))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.credentials.yaml'), credentialsDocument(form))
     report(48, installText.installing)
-    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath, () => report(58, installText.installing))
+    await installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText)
     report(76, installText.building)
-    await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building))
+    await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building), { env: networkEnvironment })
     daemon.configure(configured)
     report(94, installText.starting)
     await daemon.start()
@@ -349,11 +396,12 @@ async function upgrade() {
   await action(trayText('upgrade'), async () => {
     await assertInstalled()
     const targetRuntime = new TargetRuntime(runtime.target)
+    const networkEnvironment = proxyEnvironment(runtime.proxy)
     const restart = (await daemon.snapshot()).state === 'running'
     const report = message => { busy = message; refreshTray() }
-    await targetRuntime.run('git', ['pull', '--ff-only'], runtime.installPath, report)
-    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report)
-    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report)
+    await targetRuntime.run('git', ['pull', '--ff-only'], runtime.installPath, report, { env: networkEnvironment })
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report, { env: networkEnvironment })
+    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report, { env: networkEnvironment })
     if (restart) await daemon.restart(false)
   })
 }
@@ -362,10 +410,11 @@ async function repair() {
   await action(trayText('repair'), async () => {
     await assertInstalled()
     const targetRuntime = new TargetRuntime(runtime.target)
+    const networkEnvironment = proxyEnvironment(runtime.proxy)
     const restart = (await daemon.snapshot()).state === 'running'
     const report = message => { busy = message; refreshTray() }
-    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report)
-    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report)
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report, { env: networkEnvironment })
+    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report, { env: networkEnvironment })
     if (restart) await daemon.restart(false)
   })
 }
@@ -374,7 +423,7 @@ async function checkUpdates() {
   await action(trayText('checkingUpdates'), async () => {
     await assertInstalled()
     const targetRuntime = new TargetRuntime(runtime.target)
-    await targetRuntime.run('git', ['fetch'], runtime.installPath)
+    await targetRuntime.run('git', ['fetch'], runtime.installPath, undefined, { env: proxyEnvironment(runtime.proxy) })
     const count = Number((await targetRuntime.run('git', ['rev-list', '--count', 'HEAD..@{upstream}'], runtime.installPath)).trim())
     await dialog.showMessageBox({ type: 'info', title: trayText('updateTitle'), message: count > 0 ? trayText('updateAvailable', { count }) : trayText('upToDate') })
   })
@@ -507,7 +556,19 @@ ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
   if (process.platform === 'win32') installerWindow?.setTitleBarOverlay({ color: dark ? '#232324' : '#ffffff', symbolColor: dark ? '#adb2b8' : '#61666b' })
   installerWindow?.setTitle(appearance.title)
 })
-ipcMain.handle('installer:install', (_event, form) => install(form))
+async function handleInstallerInstall(form) {
+  try {
+    return await install(form)
+  } catch (error) {
+    return {
+      installed: false,
+      error: error instanceof Error ? error.message : String(error),
+      retryable: error instanceof RetryableInstallError,
+    }
+  }
+}
+
+ipcMain.handle('installer:install', (_event, form) => handleInstallerInstall(form))
 
 app.whenReady().then(async () => {
   try {

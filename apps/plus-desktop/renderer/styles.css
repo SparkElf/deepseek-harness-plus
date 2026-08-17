@@ -125,6 +125,8 @@ input[aria-invalid='true'] { border-color: var(--error); box-shadow: 0 0 0 3px c
 .summary dt { color: var(--text-tertiary); font-size: 12px; }
 .summary dd { margin: 0; color: var(--text-primary); font-size: 13px; overflow-wrap: anywhere; }
 .error { min-height: 0; margin: 10px 0 0; color: var(--error); font-size: 12px; line-height: 18px; }
+.retry-install { min-width: 76px; margin-top: 8px; }
+.retry-install[hidden] { display: none; }
 .progress { min-height: 58px; margin-top: 10px; padding: 10px 12px; border-radius: 7px; background: var(--brand-soft); color: var(--text-primary); font-size: 12px; }
 .progress[hidden] { display: none; }
 .progress-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; }

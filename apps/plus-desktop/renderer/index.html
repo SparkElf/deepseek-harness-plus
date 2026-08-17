@@ -70,6 +70,9 @@
               <summary data-i18n="advanced.title">高级选项</summary>
               <label class="field-label" for="port" data-i18n="label.port">端口</label>
               <input id="port" required inputmode="numeric" value="3080">
+              <label class="field-label" for="proxy" data-i18n="label.proxy">下载代理（可选）</label>
+              <input id="proxy" type="url" autocomplete="off" data-i18n-placeholder="placeholder.proxy" placeholder="例如 http://127.0.0.1:7890" aria-describedby="proxyError">
+              <p id="proxyError" class="field-error proxy-error" role="alert" hidden></p>
             </details>
           </div>
 
@@ -94,6 +97,7 @@
           </div>
 
           <p id="error" class="error" role="alert"></p>
+          <button id="retryInstall" class="secondary retry-install" type="button" data-i18n="action.retry" hidden>重试</button>
           <div id="progress" class="progress" role="status" aria-live="polite" hidden>
             <div class="progress-head"><span class="spinner" aria-hidden="true"></span><span id="progressText"></span><strong id="progressPercent">0%</strong></div>
             <div id="progressBar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="安装进度"><span id="progressFill"></span></div>
