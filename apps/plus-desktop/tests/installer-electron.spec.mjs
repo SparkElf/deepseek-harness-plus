@@ -56,7 +56,7 @@ test('installer lets an operator choose a directory and complete custom provider
 
     await page.getByRole('button', { name: '安装', exact: true }).click()
     await expect(page.locator('#retryInstall')).toBeVisible({ timeout: 60_000 })
-    await expect(page.locator('#error')).toContainText('Check the download proxy and retry.')
+    await expect(page.locator('#error')).toContainText('请检查下载代理后重试。')
     await page.locator('#retryInstall').click()
     await expect(page.locator('#progress')).toBeVisible()
     await expect(page.locator('#retryInstall')).toBeVisible({ timeout: 60_000 })
