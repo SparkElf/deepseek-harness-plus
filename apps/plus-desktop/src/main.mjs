@@ -11,6 +11,7 @@ import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
 import { releaseSourceRef } from './release-source.mjs'
 
 const repository = process.env.DSH_PLUS_INSTALL_REPOSITORY ?? 'https://github.com/SparkElf/deepseek-harness-plus.git'
+const installSourceRef = process.env.DSH_PLUS_INSTALL_SOURCE_REF ?? releaseSourceRef
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const supervisorDirectory = currentDirectory.replace(/\.asar([\\/])/u, '.asar.unpacked$1')
 const supervisorBootstrapPath = join(supervisorDirectory, 'supervisor-bootstrap.mjs')
@@ -136,7 +137,7 @@ function runtimeFor(form, port) {
     target: form.target,
     installPath: form.installPath,
     proxy: form.proxy || undefined,
-    sourceRef: releaseSourceRef,
+    sourceRef: installSourceRef,
     dshHome,
     port,
     candidatePort: Number(form.candidatePort),
@@ -293,7 +294,7 @@ async function cloneWithRetry(targetRuntime, form, networkEnvironment, report, i
     try {
       await targetRuntime.run('git', ['init', form.installPath])
       await targetRuntime.run('git', ['remote', 'add', 'origin', repository], form.installPath)
-      await targetRuntime.run('git', ['fetch', '--depth', '1', '--progress', 'origin', releaseSourceRef], form.installPath, cloneProgressReporter(report, installText.downloading), { env: networkEnvironment })
+      await targetRuntime.run('git', ['fetch', '--depth', '1', '--progress', 'origin', installSourceRef], form.installPath, cloneProgressReporter(report, installText.downloading), { env: networkEnvironment })
       await targetRuntime.run('git', ['reset', '--hard', 'FETCH_HEAD'], form.installPath)
       return
     } catch (error) {
@@ -308,7 +309,7 @@ async function updateExistingWithRetry(targetRuntime, form, networkEnvironment, 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await targetRuntime.run('git', ['remote', 'set-url', 'origin', repository], form.installPath)
-      await targetRuntime.run('git', ['fetch', '--depth', '1', 'origin', releaseSourceRef], form.installPath, () => report(22, installText.overwriting), { env: networkEnvironment })
+      await targetRuntime.run('git', ['fetch', '--depth', '1', 'origin', installSourceRef], form.installPath, () => report(22, installText.overwriting), { env: networkEnvironment })
       await targetRuntime.run('git', ['reset', '--hard', 'FETCH_HEAD'], form.installPath, () => report(36, installText.overwriting))
       return
     } catch (error) {

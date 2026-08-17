@@ -97,7 +97,7 @@ test('installer completes a native Harness installation and starts Supervisor', 
   const application = await electron.launch({
     args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
     cwd: desktopDirectory,
-    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: installSource },
+    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: installSource, DSH_PLUS_INSTALL_SOURCE_REF: 'HEAD' },
   })
   try {
     const page = await application.firstWindow()
@@ -117,7 +117,7 @@ test('installer completes a native Harness installation and starts Supervisor', 
     await expect(page.locator('#summary')).toContainText('45182')
 
     const installerFinished = Promise.race([
-      page.waitForEvent('close', { timeout: 14 * 60_000 }).then(() => ({ closed: true })),
+      page.waitForEvent('close', { timeout: 14 * 60_000 }).then(() => ({ closed: true })).catch(() => undefined),
       page.locator('#error').waitFor({ state: 'visible', timeout: 14 * 60_000 }).then(async () => ({ closed: false, error: await page.locator('#error').textContent() })).catch(() => undefined),
     ])
     await page.getByRole('button', { name: '安装', exact: true }).click()
