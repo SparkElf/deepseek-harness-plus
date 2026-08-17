@@ -28,6 +28,22 @@ Use this order unless the repository template requires a stricter heading:
 
 When the project template has required evidence sections, preserve them and write the reader-first walkthrough before or within those sections. Never delete required governance evidence to make the PR shorter.
 
+## Required change ownership map
+
+Place this table immediately after the reader-first overview in every non-mechanical PR. A reviewer must know which part of the system changes before reading implementation detail.
+
+| Category | Required statement |
+| --- | --- |
+| Main path | State **changed** or **not changed**. Name the exact package, service, protocol, or loop when changed. When not changed, explain why the plugin path owns the behavior. |
+| User interface | Name the exact client package, page, or UI plugin that renders the user-visible change. State **none** only when there is no user interface. |
+| Provider or extension plugin | Name the exact adapter, provider, or extension package that implements the behavior. State **none** only when no plugin owns it. |
+| Reused modules | Name modules that participate unchanged, such as settings, credentials, attachments, session logging, or rendering. Say what they provide. |
+| Explicitly untouched modules | Name adjacent modules a reviewer might reasonably expect to change and state that they do not change. |
+
+Do not write "the core", "the UI", "related plugins", or "the model layer" without naming the owner. Do not hide a main-path change inside an adapter bullet. If ownership is unresolved, label it **Needs design decision** and do not begin implementation or claim plugin-only scope.
+
+For a capability that crosses a model adapter and a message or session format, the table must separately identify the adapter change and the main-path protocol or persistence change. A feature is not plugin-only merely because its settings screen is contributed by a plugin.
+
 ## Plain-language rules
 
 - Lead with the user result, never package names, file paths, or framework terminology.
@@ -93,6 +109,15 @@ For a release PR, make the decision explicit:
 - Which package is only a CI artifact and why.
 - Whether signing, notarization, or an approval gate still blocks distribution.
 - Whether a maintainer must use a bypass and why that bypass is auditable.
+
+## Review and merge authority
+
+Creating a PR, passing checks, or holding a repository bypass does not authorize a merge. After a PR is ready for review, report its URL, required-check status, ownership map, and unresolved risks, then stop.
+
+- Do not merge, squash, rebase, close, or mark a PR approved without a direct user instruction to do that specific action.
+- Do not use an owner or administrator bypass merely because it exists. A bypass requires the user's direct instruction for that PR.
+- Do not create a release tag, draft release, or public release because a PR is ready. A release requires separate direct authorization.
+- Keep the PR in review state until the user explicitly decides how to proceed.
 
 ## Final author checklist
 
