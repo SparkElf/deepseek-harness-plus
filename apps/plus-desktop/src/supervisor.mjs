@@ -55,7 +55,7 @@ function waitForExit(child, timeoutMs) {
 
 function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = false) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, { cwd, env, detached, stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn(command, args, { cwd, env, detached, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
     onSpawn?.(child)
     const outputChunks = []
     const capture = (chunk) => {
@@ -80,6 +80,17 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
       else reject(new SubprocessFailure(command, code, signal, output))
     })
   })
+}
+
+/**
+ * 直接用 PATH 上的 node 执行 Harness CLI 源码入口，绕过 pnpm script 执行。
+ * Windows 上 pnpm 经 cmd.exe 运行 script 会创建一直留存的 console 窗口；
+ * Electron 自带的 Node 无法解析 pnpm 符号链接工作区包，因此不使用 process.execPath。
+ * @param {string[]} entryArguments CLI 入口相对路径和参数。
+ * @returns {string[]} Node 参数序列。
+ */
+function sourceLaunchArgs(entryArguments) {
+  return ['--import', 'tsx/esm', ...entryArguments]
 }
 
 function pnpmCommand(environment, args) {
@@ -308,12 +319,12 @@ class RuntimeSupervisor {
     this.announce('start.launchingWeb')
     const log = await this.openLog()
     this.recordedWebPid = undefined
-    const pnpm = pnpmCommand(this.environment(), ['dsh', 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)])
-    const child = spawn(pnpm.command, pnpm.args, {
+    const child = spawn('node', sourceLaunchArgs([join('apps', 'cli', 'src', 'bin.ts'), 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)]), {
       cwd: this.manifest.installPath,
-      env: pnpm.environment,
+      env: this.environment(),
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
+      windowsHide: true,
     })
     this.web = child
     child.once('exit', () => {
@@ -347,12 +358,12 @@ class RuntimeSupervisor {
     if (this.watcher !== undefined) return
     this.announce('watcher.starting')
     const log = await this.openLog()
-    const pnpm = pnpmCommand(this.environment(), ['run', 'dev:web'])
-    const watcher = spawn(pnpm.command, pnpm.args, {
+    const watcher = spawn('node', sourceLaunchArgs([join('scripts', 'dev-web.ts'), '--poll']), {
       cwd: this.manifest.installPath,
-      env: pnpm.environment,
+      env: this.environment(),
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
+      windowsHide: true,
     })
     this.watcher = watcher
     watcher.once('exit', () => {
@@ -362,7 +373,7 @@ class RuntimeSupervisor {
     })
   }
 
-  /** 停止受管 process tree；Windows 必须终止 pnpm launcher 的全部 descendants。 */
+  /** 停止受管 process tree；Windows 必须终止 launcher 的全部 descendants。 */
   async stopProcess(child) {
     if (child.exitCode !== null || child.signalCode !== null) return
     if (process.platform === 'win32' && child.pid !== undefined) {

@@ -17,6 +17,7 @@ function execute(command, args, options = {}) {
       cwd: options.cwd,
       detached: options.detached ?? false,
       env: options.env ?? process.env,
+      windowsHide: true,
       stdio: options.detached ? 'ignore' : [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
     })
     if (options.detached) {
@@ -95,7 +96,7 @@ function sendNativeCommand(socketPath, command, onProgress) {
 export async function listWslDistributions() {
   if (process.platform !== 'win32') return []
   const output = await new Promise((resolve, reject) => {
-    const child = spawn('wsl.exe', ['--list', '--quiet'], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const child = spawn('wsl.exe', ['--list', '--quiet'], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
     const chunks = []
     child.stdout.on('data', chunk => chunks.push(chunk))
     child.stderr.on('data', chunk => chunks.push(chunk))
