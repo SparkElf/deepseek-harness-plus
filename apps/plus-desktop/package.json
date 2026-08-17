@@ -21,6 +21,7 @@
     "package:mac": "pnpm run prepare:source-ref && electron-builder --mac",
     "package:win": "pnpm run prepare:source-ref && electron-builder --win",
     "test:electron": "pnpm run prepare:source-ref && playwright test --config=playwright.config.mjs",
+    "verify:unpacked-imports": "node scripts/verify-unpacked-imports.mjs",
     "package": "pnpm run prepare:source-ref && electron-builder"
   },
   "build": {
@@ -36,7 +37,8 @@
       "package.json"
     ],
     "asarUnpack": [
-      "src/**/*.mjs"
+      "src/**/*.mjs",
+      "node_modules/yaml/**"
     ],
     "linux": {
       "target": [
