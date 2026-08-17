@@ -11,6 +11,21 @@ test('installer lets an operator choose a directory and complete custom provider
   })
   try {
     const page = await application.firstWindow()
+    const layout = await page.evaluate(() => {
+      const stepper = document.querySelector('#stepper').getBoundingClientRect()
+      const panel = document.querySelector('.panel.active').getBoundingClientRect()
+      const heading = document.querySelector('.panel.active h1').getBoundingClientRect()
+      return {
+        aligned: Math.abs(stepper.left - panel.left),
+        gap: heading.top - stepper.bottom,
+        headerBorder: getComputedStyle(document.querySelector('.brand-bar')).borderBottomWidth,
+        footerBorder: getComputedStyle(document.querySelector('.action-bar')).borderTopWidth,
+      }
+    })
+    expect(layout.aligned).toBeLessThan(2)
+    expect(layout.gap).toBeGreaterThan(20)
+    expect(layout.headerBorder).toBe('0px')
+    expect(layout.footerBorder).toBe('0px')
     await page.getByRole('button', { name: '继续' }).click()
     await page.getByRole('button', { name: '选择文件夹' }).click()
 
