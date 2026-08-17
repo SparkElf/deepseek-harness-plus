@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Model-facing `bash(command)` backed by one owner-scoped `ctx.terminals` shell. The package owns the tool contract and shell reuse; deployments select the PTY backend and sandbox policy.
+Model-facing `bash(command)` backed by one owner-scoped `ctx.terminals` shell. The package owns the tool contract and shell reuse; deployments select the PTY backend and sandbox policy. Its one-time initialization reasserts the PTY backend's controlled prompt as `PS1`, so each send settles on the backend's prompt evidence instead of waiting out the configured silence window.
 
 ## Config
 

@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-模型可见的 `bash(command)`，底层复用一个按所有者隔离的 `ctx.terminals` shell。该包拥有工具约定和 shell 复用；PTY 后端与沙箱策略由部署选择。
+模型可见的 `bash(command)`，底层复用一个按所有者隔离的 `ctx.terminals` shell。该包拥有工具约定和 shell 复用；PTY 后端与沙箱策略由部署选择。其一次性初始化会把 PTY 后端的受控提示符重新设为 `PS1`，使每次 send 依据后端的提示符证据结算，而不是等满配置的静默窗口。
 
 ## 配置
 

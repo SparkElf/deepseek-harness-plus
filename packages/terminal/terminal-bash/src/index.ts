@@ -16,6 +16,13 @@ import { type Config, type ResolvedConfig, validateConfig } from './config.ts'
 import { LocalPtySession } from './session.ts'
 import { CONTROLLED_PROMPT } from './sanitize.ts'
 
+/**
+ * The exact prompt the controlled bash prints after each OSC marker. A
+ * consumer that overrides PS1 must reassert this value, or the prompt
+ * readiness path cannot match and sends fall back to the silence window.
+ */
+export { CONTROLLED_PROMPT }
+
 export { Config } from './config.ts'
 export type { Config as TerminalLocalConfig } from './config.ts'
 

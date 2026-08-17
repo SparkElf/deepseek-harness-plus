@@ -5,6 +5,7 @@ import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import TerminalSessionService from '@deepseek-ai/dsh-terminal'
+import { CONTROLLED_PROMPT } from '@deepseek-ai/dsh-terminal-bash'
 import type {
   TerminalBackend,
   TerminalBackendSession,
@@ -100,7 +101,8 @@ type StubMode =
   | 'paged-scrollback'
 
 class StubPtySession implements TerminalBackendSession {
-  readonly motd = '__DSH_PERSISTENT_BASH_PROMPT__ '
+  readonly motd = 'dsh> '
+  initText = ''
   readonly pid = 123
   statusValue: TerminalSessionStatus = { kind: 'running' }
   scrollback = this.motd
@@ -124,6 +126,7 @@ class StubPtySession implements TerminalBackendSession {
       if (this.mode === 'init-timeout') {
         return this.operation(Promise.resolve(this.result('', 'timeout')))
       }
+      this.initText = request.text
       return this.operation(Promise.resolve(this.result(this.motd, 'stdin_read')))
     }
     if (this.mode === 'send-error') throw new Error('stub send failed')
@@ -323,6 +326,15 @@ describe('tool-bash-persistent', () => {
     await fiber.dispose()
     expect(ctx.tools.schemas()).toEqual([])
     expect(ctx.tools.get('bash')).toBeUndefined()
+  })
+
+  it('reasserts the backend controlled prompt when initializing the shell', async () => {
+    const { ctx, owner, stub } = await setup({ backendType: 'stub' })
+    await call(ctx, owner, 'pwd')
+    // The backend settles sends on the prompt path only when the PS1 the tool
+    // injects equals the prompt it matches after its OSC marker; any drift
+    // forces every send into the idleSilenceMs silence fallback.
+    expect(stub.sessions[0]?.initText).toBe(`stty -echo; PS1=$'${CONTROLLED_PROMPT}'`)
   })
 
   it('handles inferred idle, prompt fallback, shell exit, clipping, and cleanup', async () => {
