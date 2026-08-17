@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-protected-harness-overwrite-installation.md
-2026-08-17-protected-harness-overwrite-installation.md: b31c768569bfbd939ea261fdecd204b943d54345
-2026-08-17-protected-harness-overwrite-installation.zh.md: a72c3e732732ba6a77e69c779b35413ab3b7f3d1
+2026-08-17-protected-harness-overwrite-installation.md: 48c12759ae99af20526ccef1645a884f11843960
+2026-08-17-protected-harness-overwrite-installation.zh.md: 17a48e6b0cc353a315a07cede4aad6b529c87e82

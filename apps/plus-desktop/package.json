@@ -15,12 +15,13 @@
     "dev": "electron .",
     "preview:installer": "node scripts/preview-installer.mjs",
     "supervisor:command": "node src/supervisor-client.mjs",
-    "package:dir": "electron-builder --dir",
-    "package:linux": "electron-builder --linux",
-    "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win",
-    "test:electron": "playwright test --config=playwright.config.mjs",
-    "package": "electron-builder"
+    "prepare:source-ref": "node scripts/write-release-source-ref.mjs",
+    "package:dir": "pnpm run prepare:source-ref && electron-builder --dir",
+    "package:linux": "pnpm run prepare:source-ref && electron-builder --linux",
+    "package:mac": "pnpm run prepare:source-ref && electron-builder --mac",
+    "package:win": "pnpm run prepare:source-ref && electron-builder --win",
+    "test:electron": "pnpm run prepare:source-ref && playwright test --config=playwright.config.mjs",
+    "package": "pnpm run prepare:source-ref && electron-builder"
   },
   "build": {
     "appId": "io.sparkelf.deepseek-harness-plus",

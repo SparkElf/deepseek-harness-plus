@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-安装位置的高级选项提供明确的覆盖选择，并说明会保留用户数据。main process 将目标分类为空目录、已有 Harness checkout、链接或不安全路径以及其他非空目录。空目录使用 clone；已有 Harness 目录必须勾选覆盖，并只用 Git 刷新受版本控制的源码；其他非空目录继续拒绝。
+安装位置的高级选项提供明确的覆盖选择，并说明会保留用户数据。安装包记录构建该 release 所使用的精确 Harness source commit。main process 将目标分类为空目录、已有 Harness checkout、链接或不安全路径以及其他非空目录。空目录会初始化到 pinned release commit；已有 Harness 目录必须勾选覆盖，并只用 Git 将受版本控制的源码刷新到同一 commit；其他非空目录继续拒绝。
 
 覆盖安装不执行 git clean。[安装器代理与下载恢复](2026-08-17-installer-proxy-and-download-recovery.md)负责有界网络重试；覆盖重试保留已有目标，新安装重试可以重置由 installer 所有的目录。只有 settings.yaml 和 .credentials.yaml 缺失时安装器才写入，因此已有用户配置和凭据保持不变。代理和其他 runtime metadata 单独保存到本地 runtime record。review summary 会显示覆盖模式已启用。
 
@@ -28,4 +28,4 @@ Native Electron workflow 操作高级覆盖控件，确认 review summary，并�
 
 ## Consequences
 
-勾选覆盖后，已有 Harness checkout 中的 tracked source edits 会被 fetched main branch 替换。包括 .dsh-plus/home 在内的 untracked files 保持不变。链接路径和无关非空目录必须重新选择，不执行破坏性清理。
+勾选覆盖后，已有 Harness checkout 中的 tracked source edits 会被安装器记录的精确 source commit 替换。包括 .dsh-plus/home 在内的 untracked files 保持不变。链接路径和无关非空目录必须重新选择，不执行破坏性清理。

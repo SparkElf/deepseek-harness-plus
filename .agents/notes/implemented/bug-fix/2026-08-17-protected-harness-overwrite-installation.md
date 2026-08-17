@@ -10,7 +10,7 @@ The installer accepted only empty directories. A failed clone or an existing Har
 
 ## Decision
 
-The location advanced options expose an explicit overwrite choice that states user-data retention. The main process classifies the selected path as empty, an existing Harness checkout, a linked/unsafe path, or another non-empty directory. Empty paths use clone. Existing Harness paths require the overwrite choice and refresh only tracked source files with Git; foreign non-empty paths remain rejected.
+The location advanced options expose an explicit overwrite choice that states user-data retention. The package records the exact Harness source commit used to build that release. The main process classifies the selected path as empty, an existing Harness checkout, a linked/unsafe path, or another non-empty directory. Empty paths initialize a checkout at the pinned release commit. Existing Harness paths require the overwrite choice and refresh only tracked source files to that same commit; foreign non-empty paths remain rejected.
 
 The installer does not run git clean during overwrite. [Installer proxy and download recovery](2026-08-17-installer-proxy-and-download-recovery.md) owns bounded network retries; overwrite retries retain the existing target while fresh-install retries may reset their installer-owned directory. It writes settings.yaml and .credentials.yaml only when those files are missing, so existing user configuration and credentials remain unchanged. The selected proxy and other runtime metadata are saved separately in the local runtime record. The review summary states when overwrite mode is active.
 
@@ -28,4 +28,4 @@ The native Electron workflow drives the advanced overwrite control, confirms its
 
 ## Consequences
 
-Tracked source edits in an existing Harness checkout are replaced by the fetched main branch when overwrite is selected. Untracked files, including .dsh-plus/home, remain in place. A linked path and an unrelated non-empty folder require a different selection rather than destructive cleanup.
+Tracked source edits in an existing Harness checkout are replaced by the exact source commit recorded in the installer when overwrite is selected. Untracked files, including .dsh-plus/home, remain in place. A linked path and an unrelated non-empty folder require a different selection rather than destructive cleanup.
