@@ -312,7 +312,7 @@ function applyAppearance() {
   document.querySelectorAll('[data-window-action]').forEach(button => button.setAttribute('aria-label', text('window.' + button.dataset.windowAction)))
   document.querySelectorAll('[data-locale]').forEach(button => { const selected = button.dataset.locale === locale; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   document.querySelectorAll('[data-theme]').forEach(button => { const selected = button.dataset.theme === theme; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
-  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); syncHiddenDirectoryToggle(); showStep(step)
+  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); syncHiddenDirectoryToggle(); showStep(step, false)
   void bridge.applyAppearance({ theme, locale, resolvedTheme: actualTheme, title: text('window.title') })
 }
 async function loadDistributions() {
@@ -649,12 +649,13 @@ async function createDirectoryFromBrowser() {
   }
 }
 
-function showStep(nextStep) {
+function showStep(nextStep, resetValidation = true) {
   step = Math.max(0, Math.min(3, nextStep))
   panels.forEach((panel, index) => panel.classList.toggle('active', index === step))
   stepButtons.forEach((button, index) => { button.classList.toggle('active', index === step); button.classList.toggle('complete', index < step); button.setAttribute('aria-current', index === step ? 'step' : 'false') })
   stepLines.forEach((line, index) => line.classList.toggle('complete', index < step))
-  back.hidden = step === 0; next.textContent = step === 3 ? text('action.install') : text('action.continue'); error.textContent = ''; clearCustomProviderError()
+  back.hidden = step === 0; next.textContent = step === 3 ? text('action.install') : text('action.continue')
+  if (resetValidation) { error.textContent = ''; clearCustomProviderError() }
   if (step === 3) renderSummary()
 }
 function validate() {
