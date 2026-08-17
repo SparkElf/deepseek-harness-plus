@@ -141,6 +141,37 @@ export class TargetRuntime {
     })
   }
 
+  async installationDirectoryState(path) {
+    if (this.isWsl) {
+      const result = await this.run('sh', ['-lc', 'if test -L "$1"; then printf linked; elif test ! -e "$1"; then printf empty; elif test ! -d "$1"; then printf foreign; elif test -z "$(ls -A -- "$1")"; then printf empty; elif test -d "$1/.git" && test -d "$1/apps/plus-desktop/src"; then printf harness; else printf foreign; fi', 'sh', path]);
+      return result.trim();
+    }
+    let info
+    try { info = await lstat(path) } catch (error) {
+      if (error?.code === 'ENOENT') return 'empty'
+      throw error
+    }
+    if (info.isSymbolicLink() || !info.isDirectory()) return 'linked'
+    const entries = await readdir(path)
+    if (entries.length === 0) return 'empty'
+    try {
+      const git = await lstat(join(path, '.git'))
+      const appSource = await stat(join(path, 'apps/plus-desktop/src'))
+      if ((git.isDirectory() || git.isFile()) && appSource.isDirectory()) return 'harness'
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error
+    }
+    return 'foreign'
+  }
+
+  async fileExists(path) {
+    if (this.isWsl) return (await this.run('sh', ['-lc', 'test -e "$1" && printf true || printf false', 'sh', path])).trim() === 'true'
+    try { await stat(path); return true } catch (error) {
+      if (error?.code === 'ENOENT') return false
+      throw error
+    }
+  }
+
   async assertEmptyDirectory(path) {
     if (!this.isWsl) {
       await mkdir(path, { recursive: true })

@@ -61,6 +61,7 @@
               <select id="wslDistribution"></select>
               <button class="secondary" type="button" id="refreshDistributions" data-i18n="action.refresh">刷新</button>
             </div>
+            <p id="wslLoading" class="location-loading" hidden></p>
             <label class="field-label" for="installPath" data-i18n="label.installPath">安装目录</label>
             <div class="input-action">
               <input id="installPath" required autocomplete="off">
@@ -73,6 +74,10 @@
               <label class="field-label" for="proxy" data-i18n="label.proxy">下载代理（可选）</label>
               <input id="proxy" type="url" autocomplete="off" data-i18n-placeholder="placeholder.proxy" placeholder="例如 http://127.0.0.1:7890" aria-describedby="proxyError">
               <p id="proxyError" class="field-error proxy-error" role="alert" hidden></p>
+              <label class="checkbox-row" for="overwriteInstall">
+                <input id="overwriteInstall" type="checkbox">
+                <span data-i18n="label.overwrite">覆盖已有安装并保留用户数据</span>
+              </label>
             </details>
           </div>
 
@@ -93,16 +98,16 @@
 
           <div class="panel" data-step="3">
             <header class="panel-heading"><h1 data-i18n="title.review">确认安装</h1></header>
+            <div id="progress" class="progress" role="status" aria-live="polite" hidden>
+              <div class="progress-head"><span class="spinner" aria-hidden="true"></span><span id="progressText"></span><strong id="progressPercent">0%</strong></div>
+              <div id="progressBar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="安装进度"><span id="progressFill"></span></div>
+              <span id="progressDetail" class="progress-detail" hidden></span>
+            </div>
             <dl class="summary" id="summary"></dl>
           </div>
 
           <p id="error" class="error" role="alert"></p>
           <button id="retryInstall" class="secondary retry-install" type="button" data-i18n="action.retry" hidden>重试</button>
-          <div id="progress" class="progress" role="status" aria-live="polite" hidden>
-            <div class="progress-head"><span class="spinner" aria-hidden="true"></span><span id="progressText"></span><strong id="progressPercent">0%</strong></div>
-            <div id="progressBar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="安装进度"><span id="progressFill"></span></div>
-            <span id="progressDetail" class="progress-detail" hidden></span>
-          </div>
         </section>
         <footer class="action-bar">
           <button id="back" type="button" class="secondary" hidden data-i18n="action.back">返回</button>

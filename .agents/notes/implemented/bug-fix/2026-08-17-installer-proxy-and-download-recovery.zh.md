@@ -12,7 +12,7 @@ Status: implemented
 
 安装位置的高级选项包含可选 HTTP、HTTPS、SOCKS5 或 SOCKS5H proxy URL。main process 将代理传给 Git clone、pnpm version checks、dependency installation、build、upgrade、repair 和 update checks。WSL 通过所选 distribution 内显式的 env command 接收代理变量。代理 endpoint 保留在本地 runtime record 供维护操作使用，不写入 Harness settings 和 credentials 文件。
 
-Git clone 和 dependency installation 各自重试三次。最终网络失败只清理真实且由 installer 所有的空目标目录，并返回结构化 retryable result。renderer 只对该 result 显示 Retry 操作；非网络失败保留错误，不提供无法恢复它的操作。
+Git clone 和 dependency installation 各自重试三次。最终的新安装网络失败只清理真实且由 installer 所有的空目标目录，并返回结构化 retryable result。[受保护的覆盖安装](2026-08-17-protected-harness-overwrite-installation.md)在同一网络路径失败时保留已有 checkout 和用户数据。renderer 只对该 result 显示 Retry 操作；非网络失败保留错误，不提供无法恢复它的操作。
 
 ## Verification
 

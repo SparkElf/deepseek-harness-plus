@@ -2,7 +2,7 @@ const messages = {
   zh: {
     'step.appearance': '外观', 'step.location': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'title.appearance': '选择界面外观', 'title.location': '选择安装位置', 'title.model': '选择模型', 'title.review': '确认安装',
-    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口', 'label.proxy': '下载代理（可选）',
+    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口', 'label.proxy': '下载代理（可选）', 'label.overwrite': '覆盖已有安装并保留用户数据',
     'label.provider': '模型提供方', 'label.apiKey': 'API 密钥', 'label.model': '模型名称', 'label.reasoning': '推理强度',
     'label.providerName': '服务名称', 'label.baseURL': '服务地址',
     'theme.system': '跟随系统', 'theme.light': '浅色', 'theme.dark': '深色',
@@ -15,7 +15,7 @@ const messages = {
     'placeholder.baseURL': '例如 https://api.example.com/v1',
     'reasoning.default': '默认', 'reasoning.low': '低', 'reasoning.medium': '中', 'reasoning.high': '高', 'reasoning.max': '最高',
     'summary.language': '语言', 'summary.theme': '主题', 'summary.location': '安装位置', 'summary.distribution': '发行版',
-    'summary.folder': '安装目录', 'summary.proxy': '下载代理', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
+    'summary.folder': '安装目录', 'summary.proxy': '下载代理', 'summary.overwrite': '安装方式', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
     'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。', 'error.proxy': '代理地址必须是 HTTP、HTTPS 或 SOCKS5 URL。',
     'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。', 'error.preview': '预览页面不能选择本机目录或执行安装。',
     'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus', 'placeholder.proxy': '例如 http://127.0.0.1:7890',
@@ -25,7 +25,7 @@ const messages = {
   en: {
     'step.appearance': 'Appearance', 'step.location': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'title.appearance': 'Choose the interface', 'title.location': 'Choose where to install', 'title.model': 'Choose a model', 'title.review': 'Ready to install',
-    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port', 'label.proxy': 'Download proxy (optional)',
+    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port', 'label.proxy': 'Download proxy (optional)', 'label.overwrite': 'Overwrite existing installation and keep user data',
     'label.provider': 'Model provider', 'label.apiKey': 'API key', 'label.model': 'Model', 'label.reasoning': 'Reasoning',
     'label.providerName': 'Service name', 'label.baseURL': 'Service URL',
     'theme.system': 'System', 'theme.light': 'Light', 'theme.dark': 'Dark',
@@ -38,7 +38,7 @@ const messages = {
     'placeholder.baseURL': 'For example https://api.example.com/v1',
     'reasoning.default': 'Default', 'reasoning.low': 'Low', 'reasoning.medium': 'Medium', 'reasoning.high': 'High', 'reasoning.max': 'Max',
     'summary.language': 'Language', 'summary.theme': 'Theme', 'summary.location': 'Install location', 'summary.distribution': 'Linux distribution',
-    'summary.folder': 'Installation folder', 'summary.proxy': 'Download proxy', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
+    'summary.folder': 'Installation folder', 'summary.proxy': 'Download proxy', 'summary.overwrite': 'Install mode', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
     'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.', 'error.proxy': 'Use an HTTP, HTTPS, or SOCKS5 proxy URL.',
     'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.', 'error.preview': 'The preview cannot choose local folders or install Harness.',
     'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus', 'placeholder.proxy': 'For example http://127.0.0.1:7890',
@@ -94,6 +94,7 @@ const customProvider = document.querySelector('#customProvider')
 const installPath = document.querySelector('#installPath')
 const proxy = document.querySelector('#proxy')
 const proxyError = document.querySelector('#proxyError')
+const overwriteInstall = document.querySelector('#overwriteInstall')
 const chooseDirectory = document.querySelector('#chooseDirectory')
 const directoryBrowser = document.querySelector('#directoryBrowser')
 const directoryPathBar = document.querySelector('#directoryPathBar')
@@ -117,6 +118,7 @@ const baseURL = document.querySelector('#baseURL')
 const customProviderError = document.querySelector('#customProviderError')
 const wslOptions = document.querySelector('#wslOptions')
 const wslDistribution = document.querySelector('#wslDistribution')
+const wslLoading = document.querySelector('#wslLoading')
 const nativeTarget = document.querySelector('[data-target-kind="native"]')
 const wslTarget = document.querySelector('[data-target-kind="wsl"]')
 const selectControls = new Map()
@@ -251,7 +253,7 @@ function target() { return { kind: targetKind, distribution: targetKind === 'wsl
 function nativeTargetName() { return bridge.platform === 'darwin' ? text('target.macos') : bridge.platform === 'linux' ? text('target.linux') : text('target.windows') }
 function values() {
   return {
-    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), proxy: proxy.value.trim(), apiKey: document.querySelector('#apiKey').value.trim(),
+    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), proxy: proxy.value.trim(), overwrite: overwriteInstall.checked, apiKey: document.querySelector('#apiKey').value.trim(),
     provider: provider.value, model: document.querySelector('#model').value.trim(), reasoningEffort: reasoning.value,
     customName: document.querySelector('#customName').value.trim(), baseURL: document.querySelector('#baseURL').value.trim(), locale, theme, target: target(),
   }
@@ -354,7 +356,7 @@ function applyAppearance() {
 }
 async function loadDistributions() {
   if (targetKind !== 'wsl') return
-  progress.hidden = false; progressText.textContent = text('progress.distributions'); error.textContent = ''
+  wslLoading.hidden = false; wslLoading.textContent = text('progress.distributions'); error.textContent = ''
   try {
     const selected = wslDistribution.value
     const distributions = await bridge.listWslDistributions()
@@ -365,7 +367,7 @@ async function loadDistributions() {
     if (distributions.length === 0) error.textContent = text('error.distributions')
   } catch (caught) {
     error.textContent = caught instanceof Error ? caught.message : String(caught)
-  } finally { progress.hidden = true }
+  } finally { wslLoading.hidden = true }
 }
 function addSummary(name, value) {
   const row = document.createElement('div'); const term = document.createElement('dt'); const description = document.createElement('dd')
@@ -388,6 +390,7 @@ function renderSummary() {
   if (targetKind === 'wsl') rows.push(addSummary(text('summary.distribution'), config.target.distribution))
   rows.push(addSummary(text('summary.folder'), config.installPath))
   if (config.proxy) rows.push(addSummary(text('summary.proxy'), proxyName(config.proxy)))
+  if (config.overwrite) rows.push(addSummary(text('summary.overwrite'), locale === 'zh' ? '覆盖安装，保留用户数据' : 'Overwrite, keep user data'))
   rows.push(addSummary(text('summary.provider'), providerName(config)))
   if (config.provider === 'custom') rows.push(addSummary(text('summary.url'), config.baseURL))
   rows.push(addSummary(text('summary.model'), config.model))

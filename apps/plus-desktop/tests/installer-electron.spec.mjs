@@ -34,6 +34,7 @@ test('installer lets an operator choose a directory and complete custom provider
     await expect(page.locator('#proxyError')).toHaveText('代理地址必须是 HTTP、HTTPS 或 SOCKS5 URL。')
     await expect(page.locator('#proxy')).toHaveAttribute('aria-invalid', 'true')
     await page.locator('#proxy').fill('http://127.0.0.1:1')
+    await page.locator('#overwriteInstall').check()
 
     await page.getByRole('button', { name: '继续' }).click()
     const provider = page.locator('#provider').locator('..')
@@ -53,6 +54,7 @@ test('installer lets an operator choose a directory and complete custom provider
     await page.getByRole('button', { name: '继续' }).click()
     await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
     await expect(page.locator('#summary')).toContainText('http://127.0.0.1:1/')
+    await expect(page.locator('#summary')).toContainText('覆盖安装，保留用户数据')
 
     await page.getByRole('button', { name: '安装', exact: true }).click()
     await expect(page.locator('#retryInstall')).toBeVisible({ timeout: 60_000 })

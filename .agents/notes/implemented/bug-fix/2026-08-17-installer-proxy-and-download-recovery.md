@@ -12,7 +12,7 @@ The installer relied on the host network path for Git clone and package installa
 
 The installation location advanced options include an optional HTTP, HTTPS, SOCKS5, or SOCKS5H proxy URL. The main process passes the configured proxy to Git clone, pnpm version checks, dependency installation, build, upgrade, repair, and update checks. WSL receives proxy variables through an explicit env command inside the selected distribution. The proxy endpoint is retained in the local runtime record for maintenance operations and is excluded from Harness settings and credentials files.
 
-Git clone and dependency installation each retry three times. A final network failure removes only the real, installer-owned empty target directory and returns a structured retryable result. The renderer presents a Retry action only for that result; non-network failures keep their error without offering an action that cannot recover them.
+Git clone and dependency installation each retry three times. A final fresh-install network failure removes only the real, installer-owned empty target directory and returns a structured retryable result. [Protected overwrite installation](2026-08-17-protected-harness-overwrite-installation.md) retains the existing checkout and user data when the same network path fails. The renderer presents a Retry action only for that result; non-network failures keep their error without offering an action that cannot recover them.
 
 ## Verification
 

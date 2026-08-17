@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-installer-proxy-and-download-recovery.md
-2026-08-17-installer-proxy-and-download-recovery.md: eed1799124199e705d2a88a5a6225ef6c68db9e5
-2026-08-17-installer-proxy-and-download-recovery.zh.md: 58aa79958d3fb97ed04334da78e1c69be6681b70
+2026-08-17-installer-proxy-and-download-recovery.md: ca481da1a01585ff7c1afb4d72b4fc53fdaffeb3
+2026-08-17-installer-proxy-and-download-recovery.zh.md: b1e04765fdfe6091d1de48dcdebe7b3fa03d1de4

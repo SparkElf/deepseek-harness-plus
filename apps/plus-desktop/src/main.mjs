@@ -292,7 +292,23 @@ async function cloneWithRetry(targetRuntime, form, networkEnvironment, report, i
   }
 }
 
-async function installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText) {
+async function updateExistingWithRetry(targetRuntime, form, networkEnvironment, report, installText) {
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await targetRuntime.run('git', ['fetch', '--depth', '1', 'origin', 'main'], form.installPath, () => report(22, installText.overwriting), { env: networkEnvironment })
+      await targetRuntime.run('git', ['reset', '--hard', 'FETCH_HEAD'], form.installPath, () => report(36, installText.overwriting))
+      return
+    } catch (error) {
+      if (attempt < 3) {
+        report(14, installText.retrying + ' (' + String(attempt + 1) + '/3)')
+        continue
+      }
+      throw new RetryableInstallError((error instanceof Error ? error.message : String(error)) + installText.retryHint)
+    }
+  }
+}
+
+async function installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText, preserveTarget) {
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
       await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath, () => report(58, installText.installing), { env: networkEnvironment })
@@ -302,7 +318,7 @@ async function installDependenciesWithRetry(targetRuntime, form, networkEnvironm
         report(48, installText.retryingDependencies + ' (' + String(attempt + 1) + '/3)')
         continue
       }
-      await targetRuntime.resetInstallDirectory(form.installPath)
+      if (!preserveTarget) await targetRuntime.resetInstallDirectory(form.installPath)
       throw new RetryableInstallError((error instanceof Error ? error.message : String(error)) + installText.retryHint)
     }
   }
@@ -346,12 +362,12 @@ async function install(form) {
     const installText = form.locale === 'zh'
       ? {
           preparing: '正在准备安装…', checking: '正在检查安装环境…', downloading: '正在下载 Harness…',
-          configuring: '正在写入设置…', installing: '正在安装依赖…', building: '正在构建 Harness…',
+          configuring: '正在写入设置…', overwriting: '正在更新已有 Harness…', installing: '正在安装依赖…', building: '正在构建 Harness…',
           starting: '正在启动 Harness…', retrying: '下载失败，正在重试…', retryingDependencies: '依赖下载失败，正在重试…', retryHint: ' 请检查下载代理后重试。', complete: '安装完成。',
         }
       : {
           preparing: 'Preparing installation…', checking: 'Checking the installation environment…', downloading: 'Downloading Harness…',
-          configuring: 'Writing settings…', installing: 'Installing dependencies…', building: 'Building Harness…',
+          configuring: 'Writing settings…', overwriting: 'Updating existing Harness…', installing: 'Installing dependencies…', building: 'Building Harness…',
           starting: 'Starting Harness…', retrying: 'Download failed, retrying…', retryingDependencies: 'Dependency download failed, retrying…', retryHint: ' Check the download proxy and retry.', complete: 'Installation complete.',
         }
     report(2, installText.preparing)
@@ -359,15 +375,29 @@ async function install(form) {
     await targetRuntime.run('git', ['--version'], undefined, undefined, { env: networkEnvironment })
     report(10, installText.checking)
     await targetRuntime.runPnpm(['--version'], undefined, undefined, { env: networkEnvironment })
-    await targetRuntime.assertEmptyDirectory(form.installPath)
-    report(14, installText.downloading)
-    await cloneWithRetry(targetRuntime, form, networkEnvironment, report, installText)
+    const targetState = await targetRuntime.installationDirectoryState(form.installPath)
+    const overwriteExisting = targetState === 'harness' && form.overwrite
+    if (targetState === 'empty') {
+      report(14, installText.downloading)
+      await targetRuntime.assertEmptyDirectory(form.installPath)
+      await cloneWithRetry(targetRuntime, form, networkEnvironment, report, installText)
+    } else if (targetState === 'harness' && form.overwrite) {
+      await updateExistingWithRetry(targetRuntime, form, networkEnvironment, report, installText)
+    } else if (targetState === 'harness') {
+      throw new Error(form.locale === 'zh' ? '该目录已有 Harness，请勾选覆盖已有安装。' : 'This folder already contains Harness. Enable overwrite to continue.')
+    } else if (targetState === 'linked') {
+      throw new Error(form.locale === 'zh' ? '不能覆盖链接目录，请选择真实文件夹。' : 'Cannot overwrite a linked folder. Choose a real folder.')
+    } else {
+      throw new Error(form.locale === 'zh' ? '请选择空目录或已有 Harness 安装目录。' : 'Choose an empty folder or an existing Harness installation folder.')
+    }
     report(40, installText.configuring)
     await targetRuntime.makeDirectory(targetRuntime.join(form.installPath, '.dsh-plus', 'logs'))
-    await targetRuntime.writeText(targetRuntime.join(configured.dshHome, 'settings.yaml'), settingsDocument(form))
-    await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.credentials.yaml'), credentialsDocument(form))
+    const settingsPath = targetRuntime.join(configured.dshHome, 'settings.yaml')
+    const credentialsPath = targetRuntime.join(configured.dshHome, '.credentials.yaml')
+    if (!await targetRuntime.fileExists(settingsPath)) await targetRuntime.writeText(settingsPath, settingsDocument(form))
+    if (!await targetRuntime.fileExists(credentialsPath)) await targetRuntime.writeText(credentialsPath, credentialsDocument(form))
     report(48, installText.installing)
-    await installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText)
+    await installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText, overwriteExisting)
     report(76, installText.building)
     await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building), { env: networkEnvironment })
     daemon.configure(configured)
