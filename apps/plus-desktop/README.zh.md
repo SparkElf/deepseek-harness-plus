@@ -30,7 +30,7 @@ pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <sock
 pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <socket-path> --branch <branch-name> rebuild-and-restart
 ~~~
 
-Supervisor 拥有 Harness Web、配置的 Harness 与 Supervisor 端口、可选 client HMR watcher、rebuild、runtime log 和 HTTP/SSE page。Windows 通过 unpacked bootstrap 使用 Electron utility process 启动 native Supervisor，并等待命名管道真正监听；初始化失败时会返回捕获的 startup stack。branch rebuild 在停止当前 Web process 前完成；failed build 保留当前 process，并把 raw output 留在 runtime log。
+Supervisor 拥有 Harness Web、配置的 Harness 与 Supervisor 端口、可选 client HMR watcher、rebuild、runtime log 和 HTTP/SSE page。Windows 通过 unpacked bootstrap 使用 Electron utility process 启动 native Supervisor，并等待命名管道真正监听；Windows 可能拒绝替换已打开的 status manifest，因此会原位写入；初始化失败时会返回捕获的 startup stack。branch rebuild 在停止当前 Web process 前完成；failed build 保留当前 process，并把 raw output 留在 runtime log。
 
 ## Development modes
 
