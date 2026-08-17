@@ -13,10 +13,11 @@ import { releaseSourceRef } from './release-source.mjs'
 const repository = 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const supervisorDirectory = currentDirectory.replace(/\.asar([\\/])/u, '.asar.unpacked$1')
-const supervisorScriptPath = join(supervisorDirectory, 'supervisor.mjs')
+const supervisorBootstrapPath = join(supervisorDirectory, 'supervisor-bootstrap.mjs')
 const setupPath = () => join(app.getPath('userData'), 'runtime.json')
 const nativeSupervisorSocketPath = supervisorPort => process.platform === 'win32' ? 'deepseek-harness-plus-runtime-' + String(supervisorPort) : join(app.getPath('userData'), 'runtime-supervisor-' + String(supervisorPort) + '.sock')
 const nativeSupervisorManifestPath = () => join(app.getPath('userData'), 'runtime-supervisor.json')
+const nativeSupervisorStartupErrorPath = () => join(app.getPath('userData'), 'runtime-supervisor-startup.error.log')
 const defaultCandidatePort = 3081
 const defaultSupervisorPort = 3082
 const defaultCandidateSupervisorPort = 3083
@@ -131,7 +132,7 @@ function runtimeFor(form, port) {
   const dshHome = targetRuntime.join(form.installPath, '.dsh-plus', 'home')
   const supervisorDirectory = targetRuntime.join(dshHome, 'supervisor')
   return {
-    version: 3,
+    version: 4,
     target: form.target,
     installPath: form.installPath,
     proxy: form.proxy || undefined,
@@ -143,6 +144,7 @@ function runtimeFor(form, port) {
     candidateSupervisorPort: Number(form.candidateSupervisorPort),
     supervisorSocketPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor.sock') : nativeSupervisorSocketPath(Number(form.supervisorPort)),
     supervisorManifestPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor.json') : nativeSupervisorManifestPath(),
+    supervisorStartupErrorPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor-startup.error.log') : nativeSupervisorStartupErrorPath(),
     locale: form.locale,
     theme: form.theme,
     mode: 'code',
@@ -582,9 +584,11 @@ function launchNativeSupervisor(scriptPath, args, config, environment) {
   const child = utilityProcess.fork(scriptPath, args, {
     cwd: config.installPath,
     env: { ...process.env, ...environment, ELECTRON_RUN_AS_NODE: '1' },
-    stdio: 'ignore',
+    stdio: 'pipe',
     serviceName: 'DeepSeek Harness Plus Supervisor',
   })
+  child.stdout?.on('data', chunk => console.info('[plus-desktop] native Supervisor stdout', chunk.toString('utf8').trim()))
+  child.stderr?.on('data', chunk => console.error('[plus-desktop] native Supervisor stderr', chunk.toString('utf8').trim()))
   child.once('error', (type, location, report) => console.error('[plus-desktop] native Supervisor utility process failed', { type, location, report }))
   child.once('exit', (code, signal) => {
     if (code !== 0) console.error('[plus-desktop] native Supervisor utility process exited', { code, signal })
@@ -594,28 +598,31 @@ function launchNativeSupervisor(scriptPath, args, config, environment) {
 
 const daemon = new HarnessDaemon(() => {
   refreshTray()
-}, supervisorScriptPath, launchNativeSupervisor)
+}, supervisorBootstrapPath, launchNativeSupervisor)
 
 /** 将历史本机配置提升为当前的显式 target、实例和 Supervisor 端口配置。 */
 async function migrateRuntime(saved) {
-  if (saved.version === 3) return saved
+  if (saved.version === 4) return saved
   const settings = parseYaml(await readFile(join(saved.dshHome, 'settings.yaml'), 'utf8'))
   const current = { ...saved }
   delete current.progressPort
   delete current.candidateProgressPort
   const target = saved.target ?? { kind: 'native' }
+  const targetRuntime = new TargetRuntime(target)
+  const supervisorDirectory = targetRuntime.join(saved.dshHome, 'supervisor')
   const supervisorPort = Number(saved.supervisorPort ?? saved.progressPort ?? defaultSupervisorPort)
   const candidatePort = Number(saved.candidatePort ?? defaultCandidatePort)
   const candidateSupervisorPort = Number(saved.candidateSupervisorPort ?? saved.candidateProgressPort ?? defaultCandidateSupervisorPort)
   return {
     ...current,
-    version: 3,
+    version: 4,
     target,
     candidatePort,
     supervisorPort,
     candidateSupervisorPort,
     supervisorSocketPath: target.kind === 'wsl' ? saved.supervisorSocketPath : nativeSupervisorSocketPath(supervisorPort),
     supervisorManifestPath: saved.supervisorManifestPath ?? nativeSupervisorManifestPath(),
+    supervisorStartupErrorPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor-startup.error.log') : nativeSupervisorStartupErrorPath(),
     locale: settings?.locale?.preference === 'en' ? 'en' : 'zh',
     theme: ['light', 'dark', 'system'].includes(settings?.['ui-theme']?.preference) ? settings['ui-theme'].preference : 'system',
   }

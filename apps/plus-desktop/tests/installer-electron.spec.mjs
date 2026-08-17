@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const desktopDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
-test('installer lets an operator choose a directory and complete custom provider validation', async ({}, testInfo) => {
+test('installer validates directory provider proxy and retry controls', async ({}, testInfo) => {
   const application = await electron.launch({
     args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
     cwd: desktopDirectory,
@@ -84,6 +84,38 @@ test('installer lets an operator choose a directory and complete custom provider
     await expect(page.locator('#progress')).toBeVisible()
     await expect(page.locator('#retryInstall')).toBeVisible({ timeout: 60_000 })
 
+  } finally {
+    await application.close()
+  }
+})
+
+test('installer completes a native Harness installation and starts Supervisor', async ({}, testInfo) => {
+  test.setTimeout(15 * 60_000)
+  const application = await electron.launch({
+    args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
+    cwd: desktopDirectory,
+  })
+  try {
+    const page = await application.firstWindow()
+    await page.getByRole('button', { name: '继续' }).click()
+    await page.locator('#installPath').fill(testInfo.outputPath('installed-harness'))
+    await page.getByText('高级选项', { exact: true }).click()
+    await page.locator('#port').fill('45180')
+    await page.locator('#candidatePort').fill('45181')
+    await page.locator('#supervisorPort').fill('45182')
+    await page.locator('#candidateSupervisorPort').fill('45183')
+    await page.getByRole('button', { name: '继续' }).click()
+
+    await page.locator('#apiKey').fill('sk-electron-install-test')
+    await page.getByRole('button', { name: '继续' }).click()
+    await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
+    await expect(page.locator('#summary')).toContainText('45182')
+
+    const installerClosed = page.waitForEvent('close', { timeout: 12 * 60_000 })
+    await page.getByRole('button', { name: '安装', exact: true }).click()
+    await expect(page.locator('#progressText')).toHaveText('正在启动 Harness…', { timeout: 10 * 60_000 })
+    await installerClosed
+    expect(application.process().exitCode).toBeNull()
   } finally {
     await application.close()
   }

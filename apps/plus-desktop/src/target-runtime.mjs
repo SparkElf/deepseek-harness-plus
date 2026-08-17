@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { lstat, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import { lstat, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { connect } from 'node:net'
 import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
@@ -231,14 +231,20 @@ export class TargetRuntime {
     return (await this.run('wslpath', ['-u', path])).trim()
   }
 
+  /** 读取目标环境中的 UTF-8 runtime 文本；WSL 读取始终在所选发行版内执行。 */
+  async readText(path) {
+    if (!this.isWsl) return readFile(path, 'utf8')
+    return this.run('cat', [path])
+  }
+
   /** 启动目标环境内的 Supervisor；WSL 进程和其子进程始终留在所选发行版。 */
   async startSupervisor(config, nativeSupervisorPath, nativeSupervisorLauncher) {
     if (!this.isWsl) {
-      await nativeSupervisorLauncher(nativeSupervisorPath, ['--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], config, { DSH_PNPM_CLI: bundledPnpmCli })
+      await nativeSupervisorLauncher(nativeSupervisorPath, ['--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath, '--startup-error', config.supervisorStartupErrorPath], config, { DSH_PNPM_CLI: bundledPnpmCli })
       return
     }
-    const supervisorPath = this.join(config.installPath, 'apps/plus-desktop/src/supervisor.mjs')
-    await this.run('env', ['DSH_PNPM_COMMAND=corepack', 'node', supervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], config.installPath, undefined, { detached: true })
+    const supervisorPath = this.join(config.installPath, 'apps/plus-desktop/src/supervisor-bootstrap.mjs')
+    await this.run('env', ['DSH_PNPM_COMMAND=corepack', 'node', supervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath, '--startup-error', config.supervisorStartupErrorPath], config.installPath, undefined, { detached: true })
   }
 
   /** 通过目标环境自己的 Supervisor client 发送命令，避免 Windows 解释 Linux socket。 */

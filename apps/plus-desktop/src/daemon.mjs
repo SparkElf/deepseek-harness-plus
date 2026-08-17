@@ -44,6 +44,7 @@ export class HarnessDaemon {
     if (this.supervisorStarting !== undefined) return this.supervisorStarting
     this.supervisorStarting = (async () => {
       await this.targetRuntime.writeText(this.config.supervisorManifestPath, JSON.stringify(this.config, null, 2) + String.fromCharCode(10))
+      await this.targetRuntime.writeText(this.config.supervisorStartupErrorPath, '')
       await this.targetRuntime.startSupervisor(this.config, this.supervisorPath, this.nativeSupervisorLauncher)
       const deadline = Date.now() + CONNECT_TIMEOUT_MS
       let lastError
@@ -56,9 +57,12 @@ export class HarnessDaemon {
           await new Promise(resolve => setTimeout(resolve, 250))
         }
       }
+      const startupDetail = await this.targetRuntime.readText(this.config.supervisorStartupErrorPath)
+      const cause = startupDetail.trim() || errorMessage(lastError)
+      console.error('[plus-desktop] runtime Supervisor startup failed', cause)
       const message = this.config.locale === 'zh'
-        ? `runtime supervisor 未能在端口 ${String(this.config.supervisorPort)} 启动：${errorMessage(lastError)}`
-        : `runtime supervisor did not start on port ${String(this.config.supervisorPort)}: ${errorMessage(lastError)}`
+        ? `runtime supervisor 未能在端口 ${String(this.config.supervisorPort)} 启动：${cause}`
+        : `runtime supervisor did not start on port ${String(this.config.supervisorPort)}: ${cause}`
       throw new Error(message)
     })()
     try { await this.supervisorStarting } finally { this.supervisorStarting = undefined }
