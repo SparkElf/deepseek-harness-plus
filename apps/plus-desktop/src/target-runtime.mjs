@@ -1,10 +1,13 @@
 import { spawn } from 'node:child_process'
 import { mkdir, readdir, stat, writeFile } from 'node:fs/promises'
 import { connect } from 'node:net'
+import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
 
 const COMMAND_TIMEOUT_MS = 15 * 60_000
 const CONNECT_TIMEOUT_MS = 30_000
+const workspaceRequire = createRequire(import.meta.url)
+const bundledPnpmCli = join(dirname(workspaceRequire.resolve('pnpm')), 'bin', 'pnpm.mjs')
 
 function decodeWindowsOutput(buffer) {
   return buffer.includes(0) ? buffer.toString('utf16le').replaceAll(String.fromCharCode(0), '') : buffer.toString('utf8')
@@ -125,6 +128,17 @@ export class TargetRuntime {
     return execute(invocation.command, invocation.args, { ...options, cwd: invocation.cwd, report })
   }
 
+  /** 用 installer 自带的 pnpm 运行 native target；WSL 在发行版内用 Corepack 解析固定包管理器。 */
+  runPnpm(args, cwd, report, options = {}) {
+    if (this.isWsl) return this.run('corepack', ['pnpm', ...args], cwd, report, options)
+    return execute(process.execPath, [bundledPnpmCli, ...args], {
+      ...options,
+      cwd,
+      report,
+      env: { ...process.env, ...options.env, ELECTRON_RUN_AS_NODE: '1' },
+    })
+  }
+
   async assertEmptyDirectory(path) {
     if (!this.isWsl) {
       await mkdir(path, { recursive: true })
@@ -181,12 +195,12 @@ export class TargetRuntime {
       await execute(process.execPath, [nativeSupervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], {
         cwd: config.installPath,
         detached: true,
-        env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+        env: { ...process.env, DSH_PNPM_CLI: bundledPnpmCli, ELECTRON_RUN_AS_NODE: '1' },
       })
       return
     }
     const supervisorPath = this.join(config.installPath, 'apps/plus-desktop/src/supervisor.mjs')
-    await this.run('node', [supervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], config.installPath, undefined, { detached: true })
+    await this.run('env', ['DSH_PNPM_COMMAND=corepack', 'node', supervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], config.installPath, undefined, { detached: true })
   }
 
   /** 通过目标环境自己的 Supervisor client 发送命令，避免 Windows 解释 Linux socket。 */

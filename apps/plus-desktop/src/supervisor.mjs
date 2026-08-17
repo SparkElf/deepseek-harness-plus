@@ -80,6 +80,14 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
   })
 }
 
+function pnpmCommand(environment, args) {
+  if (environment.DSH_PNPM_CLI) {
+    return { command: process.execPath, args: [environment.DSH_PNPM_CLI, ...args], environment: { ...environment, ELECTRON_RUN_AS_NODE: '1' } }
+  }
+  if (environment.DSH_PNPM_COMMAND === 'corepack') return { command: 'corepack', args: ['pnpm', ...args], environment }
+  return { command: 'pnpm', args, environment }
+}
+
 async function gitValue(cwd, args) {
   try { return (await run('git', args, cwd, process.env, 10_000)).trim() }
   catch { return undefined }
@@ -298,9 +306,10 @@ class RuntimeSupervisor {
     this.announce('start.launchingWeb')
     const log = await this.openLog()
     this.recordedWebPid = undefined
-    const child = spawn('pnpm', ['dsh', 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)], {
+    const pnpm = pnpmCommand(this.environment(), ['dsh', 'web', '--host', '127.0.0.1', '--port', String(this.manifest.port)])
+    const child = spawn(pnpm.command, pnpm.args, {
       cwd: this.manifest.installPath,
-      env: this.environment(),
+      env: pnpm.environment,
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
     })
@@ -331,9 +340,10 @@ class RuntimeSupervisor {
     if (this.watcher !== undefined) return
     this.announce('watcher.starting')
     const log = await this.openLog()
-    const watcher = spawn('pnpm', ['run', 'dev:web'], {
+    const pnpm = pnpmCommand(this.environment(), ['run', 'dev:web'])
+    const watcher = spawn(pnpm.command, pnpm.args, {
       cwd: this.manifest.installPath,
-      env: this.environment(),
+      env: pnpm.environment,
       detached: process.platform !== 'win32',
       stdio: ['ignore', log, log],
     })
@@ -385,7 +395,8 @@ class RuntimeSupervisor {
     let lastLine = ''
     this.announce('build.starting')
     try {
-      await run('pnpm', ['run', 'build'], this.manifest.installPath, this.buildEnvironment(), BUILD_TIMEOUT_MS, text => {
+      const pnpm = pnpmCommand(this.buildEnvironment(), ['run', 'build'])
+      await run(pnpm.command, pnpm.args, this.manifest.installPath, pnpm.environment, BUILD_TIMEOUT_MS, text => {
         writeSync(log, text + String.fromCharCode(10))
         const line = text.split(String.fromCharCode(10)).map(value => value.trim()).filter(Boolean).at(-1)
         if (line && line !== lastLine) {

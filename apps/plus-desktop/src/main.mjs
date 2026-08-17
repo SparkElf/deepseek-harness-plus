@@ -294,7 +294,7 @@ async function install(form) {
       : { preparing: 'Preparing installation…', downloading: 'Downloading Harness…', installing: 'Installing Harness…', starting: 'Starting Harness…' }
     report(installText.preparing)
     await targetRuntime.run('git', ['--version'])
-    await targetRuntime.run('pnpm', ['--version'])
+    await targetRuntime.runPnpm(['--version'])
     await targetRuntime.assertEmptyDirectory(form.installPath)
     report(installText.downloading)
     await targetRuntime.run('git', ['clone', '--depth', '1', repository, form.installPath])
@@ -302,8 +302,8 @@ async function install(form) {
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, 'settings.yaml'), settingsDocument(form))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.credentials.yaml'), credentialsDocument(form))
     report(installText.installing)
-    await targetRuntime.run('pnpm', ['install', '--frozen-lockfile'], form.installPath)
-    await targetRuntime.run('pnpm', ['run', 'build'], form.installPath)
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath)
+    await targetRuntime.runPnpm(['run', 'build'], form.installPath)
     daemon.configure(configured)
     report(installText.starting)
     await daemon.start()
@@ -332,8 +332,8 @@ async function upgrade() {
     const restart = (await daemon.snapshot()).state === 'running'
     const report = message => { busy = message; refreshTray() }
     await targetRuntime.run('git', ['pull', '--ff-only'], runtime.installPath, report)
-    await targetRuntime.run('pnpm', ['install', '--frozen-lockfile'], runtime.installPath, report)
-    await targetRuntime.run('pnpm', ['run', 'build'], runtime.installPath, report)
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report)
+    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report)
     if (restart) await daemon.restart(false)
   })
 }
@@ -344,8 +344,8 @@ async function repair() {
     const targetRuntime = new TargetRuntime(runtime.target)
     const restart = (await daemon.snapshot()).state === 'running'
     const report = message => { busy = message; refreshTray() }
-    await targetRuntime.run('pnpm', ['install', '--frozen-lockfile'], runtime.installPath, report)
-    await targetRuntime.run('pnpm', ['run', 'build'], runtime.installPath, report)
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report)
+    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report)
     if (restart) await daemon.restart(false)
   })
 }
