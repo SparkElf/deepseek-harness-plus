@@ -113,9 +113,13 @@ test('installer completes a native Harness installation and starts Supervisor', 
     await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
     await expect(page.locator('#summary')).toContainText('45182')
 
-    const installerClosed = page.waitForEvent('close', { timeout: 14 * 60_000 })
+    const installerFinished = Promise.race([
+      page.waitForEvent('close', { timeout: 14 * 60_000 }).then(() => ({ closed: true })),
+      page.locator('#error').waitFor({ state: 'visible', timeout: 14 * 60_000 }).then(async () => ({ closed: false, error: await page.locator('#error').textContent() })).catch(() => undefined),
+    ])
     await page.getByRole('button', { name: '安装', exact: true }).click()
-    await installerClosed
+    const result = await installerFinished
+    if (result?.closed !== true) throw new Error('Native installation failed: ' + String(result?.error ?? 'installer did not complete'))
     expect(application.process().exitCode).toBeNull()
   } finally {
     await application.close()
