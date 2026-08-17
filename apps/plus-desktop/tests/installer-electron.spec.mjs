@@ -94,6 +94,7 @@ test('installer completes a native Harness installation and starts Supervisor', 
   const application = await electron.launch({
     args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
     cwd: desktopDirectory,
+    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: resolve(desktopDirectory, '../..') },
   })
   try {
     const page = await application.firstWindow()

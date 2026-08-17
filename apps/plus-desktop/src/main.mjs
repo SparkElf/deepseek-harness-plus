@@ -10,7 +10,7 @@ import { HarnessDaemon } from './daemon.mjs'
 import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
 import { releaseSourceRef } from './release-source.mjs'
 
-const repository = 'https://github.com/SparkElf/deepseek-harness-plus.git'
+const repository = process.env.DSH_PLUS_INSTALL_REPOSITORY ?? 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
 const supervisorDirectory = currentDirectory.replace(/\.asar([\\/])/u, '.asar.unpacked$1')
 const supervisorBootstrapPath = join(supervisorDirectory, 'supervisor-bootstrap.mjs')
