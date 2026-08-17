@@ -1,4 +1,5 @@
 import { expect, test, _electron as electron } from 'playwright/test'
+import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -91,10 +92,12 @@ test('installer validates directory provider proxy and retry controls', async ({
 
 test('installer completes a native Harness installation and starts Supervisor', async ({}, testInfo) => {
   test.setTimeout(16 * 60_000)
+  const installSource = testInfo.outputPath('install-source')
+  execFileSync('git', ['clone', '--local', resolve(desktopDirectory, '../..'), installSource], { stdio: 'pipe' })
   const application = await electron.launch({
     args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
     cwd: desktopDirectory,
-    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: resolve(desktopDirectory, '../..') },
+    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: installSource },
   })
   try {
     const page = await application.firstWindow()
