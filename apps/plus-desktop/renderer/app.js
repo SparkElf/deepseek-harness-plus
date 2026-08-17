@@ -2,8 +2,8 @@ const messages = {
   zh: {
     'step.appearance': '外观', 'step.location': '安装位置', 'step.model': '模型', 'step.review': '确认',
     'title.appearance': '选择界面外观', 'title.location': '选择安装位置', 'title.model': '选择模型', 'title.review': '确认安装',
-    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': '端口', 'label.proxy': '下载代理（可选）', 'label.overwrite': '覆盖已有安装并保留用户数据',
-    'label.provider': '模型提供方', 'label.apiKey': 'API 密钥', 'label.model': '模型名称', 'label.reasoning': '推理强度',
+    'label.language': '语言', 'label.theme': '主题', 'label.distribution': '发行版', 'label.installPath': '安装目录', 'label.port': 'Harness 端口', 'label.proxy': '下载代理（可选）', 'label.overwrite': '覆盖已有安装并保留用户数据',
+    'label.provider': '模型提供方', 'label.candidatePort': '测试 Harness 端口', 'label.supervisorPort': 'Supervisor 端口', 'label.candidateSupervisorPort': '测试 Supervisor 端口', 'label.apiKey': 'API 密钥', 'label.model': '模型名称', 'label.reasoning': '推理强度',
     'label.providerName': '服务名称', 'label.baseURL': '服务地址',
     'theme.system': '跟随系统', 'theme.light': '浅色', 'theme.dark': '深色',
     'target.windows': 'Windows', 'target.linux': 'Linux', 'target.macos': 'macOS',
@@ -15,8 +15,8 @@ const messages = {
     'placeholder.baseURL': '例如 https://api.example.com/v1',
     'reasoning.default': '默认', 'reasoning.low': '低', 'reasoning.medium': '中', 'reasoning.high': '高', 'reasoning.max': '最高',
     'summary.language': '语言', 'summary.theme': '主题', 'summary.location': '安装位置', 'summary.distribution': '发行版',
-    'summary.folder': '安装目录', 'summary.proxy': '下载代理', 'summary.overwrite': '安装方式', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': '端口',
-    'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。', 'error.proxy': '代理地址必须是 HTTP、HTTPS 或 SOCKS5 URL。',
+    'summary.folder': '安装目录', 'summary.proxy': '下载代理', 'summary.overwrite': '安装方式', 'summary.provider': '模型提供方', 'summary.url': '服务地址', 'summary.model': '模型', 'summary.reasoning': '推理强度', 'summary.port': 'Harness 端口', 'summary.candidatePort': '测试 Harness 端口', 'summary.supervisorPort': 'Supervisor 端口', 'summary.candidateSupervisorPort': '测试 Supervisor 端口',
+    'error.location': '请选择安装目录。', 'error.ports': '四个端口必须是 1024 到 65535 之间的不同数字。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。', 'error.proxy': '代理地址必须是 HTTP、HTTPS 或 SOCKS5 URL。',
     'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。', 'error.preview': '预览页面不能选择本机目录或执行安装。',
     'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus', 'placeholder.proxy': '例如 http://127.0.0.1:7890',
     'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在准备安装…', 'progress.checking': '正在检查安装环境…', 'progress.downloading': '正在下载 Harness…', 'progress.configuring': '正在写入设置…', 'progress.installing': '正在安装依赖…', 'progress.building': '正在构建 Harness…', 'progress.starting': '正在启动 Harness…', 'progress.complete': '安装完成。',
@@ -25,7 +25,7 @@ const messages = {
   en: {
     'step.appearance': 'Appearance', 'step.location': 'Location', 'step.model': 'Model', 'step.review': 'Review',
     'title.appearance': 'Choose the interface', 'title.location': 'Choose where to install', 'title.model': 'Choose a model', 'title.review': 'Ready to install',
-    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Port', 'label.proxy': 'Download proxy (optional)', 'label.overwrite': 'Overwrite existing installation and keep user data',
+    'label.language': 'Language', 'label.theme': 'Theme', 'label.distribution': 'Linux distribution', 'label.installPath': 'Installation folder', 'label.port': 'Harness port', 'label.candidatePort': 'Test Harness port', 'label.supervisorPort': 'Supervisor port', 'label.candidateSupervisorPort': 'Test Supervisor port', 'label.proxy': 'Download proxy (optional)', 'label.overwrite': 'Overwrite existing installation and keep user data',
     'label.provider': 'Model provider', 'label.apiKey': 'API key', 'label.model': 'Model', 'label.reasoning': 'Reasoning',
     'label.providerName': 'Service name', 'label.baseURL': 'Service URL',
     'theme.system': 'System', 'theme.light': 'Light', 'theme.dark': 'Dark',
@@ -38,8 +38,8 @@ const messages = {
     'placeholder.baseURL': 'For example https://api.example.com/v1',
     'reasoning.default': 'Default', 'reasoning.low': 'Low', 'reasoning.medium': 'Medium', 'reasoning.high': 'High', 'reasoning.max': 'Max',
     'summary.language': 'Language', 'summary.theme': 'Theme', 'summary.location': 'Install location', 'summary.distribution': 'Linux distribution',
-    'summary.folder': 'Installation folder', 'summary.proxy': 'Download proxy', 'summary.overwrite': 'Install mode', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Port',
-    'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.', 'error.proxy': 'Use an HTTP, HTTPS, or SOCKS5 proxy URL.',
+    'summary.folder': 'Installation folder', 'summary.proxy': 'Download proxy', 'summary.overwrite': 'Install mode', 'summary.provider': 'Model provider', 'summary.url': 'Service URL', 'summary.model': 'Model', 'summary.reasoning': 'Reasoning', 'summary.port': 'Harness port', 'summary.candidatePort': 'Test Harness port', 'summary.supervisorPort': 'Supervisor port', 'summary.candidateSupervisorPort': 'Test Supervisor port',
+    'error.location': 'Choose an installation folder.', 'error.ports': 'Use four different numbers between 1024 and 65535 for the ports.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.', 'error.proxy': 'Use an HTTP, HTTPS, or SOCKS5 proxy URL.',
     'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.', 'error.preview': 'The preview cannot choose local folders or install Harness.',
     'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus', 'placeholder.proxy': 'For example http://127.0.0.1:7890',
     'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Preparing installation…', 'progress.checking': 'Checking the installation environment…', 'progress.downloading': 'Downloading Harness…', 'progress.configuring': 'Writing settings…', 'progress.installing': 'Installing dependencies…', 'progress.building': 'Building Harness…', 'progress.starting': 'Starting Harness…', 'progress.complete': 'Installation complete.',
@@ -92,6 +92,9 @@ const reasoning = document.querySelector('#reasoningEffort')
 const provider = document.querySelector('#provider')
 const customProvider = document.querySelector('#customProvider')
 const installPath = document.querySelector('#installPath')
+const candidatePort = document.querySelector('#candidatePort')
+const supervisorPort = document.querySelector('#supervisorPort')
+const candidateSupervisorPort = document.querySelector('#candidateSupervisorPort')
 const proxy = document.querySelector('#proxy')
 const proxyError = document.querySelector('#proxyError')
 const overwriteInstall = document.querySelector('#overwriteInstall')
@@ -253,7 +256,7 @@ function target() { return { kind: targetKind, distribution: targetKind === 'wsl
 function nativeTargetName() { return bridge.platform === 'darwin' ? text('target.macos') : bridge.platform === 'linux' ? text('target.linux') : text('target.windows') }
 function values() {
   return {
-    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), proxy: proxy.value.trim(), overwrite: overwriteInstall.checked, apiKey: document.querySelector('#apiKey').value.trim(),
+    installPath: installPath.value.trim(), port: document.querySelector('#port').value.trim(), candidatePort: candidatePort.value.trim(), supervisorPort: supervisorPort.value.trim(), candidateSupervisorPort: candidateSupervisorPort.value.trim(), proxy: proxy.value.trim(), overwrite: overwriteInstall.checked, apiKey: document.querySelector('#apiKey').value.trim(),
     provider: provider.value, model: document.querySelector('#model').value.trim(), reasoningEffort: reasoning.value,
     customName: document.querySelector('#customName').value.trim(), baseURL: document.querySelector('#baseURL').value.trim(), locale, theme, target: target(),
   }
@@ -389,6 +392,10 @@ function renderSummary() {
   ]
   if (targetKind === 'wsl') rows.push(addSummary(text('summary.distribution'), config.target.distribution))
   rows.push(addSummary(text('summary.folder'), config.installPath))
+  rows.push(addSummary(text('summary.port'), config.port))
+  rows.push(addSummary(text('summary.candidatePort'), config.candidatePort))
+  rows.push(addSummary(text('summary.supervisorPort'), config.supervisorPort))
+  rows.push(addSummary(text('summary.candidateSupervisorPort'), config.candidateSupervisorPort))
   if (config.proxy) rows.push(addSummary(text('summary.proxy'), proxyName(config.proxy)))
   if (config.overwrite) rows.push(addSummary(text('summary.overwrite'), locale === 'zh' ? '覆盖安装，保留用户数据' : 'Overwrite, keep user data'))
   rows.push(addSummary(text('summary.provider'), providerName(config)))
@@ -706,12 +713,17 @@ function showStep(nextStep, resetValidation = true) {
   if (resetValidation) { error.textContent = ''; retryInstall.hidden = true; clearProxyError(); clearCustomProviderError() }
   if (step === 3) renderSummary()
 }
+function validatePorts(config) {
+  const ports = [config.port, config.candidatePort, config.supervisorPort, config.candidateSupervisorPort].map(Number)
+  if (ports.some(port => !Number.isSafeInteger(port) || port < 1024 || port > 65535)) return text('error.ports')
+  if (new Set(ports).size !== ports.length) return text('error.ports')
+  return ''
+}
 function validate() {
   const config = values()
   if (step === 1 && targetKind === 'wsl' && (!distributionsLoaded || !config.target.distribution)) return text('error.distribution')
   if (step === 1 && !config.installPath) return text('error.location')
-  if (step === 1) return validateProxy(config)
-  if (step === 1 && ['3081', '3082', '3083'].includes(config.port)) return text('error.reservedPort')
+  if (step === 1) return validatePorts(config) || validateProxy(config)
   if (step === 2 && (!config.apiKey || !config.model)) return text('error.model')
   if (step === 2 && config.provider === 'custom') return validateCustomProvider(config)
   return ''

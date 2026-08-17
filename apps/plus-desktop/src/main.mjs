@@ -4,6 +4,7 @@ import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { request } from 'node:http'
+import { createServer } from 'node:net'
 import { parse as parseYaml } from 'yaml'
 import { HarnessDaemon } from './daemon.mjs'
 import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
@@ -11,12 +12,14 @@ import { releaseSourceRef } from './release-source.mjs'
 
 const repository = 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const currentDirectory = dirname(fileURLToPath(import.meta.url))
+const supervisorDirectory = currentDirectory.replace(/\.asar([\\/])/u, '.asar.unpacked$1')
+const supervisorScriptPath = join(supervisorDirectory, 'supervisor.mjs')
 const setupPath = () => join(app.getPath('userData'), 'runtime.json')
-const nativeSupervisorSocketPath = () => process.platform === 'win32' ? 'deepseek-harness-plus-runtime' : join(app.getPath('userData'), 'runtime-supervisor.sock')
+const nativeSupervisorSocketPath = supervisorPort => process.platform === 'win32' ? 'deepseek-harness-plus-runtime-' + String(supervisorPort) : join(app.getPath('userData'), 'runtime-supervisor-' + String(supervisorPort) + '.sock')
 const nativeSupervisorManifestPath = () => join(app.getPath('userData'), 'runtime-supervisor.json')
-const candidatePort = 3081
-const progressPort = 3082
-const candidateProgressPort = 3083
+const defaultCandidatePort = 3081
+const defaultSupervisorPort = 3082
+const defaultCandidateSupervisorPort = 3083
 let tray
 let installerWindow
 let updatesWindow
@@ -128,16 +131,17 @@ function runtimeFor(form, port) {
   const dshHome = targetRuntime.join(form.installPath, '.dsh-plus', 'home')
   const supervisorDirectory = targetRuntime.join(dshHome, 'supervisor')
   return {
-    version: 2,
+    version: 3,
     target: form.target,
     installPath: form.installPath,
     proxy: form.proxy || undefined,
     sourceRef: releaseSourceRef,
     dshHome,
     port,
-    candidatePort,
-    progressPort,
-    supervisorSocketPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor.sock') : nativeSupervisorSocketPath(),
+    candidatePort: Number(form.candidatePort),
+    supervisorPort: Number(form.supervisorPort),
+    candidateSupervisorPort: Number(form.candidateSupervisorPort),
+    supervisorSocketPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor.sock') : nativeSupervisorSocketPath(Number(form.supervisorPort)),
     supervisorManifestPath: targetRuntime.isWsl ? targetRuntime.join(supervisorDirectory, 'runtime-supervisor.json') : nativeSupervisorManifestPath(),
     locale: form.locale,
     theme: form.theme,
@@ -228,14 +232,14 @@ function refreshTray() {
 
 function candidateRuntimeIsAvailable() {
   return new Promise(resolve => {
-    const probe = request({ host: '127.0.0.1', port: candidateProgressPort, path: '/api/status', method: 'GET', timeout: 500 }, response => {
+    const probe = request({ host: '127.0.0.1', port: runtime?.candidateSupervisorPort ?? defaultCandidateSupervisorPort, path: '/api/status', method: 'GET', timeout: 500 }, response => {
       let body = ''
       response.setEncoding('utf8')
       response.on('data', chunk => { body += chunk })
       response.once('end', () => {
         try {
           const snapshot = JSON.parse(body)
-          resolve(response.statusCode === 200 && snapshot.runtime?.port === candidatePort && snapshot.runtime?.state === 'running')
+          resolve(response.statusCode === 200 && snapshot.runtime?.port === (runtime?.candidatePort ?? defaultCandidatePort) && snapshot.runtime?.state === 'running')
         }
         catch (error) { console.info('[plus-desktop] candidate status response was not readable', error); resolve(false) }
       })
@@ -331,6 +335,19 @@ async function installDependenciesWithRetry(targetRuntime, form, networkEnvironm
   }
 }
 
+async function assertLocalPortsAvailable(form, ports) {
+  for (const port of ports) {
+    await new Promise((resolve, reject) => {
+      const probe = createServer()
+      const fail = () => {
+        probe.close(() => reject(new Error(form.locale === 'zh' ? `端口 ${String(port)} 已被占用，请选择其他端口。` : `Port ${String(port)} is already in use. Choose another port.`)))
+      }
+      probe.once('error', fail)
+      probe.listen(port, '127.0.0.1', () => probe.close(resolve))
+    })
+  }
+}
+
 function validateInstall(form) {
   if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation folder, API key, and model.')
   if (!catalogProviders.has(form.provider) && form.provider !== 'custom') throw new Error('Choose a supported model provider.')
@@ -345,10 +362,10 @@ function validateInstall(form) {
   if (form.target.kind === 'wsl' && (!form.target.distribution || process.platform !== 'win32')) throw new Error('Choose an installed WSL distribution.')
   if (form.locale !== 'zh' && form.locale !== 'en') throw new Error('Choose a supported interface language.')
   if (!['system', 'light', 'dark'].includes(form.theme)) throw new Error('Choose a supported interface theme.')
-  const port = Number(form.port)
-  if (!Number.isSafeInteger(port) || port < 1024 || port > 65535) throw new Error('Choose a local port between 1024 and 65535.')
-  if (port === candidatePort || port === progressPort || port === candidateProgressPort) throw new Error('Choose another local port.')
-  return port
+  const ports = [form.port, form.candidatePort, form.supervisorPort, form.candidateSupervisorPort].map(Number)
+  if (ports.some(value => !Number.isSafeInteger(value) || value < 1024 || value > 65535)) throw new Error('Choose local ports between 1024 and 65535.')
+  if (new Set(ports).size !== ports.length) throw new Error('Each local port must be different.')
+  return ports[0]
 }
 
 /** 安装全过程都在用户选择的 Windows 或 WSL 目标内执行。 */
@@ -356,6 +373,7 @@ async function install(form) {
   if (runtime !== undefined) throw new Error('DeepSeek Harness Plus is already installed.')
   const port = validateInstall(form)
   const targetRuntime = new TargetRuntime(form.target)
+  await assertLocalPortsAvailable(form, [port, Number(form.candidatePort), Number(form.supervisorPort), Number(form.candidateSupervisorPort)])
   const networkEnvironment = proxyEnvironment(form.proxy)
   const configured = runtimeFor(form, port)
   busy = 'Installing DeepSeek Harness Plus...'
@@ -550,7 +568,7 @@ async function openCandidate() {
 
 async function openSupervisor() {
   await daemon.snapshot()
-  await shell.openExternal('http://127.0.0.1:' + String(runtime.progressPort))
+  await shell.openExternal('http://127.0.0.1:' + String(runtime.supervisorPort))
 }
 
 async function openDataFolder() {
@@ -561,19 +579,28 @@ async function openDataFolder() {
 
 const daemon = new HarnessDaemon(() => {
   refreshTray()
-}, join(currentDirectory, 'supervisor.mjs'))
+}, supervisorScriptPath)
 
-/** 将 0.2.0 本机配置提升为带显式 target、主题和语言的当前配置。 */
+/** 将历史本机配置提升为当前的显式 target、实例和 Supervisor 端口配置。 */
 async function migrateRuntime(saved) {
-  if (saved.version === 2) return saved
+  if (saved.version === 3) return saved
   const settings = parseYaml(await readFile(join(saved.dshHome, 'settings.yaml'), 'utf8'))
+  const current = { ...saved }
+  delete current.progressPort
+  delete current.candidateProgressPort
+  const target = saved.target ?? { kind: 'native' }
+  const supervisorPort = Number(saved.supervisorPort ?? saved.progressPort ?? defaultSupervisorPort)
+  const candidatePort = Number(saved.candidatePort ?? defaultCandidatePort)
+  const candidateSupervisorPort = Number(saved.candidateSupervisorPort ?? saved.candidateProgressPort ?? defaultCandidateSupervisorPort)
   return {
-    ...saved,
-    version: 2,
-    target: { kind: 'native' },
-    supervisorSocketPath: nativeSupervisorSocketPath(),
-    supervisorManifestPath: nativeSupervisorManifestPath(),
+    ...current,
+    version: 3,
+    target,
     candidatePort,
+    supervisorPort,
+    candidateSupervisorPort,
+    supervisorSocketPath: target.kind === 'wsl' ? saved.supervisorSocketPath : nativeSupervisorSocketPath(supervisorPort),
+    supervisorManifestPath: saved.supervisorManifestPath ?? nativeSupervisorManifestPath(),
     locale: settings?.locale?.preference === 'en' ? 'en' : 'zh',
     theme: ['light', 'dark', 'system'].includes(settings?.['ui-theme']?.preference) ? settings['ui-theme'].preference : 'system',
   }

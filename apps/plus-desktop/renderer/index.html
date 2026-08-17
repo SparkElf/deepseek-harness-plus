@@ -69,8 +69,14 @@
             </div>
             <details class="advanced-options">
               <summary data-i18n="advanced.title">高级选项</summary>
-              <label class="field-label" for="port" data-i18n="label.port">端口</label>
+              <label class="field-label" for="port" data-i18n="label.port">Harness 端口</label>
               <input id="port" required inputmode="numeric" value="3080">
+              <label class="field-label" for="candidatePort" data-i18n="label.candidatePort">测试 Harness 端口</label>
+              <input id="candidatePort" required inputmode="numeric" value="3081">
+              <label class="field-label" for="supervisorPort" data-i18n="label.supervisorPort">Supervisor 端口</label>
+              <input id="supervisorPort" required inputmode="numeric" value="3082">
+              <label class="field-label" for="candidateSupervisorPort" data-i18n="label.candidateSupervisorPort">测试 Supervisor 端口</label>
+              <input id="candidateSupervisorPort" required inputmode="numeric" value="3083">
               <label class="field-label" for="proxy" data-i18n="label.proxy">下载代理（可选）</label>
               <input id="proxy" type="url" autocomplete="off" data-i18n-placeholder="placeholder.proxy" placeholder="例如 http://127.0.0.1:7890" aria-describedby="proxyError">
               <p id="proxyError" class="field-error proxy-error" role="alert" hidden></p>

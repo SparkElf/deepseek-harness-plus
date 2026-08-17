@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-release-version-manager-and-ai-merge-upgrade.md
-2026-08-17-release-version-manager-and-ai-merge-upgrade.md: 5fc39d204032b70013f640174103f4fb7c95bf35
-2026-08-17-release-version-manager-and-ai-merge-upgrade.zh.md: 96ee7a55dd9eb3b8b343c5d19b0a5ac26f84d90f
+2026-08-17-release-version-manager-and-ai-merge-upgrade.md: ac17dd47a38eff22f1204a02a31bd4eb8ebdd01b
+2026-08-17-release-version-manager-and-ai-merge-upgrade.zh.md: 58b1bc07b2d1d04a127a3ffe5a69dbad400bb484

@@ -6,7 +6,7 @@ The desktop manager installs and controls one local Harness runtime. Its compact
 
 On Windows, the guide offers Windows or a selected installed WSL distribution, then opens its native file picker for the installation folder. Selecting a WSL folder opens that distribution in Explorer and returns its Linux path. The installation directory, commands, settings, Supervisor, Harness Web process, rebuilds, repairs, and updates remain in the selected target. Linux and macOS packages use their native environment.
 
-The tray reads Supervisor status and opens the production Harness page and Supervisor page independently. It enables the candidate Harness entry only while the candidate workflow's 3083 Supervisor reports a Web runtime on 3081. Version management lists tagged Plus releases by exact commit, supports normal upgrade or rollback, and opens an AI merge session for local source changes. The tray also starts, stops, rebuilds, repairs, and opens the target data directory.
+The tray reads Supervisor status and opens the production Harness page and Supervisor page independently. The installer stores separate production, candidate, Supervisor, and candidate Supervisor ports, so the candidate Harness entry probes the configured candidate Supervisor instead of fixed ports. Version management lists tagged Plus releases by exact commit, supports normal upgrade or rollback, and opens an AI merge session for local source changes. The tray also starts, stops, rebuilds, repairs, and opens the target data directory.
 
 The guide configures one initial default model. It supports DeepSeek, OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, xAI, and an OpenAI-compatible custom provider. It writes the provider profile to <code>settings.yaml</code> and the key to the managed <code>.credentials.yaml</code> document. Harness Web remains the later interface for adding or editing providers and models.
 
@@ -30,8 +30,8 @@ pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <sock
 pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <socket-path> --branch <branch-name> rebuild-and-restart
 ~~~
 
-The Supervisor owns Harness Web, the configured port, the optional client HMR watcher, rebuilds, runtime logs, and its HTTP/SSE page. A branch rebuild completes before the current Web process stops; a failed build leaves the current process running and retains raw output in the runtime log.
+The Supervisor owns Harness Web, the configured Harness and Supervisor ports, the optional client HMR watcher, rebuilds, runtime logs, and its HTTP/SSE page. Windows waits for the named pipe to finish listening before the Supervisor reports startup complete. A branch rebuild completes before the current Web process stops; a failed build leaves the current process running and retains raw output in the runtime log.
 
 ## Development modes
 
-Client-plugin source-only changes use the current production worktree when its <code>pnpm run dev:web</code> watcher is active. Web shell, client runtime, Host, Supervisor, desktop, settings/schema, dependency, lockfile, bundle, and built-artifact changes use a candidate branch in a separate worktree with its own DSH_HOME, Web port 3081, and progress page port 3083. The reusable procedure is documented in <code>.agents/skills/supervisor-runtime-control/SKILL.md</code>.
+Client-plugin source-only changes use the current production worktree when its <code>pnpm run dev:web</code> watcher is active. Web shell, client runtime, Host, Supervisor, desktop, settings/schema, dependency, lockfile, bundle, and built-artifact changes use a candidate branch in a separate worktree with its own DSH_HOME and separately selected Web and Supervisor ports. The reusable procedure is documented in <code>.agents/skills/supervisor-runtime-control/SKILL.md</code>.

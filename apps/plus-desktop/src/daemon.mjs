@@ -55,7 +55,10 @@ export class HarnessDaemon {
           await new Promise(resolve => setTimeout(resolve, 250))
         }
       }
-      throw new Error('runtime supervisor did not start: ' + errorMessage(lastError))
+      const message = this.config.locale === 'zh'
+        ? `runtime supervisor 未能在端口 ${String(this.config.supervisorPort)} 启动：${errorMessage(lastError)}`
+        : `runtime supervisor did not start on port ${String(this.config.supervisorPort)}: ${errorMessage(lastError)}`
+      throw new Error(message)
     })()
     try { await this.supervisorStarting } finally { this.supervisorStarting = undefined }
   }

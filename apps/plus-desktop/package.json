@@ -35,6 +35,9 @@
       "build/icon.png",
       "package.json"
     ],
+    "asarUnpack": [
+      "src/**/*.mjs"
+    ],
     "linux": {
       "target": [
         "AppImage",

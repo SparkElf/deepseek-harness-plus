@@ -125,8 +125,8 @@ class RuntimeSupervisor {
 
   async load() {
     this.manifest = JSON.parse(await readFile(this.manifestPath, 'utf8'))
-    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port || !this.manifest.progressPort) {
-      throw new Error('supervisor manifest needs installPath, dshHome, port, and progressPort')
+    if (!this.manifest.installPath || !this.manifest.dshHome || !this.manifest.port || !this.manifest.supervisorPort) {
+      throw new Error('supervisor manifest needs installPath, dshHome, port, and supervisorPort')
     }
     this.recordedWebPid = this.manifest.webPid
     await this.openLog()
@@ -434,7 +434,7 @@ class RuntimeSupervisor {
       sourcePath: this.manifest.installPath,
       dshHome: this.manifest.dshHome,
       port: this.manifest.port,
-      progressPort: this.manifest.progressPort,
+      supervisorPort: this.manifest.supervisorPort,
       mode: this.manifest.mode ?? 'code',
       webPid: this.web?.pid ?? this.recordedWebPid,
       watcherPid: this.watcher?.pid,
@@ -484,11 +484,17 @@ class RuntimeSupervisor {
         }
       })
     })
-    this.server.listen(this.socketPath)
+    await new Promise((resolve, reject) => {
+      const listening = () => { this.server.off('error', failed); resolve() }
+      const failed = error => { this.server.off('listening', listening); reject(error) }
+      this.server.once('listening', listening)
+      this.server.once('error', failed)
+      this.server.listen(this.socketPath)
+    })
     if (process.platform !== 'win32') await chmod(this.socketPath, SOCKET_MODE)
     this.writeStatus()
     this.progressServer = await startProgressServer({
-      port: this.manifest.progressPort,
+      port: this.manifest.supervisorPort,
       manifestPath: this.manifestPath,
       socketPath: this.controlSocketPath,
       logPath: join(this.manifest.dshHome, 'supervisor', 'runtime.log'),
