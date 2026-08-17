@@ -1308,6 +1308,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-settings-plugins BashCard id \'bash\'',
       'client-ui-settings-plugins AgentLoopCard id \'agent-loop\'',
       'client-ui-settings-plugins WebSearchCard id \'web-search\'',
+      'client-ui-settings-plugins SubagentCard id \'subagent\'',
     ],
     replaceRisk: 'none',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'settings.plugin.item\', () => ctx.slots.register(\n      { name: \'settings.plugin.item\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',

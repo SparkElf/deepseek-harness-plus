@@ -22,7 +22,7 @@ subagent 启动有三个独立的组合控制：`persona`、`toolFilter` 和 `ma
 | `toolFilter` | 部署全局工具中哪些进入该子 agent 的可见工具视图？ | 一个有作用域的限制在添加子 agent 局部工具之前过滤全局工具 |
 | `maxDepth` | 这棵委派树最深可以长到多少层？ | 子 agent 深度超过绝对上限时，启动请求被拒绝 |
 
-`dsh-tool-subagent` 将这些控制作为插件配置暴露，并复制到它创建的每个请求中。直接调用 `SubagentRuntime` 的调用方可以按请求选择这些控制。提供方的能力描述符仍然是后端能否兑现各字段的真源。
+`dsh-tool-subagent` 将这些控制作为插件配置暴露，并复制到它创建的每个请求中。带有 `settingsNamespace` 的实例会在每次后续创建子 agent 时从用户设置解析同一组字段；[实时 Web subagent 设置](2026-08-16-web-subagent-settings.md)负责该部署集成。直接调用 `SubagentRuntime` 的调用方可以按请求选择这些控制。提供方的能力描述符仍然是后端能否兑现各字段的真源。
 
 ### 人设是有作用域的遮蔽
 

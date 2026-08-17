@@ -35,6 +35,23 @@ The Plus Desktop renderer is plain HTML, CSS, and JavaScript, so it cannot impor
 - Query artifact metadata with `gh api repos/SparkElf/deepseek-harness-plus/actions/runs/<run-id>/artifacts`, then download with explicit repository, run ID, and artifact name.
 - Build the standard Windows NSIS installer on a native Windows runner. A Linux or WSL host may build a portable Windows executable, but NSIS signing and helper packaging require Wine and are not final Windows installer evidence.
 
+## Repository and GitHub Targets
+
+- Resolve the target repository before any GitHub command. Check `git remote get-url origin` and confirm the community repository with `gh repo view SparkElf/deepseek-harness-plus`.
+- Every `gh` command must include `-R SparkElf/deepseek-harness-plus`. Never let the CLI infer a repository when both `origin` and `upstream` exist. Use the explicit target for `gh pr`, `gh workflow`, `gh run`, `gh artifact`, and `gh release` commands.
+- Treat Git SSH authentication and the GitHub CLI API token as separate credentials. Check `gh auth status` and repository permissions before diagnosing a PR or workflow failure; do not request token changes until the repository target is confirmed.
+- When master is branch-protected, aggregate the work on one branch, create one PR, wait for required checks and artifacts, then merge through the target repository.
+
+### Delivery Checklist
+
+- Read branch rules before pushing with `gh api repos/SparkElf/deepseek-harness-plus/rules/branches/master`. Do not attempt a direct master push when the rules require a PR.
+- A new workflow cannot be manually dispatched until GitHub recognizes it on the default branch. Give it a `pull_request` trigger, push one aggregate branch, and create the PR first.
+- Include all repository-required PR evidence headings in the initial PR body. Read the failed check log before changing code when an evidence check fails.
+- If `gh pr edit` fails on the deprecated Classic Projects GraphQL field, update the PR with `gh api repos/SparkElf/deepseek-harness-plus/pulls/<number> -X PATCH`.
+- Distinguish required status checks from unrelated fork failures. Missing upstream GitHub App secrets, external API keys, and release credentials do not invalidate a passing native Windows installer job; record them and do not misdiagnose the product build.
+- Query artifact metadata with `gh api repos/SparkElf/deepseek-harness-plus/actions/runs/<run-id>/artifacts`, then download with explicit repository, run ID, and artifact name.
+- Build the standard Windows NSIS installer on a native Windows runner. A Linux or WSL host may build a portable Windows executable, but NSIS signing and helper packaging require Wine and are not final Windows installer evidence.
+
 ## Design Contract
 
 - Use semantic Harness colors and typography. Keep light and dark themes as deliberate pairs.
