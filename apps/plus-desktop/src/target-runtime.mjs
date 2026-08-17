@@ -238,6 +238,12 @@ export class TargetRuntime {
     return (await this.run('wslpath', ['-u', path])).trim()
   }
 
+  /** 把发行版内路径转换为 Windows 主进程可直接读写的 UNC 路径；native target 原样返回。 */
+  uncPath(path) {
+    if (!this.isWsl) return path
+    return ['', '', 'wsl.localhost', this.target.distribution, path.replace(/^\/+/u, '').replaceAll('/', '\\')].join('\\')
+  }
+
   /** 读取目标环境中的 UTF-8 runtime 文本；WSL 读取始终在所选发行版内执行。 */
   async readText(path) {
     if (!this.isWsl) return readFile(path, 'utf8')

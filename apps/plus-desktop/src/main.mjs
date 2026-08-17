@@ -41,7 +41,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupWslUnsupported: '备份暂不支持 WSL 目标，请在发行版内直接管理数据目录。', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', quit: '退出',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', quit: '退出',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -49,7 +49,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupWslUnsupported: 'Backup does not support WSL targets yet; manage the data folder inside the distribution instead.', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', quit: 'Quit',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', quit: 'Quit',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -566,7 +566,7 @@ async function checkUpdates() {
 
 /**
  * 打开备份与恢复窗口；导出把 dshHome 打包为 zip，导入从 zip 恢复用户数据。
- * WSL 目标的数据位于发行版内部，Windows 主进程无法直接访问，暂不支持。
+ * WSL 目标的 dshHome 经 UNC 路径访问，压缩包可在 WSL 与 Windows 安装之间迁移。
  */
 function openBackupWindow() {
   if (runtime === undefined) return
@@ -579,8 +579,9 @@ function openBackupWindow() {
   backupWindow.once('closed', () => { backupWindow = undefined })
 }
 
-function assertNativeBackupTarget() {
-  if (runtime.target.kind === 'wsl') throw new Error(trayText('backupWslUnsupported'))
+/** 返回主进程可直接读写的 dshHome 路径：native 路径原样使用，WSL 转换为 UNC 路径。 */
+function backupDataPath() {
+  return new TargetRuntime(runtime.target).uncPath(runtime.dshHome)
 }
 
 async function handleBackupState() {
@@ -591,7 +592,6 @@ async function handleBackupState() {
 /** options.targetPath 由测试直接指定时跳过保存对话框。 */
 async function handleBackupExport(options = {}) {
   await assertInstalled()
-  assertNativeBackupTarget()
   const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/gu, '').replace('T', '-')
   let targetPath = options.targetPath
   if (targetPath === undefined) {
@@ -603,14 +603,13 @@ async function handleBackupExport(options = {}) {
     if (choice.canceled || choice.filePath === null) return { canceled: true }
     targetPath = choice.filePath
   }
-  const result = exportUserBackup(runtime.dshHome, targetPath)
+  const result = exportUserBackup(backupDataPath(), targetPath)
   return { canceled: false, ...result }
 }
 
 /** options.archivePath + options.confirmed 由测试直接指定时跳过选择和确认对话框。 */
 async function handleBackupImport(options = {}) {
   await assertInstalled()
-  assertNativeBackupTarget()
   let archivePath = options.archivePath
   if (archivePath === undefined) {
     const choice = await dialog.showOpenDialog({
@@ -644,7 +643,7 @@ async function handleBackupImport(options = {}) {
   }
   const wasRunning = supervisorSnapshot?.state === 'running'
   if (wasRunning) await daemon.stop()
-  const result = restoreUserBackup(validated, runtime.dshHome)
+  const result = restoreUserBackup(validated, backupDataPath())
   if (wasRunning) await daemon.start()
   return { canceled: false, restarted: wasRunning, ...result }
 }

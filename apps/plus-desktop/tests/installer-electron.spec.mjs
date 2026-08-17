@@ -200,10 +200,11 @@ test('backup window exports and restores the user data archive', async ({}, test
     const entryNames = archive.getEntries().map(entry => entry.entryName)
     expect(entryNames).toContain('settings.yaml')
     expect(entryNames).toContain('backup-manifest.json')
-    // 用户配置的模型（provider/model/reasoningEffort）写在 settings.yaml，凭据在 .credentials.yaml：备份必须带上它们。
+    // 用户配置的模型（provider/model/reasoningEffort）写在 settings.yaml；密钥明文（不只是引用名）在 .credentials.yaml：备份必须带上它们。
     const settingsEntry = archive.getEntries().find(entry => entry.entryName === 'settings.yaml')
     expect(settingsEntry.getData().toString('utf8')).toContain('agent-default-model')
-    expect(entryNames).toContain('.credentials.yaml')
+    const credentialsEntry = archive.getEntries().find(entry => entry.entryName === '.credentials.yaml')
+    expect(credentialsEntry.getData().toString('utf8')).toContain('sk-electron-backup-test')
 
     const invalidArchivePath = testInfo.outputPath('invalid.zip')
     const invalidArchive = new AdmZip()
