@@ -35,6 +35,13 @@ function fakeHttpServer(
 }
 
 /** Bodyless GET carrying the given headers (enough for the trust fence + bridge). */
+/** The /api prefix route regardless of registration order. */
+function apiRoute(routes: WebRoute[]): WebRoute {
+  const route = routes.find(candidate => candidate.kind === 'prefix')
+  if (route === undefined) throw new Error('prefix /api route missing')
+  return route
+}
+
 function fakeRequest(headers: Record<string, string>, url = `${API_PATH}/session.list`): IncomingMessage {
   const request = Readable.from([]) as unknown as IncomingMessage
   Object.assign(request, { url, method: 'GET', headers })
@@ -115,10 +122,11 @@ describe('connection node half', () => {
     expect(upgrades).toHaveLength(0)
   })
 
-  it('registers one HTTP route plus one upgrade route per downlink and removes all three with the fiber', async () => {
+  it('registers the /api prefix, the exact backup upload route, and one upgrade route per downlink, removing all with the fiber', async () => {
     const { routes, upgrades, dispose } = await mounted()
-    expect(routes).toHaveLength(1)
-    expect(routes[0]).toMatchObject({ kind: 'prefix', path: API_PATH })
+    expect(routes).toHaveLength(2)
+    expect(apiRoute(routes)).toMatchObject({ kind: 'prefix', path: API_PATH })
+    expect(routes.some(route => route.kind === 'exact' && route.path === '/api/backup.upload')).toBe(true)
     expect(upgrades.map(route => route.path)).toEqual([MUX_EVENTS_PATH, HOST_EVENTS_PATH])
     await dispose()
     expect(routes).toHaveLength(0)
@@ -129,7 +137,7 @@ describe('connection node half', () => {
     const { routes, dispose } = await mounted()
     for (const path of [MUX_EVENTS_PATH, HOST_EVENTS_PATH]) {
       const { response, state } = fakeResponse()
-      await routes[0]!.handler(fakeRequest({ host: '127.0.0.1:3080' }, path), response)
+      await apiRoute(routes).handler(fakeRequest({ host: '127.0.0.1:3080' }, path), response)
       expect(state.status).toBe(426)
       expect(state.body).toBe('upgrade required')
     }
@@ -153,7 +161,7 @@ describe('connection node half', () => {
   it('refuses an untrusted Host on any /api path before the bridge runs', async () => {
     const { routes, dispose } = await mounted()
     const { response, state } = fakeResponse()
-    await routes[0]!.handler(fakeRequest({
+    await apiRoute(routes).handler(fakeRequest({
       host: 'harness.example', origin: 'http://harness.example', 'sec-fetch-site': 'same-origin',
     }), response)
     expect(state.status).toBe(403)
@@ -179,7 +187,7 @@ describe('connection node half', () => {
       'agentPreset.read', 'agentPreset.copy', 'agentPreset.openDocument', 'agentPreset.remove',
     ]) {
       const denied = fakeResponse()
-      await routes[0]!.handler(
+      await apiRoute(routes).handler(
         fakeRequest({ host: 'harness.example' }, `${API_PATH}/${method}`),
         denied.response,
       )
@@ -187,7 +195,7 @@ describe('connection node half', () => {
       expect(denied.state.body).toBe('forbidden')
     }
     const read = fakeResponse()
-    await routes[0]!.handler(fakeRequest({ host: 'harness.example' }), read.response)
+    await apiRoute(routes).handler(fakeRequest({ host: 'harness.example' }), read.response)
     expect(read.state.status).not.toBe(403)
     await dispose()
   })
@@ -197,16 +205,16 @@ describe('connection node half', () => {
     // Loopback, no browser markers (curl shape): the fence passes; the carrier
     // answers 404 for a GET unary path — proof the bridge ran.
     const loopback = fakeResponse()
-    await routes[0]!.handler(fakeRequest({ host: '127.0.0.1:3080' }), loopback.response)
+    await apiRoute(routes).handler(fakeRequest({ host: '127.0.0.1:3080' }), loopback.response)
     expect(loopback.state.status).toBe(404)
     // An all-interfaces composition derives port-less LAN IP literals, which
     // pass markerless curl on any port.
     const lan = fakeResponse()
-    await routes[0]!.handler(fakeRequest({ host: '192.168.1.5:3080' }), lan.response)
+    await apiRoute(routes).handler(fakeRequest({ host: '192.168.1.5:3080' }), lan.response)
     expect(lan.state.status).toBe(404)
     // Declared public authority, same-origin browser shape.
     const declared = fakeResponse()
-    await routes[0]!.handler(fakeRequest({
+    await apiRoute(routes).handler(fakeRequest({
       host: 'harness.example:3080', origin: 'http://harness.example:3080', 'sec-fetch-site': 'same-origin',
     }), declared.response)
     expect(declared.state.status).toBe(404)
@@ -220,7 +228,7 @@ describe('connection node half', () => {
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
     expect(routes).toHaveLength(1)
-    expect(routes[0]).toMatchObject({ kind: 'prefix', path: API_PATH })
+    expect(apiRoute(routes)).toMatchObject({ kind: 'prefix', path: API_PATH })
 
     const connection = ctx.get('connection') as HostConnectionHandle
     const calls: unknown[] = []
@@ -423,7 +431,7 @@ describe('connection node half over a real HTTP server', () => {
   /** Serve the registered prefix route from a real server and return its port. */
   async function serve(routes: WebRoute[]): Promise<{ port: number; close: () => Promise<void> }> {
     const server = createServer((request, response) => {
-      void routes[0]!.handler(request, response)
+      void apiRoute(routes).handler(request, response)
     })
     await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))
     const address = server.address() as AddressInfo

@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto'
 import type { z } from 'zod'
 import type { ApiProxy, MuxFrame, HostFrame } from '../api/index.ts'
 import { sessionLogQuerySchema } from '../api/downloads.schema.ts'
+import { backupExportQuerySchema } from '../api/backups.schema.ts'
 import type { RequestPayload, ResponseValue, RpcMethodMap } from '../api/rpc-map.ts'
 import type { ClientRequest, RpcError, RpcRequest, RpcResponse, ServerRequest, ServerResponse } from '../api/rpc.ts'
 import { RpcId } from '../api/rpc.ts'
@@ -259,6 +260,17 @@ export function toFetchHandler(api: ApiProxy): { fetch: typeof fetch } {
       }
       if (path === '/api/events.host' && req.method === 'GET') {
         return sseResponse(api.events.host({ rpcId: RpcId(randomUUID()), payload: {} }, req.signal))
+      }
+      if (path === '/api/backup.export' && (req.method === 'GET' || req.method === 'HEAD')) {
+        const parsed = backupExportQuerySchema.safeParse(Object.fromEntries(url.searchParams))
+        if (!parsed.success) {
+          return new Response('missing or invalid token query parameter', { status: 400 })
+        }
+        const response = await api.backups.download(parsed.data.token)
+        if (response === undefined) return new Response('unknown or expired backup token', { status: 404 })
+        if (req.method === 'GET') return response
+        await response.body?.cancel()
+        return new Response(null, { status: response.status, headers: response.headers })
       }
       if (path === '/api/session.export' && (req.method === 'GET' || req.method === 'HEAD')) {
         // Query params are a different boundary from the POST envelope, but

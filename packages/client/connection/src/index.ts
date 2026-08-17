@@ -1,4 +1,9 @@
 /** Host HTTP bridge for browser-client RPC. */
+import type { IncomingMessage, ServerResponse } from 'node:http'
+import { createWriteStream } from 'node:fs'
+import { mkdtemp } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-attachment'
@@ -28,6 +33,60 @@ export const name = 'client-connection'
 
 /** Headroom for RPC JSON fields around aggregate base64 image payloads. */
 const REQUEST_ENVELOPE_HEADROOM_BYTES = 1024 * 1024
+
+/** Backup upload ceiling: archives stream to disk, bounded only by plausible harness-home size. */
+const BACKUP_UPLOAD_MAX_BYTES = 2 * 1024 * 1024 * 1024
+
+/**
+ * Stream one loopback backup upload to a temp file and answer its single-use
+ * import token; the RPC `settings.backupImport` consumes the token afterwards.
+ * @param api - the gateway face owning the upload token registry.
+ * @param req - the upload request body stream.
+ * @param res - the response to settle.
+ */
+async function stageBackupUpload(
+  api: { backups: { registerUpload: (path: string) => { token: string } } },
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  if (req.method !== 'POST') {
+    res.writeHead(405)
+    res.end('method not allowed')
+    return
+  }
+  const declared = Number(req.headers['content-length'] ?? '0')
+  if (Number.isFinite(declared) && declared > BACKUP_UPLOAD_MAX_BYTES) {
+    res.writeHead(413)
+    res.end('backup upload too large')
+    return
+  }
+  let written = 0
+  const dir = await mkdtemp(join(tmpdir(), 'dsh-backup-upload-'))
+  const path = join(dir, 'upload.zip')
+  await new Promise<void>((resolve, reject) => {
+    const out = createWriteStream(path)
+    req.on('data', (chunk: Buffer) => {
+      written += chunk.length
+      if (written > BACKUP_UPLOAD_MAX_BYTES) {
+        req.destroy()
+        out.destroy()
+        reject(new Error('too large'))
+      }
+    })
+    req.pipe(out)
+    out.on('finish', () => { resolve() })
+    out.on('error', reject)
+    req.on('error', reject)
+  }).catch(() => {
+    res.writeHead(413)
+    res.end('backup upload too large')
+    return
+  })
+  if (res.writableEnded) return
+  const { token } = api.backups.registerUpload(path)
+  res.writeHead(200, { 'content-type': 'application/json' })
+  res.end(JSON.stringify({ token }))
+}
 
 function assertImageBodyCapacity(ctx: Context, maxRequestBodyBytes: number): void {
   const attachments = ctx.get('attachments')
@@ -153,6 +212,11 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
           headers: { connection: 'Upgrade', upgrade: 'websocket' },
         })
       }
+      // Backup archives carry the user's full configuration and keys: the
+      // download channel stays loopback even on trusted-host deployments.
+      if (pathname === '/api/backup.export' && !isTrustedApiRequest(request, [])) {
+        return new Response('forbidden', { status: 403 })
+      }
       const apiProxy = ctx.get('apiProxy')
       if (apiProxy === undefined) return new Response('not found', { status: 404 })
       return toFetchHandler(apiProxy).fetch(request)
@@ -192,5 +256,19 @@ export function apply(ctx: Context, config?: ConnectionConfig): void {
     apiCtx.effect(() => () => downlinks.close(), 'client-connection: WebSocket downlinks')
     registerDownlink(MUX_EVENTS_PATH, (req, socket, head) => { downlinks.handleMux(req, socket, head) })
     registerDownlink(HOST_EVENTS_PATH, (req, socket, head) => { downlinks.handleHost(req, socket, head) })
+    // Exact route wins over the /api prefix: uploads stream straight to disk
+    // instead of the buffered JSON bridge. Loopback-only like the download.
+    apiCtx.effect(() => apiCtx.webServer.register({
+      kind: 'exact',
+      path: '/api/backup.upload',
+      handler: (req, res) => {
+        if (!isTrustedApiRequest(req, [])) {
+          res.writeHead(403)
+          res.end('forbidden')
+          return
+        }
+        void stageBackupUpload(apiCtx.apiProxy, req, res)
+      },
+    }), 'client-connection: backup upload route')
   })
 }

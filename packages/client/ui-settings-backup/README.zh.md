@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-设置页"备份"分区：设置对话框的 `backup` 页面把用户设置和数据导出为一个 zip 压缩包（浏览器下载），并从备份压缩包导入恢复，数据经 Host 备份 RPC 对（`settings.backupExport` / `settings.backupImport`）流转。压缩包契约——清单标记、运行时生成目录排除、解压前 zip-slip 校验、同名覆盖——与其实现一起在 `dsh-host-apiproxy`；本包只渲染页面并本地化其状态。
+设置页"备份"分区：设置对话框的 `backup` 页面把用户设置和数据导出为一个 zip 压缩包（浏览器下载），并从备份压缩包导入恢复。压缩包字节经仅回环的 Host 路由 `/api/backup.export`（单次令牌下载）与 `/api/backup.upload`（请求体流式落盘）流式传输；RPC 对（`settings.backupExport` / `settings.backupImport`）只携带下载 URL 与上传令牌，不携带压缩包内容。压缩包契约——清单标记、运行时生成目录排除、解压前 zip-slip 校验、同名覆盖——与其实现一起在 `dsh-host-apiproxy`；本包只渲染页面并本地化其状态。
 
 ## Model Experience
 

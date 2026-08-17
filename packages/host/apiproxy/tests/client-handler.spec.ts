@@ -133,6 +133,12 @@ function scriptedApi(overrides: {
     events: { mux: () => empty<MuxFrame>(), host: () => empty<HostFrame>(), ...overrides.events },
     respond: overrides.respond ?? (() => Promise.resolve({ accepted: false as const, reason: 'not-pending' as const })),
     downloads: { sessionLog: async () => new Response('stub', { status: 404 }) },
+    backups: {
+      createExport: async () => ({ token: 'stub', entries: 1 }),
+      download: async () => undefined,
+      registerUpload: () => ({ token: 'stub' }),
+      takeUpload: () => undefined,
+    },
   }
 }
 

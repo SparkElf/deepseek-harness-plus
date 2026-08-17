@@ -260,7 +260,7 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
         return { rpcId: request.rpcId, result: { ok: false, error: { code: 'settings-rejected', message: 'stub', details: { ns: request.payload.ns } } } }
       },
       async backupExport(request) {
-        return { rpcId: request.rpcId, result: { ok: true, value: { archiveBase64: 'AA==', entries: 1 } } }
+        return { rpcId: request.rpcId, result: { ok: true, value: { downloadUrl: '/api/backup.export?token=stub', entries: 1 } } }
       },
       async backupImport(request) {
         return { rpcId: request.rpcId, result: { ok: true, value: { entries: 1 } } }
@@ -298,6 +298,20 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
     downloads: {
       async sessionLog() {
         return new Response('stub', { status: 404 })
+      },
+    },
+    backups: {
+      async createExport() {
+        return { token: 'stub', entries: 1 }
+      },
+      async download() {
+        return undefined
+      },
+      registerUpload() {
+        return { token: 'stub' }
+      },
+      takeUpload() {
+        return undefined
       },
     },
   }

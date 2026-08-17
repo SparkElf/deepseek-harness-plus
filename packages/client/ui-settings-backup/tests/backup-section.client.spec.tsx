@@ -1,30 +1,21 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { BackupSection, type BackupSectionProps } from '../src/client/BackupSection.tsx'
 
 function makeProps(overrides: Partial<BackupSectionProps> = {}): BackupSectionProps {
   return {
     close: () => {},
     t: (key: string) => 'copy.' + key,
-    exportArchive: async () => ({ archiveBase64: 'AA==', entries: 1 }),
+    exportArchive: async () => ({ downloadUrl: '/api/backup.export?token=stub', entries: 1 }),
     importArchive: async () => ({ entries: 1 }),
     ...overrides,
   } as unknown as BackupSectionProps
 }
 
-let revokeStub: ReturnType<typeof vi.fn>
-
 describe('BackupSection', () => {
-  beforeEach(() => {
-    revokeStub = vi.fn()
-    ;(URL as { createObjectURL?: unknown }).createObjectURL = vi.fn(() => 'blob:local')
-    ;(URL as { revokeObjectURL?: unknown }).revokeObjectURL = revokeStub
-  })
-
   afterEach(() => {
     cleanup()
-    vi.unstubAllGlobals()
   })
 
   it('renders the section chrome with enabled actions', () => {
@@ -35,13 +26,12 @@ describe('BackupSection', () => {
     expect(screen.getByText('copy.warning')).not.toBeNull()
   })
 
-  it('exports the archive and starts a browser download', async () => {
-    const exportArchive = vi.fn(async () => ({ archiveBase64: 'AA==', entries: 2 }))
+  it('exports through the Host download URL', async () => {
+    const exportArchive = vi.fn(async () => ({ downloadUrl: '/api/backup.export?token=tok', entries: 2 }))
     render(<BackupSection {...makeProps({ exportArchive })} />)
     fireEvent.click(screen.getByRole('button', { name: 'copy.exportButton' }))
     await waitFor(() => { expect(screen.getByText('copy.exported')).not.toBeNull() })
     expect(exportArchive).toHaveBeenCalledTimes(1)
-    expect(revokeStub).toHaveBeenCalledWith('blob:local')
   })
 
   it.each([
@@ -55,15 +45,15 @@ describe('BackupSection', () => {
   })
 
   it('imports a picked archive and reports success', async () => {
-    let received: string | undefined
-    const importArchive = vi.fn(async (archiveBase64: string) => { received = archiveBase64; return { entries: 3 } })
+    let received: File | undefined
+    const importArchive = vi.fn(async (file: File) => { received = file; return { entries: 3 } })
     render(<BackupSection {...makeProps({ importArchive })} />)
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
     const file = new File([new Uint8Array([1, 2])], 'b.zip', { type: 'application/zip' })
     fireEvent.change(input, { target: { files: [file] } })
     await waitFor(() => { expect(screen.getByText('copy.imported')).not.toBeNull() })
     expect(importArchive).toHaveBeenCalledTimes(1)
-    expect(received).toBe(btoa(String.fromCharCode(1, 2)))
+    expect(received?.name).toBe('b.zip')
   })
 
   it('ignores a picker change without a file', () => {
@@ -93,7 +83,7 @@ describe('BackupSection', () => {
   it('disables both actions while an export is in flight', async () => {
     let release: () => void = () => {}
     const gate = new Promise<void>((resolve) => { release = resolve })
-    render(<BackupSection {...makeProps({ exportArchive: async () => { await gate; return { archiveBase64: 'AA==', entries: 1 } } })} />)
+    render(<BackupSection {...makeProps({ exportArchive: async () => { await gate; return { downloadUrl: '/api/backup.export?token=t', entries: 1 } } })} />)
     fireEvent.click(screen.getByRole('button', { name: 'copy.exportButton' }))
     await waitFor(() => { expect(screen.getByRole('button', { name: 'copy.busyExport' })).not.toBeNull() })
     expect(screen.getByRole('button', { name: 'copy.busyExport' }).getAttribute('disabled')).not.toBeNull()

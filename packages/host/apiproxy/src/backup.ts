@@ -3,7 +3,9 @@
  * covers the harness home (settings incl. provider/model configuration,
  * credentials with key values, storages) plus a manifest marker; runtime-
  * generated directories are excluded and archives validate before mutation.
- * Zip handling rides the package's existing fflate dependency.
+ * Zip handling rides the package's existing fflate dependency; archives move
+ * as files and byte buffers, never base64-in-JSON, so large homes do not
+ * multiply through string encodings on either side of the wire.
  */
 
 import { strToU8, unzipSync, zipSync, type Zippable } from 'fflate'
@@ -40,20 +42,14 @@ function addDirectoryToZip(files: Zippable, rootPath: string, relativePath: stri
   }
 }
 
-/** Base64 zip archive plus its entry count. */
-export interface UserBackupExportResult {
-  /** The complete archive, base64-encoded for the JSON wire. */
-  archiveBase64: string
-  /** Number of zip entries including the manifest marker. */
-  entries: number
-}
-
 /**
- * Pack the harness home's user configuration and data into a zip backup.
+ * Pack the harness home's user configuration and data into a zip archive
+ * written at `targetPath`.
  * @param dshHome - harness user data directory (settings.yaml parent).
- * @returns the base64 archive and its entry count.
+ * @param targetPath - absolute file path the archive is written to.
+ * @returns the number of zip entries including the manifest marker.
  */
-export function exportUserBackup(dshHome: string): UserBackupExportResult {
+export function writeUserBackup(dshHome: string, targetPath: string): { entries: number } {
   const files: Zippable = {}
   addDirectoryToZip(files, dshHome, '')
   const manifest = {
@@ -63,8 +59,8 @@ export function exportUserBackup(dshHome: string): UserBackupExportResult {
     exportedAt: new Date().toISOString(),
   }
   files[BACKUP_MANIFEST_ENTRY] = strToU8(JSON.stringify(manifest, null, 2) + String.fromCharCode(10))
-  const archive = zipSync(files)
-  return { archiveBase64: Buffer.from(archive).toString('base64'), entries: Object.keys(files).length }
+  writeFileSync(targetPath, Buffer.from(zipSync(files)))
+  return { entries: Object.keys(files).length }
 }
 
 /** An archive that passed marker and path-safety validation, decompressed in memory. */
@@ -76,14 +72,14 @@ export interface ValidatedUserBackup {
 }
 
 /**
- * Decompress and validate a base64 backup archive without touching the
- * filesystem: the marker must be present and every entry path must be
- * relative, slash-separated, and free of traversal segments.
- * @param archiveBase64 - base64-encoded zip archive.
+ * Decompress and validate archive bytes without touching the harness home:
+ * the marker must be present and every entry path must be relative, slash-
+ * separated, and free of traversal segments.
+ * @param archive - raw zip bytes.
  * @returns the decompressed, validated entries.
  */
-export function validateUserBackup(archiveBase64: string): ValidatedUserBackup {
-  const entries = unzipSync(new Uint8Array(Buffer.from(archiveBase64, 'base64')))
+export function validateUserBackup(archive: Uint8Array): ValidatedUserBackup {
+  const entries = unzipSync(archive)
   const names = Object.keys(entries)
   if (!names.includes(BACKUP_MANIFEST_ENTRY)) {
     throw new Error('Not a DeepSeek Harness user data backup: missing ' + BACKUP_MANIFEST_ENTRY)

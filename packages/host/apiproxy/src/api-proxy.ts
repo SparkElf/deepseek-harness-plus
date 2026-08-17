@@ -4,9 +4,11 @@
  */
 
 import { randomUUID } from 'node:crypto'
-import { mkdir, stat } from 'node:fs/promises'
-import { dirname } from 'node:path'
-import { exportUserBackup, restoreUserBackup, validateUserBackup, type ValidatedUserBackup } from './backup.ts'
+import { mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
+import { createReadStream } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { restoreUserBackup, validateUserBackup, writeUserBackup } from './backup.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
@@ -110,6 +112,92 @@ import {
   inspectApiRemoteSession,
 } from '@deepseek-ai/dsh-api-remotes'
 import { canOpenNativePath, openNativePath, openNativeTextFile } from './native-path-opener.ts'
+
+/** Backup artifacts expire unconsumed after ten minutes; consumption is single-use. */
+const BACKUP_TOKEN_TTL_MS = 10 * 60_000
+
+/** A staged backup temp file named by a single-use token. */
+interface BackupTokenEntry {
+  /** Absolute temp file path holding the archive. */
+  path: string
+  /** Expiry timestamp (ms); expired entries are removed on the next mint or take. */
+  expiresAt: number
+  /** Archive size for export entries; undefined for upload entries. */
+  size?: number
+}
+
+/** Single-use tokens naming Host temp files, so archive bytes never ride the JSON wire. */
+const backupTokens = new Map<string, BackupTokenEntry>()
+
+/**
+ * Mint a single-use token for one staged backup file, sweeping expired ones.
+ * @param path - absolute temp file path the token names.
+ * @param size - archive size for download entries; undefined for uploads.
+ * @returns the fresh token.
+ */
+function mintBackupToken(path: string, size?: number): string {
+  const now = Date.now()
+  for (const [token, entry] of backupTokens) {
+    if (entry.expiresAt <= now) {
+      backupTokens.delete(token)
+      void rm(dirname(entry.path), { recursive: true, force: true }).catch(() => {})
+    }
+  }
+  const token = randomUUID()
+  const entry: BackupTokenEntry = { path, expiresAt: now + BACKUP_TOKEN_TTL_MS }
+  if (size !== undefined) entry.size = size
+  backupTokens.set(token, entry)
+  return token
+}
+
+/**
+ * Consume a token once; expired entries are removed and answer undefined.
+ * @param token - token minted by mintBackupToken.
+ * @returns the staged entry, or undefined for unknown or expired tokens.
+ */
+function takeBackupToken(token: string): BackupTokenEntry | undefined {
+  const entry = backupTokens.get(token)
+  if (entry === undefined) return undefined
+  backupTokens.delete(token)
+  if (entry.expiresAt <= Date.now()) {
+    void rm(dirname(entry.path), { recursive: true, force: true }).catch(() => {})
+    return undefined
+  }
+  return entry
+}
+
+/**
+ * Stream one staged archive as a zip attachment response, removing its temp
+ * directory once the source stream settles.
+ * @param path - absolute archive path.
+ * @param size - archive size for the content-length header.
+ * @returns the attachment response.
+ */
+function backupFileResponse(path: string, size: number): Response {
+  const source = createReadStream(path)
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      source.on('data', (chunk: string | Buffer) => {
+        controller.enqueue(new Uint8Array(Buffer.from(chunk)))
+      })
+      source.on('end', () => { controller.close() })
+      source.on('error', () => { controller.close() })
+    },
+    cancel() {
+      source.destroy()
+    },
+  })
+  source.once('close', () => {
+    void rm(dirname(path), { recursive: true, force: true }).catch(() => {})
+  })
+  return new Response(body, {
+    headers: {
+      'content-type': 'application/zip',
+      'content-disposition': 'attachment; filename="deepseek-harness-backup.zip"',
+      'content-length': String(size),
+    },
+  })
+}
 
 /** Page size when history is called without maxMessages. */
 const DEFAULT_MAX_MESSAGES = 50
@@ -3341,54 +3429,55 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       update: request => settingsWrite(request, request.payload.ns, 'update', request.payload.patch, request.payload.expectedRevision),
       replace: request => settingsWrite(request, request.payload.ns, 'replace', request.payload.section, request.payload.expectedRevision),
       mutate: request => settingsWrite(request, request.payload.ns, 'mutate', request.payload.ops, request.payload.expectedRevision),
-      backupExport(request) {
+      async backupExport(request) {
         const settings = ctx.get('settings')
-        if (settings === undefined) return Promise.resolve(err(request, settingsAbsent()))
+        if (settings === undefined) return err(request, settingsAbsent())
         if (settings.documentPath === undefined) {
-          return Promise.resolve(err(request, {
+          return err(request, {
             code: 'internal',
             message: 'backup requires a file-backed settings provider',
             details: {},
-          }))
+          })
         }
         try {
-          return Promise.resolve(ok(request, exportUserBackup(dirname(settings.documentPath))))
+          const dir = await mkdtemp(join(tmpdir(), 'dsh-backup-export-'))
+          const path = join(dir, 'backup.zip')
+          const { entries } = writeUserBackup(dirname(settings.documentPath), path)
+          const { size } = await stat(path)
+          return ok(request, { downloadUrl: '/api/backup.export?token=' + mintBackupToken(path, size), entries })
         } catch (error: unknown) {
-          return Promise.resolve(err(request, {
+          return err(request, {
             code: 'internal',
             message: 'backup export failed: ' + (error instanceof Error ? error.message : String(error)),
             details: {},
-          }))
+          })
         }
       },
-      backupImport(request) {
+      async backupImport(request) {
         const settings = ctx.get('settings')
-        if (settings === undefined) return Promise.resolve(err(request, settingsAbsent()))
+        if (settings === undefined) return err(request, settingsAbsent())
         if (settings.documentPath === undefined) {
-          return Promise.resolve(err(request, {
+          return err(request, {
             code: 'internal',
             message: 'backup requires a file-backed settings provider',
             details: {},
-          }))
+          })
         }
-        let validated: ValidatedUserBackup
+        const staged = takeBackupToken(request.payload.token)
+        if (staged === undefined) {
+          return err(request, { code: 'internal', message: 'unknown or expired backup upload token', details: {} })
+        }
         try {
-          validated = validateUserBackup(request.payload.archiveBase64)
+          const validated = validateUserBackup(new Uint8Array(await readFile(staged.path)))
+          return ok(request, restoreUserBackup(validated, dirname(settings.documentPath)))
         } catch (error: unknown) {
-          return Promise.resolve(err(request, {
+          return err(request, {
             code: 'internal',
             message: error instanceof Error ? error.message : String(error),
             details: {},
-          }))
-        }
-        try {
-          return Promise.resolve(ok(request, restoreUserBackup(validated, dirname(settings.documentPath))))
-        } catch (error: unknown) {
-          return Promise.resolve(err(request, {
-            code: 'internal',
-            message: 'backup restore failed: ' + (error instanceof Error ? error.message : String(error)),
-            details: {},
-          }))
+          })
+        } finally {
+          void rm(dirname(staged.path), { recursive: true, force: true }).catch(() => {})
         }
       },
     },
@@ -3765,6 +3854,31 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
             },
           },
         )
+      },
+    },
+
+    backups: {
+      async createExport() {
+        const settings = ctx.get('settings')
+        if (settings === undefined || settings.documentPath === undefined) {
+          throw new Error('backup requires a file-backed settings provider')
+        }
+        const dir = await mkdtemp(join(tmpdir(), 'dsh-backup-export-'))
+        const path = join(dir, 'backup.zip')
+        const { entries } = writeUserBackup(dirname(settings.documentPath), path)
+        const { size } = await stat(path)
+        return { token: mintBackupToken(path, size), entries }
+      },
+      download(token) {
+        const entry = takeBackupToken(token)
+        if (entry === undefined || entry.size === undefined) return Promise.resolve(undefined)
+        return Promise.resolve(backupFileResponse(entry.path, entry.size))
+      },
+      registerUpload(path) {
+        return { token: mintBackupToken(path) }
+      },
+      takeUpload(token) {
+        return takeBackupToken(token)?.path
       },
     },
 
