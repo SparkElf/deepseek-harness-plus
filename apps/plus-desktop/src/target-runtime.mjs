@@ -232,13 +232,9 @@ export class TargetRuntime {
   }
 
   /** 启动目标环境内的 Supervisor；WSL 进程和其子进程始终留在所选发行版。 */
-  async startSupervisor(config, nativeSupervisorPath) {
+  async startSupervisor(config, nativeSupervisorPath, nativeSupervisorLauncher) {
     if (!this.isWsl) {
-      await execute(process.execPath, [nativeSupervisorPath, '--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], {
-        cwd: config.installPath,
-        detached: true,
-        env: { ...process.env, DSH_PNPM_CLI: bundledPnpmCli, ELECTRON_RUN_AS_NODE: '1' },
-      })
+      await nativeSupervisorLauncher(nativeSupervisorPath, ['--manifest', config.supervisorManifestPath, '--socket', config.supervisorSocketPath], config, { DSH_PNPM_CLI: bundledPnpmCli })
       return
     }
     const supervisorPath = this.join(config.installPath, 'apps/plus-desktop/src/supervisor.mjs')

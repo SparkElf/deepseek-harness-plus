@@ -13,9 +13,10 @@ function isConnectionError(error) {
 
 /** Electron tray client for the detached local runtime Supervisor. */
 export class HarnessDaemon {
-  constructor(onStatus, supervisorPath) {
+  constructor(onStatus, supervisorPath, nativeSupervisorLauncher) {
     this.onStatus = onStatus
     this.supervisorPath = supervisorPath
+    this.nativeSupervisorLauncher = nativeSupervisorLauncher
     this.config = undefined
     this.targetRuntime = undefined
     this.running = false
@@ -43,7 +44,7 @@ export class HarnessDaemon {
     if (this.supervisorStarting !== undefined) return this.supervisorStarting
     this.supervisorStarting = (async () => {
       await this.targetRuntime.writeText(this.config.supervisorManifestPath, JSON.stringify(this.config, null, 2) + String.fromCharCode(10))
-      await this.targetRuntime.startSupervisor(this.config, this.supervisorPath)
+      await this.targetRuntime.startSupervisor(this.config, this.supervisorPath, this.nativeSupervisorLauncher)
       const deadline = Date.now() + CONNECT_TIMEOUT_MS
       let lastError
       while (Date.now() < deadline) {
