@@ -1,6 +1,6 @@
 import { expect, test, _electron as electron } from 'playwright/test'
 import { execFileSync } from 'node:child_process'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import AdmZip from 'adm-zip'
@@ -192,6 +192,11 @@ test('backup window exports and restores the user data archive', async ({}, test
     await expect(backup.locator('#title')).toHaveText('备份与恢复')
     await expect(backup.locator('#location')).toContainText('.dsh-plus')
 
+    // 场景准备：storages 里的文件在用户产生工作区数据时才出现；写入一个标记文件代表这类用户数据。
+    const storageDataPath = resolve(desktopDirectory, '../..', '.dsh-plus', 'home', 'storages', 'workspace.json')
+    mkdirSync(dirname(storageDataPath), { recursive: true })
+    writeFileSync(storageDataPath, JSON.stringify({ backupTestMarker: true }))
+
     const exportPath = testInfo.outputPath('user-backup.zip')
     writeFileSync(dialogSelectionsPath, JSON.stringify({ savePath: exportPath }))
     await backup.getByRole('button', { name: '导出备份压缩包' }).click()
@@ -229,6 +234,7 @@ test('backup window exports and restores the user data archive', async ({}, test
     const restoredSettings = readFileSync(settingsPath, 'utf8')
     expect(restoredSettings).toContain('"zh"')
     expect(restoredSettings).toContain('agent-default-model')
+    expect(readFileSync(storageDataPath, 'utf8')).toContain('backupTestMarker')
   } finally {
     await application.close()
   }
