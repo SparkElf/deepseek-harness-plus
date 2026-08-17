@@ -110,7 +110,7 @@ async function sourceStatus(cwd) {
   const [branch, revision, dirty] = await Promise.all([
     gitValue(cwd, ['branch', '--show-current']),
     gitValue(cwd, ['rev-parse', '--short', 'HEAD']),
-    gitValue(cwd, ['status', '--porcelain']),
+    gitValue(cwd, ['status', '--porcelain', '--untracked-files=no']),
   ])
   return { branch, revision, dirty: dirty !== undefined && dirty.length > 0 }
 }
