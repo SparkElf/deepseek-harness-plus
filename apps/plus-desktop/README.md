@@ -30,7 +30,7 @@ pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <sock
 pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <socket-path> --branch <branch-name> rebuild-and-restart
 ~~~
 
-The Supervisor owns Harness Web, the configured Harness and Supervisor ports, the optional client HMR watcher, rebuilds, runtime logs, and its HTTP/SSE page. Windows starts the native Supervisor with Electron's utility process through an unpacked bootstrap, waits for the named pipe to finish listening, writes the status manifest in place because Windows can reject replacement of an open file, and returns the captured startup stack when initialization fails. A branch rebuild completes before the current Web process stops; a failed build leaves the current process running and retains raw output in the runtime log.
+The Supervisor owns Harness Web, the configured Harness and Supervisor ports, the optional client HMR watcher, rebuilds, runtime logs, and its HTTP/SSE page. Windows starts the native Supervisor with Electron's utility process through an unpacked bootstrap, waits for the named pipe to finish listening, writes the status manifest in place because Windows can reject replacement of an open file, and returns the captured startup stack when initialization fails. Supervisor command sockets treat the connect timeout as idle: progress lines and the port-wait heartbeat keep long `start` commands alive, and the web startup window is 120 seconds. A branch rebuild completes before the current Web process stops; a failed build leaves the current process running and retains raw output in the runtime log.
 
 ## Development modes
 

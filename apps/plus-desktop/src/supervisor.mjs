@@ -7,8 +7,9 @@ import { writeSupervisorManifest } from './supervisor-manifest.mjs'
 import { startProgressServer } from './supervisor-progress-server.mjs'
 import { decodeProcessOutput } from './process-output-encoding.mjs'
 
-const START_TIMEOUT_MS = 30_000
+const START_TIMEOUT_MS = 120_000
 const STOP_TIMEOUT_MS = 10_000
+const PORT_WAIT_HEARTBEAT_MS = 5_000
 const BUILD_TIMEOUT_MS = 15 * 60_000
 const PORT_PROBE_TIMEOUT_MS = 1_000
 const SOCKET_MODE = 0o600
@@ -328,10 +329,15 @@ class RuntimeSupervisor {
 
   async waitForPort(child) {
     const started = Date.now()
+    let nextHeartbeat = started + PORT_WAIT_HEARTBEAT_MS
     while (Date.now() - started < START_TIMEOUT_MS) {
       if (child.exitCode !== null || child.signalCode !== null) throw new Error('Harness web exited before listening')
       if (await this.portOpen()) return
       await new Promise(resolve => setTimeout(resolve, 200))
+      if (Date.now() >= nextHeartbeat) {
+        nextHeartbeat = Date.now() + PORT_WAIT_HEARTBEAT_MS
+        this.announce('start.waitingForPort', { elapsedSeconds: Math.round((Date.now() - started) / 1000) })
+      }
     }
     await this.stopProcess(child)
     throw new Error('Harness web did not listen within ' + String(START_TIMEOUT_MS) + 'ms')

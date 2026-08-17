@@ -57,6 +57,7 @@ function sendNativeCommand(socketPath, command, onProgress) {
     const socket = connect(pipe)
     let input = ''
     let settled = false
+    let timer
     const finish = (callback, value) => {
       if (settled) return
       settled = true
@@ -64,9 +65,14 @@ function sendNativeCommand(socketPath, command, onProgress) {
       socket.destroy()
       callback(value)
     }
-    const timer = setTimeout(() => finish(reject, new Error('runtime supervisor connection timed out')), CONNECT_TIMEOUT_MS)
+    const armIdleTimer = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => finish(reject, new Error('runtime supervisor connection timed out')), CONNECT_TIMEOUT_MS)
+    }
+    armIdleTimer()
     socket.setEncoding('utf8')
     socket.on('data', chunk => {
+      armIdleTimer()
       input += chunk
       let index = input.indexOf(String.fromCharCode(10))
       while (index >= 0 && !settled) {
@@ -255,7 +261,7 @@ export class TargetRuntime {
       if (!line.startsWith('[supervisor] ')) return
       const match = /^\[supervisor\] (\S+) (.*)$/u.exec(line)
       if (match) onProgress?.({ key: match[1], values: JSON.parse(match[2]) })
-    }, { timeoutMs: CONNECT_TIMEOUT_MS })
+    }, { timeoutMs: command === 'status' ? CONNECT_TIMEOUT_MS : COMMAND_TIMEOUT_MS })
     const result = output.split(/\r?\n/u).filter(line => line.startsWith('{')).at(-1)
     if (result === undefined) throw new Error('WSL Supervisor returned no status document')
     return JSON.parse(result)
