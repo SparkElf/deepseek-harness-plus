@@ -17,3 +17,9 @@ contextBridge.exposeInMainWorld('plusUpdates', {
   aiMerge: (sourceRef) => ipcRenderer.invoke('updates:ai-merge', sourceRef),
   onProgress: listener => ipcRenderer.on('updates:progress', (_event, value) => listener(value)),
 })
+
+contextBridge.exposeInMainWorld('plusBackup', {
+  state: () => ipcRenderer.invoke('backup:state'),
+  exportArchive: (options) => ipcRenderer.invoke('backup:export', options),
+  importArchive: (options) => ipcRenderer.invoke('backup:import', options),
+})

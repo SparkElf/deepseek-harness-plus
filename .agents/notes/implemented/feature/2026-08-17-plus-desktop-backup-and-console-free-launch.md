@@ -1,0 +1,33 @@
+# Agent Note: Plus Desktop Backup And Console-Free Launch
+
+Status: implemented
+
+English | [中文](2026-08-17-plus-desktop-backup-and-console-free-launch.zh.md)
+
+## Problem
+
+On Windows, starting Harness from the tray left a persistent `cmd.exe` console window: the Supervisor launched Harness Web through `pnpm dsh web`, pnpm runs package scripts via cmd.exe, and that console hosted the long-lived web server until shutdown. Related tray operations (git probes, taskkill stops, WSL distribution listing) also flashed console windows. Separately, users had no way to export or import their Harness settings and data (`dshHome`: settings, sessions, credentials) for migration or recovery.
+
+## Decision
+
+The Supervisor now launches Harness Web and the development watcher directly: `node --import tsx/esm apps/cli/src/bin.ts web …` from the install root, using PATH-resolved `node`, stdio on the Supervisor log, and `windowsHide: true`. Electron's bundled Node is deliberately not used for this launch because its ESM resolution fails for pnpm symlinked workspace packages. `pnpm` remains only for `pnpm run build`, whose nested script chain is not bypassed. Every desktop-side spawn (Supervisor helpers, installer git/pnpm/wsl execution) sets `windowsHide: true`, so console-subsystem children of the GUI process no longer create windows.
+
+The tray gains a Backup and restore entry that opens a dedicated window with two actions. Export packs the complete `dshHome` directory plus a `backup-manifest.json` marker entry into a zip chosen through the save dialog. Import stops a running Harness, verifies the marker, rejects entries with absolute paths, backslashes, or `..` segments, extracts over `dshHome` with same-named files replaced, and restarts the Harness when it was running. Missing markers and unsafe paths raise localized errors before extraction. The window warns that archives contain sensitive data such as API keys. WSL targets are rejected with a clear message because `dshHome` lives inside the distribution filesystem.
+
+## Verification
+
+The Windows NSIS workflow runs the Playwright Electron suite, which now includes a full backup round-trip against a real installed runtime: after the native installation completes, the backup window exports an archive asserted to contain `settings.yaml` and the marker, importing an unrelated zip surfaces the localized rejection and the window recovers, and importing the exported archive restores tampered settings and restarts the running Harness — all driven through the window UI with only the native file dialogs replaced by fixed selections. Direct node execution additionally covers export/import round-trip, marker rejection, and traversal rejection against a crafted archive.
+
+## Alternatives considered
+
+**Keep launching through pnpm and add only `windowsHide`.** Rejected because `windowsHide` applies to the direct child only; pnpm's cmd.exe grandchild would stay visible for the server's whole lifetime.
+
+**Launch with Electron's bundled Node (`process.execPath`).** Rejected because its ESM loader fails to resolve pnpm symlinked workspace packages during plugin tree load; PATH `node` matches the existing source-launch contract.
+
+**Archive as tar.gz with node:zlib.** Rejected in favor of adm-zip: zip is the expected archive format for users, and adm-zip removes owned serialization code.
+
+**Back up runtime.json or the install tree.** Rejected: runtime.json is machine-local port and path configuration, and the install tree is reproducible from the repository; only `dshHome` is user data.
+
+## Consequences
+
+Starting Harness Web requires `node` on the target PATH, unchanged from the previous cmd-based launch that also resolved `node` from PATH. Import merges by overwrite, so files absent from the archive stay in place; a wipe-and-restore is intentionally not offered. Import stops the runtime before extracting, and a failed import leaves Harness stopped with the error shown in the window.

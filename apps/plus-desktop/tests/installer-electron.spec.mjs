@@ -1,7 +1,9 @@
 import { expect, test, _electron as electron } from 'playwright/test'
 import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import AdmZip from 'adm-zip'
 
 const desktopDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -124,6 +126,87 @@ test('installer completes a native Harness installation and starts Supervisor', 
     const result = await installerFinished
     if (result?.closed !== true) throw new Error('Native installation failed: ' + String(result?.error ?? 'installer did not complete'))
     expect(application.process().exitCode).toBeNull()
+  } finally {
+    await application.close()
+  }
+})
+
+test('backup window exports and restores the user data archive', async ({}, testInfo) => {
+  test.setTimeout(22 * 60_000)
+  const installSource = testInfo.outputPath('install-source')
+  execFileSync('git', ['clone', '--local', '--no-checkout', resolve(desktopDirectory, '../..'), installSource], { stdio: 'pipe' })
+  const application = await electron.launch({
+    args: ['.', '--user-data-dir=' + testInfo.outputPath('user-data')],
+    cwd: desktopDirectory,
+    env: { ...process.env, DSH_PLUS_INSTALL_REPOSITORY: installSource, DSH_PLUS_INSTALL_SOURCE_REF: 'HEAD', DSH_PLUS_DESKTOP_TEST_SEAM: '1' },
+  })
+  try {
+    const page = await application.firstWindow()
+    await page.getByRole('button', { name: '继续' }).click()
+    await page.locator('#installPath').fill(resolve(desktopDirectory, '../..'))
+    await page.getByText('高级选项', { exact: true }).click()
+    await page.locator('#port').fill('45190')
+    await page.locator('#candidatePort').fill('45191')
+    await page.locator('#supervisorPort').fill('45192')
+    await page.locator('#candidateSupervisorPort').fill('45193')
+    await page.locator('#overwriteInstall').check()
+    await page.getByRole('button', { name: '继续' }).click()
+
+    await page.locator('#apiKey').fill('sk-electron-backup-test')
+    await page.getByRole('button', { name: '继续' }).click()
+    await expect(page.getByRole('heading', { name: '确认安装' })).toBeVisible()
+
+    const installerFinished = Promise.race([
+      page.waitForEvent('close', { timeout: 14 * 60_000 }).then(() => ({ closed: true })).catch(() => undefined),
+      page.locator('#error').waitFor({ state: 'visible', timeout: 14 * 60_000 }).then(async () => ({ closed: false, error: await page.locator('#error').textContent() })).catch(() => undefined),
+    ])
+    await page.getByRole('button', { name: '安装', exact: true }).click()
+    const result = await installerFinished
+    if (result?.closed !== true) throw new Error('Native installation failed: ' + String(result?.error ?? 'installer did not complete'))
+
+    // 原生文件对话框无法被 Playwright 操作：以固定选择替换对话框应答，业务步骤仍全部经由备份窗口 UI 完成。
+    await application.evaluate(({ dialog }) => {
+      globalThis.__backupDialogs = { confirm: 0 }
+      dialog.showSaveDialog = async () => ({ canceled: false, filePath: globalThis.__backupDialogs.savePath })
+      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [globalThis.__backupDialogs.openPath] })
+      dialog.showMessageBox = async () => ({ response: globalThis.__backupDialogs.confirm })
+    })
+    // 托盘菜单无法被 Playwright 点击：用测试驱动缝打开备份窗口，窗口内交互全部走真实 UI。
+    await application.evaluate(() => globalThis.__plusDesktopTest.openBackupWindow())
+    let backup
+    for (let attempt = 0; attempt < 50 && backup === undefined; attempt += 1) {
+      backup = application.windows().find(candidate => candidate.url().endsWith('backup.html'))
+      if (backup === undefined) await new Promise(resolve => setTimeout(resolve, 200))
+    }
+    if (backup === undefined) throw new Error('Backup window did not open')
+    await expect(backup.locator('#title')).toHaveText('备份与恢复')
+    await expect(backup.locator('#location')).toContainText('.dsh-plus')
+
+    const exportPath = testInfo.outputPath('user-backup.zip')
+    await application.evaluate(path => { globalThis.__backupDialogs.savePath = path }, exportPath)
+    await backup.getByRole('button', { name: '导出备份压缩包' }).click()
+    await expect(backup.locator('#status')).toContainText('备份已导出', { timeout: 120_000 })
+    const archive = new AdmZip(exportPath)
+    const entryNames = archive.getEntries().map(entry => entry.entryName)
+    expect(entryNames).toContain('settings.yaml')
+    expect(entryNames).toContain('backup-manifest.json')
+
+    const invalidArchivePath = testInfo.outputPath('invalid.zip')
+    const invalidArchive = new AdmZip()
+    invalidArchive.addFile('not-a-backup.txt', Buffer.from('no manifest here'))
+    invalidArchive.writeZip(invalidArchivePath)
+    await application.evaluate(path => { globalThis.__backupDialogs.openPath = path }, invalidArchivePath)
+    await backup.getByRole('button', { name: '选择压缩包并导入' }).click()
+    await expect(backup.locator('#error')).toContainText('所选压缩包不是 DeepSeek Harness Plus 备份文件。', { timeout: 60_000 })
+    await expect(backup.getByRole('button', { name: '选择压缩包并导入' })).toBeEnabled()
+
+    const settingsPath = resolve(desktopDirectory, '../..', '.dsh-plus', 'home', 'settings.yaml')
+    writeFileSync(settingsPath, 'locale:\n  preference: en\n')
+    await application.evaluate(path => { globalThis.__backupDialogs.openPath = path }, exportPath)
+    await backup.getByRole('button', { name: '选择压缩包并导入' }).click()
+    await expect(backup.locator('#status')).toContainText('备份已导入', { timeout: 6 * 60_000 })
+    await expect(backup.locator('#status')).toContainText('Harness 已重新启动')
+    expect(readFileSync(settingsPath, 'utf8')).toContain('"zh"')
   } finally {
     await application.close()
   }

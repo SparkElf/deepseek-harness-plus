@@ -1,0 +1,19 @@
+:root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; color-scheme: light dark; --bg: #fff; --text: #15171a; --muted: #686d75; --border: rgba(0,0,0,.12); --hover: rgba(0,0,0,.05); --brand: #4176e6; --danger: #dc3030; --warning: #b76e00; }
+@media (prefers-color-scheme: dark) { :root { --bg: #232324; --text: #f2f3f5; --muted: #adb2b8; --border: rgba(255,255,255,.13); --hover: rgba(255,255,255,.06); --danger: #f25a5a; --warning: #e5a945; } }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--text); background: var(--bg); }
+main { width: min(560px, calc(100% - 48px)); margin: 0 auto; padding: 30px 0 36px; }
+.page-header { margin-bottom: 20px; }
+h1 { margin: 0; font-size: 24px; line-height: 32px; }
+h2 { margin: 0 0 6px; font-size: 15px; line-height: 22px; }
+.page-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 18px; word-break: break-all; }
+.status, .error { min-height: 18px; margin: 0 0 12px; font-size: 12px; line-height: 18px; word-break: break-all; }
+.status { color: var(--muted); }
+.error { color: var(--danger); }
+.card { border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+.desc { margin: 0 0 12px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.command { border: 1px solid var(--border); border-radius: 7px; padding: 7px 14px; background: transparent; color: var(--text); font-size: 13px; cursor: pointer; }
+.command:hover:not(:disabled) { background: var(--hover); }
+.command:disabled { opacity: 0.55; cursor: default; }
+.command.primary { border-color: var(--brand); color: var(--brand); }
+.warning { margin: 4px 0 0; color: var(--warning); font-size: 12px; line-height: 18px; }

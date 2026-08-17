@@ -9,6 +9,7 @@ import { parse as parseYaml } from 'yaml'
 import { HarnessDaemon } from './daemon.mjs'
 import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
 import { releaseSourceRef } from './release-source.mjs'
+import { BACKUP_MANIFEST_ENTRY, exportUserBackup, importUserBackup } from './backup.mjs'
 
 const repository = process.env.DSH_PLUS_INSTALL_REPOSITORY ?? 'https://github.com/SparkElf/deepseek-harness-plus.git'
 const installSourceRef = process.env.DSH_PLUS_INSTALL_SOURCE_REF ?? releaseSourceRef
@@ -25,6 +26,7 @@ const defaultCandidateSupervisorPort = 3083
 let tray
 let installerWindow
 let updatesWindow
+let backupWindow
 let harnessWindow
 let runtime
 let busy
@@ -38,7 +40,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', quit: '退出',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupWslUnsupported: '备份暂不支持 WSL 目标，请在发行版内直接管理数据目录。', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', quit: '退出',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -46,7 +48,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', quit: 'Quit',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupWslUnsupported: 'Backup does not support WSL targets yet; manage the data folder inside the distribution instead.', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', quit: 'Quit',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -227,6 +229,7 @@ function refreshTray() {
     { label: trayText('checkUpdates'), enabled: installed && !maintenanceBusy, click: () => checkUpdates() },
     { label: trayText('repair'), enabled: installed && !maintenanceBusy, click: () => repair() },
     { label: trayText('openData'), enabled: installed && !maintenanceBusy, click: openDataFolder },
+    { label: trayText('backup'), enabled: installed && !maintenanceBusy, click: openBackupWindow },
     { type: 'separator' },
     { label: trayText('quit'), click: async () => { await daemon.stop(); app.quit() } },
   ])
@@ -560,6 +563,89 @@ async function checkUpdates() {
   openUpdatesWindow()
 }
 
+/**
+ * 打开备份与恢复窗口；导出把 dshHome 打包为 zip，导入从 zip 恢复用户数据。
+ * WSL 目标的数据位于发行版内部，Windows 主进程无法直接访问，暂不支持。
+ */
+function openBackupWindow() {
+  if (runtime === undefined) return
+  if (backupWindow !== undefined) { backupWindow.show(); backupWindow.focus(); return }
+  backupWindow = new BrowserWindow({
+    width: 640, height: 500, minWidth: 560, minHeight: 430, title: trayText('backupTitle'), backgroundColor: nativeTheme.shouldUseDarkColors ? '#232324' : '#ffffff',
+    webPreferences: { preload: join(currentDirectory, 'preload.mjs'), contextIsolation: true, sandbox: false },
+  })
+  backupWindow.loadFile(join(currentDirectory, '..', 'renderer', 'backup.html'))
+  backupWindow.once('closed', () => { backupWindow = undefined })
+}
+
+function assertNativeBackupTarget() {
+  if (runtime.target.kind === 'wsl') throw new Error(trayText('backupWslUnsupported'))
+}
+
+async function handleBackupState() {
+  await assertInstalled()
+  return { locale: locale(), running: supervisorSnapshot?.state === 'running', dshHome: runtime.dshHome, targetKind: runtime.target.kind }
+}
+
+/** options.targetPath 由测试直接指定时跳过保存对话框。 */
+async function handleBackupExport(options = {}) {
+  await assertInstalled()
+  assertNativeBackupTarget()
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[-:]/gu, '').replace('T', '-')
+  let targetPath = options.targetPath
+  if (targetPath === undefined) {
+    const choice = await dialog.showSaveDialog({
+      title: trayText('backupTitle'),
+      defaultPath: join(app.getPath('documents'), 'deepseek-harness-plus-backup-' + stamp + '.zip'),
+      filters: [{ name: 'ZIP', extensions: ['zip'] }],
+    })
+    if (choice.canceled || choice.filePath === null) return { canceled: true }
+    targetPath = choice.filePath
+  }
+  const result = exportUserBackup(runtime.dshHome, targetPath)
+  return { canceled: false, ...result }
+}
+
+/** options.archivePath + options.confirmed 由测试直接指定时跳过选择和确认对话框。 */
+async function handleBackupImport(options = {}) {
+  await assertInstalled()
+  assertNativeBackupTarget()
+  let archivePath = options.archivePath
+  if (archivePath === undefined) {
+    const choice = await dialog.showOpenDialog({
+      title: trayText('backupTitle'),
+      properties: ['openFile'],
+      filters: [{ name: 'ZIP', extensions: ['zip'] }],
+    })
+    if (choice.canceled || choice.filePaths.length === 0) return { canceled: true }
+    archivePath = choice.filePaths[0]
+  }
+  if (options.confirmed !== true) {
+    const confirmation = await dialog.showMessageBox({
+      type: 'warning',
+      message: trayText('backupImportMessage'),
+      detail: trayText('backupImportDetail'),
+      buttons: [trayText('backupImportConfirm'), trayText('backupCancel')],
+      defaultId: 1,
+      cancelId: 1,
+    })
+    if (confirmation.response !== 0) return { canceled: true }
+  }
+  const wasRunning = supervisorSnapshot?.state === 'running'
+  if (wasRunning) await daemon.stop()
+  let result
+  try {
+    result = importUserBackup(archivePath, runtime.dshHome)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (message.includes('missing ' + BACKUP_MANIFEST_ENTRY)) throw new Error(trayText('backupNotArchive'))
+    if (message.includes('unsafe path')) throw new Error(trayText('backupUnsafeArchive'))
+    throw error
+  }
+  if (wasRunning) await daemon.start()
+  return { canceled: false, restarted: wasRunning, ...result }
+}
+
 async function openProduction() {
   await assertInstalled()
   await shell.openExternal('http://127.0.0.1:' + String(runtime.port))
@@ -734,6 +820,9 @@ async function handleInstallerInstall(form) {
 
 ipcMain.handle('installer:install', (_event, form) => handleInstallerInstall(form))
 ipcMain.handle('updates:list', () => releaseVersions())
+ipcMain.handle('backup:state', () => handleBackupState())
+ipcMain.handle('backup:export', (_event, options) => handleBackupExport(options ?? {}))
+ipcMain.handle('backup:import', (_event, options) => handleBackupImport(options ?? {}))
 ipcMain.handle('updates:upgrade', async (_event, sourceRef) => {
   const available = await releaseVersions()
   const version = available.versions.find(entry => entry.sourceRef === sourceRef)
@@ -747,6 +836,11 @@ ipcMain.handle('updates:ai-merge', async (_event, sourceRef) => {
   if (version === undefined) throw new Error('Choose an available Plus release.')
   return await aiMergeVersion(version.sourceRef, version.tag)
 })
+
+/** 测试驱动缝：托盘菜单无法被 Playwright 操作，仅在测试环境暴露窗口打开动作。 */
+if (process.env.DSH_PLUS_DESKTOP_TEST_SEAM === '1') {
+  globalThis.__plusDesktopTest = { openBackupWindow }
+}
 
 app.whenReady().then(async () => {
   try {

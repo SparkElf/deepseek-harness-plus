@@ -60,6 +60,7 @@ Installable packages link to a release; source-only changes are labeled explicit
 | --- | --- |
 | Subagent model-inheritance repair | Available from source with focused regression coverage |
 | Desktop setup guide and tray-managed local runtime | Linux/Windows 0.2.0 packages are available on [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0); macOS is deferred pending signing and notarization |
+| Console-free tray launch and user data backup/restore on Windows | Available from source in the Plus desktop app; ships with the next desktop build |
 | Code development preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |
 | Multi-user runtime preset | Not implemented; keep the local runtime private because no multi-user or public-internet deployment preset is available |

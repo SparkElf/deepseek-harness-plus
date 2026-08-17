@@ -68,6 +68,7 @@
     "playwright": "^1.49.0"
   },
   "dependencies": {
+    "adm-zip": "^0.6.0",
     "pnpm": "11.7.0",
     "yaml": "^2.9.0"
   }
