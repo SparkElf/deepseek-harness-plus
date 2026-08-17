@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray } from 'electron'
-import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { request } from 'node:http'
 import { parse as parseYaml } from 'yaml'
@@ -419,10 +419,16 @@ function directoryBrowserRoot(target) {
   return ['', '', 'wsl.localhost', target.distribution, 'home'].join('\\')
 }
 
+function fullyQualifiedDirectoryPath(path) {
+  return process.platform === 'win32'
+    ? win32.isAbsolute(path) && /^(?:[A-Za-z]:[\\/]|[\\/]{2}[^\\/]+[\\/]+[^\\/]+)/u.test(path)
+    : isAbsolute(path)
+}
+
 function directoryBrowserPath(target, requested) {
   const root = directoryBrowserRoot(target)
   const candidate = requested ?? root
-  if (!isAbsolute(candidate)) throw new Error('Choose an absolute directory.')
+  if (!fullyQualifiedDirectoryPath(candidate)) throw new Error('Choose an absolute directory.')
   const path = resolve(candidate)
   if (target.kind === 'wsl' && !path.toLowerCase().startsWith(root.toLowerCase() + '\\') && path.toLowerCase() !== root.toLowerCase()) throw new Error('Choose a folder inside the selected Linux distribution.')
   return path
@@ -442,11 +448,22 @@ function directoryCrumbs(path) {
 async function listDirectoryEntries(target, requested) {
   const home = directoryBrowserRoot(target)
   const path = directoryBrowserPath(target, requested)
-  const entries = (await readdir(path, { withFileTypes: true }))
-    .filter(entry => entry.isDirectory())
-    .map(entry => ({ name: entry.name, path: join(path, entry.name), hidden: entry.name.startsWith('.') }))
-    .sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
-  return { path, home, crumbs: directoryCrumbs(path), parent: path.toLowerCase() === home.toLowerCase() ? null : dirname(path), entries }
+  const candidates = []
+  let truncated = false
+  const level = await opendir(path)
+  try {
+    for (;;) {
+      const entry = await level.read()
+      if (entry === null) break
+      if (!entry.isDirectory()) continue
+      if (candidates.length >= 1000) { truncated = true; continue }
+      candidates.push({ name: entry.name, path: join(path, entry.name), hidden: entry.name.startsWith('.') })
+    }
+  } finally {
+    await level.close()
+  }
+  candidates.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
+  return { path, home, crumbs: directoryCrumbs(path), parent: path.toLowerCase() === home.toLowerCase() ? null : dirname(path), entries: candidates, truncated }
 }
 
 async function createDirectoryEntry(target, parent, name) {

@@ -366,8 +366,24 @@ function activeDirectoryListing() {
   return directoryChild ?? directoryParent
 }
 
+function directoryDraftTail(listing) {
+  if (!directoryPathEditing) return ''
+  const windows = listing.home.includes('\\')
+  const draft = directoryPath.value
+  const index = windows ? Math.max(draft.lastIndexOf('\\'), draft.lastIndexOf('/')) : draft.lastIndexOf('/')
+  if (index === -1) return ''
+  const directory = draft.slice(0, index + 1)
+  const separator = windows ? '\\' : '/'
+  const expected = listing.path.endsWith(separator) ? listing.path : listing.path + separator
+  if (directory.toLowerCase() !== expected.toLowerCase()) return ''
+  return draft.slice(index + 1).toLowerCase()
+}
+
 function visibleDirectoryEntries(listing) {
-  return listing.entries.filter(entry => showHiddenDirectories || !entry.hidden || entry.path === directorySelected?.path)
+  const prefix = directoryDraftTail(listing)
+  const entries = listing.entries.filter(entry => showHiddenDirectories || !entry.hidden || entry.path === directorySelected?.path)
+  if (!prefix || !entries.some(entry => entry.name.toLowerCase().startsWith(prefix))) return entries
+  return entries.filter(entry => entry.path === directorySelected?.path || entry.name.toLowerCase().startsWith(prefix))
 }
 
 function displayDirectoryCrumbs(listing) {
@@ -617,8 +633,13 @@ async function createDirectoryFromBrowser() {
     const name = directoryNewName.value
     const created = await bridge.createDirectory(directoryTarget, parent, name)
     directoryCreate.hidden = true
-    await navigateDirectory(parent)
-    if (directoryParent?.path === parent) await selectDirectoryEntry({ name, path: created, hidden: false })
+    if (!await navigateDirectory(parent)) return
+    const listedParent = directoryChild?.path === parent ? directoryChild : directoryParent?.path === parent ? directoryParent : undefined
+    if (listedParent === undefined) return
+    directoryParent = listedParent
+    directorySelected = undefined
+    directoryChild = undefined
+    await selectDirectoryEntry({ name, path: created, hidden: false })
   } catch (caught) {
     directoryCreateError.textContent = directoryFailure(caught)
     directoryCreateError.hidden = false
@@ -658,17 +679,29 @@ directoryNewFolder.prepend(createIcon(plusPath, '0 0 16 16', 'directory-new-icon
 
 chooseDirectory.addEventListener('click', () => { void openDirectoryBrowser() })
 directoryCancel.addEventListener('click', closeDirectoryBrowser)
-directoryBrowser.addEventListener('pointerdown', event => { if (event.target === directoryBrowser && directoryCreate.hidden) closeDirectoryBrowser() })
+directoryBrowser.addEventListener('pointerdown', event => {
+  if (event.target !== directoryBrowser) return
+  if (directoryCreate.hidden) closeDirectoryBrowser()
+  else { directoryCreate.hidden = true; directoryNewName.value = ''; directoryCreateError.hidden = true }
+})
+directoryPathBar.addEventListener('click', event => {
+  if (directoryPathEditing || event.target.closest('.directory-crumb') || event.target.closest('#directoryPathEdit')) return
+  beginDirectoryPathEdit()
+})
 directoryPathEdit.addEventListener('click', beginDirectoryPathEdit)
+directoryPath.addEventListener('input', renderDirectoryColumns)
 directoryPath.addEventListener('keydown', event => {
-  if (event.key === 'Escape') { directoryPathEditing = false; renderDirectoryBreadcrumbs(); return }
+  if (event.key === 'Escape') { directoryPathEditing = false; renderDirectoryBrowser(); return }
   if (event.key === 'Enter' && directoryPath.value.trim()) { event.preventDefault(); void submitDirectoryPath() }
 })
 directoryShowHiddenToggle.addEventListener('click', () => { showHiddenDirectories = !showHiddenDirectories; syncHiddenDirectoryToggle(); renderDirectoryBrowser() })
 directoryNewFolder.addEventListener('click', openDirectoryCreate)
 directoryCreateCancel.addEventListener('click', () => { directoryCreate.hidden = true; directoryNewName.value = ''; directoryCreateError.hidden = true })
 directoryCreateConfirm.addEventListener('click', () => { void createDirectoryFromBrowser() })
-directoryNewName.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); void createDirectoryFromBrowser() } })
+directoryNewName.addEventListener('keydown', event => {
+  if (event.key === 'Escape') { directoryCreate.hidden = true; directoryNewName.value = ''; directoryCreateError.hidden = true }
+  if (event.key === 'Enter') { event.preventDefault(); void createDirectoryFromBrowser() }
+})
 directoryOpen.addEventListener('click', () => { void confirmDirectoryBrowser() })
 customName.addEventListener('input', clearCustomProviderError)
 baseURL.addEventListener('input', clearCustomProviderError)

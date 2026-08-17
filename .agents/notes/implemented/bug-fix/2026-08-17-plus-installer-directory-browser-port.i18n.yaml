@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-17-plus-installer-directory-browser-port.md
-2026-08-17-plus-installer-directory-browser-port.md: 86d37046fa034ad025a51fc91f5f48f27dc289e6
-2026-08-17-plus-installer-directory-browser-port.zh.md: 367cdf63ea29b95d25da01efc9f8bc9bf7d2f47f
+2026-08-17-plus-installer-directory-browser-port.md: 0a9e976bb394f2fc98b7ee133023dd1357416812
+2026-08-17-plus-installer-directory-browser-port.zh.md: c1ac3bcdeced40fe7d44bd33ea97f810d46fd517

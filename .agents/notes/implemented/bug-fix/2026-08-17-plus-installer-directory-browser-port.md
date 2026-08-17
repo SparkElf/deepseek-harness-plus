@@ -12,7 +12,7 @@ The Plus Desktop installer had a smaller single-column directory dialog that ret
 
 The installer keeps its plain HTML and JavaScript renderer but ports the complete interaction contract of the [Harness directory browser](../../architecture/2026-07-28-directory-picker-capability-seam.md): a 680 by 500 dialog, breadcrumb path bar with an edit affordance, selection-anchored Miller columns, nested new-folder dialog, hidden-entry toggle with a check, and Open fallback to the listed level when no folder is selected.
 
-The Electron main process supplies the real platform home directory, filesystem ancestry crumbs, and directory entries through the existing preload IPC. The renderer never invents a Windows username or directory listing. A browser preview has no filesystem capability and rejects folder selection and installation instead of emitting a simulated path or progress event.
+The Electron main process supplies the real platform home directory, filesystem ancestry crumbs, and a name-sorted listing capped at 1,000 entries through the existing preload IPC. The renderer never invents a Windows username or directory listing. Node directory entries identify dot-prefixed hidden names; Windows hidden and system attributes remain unavailable through this API, matching the existing Harness browse limitation. A browser preview has no filesystem capability and rejects folder selection and installation instead of emitting a simulated path or progress event.
 
 ## Verification
 
