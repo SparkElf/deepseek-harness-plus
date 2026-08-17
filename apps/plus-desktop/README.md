@@ -6,7 +6,7 @@ The desktop manager installs and controls one local Harness runtime. Its compact
 
 On Windows, the guide offers Windows or a selected installed WSL distribution, then opens its native file picker for the installation folder. Selecting a WSL folder opens that distribution in Explorer and returns its Linux path. The installation directory, commands, settings, Supervisor, Harness Web process, rebuilds, repairs, and updates remain in the selected target. Linux and macOS packages use their native environment.
 
-The tray reads Supervisor status and opens the production Harness page and Supervisor page independently. It enables the candidate Harness entry only while the candidate workflow's 3083 Supervisor reports a Web runtime on 3081. It also starts, stops, rebuilds, checks for available upstream commits without installing them, upgrades, repairs, and opens the target data directory.
+The tray reads Supervisor status and opens the production Harness page and Supervisor page independently. It enables the candidate Harness entry only while the candidate workflow's 3083 Supervisor reports a Web runtime on 3081. Version management lists tagged Plus releases by exact commit, supports normal upgrade or rollback, and opens an AI merge session for local source changes. The tray also starts, stops, rebuilds, repairs, and opens the target data directory.
 
 The guide configures one initial default model. It supports DeepSeek, OpenAI, Anthropic, Google, OpenRouter, Groq, Mistral, xAI, and an OpenAI-compatible custom provider. It writes the provider profile to <code>settings.yaml</code> and the key to the managed <code>.credentials.yaml</code> document. Harness Web remains the later interface for adding or editing providers and models.
 

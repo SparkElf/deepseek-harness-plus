@@ -19,6 +19,8 @@ const progressPort = 3082
 const candidateProgressPort = 3083
 let tray
 let installerWindow
+let updatesWindow
+let harnessWindow
 let runtime
 let busy
 let supervisorSnapshot
@@ -30,7 +32,7 @@ const trayMessages = {
   zh: {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
-    start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '检查更新',
+    start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
     upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', quit: '退出',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
@@ -38,7 +40,7 @@ const trayMessages = {
   en: {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
-    start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Check for updates',
+    start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
     upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', quit: 'Quit',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
@@ -130,6 +132,7 @@ function runtimeFor(form, port) {
     target: form.target,
     installPath: form.installPath,
     proxy: form.proxy || undefined,
+    sourceRef: releaseSourceRef,
     dshHome,
     port,
     candidatePort,
@@ -215,7 +218,6 @@ function refreshTray() {
     { type: 'separator' },
     { label: trayText('install'), enabled: !installed && !maintenanceBusy, click: openInstaller },
     { label: trayText('checkUpdates'), enabled: installed && !maintenanceBusy, click: () => checkUpdates() },
-    { label: trayText('upgrade'), enabled: installed && !maintenanceBusy, click: () => upgrade() },
     { label: trayText('repair'), enabled: installed && !maintenanceBusy, click: () => repair() },
     { label: trayText('openData'), enabled: installed && !maintenanceBusy, click: openDataFolder },
     { type: 'separator' },
@@ -427,18 +429,23 @@ async function assertInstalled() {
   await new TargetRuntime(runtime.target).assertDirectory(runtime.installPath)
 }
 
-async function upgrade() {
-  await action(trayText('upgrade'), async () => {
-    await assertInstalled()
-    const targetRuntime = new TargetRuntime(runtime.target)
-    const networkEnvironment = proxyEnvironment(runtime.proxy)
-    const restart = (await daemon.snapshot()).state === 'running'
-    const report = message => { busy = message; refreshTray() }
-    await targetRuntime.run('git', ['pull', '--ff-only'], runtime.installPath, report, { env: networkEnvironment })
-    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report, { env: networkEnvironment })
-    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report, { env: networkEnvironment })
-    if (restart) await daemon.restart(false)
-  })
+async function applyUpgrade(sourceRef) {
+  await assertInstalled()
+  const targetRuntime = new TargetRuntime(runtime.target)
+  const networkEnvironment = proxyEnvironment(runtime.proxy)
+  const restart = (await daemon.snapshot()).state === 'running'
+  const report = message => { busy = message; updatesWindow?.webContents.send('updates:progress', { message }); refreshTray() }
+  await targetRuntime.run('git', ['remote', 'set-url', 'origin', repository], runtime.installPath)
+  await targetRuntime.run('git', ['fetch', '--depth', '1', 'origin', sourceRef], runtime.installPath, report, { env: networkEnvironment })
+  await targetRuntime.run('git', ['reset', '--hard', 'FETCH_HEAD'], runtime.installPath, report)
+  await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report, { env: networkEnvironment })
+  await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report, { env: networkEnvironment })
+  if (restart) await daemon.restart(false)
+  await saveRuntime({ ...runtime, sourceRef })
+}
+
+async function upgrade(sourceRef = releaseSourceRef) {
+  await action(trayText('upgrade'), () => applyUpgrade(sourceRef))
 }
 
 async function repair() {
@@ -454,14 +461,82 @@ async function repair() {
   })
 }
 
-async function checkUpdates() {
-  await action(trayText('checkingUpdates'), async () => {
-    await assertInstalled()
-    const targetRuntime = new TargetRuntime(runtime.target)
-    await targetRuntime.run('git', ['fetch'], runtime.installPath, undefined, { env: proxyEnvironment(runtime.proxy) })
-    const count = Number((await targetRuntime.run('git', ['rev-list', '--count', 'HEAD..@{upstream}'], runtime.installPath)).trim())
-    await dialog.showMessageBox({ type: 'info', title: trayText('updateTitle'), message: count > 0 ? trayText('updateAvailable', { count }) : trayText('upToDate') })
+async function releaseVersions() {
+  await assertInstalled()
+  const targetRuntime = new TargetRuntime(runtime.target)
+  const networkEnvironment = proxyEnvironment(runtime.proxy)
+  const [remoteTags, currentRef] = await Promise.all([
+    targetRuntime.run('git', ['ls-remote', '--tags', repository], undefined, undefined, { env: networkEnvironment }),
+    targetRuntime.run('git', ['rev-parse', 'HEAD'], runtime.installPath).then(value => value.trim()),
+  ])
+  const refs = new Map()
+  for (const line of remoteTags.split(/\r?\n/u).filter(Boolean)) {
+    const [sourceRef, rawRef] = line.split(/\s+/u)
+    const match = /^refs\/tags\/(plus-v[^\^]+)(\^\{\})?$/u.exec(rawRef ?? '')
+    if (sourceRef && match) {
+      const peeled = match[2] !== undefined
+      if (peeled || !refs.has(match[1])) refs.set(match[1], { sourceRef, peeled })
+    }
+  }
+  const versions = [...refs.entries()].map(([tag, value]) => ({ tag, sourceRef: value.sourceRef }))
+  versions.sort((left, right) => right.tag.localeCompare(left.tag, undefined, { numeric: true }))
+  return { locale: locale(), currentRef, versions: versions.map(version => ({ ...version, current: version.sourceRef === currentRef })) }
+}
+
+async function harnessRpc(method, payload) {
+  const response = await fetch('http://127.0.0.1:' + String(runtime.port) + '/api/' + method, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ type: 'client-request', rpcId: 'plus-update-' + method + '-' + Date.now(), method, payload }),
   })
+  if (!response.ok) throw new Error(method + ' failed over HTTP ' + String(response.status) + ': ' + await response.text())
+  const body = await response.json()
+  if (!body.result?.ok) throw new Error(method + ' failed: ' + String(body.result?.error?.message ?? 'unknown error'))
+  return body.result.value
+}
+
+async function openHarnessSession(sessionId) {
+  const url = 'http://127.0.0.1:' + String(runtime.port)
+  harnessWindow?.close()
+  harnessWindow = new BrowserWindow({ width: 1180, height: 820, title: 'DeepSeek Harness Plus', webPreferences: { contextIsolation: true, sandbox: true } })
+  harnessWindow.once('closed', () => { harnessWindow = undefined })
+  harnessWindow.webContents.once('did-finish-load', async () => {
+    const value = JSON.stringify(JSON.stringify({ sessionId }))
+    await harnessWindow?.webContents.executeJavaScript("localStorage.setItem('dsh.sessions.current', " + value + ')')
+    await harnessWindow?.loadURL(url)
+  })
+  await harnessWindow.loadURL(url)
+}
+
+async function aiMergeVersion(sourceRef, tag) {
+  await assertInstalled()
+  if ((await daemon.snapshot()).state !== 'running') await daemon.start()
+  const created = await harnessRpc('session.create', { cwd: runtime.installPath })
+  const instruction = [
+    '将当前 DeepSeek Harness Plus 工作区升级或回退到 release ' + tag + '，目标 commit 为 ' + sourceRef + '。',
+    '先检查 git status、当前 HEAD 和所有本地 diff。保留用户对源码的修改以及 .dsh-plus/home 下的设置、凭据和会话数据。',
+    '从 ' + repository + ' 获取目标 commit，使用合并或逐项迁移的方式整合目标版本与本地修改；不要直接 reset --hard 或删除用户数据。',
+    '解决冲突后安装依赖、运行相关检查并报告改动、测试结果和仍需人工确认的冲突。',
+  ].join('\n')
+  await harnessRpc('session.prompt', { sessionId: created.sessionId, mode: 'queue', content: [{ type: 'text', text: instruction }] })
+  await openHarnessSession(created.sessionId)
+  return { sessionId: created.sessionId }
+}
+
+function openUpdatesWindow() {
+  if (runtime === undefined) return
+  if (updatesWindow !== undefined) { updatesWindow.show(); updatesWindow.focus(); return }
+  updatesWindow = new BrowserWindow({
+    width: 760, height: 560, minWidth: 660, minHeight: 480, title: trayText('updateTitle'), backgroundColor: nativeTheme.shouldUseDarkColors ? '#232324' : '#ffffff',
+    webPreferences: { preload: join(currentDirectory, 'preload.mjs'), contextIsolation: true, sandbox: false },
+  })
+  updatesWindow.loadFile(join(currentDirectory, '..', 'renderer', 'updates.html'))
+  updatesWindow.once('closed', () => { updatesWindow = undefined })
+}
+
+async function checkUpdates() {
+  await assertInstalled()
+  openUpdatesWindow()
 }
 
 async function openProduction() {
@@ -604,6 +679,20 @@ async function handleInstallerInstall(form) {
 }
 
 ipcMain.handle('installer:install', (_event, form) => handleInstallerInstall(form))
+ipcMain.handle('updates:list', () => releaseVersions())
+ipcMain.handle('updates:upgrade', async (_event, sourceRef) => {
+  const available = await releaseVersions()
+  const version = available.versions.find(entry => entry.sourceRef === sourceRef)
+  if (version === undefined) throw new Error('Choose an available Plus release.')
+  await applyUpgrade(version.sourceRef)
+  return await releaseVersions()
+})
+ipcMain.handle('updates:ai-merge', async (_event, sourceRef) => {
+  const available = await releaseVersions()
+  const version = available.versions.find(entry => entry.sourceRef === sourceRef)
+  if (version === undefined) throw new Error('Choose an available Plus release.')
+  return await aiMergeVersion(version.sourceRef, version.tag)
+})
 
 app.whenReady().then(async () => {
   try {

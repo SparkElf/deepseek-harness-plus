@@ -12,7 +12,7 @@
   "type": "module",
   "main": "src/main.mjs",
   "scripts": {
-    "dev": "electron .",
+    "dev": "pnpm run prepare:source-ref && electron .",
     "preview:installer": "node scripts/preview-installer.mjs",
     "supervisor:command": "node src/supervisor-client.mjs",
     "prepare:source-ref": "node scripts/write-release-source-ref.mjs",

@@ -1,0 +1,25 @@
+:root { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; color-scheme: light dark; --bg: #fff; --text: #15171a; --muted: #686d75; --border: rgba(0,0,0,.12); --hover: rgba(0,0,0,.05); --brand: #4176e6; --danger: #dc3030; }
+@media (prefers-color-scheme: dark) { :root { --bg: #232324; --text: #f2f3f5; --muted: #adb2b8; --border: rgba(255,255,255,.13); --hover: rgba(255,255,255,.06); --danger: #f25a5a; } }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--text); background: var(--bg); }
+main { width: min(680px, calc(100% - 48px)); margin: 0 auto; padding: 30px 0 36px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+h1 { margin: 0; font-size: 24px; line-height: 32px; letter-spacing: 0; }
+.page-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 18px; }
+.icon-button { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: transparent; font-size: 21px; cursor: pointer; }
+.icon-button:hover { background: var(--hover); }
+.status, .error { min-height: 18px; margin: 0 0 8px; font-size: 12px; line-height: 18px; }
+.status { color: var(--muted); }
+.error { color: var(--danger); }
+.version-list { border-top: 1px solid var(--border); }
+.version-row { min-height: 72px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); padding: 12px 0; }
+.version-main { min-width: 0; display: flex; align-items: center; gap: 10px; }
+.version-name { font-size: 14px; font-weight: 650; }
+.version-ref { color: var(--muted); font: 12px/18px ui-monospace, SFMono-Regular, Consolas, monospace; }
+.current-badge { border-radius: 4px; padding: 2px 6px; color: var(--brand); background: color-mix(in srgb, var(--brand) 12%, transparent); font-size: 11px; }
+.version-actions { display: flex; align-items: center; gap: 8px; }
+.command { height: 34px; border: 1px solid var(--border); border-radius: 7px; padding: 0 12px; color: var(--text); background: transparent; font-size: 12px; font-weight: 600; cursor: pointer; }
+.command:hover { background: var(--hover); }
+.command.primary { border-color: var(--brand); color: #fff; background: var(--brand); }
+.command:disabled { opacity: .45; cursor: default; }
+.empty { margin: 24px 0; color: var(--muted); text-align: center; font-size: 13px; }

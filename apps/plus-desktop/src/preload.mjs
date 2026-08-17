@@ -10,3 +10,10 @@ contextBridge.exposeInMainWorld('plusInstaller', {
   applyAppearance: (appearance) => ipcRenderer.invoke('installer:apply-appearance', appearance),
   onProgress: (listener) => ipcRenderer.on('install:progress', (_event, value) => listener(value)),
 })
+
+contextBridge.exposeInMainWorld('plusUpdates', {
+  list: () => ipcRenderer.invoke('updates:list'),
+  upgrade: (sourceRef) => ipcRenderer.invoke('updates:upgrade', sourceRef),
+  aiMerge: (sourceRef) => ipcRenderer.invoke('updates:ai-merge', sourceRef),
+  onProgress: listener => ipcRenderer.on('updates:progress', (_event, value) => listener(value)),
+})
