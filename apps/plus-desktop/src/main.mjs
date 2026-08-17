@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray, utilityProcess } from 'electron'
 import { appendFile, mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
+import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -808,7 +809,9 @@ ipcMain.handle('installer:apply-appearance', (_event, appearance) => {
 })
 async function handleInstallerInstall(form) {
   try {
-    return await install(form)
+    const result = await install(form)
+    if (process.env.DSH_PLUS_DESKTOP_TEST_SEAM === '1' && result.installed) openBackupWindow()
+    return result
   } catch (error) {
     return {
       installed: false,
@@ -837,9 +840,17 @@ ipcMain.handle('updates:ai-merge', async (_event, sourceRef) => {
   return await aiMergeVersion(version.sourceRef, version.tag)
 })
 
-/** 测试驱动缝：托盘菜单无法被 Playwright 操作，仅在测试环境暴露窗口打开动作。 */
+/**
+ * 测试驱动缝：原生对话框和托盘菜单无法被 Playwright 操作。
+ * 仅在测试环境以文件驱动的固定选择替换对话框应答，并在安装完成后自动打开备份窗口；
+ * 业务步骤仍全部经由备份窗口 UI 完成。
+ */
 if (process.env.DSH_PLUS_DESKTOP_TEST_SEAM === '1') {
-  globalThis.__plusDesktopTest = { openBackupWindow }
+  const dialogSelectionsPath = process.env.DSH_PLUS_DESKTOP_TEST_DIALOGS
+  const readDialogSelections = () => JSON.parse(readFileSync(dialogSelectionsPath, 'utf8'))
+  dialog.showSaveDialog = async () => ({ canceled: false, filePath: readDialogSelections().savePath })
+  dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [readDialogSelections().openPath] })
+  dialog.showMessageBox = async () => ({ response: readDialogSelections().confirm ?? 0 })
 }
 
 app.whenReady().then(async () => {
