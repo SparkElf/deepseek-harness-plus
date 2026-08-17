@@ -260,6 +260,13 @@ async function action(label, work) {
 }
 
 /** 在 Electron IPC 入口确认安装表单能生成一个可用的 Harness 设置。 */
+function cloneProgressReporter(report, message) {
+  return line => {
+    const match = /(?:Receiving objects|Resolving deltas):\s+(\d+)%/u.exec(line)
+    if (match !== null) report(14 + Math.round(Number(match[1]) * 0.24), message)
+  }
+}
+
 function validateInstall(form) {
   if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation folder, API key, and model.')
   if (!catalogProviders.has(form.provider) && form.provider !== 'custom') throw new Error('Choose a supported model provider.')
@@ -284,30 +291,43 @@ async function install(form) {
   busy = 'Installing DeepSeek Harness Plus...'
   refreshTray()
   try {
-    const report = message => {
+    const report = (percent, message) => {
       busy = message
-      sendInstaller('install:progress', { message })
+      sendInstaller('install:progress', { percent, message })
       refreshTray()
     }
     const installText = form.locale === 'zh'
-      ? { preparing: '正在准备安装…', downloading: '正在下载 Harness…', installing: '正在安装…', starting: '正在启动 Harness…' }
-      : { preparing: 'Preparing installation…', downloading: 'Downloading Harness…', installing: 'Installing Harness…', starting: 'Starting Harness…' }
-    report(installText.preparing)
+      ? {
+          preparing: '正在准备安装…', checking: '正在检查安装环境…', downloading: '正在下载 Harness…',
+          configuring: '正在写入设置…', installing: '正在安装依赖…', building: '正在构建 Harness…',
+          starting: '正在启动 Harness…', complete: '安装完成。',
+        }
+      : {
+          preparing: 'Preparing installation…', checking: 'Checking the installation environment…', downloading: 'Downloading Harness…',
+          configuring: 'Writing settings…', installing: 'Installing dependencies…', building: 'Building Harness…',
+          starting: 'Starting Harness…', complete: 'Installation complete.',
+        }
+    report(2, installText.preparing)
+    report(7, installText.checking)
     await targetRuntime.run('git', ['--version'])
+    report(10, installText.checking)
     await targetRuntime.runPnpm(['--version'])
     await targetRuntime.assertEmptyDirectory(form.installPath)
-    report(installText.downloading)
-    await targetRuntime.run('git', ['clone', '--depth', '1', repository, form.installPath])
+    report(14, installText.downloading)
+    await targetRuntime.run('git', ['clone', '--depth', '1', '--progress', repository, form.installPath], undefined, cloneProgressReporter(report, installText.downloading))
+    report(40, installText.configuring)
     await targetRuntime.makeDirectory(targetRuntime.join(form.installPath, '.dsh-plus', 'logs'))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, 'settings.yaml'), settingsDocument(form))
     await targetRuntime.writeText(targetRuntime.join(configured.dshHome, '.credentials.yaml'), credentialsDocument(form))
-    report(installText.installing)
-    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath)
-    await targetRuntime.runPnpm(['run', 'build'], form.installPath)
+    report(48, installText.installing)
+    await targetRuntime.runPnpm(['install', '--frozen-lockfile'], form.installPath, () => report(58, installText.installing))
+    report(76, installText.building)
+    await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building))
     daemon.configure(configured)
-    report(installText.starting)
+    report(94, installText.starting)
     await daemon.start()
     await saveRuntime(configured)
+    report(100, installText.complete)
     void shell.openExternal('http://127.0.0.1:' + String(configured.port)).catch(error => {
       console.error('[plus-desktop] opening installed Harness failed', error)
       dialog.showErrorBox('DeepSeek Harness Plus', error instanceof Error ? error.message : String(error))

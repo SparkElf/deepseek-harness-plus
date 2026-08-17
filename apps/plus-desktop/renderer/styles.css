@@ -125,8 +125,13 @@ input[aria-invalid='true'] { border-color: var(--error); box-shadow: 0 0 0 3px c
 .summary dt { color: var(--text-tertiary); font-size: 12px; }
 .summary dd { margin: 0; color: var(--text-primary); font-size: 13px; overflow-wrap: anywhere; }
 .error { min-height: 0; margin: 10px 0 0; color: var(--error); font-size: 12px; line-height: 18px; }
-.progress { min-height: 38px; margin-top: 10px; padding: 9px 11px; display: flex; align-items: center; gap: 9px; border-radius: 7px; background: var(--brand-soft); color: var(--text-primary); font-size: 12px; }
+.progress { min-height: 58px; margin-top: 10px; padding: 10px 12px; border-radius: 7px; background: var(--brand-soft); color: var(--text-primary); font-size: 12px; }
 .progress[hidden] { display: none; }
+.progress-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; }
+.progress-head strong { color: var(--text-primary); font: 600 12px/18px var(--font-code); }
+.progress-bar { height: 5px; margin-top: 8px; overflow: hidden; border-radius: 3px; background: color-mix(in srgb, var(--brand) 18%, var(--bg-layer)); }
+.progress-bar > span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--brand); transition: width 260ms var(--ease); }
+.progress-detail { display: block; margin-top: 5px; overflow: hidden; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 16px; }
 .spinner { width: 13px; height: 13px; border: 2px solid var(--border-strong); border-top-color: var(--brand); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 

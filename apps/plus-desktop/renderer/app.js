@@ -19,7 +19,7 @@ const messages = {
     'error.location': '请选择安装目录。', 'error.distribution': '请选择 WSL 发行版。', 'error.reservedPort': '该端口不可用，请选择其他端口。',
     'error.model': '请填写 API 密钥和模型名称。', 'error.customName': '请填写服务名称。', 'error.customURL': '请填写服务地址。', 'error.customURLFormat': '服务地址必须是 HTTP 或 HTTPS URL。', 'error.distributions': '没有可用的 WSL 发行版。', 'error.preview': '预览页面不能选择本机目录或执行安装。',
     'placeholder.installPathNative': '例如 C:\\Users\\<用户名>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': '例如 /home/<用户名>/deepseek-harness-plus',
-    'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在开始安装…',
+    'progress.distributions': '正在读取发行版…', 'progress.preparing': '正在准备安装…', 'progress.checking': '正在检查安装环境…', 'progress.downloading': '正在下载 Harness…', 'progress.configuring': '正在写入设置…', 'progress.installing': '正在安装依赖…', 'progress.building': '正在构建 Harness…', 'progress.starting': '正在启动 Harness…', 'progress.complete': '安装完成。',
     'window.title': '安装 DeepSeek Harness Plus',
   },
   en: {
@@ -42,7 +42,7 @@ const messages = {
     'error.location': 'Choose an installation folder.', 'error.distribution': 'Choose a Linux distribution.', 'error.reservedPort': 'This port is unavailable. Choose another port.',
     'error.model': 'Enter an API key and model.', 'error.customName': 'Enter a service name.', 'error.customURL': 'Enter a service URL.', 'error.customURLFormat': 'The service URL must use HTTP or HTTPS.', 'error.distributions': 'No Linux distributions are available.', 'error.preview': 'The preview cannot choose local folders or install Harness.',
     'placeholder.installPathNative': 'For example C:\\Users\\<username>\\DeepSeekHarnessPlus', 'placeholder.installPathWsl': 'For example /home/<username>/deepseek-harness-plus',
-    'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Starting installation…',
+    'progress.distributions': 'Loading Linux distributions…', 'progress.preparing': 'Preparing installation…', 'progress.checking': 'Checking the installation environment…', 'progress.downloading': 'Downloading Harness…', 'progress.configuring': 'Writing settings…', 'progress.installing': 'Installing dependencies…', 'progress.building': 'Building Harness…', 'progress.starting': 'Starting Harness…', 'progress.complete': 'Installation complete.',
     'window.title': 'Install DeepSeek Harness Plus',
   },
 }
@@ -82,6 +82,10 @@ const next = document.querySelector('#next')
 const error = document.querySelector('#error')
 const progress = document.querySelector('#progress')
 const progressText = document.querySelector('#progressText')
+const progressPercent = document.querySelector('#progressPercent')
+const progressBar = document.querySelector('#progressBar')
+const progressFill = document.querySelector('#progressFill')
+const progressDetail = document.querySelector('#progressDetail')
 const summary = document.querySelector('#summary')
 const reasoning = document.querySelector('#reasoningEffort')
 const provider = document.querySelector('#provider')
@@ -228,6 +232,17 @@ let targetKind = params.get('target') === 'wsl' ? 'wsl' : 'native'
 let distributionsLoaded = false
 
 function text(key) { return messages[locale][key] ?? key }
+function setInstallProgress(update) {
+  const state = typeof update === 'string' ? { message: update } : update
+  const percent = Math.max(0, Math.min(100, Number(state.percent) || 0))
+  progress.hidden = false
+  progressText.textContent = state.message
+  progressPercent.textContent = String(percent) + '%'
+  progressBar.setAttribute('aria-valuenow', String(percent))
+  progressFill.style.width = String(percent) + '%'
+  progressDetail.textContent = state.detail ?? ''
+  progressDetail.hidden = !state.detail
+}
 function resolvedTheme() { return theme === 'system' ? (systemDark.matches ? 'dark' : 'light') : theme }
 function target() { return { kind: targetKind, distribution: targetKind === 'wsl' ? wslDistribution.value : undefined } }
 function nativeTargetName() { return bridge.platform === 'darwin' ? text('target.macos') : bridge.platform === 'linux' ? text('target.linux') : text('target.windows') }
@@ -306,6 +321,7 @@ function applyAppearance() {
   document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = text(node.dataset.i18nPlaceholder) })
   document.querySelectorAll('[data-i18n-title]').forEach(node => { const label = text(node.dataset.i18nTitle); node.title = label; node.setAttribute('aria-label', label) })
   document.querySelector('#stepper').setAttribute('aria-label', locale === 'zh' ? '安装进度' : 'Installation progress')
+  progressBar.setAttribute('aria-label', locale === 'zh' ? '安装进度' : 'Installation progress')
   document.querySelector('#localeControl').setAttribute('aria-label', text('label.language'))
   document.querySelector('#themeControl').setAttribute('aria-label', text('label.theme'))
   document.querySelector('#targetControl').setAttribute('aria-label', text('step.location'))
@@ -712,11 +728,11 @@ next.addEventListener('click', async () => {
   const message = validate(); if (message) { error.textContent = message; return }
   if (preview && step === 3) { error.textContent = text('error.preview'); return }
   if (step < 3) { showStep(step + 1); return }
-  next.disabled = true; back.disabled = true; progress.hidden = false; progressText.textContent = text('progress.preparing')
+  next.disabled = true; back.disabled = true; setInstallProgress({ percent: 0, message: text('progress.preparing') })
   try { await bridge.install(values()); if (preview) { next.disabled = false; back.disabled = false } }
   catch (caught) { error.textContent = caught instanceof Error ? caught.message : String(caught); next.disabled = false; back.disabled = false; progress.hidden = true }
 })
-bridge.onProgress(({ message }) => { progress.hidden = false; progressText.textContent = message })
+bridge.onProgress(update => setInstallProgress(update))
 systemDark.addEventListener('change', () => { if (theme === 'system') applyAppearance() })
 if (preview) document.querySelector('#apiKey').value = 'sk-preview'
 applyAppearance()

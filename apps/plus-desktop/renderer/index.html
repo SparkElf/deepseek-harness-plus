@@ -94,7 +94,11 @@
           </div>
 
           <p id="error" class="error" role="alert"></p>
-          <div id="progress" class="progress" hidden><span class="spinner" aria-hidden="true"></span><span id="progressText"></span></div>
+          <div id="progress" class="progress" role="status" aria-live="polite" hidden>
+            <div class="progress-head"><span class="spinner" aria-hidden="true"></span><span id="progressText"></span><strong id="progressPercent">0%</strong></div>
+            <div id="progressBar" class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="安装进度"><span id="progressFill"></span></div>
+            <span id="progressDetail" class="progress-detail" hidden></span>
+          </div>
         </section>
         <footer class="action-bar">
           <button id="back" type="button" class="secondary" hidden data-i18n="action.back">返回</button>
