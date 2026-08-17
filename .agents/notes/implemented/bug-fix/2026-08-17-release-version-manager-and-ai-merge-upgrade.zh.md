@@ -16,7 +16,7 @@ AI 合并会创建真实 Harness Web session，将已安装 workspace 作为 cwd
 
 ## Verification
 
-Windows Electron package 包含 version manager renderer 和 release-pinned source generator。Windows NSIS workflow 在 native installer interaction 后继续作为 packaging gate。公开 fork 上的 Git exact-SHA fetch 已验证；pull-request build 从 PR head commit 生成 source reference，release build 从 checked-out commit 生成。
+Windows Electron package 包含 version manager renderer 和 release-pinned source generator。Windows NSIS workflow 在 native installer interaction 后继续作为 packaging gate。公开 fork 上的 Git exact-SHA fetch 已验证；pull-request build 从 PR head commit 生成 source reference，release build 从 checked-out commit 生成。Windows 原生命令失败会在传给 renderer 前按 UTF-8 或 GBK 解码；root web build 改为通过 npm 调用 web package，不再依赖 shell 全局 pnpm 命令。
 
 ## Alternatives considered
 

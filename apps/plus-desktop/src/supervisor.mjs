@@ -5,6 +5,7 @@ import { closeSync, openSync, writeSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { writeSupervisorManifest } from './supervisor-manifest.mjs'
 import { startProgressServer } from './supervisor-progress-server.mjs'
+import { decodeProcessOutput } from './process-output-encoding.mjs'
 
 const START_TIMEOUT_MS = 30_000
 const STOP_TIMEOUT_MS = 10_000
@@ -55,11 +56,10 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, env, detached, stdio: ['ignore', 'pipe', 'pipe'] })
     onSpawn?.(child)
-    let output = ''
+    const outputChunks = []
     const capture = (chunk) => {
-      const text = chunk.toString()
-      output = (output + text).slice(-16_384)
-      onOutput?.(text.trim())
+      outputChunks.push(chunk)
+      onOutput?.(decodeProcessOutput(chunk).trim())
     }
     child.stdout.on('data', capture)
     child.stderr.on('data', capture)
@@ -73,6 +73,7 @@ function run(command, args, cwd, env, timeoutMs, onOutput, onSpawn, detached = f
     child.once('error', (error) => { clearTimeout(timer); reject(error) })
     child.once('exit', (code, signal) => {
       clearTimeout(timer)
+      const output = decodeProcessOutput(Buffer.concat(outputChunks)).slice(-16_384)
       if (timeoutError !== undefined) reject(timeoutError)
       else if (code === 0) resolve(output)
       else reject(new SubprocessFailure(command, code, signal, output))

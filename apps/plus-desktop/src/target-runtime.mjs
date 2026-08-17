@@ -3,16 +3,13 @@ import { lstat, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { connect } from 'node:net'
 import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
+import { decodeProcessOutput } from './process-output-encoding.mjs'
 
 const COMMAND_TIMEOUT_MS = 15 * 60_000
 const CONNECT_TIMEOUT_MS = 30_000
 const proxyEnvironmentKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy']
 const workspaceRequire = createRequire(import.meta.url)
 const bundledPnpmCli = join(dirname(workspaceRequire.resolve('pnpm')), 'bin', 'pnpm.mjs')
-
-function decodeWindowsOutput(buffer) {
-  return buffer.includes(0) ? buffer.toString('utf16le').replaceAll(String.fromCharCode(0), '') : buffer.toString('utf8')
-}
 
 function execute(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -45,7 +42,7 @@ function execute(command, args, options = {}) {
     child.once('error', error => { clearTimeout(timer); reject(error) })
     child.once('exit', code => {
       clearTimeout(timer)
-      const output = Buffer.concat(chunks).toString('utf8')
+      const output = decodeProcessOutput(Buffer.concat(chunks))
       if (reportBuffer.trim()) options.report?.(reportBuffer.trim())
       if (code === 0) resolve(output)
       else reject(new Error(output || command + ' failed with exit code ' + String(code)))
@@ -97,7 +94,7 @@ export async function listWslDistributions() {
     child.stdout.on('data', chunk => chunks.push(chunk))
     child.stderr.on('data', chunk => chunks.push(chunk))
     child.once('error', reject)
-    child.once('exit', code => code === 0 ? resolve(decodeWindowsOutput(Buffer.concat(chunks))) : reject(new Error(decodeWindowsOutput(Buffer.concat(chunks)))))
+    child.once('exit', code => code === 0 ? resolve(decodeProcessOutput(Buffer.concat(chunks))) : reject(new Error(decodeProcessOutput(Buffer.concat(chunks)))))
   })
   return output.split(/\r?\n/u).map(value => value.trim().replace(/^\*\s*/u, '')).filter(Boolean)
 }
