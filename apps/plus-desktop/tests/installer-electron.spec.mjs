@@ -99,12 +99,13 @@ test('installer completes a native Harness installation and starts Supervisor', 
   try {
     const page = await application.firstWindow()
     await page.getByRole('button', { name: '继续' }).click()
-    await page.locator('#installPath').fill(testInfo.outputPath('installed-harness'))
+    await page.locator('#installPath').fill(resolve(desktopDirectory, '../..'))
     await page.getByText('高级选项', { exact: true }).click()
     await page.locator('#port').fill('45180')
     await page.locator('#candidatePort').fill('45181')
     await page.locator('#supervisorPort').fill('45182')
     await page.locator('#candidateSupervisorPort').fill('45183')
+    await page.locator('#overwriteInstall').check()
     await page.getByRole('button', { name: '继续' }).click()
 
     await page.locator('#apiKey').fill('sk-electron-install-test')
