@@ -8,6 +8,21 @@ Status: proposed
 
 dataops 项目的智能取数 AI 通过若干强依赖 dataops 内部的工具服务真实工作：`search_resources`（资源 wiki/目录发现）、`query_table`（对 dataops 已接入引擎的只读 SQL，带平台可见性过滤）、`query_api`（对 dataops 已注册数据 API 的参数化调用），以及 `kb_search`/`kb_explore`/`kb_read` 语义检索三件套。任何其他中台（数据中台、BI 语义层、湖仓目录）想要同样的智能取数，都得 fork 这些工具。Harness 用户无法把 agent 指向任意中台，dataops 成为该能力的单一供应商锁定。
 
+## 目标工具清单
+
+dataops AI 代理目录（`ai-agent-tool-catalog.ts`）中恰有以下取数工具，各自硬连线 dataops 服务；协议与其一一映射：
+
+| 工具 | dataops 依赖 | 协议端点 |
+| --- | --- | --- |
+| `search_resources` | ResourceWikiCoreService 目录，含意图门与短目录 | `POST /dq/v1/resources/search` |
+| `query_table` | 已接入引擎（Doris）的只读 SELECT/WITH 执行器，runtime 自动注入 `aiVisible`/`enabled`/`isEnabled`/`accessLevel` 可见性过滤；平台内置系统表供目录/术语/血缘元数据查询 | `POST /dq/v1/query/sql`（可见性服务端强制；系统表以 `kind: system` 资源暴露） |
+| `query_api` | 平台已注册可执行 API connector；禁外部 URL | `POST /dq/v1/query/api` |
+| `kb_search` | 知识库块索引，BM25+语义混合召回，metadata 硬过滤 | `POST /dq/v1/kb/search` |
+| `kb_explore` | 同索引，仅 metadata 探索 | `POST /dq/v1/kb/search` 带 `metadataOnly: true` |
+| `kb_read` | 块/节/全文读取，全文分页 | `POST /dq/v1/kb/read` |
+
+两个治理工具（`govern_metadata`、`glossary_resource_binding`）是写路径、技能门控、preview/confirm 流程；刻意置于只读 `dq/v1` 协议之外，推迟为可选治理面。
+
 ## Proposal
 
 把能力拆成三层：Harness 侧泛用工具集、任意中台可实现的线上协议、以及一个在现有服务之上实现协议的 dataops 薄适配层。

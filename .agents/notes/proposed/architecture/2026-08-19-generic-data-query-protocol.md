@@ -8,6 +8,21 @@ English | [中文](2026-08-19-generic-data-query-protocol.zh.md)
 
 The dataops project's intelligent data-query AI serves real work through tools that are hard-wired to dataops internals: `search_resources` (resource wiki/catalog discovery), `query_table` (read-only SQL over dataops-connected engines with platform visibility filters), `query_api` (parameterized calls to dataops-registered data APIs), and the `kb_search`/`kb_explore`/`kb_read` semantic retrieval trio. Any other middle platform (data middle-office, BI semantic layer, lakehouse catalog) that wants the same intelligent querying needs a fork of those tools. Harness users therefore cannot point the agent at an arbitrary middle platform, and dataops remains a single-vendor lock-in for the capability.
 
+## Target tools inventory
+
+The dataops AI agent catalog (`ai-agent-tool-catalog.ts`) exposes exactly these data-query tools, each hard-wired to a dataops service; the protocol maps them one-to-one:
+
+| Tool | dataops dependency | Protocol endpoint |
+| --- | --- | --- |
+| `search_resources` | ResourceWikiCoreService catalog with intent gate and short-list | `POST /dq/v1/resources/search` |
+| `query_table` | read-only SELECT/WITH executor over connected engines (Doris), runtime-injected `aiVisible`/`enabled`/`isEnabled`/`accessLevel` visibility filters, platform system tables for catalog/glossary/lineage metadata | `POST /dq/v1/query/sql` (visibility enforced server-side; system tables exposed as `kind: system` resources) |
+| `query_api` | platform-registered executable API connectors; external URLs forbidden | `POST /dq/v1/query/api` |
+| `kb_search` | knowledge-base chunk index, BM25 + semantic hybrid recall with metadata hard filters | `POST /dq/v1/kb/search` |
+| `kb_explore` | same index, metadata-only exploration | `POST /dq/v1/kb/search` with `metadataOnly: true` |
+| `kb_read` | chunk/section/full-text reader with pagination | `POST /dq/v1/kb/read` |
+
+The two governance tools (`govern_metadata`, `glossary_resource_binding`) are write-path, skill-gated, and preview/confirm flows; they are deliberately outside the read-only `dq/v1` protocol and deferred to an optional governance facet.
+
 ## Proposal
 
 Split the capability into three layers: a harness-side generic tool set, a wire protocol any middle platform implements, and a thin dataops adapter that implements the protocol over the existing services.
