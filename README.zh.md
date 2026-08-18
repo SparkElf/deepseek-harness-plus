@@ -1,10 +1,10 @@
 # DeepSeek Harness Plus
 
-[English](README.md) · [规划中的内容](PRESETS.md) · [参与贡献](CONTRIBUTING.md)
+[English](README.md) · [规划中的内容](PRESETS.md) · [参与贡献](CONTRIBUTING.md) · [English below](#english)
 
 <p align="center">
   <a href="#run"><img src="https://img.shields.io/badge/从源码运行-pnpm-111111?style=for-the-badge&logo=pnpm&logoColor=white" alt="从源码运行 DeepSeek Harness Plus"></a>
-  <a href="https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0"><img src="https://img.shields.io/badge/当前版本-0.2.0-0b7285?style=for-the-badge" alt="下载 DeepSeek Harness Plus 0.2.0"></a>
+  <a href="https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.4.0"><img src="https://img.shields.io/badge/当前版本-0.4.0-0b7285?style=for-the-badge" alt="下载 DeepSeek Harness Plus 0.3.0"></a>
 </p>
 
 [![Upstream](https://img.shields.io/badge/upstream-deepseek--harness-0b7285)](https://github.com/deepseek-ai/deepseek-harness) [![License](https://img.shields.io/badge/license-MIT-2ea44f)](LICENSE) [![Discussions](https://img.shields.io/badge/community-Discussions-8250df)](https://github.com/SparkElf/deepseek-harness-plus/discussions)
@@ -23,9 +23,9 @@
 
 好点子不用等到过时才试。上游能力还在 RFC 讨论时，Plus 会把它做成可选的实验性功能，先放进你的真实工作流。好用就留下，不适合就不采用。
 
-### 🧩 扩展和主题预设直接可用
+### 🧩 扩展、插件与主题预设直接可用
 
-Plus 是社区插件和面向用户扩展能力的集合地，也会带来围绕具体任务的预设。预设是一套带版本的 Harness 插件和相关配置，可以按版本选择，不需要再手动一项项拼。
+Plus 是社区插件和面向用户扩展能力的集合地：桌面托盘管理本地 runtime、安装向导、用户数据备份恢复、开机自启动，以及 [dsh-plugins-plus](https://github.com/SparkElf/dsh-plugins-plus) 自有插件和策展的第三方插件。预设是一套带版本的 Harness 插件和相关配置，可以按版本选择，不需要再手动一项项拼。
 
 ## 🛡️ 为什么可以放心用 Plus
 
@@ -33,9 +33,9 @@ Plus 会持续跟进 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-
 
 <a id="run"></a>
 
-## 🚀 从源码运行
-
 <a id="run-from-source"></a>
+
+## 🚀 从源码运行
 
 你需要 Node.js 22.19+ 或 24+、Corepack 和 pnpm。
 
@@ -58,9 +58,10 @@ pnpm dsh web
 
 | 能力 | 状态 |
 | --- | --- |
-| 子智能体模型继承修复 | 源码可用，并有对应的回归覆盖 |
-| 桌面安装引导和 tray 管理的本地 runtime | Linux/Windows 0.2.0 安装包已在 [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.2.0) 发布；macOS 延后到配置好签名和 notarization 后再恢复 |
-| Windows 无控制台启动与用户数据备份恢复 | Plus 桌面应用源码可用；随下一个桌面构建发布 |
+| 桌面安装引导与 tray 管理的本地 runtime（含无控制台启动、备份恢复、开机自启、端口接管） | Linux/Windows 0.3.0 安装包已在 [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.4.0) 发布；macOS 延后到配置好签名和 notarization 后再恢复 |
+| 外部插件维护（策展清单、漂移检查、并行补丁政策）与自有插件仓 dsh-plugins-plus | 已落地；首个策展插件 better-sidebar 已收录 |
+| better-sidebar 侧边栏默认集成 | 0.4.0 起 web profile 模板默认挂载，存量安装自动规范化 |
+| 泛用智能取数工具与中台协议 | 方案已记录（proposed Agent Note），待开发 |
 | 代码开发预设 | 暂未实现 |
 | 智能问数预设 | 暂未实现 |
 | 多用户运行时预设 | 暂未实现；当前没有多用户或公网部署预设，请把本地 runtime 保持在私有环境中 |
@@ -76,3 +77,70 @@ pnpm dsh web
 ## 许可证
 
 DeepSeek Harness Plus 沿用上游 [MIT 许可证](LICENSE)。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本项目为独立社区项目，不隶属于 DeepSeek，也未获得 DeepSeek 背书。
+
+---
+
+<a id="english"></a>
+
+# English
+
+## ✨ What Plus does for you
+
+### 🚑 Fix blockers sooner
+
+A session, model, or tool problem should not put your work on pause. When DeepSeek has not released the fix yet, Plus can bring you a focused repair first, with the change and its verification kept clear.
+
+### 🧪 Try new features early
+
+Do not wait for a promising idea to become old news. When an upstream capability is still under RFC discussion, Plus can offer it as an optional experimental feature for your real workflow. Try it, keep it when it helps, and leave it behind when it does not.
+
+### 🧩 Use extensions, plugins, and themed presets
+
+Plus is where community plugins and user-facing extensions show up for real work: a desktop tray managing the local runtime, an install wizard, user-data backup/restore, launch-at-startup, plus our own plugins in [dsh-plugins-plus](https://github.com/SparkElf/dsh-plugins-plus) and curated third-party plugins. A preset is a versioned collection of Harness plugins and the configuration they need, ready to choose instead of manually assemble.
+
+## 🛡️ Why you can trust Plus
+
+Plus stays close to [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness), so you can tell where an improvement came from, what it changes for your work, and how it was checked. You get the extra capability without turning your Harness environment into a mysterious pile of patches.
+
+<a id="run-from-source-en"></a>
+
+## 🚀 Run from source today
+
+You need Node.js 22.19+ or 24+, Corepack, and pnpm.
+
+```sh
+git clone https://github.com/SparkElf/deepseek-harness-plus.git
+cd deepseek-harness-plus
+corepack enable
+pnpm install
+pnpm run build
+pnpm dsh web
+```
+
+Open `http://127.0.0.1:3080`. Your credentials stay in local configuration, never in Git.
+
+## 🛠️ Availability and roadmap
+
+Installable packages link to a release; source-only changes are labeled explicitly:
+
+| Capability | Status |
+| --- | --- |
+| Desktop setup wizard and tray-managed local runtime (console-free launch, backup/restore, launch-at-startup, port takeover) | Linux/Windows 0.3.0 packages on [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.4.0); macOS deferred pending signing and notarization |
+| External plugin maintenance (curation manifest, drift checker, parallel patch policy) and the dsh-plugins-plus repo | Shipped; first curated plugin better-sidebar recorded |
+| better-sidebar default integration | 0.4.0 web profile template mounts it by default; stock installs normalize automatically |
+| Generic intelligent data-query tool and middle-platform protocol | Design recorded (proposed Agent Note), implementation pending |
+| Code development preset | Not implemented |
+| Intelligent data Q&A preset | Not implemented |
+| Multi-user runtime preset | Not implemented; keep the local runtime private because no multi-user or public-internet deployment preset is available |
+| AIGC preset | Not implemented |
+| Community operations preset | Not implemented |
+
+Read [PRESETS.md](PRESETS.md) for the preset release rule.
+
+## 🤝 Help shape Plus
+
+Open an Issue for a costly failure, start a Discussion for a repeated team workflow, or send a focused pull request with evidence. Read [CONTRIBUTING.md](CONTRIBUTING.md) first; report security issues through [SECURITY.md](SECURITY.md), not a public issue.
+
+## License
+
+You can use DeepSeek Harness Plus under the upstream [MIT License](LICENSE). Third-party notices are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). This is an independent community project and is not affiliated with or endorsed by DeepSeek.
