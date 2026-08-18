@@ -36,8 +36,20 @@ export class HarnessDaemon {
   async ensureSupervisor() {
     if (this.config === undefined) throw new Error('Install DeepSeek Harness Plus before starting the local service.')
     try {
-      await this.targetRuntime.sendSupervisorCommand(this.config, 'status')
-      return
+      const status = await this.targetRuntime.sendSupervisorCommand(this.config, 'status')
+      // 存活但端口配置不一致的 Supervisor 是旧实例：停掉并等其退出，再由新 manifest 拉起。
+      if (status.port === this.config.port && status.supervisorPort === this.config.supervisorPort) return
+      try { await this.targetRuntime.sendSupervisorCommand(this.config, 'stop') } catch { /* web 可能已停止 */ }
+      try { await this.targetRuntime.sendSupervisorCommand(this.config, 'shutdown') } catch { /* 可能已退出 */ }
+      const deadline = Date.now() + 5_000
+      while (Date.now() < deadline) {
+        try {
+          await this.targetRuntime.sendSupervisorCommand(this.config, 'status')
+        } catch {
+          break
+        }
+        await new Promise(resolve => setTimeout(resolve, 250))
+      }
     } catch (error) {
       if (!isConnectionError(error)) throw error
     }
