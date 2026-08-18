@@ -482,6 +482,12 @@ class RuntimeSupervisor {
     try {
       if (name === 'start') await this.startWeb()
       else if (name === 'stop') await this.stop()
+      else if (name === 'shutdown') {
+        // 配置端口变更时 daemon 会先停 web 再让本进程退出，由新 manifest 拉起新 Supervisor。
+        try { await this.stop() } catch { /* web 可能已停止或端口仍被外部占用 */ }
+        setTimeout(() => process.exit(0), 250)
+        return this.status()
+      }
       else if (name === 'restart') await this.restart(false, branch)
       else if (name === 'rebuild-and-restart') await this.restart(true, branch)
       else if (name === 'build') await this.build()
