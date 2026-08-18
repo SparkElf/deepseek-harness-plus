@@ -1100,6 +1100,11 @@ if (process.env.DSH_PLUS_DESKTOP_TEST_SEAM === '1') {
   dialog.showMessageBox = async () => ({ response: readDialogSelections().confirm ?? 0 })
 }
 
+// 托盘驻留应用：最后一个窗口（安装向导等）关闭后不退出，Supervisor 以 utilityProcess 随应用存活。
+app.on('window-all-closed', event => {
+  event.preventDefault()
+})
+
 app.whenReady().then(async () => {
   try {
     await loadRuntime()
