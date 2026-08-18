@@ -115,14 +115,6 @@ function sourceLaunchArgs(entryArguments) {
   return ['--import', 'tsx/esm', ...entryArguments]
 }
 
-function pnpmCommand(environment, args) {
-  if (environment.DSH_PNPM_CLI) {
-    return { command: process.execPath, args: [environment.DSH_PNPM_CLI, ...args], environment: { ...environment, ELECTRON_RUN_AS_NODE: '1' } }
-  }
-  if (environment.DSH_PNPM_COMMAND === 'corepack') return { command: 'corepack', args: ['pnpm', ...args], environment }
-  return { command: 'pnpm', args, environment }
-}
-
 async function gitValue(cwd, args) {
   try { return (await run('git', args, cwd, process.env, 10_000)).trim() }
   catch { return undefined }

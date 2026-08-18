@@ -10,7 +10,7 @@ import { request } from 'node:http'
 import { createServer } from 'node:net'
 import { parse as parseYaml } from 'yaml'
 import { HarnessDaemon } from './daemon.mjs'
-import { listWslDistributions, TargetRuntime } from './target-runtime.mjs'
+import { hiddenBuildSteps, listWslDistributions, TargetRuntime } from './target-runtime.mjs'
 import { releaseSourceRef } from './release-source.mjs'
 import { BACKUP_MANIFEST_ENTRY, exportUserBackup, restoreUserBackup, validateUserBackup } from './backup.mjs'
 
@@ -610,7 +610,9 @@ async function install(form) {
     report(48, installText.installing)
     await installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText, overwriteExisting)
     report(76, installText.building)
-    await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building), { env: networkEnvironment })
+    for (const step of hiddenBuildSteps(form.installPath, (...parts) => targetRuntime.join(...parts))) {
+      await targetRuntime.run('node', step.args, step.cwd, () => report(86, installText.building), { env: networkEnvironment })
+    }
     if (runtime !== undefined) {
       await Promise.race([daemon.stop(), new Promise(resolve => setTimeout(resolve, QUIT_STOP_BUDGET_MS))]).catch(() => {})
     }
@@ -663,7 +665,9 @@ async function repair() {
     const restart = (await daemon.snapshot()).state === 'running'
     const report = message => { busy = message; refreshTray() }
     await targetRuntime.runPnpm(['install', '--frozen-lockfile'], runtime.installPath, report, { env: networkEnvironment })
-    await targetRuntime.runPnpm(['run', 'build'], runtime.installPath, report, { env: networkEnvironment })
+    for (const step of hiddenBuildSteps(runtime.installPath, (...parts) => targetRuntime.join(...parts))) {
+      await targetRuntime.run('node', step.args, step.cwd, report, { env: networkEnvironment })
+    }
     if (restart) await daemon.restart(false)
   })
 }
