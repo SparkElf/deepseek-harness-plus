@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-19-generic-data-query-protocol.md
-2026-08-19-generic-data-query-protocol.md: cee2017f9e1715d6ffdd73522f01797b07ec6e16
-2026-08-19-generic-data-query-protocol.zh.md: c6fe52df21de1be148cd5c29befaf9807f5874dc
+2026-08-19-generic-data-query-protocol.md: 2f00dff326168d73012610dd59ccc6c6e55aa458
+2026-08-19-generic-data-query-protocol.zh.md: d0be5c17b9c5a8a4230f238f1acbd308cfd660f6
