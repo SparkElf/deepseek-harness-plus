@@ -5,6 +5,27 @@ import { createRequire } from 'node:module'
 import { dirname, join, posix } from 'node:path'
 import { decodeProcessOutput } from './process-output-encoding.mjs'
 
+/**
+ * 根构建各阶段直接用 node 调用的步骤表：pnpm/npm 嵌套生命周期子进程在
+ * Windows 上会强弹 console 窗口（windowsHide 只作用于直接子进程），
+ * 因此绕过包管理器直接执行 tsc / tsdown / vite。
+ * @param installPath - Harness worktree 根目录。
+ * @param pathJoin - 目标平台的路径拼接（宿主 node:path join 或 WSL posix join）。
+ * @returns 依次执行的 { args, cwd } 步骤。
+ */
+export function hiddenBuildSteps(installPath, pathJoin = join) {
+  const tsc = pathJoin(installPath, 'node_modules', 'typescript', 'bin', 'tsc')
+  const tsdown = pathJoin(installPath, 'node_modules', 'tsdown', 'dist', 'run.mjs')
+  const vite = pathJoin(installPath, 'apps', 'web', 'node_modules', 'vite', 'bin', 'vite.js')
+  return [
+    { args: [tsc, '-b', 'tsconfig.host.json'], cwd: installPath },
+    { args: [tsdown, '--env.DSH_BUILD_FACE', 'host'], cwd: installPath },
+    { args: [tsc, '-b', 'tsconfig.client.json'], cwd: installPath },
+    { args: [tsdown, '--env.DSH_BUILD_FACE', 'client'], cwd: installPath },
+    { args: [vite, 'build'], cwd: pathJoin(installPath, 'apps', 'web') },
+  ]
+}
+
 const COMMAND_TIMEOUT_MS = 15 * 60_000
 const CONNECT_TIMEOUT_MS = 30_000
 const proxyEnvironmentKeys = ['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY', 'NO_PROXY', 'http_proxy', 'https_proxy', 'all_proxy', 'no_proxy']
