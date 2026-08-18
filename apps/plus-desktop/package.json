@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-plus-desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "DeepSeek Harness Plus system tray manager",
   "author": {
