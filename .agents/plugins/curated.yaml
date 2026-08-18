@@ -1,0 +1,15 @@
+# Curated external dsh plugins tracked by DeepSeek Harness Plus.
+# Schema per entry:
+#   - name: <stable id>
+#     source:
+#       kind: npm            # npm package spec, or git
+#       spec: <package>      # e.g. @scope/dsh-plugin-x
+#       # kind: git
+#       # url: <git url>
+#     pinned: <exact version or sha>   # the version/SHA Plus integrates and tests
+#     interest: <one line why we track it>
+#     owner: <maintainer handle>
+#     localPatches: []       # list of {file, upstreamUrl, retireWhen}; parallel-patch policy
+#     plusBundle: false      # whether the Plus profile bundle mounts it by default
+# Policy: .agents/notes/proposed/architecture/2026-08-19-external-plugin-maintenance.md
+entries: []
