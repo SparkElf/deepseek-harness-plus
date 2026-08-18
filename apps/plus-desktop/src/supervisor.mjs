@@ -286,7 +286,7 @@ class RuntimeSupervisor {
     if (!(await this.portOpen())) return
     this.announce('takeover.locating')
     const pids = (await this.portPids()).filter(pid => pid !== process.pid)
-    if (pids.length === 0) throw new Error('configured port is in use but its owner could not be identified')
+    if (pids.length === 0) throw new Error('configured port ' + String(this.manifest.port) + ' is in use but its owner could not be identified')
     const knownPid = this.web?.pid ?? this.recordedWebPid
     const ownsPort = await this.ownsConfiguredPort(pids, knownPid)
     if (!ownsPort && this.manifest.allowPortTakeover !== true) {
