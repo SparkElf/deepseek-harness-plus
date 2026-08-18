@@ -41,7 +41,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', quit: '退出', quitting: '正在退出…',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -49,7 +49,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', quit: 'Quit', quitting: 'Quitting…',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -226,7 +226,7 @@ function refreshTray() {
     { label: trayText('stop'), enabled: running && !maintenanceBusy, click: () => action(trayText('stop'), () => daemon.stop()) },
     { label: trayText('rebuild'), enabled: installed && !maintenanceBusy, click: () => action(trayText('rebuild'), () => daemon.restart(true)) },
     { type: 'separator' },
-    { label: trayText('install'), enabled: !installed && !maintenanceBusy, click: openInstaller },
+    { label: installed ? trayText('reconfigure') : trayText('install'), enabled: !maintenanceBusy, click: openInstaller },
     { label: trayText('checkUpdates'), enabled: installed && !maintenanceBusy, click: () => checkUpdates() },
     { label: trayText('repair'), enabled: installed && !maintenanceBusy, click: () => repair() },
     { label: trayText('openData'), enabled: installed && !maintenanceBusy, click: openDataFolder },
@@ -267,6 +267,17 @@ async function syncSupervisorStatus() {
   supervisorSnapshot = await daemon.snapshot()
   candidateAvailable = await candidateRuntimeIsAvailable()
   refreshTray()
+}
+
+/** NSIS 安装完成标记文件名：安装器写入，应用启动时消费并弹出安装向导。 */
+const SETUP_MARKER_FILENAME = 'run-initial-setup'
+
+/** 消费安装完成标记：存在则删除并返回 true，触发安装向导弹出。 */
+function consumeSetupMarker() {
+  const marker = join(dirname(app.getPath('exe')), SETUP_MARKER_FILENAME)
+  if (!existsSync(marker)) return false
+  rmSync(marker, { force: true })
+  return true
 }
 
 /** XDG autostart 条目路径：Linux 桌面经 .desktop 文件控制开机自启动。 */
@@ -911,8 +922,9 @@ app.whenReady().then(async () => {
     runtime = undefined
   }
   tray = new Tray(icon())
+  const initialSetup = runtime === undefined || consumeSetupMarker()
   const showTrayMenu = async () => {
-    if (runtime === undefined) { openInstaller(); return }
+    if (initialSetup) { openInstaller(); return }
     try { await syncSupervisorStatus() }
     catch (error) { console.error('[plus-desktop] tray status refresh failed', error); supervisorSnapshot = undefined; refreshTray() }
     tray.popUpContextMenu(trayMenu)
@@ -920,7 +932,7 @@ app.whenReady().then(async () => {
   tray.on('click', () => { void showTrayMenu() })
   tray.on('right-click', () => { void showTrayMenu() })
   refreshTray()
-  if (runtime === undefined) openInstaller()
+  if (initialSetup) openInstaller()
   else void syncSupervisorStatus().catch(error => {
     console.error('[plus-desktop] initial Supervisor status failed', error)
     supervisorSnapshot = undefined
