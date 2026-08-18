@@ -1,5 +1,9 @@
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { resolveLocale, translate } from '../progress/locales.js'
 import { TargetRuntime } from './target-runtime.mjs'
+
+const execFileAsync = promisify(execFile)
 
 const CONNECT_TIMEOUT_MS = 30_000
 
@@ -9,6 +13,21 @@ function errorMessage(error) {
 
 function isConnectionError(error) {
   return error?.code === 'ECONNREFUSED' || error?.code === 'ENOENT' || error?.code === 'ECONNRESET' || errorMessage(error).includes('[supervisor] connection failed')
+}
+
+/** 按命令行特征强杀占用 Supervisor 端口的旧实例（兼容不识别 shutdown 的旧版本）。 */
+async function killStaleSupervisor(config) {
+  const socket = String(config.supervisorSocketPath ?? '')
+  try {
+    if (process.platform === 'win32') {
+      const script = 'Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -like \'*supervisor.mjs*\' -and $_.CommandLine -like \'*' + socket + '*\' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force }'
+      await execFileAsync('powershell', ['-NoProfile', '-Command', script], { windowsHide: true })
+    } else {
+      await execFileAsync('pkill', ['-f', 'supervisor.mjs.*' + socket])
+    }
+  } catch {
+    // 找不到进程或权限不足时由后续启动报错暴露
+  }
 }
 
 /** Electron tray client for the detached local runtime Supervisor. */
@@ -40,15 +59,30 @@ export class HarnessDaemon {
       // 存活但端口配置不一致的 Supervisor 是旧实例：停掉并等其退出，再由新 manifest 拉起。
       if (status.port === this.config.port && status.supervisorPort === this.config.supervisorPort) return
       try { await this.targetRuntime.sendSupervisorCommand(this.config, 'stop') } catch { /* web 可能已停止 */ }
-      try { await this.targetRuntime.sendSupervisorCommand(this.config, 'shutdown') } catch { /* 可能已退出 */ }
+      try { await this.targetRuntime.sendSupervisorCommand(this.config, 'shutdown') } catch { /* 旧版本可能不识别 shutdown */ }
       const deadline = Date.now() + 5_000
+      let alive = true
       while (Date.now() < deadline) {
         try {
           await this.targetRuntime.sendSupervisorCommand(this.config, 'status')
         } catch {
+          alive = false
           break
         }
         await new Promise(resolve => setTimeout(resolve, 250))
+      }
+      // 旧版 Supervisor 不识别 shutdown 时按命令行强杀，确保新 manifest 能绑定端口。
+      if (alive) {
+        await killStaleSupervisor(this.config)
+        const killDeadline = Date.now() + 5_000
+        while (Date.now() < killDeadline) {
+          try {
+            await this.targetRuntime.sendSupervisorCommand(this.config, 'status')
+          } catch {
+            break
+          }
+          await new Promise(resolve => setTimeout(resolve, 250))
+        }
       }
     } catch (error) {
       if (!isConnectionError(error)) throw error

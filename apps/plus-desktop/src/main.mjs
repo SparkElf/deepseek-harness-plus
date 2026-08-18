@@ -43,7 +43,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…', portOwnerTitle: '端口被占用', portOwnerNamed: '端口 {{port}} 被进程 {{name}}（PID {{pid}}）占用。', portOwnerUnknown: '端口 {{port}} 已被占用，但无法识别占用进程。', portOwnerDetail: '可以结束该进程并继续安装，或取消后选择其他端口。', portOwnerKill: '结束进程并继续', portOwnerCancel: '取消', portOwnerPidOnly: '端口 {{port}} 被未识别进程（PID {{pid}}）占用。',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…', portOwnerTitle: '端口被占用', portOwnerNamed: '端口 {{port}} 被进程 {{name}}（PID {{pid}}）占用。', portOwnerUnknown: '端口 {{port}} 已被占用，但无法识别占用进程。', portOwnerDetail: '可以结束该进程并继续安装，或取消后选择其他端口。', portOwnerKill: '结束进程并继续', portOwnerCancel: '取消', portOwnerPidOnly: '端口 {{port}} 被未识别进程（PID {{pid}}）占用。', balloonDone: '{{label}}：完成。', balloonFailed: '操作失败，请查看错误提示。',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -51,7 +51,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…', portOwnerTitle: 'Port in use', portOwnerNamed: 'Port {{port}} is held by {{name}} (PID {{pid}}).', portOwnerUnknown: 'Port {{port}} is in use but the holding process could not be identified.', portOwnerDetail: 'End the process and continue the installation, or cancel and choose another port.', portOwnerKill: 'End process and continue', portOwnerCancel: 'Cancel', portOwnerPidOnly: 'Port {{port}} is held by an unnamed process (PID {{pid}}).',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…', portOwnerTitle: 'Port in use', portOwnerNamed: 'Port {{port}} is held by {{name}} (PID {{pid}}).', portOwnerUnknown: 'Port {{port}} is in use but the holding process could not be identified.', portOwnerDetail: 'End the process and continue the installation, or cancel and choose another port.', portOwnerKill: 'End process and continue', portOwnerCancel: 'Cancel', portOwnerPidOnly: 'Port {{port}} is held by an unnamed process (PID {{pid}}).', balloonDone: '{{label}}: done.', balloonFailed: 'The action failed; see the error dialog.',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -331,11 +331,14 @@ async function quitApp() {
 async function action(label, work) {
   busy = label
   refreshTray()
+  tray?.displayBalloon({ title: 'DeepSeek Harness Plus', content: label })
   try {
     await work()
     if (runtime !== undefined) await syncSupervisorStatus()
+    tray?.displayBalloon({ title: 'DeepSeek Harness Plus', content: trayText('balloonDone', { label }) })
   } catch (error) {
     console.error('[plus-desktop] action failed', error)
+    tray?.displayBalloon({ title: 'DeepSeek Harness Plus', content: trayText('balloonFailed'), iconType: 'error' })
     dialog.showErrorBox('DeepSeek Harness Plus', error instanceof Error ? error.message : String(error))
   } finally {
     busy = undefined
@@ -630,6 +633,7 @@ async function install(form) {
     await startRuntimeWithTakeover()
     await saveRuntime(configured)
     report(100, installText.complete)
+    tray?.displayBalloon({ title: 'DeepSeek Harness Plus', content: installText.complete })
     void shell.openExternal('http://127.0.0.1:' + String(configured.port)).catch(error => {
       console.error('[plus-desktop] opening installed Harness failed', error)
       dialog.showErrorBox('DeepSeek Harness Plus', error instanceof Error ? error.message : String(error))
@@ -885,7 +889,9 @@ function launchNativeSupervisor(scriptPath, args, config, environment) {
   return child
 }
 
-const daemon = new HarnessDaemon(() => {
+const daemon = new HarnessDaemon(status => {
+  // 阶段文案进托盘 tooltip，长操作期间悬停即可见实时进度。
+  if (busy !== undefined && status?.message) busy = status.message
   refreshTray()
 }, supervisorBootstrapPath, launchNativeSupervisor)
 
