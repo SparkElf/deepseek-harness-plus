@@ -498,8 +498,17 @@ async function assertLocalPortsAvailable(form, ports) {
   }
 }
 
-function validateInstall(form) {
-  if (!form.installPath || !form.apiKey || !form.model) throw new Error('Choose an installation folder, API key, and model.')
+async function validateInstall(form) {
+  let needsKey = true
+  if (form.overwrite) {
+    try {
+      const targetRuntime = new TargetRuntime(form.target)
+      needsKey = !await targetRuntime.fileExists(targetRuntime.join(form.installPath, '.dsh-plus', 'home', '.credentials.yaml'))
+    } catch {
+      needsKey = true
+    }
+  }
+  if (!form.installPath || (needsKey && !form.apiKey) || !form.model) throw new Error('Choose an installation folder, API key, and model.')
   if (!catalogProviders.has(form.provider) && form.provider !== 'custom') throw new Error('Choose a supported model provider.')
   if (form.proxy) {
     let proxyUrl
@@ -557,7 +566,7 @@ async function startRuntimeWithTakeover() {
 async function install(form) {
   // 覆盖安装允许重装：勾选覆盖时先限时停掉旧 runtime，再走安装流程。
   if (runtime !== undefined && !form.overwrite) throw new Error('DeepSeek Harness Plus is already installed.')
-  const port = validateInstall(form)
+  const port = await validateInstall(form)
   const targetRuntime = new TargetRuntime(form.target)
   await assertLocalPortsAvailable(form, [port, Number(form.candidatePort), Number(form.supervisorPort), Number(form.candidateSupervisorPort)])
   const networkEnvironment = proxyEnvironment(form.proxy)
@@ -1006,6 +1015,26 @@ ipcMain.handle('installer:default-install-path', () => {
   if (runtime !== undefined) return runtime.installPath
   if (process.platform === 'win32') return join(dirname(app.getPath('exe')), 'dsh')
   return join(homedir(), 'deepseek-harness-plus')
+})
+ipcMain.handle('installer:reconfigure-state', async () => {
+  // 重配置时把既有 runtime 的连接信息回填进向导，避免用户重复填写。
+  if (runtime === undefined) return null
+  const targetRuntime = new TargetRuntime(runtime.target)
+  let hasCredentials = false
+  try {
+    hasCredentials = await targetRuntime.fileExists(targetRuntime.join(runtime.dshHome, '.credentials.yaml'))
+  } catch {
+    // 探测失败按无凭据处理，向导仍要求填写密钥
+  }
+  return {
+    installPath: runtime.installPath,
+    port: runtime.port,
+    candidatePort: runtime.candidatePort,
+    supervisorPort: runtime.supervisorPort,
+    candidateSupervisorPort: runtime.candidateSupervisorPort,
+    proxy: runtime.proxy ?? '',
+    hasCredentials,
+  }
 })
 ipcMain.handle('installer:list-directories', (_event, target, path) => listDirectoryEntries(target, path))
 ipcMain.handle('installer:create-directory', (_event, target, path, name) => createDirectoryEntry(target, path, name))

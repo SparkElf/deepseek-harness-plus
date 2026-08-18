@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('plusInstaller', {
   platform: process.platform,
   defaultInstallPath: () => ipcRenderer.invoke('installer:default-install-path'),
+  reconfigureState: () => ipcRenderer.invoke('installer:reconfigure-state'),
   listDirectories: (target, path) => ipcRenderer.invoke('installer:list-directories', target, path),
   createDirectory: (target, path, name) => ipcRenderer.invoke('installer:create-directory', target, path, name),
   selectDirectory: (target, path) => ipcRenderer.invoke('installer:select-directory', target, path),
