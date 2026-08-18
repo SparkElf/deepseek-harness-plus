@@ -23,6 +23,16 @@ function pullRequestHead() {
   return typeof sha === 'string' && sha.length > 0 ? sha : undefined
 }
 
-const releaseSourceRef = pullRequestHead() ?? revision(process.env.GITHUB_EVENT_NAME === 'pull_request' ? 'HEAD^2' : 'HEAD')
+/** 构建提交恰好打着 release tag 时，安装器克隆该 tag，使版本号与克隆提交对应。 */
+function exactReleaseTag() {
+  try {
+    const tag = execFileSync('git', ['describe', '--tags', '--exact-match', 'HEAD'], { cwd: workspaceRoot, encoding: 'utf8' }).trim()
+    return tag.startsWith('plus-v') ? tag : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const releaseSourceRef = pullRequestHead() ?? exactReleaseTag() ?? revision(process.env.GITHUB_EVENT_NAME === 'pull_request' ? 'HEAD^2' : 'HEAD')
 const output = resolve(scriptDirectory, '../src/release-source.mjs')
 writeFileSync(output, 'export const releaseSourceRef = ' + JSON.stringify(releaseSourceRef) + '\n')
