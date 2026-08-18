@@ -98,6 +98,7 @@ const candidateSupervisorPort = document.querySelector('#candidateSupervisorPort
 const proxy = document.querySelector('#proxy')
 const proxyError = document.querySelector('#proxyError')
 const overwriteInstall = document.querySelector('#overwriteInstall')
+let hasExistingCredentials = false
 const chooseDirectory = document.querySelector('#chooseDirectory')
 const directoryBrowser = document.querySelector('#directoryBrowser')
 const directoryPathBar = document.querySelector('#directoryPathBar')
@@ -360,6 +361,18 @@ function applyAppearance() {
   document.querySelectorAll('[data-locale]').forEach(button => { const selected = button.dataset.locale === locale; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   document.querySelectorAll('[data-theme]').forEach(button => { const selected = button.dataset.theme === theme; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); void prefillInstallPath(); syncHiddenDirectoryToggle(); showStep(step, false)
+  void (async () => {
+    const reconf = await bridge.reconfigureState()
+    if (reconf === null) return
+    installPath.value = reconf.installPath
+    document.querySelector('#port').value = String(reconf.port)
+    document.querySelector('#candidatePort').value = String(reconf.candidatePort)
+    document.querySelector('#supervisorPort').value = String(reconf.supervisorPort)
+    document.querySelector('#candidateSupervisorPort').value = String(reconf.candidateSupervisorPort)
+    if (reconf.proxy) proxy.value = reconf.proxy
+    overwriteInstall.checked = true
+    hasExistingCredentials = reconf.hasCredentials
+  })()
   void bridge.applyAppearance({ theme, locale, resolvedTheme: actualTheme, title: text('window.title') })
 }
 async function loadDistributions() {
@@ -729,7 +742,7 @@ function validate() {
   if (step === 1 && targetKind === 'wsl' && (!distributionsLoaded || !config.target.distribution)) return text('error.distribution')
   if (step === 1 && !config.installPath) return text('error.location')
   if (step === 1) return validatePorts(config) || validateProxy(config)
-  if (step === 2 && (!config.apiKey || !config.model)) return text('error.model')
+  if (step === 2 && ((!config.apiKey && !hasExistingCredentials) || !config.model)) return text('error.model')
   if (step === 2 && config.provider === 'custom') return validateCustomProvider(config)
   return ''
 }
