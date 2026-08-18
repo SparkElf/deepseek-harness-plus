@@ -1001,6 +1001,12 @@ async function createDirectoryEntry(target, parent, name) {
   return created
 }
 
+ipcMain.handle('installer:default-install-path', () => {
+  // 重配置时回到现有 runtime 目录；新装默认到托盘安装目录下的 dsh 文件夹，避免从头填写。
+  if (runtime !== undefined) return runtime.installPath
+  if (process.platform === 'win32') return join(dirname(app.getPath('exe')), 'dsh')
+  return join(homedir(), 'deepseek-harness-plus')
+})
 ipcMain.handle('installer:list-directories', (_event, target, path) => listDirectoryEntries(target, path))
 ipcMain.handle('installer:create-directory', (_event, target, path, name) => createDirectoryEntry(target, path, name))
 ipcMain.handle('installer:select-directory', (_event, target, path) => new TargetRuntime(target).pathFromDirectoryPicker(directoryBrowserPath(target, path)))

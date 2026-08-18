@@ -337,6 +337,11 @@ function renderTarget() {
   wslOptions.hidden = targetKind !== 'wsl'
   installPath.placeholder = text(targetKind === 'wsl' ? 'placeholder.installPathWsl' : 'placeholder.installPathNative')
 }
+
+async function prefillInstallPath() {
+  if (targetKind !== 'native' || installPath.value.trim() !== '') return
+  installPath.value = await bridge.defaultInstallPath()
+}
 function applyAppearance() {
   const actualTheme = resolvedTheme()
   document.body.dataset.theme = actualTheme
@@ -354,7 +359,7 @@ function applyAppearance() {
   document.querySelectorAll('[data-window-action]').forEach(button => button.setAttribute('aria-label', text('window.' + button.dataset.windowAction)))
   document.querySelectorAll('[data-locale]').forEach(button => { const selected = button.dataset.locale === locale; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
   document.querySelectorAll('[data-theme]').forEach(button => { const selected = button.dataset.theme === theme; button.classList.toggle('selected', selected); button.setAttribute('aria-pressed', String(selected)) })
-  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); syncHiddenDirectoryToggle(); showStep(step, false)
+  renderReasoningOptions(); renderProviderOptions(); renderProvider(); renderTarget(); void prefillInstallPath(); syncHiddenDirectoryToggle(); showStep(step, false)
   void bridge.applyAppearance({ theme, locale, resolvedTheme: actualTheme, title: text('window.title') })
 }
 async function loadDistributions() {
@@ -732,7 +737,7 @@ function validate() {
 document.querySelectorAll('[data-locale]').forEach(button => button.addEventListener('click', () => { locale = button.dataset.locale; applyAppearance() }))
 document.querySelectorAll('[data-theme]').forEach(button => button.addEventListener('click', () => { theme = button.dataset.theme; applyAppearance() }))
 document.querySelectorAll('[data-target-kind]').forEach(button => button.addEventListener('click', async () => {
-  targetKind = button.dataset.targetKind; distributionsLoaded = false; installPath.value = ''; renderTarget(); if (targetKind === 'wsl') await loadDistributions()
+  targetKind = button.dataset.targetKind; distributionsLoaded = false; installPath.value = ''; renderTarget(); if (targetKind === 'wsl') await loadDistributions(); else await prefillInstallPath()
 }))
 provider.addEventListener('change', () => { document.querySelector('#model').value = providerDefaults[provider.value]; renderProvider() })
 stepButtons.forEach(button => button.addEventListener('click', () => { const targetStep = Number(button.dataset.stepTarget); if (targetStep <= step) showStep(targetStep) }))
