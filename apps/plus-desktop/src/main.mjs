@@ -167,7 +167,7 @@ function sendInstaller(channel, payload) {
 }
 
 function openInstaller() {
-  if (runtime !== undefined) return
+  // 已安装时也允许打开向导（重新配置/安装后初始化），安装流程以覆盖选项处理既有 runtime。
   if (installerWindow !== undefined) {
     installerWindow.show()
     installerWindow.focus()
