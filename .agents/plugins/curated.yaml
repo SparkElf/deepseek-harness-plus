@@ -12,4 +12,13 @@
 #     localPatches: []       # list of {file, upstreamUrl, retireWhen}; parallel-patch policy
 #     plusBundle: false      # whether the Plus profile bundle mounts it by default
 # Policy: .agents/notes/proposed/architecture/2026-08-19-external-plugin-maintenance.md
-entries: []
+entries:
+  - name: dsh-better-sidebar
+    source:
+      kind: npm
+      spec: dsh-better-sidebar
+    pinned: 0.13.1
+    interest: VSCode-like right sidebar (explorer/editor/terminal/git) with a registration service for third-party tabs
+    owner: omdsh-dev
+    localPatches: []
+    plusBundle: true

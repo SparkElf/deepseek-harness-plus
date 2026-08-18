@@ -161,13 +161,20 @@ describe('loadProfile', () => {
       .toEqual([...PROFILE_TEMPLATES.web ?? []])
   })
 
-  it('normalizes only the exact installation-owned headless bundle tuple', () => {
+  it('normalizes only the exact installation-owned bundle tuples', () => {
     const anchor = stageInstallation({
       '@deepseek-ai/dsh-base': { patch: '[]\n' },
       '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
       '@deepseek-ai/dsh-headless': { patch: '[]\n' },
+      'dsh-better-sidebar': { patch: '[]\n' },
       'custom-bundle': { patch: '[]\n' },
     })
+    const webHome = tmp()
+    const stockWeb = resolveProfileDir('web', webHome)
+    initProfile(stockWeb, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+    loadProfile('t', 'web', anchor, webHome)
+    expect(readProfileManifest('t', stockWeb).dsh?.profile?.bundles)
+      .toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-better-sidebar'])
     const home = tmp()
     const stock = resolveProfileDir('headless', home)
     initProfile(stock, [

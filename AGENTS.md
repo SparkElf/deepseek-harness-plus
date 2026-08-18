@@ -96,7 +96,7 @@ When required `gh`, `pnpm`, build, test, or generator commands fail because the 
 Run checks before pushes via [dsh-pre-push-checks](.agents/skills/dsh-pre-push-checks/SKILL.md); report only commands run. After `gh stack sync`, validate immediately; do not merge before checks pass.
 
 - Match evidence to the surface: focused tests for behavior, snapshots for model or user output, `doc-sync` for docs, build/hygiene and built smokes for published paths, and real-API e2e for provider behavior.
-- Never default to the full suite or repeat a passing check for commit or push. CI owns exhaustive coverage and the platform matrix; rehearse all locally only by explicit request, for CI diagnosis, or for an irreducibly repository-wide change.
+- Never default to the full suite or repeat a passing check; CI owns exhaustive coverage; rehearse only by explicit request, for CI diagnosis, or for repository-wide change.
 - `test:coverage`, not `test`, is the CI coverage gate ([why](docs/testing.md)).
 
 ## Secrets / .env
@@ -151,6 +151,10 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Editing these instructions
 
 `CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
+
+## Agent working style
+
+See [.agents/working-style.md](.agents/working-style.md): no sycophancy; report before implementing; plugin review first.
 
 ## Vendoring policy
 

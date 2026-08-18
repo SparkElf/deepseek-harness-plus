@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-19-generic-data-query-protocol.md
+2026-08-19-generic-data-query-protocol.md: cee2017f9e1715d6ffdd73522f01797b07ec6e16
+2026-08-19-generic-data-query-protocol.zh.md: c6fe52df21de1be148cd5c29befaf9807f5874dc

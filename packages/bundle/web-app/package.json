@@ -44,6 +44,7 @@
     }
   },
   "dependencies": {
+    "dsh-better-sidebar": "0.13.1",
     "@deepseek-ai/dsh-agent-presets": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
     "@deepseek-ai/dsh-app-boot": "workspace:^",
