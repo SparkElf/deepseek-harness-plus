@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray, utilityProcess } from 'electron'
 import { appendFile, mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
-import { readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -231,7 +231,7 @@ function refreshTray() {
     { label: trayText('repair'), enabled: installed && !maintenanceBusy, click: () => repair() },
     { label: trayText('openData'), enabled: installed && !maintenanceBusy, click: openDataFolder },
     { label: trayText('backup'), enabled: installed && !maintenanceBusy, click: openBackupWindow },
-    { label: trayText('loginItem'), type: 'checkbox', checked: loginItemEnabled(), enabled: process.platform !== 'linux', click: item => toggleLoginItem(item.checked) },
+    { label: trayText('loginItem'), type: 'checkbox', checked: loginItemEnabled(), click: item => toggleLoginItem(item.checked) },
     { type: 'separator' },
     { label: trayText('quit'), click: () => { void quitApp() } },
   ])
@@ -269,15 +269,30 @@ async function syncSupervisorStatus() {
   refreshTray()
 }
 
-/** 开机自启动当前是否开启；Linux 没有登录项概念，菜单项会被禁用。 */
+/** XDG autostart 条目路径：Linux 桌面经 .desktop 文件控制开机自启动。 */
+const LINUX_AUTOSTART_PATH = join(homedir(), '.config', 'autostart', 'deepseek-harness-plus.desktop')
+
+/**
+ * 开机自启动当前是否开启。Windows（含 WSL 目标——应用本体运行在 Windows）
+ * 读 Electron 登录项（注册表 Run 项）；Linux 读 XDG autostart 条目。
+ */
 function loginItemEnabled() {
-  if (process.platform === 'linux') return false
+  if (process.platform === 'linux') return existsSync(LINUX_AUTOSTART_PATH)
   return app.getLoginItemSettings().openAtLogin
 }
 
-/** 写入操作系统的登录项并刷新托盘勾选状态。 */
+/** 按平台写入或移除开机自启动项，并刷新托盘勾选状态。 */
 function toggleLoginItem(openAtLogin) {
-  app.setLoginItemSettings({ openAtLogin })
+  if (process.platform === 'linux') {
+    if (openAtLogin) {
+      mkdirSync(dirname(LINUX_AUTOSTART_PATH), { recursive: true })
+      writeFileSync(LINUX_AUTOSTART_PATH, '[Desktop Entry]\nType=Application\nName=DeepSeek Harness Plus\nExec=' + app.getPath('exe') + '\n')
+    } else {
+      rmSync(LINUX_AUTOSTART_PATH, { force: true })
+    }
+  } else {
+    app.setLoginItemSettings({ openAtLogin })
+  }
   refreshTray()
 }
 
