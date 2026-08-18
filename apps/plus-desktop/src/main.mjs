@@ -1,4 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, nativeTheme, shell, Tray, utilityProcess } from 'electron'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { appendFile, mkdir, opendir, readFile, writeFile } from 'node:fs/promises'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -41,7 +43,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…', portOwnerTitle: '端口被占用', portOwnerNamed: '端口 {{port}} 被进程 {{name}}（PID {{pid}}）占用。', portOwnerUnknown: '端口 {{port}} 已被占用，但无法识别占用进程。', portOwnerDetail: '可以结束该进程并继续安装，或取消后选择其他端口。', portOwnerKill: '结束进程并继续', portOwnerCancel: '取消',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -49,7 +51,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…', portOwnerTitle: 'Port in use', portOwnerNamed: 'Port {{port}} is held by {{name}} (PID {{pid}}).', portOwnerUnknown: 'Port {{port}} is in use but the holding process could not be identified.', portOwnerDetail: 'End the process and continue the installation, or cancel and choose another port.', portOwnerKill: 'End process and continue', portOwnerCancel: 'Cancel',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -400,16 +402,73 @@ async function installDependenciesWithRetry(targetRuntime, form, networkEnvironm
   }
 }
 
+const execFileAsync = promisify(execFile)
+
+/** 探测本地端口是否可用。 */
+function probeLocalPort(port) {
+  return new Promise(resolve => {
+    const probe = createServer()
+    probe.once('error', () => probe.close(() => resolve(false)))
+    probe.listen(port, '127.0.0.1', () => probe.close(() => resolve(true)))
+  })
+}
+
+/** 识别本地端口的占用进程；无法识别时返回 undefined。 */
+async function portOwner(port) {
+  try {
+    if (process.platform === 'win32') {
+      const { stdout } = await execFileAsync('netstat', ['-ano', '-p', 'tcp'], { windowsHide: true })
+      const line = stdout.split(/\r?\n/).find(entry => entry.includes('LISTENING') && (entry.trim().split(/\s+/)[1] ?? '').endsWith(':' + String(port)))
+      const pid = line?.trim().split(/\s+/).at(-1)
+      if (pid === undefined || !/^\d+$/.test(pid)) return undefined
+      const { stdout: list } = await execFileAsync('tasklist', ['/FI', 'PID eq ' + pid, '/FO', 'CSV', '/NH'], { windowsHide: true })
+      return { pid: Number(pid), name: list.split('"')[1] ?? pid }
+    }
+    const { stdout } = await execFileAsync('ss', ['-ltnp'])
+    const entry = stdout.split('\n').find(row => row.includes(':' + String(port) + ' ') && row.includes('pid='))
+    const pid = entry?.match(/pid=(\d+)/u)?.[1]
+    if (pid === undefined) return undefined
+    return { pid: Number(pid), name: readFileSync('/proc/' + pid + '/comm', 'utf8').trim() }
+  } catch {
+    return undefined
+  }
+}
+
+/** 强制结束占用端口的进程。 */
+async function killPortOwner(pid) {
+  if (process.platform === 'win32') await execFileAsync('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true })
+  else process.kill(pid, 'SIGKILL')
+}
+
+/** 端口被占用时弹窗给出占用进程并提供结束选项；取消则安装报错选其他端口。 */
 async function assertLocalPortsAvailable(form, ports) {
   for (const port of ports) {
-    await new Promise((resolve, reject) => {
-      const probe = createServer()
-      const fail = () => {
-        probe.close(() => reject(new Error(form.locale === 'zh' ? `端口 ${String(port)} 已被占用，请选择其他端口。` : `Port ${String(port)} is already in use. Choose another port.`)))
+    for (;;) {
+      if (await probeLocalPort(port)) break
+      const owner = await portOwner(port)
+      const detail = (owner === undefined
+        ? trayText('portOwnerUnknown', { port: String(port) })
+        : trayText('portOwnerNamed', { port: String(port), name: owner.name, pid: String(owner.pid) }))
+        + '\n' + trayText('portOwnerDetail')
+      const choice = await dialog.showMessageBox({
+        type: 'warning',
+        title: 'DeepSeek Harness Plus',
+        message: trayText('portOwnerTitle'),
+        detail,
+        buttons: [trayText('portOwnerKill'), trayText('portOwnerCancel')],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      if (choice.response !== 0 || owner === undefined) {
+        throw new Error(form.locale === 'zh' ? `端口 ${String(port)} 已被占用，请选择其他端口。` : `Port ${String(port)} is already in use. Choose another port.`)
       }
-      probe.once('error', fail)
-      probe.listen(port, '127.0.0.1', () => probe.close(resolve))
-    })
+      try {
+        await killPortOwner(owner.pid)
+      } catch (error) {
+        throw new Error(form.locale === 'zh' ? `结束进程 ${owner.name}（${owner.pid}）失败。` : `Failed to end ${owner.name} (${owner.pid}).`)
+      }
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
   }
 }
 
@@ -435,7 +494,8 @@ function validateInstall(form) {
 
 /** 安装全过程都在用户选择的 Windows 或 WSL 目标内执行。 */
 async function install(form) {
-  if (runtime !== undefined) throw new Error('DeepSeek Harness Plus is already installed.')
+  // 覆盖安装允许重装：勾选覆盖时先限时停掉旧 runtime，再走安装流程。
+  if (runtime !== undefined && !form.overwrite) throw new Error('DeepSeek Harness Plus is already installed.')
   const port = validateInstall(form)
   const targetRuntime = new TargetRuntime(form.target)
   await assertLocalPortsAvailable(form, [port, Number(form.candidatePort), Number(form.supervisorPort), Number(form.candidateSupervisorPort)])
@@ -490,6 +550,9 @@ async function install(form) {
     await installDependenciesWithRetry(targetRuntime, form, networkEnvironment, report, installText, overwriteExisting)
     report(76, installText.building)
     await targetRuntime.runPnpm(['run', 'build'], form.installPath, () => report(86, installText.building), { env: networkEnvironment })
+    if (runtime !== undefined) {
+      await Promise.race([daemon.stop(), new Promise(resolve => setTimeout(resolve, QUIT_STOP_BUDGET_MS))]).catch(() => {})
+    }
     daemon.configure(configured)
     report(94, installText.starting)
     await daemon.start()
@@ -793,8 +856,21 @@ async function loadRuntime() {
   }
 }
 
+/** native Windows 目录浏览器的虚拟根：列出全部盘符，安装目录可直接选盘。 */
+const WIN_DRIVES_ROOT = '@win-drives@'
+
+/** 枚举 Windows 上存在的盘符作为浏览器顶层条目。 */
+function windowsDriveEntries() {
+  const entries = []
+  for (let code = 65; code <= 90; code += 1) {
+    const letter = String.fromCharCode(code)
+    if (existsSync(letter + ':\\')) entries.push({ name: letter + ':', path: letter + ':\\', hidden: false })
+  }
+  return entries
+}
+
 function directoryBrowserRoot(target) {
-  if (target?.kind === 'native') return homedir()
+  if (target?.kind === 'native') return process.platform === 'win32' ? WIN_DRIVES_ROOT : homedir()
   if (target?.kind !== 'wsl' || !target.distribution || process.platform !== 'win32') throw new Error('Choose a supported installation target.')
   return ['', '', 'wsl.localhost', target.distribution, 'home'].join('\\')
 }
@@ -808,6 +884,7 @@ function fullyQualifiedDirectoryPath(path) {
 function directoryBrowserPath(target, requested) {
   const root = directoryBrowserRoot(target)
   const candidate = requested ?? root
+  if (candidate === WIN_DRIVES_ROOT) return WIN_DRIVES_ROOT
   if (!fullyQualifiedDirectoryPath(candidate)) throw new Error('Choose an absolute directory.')
   const path = resolve(candidate)
   if (target.kind === 'wsl' && !path.toLowerCase().startsWith(root.toLowerCase() + '\\') && path.toLowerCase() !== root.toLowerCase()) throw new Error('Choose a folder inside the selected Linux distribution.')
@@ -828,6 +905,9 @@ function directoryCrumbs(path) {
 async function listDirectoryEntries(target, requested) {
   const home = directoryBrowserRoot(target)
   const path = directoryBrowserPath(target, requested)
+  if (path === WIN_DRIVES_ROOT) {
+    return { path, home, crumbs: [], parent: null, entries: windowsDriveEntries(), truncated: false }
+  }
   const candidates = []
   let truncated = false
   const level = await opendir(path)
@@ -843,7 +923,8 @@ async function listDirectoryEntries(target, requested) {
     await level.close()
   }
   candidates.sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: 'base' }))
-  return { path, home, crumbs: directoryCrumbs(path), parent: path.toLowerCase() === home.toLowerCase() ? null : dirname(path), entries: candidates, truncated }
+  const parent = path.toLowerCase() === home.toLowerCase() ? null : (dirname(path) === path ? WIN_DRIVES_ROOT : dirname(path))
+  return { path, home, crumbs: directoryCrumbs(path), parent, entries: candidates, truncated }
 }
 
 async function createDirectoryEntry(target, parent, name) {
