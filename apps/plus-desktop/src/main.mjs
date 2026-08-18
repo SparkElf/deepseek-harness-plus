@@ -43,7 +43,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor 离线', supervisorOnline: 'Supervisor 在线', harnessRunning: 'Harness 运行中', harnessStopped: 'Harness 已停止', candidateRunning: '测试版 Harness 可用', candidateStopped: '测试版 Harness 未运行',
     openProduction: '打开正式 Harness', openCandidate: '打开测试版 Harness', openSupervisor: '打开 Supervisor',
     start: '启动 Harness', stop: '停止 Harness', rebuild: '构建并重启', install: '安装 Plus…', checkUpdates: '版本管理…',
-    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…', portOwnerTitle: '端口被占用', portOwnerNamed: '端口 {{port}} 被进程 {{name}}（PID {{pid}}）占用。', portOwnerUnknown: '端口 {{port}} 已被占用，但无法识别占用进程。', portOwnerDetail: '可以结束该进程并继续安装，或取消后选择其他端口。', portOwnerKill: '结束进程并继续', portOwnerCancel: '取消',
+    upgrade: '升级 Plus', repair: '修复安装', openData: '打开本地数据目录', backup: '备份与恢复…', backupTitle: '备份与恢复', backupImportMessage: '导入备份会用压缩包内的文件覆盖同名用户设置和数据。', backupImportDetail: '导入前会先停止 Harness，成功后自动重新启动。', backupImportConfirm: '导入', backupCancel: '取消', backupNotArchive: '所选压缩包不是 DeepSeek Harness Plus 备份文件。', backupUnsafeArchive: '备份压缩包包含不安全的文件路径，已拒绝导入。', loginItem: '开机自动启动', reconfigure: '重新配置安装…', quit: '退出', quitting: '正在退出…', portOwnerTitle: '端口被占用', portOwnerNamed: '端口 {{port}} 被进程 {{name}}（PID {{pid}}）占用。', portOwnerUnknown: '端口 {{port}} 已被占用，但无法识别占用进程。', portOwnerDetail: '可以结束该进程并继续安装，或取消后选择其他端口。', portOwnerKill: '结束进程并继续', portOwnerCancel: '取消', portOwnerPidOnly: '端口 {{port}} 被未识别进程（PID {{pid}}）占用。',
     checkingUpdates: '正在检查更新…', updateAvailable: '发现 {{count}} 个新提交。', upToDate: '当前已经是最新版本。',
     updateTitle: 'DeepSeek Harness Plus 更新', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -51,7 +51,7 @@ const trayMessages = {
     supervisorOffline: 'Supervisor offline', supervisorOnline: 'Supervisor online', harnessRunning: 'Harness running', harnessStopped: 'Harness stopped', candidateRunning: 'Candidate Harness available', candidateStopped: 'Candidate Harness not running',
     openProduction: 'Open production Harness', openCandidate: 'Open candidate Harness', openSupervisor: 'Open Supervisor',
     start: 'Start Harness', stop: 'Stop Harness', rebuild: 'Build and restart', install: 'Install Plus…', checkUpdates: 'Manage versions…',
-    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…', portOwnerTitle: 'Port in use', portOwnerNamed: 'Port {{port}} is held by {{name}} (PID {{pid}}).', portOwnerUnknown: 'Port {{port}} is in use but the holding process could not be identified.', portOwnerDetail: 'End the process and continue the installation, or cancel and choose another port.', portOwnerKill: 'End process and continue', portOwnerCancel: 'Cancel',
+    upgrade: 'Upgrade Plus', repair: 'Repair installation', openData: 'Open local data folder', backup: 'Backup and restore…', backupTitle: 'Backup and restore', backupImportMessage: 'Importing replaces user settings and data files with same-named entries from the archive.', backupImportDetail: 'Harness stops before import and restarts after a successful import.', backupImportConfirm: 'Import', backupCancel: 'Cancel', backupNotArchive: 'The selected archive is not a DeepSeek Harness Plus backup.', backupUnsafeArchive: 'The backup archive contains an unsafe path and was rejected.', loginItem: 'Launch at startup', reconfigure: 'Reconfigure installation…', quit: 'Quit', quitting: 'Quitting…', portOwnerTitle: 'Port in use', portOwnerNamed: 'Port {{port}} is held by {{name}} (PID {{pid}}).', portOwnerUnknown: 'Port {{port}} is in use but the holding process could not be identified.', portOwnerDetail: 'End the process and continue the installation, or cancel and choose another port.', portOwnerKill: 'End process and continue', portOwnerCancel: 'Cancel', portOwnerPidOnly: 'Port {{port}} is held by an unnamed process (PID {{pid}}).',
     checkingUpdates: 'Checking for updates…', updateAvailable: '{{count}} new commits are available.', upToDate: 'This installation is up to date.',
     updateTitle: 'DeepSeek Harness Plus update', targetWindows: 'Windows', targetLinux: 'Linux', targetMacos: 'macOS', targetWsl: 'WSL · {{distribution}}',
   },
@@ -224,7 +224,7 @@ function refreshTray() {
     { label: candidateAvailable ? trayText('openCandidate') : trayText('candidateStopped'), enabled: installed && candidateAvailable, click: openCandidate },
     { label: trayText('openSupervisor'), enabled: installed, click: () => action(trayText('openSupervisor'), openSupervisor) },
     { type: 'separator' },
-    { label: trayText('start'), enabled: installed && !running && !maintenanceBusy, click: () => action(trayText('start'), () => daemon.start()) },
+    { label: trayText('start'), enabled: installed && !running && !maintenanceBusy, click: () => action(trayText('start'), () => startRuntimeWithTakeover()) },
     { label: trayText('stop'), enabled: running && !maintenanceBusy, click: () => action(trayText('stop'), () => daemon.stop()) },
     { label: trayText('rebuild'), enabled: installed && !maintenanceBusy, click: () => action(trayText('rebuild'), () => daemon.restart(true)) },
     { type: 'separator' },
@@ -413,16 +413,40 @@ function probeLocalPort(port) {
   })
 }
 
-/** 识别本地端口的占用进程；无法识别时返回 undefined。 */
+/** Windows 上尽力取端口占用 PID：netstat 解析失败时回退 PowerShell。 */
+async function windowsPortPid(port) {
+  try {
+    const { stdout } = await execFileAsync('netstat', ['-ano', '-p', 'tcp'], { windowsHide: true })
+    const line = stdout.split(/\r?\n/).find(entry => entry.includes('LISTENING') && (entry.trim().split(/\s+/)[1] ?? '').endsWith(':' + String(port)))
+    const pid = line?.trim().split(/\s+/).at(-1)
+    if (pid !== undefined && /^\d+$/.test(pid)) return Number(pid)
+  } catch {
+    // 落入 PowerShell 回退
+  }
+  try {
+    const { stdout } = await execFileAsync('powershell', ['-NoProfile', '-Command', 'Get-NetTCPConnection -LocalPort ' + String(port) + ' -State Listen | Select-Object -First 1 -ExpandProperty OwningProcess'], { windowsHide: true })
+    const pid = stdout.trim().split(/\s+/)[0]
+    if (pid !== undefined && /^\d+$/.test(pid)) return Number(pid)
+  } catch {
+    // 仍无法识别
+  }
+  return undefined
+}
+
+/** 识别本地端口的占用进程；进程名可缺，PID 尽力兜底；都无才返回 undefined。 */
 async function portOwner(port) {
   try {
     if (process.platform === 'win32') {
-      const { stdout } = await execFileAsync('netstat', ['-ano', '-p', 'tcp'], { windowsHide: true })
-      const line = stdout.split(/\r?\n/).find(entry => entry.includes('LISTENING') && (entry.trim().split(/\s+/)[1] ?? '').endsWith(':' + String(port)))
-      const pid = line?.trim().split(/\s+/).at(-1)
-      if (pid === undefined || !/^\d+$/.test(pid)) return undefined
-      const { stdout: list } = await execFileAsync('tasklist', ['/FI', 'PID eq ' + pid, '/FO', 'CSV', '/NH'], { windowsHide: true })
-      return { pid: Number(pid), name: list.split('"')[1] ?? pid }
+      const pid = await windowsPortPid(port)
+      if (pid === undefined) return undefined
+      let name
+      try {
+        const { stdout: list } = await execFileAsync('tasklist', ['/FI', 'PID eq ' + String(pid), '/FO', 'CSV', '/NH'], { windowsHide: true })
+        name = list.split('"')[1]
+      } catch {
+        // 进程名缺失时仍允许按 PID 结束
+      }
+      return { pid, name }
     }
     const { stdout } = await execFileAsync('ss', ['-ltnp'])
     const entry = stdout.split('\n').find(row => row.includes(':' + String(port) + ' ') && row.includes('pid='))
@@ -448,7 +472,9 @@ async function assertLocalPortsAvailable(form, ports) {
       const owner = await portOwner(port)
       const detail = (owner === undefined
         ? trayText('portOwnerUnknown', { port: String(port) })
-        : trayText('portOwnerNamed', { port: String(port), name: owner.name, pid: String(owner.pid) }))
+        : owner.name === undefined
+          ? trayText('portOwnerPidOnly', { port: String(port), pid: String(owner.pid) })
+          : trayText('portOwnerNamed', { port: String(port), name: owner.name, pid: String(owner.pid) }))
         + '\n' + trayText('portOwnerDetail')
       const choice = await dialog.showMessageBox({
         type: 'warning',
@@ -490,6 +516,41 @@ function validateInstall(form) {
   if (ports.some(value => !Number.isSafeInteger(value) || value < 1024 || value > 65535)) throw new Error('Choose local ports between 1024 and 65535.')
   if (new Set(ports).size !== ports.length) throw new Error('Each local port must be different.')
   return ports[0]
+}
+
+/** daemon.start 因配置端口被占用失败时弹窗：给出占用进程（可未命名）并允许结束后重试。 */
+async function startRuntimeWithTakeover() {
+  try {
+    await daemon.start()
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('configured port') || runtime === undefined) throw error
+    const port = runtime.port
+    const owner = await portOwner(port)
+    const detail = (owner === undefined
+      ? trayText('portOwnerUnknown', { port: String(port) })
+      : owner.name === undefined
+        ? trayText('portOwnerPidOnly', { port: String(port), pid: String(owner.pid) })
+        : trayText('portOwnerNamed', { port: String(port), name: owner.name, pid: String(owner.pid) }))
+      + '\n' + trayText('portOwnerDetail')
+    const choice = await dialog.showMessageBox({
+      type: 'warning',
+      title: 'DeepSeek Harness Plus',
+      message: trayText('portOwnerTitle'),
+      detail,
+      buttons: [trayText('portOwnerKill'), trayText('portOwnerCancel')],
+      defaultId: 0,
+      cancelId: 1,
+    })
+    if (choice.response !== 0 || owner === undefined) throw error
+    try {
+      await killPortOwner(owner.pid)
+    } catch {
+      throw error
+    }
+    await new Promise(resolve => setTimeout(resolve, 500))
+    await daemon.start()
+  }
 }
 
 /** 安装全过程都在用户选择的 Windows 或 WSL 目标内执行。 */
@@ -555,7 +616,7 @@ async function install(form) {
     }
     daemon.configure(configured)
     report(94, installText.starting)
-    await daemon.start()
+    await startRuntimeWithTakeover()
     await saveRuntime(configured)
     report(100, installText.complete)
     void shell.openExternal('http://127.0.0.1:' + String(configured.port)).catch(error => {
