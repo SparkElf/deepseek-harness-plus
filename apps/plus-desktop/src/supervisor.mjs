@@ -33,6 +33,21 @@ function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
 }
 
+/**
+ * Resolve the pnpm launcher for build stages: a bundled CLI runs under this
+ * node with ELECTRON_RUN_AS_NODE, corepack when selected, else PATH pnpm.
+ * @param {Record<string, string | undefined>} environment build env.
+ * @param {string[]} args pnpm arguments.
+ * @returns {{command: string, args: string[], environment: Record<string, string | undefined>}} launcher.
+ */
+function pnpmCommand(environment, args) {
+  if (environment.DSH_PNPM_CLI) {
+    return { command: process.execPath, args: [environment.DSH_PNPM_CLI, ...args], environment: { ...environment, ELECTRON_RUN_AS_NODE: '1' } }
+  }
+  if (environment.DSH_PNPM_COMMAND === 'corepack') return { command: 'corepack', args: ['pnpm', ...args], environment }
+  return { command: 'pnpm', args, environment }
+}
+
 class SubprocessFailure extends Error {
   constructor(command, code, signal, output) {
     const outcome = signal === null ? 'exit code ' + String(code) : 'signal ' + signal
