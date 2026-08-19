@@ -29,6 +29,7 @@ const options = {
   apiVersion: '2023-06-01',
   maxTokens: 4096,
   maxUses: 5,
+  timeoutMs: 120000,
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -202,7 +203,9 @@ describe('DeepSeekSearchProvider request mapping', () => {
     const controller = new AbortController()
     await searchProvider(options).search({ query: 'q' }, controller.signal)
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(init.signal).toBe(controller.signal)
+    expect(init.signal?.aborted).toBe(false)
+    controller.abort()
+    expect(init.signal?.aborted).toBe(true)
   })
 })
 
@@ -551,7 +554,7 @@ describe('current-model search provider', () => {
       expect(JSON.parse(init.body as string)).toMatchObject({
         model: 'gpt-5.6-sol',
         input: 'latest Harness release',
-        tools: [{ type: 'web_search_preview' }],
+        tools: [{ type: 'web_search' }],
       })
       return jsonResponse({
         output: [{
@@ -572,5 +575,20 @@ describe('current-model search provider', () => {
       truncated: false,
     })
     expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
+  it('fails loud with WEB_PROVIDER_TIMEOUT when the upstream stalls past the configured bound', async () => {
+    const ctx = new Context()
+    ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'link_api', model: 'gpt-5.6-sol' }) } as never)
+    ctx.provide('settings', {
+      describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
+    } as never)
+    ctx.provide('credentials', { resolve: async () => ({ value: 'openai-key', source: 'test' }) } as never)
+    vi.stubGlobal('fetch', vi.fn((_url: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true })
+    })))
+    const provider = new CurrentModelSearchProvider(ctx, () => 50)
+    await expect(provider.search({ query: 'stall' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_TIMEOUT' })
+    vi.unstubAllGlobals()
   })
 })

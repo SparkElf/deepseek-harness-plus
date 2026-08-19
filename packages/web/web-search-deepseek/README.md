@@ -25,6 +25,7 @@ It reuses the `DEEPSEEK_API_KEY` credential reference (no new secret) but **not*
 | `apiVersion` | `2023-06-01` | `anthropic-version` header value. |
 | `maxTokens` | `4096` | Positive-integer upper bound on generated tokens for the Messages request. |
 | `maxUses` | `5` | Positive-integer maximum `web_search` server-tool uses per request. |
+| `timeoutMs` | `120000` | Per-search upper bound; a stalled upstream fails loud with `WEB_PROVIDER_TIMEOUT` instead of hanging. |
 
 ```yaml
 - id: web-search-deepseek

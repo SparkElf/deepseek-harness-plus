@@ -73,7 +73,12 @@ function routeOf(ctx: Context, selection: ModelSelection): RouteProfile | undefi
   }
 }
 
-function currentRoute(ctx: Context): { selection: ModelSelection; profile: RouteProfile } | undefined {
+/**
+ * The active agent model selection and its route profile, when resolvable.
+ * @param ctx - context supplying the agent and settings planes.
+ * @returns the selection plus route profile, or undefined while unresolvable.
+ */
+export function currentRoute(ctx: Context): { selection: ModelSelection; profile: RouteProfile } | undefined {
   const selection = selectionOf(ctx)
   if (selection === undefined) return undefined
   const profile = routeOf(ctx, selection)
@@ -82,6 +87,17 @@ function currentRoute(ctx: Context): { selection: ModelSelection; profile: Route
 
 function endpoint(baseURL: string): string {
   return baseURL.replace(/\/+$/u, '') + '/responses'
+}
+
+/**
+ * Merge the caller's signal with the configured per-search timeout.
+ * @param signal - caller cancellation, when present.
+ * @param timeoutMs - per-search upper bound in milliseconds.
+ * @returns the combined signal plus the raw timer for timeout discrimination.
+ */
+export function combineWithTimeout(signal: AbortSignal | undefined, timeoutMs: number): { combined: AbortSignal; timer: AbortSignal } {
+  const timer = AbortSignal.timeout(timeoutMs)
+  return { combined: signal === undefined ? timer : AbortSignal.any([signal, timer]), timer }
 }
 
 function stringValue(value: unknown): string | undefined {
@@ -118,7 +134,10 @@ function responseSources(output: readonly ResponseOutputItem[]): { answer: strin
 export class CurrentModelSearchProvider implements WebSearchProvider {
   readonly id = CURRENT_MODEL_PROVIDER_ID
 
-  constructor(private readonly ctx: Context) {}
+  constructor(
+    private readonly ctx: Context,
+    private readonly timeoutMs: () => number = () => 120000,
+  ) {}
 
   available(): boolean {
     const route = currentRoute(this.ctx)
@@ -144,21 +163,30 @@ export class CurrentModelSearchProvider implements WebSearchProvider {
     if (resolved === undefined) {
       throw new WebError('the current provider credential is not configured', 'WEB_PROVIDER_CREDENTIAL_MISSING')
     }
-    const response = await fetch(endpoint(route.profile.baseURL), {
-      method: 'POST',
-      redirect: 'error',
-      headers: {
-        authorization: 'Bearer ' + resolved.value,
-        'content-type': 'application/json',
-        accept: 'application/json',
-      },
-      body: JSON.stringify({
-        model: route.selection.model,
-        input: request.query,
-        tools: [{ type: 'web_search_preview' }],
-      }),
-      ...signal === undefined ? {} : { signal },
-    })
+    const { combined, timer } = combineWithTimeout(signal, this.timeoutMs())
+    let response: Response
+    try {
+      response = await fetch(endpoint(route.profile.baseURL), {
+        method: 'POST',
+        redirect: 'error',
+        headers: {
+          authorization: 'Bearer ' + resolved.value,
+          'content-type': 'application/json',
+          accept: 'application/json',
+        },
+        body: JSON.stringify({
+          model: route.selection.model,
+          input: request.query,
+          tools: [{ type: 'web_search' }],
+        }),
+        signal: combined,
+      })
+    } catch (error: unknown) {
+      if ((error instanceof Error || error instanceof DOMException) && error.name === 'AbortError' && timer.aborted && signal?.aborted !== true) {
+        throw new WebError(`current model search timed out after ${this.timeoutMs()}ms`, 'WEB_PROVIDER_TIMEOUT')
+      }
+      throw error
+    }
     if (!response.ok) {
       throw new WebError('current model search failed with HTTP ' + String(response.status), 'WEB_PROVIDER_ERROR')
     }

@@ -2950,6 +2950,8 @@ export interface Config {
   maxTokens?: number
   /** Maximum `web_search` server-tool uses per request. Defaults to 5. */
   maxUses?: number
+  /** Upper bound for one search request; defaults to 120000 (two minutes). */
+  timeoutMs?: number
 }
 ```
 
