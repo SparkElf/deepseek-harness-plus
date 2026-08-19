@@ -7,6 +7,7 @@ records:
       - Require six-skill evidence and human code-owner review for Plus pull requests.
       - Track core and community divergences separately.
       - Detect duplicate active plugin claims before review.
+      - Decide plugin lifecycle, npm publication, repository ownership, and default composition independently before implementation.
     repositories:
       - name: SparkElf/deepseek-harness-plus
         url: https://github.com/SparkElf/deepseek-harness-plus
@@ -21,6 +22,10 @@ records:
       - .github/pull_request_template.md
       - .github/workflows/plus-governance.yml
       - .github/CODEOWNERS
+      - .agents/working-style.md
+      - .agents/skills/dsh-plugin-ownership-and-distribution/SKILL.md
+      - .agents/notes/implemented/architecture/2026-08-20-plugin-ownership-and-distribution.md
+      - docs/architecture.md
     plugins: []
     compatibility: The governance protocol adds review evidence and does not alter Harness runtime behavior.
     owner: plus-community
@@ -47,3 +52,37 @@ records:
     verification:
       - Tray lifecycle and Web open workflow
       - Linux and Windows package verification
+
+  - id: community-mobile-bridge-default
+    status: active
+    title: External mobile bridge in the default Plus Web profile
+    features:
+      - Mount the external Mobile Bridge bundle in the shipped Web profile without transferring source ownership into Harness.
+      - Expose its settings namespace to the Web API proxy and render its own settings.section Client contribution.
+      - Keep Host tunnel, Client UI, relay protocol, configuration, and documentation in dsh-plugins-plus.
+    repositories:
+      - name: SparkElf/deepseek-harness-plus
+        url: https://github.com/SparkElf/deepseek-harness-plus
+        baseline: 64bdc3a
+      - name: SparkElf/dsh-plugins-plus
+        url: https://github.com/SparkElf/dsh-plugins-plus
+        baseline: 0b1e1fc
+    files:
+      - packages/boot/app-boot/src/profile.ts
+      - packages/boot/app-boot/tests/profile.spec.ts
+      - packages/bundle/web-app/package.json
+      - packages/host/apiproxy/src/api-proxy.ts
+      - pnpm-lock.yaml
+      - pnpm-workspace.yaml
+      - THIRD_PARTY_NOTICES.md
+      - scripts/gen-third-party-notices.ts
+      - .agents/plugins/curated.yaml
+      - presets/compositions/registry.yaml
+    plugins:
+      - '@sparkelf/dsh-mobile-bridge@0.1.2'
+    compatibility: Plus pins the external npm artifact and mounts it after the first-party Web bundle; a higher profile patch can disable the row without leaving a Host-owned Client wrapper.
+    owner: plus-community
+    verification:
+      - pnpm run verify:plus-governance
+      - DSH_SNAPSHOT=replay pnpm run test:web
+      - Mobile Bridge settings save and pairing through the assembled Web profile

@@ -1,2 +1,20 @@
 version: 1
-compositions: []
+compositions:
+  - id: mobile-bridge
+    status: active
+    category: community-plugin
+    tools: []
+    routes:
+      - /mobile/bridge/status
+      - /mobile/bridge/style.css
+    settingsNamespaces:
+      - mobile-bridge
+    uiSlots:
+      - settings.section:mobile-bridge
+    persistenceOwners: []
+    permissions:
+      - Outbound HTTPS and WSS to the configured bridge server
+      - Loopback HTTP to the configured local Harness Web port
+    dependencies:
+      - '@sparkelf/dsh-mobile-bridge@0.1.2'
+      - '@deepseek-ai/dsh-web-app'

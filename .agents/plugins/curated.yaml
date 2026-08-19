@@ -22,3 +22,12 @@ entries:
     owner: omdsh-dev
     localPatches: []
     plusBundle: true
+  - name: '@sparkelf/dsh-mobile-bridge'
+    source:
+      kind: npm
+      spec: '@sparkelf/dsh-mobile-bridge'
+    pinned: 0.1.2
+    interest: End-to-end encrypted mobile access with a Host tunnel, first-class Settings section, and separately deployed blind relay
+    owner: SparkElf
+    localPatches: []
+    plusBundle: true
