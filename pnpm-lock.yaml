@@ -1458,6 +1458,9 @@ importers:
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
+      '@sparkelf/dsh-mobile-bridge':
+        specifier: 0.1.1
+        version: 0.1.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@packages+util+brand)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(react@18.3.1)
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -9369,6 +9372,14 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
+  '@deepseek-ai/dsh-settings@0.0.1-rc.1':
+    resolution: {integrity: sha512-d9emtO/X85topSqK3ZLaRtA0Sktbdg0DlObvQ9aKeEIzc6lsFgSulMxE68qGRSIGN7fDU8YNlXu4M7vKqmwisg==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.1-rc.1
+      '@deepseek-ai/dsh-brand': ^0.0.1-rc.1
+      '@deepseek-ai/dsh-invariants': ^0.0.1-rc.1
+      '@deepseek-ai/schemastery': ^3.18.1-rc.1
+
   '@docsearch/css@3.8.2':
     resolution: {integrity: sha512-y05ayQFyUmCXze79+56v/4HpycYF3uFqB78pLPrSV5ZKAlDuIAAJNhaRi8tTdRNXh05yxX/TyNnzD6LwSM89vQ==}
 
@@ -9395,11 +9406,6 @@ packages:
   '@earendil-works/pi-ai@0.82.1':
     resolution: {integrity: sha512-3WFYRhEp3lQB3444EhPMBcM7zSaEUE3eJgHOR7s4081NLqbw/FsWilIKWXSua0Gv3sRr7m9xMidR3pPDE7jI/A==}
     engines: {node: '>=22.19.0'}
-    hasBin: true
-
-  '@electron/asar@3.2.1':
-    resolution: {integrity: sha512-hE2cQMZ5+4o7+6T2lUaVbxIzrOjZZfX7dB02xuapyYFJZEAiWTelq6J3mMoxzd0iONDvYLPVKecB5tyjIoVDVA==}
-    engines: {node: '>=10.12.0'}
     hasBin: true
 
   '@electron/asar@3.4.1':
@@ -11376,6 +11382,12 @@ packages:
     resolution: {integrity: sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==}
     engines: {node: '>=14.0.0'}
 
+  '@sparkelf/dsh-mobile-bridge@0.1.1':
+    resolution: {integrity: sha512-sC+KG3EGUn3IAvvSSukyVQGsxVIhQGcLBw6EGbcN1y1zDmpTO2dxZidfQvPG66dMj72xw3BXKbcjYYBeT2CAOg==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.1
+      react: ^18.2.0
+
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
@@ -11555,9 +11567,6 @@ packages:
   '@types/geojson@7946.0.16':
     resolution: {integrity: sha512-6C8nqWur3j98U6+lXDfTUWIfgvZU+EumvpHKcYjujKH7woYyLj2sUmff0tRhrqM7BohUw7Pz3ZB1jj2gW9Fvmg==}
 
-  '@types/glob@7.2.0':
-    resolution: {integrity: sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==}
-
   '@types/hast@3.0.5':
     resolution: {integrity: sha512-rp/ezSWaD1m44dPKICGhiskI13nVr7qTloFwDa/IYkhhf5nzwP+zIQcIJh3WIFSBOy/H1PzB40jPjMDksN4F+g==}
 
@@ -11593,10 +11602,6 @@ packages:
 
   '@types/mdurl@2.0.0':
     resolution: {integrity: sha512-RGdgjQUZba5p6QEFAVx2OGb8rQDL/cPRG7GiedRzMcJ1tYnUANBncjbSB1NRGwbvjcPeikRABz2nshyPk1bhWg==}
-
-  '@types/minimatch@6.0.0':
-    resolution: {integrity: sha512-zmPitbQ8+6zNutpwgcQuLcsEpn/Cj54Kbn7L5pX0Os5kdWplB7xPgEh/g+SWOB/qmows2gpuCaPyduq8ZZRnxA==}
-    deprecated: This is a stub types definition. minimatch provides its own type definitions, so you do not need this installed.
 
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
@@ -12124,14 +12129,6 @@ packages:
   chai@6.2.2:
     resolution: {integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==}
     engines: {node: '>=18'}
-
-  chalk@4.1.0:
-    resolution: {integrity: sha512-qwx12AxXe2Q5xQ43Ac//I6v5aXTipYrSESdOgzrN+9XjgEpyjpKuvSGaN4qE93f7TQTlerQQ8S+EQ0EyDoVL1A==}
-    engines: {node: '>=10'}
-
-  chalk@4.1.1:
-    resolution: {integrity: sha512-diHzdDKxcU+bAsUboHLPEDQiw0qEe0qd7SYUn3HgcFlWgbDcfLGswOHYeGrHKzG9z6UYf01d9VFMfZxPM1xZSg==}
-    engines: {node: '>=10'}
 
   chalk@4.1.2:
     resolution: {integrity: sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA==}
@@ -12961,10 +12958,6 @@ packages:
   fs-extra@8.1.0:
     resolution: {integrity: sha512-yhlQgA6mnOJUKOsRUFsgJdQCvkKhcz8tlZG5HBQfReYZy46OwLcY+Zia0mtdHsOo9y/hP+CxMN0TU9QxoOtG4g==}
     engines: {node: '>=6 <7 || >=8'}
-
-  fs-extra@9.0.0:
-    resolution: {integrity: sha512-pmEYSk3vYsG/bF651KPUXZ+hvjpgWYw/Gc7W9NFUe3ZVLczKKWIij3IKpOrQcdw4TILtibFslZ0UmR8Vvzig4g==}
-    engines: {node: '>=10'}
 
   fs-extra@9.0.1:
     resolution: {integrity: sha512-h2iAoN838FqAFJY2/qVpzFXy+EBxfVE220PalAqQLDVsFOHLJrZvut5puAbCdNv6WJk+B8ihI+k0c7JK5erwqQ==}
@@ -16111,6 +16104,13 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
+  '@deepseek-ai/dsh-settings@0.0.1-rc.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@packages+util+brand)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/schemastery@vendor+schemastery)':
+    dependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
+      '@deepseek-ai/dsh-brand': link:packages/util/brand
+      '@deepseek-ai/dsh-invariants': link:packages/runtime-diagnostics/invariants
+      '@deepseek-ai/schemastery': link:vendor/schemastery
+
   '@docsearch/css@3.8.2': {}
 
   '@docsearch/js@3.8.2(@algolia/client-search@5.55.2)(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)':
@@ -16160,15 +16160,6 @@ snapshots:
       - ws
       - zod
 
-  '@electron/asar@3.2.1':
-    dependencies:
-      chromium-pickle-js: 0.2.0
-      commander: 5.0.0
-      glob: 7.2.0
-      minimatch: 3.1.5
-    optionalDependencies:
-      '@types/glob': 7.2.0
-
   '@electron/asar@3.4.1':
     dependencies:
       commander: 5.0.0
@@ -16177,7 +16168,7 @@ snapshots:
 
   '@electron/fuses@1.8.0':
     dependencies:
-      chalk: 4.1.1
+      chalk: 4.1.2
       fs-extra: 9.0.1
       minimist: 1.2.8
 
@@ -16887,7 +16878,7 @@ snapshots:
   '@malept/flatpak-bundler@0.4.0':
     dependencies:
       debug: 4.4.3
-      fs-extra: 9.0.0
+      fs-extra: 9.0.1
       lodash: 4.18.1
       tmp-promise: 3.0.3
     transitivePeerDependencies:
@@ -17665,6 +17656,19 @@ snapshots:
       '@smithy/util-buffer-from': 2.2.0
       tslib: 2.8.1
 
+  '@sparkelf/dsh-mobile-bridge@0.1.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@packages+util+brand)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(react@18.3.1)':
+    dependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
+      '@deepseek-ai/dsh-settings': 0.0.1-rc.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@packages+util+brand)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/schemastery@vendor+schemastery)
+      '@deepseek-ai/schemastery': link:vendor/schemastery
+      react: 18.3.1
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - '@deepseek-ai/dsh-brand'
+      - '@deepseek-ai/dsh-invariants'
+      - bufferutil
+      - utf-8-validate
+
   '@standard-schema/spec@1.1.0': {}
 
   '@stylistic/eslint-plugin@5.10.0(eslint@10.5.0(jiti@2.7.0))':
@@ -17885,12 +17889,6 @@ snapshots:
 
   '@types/geojson@7946.0.16': {}
 
-  '@types/glob@7.2.0':
-    dependencies:
-      '@types/minimatch': 6.0.0
-      '@types/node': 22.20.0
-    optional: true
-
   '@types/hast@3.0.5':
     dependencies:
       '@types/unist': 3.0.3
@@ -17928,11 +17926,6 @@ snapshots:
       '@types/unist': 3.0.3
 
   '@types/mdurl@2.0.0': {}
-
-  '@types/minimatch@6.0.0':
-    dependencies:
-      minimatch: 10.2.5
-    optional: true
 
   '@types/ms@2.1.0': {}
 
@@ -18538,16 +18531,6 @@ snapshots:
 
   chai@6.2.2: {}
 
-  chalk@4.1.0:
-    dependencies:
-      ansi-styles: 4.3.0
-      supports-color: 7.2.0
-
-  chalk@4.1.1:
-    dependencies:
-      ansi-styles: 4.3.0
-      supports-color: 7.2.0
-
   chalk@4.1.2:
     dependencies:
       ansi-styles: 4.3.0
@@ -19097,7 +19080,7 @@ snapshots:
 
   electron-winstaller@5.4.0:
     dependencies:
-      '@electron/asar': 3.2.1
+      '@electron/asar': 3.4.1
       debug: 4.4.3
       fs-extra: 7.0.1
       lodash: 4.18.1
@@ -19570,13 +19553,6 @@ snapshots:
       jsonfile: 4.0.0
       universalify: 0.1.2
 
-  fs-extra@9.0.0:
-    dependencies:
-      at-least-node: 1.0.0
-      graceful-fs: 4.2.11
-      jsonfile: 6.2.1
-      universalify: 1.0.0
-
   fs-extra@9.0.1:
     dependencies:
       at-least-node: 1.0.0
@@ -19945,7 +19921,7 @@ snapshots:
   jake@10.8.5:
     dependencies:
       async: 3.2.6
-      chalk: 4.1.0
+      chalk: 4.1.2
       filelist: 1.0.6
       minimatch: 3.1.5
 

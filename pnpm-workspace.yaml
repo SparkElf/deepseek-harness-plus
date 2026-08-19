@@ -74,6 +74,8 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin-win32-x64-msvc@0.1.4
   - node-addon-require-builtin@0.1.4
   - dsh-better-sidebar@0.13.1
+  - '@sparkelf/dsh-mobile-bridge@0.1.0'
+  - '@sparkelf/dsh-mobile-bridge@0.1.1'
 
 patchedDependencies:
   node-pty@1.1.0: patches/node-pty@1.1.0.patch
