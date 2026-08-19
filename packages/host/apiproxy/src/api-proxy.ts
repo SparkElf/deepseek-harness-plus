@@ -214,6 +214,9 @@ const DEFAULT_MAX_MESSAGES = 50
  */
 const WEB_SETTINGS_NAMESPACES = [
   'agent-loop', 'shell', 'locale', 'permission', 'ui-conversation', 'ui-theme', 'web-search-deepseek',
+  // The Plus mobile bridge ships in the default web profile; its section joins
+  // the configuration page by this product decision.
+  'mobile-bridge',
 ] as const
 
 /** Provider work budget: at most 100 calls and 2,000 inspected hits. */

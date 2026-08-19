@@ -396,6 +396,11 @@ describe('settings domain', () => {
     })))
     expect(webSearch.value).toEqual({ baseURL: 'https://search.test/v1' })
 
+    ctx.settings.register(settingsNamespace('mobile-bridge'), z.object({ serverUrl: z.string().default('') }))
+    expect(
+      expectOk(await api.settings.describe(request({}))).namespaces.map(view => String(view.ns)),
+    ).toContain('mobile-bridge')
+
     for (const response of [
       await api.settings.update(request({ ns: 'some-other-plugin', patch: { secretPath: '/etc/shadow' } })),
       await api.settings.replace(request({ ns: 'some-other-plugin', section: {} })),
