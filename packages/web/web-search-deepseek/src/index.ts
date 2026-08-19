@@ -22,7 +22,7 @@ import {
   DEEPSEEK_DEFAULT_MODEL,
 } from './provider.ts'
 import type { DeepSeekSearchProviderOptions } from './provider.ts'
-import { CurrentModelSearchProvider } from './current.ts'
+import { CurrentModelSearchProvider, currentRoute } from './current.ts'
 
 export {
   DeepSeekSearchProvider,
@@ -62,6 +62,8 @@ export interface Config {
   maxTokens?: number
   /** Maximum `web_search` server-tool uses per request. Defaults to 5. */
   maxUses?: number
+  /** Upper bound for one search request; defaults to 120000 (two minutes). */
+  timeoutMs?: number
 }
 
 export const Config: z<Config> = z.object({
@@ -76,6 +78,7 @@ export const Config: z<Config> = z.object({
   apiVersion: z.string().default(DEEPSEEK_DEFAULT_API_VERSION),
   maxTokens: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_TOKENS),
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES),
+  timeoutMs: z.number().step(1).min(1000).default(120000),
 })
 
 /**
@@ -119,6 +122,7 @@ function resolveOptions(ctx: Context, config: Config): DeepSeekSearchProviderOpt
     apiVersion: config.apiVersion ?? DEEPSEEK_DEFAULT_API_VERSION,
     maxTokens: config.maxTokens ?? DEEPSEEK_DEFAULT_MAX_TOKENS,
     maxUses: config.maxUses ?? DEEPSEEK_DEFAULT_MAX_USES,
+    timeoutMs: config.timeoutMs ?? 120000,
     recordRequest: (request) => {
       ctx.get('agents')?.currentInitiator()?.session.append(
         'web/deepseek-search-llm-request',
@@ -131,7 +135,13 @@ function resolveOptions(ctx: Context, config: Config): DeepSeekSearchProviderOpt
 /** Register the DeepSeek search provider with `ctx.web`. */
 export function apply(ctx: Context, config: Config): void {
   let current: () => Config = () => config
-  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, Config, config, {
+  // When the composition follows the current model, the section's credential
+  // reference mirrors the active route's key so the settings page reports the
+  // key the searches actually use instead of an unrelated DeepSeek reference.
+  const sectionConfig: Config = config.selection === 'current-model'
+    ? { ...config, apiKeyEnv: currentRoute(ctx)?.profile.apiKeyEnv ?? config.apiKeyEnv ?? DEFAULT_API_KEY_ENV }
+    : config
+  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, Config, sectionConfig, {
     setSource: (source) => {
       current = source
     },
@@ -140,6 +150,6 @@ export function apply(ctx: Context, config: Config): void {
     onChange: () => {},
   })
   ctx.web.registerSearchProvider(config.selection === 'current-model'
-    ? new CurrentModelSearchProvider(ctx)
+    ? new CurrentModelSearchProvider(ctx, () => current().timeoutMs ?? 120000)
     : new DeepSeekSearchProvider(() => resolveOptions(ctx, current())))
 }

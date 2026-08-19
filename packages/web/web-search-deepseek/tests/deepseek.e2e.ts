@@ -30,6 +30,7 @@ maybe('DeepSeekSearchProvider real API', () => {
       model: process.env.DEEPSEEK_SEARCH_MODEL ?? DEEPSEEK_DEFAULT_MODEL,
       apiVersion: DEEPSEEK_DEFAULT_API_VERSION,
       maxTokens: DEEPSEEK_DEFAULT_MAX_TOKENS,
+      timeoutMs: 120000,
       maxUses: DEEPSEEK_DEFAULT_MAX_USES,
     })
     const result = await provider.search({ query: 'What is DeepSeek Harness?', maxResults: 5 })
