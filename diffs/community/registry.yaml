@@ -66,7 +66,7 @@ records:
         baseline: 64bdc3a
       - name: SparkElf/dsh-plugins-plus
         url: https://github.com/SparkElf/dsh-plugins-plus
-        baseline: ade5531
+        baseline: 029c99d
     files:
       - packages/boot/app-boot/src/profile.ts
       - packages/boot/app-boot/tests/profile.spec.ts
