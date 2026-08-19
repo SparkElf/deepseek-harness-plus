@@ -26,7 +26,7 @@ entries:
     source:
       kind: npm
       spec: '@sparkelf/dsh-mobile-bridge'
-    pinned: 0.1.3
+    pinned: 0.1.4
     interest: End-to-end encrypted mobile access with a Host tunnel, first-class Settings section, and separately deployed blind relay
     owner: SparkElf
     localPatches: []
