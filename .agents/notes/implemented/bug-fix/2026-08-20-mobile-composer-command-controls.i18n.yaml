@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-20-mobile-composer-command-controls.md
+2026-08-20-mobile-composer-command-controls.md: 82119c439d47da6d248288973f353fc7b7b9bb8f
+2026-08-20-mobile-composer-command-controls.zh.md: 2afe1ab104ad2d03c2c41a8b7e98e398c37ad2e3

@@ -27,6 +27,8 @@ export const SIDEBAR_MAX = 420
 export const SIDEBAR_DEFAULT = 280
 /** Closed-sidebar rail: a 24px icon column between 16px horizontal paddings. */
 export const SIDEBAR_COLLAPSED = 56
+/** Maximum frame width that renders a manually expanded sidebar at half width. */
+export const SIDEBAR_PHONE_MAX = 640
 /** Viewport width below which the sidebar auto-collapses to the rail (deepsuite
  * LG breakpoint); a manual toggle below it re-expands over the squeezed center
  * (stores.ts narrowExpanded). */
@@ -47,6 +49,18 @@ export const DETAILS_DEFAULT = 360
  */
 export function clampWidth(px: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.round(px)))
+}
+
+/**
+ * Resolve the phone frame: the manually expanded navigation owns half the frame,
+ * while its collapsed rail keeps the shared fixed control width. Details stays closed.
+ * @param viewport - available frame width in px.
+ * @param sidebarExpanded - whether the user has manually expanded navigation.
+ * @returns the phone sidebar and conversation widths with details closed.
+ */
+export function computePhoneColumns(viewport: number, sidebarExpanded: boolean): Columns {
+  const sidebar = sidebarExpanded ? Math.round(viewport / 2) : SIDEBAR_COLLAPSED
+  return { sidebar, center: Math.max(0, viewport - sidebar), details: 0 }
 }
 
 /**

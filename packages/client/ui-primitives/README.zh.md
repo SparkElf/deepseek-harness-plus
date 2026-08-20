@@ -8,6 +8,10 @@
 
 `HoverCard` 通过指针离开宽限期，使采用 portal 渲染的预览在跨过与锚点之间的间隙时仍可触及。消费方还可传入 `copyText`：此时卡片为指针与键盘激活提供按钮语义，其无障碍名称会在 `copyLabel` 前缀后包含该值，通过包内剪贴板辅助函数原样写入该值，并且只有宿主接受写入后，才会临时将内容替换为 `copiedLabel`。与卡片相交的非折叠文本选区会阻止指针点击激活；成功反馈保持卡片原有高度，并随卡片关闭或在一秒后清除。`copyLabel` 和 `copiedLabel` 采用 label prop，是因为这个 zero-cordis 原子组件无法读取应用 locale；省略 `copyText` 时，卡片维持只读且可选择文本的行为。历史依据见[已归档的悬浮卡片复制 Agent Note](../../../.agents/notes/archived/feature/2026-07-31-hover-card-click-copy.md)。
 
+## Tooltip
+
+`Tooltip` 会为没有命令的锚点保留 focus 解释气泡，包括触摸设备上的 `aria-disabled` 控件。带 `onClick` 命令的锚点默认在激活后关闭气泡，同时保留焦点；`dismissOnClick={false}` 是显式退出方式。
+
 ## Toast
 
 `Toast` 是顶部的短时横幅：滑入后满不透明度停留三秒，再用一秒淡出，随后调用 `onDone` 由持有方卸载。它渲染 `role="alert"`，带可选的前置图标插槽，文案是必填 prop（零 cordis，由持有方本地化）。它经 body portal 渲染且 `pointer-events: none`，距视口顶部 120px，水平中心跟随可选的 `anchor` 元素（窗口尺寸变化时重测）——composer 传入自己的卡片，横幅因此在聊天列而非整个窗口上居中——不传则回退到视口居中。重复展示同一条消息需要重新挂载，持有方用每次展示递增的序号作为 key，让相同文案重新走完停留与淡出，而不是静默复用已淡出的横幅。`prefers-reduced-motion: reduce` 下去掉滑入，只保留延迟淡出。它的层级高于 ui-attachment 的图片灯箱，预览打开时报出的失败仍然可读。

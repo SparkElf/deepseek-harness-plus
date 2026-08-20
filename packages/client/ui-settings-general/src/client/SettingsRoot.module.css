@@ -75,7 +75,7 @@
   z-index: 1;
   display: flex;
   width: 800px;
-  height: min(800px, calc(100vh - 48px));
+  height: min(800px, calc(100dvh - 48px));
   max-width: calc(100vw - 48px);
   border-radius: 24px;
   overflow: hidden;
@@ -175,8 +175,13 @@
   justify-content: space-between;
   gap: 8px;
   height: 54px;
-  padding: 20px 14px 8px 10px;
+  padding: 20px 52px 8px 10px;
   box-sizing: border-box;
+}
+
+.mobileBack,
+.mobileSectionTitle {
+  display: none;
 }
 
 .actions {
@@ -190,6 +195,10 @@
 
 /* Close button (figma .Icon_container 501:29982): 28x28, r28, 14px glyph. */
 .close {
+  position: absolute;
+  top: 20px;
+  right: 14px;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -223,4 +232,119 @@
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .overlay {
+    align-items: stretch;
+  }
+
+  .panel {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    height: auto;
+    max-width: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .nav {
+    width: 100%;
+    gap: 16px;
+    padding: max(20px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+  }
+
+  .navTitle {
+    min-height: 40px;
+    padding: 7px 52px 7px 4px;
+    font-size: 18px;
+    line-height: 26px;
+  }
+
+  .navList {
+    gap: 6px;
+  }
+
+  .navCell {
+    width: 100%;
+    height: 48px;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    line-height: 24px;
+  }
+
+  .content {
+    display: none;
+    width: 100%;
+  }
+
+  .detailOpen .nav {
+    display: none;
+  }
+
+  .detailOpen .content {
+    display: flex;
+  }
+
+  .header {
+    align-items: center;
+    height: auto;
+    min-height: calc(64px + env(safe-area-inset-top));
+    padding: max(12px, env(safe-area-inset-top)) 60px 8px 12px;
+  }
+
+  .mobileBack {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--dsw-alias-label-primary);
+  }
+
+  .mobileBack:active {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+
+  .mobileSectionTitle {
+    flex: 1;
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--dsw-alias-label-primary);
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  .actions {
+    flex: none;
+    margin-left: auto;
+  }
+
+  .close {
+    top: max(12px, env(safe-area-inset-top));
+    right: 12px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .options {
+    width: 100%;
+    max-width: 100%;
+    padding: 8px 16px max(24px, env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-wrap: break-word;
+  }
 }

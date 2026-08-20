@@ -73,9 +73,10 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin-win32-ia32-msvc@0.1.4
   - node-addon-require-builtin-win32-x64-msvc@0.1.4
   - node-addon-require-builtin@0.1.4
-  - dsh-better-sidebar@0.13.1
+  - dsh-better-sidebar@0.14.0
   # Plus owns and verifies this external plugin's release before pinning it.
   - '@sparkelf/dsh-mobile-bridge'
 
 patchedDependencies:
+  dsh-better-sidebar@0.14.0: patches/dsh-better-sidebar@0.14.0.patch
   node-pty@1.1.0: patches/node-pty@1.1.0.patch

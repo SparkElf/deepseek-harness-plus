@@ -323,6 +323,10 @@
   gap: 12px;
 }
 
+.modelSeat {
+  min-width: 0;
+}
+
 /* Attach circle (figma + control): 28px, selector fill, primary glyph. */
 .add {
   display: grid;
@@ -473,4 +477,29 @@
   background: rgba(216, 97, 97, 0.2);
   text-decoration: line-through;
   opacity: 0.7;
+}
+
+@media (max-width: 640px) {
+  .row {
+    gap: 8px;
+  }
+
+  .tools {
+    flex: none;
+    gap: 8px;
+  }
+
+  .trailing {
+    flex: 1 1 0;
+    gap: 6px;
+  }
+
+  .modelSeat {
+    flex: 1 1 0;
+    overflow: hidden;
+  }
+
+  .modelSeat > * {
+    width: 100%;
+  }
 }

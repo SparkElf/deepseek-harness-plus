@@ -259,3 +259,15 @@
   flex: 0 0 auto;
   color: var(--dsw-alias-label-tertiary);
 }
+
+@media (max-width: 640px) {
+  .root,
+  .trigger {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .trigger {
+    box-sizing: border-box;
+  }
+}

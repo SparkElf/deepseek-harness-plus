@@ -1,11 +1,7 @@
 # Curated external dsh plugins tracked by DeepSeek Harness Plus.
 # Schema per entry:
 #   - name: <stable id>
-#     source:
-#       kind: npm            # npm package spec, or git
-#       spec: <package>      # e.g. @scope/dsh-plugin-x
-#       # kind: git
-#       # url: <git url>
+#     source: { kind: npm, spec: <package> }  # npm package spec, or { kind: git, url: <git url> }
 #     pinned: <exact version or sha>   # the version/SHA Plus integrates and tests
 #     interest: <one line why we track it>
 #     owner: <maintainer handle>
@@ -14,19 +10,15 @@
 # Policy: .agents/notes/proposed/architecture/2026-08-19-external-plugin-maintenance.md
 entries:
   - name: dsh-better-sidebar
-    source:
-      kind: npm
-      spec: dsh-better-sidebar
-    pinned: 0.13.1
+    source: { kind: npm, spec: dsh-better-sidebar }
+    pinned: 0.14.0
     interest: VSCode-like right sidebar (explorer/editor/terminal/git) with a registration service for third-party tabs
     owner: omdsh-dev
-    localPatches: []
+    localPatches: [{ file: patches/dsh-better-sidebar@0.14.0.patch, upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/254, retireWhen: remove after an npm release at or above 0.14.1 includes PR 254 }]
     plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
-    source:
-      kind: npm
-      spec: '@sparkelf/dsh-mobile-bridge'
-    pinned: 0.1.5
+    source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
+    pinned: 0.2.2
     interest: End-to-end encrypted mobile access with a Host tunnel, first-class Settings section, and separately deployed blind relay
     owner: SparkElf
     localPatches: []

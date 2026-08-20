@@ -8,6 +8,9 @@
 
 *.pdf binary
 
+# Unified diff context markers may precede tabs or represent blank source lines.
+*.patch whitespace=-trailing-space,-space-before-tab
+
 # Pairing records are generated from the three confirmed owner-blob pairs.
 # The worktree-local installer registers the fail-closed driver command.
 *.i18n.yaml merge=dsh-translation-pairing

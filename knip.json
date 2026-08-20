@@ -778,9 +778,21 @@
         "@deepseek-ai/dsh-code-runtime-worker-thread"
       ]
     },
+    "packages/client/ui-settings-backup": {
+      "entry": [
+        "tests/**/*.client.spec.tsx"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "tests/**/*.tsx"
+      ]
+    },
     "packages/bundle/web-app": {
       "ignoreDependencies": [
-        "@deepseek-ai/.+"
+        "@deepseek-ai/.+",
+        "@sparkelf/dsh-client-ui-settings-backup",
+        "@sparkelf/dsh-mobile-bridge",
+        "dsh-better-sidebar"
       ]
     }
   }

@@ -89,10 +89,11 @@ export function SidebarRoot({
     lingerTimer.current = undefined
   }
   // Leaving is decided by the column's BOX, not by DOM containment, and only
-  // while the bars are drawn. ui-settings renders its full-viewport panel as a
-  // fixed-position DESCENDANT of this column, so a pointer moved onto that
-  // panel — or onto the conversation once it closes — fires no `pointerleave`
-  // here, and the bars would stay drawn over a column nobody is pointing at.
+  // while the bars are drawn. ui-settings portals its full-viewport panel to
+  // body but remains a React descendant of this column, so synthetic leave
+  // follows the component tree: moving onto that panel — or onto the
+  // conversation once it closes — does not reliably fire `pointerleave` here,
+  // and the bars would stay drawn over a column nobody is pointing at.
   // The element's own leave stays as the one signal geometry cannot give: a
   // pointer that leaves the window emits no further moves.
   useEffect(() => {

@@ -266,7 +266,7 @@
     # Settings Backup section: export/import the user settings and data as
     # one zip archive through the Host backup RPC pair.
     - id: ui-settings-backup
-      name: '@deepseek-ai/dsh-client-ui-settings-backup'
+      name: '@sparkelf/dsh-client-ui-settings-backup'
 
     # Plan control: the composer plan seat over the plan projection + /plan channel.
     - id: ui-plan

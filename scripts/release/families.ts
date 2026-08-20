@@ -11,6 +11,7 @@
 
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { isFirstPartyPackageName } from '../first-party-packages.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
 /** Dependency sections that constrain publish order: a consumer must publish after its dependency. */
@@ -93,7 +94,7 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (!isFirstPartyPackageName(name)) throw new Error(`${normalized} must name a first-party package`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -193,10 +194,10 @@ export abstract class ReleaseFamily {
   abstract readonly installedEntry: InstalledEntry | undefined
 }
 
-/** `packages/*` and `apps/*`: one shared version across the whole family. */
+/** Package workspaces, CLI, and Web share one version across the DSH family. */
 class DshFamily extends ReleaseFamily {
   readonly id = 'dsh'
-  readonly patterns = ['packages/*/*/package.json', 'apps/*/package.json'] as const
+  readonly patterns = ['packages/*/*/package.json', 'apps/cli/package.json', 'apps/web/package.json'] as const
   readonly tagPrefix = 'dsh-v'
 
   /**

@@ -731,7 +731,7 @@ export function InputBar({
         </div>
         <div className={css.row}>
           <div className={css.tools}>
-            <Tooltip label={t('input.commands')} side="top" delayMs={500}>
+            <Tooltip label={t('input.commands')} side="top" delayMs={500} dismissOnClick>
               <button
                 type="button"
                 className={css.add}
@@ -753,10 +753,10 @@ export function InputBar({
           </div>
           <div className={css.trailing}>
             {rightItems}
-            {renderSlot('conversation.input.model', { locked: modelSeatLocked })}
+            <div className={css.modelSeat}>{renderSlot('conversation.input.model', { locked: modelSeatLocked })}</div>
             <ContextMeter useProjection={useProjection} t={t} />
             {interruptible && (
-              <Tooltip label={t('input.stop')} side="top" delayMs={500}>
+              <Tooltip label={t('input.stop')} side="top" delayMs={500} dismissOnClick>
                 <button
                   type="button"
                   className={css.primary}
@@ -771,7 +771,7 @@ export function InputBar({
                 </button>
               </Tooltip>
             )}
-            <Tooltip label={primaryLabel} side="top" delayMs={500}>
+            <Tooltip label={primaryLabel} side="top" delayMs={500} dismissOnClick>
               <button
                 type="button"
                 className={css.primary}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  CENTER_MIN, clampWidth, computeColumns,
+  CENTER_MIN, clampWidth, computeColumns, computePhoneColumns,
   DETAILS_DEFAULT, DETAILS_MIN, SIDEBAR_COLLAPSED, SIDEBAR_DEFAULT, SIDEBAR_MIN,
 } from '@deepseek-ai/dsh-client-ui-layout/src/client/columns.ts'
 
@@ -13,6 +13,16 @@ describe('clampWidth', () => {
     expect(clampWidth(250.4, 240, 420)).toBe(250)
     expect(clampWidth(100, 240, 420)).toBe(240)
     expect(clampWidth(9999, 240, 420)).toBe(420)
+  })
+})
+
+describe('computePhoneColumns', () => {
+  it('splits an expanded phone frame in half and closes details', () => {
+    expect(computePhoneColumns(412, true)).toEqual({ sidebar: 206, center: 206, details: 0 })
+  })
+
+  it('keeps the fixed control rail when the phone sidebar is collapsed', () => {
+    expect(computePhoneColumns(412, false)).toEqual({ sidebar: SIDEBAR_COLLAPSED, center: 412 - SIDEBAR_COLLAPSED, details: 0 })
   })
 })
 

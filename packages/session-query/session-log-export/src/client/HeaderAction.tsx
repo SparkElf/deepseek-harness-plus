@@ -4,7 +4,7 @@ import { SessionLogDownloadDialog, type SessionLogDownloadDialogProps } from './
 import css from './HeaderAction.module.css'
 
 /**
- * Render the Session Header export capsule and its shared result dialog.
+ * Render the responsive Session Header export action and its shared result dialog.
  * @param props - Session runtime, download controller, and localized dialog copy.
  * @returns the persistent Header action and Session-scoped dialog.
  */
@@ -20,6 +20,7 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
         className={css.sessionLogButton}
         disabled={busy}
         aria-busy={busy}
+        aria-label="Session log"
         onClick={() => { void request(sessionId) }}
       >
         <span>Session log</span>

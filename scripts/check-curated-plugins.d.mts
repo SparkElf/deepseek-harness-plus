@@ -1,10 +1,18 @@
 /** Types for the dependency-free curated plugin drift checker. */
 
+/** One curated local patch and its upstream retirement lifecycle. */
+export interface CuratedPatch {
+  file: string
+  upstreamUrl: string
+  retireWhen: string
+}
+
 /** One curated manifest entry. */
 export interface CuratedEntry {
   name: string
   source: { kind: string; spec?: string; url?: string }
   pinned: string | number
+  localPatches: CuratedPatch[]
   [key: string]: unknown
 }
 

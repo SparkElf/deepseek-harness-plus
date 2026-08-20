@@ -294,6 +294,18 @@ describe('AppFrame — narrow-viewport auto-collapse', () => {
     expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
   })
 
+  it('phone toggle re-expands navigation to half the frame without a drag handle', () => {
+    frameWidth = 412
+    const { frame, instance, slotCalls } = mountFrame()
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([206, 0])
+    expect(frame.hasAttribute('data-dsh-frame')).toBe(true)
+    expect(slotCalls.filter(c => c.key === 'sidebar').at(-1)!.props).toEqual({ collapsed: false, width: 206 })
+    expect(frame.querySelectorAll('[class*="handle"]')).toHaveLength(0)
+    act(() => { instance.actions.toggleSidebar() })
+    expect(tracks(frame)).toEqual([SIDEBAR_COLLAPSED, 0])
+  })
+
   it('narrow toggle re-expands over the squeezed center and back', () => {
     frameWidth = 980
     const { frame, instance } = mountFrame()
