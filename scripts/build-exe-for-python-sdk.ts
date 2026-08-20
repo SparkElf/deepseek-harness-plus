@@ -257,6 +257,7 @@ class SingleExeBuild {
       '--config.node-linker=hoisted',
       '--config.auto-install-peers=false',
       '--config.link-workspace-packages=true',
+      '--config.allow-unused-patches=true',
       this.staging,
     ])
     await this.restoreLegacyHoists()
