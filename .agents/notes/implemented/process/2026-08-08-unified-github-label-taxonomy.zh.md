@@ -45,7 +45,7 @@ Issue 已有原生 Issue Type 和独立的来源分类体系。在这两类对�
 
 ### Issue 与迁移
 
-Issue 使用原生 Issue Type，而不是 `kind/*`；其 `area/*` 标签仍然可选。`source/*` 标签记录 Issue 的创建方式，不适用于 PR。优先级、GitHub 默认标签和工作流触发器仍是相互独立的管理元数据。
+Issue 使用原生 Issue Type，而不是 `kind/*`；其 `area/*` 标签仍然可选。由 GitHub User 拥有的仓库无法提供 Organization Issue Type 或 Project 生命周期，因此这类部署会让 Issue 保持无类型，并在配置 Issue App 前停用生命周期自动化；它绝不会用 `kind/*` 标签代替。`source/*` 标签记录 Issue 的创建方式，不适用于 PR。优先级、GitHub 默认标签和工作流触发器仍是相互独立的管理元数据。
 
 迁移标签时，须先保留语义，再移除别名：先添加规范替代标签，核验可加标签对象，再移除废弃的标签关系。只有在所有 PR 和 Issue 都不再使用某个标签后才能将其删除，且绝不整组替换无关标签。
 
