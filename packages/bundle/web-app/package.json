@@ -44,7 +44,7 @@
     }
   },
   "dependencies": {
-    "@sparkelf/dsh-mobile-bridge": "0.2.2",
+    "@sparkelf/dsh-mobile-bridge": "0.2.5",
     "dsh-better-sidebar": "0.14.0",
     "@deepseek-ai/dsh-agent-presets": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
