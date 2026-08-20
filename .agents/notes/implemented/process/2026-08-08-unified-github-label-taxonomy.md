@@ -45,7 +45,7 @@ The area set is intentionally extensible. When no existing description honestly 
 
 ### Issues and migrations
 
-Issues use native Issue Type instead of `kind/*`; their `area/*` labels remain optional. `source/*` labels record how an Issue was created and do not apply to pull requests. Priority, GitHub defaults, and workflow triggers remain independent operational metadata.
+Issues use native Issue Type instead of `kind/*`; their `area/*` labels remain optional. A repository owned by a GitHub User cannot expose organization Issue Types or a Project lifecycle, so that deployment leaves Issues untyped and disables lifecycle automation until an Issue App is configured; it never substitutes a `kind/*` label. `source/*` labels record how an Issue was created and do not apply to pull requests. Priority, GitHub defaults, and workflow triggers remain independent operational metadata.
 
 Label migrations preserve meaning before removing aliases: add the canonical replacement, verify the labelable, then remove the obsolete assignment. A label is deleted only after no pull request or Issue still uses it, and unrelated labels are never replaced as a set.
 
