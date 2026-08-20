@@ -34,6 +34,7 @@ apps/web/dist/
 apps/plus-desktop/dist/
 apps/plus-desktop/src/release-source.mjs
 .artifacts/
+.dsh-build/
 .playwright-mcp/
 .orig
 .worktrees/

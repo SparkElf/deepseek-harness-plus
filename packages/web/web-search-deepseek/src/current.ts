@@ -9,7 +9,6 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebSearchProvider, WebSearchRequest, WebSearchResult, WebSearchSource } from '@deepseek-ai/dsh-web'
 import type { SettingsDescriptor } from '@deepseek-ai/dsh-settings'
-import type {} from '@deepseek-ai/dsh-agent-default-model'
 
 /** Provider id used by the web seam for the current model route. */
 export const CURRENT_MODEL_PROVIDER_ID = 'current-model'
@@ -51,10 +50,9 @@ function recordOf(value: unknown): Record<string, unknown> | undefined {
 
 function selectionOf(ctx: Context): ModelSelection | undefined {
   const agent = ctx.get('agents')?.currentInitiator()
-  const provider = agent?.options.provider
-  const model = agent?.options.model
-  if (provider !== undefined && model !== undefined) return { provider, model }
-  return ctx.get('agentDefaultModel')?.currentSelection()
+  if (agent === undefined) return undefined
+  const { provider, model } = agent.options
+  return provider === undefined || model === undefined ? undefined : { provider, model }
 }
 
 function routeOf(ctx: Context, selection: ModelSelection): RouteProfile | undefined {
@@ -78,7 +76,7 @@ function routeOf(ctx: Context, selection: ModelSelection): RouteProfile | undefi
  * @param ctx - context supplying the agent and settings planes.
  * @returns the selection plus route profile, or undefined while unresolvable.
  */
-export function currentRoute(ctx: Context): { selection: ModelSelection; profile: RouteProfile } | undefined {
+function currentRoute(ctx: Context): { selection: ModelSelection; profile: RouteProfile } | undefined {
   const selection = selectionOf(ctx)
   if (selection === undefined) return undefined
   const profile = routeOf(ctx, selection)

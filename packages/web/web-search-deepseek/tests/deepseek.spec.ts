@@ -540,7 +540,7 @@ describe('web-search-deepseek plugin registration', () => {
 describe('current-model search provider', () => {
   it('uses the current provider, model, credential, and Responses web-search tool', async () => {
     const ctx = new Context()
-    ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'link_api', model: 'gpt-5.6-sol' }) } as never)
+    ctx.provide('agents', { currentInitiator: () => ({ options: { provider: 'link_api', model: 'gpt-5.6-sol' } }) } as never)
     ctx.provide('settings', {
       describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
     } as never)
@@ -579,13 +579,13 @@ describe('current-model search provider', () => {
 
   it('fails loud with WEB_PROVIDER_TIMEOUT when the upstream stalls past the configured bound', async () => {
     const ctx = new Context()
-    ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'link_api', model: 'gpt-5.6-sol' }) } as never)
+    ctx.provide('agents', { currentInitiator: () => ({ options: { provider: 'link_api', model: 'gpt-5.6-sol' } }) } as never)
     ctx.provide('settings', {
       describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
     } as never)
     ctx.provide('credentials', { resolve: async () => ({ value: 'openai-key', source: 'test' }) } as never)
     vi.stubGlobal('fetch', vi.fn((_url: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
-      init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true })
+      init?.signal?.addEventListener('abort', () => { reject(new DOMException('aborted', 'AbortError')) }, { once: true })
     })))
     const provider = new CurrentModelSearchProvider(ctx, () => 50)
     await expect(provider.search({ query: 'stall' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_TIMEOUT' })

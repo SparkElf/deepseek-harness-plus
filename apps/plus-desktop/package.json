@@ -2,6 +2,7 @@
   "name": "@deepseek-ai/dsh-plus-desktop",
   "version": "0.5.0",
   "private": true,
+  "license": "MIT",
   "description": "DeepSeek Harness Plus system tray manager",
   "author": {
     "name": "SparkElf",

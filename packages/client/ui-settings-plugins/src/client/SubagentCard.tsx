@@ -5,18 +5,19 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { Button, IconChevronDownOutline14, Input, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PluginsSettingsLocaleKey } from './locales.ts'
-import type { SubagentEntryView, SubagentModelChoice, SubagentSettingsState, SubagentSettingsValue } from './subagent-store.ts'
+import type { SubagentEntryView, SubagentModelChoice, SubagentSettingsNamespace, SubagentSettingsState, SubagentSettingsValue } from './subagent-store.ts'
 import { PluginCard } from './PluginCard.tsx'
 import css from './SubagentCard.module.css'
 
 /** Browser-side actions and snapshot supplied by the plugin-slot registration. */
 export interface SubagentCardInjected {
+  namespace: SubagentSettingsNamespace
   hooks: { subagentSettings: SnapshotStore<SubagentSettingsState> }
-  load: () => Promise<void>
+  ensure: () => void
   stage: (entry: SubagentEntryView, value: SubagentSettingsValue) => void
-  save: () => Promise<void>
+  save: (entry: SubagentEntryView) => Promise<void>
   reset: (entry: SubagentEntryView) => void
-  discard: () => void
+  discard: (entry: SubagentEntryView) => void
 }
 
 /** Props for the subagent plugin configuration card. */
@@ -135,46 +136,38 @@ function EntryEditor({ entry, value: draft, models, writable, saving, t, onChang
 
 /** Render the subagent controls inside the shared plugin-card chrome. */
 export function SubagentCard(props: SubagentCardProps): ReactNode {
-  const { useSubagentSettings, t, load } = props
+  const { namespace, useSubagentSettings, t, ensure } = props
   const state = useSubagentSettings(snapshot => snapshot)
-  useEffect(() => { void load() }, [load])
+  const entry = state.entries.find(candidate => candidate.ns === namespace)
+  useEffect(() => { ensure() }, [ensure])
+  if (entry === undefined) return null
   const cardState = {
     available: true,
     writable: state.writable,
-    dirty: Object.keys(state.drafts).length > 0,
+    dirty: state.drafts[namespace] !== undefined,
     invalid: false,
     saving: state.saving,
-    failed: state.saveError !== null,
+    failed: state.saveErrors[namespace] !== undefined,
   }
   return (
     <PluginCard
       t={t}
-      titleKey="subagentTitle"
+      titleKey={entry.label as PluginsSettingsLocaleKey}
       descriptionKey="subagentDescription"
       state={cardState}
-      onSave={() => { void props.save() }}
-      onDiscard={props.discard}
+      onSave={() => { void props.save(entry) }}
+      onDiscard={() => { props.discard(entry) }}
     >
-      {state.status === 'loading' && <p className={css.status}>{t('subagentLoading')}</p>}
-      {state.status === 'error' && <div role="alert" className={css.error}>
-        {state.error ?? t('subagentLoadFailed')}
-        <Button size="sm" onClick={() => { void load() }}>{t('subagentRetry')}</Button>
-      </div>}
-      {state.status === 'ready' && <div className={css.entries}>
-        {state.entries.map(entry => <section className={css.entry} key={entry.ns}>
-          <h3 className={css.entryTitle}>{t(entry.label as PluginsSettingsLocaleKey)}</h3>
-          <EntryEditor
-            entry={entry}
-            value={state.drafts[entry.ns] ?? entry.value}
-            models={state.models}
-            writable={state.writable}
-            saving={state.saving}
-            t={t}
-            onChange={(value) => { props.stage(entry, value) }}
-            onReset={() => { props.reset(entry) }}
-          />
-        </section>)}
-      </div>}
+      <EntryEditor
+        entry={entry}
+        value={state.drafts[entry.ns] ?? entry.value}
+        models={state.models}
+        writable={state.writable}
+        saving={state.saving}
+        t={t}
+        onChange={(value) => { props.stage(entry, value) }}
+        onReset={() => { props.reset(entry) }}
+      />
     </PluginCard>
   )
 }

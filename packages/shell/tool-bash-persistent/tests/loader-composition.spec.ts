@@ -63,101 +63,80 @@ function text(result: { content: { type: string; text?: string }[] }): string {
   return result.content.filter(block => block.type === 'text').map(block => block.text).join('')
 }
 
-// Tightened readiness timings keep the scripted suite fast. They stay far
-// below the shipped defaults, so a regression into the silence fallback
-// would time these calls out instead of merely slowing them.
-const SCRIPTED_TERMINAL_LINES = [
-  '    pollIntervalMs: 10',
-  '    exactProbeAfterMs: 20',
-  '    idleSilenceMs: 100',
-  '    handoffGraceMs: 100',
-  '    scrollbackLines: 20000',
-  '    timeoutMs: 2000',
-  '    disposeGraceMs: 500',
-]
-
-// The shipped silence defaults stay in force here: this composition proves
-// that a fast command settles through the prompt path, far below
-// idleSilenceMs plus handoffGraceMs.
-const SHIPPED_SILENCE_TERMINAL_LINES = [
-  '    pollIntervalMs: 10',
-  '    scrollbackLines: 20000',
-  '    timeoutMs: 15000',
-  '    disposeGraceMs: 500',
-]
-
-async function boot(terminalLines: readonly string[], toolTimeoutMs = 5000) {
-  const cwd = await mkdtemp(join(tmpdir(), 'dsh-persistent-bash-loader-'))
-  root = cwd
-  const configPath = join(cwd, 'cordis.yml')
-  await writeFile(configPath, [
-    "- name: '@deepseek-ai/dsh-agent'",
-    "- name: '@deepseek-ai/dsh-system-prompt'",
-    "- name: '@deepseek-ai/dsh-tools'",
-    "- name: '@deepseek-ai/dsh-terminal'",
-    "- name: '@deepseek-ai/dsh-test-sandbox'",
-    "- name: '@deepseek-ai/dsh-sandbox-policy'",
-    '  config:',
-    '    mode: danger-full-access',
-    `    workspaceRoot: ${JSON.stringify(cwd)}`,
-    "- name: '@deepseek-ai/dsh-subprocess-local'",
-    "- name: '@deepseek-ai/dsh-terminal-bash'",
-    '  config:',
-    ...terminalLines,
-    "- name: '@deepseek-ai/dsh-tool-bash-persistent'",
-    '  config:',
-    `    timeoutMs: ${toolTimeoutMs}`,
-    '',
-  ].join('\n'))
-
-  context = new Context()
-  context.baseUrl = pathToFileURL(cwd).href + '/'
-  await context.plugin(Loader)
-  context.loader.builtins.include = Include
-  const modules = new Map<string, unknown>([
-    ['@deepseek-ai/dsh-agent', AgentRegistry],
-    ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
-    ['@deepseek-ai/dsh-tools', ToolRuntime],
-    ['@deepseek-ai/dsh-terminal', TerminalSessionService],
-    ['@deepseek-ai/dsh-test-sandbox', PassthroughSandbox],
-    ['@deepseek-ai/dsh-sandbox-policy', SandboxPolicyService],
-    ['@deepseek-ai/dsh-subprocess-local', LocalSubprocessRuntime],
-    ['@deepseek-ai/dsh-terminal-bash', TerminalLocal],
-    ['@deepseek-ai/dsh-tool-bash-persistent', ToolBashPersistent],
-  ])
-  context.loader.internal = {
-    version: 'v2',
-    async import(specifier: string) {
-      if (!modules.has(specifier)) throw new Error(`unexpected Loader import: ${specifier}`)
-      return modules.get(specifier)
-    },
-  } as unknown as NonNullable<typeof context.loader.internal>
-  await context.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
-  await context.loader.await()
-
-  const owner = agent(context, cwd)
-  const signal = new AbortController().signal
-  const execute = (id: string, command: string) => context!.tools.execute({
-    signal,
-    callId: CallId(id),
-    name: 'bash',
-    arguments: { command },
-    agent: owner,
-  })
-
-  return { cwd, execute }
-}
-
 const suite = process.platform === 'linux' || process.platform === 'darwin' ? describe : describe.skip
 
 suite('persistent Bash through a real cordis.yml Loader composition', () => {
   it('preserves cwd and environment across calls', async () => {
-    const { cwd, execute } = await boot(SCRIPTED_TERMINAL_LINES)
+    root = await mkdtemp(join(tmpdir(), 'dsh-persistent-bash-loader-'))
+    const configPath = join(root, 'cordis.yml')
+    await writeFile(configPath, [
+      "- name: '@deepseek-ai/dsh-agent'",
+      "- name: '@deepseek-ai/dsh-system-prompt'",
+      "- name: '@deepseek-ai/dsh-tools'",
+      "- name: '@deepseek-ai/dsh-terminal'",
+      "- name: '@deepseek-ai/dsh-test-sandbox'",
+      "- name: '@deepseek-ai/dsh-sandbox-policy'",
+      '  config:',
+      '    mode: danger-full-access',
+      `    workspaceRoot: ${JSON.stringify(root)}`,
+      "- name: '@deepseek-ai/dsh-subprocess-local'",
+      "- name: '@deepseek-ai/dsh-terminal-bash'",
+      '  config:',
+      '    pollIntervalMs: 10',
+      '    exactProbeAfterMs: 20',
+      // The silence tier is pushed beyond the send bound, so no send below can
+      // settle as inferred_idle: every case proves the controlled-prompt fast
+      // path that the production defaults (3.5s silence) would otherwise mask.
+      '    idleSilenceMs: 30000',
+      '    handoffGraceMs: 100',
+      '    scrollbackLines: 20000',
+      '    timeoutMs: 2000',
+      '    disposeGraceMs: 500',
+      "- name: '@deepseek-ai/dsh-tool-bash-persistent'",
+      '  config:',
+      '    timeoutMs: 5000',
+      '',
+    ].join('\n'))
 
-    expect(context!.tools.schemas().map(schema => schema.name)).toEqual(['bash'])
+    context = new Context()
+    context.baseUrl = pathToFileURL(root).href + '/'
+    await context.plugin(Loader)
+    context.loader.builtins.include = Include
+    const modules = new Map<string, unknown>([
+      ['@deepseek-ai/dsh-agent', AgentRegistry],
+      ['@deepseek-ai/dsh-system-prompt', SystemPrompt],
+      ['@deepseek-ai/dsh-tools', ToolRuntime],
+      ['@deepseek-ai/dsh-terminal', TerminalSessionService],
+      ['@deepseek-ai/dsh-test-sandbox', PassthroughSandbox],
+      ['@deepseek-ai/dsh-sandbox-policy', SandboxPolicyService],
+      ['@deepseek-ai/dsh-subprocess-local', LocalSubprocessRuntime],
+      ['@deepseek-ai/dsh-terminal-bash', TerminalLocal],
+      ['@deepseek-ai/dsh-tool-bash-persistent', ToolBashPersistent],
+    ])
+    context.loader.internal = {
+      version: 'v2',
+      async import(specifier: string) {
+        if (!modules.has(specifier)) throw new Error(`unexpected Loader import: ${specifier}`)
+        return modules.get(specifier)
+      },
+    } as unknown as NonNullable<typeof context.loader.internal>
+    await context.loader.create({ name: 'cordis:include', config: { path: pathToFileURL(configPath).href } })
+    await context.loader.await()
+
+    const owner = agent(context, root)
+    const signal = new AbortController().signal
+    const execute = (id: string, command: string) => context!.tools.execute({
+      signal,
+      callId: CallId(id),
+      name: 'bash',
+      arguments: { command },
+      agent: owner,
+    })
+
+    expect(context.tools.schemas().map(schema => schema.name)).toEqual(['bash'])
     await execute('state', 'export KEEP=loader; mkdir -p nested; cd nested')
     const observed = text(await execute('observe', 'printf "cwd=%s keep=%s\\n" "$PWD" "$KEEP"'))
-    expect(observed).toContain(`cwd=${join(cwd, 'nested')} keep=loader`)
+    expect(observed).toContain(`cwd=${join(root, 'nested')} keep=loader`)
     expect(observed).not.toContain('DSH_PERSISTENT_BASH')
 
     const multiline = text(await execute(
@@ -178,22 +157,14 @@ suite('persistent Bash through a real cordis.yml Loader composition', () => {
     expect(large).toContain('<response clipped>')
     expect(large).not.toContain('beginning of this command output was dropped')
 
+    // `exec` replaces the wrapper before its end marker prints; the seam's
+    // stdin_read readiness is what returns the replacement shell's prompt
+    // instead of spinning until the tool deadline.
+    const execed = text(await execute('exec-replacement', 'exec bash --noprofile --norc -i'))
+    expect(execed).toBe('dsh> ')
+
     const exited = text(await execute('exit', 'exit'))
     expect(exited).toContain('next bash call starts from the workspace')
-    expect(text(await execute('after-exit', 'printf "%s\\n" "$PWD"'))).toBe(cwd)
-  }, 20_000)
-
-  // Regression: a PS1 the backend does not recognize defeats its prompt
-  // readiness path, and every send then waits out idleSilenceMs (3000) plus
-  // handoffGraceMs (500).
-  it('settles a fast command well below the shipped silence fallback', async () => {
-    const { cwd, execute } = await boot(SHIPPED_SILENCE_TERMINAL_LINES, 30000)
-
-    const startedAt = Date.now()
-    const result = await execute('fast', 'pwd')
-    const elapsedMs = Date.now() - startedAt
-
-    expect(text(result)).toBe(cwd)
-    expect(elapsedMs).toBeLessThan(2000)
+    expect(text(await execute('after-exit', 'printf "%s\\n" "$PWD"'))).toBe(root)
   }, 20_000)
 })

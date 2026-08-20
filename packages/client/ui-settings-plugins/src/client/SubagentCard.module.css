@@ -1,11 +1,3 @@
-.entries { display: flex; flex-direction: column; }
-
-.entry { padding: 14px 0 16px; }
-
-.entry + .entry { border-top: 1px solid var(--dsw-alias-border-l3); }
-
-.entryTitle { margin: 0; color: var(--dsw-alias-label-primary); font-size: 14px; font-weight: 600; line-height: 22px; }
-
 .editor { display: grid; gap: 16px; padding-top: 12px; }
 
 .group { display: grid; gap: 8px; }
@@ -31,7 +23,3 @@
 .select:focus-visible { outline: 2px solid var(--dsw-alias-brand-primary); outline-offset: 1px; }
 
 .actions { display: flex; justify-content: flex-start; padding-top: 2px; }
-
-.status { margin: 14px 0; color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 20px; }
-
-.error { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: var(--dsw-alias-label-error); font-size: 13px; line-height: 20px; }

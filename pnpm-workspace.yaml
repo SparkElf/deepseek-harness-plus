@@ -79,4 +79,6 @@ minimumReleaseAgeExclude:
 
 patchedDependencies:
   dsh-better-sidebar@0.14.0: patches/dsh-better-sidebar@0.14.0.patch
+  # Better Sidebar still carries 1.1 and needs the single-executable spawn helper path.
   node-pty@1.1.0: patches/node-pty@1.1.0.patch
+  node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch

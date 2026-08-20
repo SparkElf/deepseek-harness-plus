@@ -6,6 +6,8 @@ A [DeepSeek](https://deepseek.com)-backed `WebSearchProvider` for the harness [w
 
 This is an **implementation** package: it registers a provider into `ctx.web`, resolves its credential for each search through the optional `ctx.credentials` seam, records the auxiliary request in the initiating Agent session when one exists, and does not register a model-facing tool. Like `@deepseek-ai/dsh-llm-deepseek`, it is a function/namespace plugin (`inject: ['web']`). The Anthropic wire shape is a provider-private detail — it does **not** make this provider depend on `ctx.llm`.
 
+With composition-owned `selection: current-model`, the plugin instead registers the `current-model` search provider. Each search resolves the initiating session's selected model and its `llm-pi-ai` route, requires an `openai-responses` route with a base URL and credential reference, and sends an OpenAI Responses request with the native `web_search` tool. The selected model route owns its endpoint, model, and credential. In this mode, `selection` and `timeoutMs` remain composition-owned and the plugin registers no DeepSeek Settings card; changing either value requires recomposition.
+
 ## How it differs from a dedicated search endpoint
 
 Exa and Perplexity expose dedicated search endpoints; DeepSeek does not. Instead this provider issues a **full Messages model call** carrying the `web_search` server tool, so one search costs a complete model turn in latency and tokens — heavier than a pure retrieval endpoint. DeepSeek runs the search server-side and returns **structured** `web_search_tool_result` blocks; the provider parses those blocks and **never scrapes URLs out of model prose**.
@@ -18,6 +20,7 @@ It reuses the `DEEPSEEK_API_KEY` credential reference (no new secret) but **not*
 
 | Key | Default | Meaning |
 |---|---|---|
+| `selection` | `deepseek` | Composition-owned provider choice: `deepseek` uses this package's Anthropic-compatible route; `current-model` follows the session model through its OpenAI Responses route. |
 | `apiKey` | omitted | Literal DeepSeek API key. Prefer `apiKeyEnv` so no secret enters configuration; a non-empty literal wins. |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | Credential reference resolved for each search through `ctx.credentials`, or from the process environment when that seam is absent. A missing value fails the call as `WEB_PROVIDER_CREDENTIAL_MISSING`. |
 | `baseURL` | `https://api.deepseek.com/anthropic/v1` | Anthropic-compatible endpoint base; `/messages` is appended. Falls back to `$DEEPSEEK_SEARCH_BASE_URL` from any environment layer; do not reuse `$DEEPSEEK_BASE_URL`, which belongs to the chat-completions LLM adapter. An unparseable value makes the provider unavailable. |
@@ -25,7 +28,7 @@ It reuses the `DEEPSEEK_API_KEY` credential reference (no new secret) but **not*
 | `apiVersion` | `2023-06-01` | `anthropic-version` header value. |
 | `maxTokens` | `4096` | Positive-integer upper bound on generated tokens for the Messages request. |
 | `maxUses` | `5` | Positive-integer maximum `web_search` server-tool uses per request. |
-| `timeoutMs` | `120000` | Per-search upper bound; a stalled upstream fails loud with `WEB_PROVIDER_TIMEOUT` instead of hanging. |
+| `timeoutMs` | `120000` | Per-search upper bound; a stalled upstream fails loud with `WEB_PROVIDER_TIMEOUT` instead of hanging. In `current-model` mode this value is composition-owned. |
 
 ```yaml
 - id: web-search-deepseek
@@ -35,7 +38,7 @@ It reuses the `DEEPSEEK_API_KEY` credential reference (no new secret) but **not*
     baseURL: https://gateway.internal/anthropic/v1
 ```
 
-The entry above is the base layer of the `web-search-deepseek` Settings section: a user layer over it reaches the NEXT search, because the provider projects the section per call rather than capturing it at registration. The seam's provider selection therefore never flickers when an endpoint or model changes. `apiKey` carries `role('secret')`, so it never rides a `describe()` response in any layer — a configuration surface learns only whether the credentials domain holds a value for the reference `apiKeyEnv` names, never whether a layer carries a literal key.
+In `deepseek` mode, the entry above is the base layer of the `web-search-deepseek` Settings section: a user layer over it reaches the NEXT search, because the provider projects the section per call rather than capturing it at registration. The DeepSeek provider therefore stays mounted when an endpoint or model changes. `current-model` mode registers no such section. `apiKey` carries `role('secret')`, so it never rides a `describe()` response in any layer — a configuration surface learns only whether the credentials domain holds a value for the reference `apiKeyEnv` names, never whether a layer carries a literal key.
 
 ## Mapping
 
@@ -47,7 +50,7 @@ Provider failures become `WEB_PROVIDER_ERROR`; caller cancellation becomes `WEB_
 
 ## Request logging
 
-Immediately before dispatch, a search running under an initiating Agent appends the log-only `web/deepseek-search-llm-request` session event. It contains the resolved endpoint, API version, and exact secret-free JSON body sent to DeepSeek; headers and credentials are excluded. Credential failures and cancellations before dispatch create no event, while later HTTP or response failures leave the attempted request durable. Direct programmatic provider calls outside an Agent have no initiating session to log.
+Immediately before dispatch, a `deepseek` search running under an initiating Agent appends the log-only `web/deepseek-search-llm-request` session event. It contains the resolved endpoint, API version, and exact secret-free JSON body sent to DeepSeek; headers and credentials are excluded. Credential failures and cancellations before dispatch create no event, while later HTTP or response failures leave the attempted request durable. Direct programmatic provider calls outside an Agent have no initiating session to log. The `current-model` provider appends no DeepSeek request event; its normalized result is retained by the calling web tool like any other provider result.
 
 ## Model Experience
 

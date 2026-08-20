@@ -8,7 +8,7 @@ Status: implemented
 
 这个仓库有三组互不相干的可发布包，却没有任何发布通道把它们送上 registry。
 
-`packages/*/*`、`apps/cli` 与 `apps/web` 组成 `@deepseek-ai/dsh` 的 npm 运行面；`apps/plus-desktop` 归独立安装器发布线；`vendor/*` 是九个 rescope 过的 Cordis 框架包，各自带着上游的版本号；`native/landlock-run/packages/*` 是 Linux 平台包，有自己的 workflow。三组的版本基线、变更节奏和构建要求都不同：dsh 随产品迭代，vendor 只在同步上游或改动本地修改时才动，native 需要 musl 工具链和逐架构构建。把它们塞进一条发布流水线，等于每次产品发版都要重发框架和原生二进制。
+非 experimental 的 `packages/*/*`、`apps/cli` 与 `apps/web` 组成 `@deepseek-ai/dsh` 的 NPM 运行面；`apps/plus-desktop` 属于独立的安装器发布线。`vendor/*` 是九个 rescope 过的 Cordis 框架包，各自带着上游的版本号；`native/landlock-run/packages/*` 是 Linux 平台包，有自己的 workflow。三组的版本基线、变更节奏和构建要求都不同：dsh 随产品迭代，vendor 只在同步上游或改动本地修改时才动，native 需要 musl 工具链和逐架构构建。把它们塞进一条发布流水线，等于每次产品发版都要重发框架和原生二进制。
 
 挡路的还有两处硬门。全部 217 个 workspace manifest 都是 `private: true`，`npm publish` 直接拒绝。更隐蔽的是 933 条 dsh 兄弟包之间硬写的 `peerDependencies: "^0.0.1"`：`pnpm pack` 只替换 `workspace:` 协议，不动语义范围，而 `^0.0.1` 等于 `>=0.0.1 <0.0.2`——发 `0.0.2` 落不进去，发 `0.0.1-rc.1` 也落不进去（semver 规定不带预发布段的范围排除预发布版本）。这些条目至今没出事，只因为版本一直停在 `0.0.1`。
 
@@ -22,17 +22,23 @@ Status: implemented
 
 | 序列 | 成员 | 版本基线 | tag | workflow |
 |---|---|---|---|---|
-| dsh | `packages/*/*` + `apps/cli` + `apps/web`（`@deepseek-ai/dsh`、`@deepseek-ai/dsh-web-frontend` 与精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`） | 全族与 workspace 根共用一个 `0.0.x` | `dsh-v<版本>` | `release.yml` |
+| dsh | 发布集：非 experimental 的 `packages/*/*` + `apps/cli` + `apps/web`，包含精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`；私有实验性包仅加入共享版本 bump；Plus Desktop保持独立 | 发布集、私有 dsh 包与 workspace 根共用一个 `0.0.x` | `dsh-v<版本>` | `release.yml` |
 | vendored framework | `vendor/*` 九个包 | 每包各自一条版本线 | `vendor-<包名>-v<版本>`（每包一个） | `release-vendor.yml` |
 | native | `native/landlock-run/packages/*` | 自己的 `0.0.x` | `landlock-run-v<版本>` | `landlock-run-release.yml` |
 
-npmjs.com 上的一方默认 scope 是 `@deepseek-ai`；dsh 家族还包含精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`。access 由各 manifest 决定，而不是从 scope 推断：vendored 框架与 native 包是 `public`，dsh 族是 `restricted`（[理由](2026-08-13-public-vendor-and-native-sequences.md)）。没有任何发布路径传 `--access`——一个选项无法服务级别互不相同的序列，且会覆盖真正拥有该级别的 manifest。
+默认一方 scope 是 npmjs.com 上的 `@deepseek-ai`；dsh 族还包含精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`。access 由每个 manifest 拥有，而不是由 scope 或序列推断：vendored 框架、native 包与 Settings Backup 是 `public`，dsh 族其余成员是 `restricted`（[理由](2026-08-13-public-vendor-and-native-sequences.md)）。没有任何发布路径传 `--access`——一个选项无法服务级别互不相同的成员，且会覆盖真正拥有该级别的 manifest。
 
 ### 版本由本地命令写进仓库，CI 只核对与上传
 
 每条序列有一条 bump-and-commit 命令：算出目标版本，写进相关 manifest，跑 `pnpm install --lockfile-only`，再把 manifest 连 lockfile 一起 commit。发布版本因此在仓库里查得到。tag 由人工在 commit 合入 master 后打；CI 不写仓库，也不需要写权限。
 
-`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进全族**以及 workspace 根**——workspace 约束要求每个成员的版本等于根版本，所以根承载族版本，而根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
+`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进可发布族、`packages/*/*` 下的每个私有包**以及 workspace 根**。私有包不会获得发布 tag，仍位于 pack 与 publish 之外；它们跟随版本是因为 workspace 约束要求每个 dsh 包的版本等于根版本。Plus Desktop 位于该族之外，保留自己的安装器版本。根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
+
+### 产品发版前确认是否追踪上游
+
+准备产品 release branch 或 tag 前，维护者必须询问人类 owner 本次是否追踪当前 upstream，不存在隐式答案。owner 选择追踪时，维护者获取明确的 upstream branch 与 tags，然后汇报目标 release 与 commit、该 release 之后的提交、merge base 与双方分叉、patch 等价变更、语义上已替代的本地变更、重叠文件、预计冲突及其 owner、release family／版本影响、数据或依赖兼容性变化，以及合并后的验证计划。只有 owner 确认该报告后，才能开始合并 upstream。
+
+owner 选择不追踪时，release记录须写明这次 opt-out，以及决策时已知的最新 upstream release 与 commit。选择追踪时，冲突解决须为每项行为只保留一条当前实现，记录哪些本地 patch已退役、哪些仍由产品拥有，重建 candidate，并在发版前重新执行受影响的真实 UI 验收。release notes须包含 upstream目标与用户可见兼容性影响；合并前报告或旧 candidate截图不能代替合并后验收。
 
 ### vendor：谁改了谁发版，tag 就是账本
 
@@ -80,6 +86,14 @@ registry 的两个行为决定了「怎么尝试一次发布」。写入之间�
 
 `scripts/check-workspace-constraints.ts` 要求这个协议，所以新包无法再引入硬写的范围；同理，invariant companion 规则要求 `@deepseek-ai/dsh-invariants` 用 `workspace:^`。
 
+### optional 依赖绝不在模块作用域被加载
+
+`optionalDependencies` 里的依赖，或带 `peerDependenciesMeta.<name>.optional` 的 peer，在安装出来的树里可以不存在——这份「可以不存在」正是 optional 的全部承诺。而静态 import 在引入方模块加载时就求值，于是一个缺失的包不再表现为「这个能力不可用」，而是变成所有能走到该模块的代码的加载失败。这种失败只在「缺了该包的安装树」里出现，而本仓没有任何测试构造这种树：workspace 安装总是把每个包都装上，所以单测、快照、打包安装探针全都会过，而那个拒绝了这个 optional peer 的消费者拿到的却是坏的包。
+
+[`verify-optional-dependency-imports`](../../../../scripts/verify-optional-dependency-imports.ts) 堵掉这个洞。它从每个包自己的 manifest 读取「这个包允许谁缺失」，再扫描会发布出去的文件——`packages/*/*/src/` 与 `apps/*/src/`——且两个编译门面各扫一遍。`vendor/` 不在范围内，那是[受 vendoring 政策管辖](../../../../vendor/README.md)的固定上游源码。值与类型的判定对着绑定好的 Program 做，而不是看 import 写法，因为 `verbatimModuleSyntax` 是关的：编译器本来就会消除绑定解析为类型的 import，所以 `import type {}`、`import {}`、内联 `type` 说明符、以及解析为类型的具名绑定都不产生产物、一律放行，而裸 import、值绑定、星号 re-export 会被保留、一律报错。只有 type 相位会消除 import：`import defer` 仍然解析并链接它的模块，只推迟求值，所以门禁把它算作一次加载。
+
+报错会点名这个包、点名是哪条声明把它标成 optional 的，并按顺序给出出路——把它作为类型引入（声明合并需要的仅此而已），或者调整写法让模块作用域不再需要这个包。动态 `import()` 只是把失败推迟到首次使用，它属于那种确实需要这个包、并且自己处理缺失的调用方；会想到它，往往说明这个依赖并不 optional，所以门禁不把它作为解法给出。
+
 ### 发布族对象
 
 这个领域里的实体是**发布族**：一组共享版本基线与 tag 命名、可整体发布的包。新增一族等于加一个子类和一条 workflow lane，不改核心。
@@ -88,9 +102,9 @@ registry 的两个行为决定了「怎么尝试一次发布」。写入之间�
 |---|---|
 | `ReleaseFamily` | 一族的身份：成员发现、版本基线、tag 前缀、打包 payload 规则、已安装入口 |
 | `ReleaseMember` | 一个可发布包：目录、包名、版本、manifest |
-| `publishOrder` | 按运行时依赖的拓扑序，同层按包名排；遇到环是报错而不是随意定序 |
+| `publishOrder` | 按 npm 会安装的依赖段加 peer 声明做拓扑序，同层按包名排；安装依赖成环是报错而不是随意定序，任何排不进去的 peer 边被丢弃并点名 |
 | `pack` | 把整族打进一个目录并记录上传顺序 |
-| `verify` | 族的版本基线；发布时还要求本次运行来自该族的 tag、且成员可发布 |
+| `verify` | 族的版本基线、完整打印出来的发布顺序；发布时还要求本次运行来自该族的 tag、且成员可发布 |
 | `verify-packed-install` | 把一个或多个 pack 目录的 tarball 装进一次性 consumer，并驱动已安装的可执行入口 |
 | `publish` | 上面那三态 |
 | `process` / `tarball` | 启动命令、读取打包 tarball 的唯一正家，其中的入口守卫让每个脚本都可被 import |
@@ -112,7 +126,7 @@ dsh 的验证会一并安装 vendored 族的 pack 产物。harness 的包把 ven
 | 项 | 内容 |
 |---|---|
 | 发布集 manifest | 去掉 `private: true`；按序列补 `publishConfig.access` 与带各自 `directory` 的 `repository` |
-| 发布集边界 | `packages/*/*` 与 `vendor/*` 的全部成员，加上 `apps/cli`、`apps/web`；`apps/plus-desktop` 保留在安装器发布线 |
+| 发布集边界 | 非 experimental 的 `packages/*/*`、`apps/cli`、`apps/web` 与 `vendor/*` 全部成员；`apps/plus-desktop` 保持独立 |
 | 依赖协议 | workspace 内部引用为 `workspace:^`，由 `check-workspace-constraints.ts` 与 invariant companion 规则强制 |
 | 根 `AGENTS.md` | 「vendored 包是 `private: true`」这条约定不再成立 |
 | `vendor/README.md` | 记录「`src` 加入 `cordis` 的 `files`」这条本地修改 |

@@ -1,6 +1,6 @@
-/** Host-backed staged state for the two shipped subagent plugin configuration entries. */
-import type { IApiClient, ModelProviderGroup, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
-import type { SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+/** Shared Settings-scope state for the two shipped subagent configuration cards. */
+import type { IApiClient, ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
+import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 
 /** One editable value from a tool-subagent settings namespace. */
@@ -11,16 +11,17 @@ export interface SubagentSettingsValue {
   maxDepth?: number | 'provider-managed'
 }
 
+/** Settings namespaces owned by the two shipped delegation entries. */
+export type SubagentSettingsNamespace = 'subagent' | 'subagent-fork'
+
 /** One shipped delegation entry and its effective settings. */
 export interface SubagentEntryView {
-  ns: string
+  ns: SubagentSettingsNamespace
   kind: 'spawn' | 'fork'
   label: string
   context: 'fresh' | 'forked'
   background: 'continuable' | 'one-shot'
   value: SubagentSettingsValue
-  revision: number
-  applies: 'live' | 'restart'
 }
 
 /** A model choice used by the child model selector. */
@@ -32,65 +33,31 @@ export interface SubagentModelChoice {
   modelName: string
 }
 
-/** State rendered by the shared plugin card. */
+/** State rendered by the two namespace-owned plugin cards. */
 export interface SubagentSettingsState {
-  status: 'idle' | 'loading' | 'ready' | 'error'
-  error: string | null
   writable: boolean
   entries: readonly SubagentEntryView[]
   models: readonly SubagentModelChoice[]
-  drafts: Readonly<Record<string, SubagentSettingsValue>>
+  drafts: Readonly<Partial<Record<SubagentSettingsNamespace, SubagentSettingsValue>>>
   saving: boolean
-  saveError: string | null
+  saveErrors: Readonly<Partial<Record<SubagentSettingsNamespace, true>>>
 }
 
-const ENTRY_META: Record<string, Omit<SubagentEntryView, 'ns' | 'value' | 'revision' | 'applies'>> = {
+const SUBAGENT_NAMESPACES = ['subagent', 'subagent-fork'] as const
+
+const ENTRY_META: Record<SubagentSettingsNamespace, Omit<SubagentEntryView, 'ns' | 'value'>> = {
   subagent: { kind: 'spawn', label: 'subagentContinuous', context: 'fresh', background: 'continuable' },
   'subagent-fork': { kind: 'fork', label: 'subagentOneShot', context: 'forked', background: 'one-shot' },
 }
 
-function objectOf(value: unknown, path: string): Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new Error('settings ' + path + ' is not an object')
-  return value as Record<string, unknown>
-}
+type SubagentScopes = Record<SubagentSettingsNamespace, SettingsScope<SubagentSettingsValue>>
 
-function stringOf(value: unknown, path: string): string {
-  if (typeof value !== 'string') throw new Error('settings ' + path + ' is not a string')
-  return value
-}
-
-function stringsOf(value: unknown, path: string): string[] {
-  if (!Array.isArray(value)) throw new Error('settings ' + path + ' is not a string array')
-  return value.map((item, index) => stringOf(item, path + '[' + String(index) + ']'))
-}
-
-function parseValue(value: unknown, ns: string): SubagentSettingsValue {
-  const root = objectOf(value, ns)
-  const rawOptions = root.agentOptions
-  const rawFilter = root.toolFilter
-  const agentOptions = rawOptions === undefined ? undefined : objectOf(rawOptions, ns + '.agentOptions')
-  const toolFilter = rawFilter === undefined ? undefined : objectOf(rawFilter, ns + '.toolFilter')
-  const maxTokens = agentOptions?.maxTokens
-  if (maxTokens !== undefined && (typeof maxTokens !== 'number' || !Number.isSafeInteger(maxTokens) || maxTokens < 1)) throw new Error('settings ' + ns + '.agentOptions.maxTokens is invalid')
-  const maxDepth = root.maxDepth
-  if (maxDepth !== undefined && maxDepth !== 'provider-managed' && (typeof maxDepth !== 'number' || !Number.isSafeInteger(maxDepth) || maxDepth < 0)) throw new Error('settings ' + ns + '.maxDepth is invalid')
-  return {
-    ...agentOptions === undefined ? {} : {
-      agentOptions: {
-        ...agentOptions.provider === undefined ? {} : { provider: stringOf(agentOptions.provider, ns + '.agentOptions.provider') },
-        ...agentOptions.model === undefined ? {} : { model: stringOf(agentOptions.model, ns + '.agentOptions.model') },
-        ...maxTokens === undefined ? {} : { maxTokens: maxTokens },
-      },
-    },
-    ...root.persona === undefined ? {} : { persona: stringOf(root.persona, ns + '.persona') },
-    ...toolFilter === undefined ? {} : {
-      toolFilter: {
-        ...toolFilter.allow === undefined ? {} : { allow: stringsOf(toolFilter.allow, ns + '.toolFilter.allow') },
-        ...toolFilter.deny === undefined ? {} : { deny: stringsOf(toolFilter.deny, ns + '.toolFilter.deny') },
-      },
-    },
-    ...maxDepth === undefined ? {} : { maxDepth: maxDepth },
-  }
+function withoutNamespace<T>(
+  record: Readonly<Partial<Record<SubagentSettingsNamespace, T>>>,
+  namespace: SubagentSettingsNamespace,
+): Partial<Record<SubagentSettingsNamespace, T>> {
+  const { [namespace]: _removed, ...remaining } = record
+  return remaining
 }
 
 function choicesOf(groups: readonly ModelProviderGroup[]): SubagentModelChoice[] {
@@ -103,92 +70,116 @@ function choicesOf(groups: readonly ModelProviderGroup[]): SubagentModelChoice[]
   })))
 }
 
-/** Settings controller used by the shared plugin card. */
+/** Settings controller shared by the two namespace-owned plugin cards. */
 export class SubagentSettingsStore {
-  /** Reactive state shared by the settings section. */
+  /** Reactive state shared by both settings cards. */
   readonly store: SnapshotStore<SubagentSettingsState> = createSnapshotStore({
-    status: 'idle', error: null, writable: false, entries: [], models: [], drafts: {}, saving: false, saveError: null,
+    writable: false, entries: [], models: [], drafts: {}, saving: false, saveErrors: {},
   })
-  private generation = 0
+  private readonly unsubscribers: (() => void)[] = []
+  private modelGeneration = 0
+  private started = false
 
-  constructor(private readonly api: Pick<IApiClient, 'settings' | 'llm'>) {}
+  /**
+   * @param scopes - namespace scopes derived from the browser's shared Settings mirror.
+   * @param api - model catalog wire face.
+   */
+  constructor(
+    private readonly scopes: SubagentScopes,
+    private readonly api: Pick<IApiClient, 'llm'>,
+  ) {}
 
-  /** Reload effective child defaults; model choices load independently. */
-  async load(): Promise<void> {
-    const generation = ++this.generation
-    this.store.update((state) => { state.status = 'loading'; state.error = null })
-    try {
-      const response = await this.api.settings.describe({})
-      const result = response.result
-      if (!result.ok) throw new Error(result.error.message)
-      const entries = result.value.namespaces
-        .filter(view => ENTRY_META[view.ns] !== undefined)
-        .map(view => this.entryOf(view))
-      if (generation !== this.generation) return
-      this.store.update((state) => {
-        state.status = 'ready'
-        state.writable = result.value.writable
-        state.entries = entries
-      })
-      void this.loadModelChoices(generation)
-    } catch (error) {
-      if (generation !== this.generation) return
-      this.store.update((state) => { state.status = 'error'; state.error = error instanceof Error ? error.message : String(error) })
+  /** Start following both scopes and load model choices once. */
+  ensure(): void {
+    if (this.started) return
+    this.started = true
+    for (const ns of SUBAGENT_NAMESPACES) {
+      this.unsubscribers.push(this.scopes[ns].subscribe(() => { this.derive() }))
     }
+    this.derive()
+    this.refreshModels()
   }
 
-  /** Add advertised model choices when the optional catalog request settles. */
-  private async loadModelChoices(generation: number): Promise<void> {
-    const response = await this.api.llm.models({})
-    const result = response.result
-    if (!result.ok || generation !== this.generation) return
-    const models = choicesOf(result.value.groups)
-    this.store.update((state) => { state.models = models })
+  /** Stop following the two Settings scopes. */
+  dispose(): void {
+    this.started = false
+    this.modelGeneration += 1
+    for (const unsubscribe of this.unsubscribers.splice(0)) unsubscribe()
   }
 
-  /** Stage one entry until the shared plugin card is saved.
-   * @param entry - Entry being edited.
-   * @param value - Complete staged user section.
+  /** Reload model choices after model-adapter topology changes or reconnects. */
+  refreshModels(): void {
+    if (!this.started) return
+    const generation = ++this.modelGeneration
+    void this.loadModelChoices(generation)
+  }
+
+  /** Stage one entry until its plugin card is saved.
+   * @param entry - entry being edited.
+   * @param value - complete staged user section.
    */
   stage(entry: SubagentEntryView, value: SubagentSettingsValue): void {
     this.store.update((state) => { state.drafts = { ...state.drafts, [entry.ns]: value } })
   }
 
-  /** Persist every staged entry with its descriptor revision guard. */
-  async save(): Promise<void> {
-    const snapshot = this.store.getSnapshot()
-    const staged = snapshot.drafts
-    if (Object.keys(staged).length === 0) return
-    this.store.update((state) => { state.saving = true; state.saveError = null })
-    try {
-      for (const entry of snapshot.entries) {
-        const value = staged[entry.ns]
-        if (value === undefined) continue
-        const response = await this.api.settings.replace({ ns: entry.ns, section: value, expectedRevision: entry.revision })
-        if (!response.result.ok) throw new Error(response.result.error.message)
+  /** Persist one staged entry through its Settings scope.
+   * @param entry - entry whose card initiated the save.
+   */
+  async save(entry: SubagentEntryView): Promise<void> {
+    const value = this.store.getSnapshot().drafts[entry.ns]
+    if (value === undefined) return
+    this.store.update((state) => {
+      state.saving = true
+      state.saveErrors = withoutNamespace(state.saveErrors, entry.ns)
+    })
+    const committed = await this.scopes[entry.ns].replace(value)
+    this.store.update((state) => {
+      if (committed) {
+        state.drafts = withoutNamespace(state.drafts, entry.ns)
+      } else {
+        state.saveErrors = { ...state.saveErrors, [entry.ns]: true }
       }
-      this.store.update((state) => { state.drafts = {} })
-      await this.load()
-    } catch (error) {
-      this.store.update((state) => { state.saveError = error instanceof Error ? error.message : String(error) })
-    } finally {
-      this.store.update((state) => { state.saving = false })
-    }
+      state.saving = false
+    })
   }
 
   /** Stage one entry back to its deployment defaults.
-   * @param entry - Entry being reset.
+   * @param entry - entry being reset.
    */
   reset(entry: SubagentEntryView): void { this.stage(entry, {}) }
 
-  /** Discard all staged edits without writing them. */
-  discard(): void {
-    this.store.update((state) => { state.drafts = {}; state.saveError = null })
+  /** Discard one card's staged edit without writing it.
+   * @param entry - entry whose draft is discarded.
+   */
+  discard(entry: SubagentEntryView): void {
+    this.store.update((state) => {
+      state.drafts = withoutNamespace(state.drafts, entry.ns)
+      state.saveErrors = withoutNamespace(state.saveErrors, entry.ns)
+    })
   }
 
-  private entryOf(view: SettingsNamespaceView): SubagentEntryView {
-    const meta = ENTRY_META[view.ns]
-    if (meta === undefined) throw new Error('unknown subagent settings namespace ' + view.ns)
-    return { ns: view.ns, ...meta, value: parseValue(view.value, view.ns), revision: view.revision, applies: view.applies }
+  private derive(): void {
+    const entries = SUBAGENT_NAMESPACES.flatMap((ns): SubagentEntryView[] => {
+      const snapshot = this.scopes[ns].getSnapshot()
+      if (snapshot.status !== 'ready') return []
+      return [{ ns, ...ENTRY_META[ns], value: snapshot.value as SubagentSettingsValue }]
+    })
+    const writable = entries.length > 0 && entries.every(entry => this.scopes[entry.ns].getSnapshot().writable)
+    this.store.update((state) => {
+      state.entries = entries
+      state.writable = writable
+    })
+  }
+
+  private async loadModelChoices(generation: number): Promise<void> {
+    let response: Awaited<ReturnType<IApiClient['llm']['models']>>
+    try {
+      response = await this.api.llm.models({})
+    } catch (_modelCatalogReadFailure) {
+      return
+    }
+    if (!response.result.ok || generation !== this.modelGeneration) return
+    const models = choicesOf(response.result.value.groups)
+    this.store.update((state) => { state.models = models })
   }
 }

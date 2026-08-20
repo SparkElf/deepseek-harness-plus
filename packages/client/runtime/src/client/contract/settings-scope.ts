@@ -51,7 +51,7 @@ export interface SettingsScopeSpec<T> {
 /**
  * Reactive owner handle over one namespace's durable section — the browser
  * mirror of the Host-side `SettingsScope` owner seam. Domain services read
- * and observe the snapshot and route explicit user choices through `set`.
+ * and observe the snapshot and route explicit user choices through `set`, `unset`, or `replace`.
  */
 export interface SettingsScope<T> {
   /** @returns the current sync snapshot (stable reference until the next change). */
@@ -78,4 +78,10 @@ export interface SettingsScope<T> {
    * @returns settlement after the clear and any latest-write recovery read.
    */
   unset(field: string): Promise<void>
+  /**
+   * Replace the complete user section under the scope's revision fence.
+   * @param value - complete user-owned section selected by the feature form.
+   * @returns whether the Host committed the replacement.
+   */
+  replace(value: T & object): Promise<boolean>
 }

@@ -12,11 +12,11 @@ Web overlay 还禁用了两个入口。被禁用的插件不能注册自己的 s
 
 ## 决策
 
-`dsh-tool-subagent` 接受可选的 `settingsNamespace`。存在该值时，插件会把已有的 `agentOptions`、`persona`、`toolFilter` 和 `maxDepth` 字段注册到 settings 服务。请求构造器在每次新建子 agent 时读取已解析的来源。已配置的提供方会在挂载时以及保存的设置改变时校验能力。
+`dsh-tool-subagent` 接受可选的 `settingsNamespace`，并在每次新建子 agent 时读取这个由 Host 注册的分区。它的 `/settings` 子路径独立持有 `agentOptions`、`persona`、`toolFilter` 与 `maxDepth` 的 Host 生命周期注册。已配置的提供方会在 Agent 工具挂载时以及 Host owner 接受保存值时校验能力。
 
-Web 基础组合把 `subagent` 分配给现有的 spawn/可继续入口，把 `subagent-fork` 分配给现有的 fork/一次性入口。两个入口保持挂载，使其 settings 命名空间存在于 Host 中。Host 显式公开这两个名称，`ui-settings-plugins` 在现有“插件”设置页中使用共享卡片渲染它们。
+Web 基础组合为 `subagent` 与 `subagent-fork` 注册 Host 生命周期 owner；每个 Agent preset 再把这两个名称绑定到自己的 spawn/可继续与 fork/一次性工具。这样 Settings 注册保持唯一，工具生命周期则跟随 preset。Host 服务每个已注册命名空间，`ui-settings-plugins` 在现有“插件”设置页中分别以这两个名称注册一张 keyed 卡片。两张卡片都从浏览器共享 Settings 镜像派生，并通过绑定的 Settings scope 只替换自己的命名空间。
 
-卡片按名称列出两个已发布入口，并把编辑区域限定为已有的子 agent 默认字段。提供方绑定、工具名称、后台模式和入口身份仍是组合选择，不在浏览器中编辑。
+每张卡片按名称显示其已发布入口，并把编辑区域限定为该入口已有的子 agent 默认字段。提供方绑定、工具名称、后台模式和入口身份仍是组合选择，不在浏览器中编辑。
 
 ## 曾考虑的替代方案
 
@@ -30,4 +30,4 @@ Web 基础组合把 `subagent` 分配给现有的 spawn/可继续入口，把 `s
 
 保存子 agent 默认值会应用于后续子 agent 运行，不改变已经创建的子 agent。模型覆盖可以省略，以继承父级，同时仍可设置输出 token 上限。省略 persona 会保留部署角色，工具可见范围仍是可信进程中的组合限制，而不是授权系统。
 
-插件卡片不添加任务摘要、选择性历史继承、自动模型选择、预算或内置子 agent 角色。未来的提供方入口需要先具备能力门控，才能出现在同一张卡片中。
+这些插件卡片不添加任务摘要、选择性历史继承、自动模型选择、预算或内置子 agent 角色。未来的提供方入口必须先拥有自己的能力驱动 keyed 卡片，才能出现在该设置标签页中。

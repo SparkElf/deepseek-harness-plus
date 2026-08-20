@@ -1,4 +1,4 @@
-export const localeMessages = {
+const localeMessages = {
   zh: {
     'app.supervisor': '运行时监管',
     'app.progress': '重启进度',

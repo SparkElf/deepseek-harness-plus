@@ -11,6 +11,8 @@ Release notes are the complete user-facing record of one shipped version. They h
 
 Establish the exact tag, commit, assets, merged pull requests, and verification evidence before writing. For a historical release, reconstruct facts from that release's tag and contemporaneous records. Do not describe later functionality as if it shipped earlier, and do not use the current branch as a substitute for the tagged version.
 
+Before finalizing that boundary, complete the human upstream-tracking confirmation and report required by [the npm release sequence decision](../../notes/implemented/process/2026-08-10-npm-release-sequences.md). When tracking proceeds, the release notes name the upstream release and commit plus every user-visible compatibility or migration effect; when it is declined, they record the opt-out and the newest upstream target known at that decision.
+
 ## Separate the summary from the details
 
 Open with one short paragraph that states the release theme and practical value. The opening is orientation, not the feature list. A Highlights section, when useful, remains brief and never replaces the complete changes below it.
