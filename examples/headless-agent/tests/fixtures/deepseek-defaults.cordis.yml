@@ -8,7 +8,8 @@
           baseURL: !!js process.env.DSH_SNAPSHOT_BASE_URL
           thinking: enabled
           reasoningEffort: low
-          streamIdleTimeoutMs: 150
+          # The local SSE fixture writes every 400 ms and ends after 1.6 s.
+          streamIdleTimeoutMs: 1000
       - id: agent-spine
         config:
           agents:
