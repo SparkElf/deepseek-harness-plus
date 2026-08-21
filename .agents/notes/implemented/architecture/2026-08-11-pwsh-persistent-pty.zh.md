@@ -24,7 +24,7 @@ harness 在 Windows 上没有持久 shell。持久 `bash` 栈按构造就是 POS
 
 ### `@deepseek-ai/dsh-terminal-bash` 的 shell 方言
 
-一个 backend、两种方言：`shellDialect: 'bash' | 'pwsh'`（默认 `'bash'`，存量部署逐字节不变）。有效 `shellPath`/`shellArgs` 按方言解析（bash `/bin/bash --noprofile --norc -i`；pwsh 经共享的 `dsh-pwsh-local` 解析器取 `-NoLogo -NoProfile`，保留交互宿主供子 REPL）。子环境去掉 bash 专属 `PS1`/`PROMPT_COMMAND` 标记并为 pwsh 加 `NO_COLOR`。pwsh 无法从环境安装提示符，因此 backend 在启动时通过会话写入 prompt 函数，并等待 `LocalPtySession` 解析出自有 OSC 标记及其后精确的受控提示符——因为 pwsh 从横幅到提示符的间隙可能超过静默上限，所以会在后续 send 上循环等待。setup 源码回显虽包含提示符字面量，但不能发布会话。`TerminalSanitizer` 把标准光标位置查询报告给 `LocalPtySession`，后者以固定的 headless 位置 `1;1` 回答；PSReadLine 因而可以渲染并执行输入，且两种控制序列都不会进入命令输出。`session_exit` 或 `timeout` 结算拒绝 spawn。两种方言发出相同的 BEL 终结 OSC `133;D;` 标记，因此 sanitizer、`PROMPT_MARKER_PREFIX`、`CONTROLLED_PROMPT` 与精确尾部就绪逻辑原样复用——标记仍只是就绪信号、载荷不被消费，与 bash 路径完全一致，且没有新增模型通知通道（与当前实现对齐；延后的 BEL 事件通道保持延后）。
+一个 backend、两种方言：`shellDialect: 'bash' | 'pwsh'`（默认 `'bash'`，存量部署逐字节不变）。有效 `shellPath`/`shellArgs` 按方言解析（bash `/bin/bash --noprofile --norc -i`；pwsh 经共享的 `dsh-pwsh-local` 解析器取 `-NoLogo -NoProfile`，保留交互宿主供子 REPL）。子环境去掉 bash 专属 `PS1`/`PROMPT_COMMAND` 标记并为 pwsh 加 `NO_COLOR`。pwsh 无法从环境安装提示符，因此 backend 在启动时通过会话写入 prompt 函数，并等待 `LocalPtySession` 解析出自有 OSC 标记及其后精确的受控提示符——因为 pwsh 从横幅到提示符的间隙可能超过静默上限，所以会在后续 send 上循环等待。setup 源码回显虽包含提示符字面量，但不能发布会话。`TerminalSanitizer` 把标准光标位置查询报告给 `LocalPtySession`，后者以固定的 headless 位置 `1;1` 回答；PSReadLine 因而可以渲染并执行输入，且两种控制序列都不会进入命令输出；每个查询都会更新传输活动，使静默后备不能在响应驱动的提示符到达前结算。`session_exit` 或 `timeout` 结算拒绝 spawn。两种方言发出相同的 BEL 终结 OSC `133;D;` 标记，因此 sanitizer、`PROMPT_MARKER_PREFIX`、`CONTROLLED_PROMPT` 与精确尾部就绪逻辑原样复用——标记仍只是就绪信号、载荷不被消费，与 bash 路径完全一致，且没有新增模型通知通道（与当前实现对齐；延后的 BEL 事件通道保持延后）。
 
 ### `@deepseek-ai/dsh-tool-pwsh-persistent`
 

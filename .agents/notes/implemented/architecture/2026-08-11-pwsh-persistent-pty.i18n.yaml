@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-11-pwsh-persistent-pty.md
-2026-08-11-pwsh-persistent-pty.md: b9fc27997152dd379887e65906f5ff71350c46f3
-2026-08-11-pwsh-persistent-pty.zh.md: f92d814a04b0caab9000a868eb68d5adf215b244
+2026-08-11-pwsh-persistent-pty.md: ac7d94e0cd9edf33734cd26fa6fee46a98e32e88
+2026-08-11-pwsh-persistent-pty.zh.md: dbfa142b40befb38773bc964c143e214fd88871e

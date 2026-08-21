@@ -154,10 +154,15 @@ describe('LocalPtySession readiness and output', () => {
     vi.useFakeTimers()
     const terminal = new FakeTerminal()
     const session = new LocalPtySession(terminal, config())
+    await initialize(session, terminal)
     const operation = session.startSend({ text: '', submit: false })
+    let settled = false
+    void operation.done.then(() => { settled = true })
 
+    await vi.advanceTimersByTimeAsync(40)
     terminal.emitData('\x1b[6n')
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(20)
+    expect(settled).toBe(false)
     expect(terminal.writes).toEqual(['\x1b[1;1R'])
     expect(operation.readOutput()).toEqual({ delta: '', truncated: false })
     terminal.emitData('\x1b]133;D;0\x07dsh> ')
