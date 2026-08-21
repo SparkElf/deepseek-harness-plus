@@ -54,8 +54,9 @@ jobs:
   #
   # FAILOVER (Linux): each Linux enterprise job resolves its pool through the
   # DSH_CI_FAILOVER_LINUX repository variable. Unset (normal), the expressions
-  # pick the hosted enterprise pools below. Setting the variable to
-  # 'selfhosted' (repo Settings → Actions → Variables; writer-manageable
+  # pick DSH_CI_HOSTED_LINUX_RUNNER when configured, then the hosted enterprise
+  # pools below. Setting the failover variable to 'selfhosted' (repo Settings →
+  # Actions → Variables; writer-manageable
   # repository state — not PR-editable, no merge required) retargets all
   # three onto the in-house
   # vm-backup pool and re-running the failed jobs is the entire switch —
@@ -69,6 +70,7 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
+          || vars.DSH_CI_HOSTED_LINUX_RUNNER
           || 'dsh-ubuntu-24-04-16core' }}
     name: node 24 / static
     env:
@@ -121,6 +123,7 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
+          || vars.DSH_CI_HOSTED_LINUX_RUNNER
           || 'dsh-ubuntu-24-04-16core' }}
     name: node 24 / coverage
     env:
@@ -183,6 +186,7 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
+          || vars.DSH_CI_HOSTED_LINUX_RUNNER
           || 'dsh-ubuntu-24-04-16core' }}
     name: node 24 / snapshots and artifacts
     env:

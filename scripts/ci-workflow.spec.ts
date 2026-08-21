@@ -100,6 +100,8 @@ describe('CI workflow', () => {
     for (const [jobName, job] of [['node-24', node24], ['node-24-coverage', node24Coverage], ['node-24-consumers', node24Consumers]] as const) {
       expect(typeof job['runs-on']).toBe('string')
       expect(job['runs-on'], `${jobName} runs-on must use the Linux failover switch`).toContain('DSH_CI_FAILOVER_LINUX')
+      expect(job['runs-on'], `${jobName} runs-on must allow a repository-owned hosted pool`).toContain('DSH_CI_HOSTED_LINUX_RUNNER')
+      expect(job['runs-on'], `${jobName} runs-on must retain the enterprise default`).toContain('dsh-ubuntu-24-04-16core')
       expect(job['runs-on'], `${jobName} runs-on must not use the Windows failover switch`).not.toContain('DSH_CI_FAILOVER_WINDOWS')
       expect(job['runs-on']).toContain('vm-backup')
     }
