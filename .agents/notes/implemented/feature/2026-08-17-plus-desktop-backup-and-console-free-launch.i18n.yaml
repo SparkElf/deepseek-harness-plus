@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-17-plus-desktop-backup-and-console-free-launch.md
-2026-08-17-plus-desktop-backup-and-console-free-launch.md: 79c3d88ee778db8bbcbc0cd8e4fdda8994b00003
-2026-08-17-plus-desktop-backup-and-console-free-launch.zh.md: b9dae7a4f45a1697b67841a65e748b2375ecb65a
+2026-08-17-plus-desktop-backup-and-console-free-launch.md: c907d73ef7d0f58ed86c3b30d6b1b0c506c5d399
+2026-08-17-plus-desktop-backup-and-console-free-launch.zh.md: 3ce0380ae491a8519cb60e66450c0e1bf4505bd0

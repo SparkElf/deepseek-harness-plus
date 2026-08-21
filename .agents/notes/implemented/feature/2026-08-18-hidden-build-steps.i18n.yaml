@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-18-hidden-build-steps.md
-2026-08-18-hidden-build-steps.md: 5e8ac8727ac580d58b650774a007f248c34af5c2
-2026-08-18-hidden-build-steps.zh.md: fd708ed29cbae2fc27b0fd8f9577faa8cfe6a6b3
+2026-08-18-hidden-build-steps.md: ae76a4ffe1c55da5a19b3e0fd79d397ad5529631
+2026-08-18-hidden-build-steps.zh.md: 323f2ef2359e5088fa8ad5065b263cf1b84c2ed1
