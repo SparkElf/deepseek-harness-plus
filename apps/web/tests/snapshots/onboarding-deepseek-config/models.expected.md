@@ -1,4 +1,7 @@
 - dialog "设置":
+  - button "关闭":
+    - img
+    - text: 关闭
   - navigation:
     - text: 设置
     - button "通用设置":
@@ -17,9 +20,6 @@
       - img
       - text: 备份
   - button "打开配置文件"
-  - button "关闭":
-    - img
-    - text: 关闭
   - heading "模型" [level=2]
   - paragraph: 填入各提供方的 API 密钥即可使用其模型。
   - list:
@@ -43,7 +43,7 @@
           - textbox "显示名称 1":
             - /placeholder: 显示名称
             - text: DeepSeek-V4-Pro
-          - button "容量 1":
+          - button "模型能力 1":
             - img
           - button "删除模型 1":
             - img
@@ -53,7 +53,7 @@
           - textbox "显示名称 2":
             - /placeholder: 显示名称
             - text: Private Preview
-          - button "容量 2" [expanded]:
+          - button "模型能力 2" [expanded]:
             - img
           - button "删除模型 2":
             - img

@@ -81,6 +81,14 @@ export interface Config {
   maxDepth?: number | 'provider-managed'
 }
 
+/** Build a fresh tool-filter schema before each owner applies its omission default. */
+function toolFilterSchema() {
+  return z.object({
+    allow: z.array(z.string()).default(undefined as unknown as string[]),
+    deny: z.array(z.string()).default(undefined as unknown as string[]),
+  })
+}
+
 export const Config: z<Config> = z.object({
   provider: z.string().required(),
   settingsNamespace: z.string(),
@@ -95,10 +103,7 @@ export const Config: z<Config> = z.object({
   }).default(undefined as unknown as { provider: string; model: string; maxTokens: number }),
   persona: z.string(),
   // Preserve omission; Schemastery's `{ allow: [] }` default would deny every tool.
-  toolFilter: z.object({
-    allow: z.array(z.string()).default(undefined as unknown as string[]),
-    deny: z.array(z.string()).default(undefined as unknown as string[]),
-  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  toolFilter: toolFilterSchema().default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(3),
 })
 
@@ -122,10 +127,7 @@ export const SUBAGENT_SETTINGS_SCHEMA = z.object({
     maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(undefined as unknown as number),
   }).default(undefined as unknown as { provider: string; model: string; maxTokens: number }),
   persona: z.string().default(undefined as unknown as string),
-  toolFilter: z.object({
-    allow: z.array(z.string()).default(undefined as unknown as string[]),
-    deny: z.array(z.string()).default(undefined as unknown as string[]),
-  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  toolFilter: toolFilterSchema().default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([
     z.natural().max(Number.MAX_SAFE_INTEGER),
     z.const('provider-managed' as const),

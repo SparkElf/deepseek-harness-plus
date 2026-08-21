@@ -1,9 +1,9 @@
 /** Published dsh web + pnpm dev:web → browser HMR, with no page reload. */
 
-import { existsSync, globSync } from 'node:fs'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { existsSync, globSync, statSync } from 'node:fs'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { chromium } from 'playwright'
 import { expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
@@ -21,6 +21,28 @@ function spawnSpec(argv: readonly string[], cwd: string, env?: Record<string, st
     graceMs: 5_000,
     ...env === undefined ? {} : { env },
   }
+}
+
+type FileSnapshot = readonly [path: string, content: Buffer]
+
+/** Capture all built files matched by one repository-relative glob. */
+async function snapshotFiles(pattern: string): Promise<FileSnapshot[]> {
+  const paths = globSync(pattern, { cwd: REPO_ROOT })
+    .map(path => join(REPO_ROOT, path))
+    .filter(path => statSync(path).isFile())
+  return Promise.all(paths.map(async path => [path, await readFile(path)] as const))
+}
+
+/** Restore captured files while retaining every cleanup error. */
+async function restoreFiles(files: readonly FileSnapshot[], failures: unknown[]): Promise<void> {
+  await Promise.all(files.map(async ([path, content]) => {
+    try {
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, content)
+    } catch (error) {
+      failures.push(error)
+    }
+  }))
 }
 
 function waitForOutput(child: SubprocessHandle, pattern: RegExp, label: string): Promise<string> {
@@ -74,9 +96,9 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
   const binPath = join(REPO_ROOT, 'apps/cli/lib/bin.js')
   if (!existsSync(binPath)) throw new Error('HMR browser test needs the built dsh bin; run pnpm run build first')
   const clientBuildEnvironment = readClientBuildRecord(REPO_ROOT).environment
-  const clientBundlePaths = globSync('packages/*/*/lib/client.js{,.map}', { cwd: REPO_ROOT })
-    .map(path => join(REPO_ROOT, path))
-  const originalClientBundles = await Promise.all(clientBundlePaths.map(async path => [path, await readFile(path)] as const))
+  const originalClientBundles = await snapshotFiles('packages/*/*/lib/client.js{,.map}')
+  const webDistPath = join(REPO_ROOT, 'apps/web/dist')
+  const originalWebDist = await snapshotFiles('apps/web/dist/**/*')
   const originalSource = await readFile(sourcePath)
   const oldText = 'Into the Unknown'
   const sourceNeedle = "'hero.headline': 'Into the Unknown'"
@@ -128,12 +150,12 @@ it('hot-reloads a real client-plugin source edit without refreshing the page', a
     failures.push(error)
   } finally {
     await writeFile(sourcePath, originalSource).catch((error: unknown) => failures.push(error))
-    if (watcher !== undefined) await stopTree(watcher).catch((error: unknown) => failures.push(error))
-    await Promise.all(originalClientBundles.map(async ([path, content]) => {
-      await writeFile(path, content).catch((error: unknown) => failures.push(error))
-    }))
-    if (host !== undefined) await stopTree(host).catch((error: unknown) => failures.push(error))
     await browser?.close().catch((error: unknown) => failures.push(error))
+    if (host !== undefined) await stopTree(host).catch((error: unknown) => failures.push(error))
+    if (watcher !== undefined) await stopTree(watcher).catch((error: unknown) => failures.push(error))
+    await rm(webDistPath, { recursive: true, force: true }).catch((error: unknown) => failures.push(error))
+    await restoreFiles(originalWebDist, failures)
+    await restoreFiles(originalClientBundles, failures)
     await subprocessFiber?.dispose().catch((error: unknown) => failures.push(error))
     await rm(world, { recursive: true, force: true }).catch((error: unknown) => failures.push(error))
   }

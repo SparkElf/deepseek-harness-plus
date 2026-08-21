@@ -33,7 +33,7 @@ describe('user data backup', () => {
   })
 
   it('writes user data with the marker and skips generated directories and symlinks', () => {
-    symlinkSync(join(home, 'nowhere'), join(home, 'profiles', 'dangling'))
+    symlinkSync(join(home, 'nowhere'), join(home, 'dangling'))
     const archivePath = join(work, 'backup.zip')
     const written = writeUserBackup(home, archivePath)
     expect(written.entries).toBeGreaterThan(0)
@@ -44,6 +44,7 @@ describe('user data backup', () => {
     expect(names).toContain(BACKUP_MANIFEST_ENTRY)
     expect(names.some(name => name.startsWith('profiles/'))).toBe(false)
     expect(names.some(name => name.startsWith('supervisor/'))).toBe(false)
+    expect(names).not.toContain('dangling')
   })
 
   it('rejects archives without the manifest marker', () => {

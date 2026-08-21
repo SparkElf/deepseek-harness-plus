@@ -210,12 +210,14 @@ describe('PiAiAdapter provider routing', () => {
         provider: 'acme-gateway',
         model: 'acme-model',
         replayState: {
-          kind: 'pi-ai',
-          version: 1,
-          api: 'openai-responses',
-          provider: 'acme-gateway',
-          model: 'acme-model',
-          stopReason: 'stop',
+          response: {
+            kind: 'pi-ai',
+            version: 2,
+            api: 'openai-responses',
+            provider: 'acme-gateway',
+            model: 'acme-model',
+            stopReason: 'stop',
+          },
           blocks: [
             {
               type: 'reasoning',
@@ -237,12 +239,14 @@ describe('PiAiAdapter provider routing', () => {
         provider: 'acme-gateway',
         model: 'acme-model',
         replayState: {
-          kind: 'pi-ai',
-          version: 1,
-          api: 'openai-responses',
-          provider: 'acme-gateway',
-          model: 'acme-model',
-          stopReason: 'stop',
+          response: {
+            kind: 'pi-ai',
+            version: 2,
+            api: 'openai-responses',
+            provider: 'acme-gateway',
+            model: 'acme-model',
+            stopReason: 'stop',
+          },
           blocks: [
             {
               type: 'reasoning',
@@ -284,12 +288,14 @@ describe('PiAiAdapter provider routing', () => {
         provider: 'acme-gateway',
         model: 'acme-model',
         replayState: {
-          kind: 'pi-ai',
-          version: 1,
-          api: 'openai-responses',
-          provider: 'acme-gateway',
-          model: 'acme-model',
-          stopReason: 'stop',
+          response: {
+            kind: 'pi-ai',
+            version: 2,
+            api: 'openai-responses',
+            provider: 'acme-gateway',
+            model: 'acme-model',
+            stopReason: 'stop',
+          },
           blocks: [
             { type: 'reasoning', thinkingSignature: JSON.stringify({ type: 'reasoning', id: 'rs_without_status', summary: [] }) },
             { type: 'text', textSignature: JSON.stringify({ v: 1, id: 'msg_text_only' }) },

@@ -35,7 +35,7 @@ import Include, { type PatchOptions } from '@deepseek-ai/cordis-plugin-include'
 import Group from '@deepseek-ai/cordis-plugin-group'
 import { scrubRequestHeaders, stabilizeFixtureMessageIds } from '@deepseek-ai/dsh-acp-snapshot'
 import {
-  assertEntriesLoaded,
+  assertEntriesActivated,
   composeEntries,
   healProfilesModuleFallback,
   loadOverlayPatches,
@@ -494,13 +494,17 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       : [],
     ...options.deepSeekSearch === undefined
       ? []
-      : [{
-        id: 'web-search-deepseek',
-        config: {
-          apiKeyEnv: options.deepSeekSearch.apiKeyEnv,
-          baseURL: options.deepSeekSearch.baseURL,
+      : [
+        { id: 'web', config: { searchProvider: 'deepseek-official' } },
+        {
+          id: 'web-search-deepseek',
+          config: {
+            selection: 'deepseek',
+            apiKeyEnv: options.deepSeekSearch.apiKeyEnv,
+            baseURL: options.deepSeekSearch.baseURL,
+          },
         },
-      }],
+      ],
     ...mode === 'record' || options.deepSeekMissingCredential === true
       ? []
       : [{ id: 'llm-deepseek', disabled: true }],
@@ -547,7 +551,7 @@ export async function launchWebScaffold(options: LaunchOptions = {}): Promise<We
       config: { path: pathToFileURL(rootConfig).href, patches },
     })
     await ctx.loader.await()
-    assertEntriesLoaded(ctx, 'web e2e scaffold')
+    await assertEntriesActivated(ctx, 'web e2e scaffold')
     if (options.welcomeNoticePending !== true) {
       await ctx.settings.mutate(settingsNamespace(WELCOME_NOTICE_SETTINGS_NAMESPACE), [{
         op: 'set', path: [WELCOME_NOTICE_ACK_FIELD], value: WELCOME_NOTICE_VERSION,

@@ -180,7 +180,7 @@ export class CurrentModelSearchProvider implements WebSearchProvider {
         signal: combined,
       })
     } catch (error: unknown) {
-      if ((error instanceof Error || error instanceof DOMException) && error.name === 'AbortError' && timer.aborted && signal?.aborted !== true) {
+      if (error instanceof Error && error.name === 'AbortError' && timer.aborted && signal?.aborted !== true) {
         throw new WebError(`current model search timed out after ${this.timeoutMs()}ms`, 'WEB_PROVIDER_TIMEOUT')
       }
       throw error

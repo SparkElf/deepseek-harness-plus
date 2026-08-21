@@ -199,6 +199,9 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByRole('button', { name: 'Models' }).getAttribute('aria-current')).toBe('true')
     expect(screen.getByTestId('section-models')).toBeTruthy()
     expect(screen.queryByTestId('section-general')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Settings Title' }))
+    expect(screen.queryByTestId('section-models')).toBeNull()
   })
 
   it('mounts onboarding steps in order and transfers ownership only on completion', () => {

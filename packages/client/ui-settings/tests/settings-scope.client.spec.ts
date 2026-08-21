@@ -203,6 +203,17 @@ describe('SettingsScopeController', () => {
     expect(scope.getSnapshot()).toMatchObject({ value: { preference: 'dark' }, revision: 5 })
   })
 
+  it('omits the revision when a complete replacement starts before the first Host read', async () => {
+    const replace = vi.fn().mockResolvedValueOnce(ok(view({ preference: 'dark' }, 1)))
+    const { scope } = derivedScope({ replace })
+
+    await expect(scope.replace({ preference: 'dark' })).resolves.toBe(true)
+    expect(replace).toHaveBeenCalledWith({
+      ns: 'ui-test',
+      section: { preference: 'dark' },
+    })
+  })
+
   it('re-reads after a revisionless first write lands during the initial read', async () => {
     const initial = deferred<ReturnType<typeof described>>()
     const describeCall = vi.fn()

@@ -11,6 +11,8 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-settings-plugins/clien
 import type {
   ConfigurablePluginsTabFace, PluginsSettingsSectionInjected,
 } from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
+import type { SubagentCardInjected } from '../src/client/SubagentCard.tsx'
+import type { SubagentEntryView } from '../src/client/subagent-store.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -27,6 +29,9 @@ async function bench(served?: string[]) {
   locale.setLocale('zh')
   ctx.provide('locale', locale)
   const describeCredentials = vi.fn(() => Promise.resolve({ rpcId: 'c', result: { ok: false, error: {} } }))
+  const listModels = vi.fn(() => Promise.resolve({
+    rpcId: 'm', result: { ok: true, value: { current: undefined, routable: false, groups: [], failures: [] } },
+  }))
   const describeSettings = vi.fn(() => Promise.resolve(served === undefined
     ? { rpcId: 's', result: { ok: false, error: {} } }
     : {
@@ -51,10 +56,11 @@ async function bench(served?: string[]) {
     api: {
       settings: { describe: describeSettings },
       credentials: { describe: describeCredentials },
+      llm: { models: listModels },
     },
   } as never)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, describeCredentials, describeSettings }
+  return { ctx, slots: ctx.get('slots') as SlotRegistry, describeCredentials, describeSettings, listModels }
 }
 
 function declareRoot(slots: SlotRegistry): () => void {
@@ -88,7 +94,7 @@ describe('ui-settings-plugins apply', () => {
 
 
   it('injects a live tab projection, the card directory, and one business face per card', async () => {
-    const { ctx, slots } = await bench()
+    const { ctx, slots, listModels } = await bench()
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
 
@@ -116,6 +122,21 @@ describe('ui-settings-plugins apply', () => {
       const face = (entry as { inject?: () => unknown }).inject?.() as { hooks: Record<string, unknown> }
       // Each card injects exactly one snapshot store plus its own actions.
       expect(Object.keys(face.hooks)).toHaveLength(1)
+      if (entry.options.key === 'subagent') {
+        const subagentFace = face as unknown as SubagentCardInjected
+        const item: SubagentEntryView = {
+          ns: 'subagent', kind: 'spawn', label: 'subagentContinuous',
+          context: 'fresh', background: 'continuable', value: {},
+        }
+        subagentFace.ensure()
+        await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(1) })
+        ctx.remote.$dispatch('llm/adapters-updated', [])
+        await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(2) })
+        subagentFace.stage(item, { persona: 'reviewer' })
+        await subagentFace.save(item)
+        subagentFace.reset(item)
+        subagentFace.discard(item)
+      }
     }
   })
 
@@ -212,7 +233,7 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(slots.entries('settings.plugin.item')).toHaveLength(3)
+    expect(slots.entries('settings.plugin.item')).toHaveLength(5)
 
     await fiber.dispose()
 

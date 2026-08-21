@@ -37,8 +37,15 @@ function fakeAgent(id = 'parent-1'): Agent {
   return { id: SessionId(id) } as unknown as Agent
 }
 
-async function setup(toolConfig: tool.Config, mockConfig: Partial<mock.Config> = {}) {
+async function setup(
+  toolConfig: tool.Config,
+  mockConfig: Partial<mock.Config> = {},
+  settings?: tool.SubagentSettings | null,
+) {
   const ctx = new Context()
+  if (settings !== undefined) {
+    ctx.provide('settings', { get: () => settings ?? undefined } as never)
+  }
   await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(SubagentRuntime)
@@ -1365,5 +1372,65 @@ describe('depth budget configuration', () => {
     await callSubagent(ctx, { description: 'd', prompt: 'p' })
     expect(requests[0]?.maxDepth).toBeUndefined()
     expect(requests[0]?.toolFilter).toBeUndefined()
+  })
+})
+
+describe('live settings defaults', () => {
+  it('projects every user-owned setting and rejects unsupported provider capabilities', () => {
+    expect(tool.settingsFromConfig({ agentOptions: { provider: 'child-provider' } }))
+      .toEqual({ agentOptions: { provider: 'child-provider' } })
+    expect(tool.settingsFromConfig({
+      agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
+      persona: 'reviewer',
+      toolFilter: { allow: ['read'] },
+      maxDepth: 2,
+    })).toEqual({
+      agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
+      persona: 'reviewer',
+      toolFilter: { allow: ['read'] },
+      maxDepth: 2,
+    })
+
+    const limited = {
+      name: 'limited',
+      capabilities: { outputSchema: false, depthLimit: true, toolFilter: false, persona: false },
+    } as never
+    expect(() => { tool.validateSettings({ persona: 'reviewer' }, limited) }).toThrow(/cannot apply persona/)
+    expect(() => { tool.validateSettings({ toolFilter: { allow: ['read'] } }, limited) }).toThrow(/cannot apply toolFilter/)
+  })
+
+  it('reads live defaults from the registered Settings namespace for each start', async () => {
+    let seen: SubagentStartRequest | undefined
+    const ctx = await setup(
+      { provider: 'mock', settingsNamespace: 'subagent' },
+      { onStart: (request) => { seen = request } },
+      {
+        agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
+        persona: 'reviewer',
+        toolFilter: { deny: ['write'] },
+        maxDepth: 2,
+      },
+    )
+
+    await callSubagent(ctx, { description: 'd', prompt: 'p' })
+    expect(seen).toMatchObject({
+      agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
+      persona: 'reviewer',
+      toolFilter: { deny: ['write'] },
+      maxDepth: 2,
+    })
+  })
+
+  it('uses composition defaults without Settings and fails when the Host omits a named namespace', async () => {
+    let seen: SubagentStartRequest | undefined
+    const ctx = await setup(
+      { provider: 'mock', settingsNamespace: 'subagent', persona: 'composition persona' },
+      { onStart: (request) => { seen = request } },
+    )
+    await callSubagent(ctx, { description: 'd', prompt: 'p' })
+    expect(seen?.persona).toBe('composition persona')
+
+    await expect(setup({ provider: 'mock', settingsNamespace: 'subagent' }, {}, null))
+      .rejects.toThrow('settings namespace "subagent" is not registered')
   })
 })

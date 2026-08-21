@@ -75,11 +75,14 @@ describe('web e2e: plugin configuration section', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-config-cards'))
     const dialog = await openPlugins()
 
-    // Every card the shipped web composition exposes: the shell executor, the
-    // agent loop, and the DeepSeek search provider.
+    // Current-model Web Search follows the Models page, so it owns no separate
+    // plugin card. The shipped Host exposes shell, agent-loop, and both
+    // delegation defaults here.
     await dialog.getByText('终端', { exact: true }).waitFor({ timeout: 10_000 })
     expect(await dialog.getByText('Agent 循环', { exact: true }).count()).toBe(1)
-    expect(await dialog.getByText('网页搜索', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByText('网页搜索', { exact: true }).count()).toBe(0)
+    expect(await dialog.getByText('连续子代理', { exact: true }).count()).toBe(1)
+    expect(await dialog.getByText('一次性子代理', { exact: true }).count()).toBe(1)
     // Collapsed: a card's fields appear only once it is expanded.
     expect(await dialog.getByLabel('命令超时（毫秒）').count()).toBe(0)
 

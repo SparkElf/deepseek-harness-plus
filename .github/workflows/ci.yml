@@ -127,11 +127,12 @@ jobs:
           || 'dsh-ubuntu-24-04-16core' }}
     name: node 24 / coverage
     env:
-      # Partitioning replaces the instrumented share; this budget gives the
-      # exempt-heavy gate two workers on both hosted and failover runners.
-      DSH_COVERAGE_MAX_WORKERS: '6'
+      # Plus uses the public four-core hosted label. Its four instrumented
+      # partitions run alone, then the one-worker exempt-heavy gate follows.
+      # Enterprise and failover pools retain the wider aggregate.
+      DSH_COVERAGE_MAX_WORKERS: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '4' || '6' }}
       DSH_COVERAGE_PARTITIONS: '4'
-      DSH_GATE_CONCURRENCY: '3'
+      DSH_GATE_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '1' || '3' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -190,13 +191,14 @@ jobs:
           || 'dsh-ubuntu-24-04-16core' }}
     name: node 24 / snapshots and artifacts
     env:
-      DSH_GATE_CONCURRENCY: '8'
+      # The public four-core runner serializes aggregate gates and bounds each
+      # internal pool. Enterprise and failover pools keep their wider budgets.
+      DSH_GATE_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '1' || '8' }}
       DSH_NODE_COMPAT_SKIP_TYPECHECK: '1'
-      DSH_OXLINT_THREADS: '8'
-      DSH_PUBLINT_CONCURRENCY: '8'
-      DSH_WEB_SNAPSHOT_WORKERS: '6'
-      # Failover halves snapshot concurrency for the shared 64-core VM.
-      DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || '32' }}
+      DSH_OXLINT_THREADS: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '4' || '8' }}
+      DSH_PUBLINT_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '4' || '8' }}
+      DSH_WEB_SNAPSHOT_WORKERS: ${{ vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' && vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '2' || '6' }}
+      DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || vars.DSH_CI_HOSTED_LINUX_RUNNER == 'ubuntu-24.04' && '4' || '32' }}
     steps:
       - uses: actions/checkout@v6
         with:

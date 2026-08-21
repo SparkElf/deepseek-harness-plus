@@ -184,6 +184,13 @@ export default defineConfig({
         // Dynamic Host/Client composition is covered by its focused lifecycle
         // tests and assembled application checks rather than per-file coverage.
         'packages/self-modification/*/src/**/*.{ts,tsx}',
+        // Settings Backup and Subagent startup execute only inside Loader-assembled
+        // Host/Client applications; importing them here would bypass that composition.
+        'packages/client/ui-settings-backup/src/index.ts',
+        'packages/client/ui-settings-backup/src/invariant.ts',
+        'packages/client/ui-settings-backup/src/client/index.ts',
+        'packages/client/ui-settings-backup/src/client/locales.ts',
+        'packages/subagent/tool-subagent/src/startup.ts',
         // A killed executable lint-contract test can leave a non-product source probe behind.
         'packages/*/*/src/oxlint-contract-*.ts',
         // Client/web UI files whose remaining branches need a browser-grade
@@ -256,6 +263,10 @@ export default defineConfig({
         'packages/client/ui-primitives/src/JsonTree.tsx',
         'packages/client/ui-settings-models/src/client/DeepSeekOnboardingDialog.tsx',
         'packages/client/ui-settings-models/src/client/welcome-store.ts',
+        // Subagent Settings needs browser-grade slot/store hook binding; keep its
+        // card and shared draft store in the same GUI debt group.
+        'packages/client/ui-settings-plugins/src/client/SubagentCard.tsx',
+        'packages/client/ui-settings-plugins/src/client/subagent-store.ts',
         'packages/extensions/*/src/**/*.ts',
         'packages/extensions/*/src/**/*.tsx',
         // Typert generator: correctness is pinned by its fixture suites and

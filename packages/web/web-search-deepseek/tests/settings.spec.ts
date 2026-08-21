@@ -112,6 +112,37 @@ describe('web-search-deepseek settings section', () => {
     await bench.ctx.fiber.dispose()
   })
 
+  it.each([
+    ['default', { selection: 'current-model' }],
+    ['configured', { selection: 'current-model', timeoutMs: 1000 }],
+  ] as const)('registers the current-model provider with the %s timeout', async (_label, config) => {
+    const ctx = new Context()
+    ctx.provide('agents', {
+      currentInitiator: () => ({ options: { provider: 'link_api', model: 'gpt-5.6-sol' } }),
+    } as never)
+    ctx.provide('settings', {
+      describe: () => [{
+        ns: 'llm-pi-ai',
+        value: { providers: {
+          link_api: {
+            api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY',
+          },
+        } },
+      }],
+    } as never)
+    ctx.provide('credentials', { resolve: async () => ({ value: 'openai-key', source: 'test' }) } as never)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ output_text: 'ok' }))
+    await ctx.plugin(WebRuntime, { searchProvider: 'current-model' })
+    if (_label === 'default') {
+      deepseekPlugin.apply(ctx, config)
+    } else {
+      await ctx.plugin(deepseekPlugin, config).await()
+    }
+
+    await expect(ctx.web.search({ query: 'q' })).resolves.toEqual({ content: 'ok', sources: [], truncated: false })
+    await ctx.fiber.dispose()
+  })
+
   it('releases the namespace when the plugin unloads', async () => {
     const bench = await boot()
     expect(bench.ctx.settings.describe().map(row => String(row.ns))).toContain('web-search-deepseek')
