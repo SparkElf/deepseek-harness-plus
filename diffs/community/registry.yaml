@@ -79,7 +79,7 @@ records:
       - .agents/plugins/curated.yaml
       - presets/compositions/registry.yaml
     plugins:
-      - '@sparkelf/dsh-mobile-bridge@0.2.6'
+      - '@sparkelf/dsh-mobile-bridge@0.2.7'
     compatibility: Plus pins the external npm artifact and mounts it after the first-party Web bundle; a higher profile patch can disable the row without leaving a Host-owned Client wrapper.
     owner: plus-community
     verification:

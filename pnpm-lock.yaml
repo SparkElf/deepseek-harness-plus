@@ -1505,8 +1505,8 @@ importers:
         specifier: workspace:^
         version: link:../../client/ui-settings-backup
       '@sparkelf/dsh-mobile-bridge':
-        specifier: 0.2.6
-        version: 0.2.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
+        specifier: 0.2.7
+        version: 0.2.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -11744,8 +11744,8 @@ packages:
     resolution: {integrity: sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==}
     engines: {node: '>=14.0.0'}
 
-  '@sparkelf/dsh-mobile-bridge@0.2.6':
-    resolution: {integrity: sha512-/0M5tN4wxadsaYwEeKk56W/5iN1jm9xWhs11vNub2itBBhPK5pnMZerIrMESl4s5/0P/xO/oRAN9+1GhbyG3KA==}
+  '@sparkelf/dsh-mobile-bridge@0.2.7':
+    resolution: {integrity: sha512-QYS244YSqTISSKBdNlhbIiQXIO7mV1+4AZ2z2Tz1phALENoghu1/uLR40Wv/yVEKBRCWW7Oow6mupxdEgaNPRA==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.1
@@ -18147,7 +18147,7 @@ snapshots:
       '@smithy/util-buffer-from': 2.2.0
       tslib: 2.8.1
 
-  '@sparkelf/dsh-mobile-bridge@0.2.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
+  '@sparkelf/dsh-mobile-bridge@0.2.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-client-ui-primitives': link:packages/client/ui-primitives
