@@ -6,6 +6,8 @@
 
 这是一个**实现**包：它向 `ctx.web` 注册提供方，通过可选的 `ctx.credentials` seam 为每次搜索解析凭据，若存在发起请求的 agent（智能体）会话，还会在其中记录该辅助请求，且不注册面向模型的工具。与 `@deepseek-ai/dsh-llm-deepseek` 一样，它是函数／命名空间插件（`inject: ['web']`）。Anthropic 协议格式（wire format）是提供方私有细节，并**不**使该提供方依赖 `ctx.llm`。
 
+当组合持有的配置为 `selection: current-model` 时，本插件改为注册 `current-model` 搜索提供方。每次搜索都会解析发起会话选中的模型及其 `llm-pi-ai` 路由，要求该路由使用 `openai-responses` 且提供基址与凭据引用，并发送启用原生 `web_search` 工具的 OpenAI Responses 请求。所选模型路由持有端点、模型与凭据。在该模式下，`selection` 与 `timeoutMs` 均由组合持有，插件也不会注册 DeepSeek 设置卡片；改变任一值都需要重新组合。
+
 ## 与专用搜索端点的区别
 
 Exa 和 Perplexity 提供专用搜索端点，DeepSeek 则没有。该提供方改为发起一次携带 `web_search` 服务器工具的**完整 Messages 模型调用**，因此一次搜索会产生完整模型轮次的延迟与 token 开销，比纯检索端点更重。DeepSeek 在服务器侧执行搜索，返回**结构化** `web_search_tool_result` 块；提供方解析这些块，**绝不会从模型文本中抓取 URL**。
@@ -18,6 +20,7 @@ Exa 和 Perplexity 提供专用搜索端点，DeepSeek 则没有。该提供方�
 
 | 配置键 | 默认值 | 含义 |
 |---|---|---|
+| `selection` | `deepseek` | 由组合持有的提供方选择：`deepseek` 使用本包的 Anthropic 兼容路由；`current-model` 通过会话模型的 OpenAI Responses 路由执行搜索。 |
 | `apiKey` | 未设置 | DeepSeek API 密钥字面值。优先使用 `apiKeyEnv`，避免密钥进入配置；非空字面值优先。 |
 | `apiKeyEnv` | `DEEPSEEK_API_KEY` | 每次搜索都会通过 `ctx.credentials` 解析该凭据引用；没有该 seam 时则从进程环境解析。值缺失时，调用以 `WEB_PROVIDER_CREDENTIAL_MISSING` 失败。 |
 | `baseURL` | `https://api.deepseek.com/anthropic/v1` | Anthropic 兼容端点基址；追加 `/messages`。缺省时回退到任一环境层中的 `$DEEPSEEK_SEARCH_BASE_URL`；禁止复用属于 chat-completions LLM 适配器的 `$DEEPSEEK_BASE_URL`。无法解析时提供方不可用。 |
@@ -25,7 +28,7 @@ Exa 和 Perplexity 提供专用搜索端点，DeepSeek 则没有。该提供方�
 | `apiVersion` | `2023-06-01` | `anthropic-version` 标头值。 |
 | `maxTokens` | `4096` | Messages 请求生成 token 的正整数上限。 |
 | `maxUses` | `5` | 每次请求使用 `web_search` 服务器工具的正整数上限。 |
-| `timeoutMs` | `120000` | 单次搜索上限；上游挂死时以 `WEB_PROVIDER_TIMEOUT` 明确失败而非悬挂。 |
+| `timeoutMs` | `120000` | 单次搜索上限；上游挂死时以 `WEB_PROVIDER_TIMEOUT` 明确失败而非悬挂。在 `current-model` 模式下，该值由组合持有。 |
 
 ```yaml
 - id: web-search-deepseek
@@ -35,7 +38,7 @@ Exa 和 Perplexity 提供专用搜索端点，DeepSeek 则没有。该提供方�
     baseURL: https://gateway.internal/anthropic/v1
 ```
 
-上面的条目是 `web-search-deepseek` Settings 段的 base 层：叠加其上的用户层会作用于**下一次**搜索，因为提供方是按次投影该段，而不是在注册时固化它。因此端点或模型变化时，seam 的提供方选择不会闪断。`apiKey` 带有 `role('secret')`，所以它在任何一层都不会出现在 `describe()` 响应中——配置表层只能知道 credentials 领域是否为 `apiKeyEnv` 所命名的引用持有值，而无从知道某一层是否带着字面密钥。
+在 `deepseek` 模式下，上面的条目是 `web-search-deepseek` Settings 段的 base 层：叠加其上的用户层会作用于**下一次**搜索，因为提供方是按次投影该段，而不是在注册时固化它。因此端点或模型变化时，DeepSeek 提供方无需重新挂载。`current-model` 模式不会注册该 Settings 段。`apiKey` 带有 `role('secret')`，所以它在任何一层都不会出现在 `describe()` 响应中——配置表层只能知道 credentials 领域是否为 `apiKeyEnv` 所命名的引用持有值，而无从知道某一层是否带着字面密钥。
 
 ## 映射
 
@@ -47,7 +50,7 @@ DeepSeek 返回的提供方生成答案均不被该提供方信任为 `content`�
 
 ## 请求日志
 
-由 agent 发起的搜索会在发出请求前一刻，向相应会话追加仅用于日志的 `web/deepseek-search-llm-request` 会话事件。其中包含已解析端点、API 版本，以及发送给 DeepSeek 且不含密钥的精确 JSON 请求体；不包含标头和凭据。发出请求前发生凭据处理失败或取消时不会创建事件；发出请求后才发生 HTTP 或响应失败时，本次请求尝试仍保留持久记录。在 agent 之外通过程序直接调用提供方时，没有发起会话可供记录。
+由 agent 发起的 `deepseek` 搜索会在发出请求前一刻，向相应会话追加仅用于日志的 `web/deepseek-search-llm-request` 会话事件。其中包含已解析端点、API 版本，以及发送给 DeepSeek 且不含密钥的精确 JSON 请求体；不包含标头和凭据。发出请求前发生凭据处理失败或取消时不会创建事件；发出请求后才发生 HTTP 或响应失败时，本次请求尝试仍保留持久记录。在 agent 之外通过程序直接调用提供方时，没有发起会话可供记录。`current-model` 提供方不追加 DeepSeek 请求事件；其规范化结果与其他提供方一样，由调用它的 web 工具持久化。
 
 ## 模型体验
 

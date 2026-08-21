@@ -118,10 +118,10 @@ flowchart LR
   cfg --> plugin_dsh_base_tool_subagent_control
   plugin_dsh_base_tool_subagent_list_agents["tool-subagent-list-agents<br/>@deepseek-ai/dsh-tool-subagent-control/list-agents"]
   cfg --> plugin_dsh_base_tool_subagent_list_agents
-  plugin_dsh_base_tool_subagent["tool-subagent<br/>@deepseek-ai/dsh-tool-subagent"]
-  cfg --> plugin_dsh_base_tool_subagent
-  plugin_dsh_base_tool_subagent_fork["tool-subagent-fork<br/>@deepseek-ai/dsh-tool-subagent"]
-  cfg --> plugin_dsh_base_tool_subagent_fork
+  plugin_dsh_base_subagent_settings["subagent-settings<br/>@deepseek-ai/dsh-tool-subagent/startup"]
+  cfg --> plugin_dsh_base_subagent_settings
+  plugin_dsh_base_subagent_fork_settings["subagent-fork-settings<br/>@deepseek-ai/dsh-tool-subagent/startup"]
+  cfg --> plugin_dsh_base_subagent_fork_settings
   plugin_dsh_base_tool_subagent_report["tool-subagent-report<br/>@deepseek-ai/dsh-tool-subagent-report"]
   cfg --> plugin_dsh_base_tool_subagent_report
   plugin_dsh_base_workflow_worker_thread["workflow-worker-thread<br/>@deepseek-ai/dsh-workflow-worker-thread"]
@@ -223,8 +223,8 @@ flowchart LR
 | `subagent-fork-in-process` | `@deepseek-ai/dsh-subagent-fork-in-process` |
 | `tool-subagent-control` | `@deepseek-ai/dsh-tool-subagent-control` |
 | `tool-subagent-list-agents` | `@deepseek-ai/dsh-tool-subagent-control/list-agents` |
-| `tool-subagent` | `@deepseek-ai/dsh-tool-subagent` |
-| `tool-subagent-fork` | `@deepseek-ai/dsh-tool-subagent` |
+| `subagent-settings` | `@deepseek-ai/dsh-tool-subagent/startup` |
+| `subagent-fork-settings` | `@deepseek-ai/dsh-tool-subagent/startup` |
 | `tool-subagent-report` | `@deepseek-ai/dsh-tool-subagent-report` |
 | `workflow-worker-thread` | `@deepseek-ai/dsh-workflow-worker-thread` |
 | `tool-workflow` | `@deepseek-ai/dsh-tool-workflow` |

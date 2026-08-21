@@ -41,6 +41,7 @@
 .headlineText {
   grid-row: 1;
   grid-column: 2;
+  white-space: nowrap;
 }
 
 .previewBadge {
@@ -204,4 +205,30 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-state-error-primary);
+}
+
+@media (max-width: 640px) {
+  .root {
+    padding-inline: 12px;
+  }
+
+  .headline {
+    grid-template-columns: 28px auto auto;
+    column-gap: 8px;
+    font-size: 20px;
+    line-height: 28px;
+  }
+
+  .fish {
+    width: 28px;
+    height: 28px;
+  }
+
+  .previewBadge {
+    margin-top: 1px;
+    margin-left: -2px;
+    padding: 1px 6px 0;
+    font-size: 11px;
+    line-height: 16px;
+  }
 }

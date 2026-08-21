@@ -363,3 +363,17 @@
 .root[data-phase='settling'] .composerSeat {
   visibility: hidden;
 }
+
+@media (max-width: 640px) {
+  .root[data-phase='active'] .composerSeat {
+    background: none;
+  }
+
+  .heroGlow {
+    width: calc((100% - 2 * var(--dsh-composer-side-clearance)) * 1051 / 776);
+  }
+
+  .heroGlow ellipse {
+    fill-opacity: 0.12;
+  }
+}

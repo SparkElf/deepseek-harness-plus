@@ -310,25 +310,20 @@
     - id: tool-subagent-list-agents
       name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
-    - id: tool-subagent
-      name: '@deepseek-ai/dsh-tool-subagent'
+    # Settings sections are Host-lifetime owners; Agent presets mount the tools.
+    - id: subagent-settings
+      name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
-        provider: spawn
         settingsNamespace: subagent
-        toolName: subagent
-        backgroundMode: continuable
+        provider: spawn
+        maxDepth: 3
 
-    # Fork stays one-shot: a continuable child's `report` tool and prompt
-    # section precede the inherited history a fork exists to reuse; one-shot
-    # fork children install neither, keeping the parent's request prefix.
-    # See .agents/notes/implemented/architecture/2026-08-10-fork-children-stay-one-shot.md.
-    - id: tool-subagent-fork
-      name: '@deepseek-ai/dsh-tool-subagent'
+    - id: subagent-fork-settings
+      name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
-        provider: fork
         settingsNamespace: subagent-fork
-        toolName: subagent_fork
-        backgroundMode: one-shot
+        provider: fork
+        maxDepth: 3
 
     # Optional direct-child return channel; absent from roots and one-shot agents.
     - id: tool-subagent-report

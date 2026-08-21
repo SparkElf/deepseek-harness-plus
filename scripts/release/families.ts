@@ -1,7 +1,7 @@
 /**
- * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
- * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
+ * The four independent publish sequences this repository releases from
+ * (`@deepseek-ai/*`, `@sparkelf/*`, `vendor/`, and `native/`) and the three this
+ * module owns: `dsh`, `plus`, and `vendor`. Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -11,13 +11,53 @@
 
 import { globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import {
+  officialClientBuildEnvironment,
+  readClientBuildRecord,
+} from '../client-build-environment.ts'
+import { isFirstPartyPackageName } from '../first-party-packages.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
-/** Dependency sections that constrain publish order: a consumer must publish after its dependency. */
-const ORDER_SECTIONS = ['dependencies', 'optionalDependencies'] as const
+/**
+ * Dependency sections a consumer must publish after, because npm resolves them
+ * when the package is installed: publishing a consumer first would leave a
+ * window where its own tree cannot be assembled.
+ */
+const INSTALL_SECTIONS = ['dependencies', 'optionalDependencies'] as const
+
+/**
+ * Peer declarations also order the publication, but they cannot constrain it.
+ * npm never installs a peer on the package's behalf — an unmet peer is a
+ * warning, not a resolution failure — and sibling packages legitimately declare
+ * each other as peers, which makes these edges the ones that close cycles. They
+ * order what they can and are dropped where they would deadlock.
+ */
+const PEER_SECTIONS = ['peerDependencies'] as const
 
 /** The workspace root manifest, which is never a release member. */
 const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
+
+/** One peer declaration the publish order leaves unordered. */
+interface DroppedPeerEdge {
+  /** Package declaring the peer. */
+  readonly consumer: string
+  /** The declared peer, which publishes after `consumer` or alongside it in a cycle. */
+  readonly peer: string
+}
+
+/**
+ * A family's publish order together with the ordering it could not honour.
+ *
+ * The dropped edges are part of the result rather than a detail of forming it:
+ * a release drops real ordering constraints, and the operator reading the pack
+ * log is the only one who can judge whether a newly dropped edge is expected.
+ */
+export interface PublishPlan {
+  /** Members in publish order. */
+  readonly order: readonly ReleaseMember[]
+  /** Peer declarations left unordered, in the order the traversal reached them. */
+  readonly droppedPeerEdges: readonly DroppedPeerEdge[]
+}
 
 /** One publishable package of a release family. */
 export interface ReleaseMember {
@@ -77,6 +117,23 @@ export abstract class ReleaseFamily {
   abstract readonly tagPrefix: string
 
   /**
+   * Assert that built artifacts match this release family's required profile.
+   * Families without environment-selected artifacts accept every build tree.
+   * @param _root - repository root containing generated artifacts.
+   */
+  verifyBuildArtifacts(_root: string): void {}
+
+  /** Whether this family owns a package selected by its path patterns. */
+  protected ownsPackage(_name: string): boolean { return true }
+
+  /**
+   * Whether an owned manifest name is allowed in this family.
+   * @param name - manifest package name.
+   * @returns Whether the family accepts the name.
+   */
+  protected acceptsPackageName(name: string): boolean { return isFirstPartyPackageName(name) }
+
+  /**
    * Discover this family's members.
    * @param root - repository root.
    * @returns Members sorted by directory, with names validated and deduplicated.
@@ -93,7 +150,8 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (!this.ownsPackage(name)) continue
+      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} must name a first-party package`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -107,45 +165,122 @@ export abstract class ReleaseFamily {
   }
 
   /**
-   * Order members so every package publishes after the family members it depends on.
+   * Order members so every package publishes after the family members it
+   * depends on, which is what makes a partial publication self-consistent: an
+   * interrupted run leaves a prefix whose packages never point at something
+   * absent from the registry.
+   *
+   * Install edges are honoured absolutely — a cycle among them is a defect this
+   * reports rather than works around. Peer edges order what they can and are
+   * dropped where honouring one would deadlock: sibling packages declare each
+   * other as peers, and npm treats an unmet peer as a warning rather than a
+   * resolution failure ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
+   * Every dropped edge is reported, because dropping one is a decision about a
+   * real release rather than an implementation detail.
    * @param members - this family's members.
-   * @returns The same members in publish order; ties break by name for determinism.
+   * @returns The order, ties broken by name for determinism, and the peer edges it left unordered.
    */
-  publishOrder(members: readonly ReleaseMember[]): ReleaseMember[] {
+  publishOrder(members: readonly ReleaseMember[]): PublishPlan {
     const byName = new Map(members.map(member => [member.name, member]))
-    const ordered: ReleaseMember[] = []
-    const placed = new Set<string>()
-    const visiting = new Set<string>()
+    const byNameSorted = [...members].sort((left, right) => left.name.localeCompare(right.name))
+    const edges = (member: ReleaseMember, sections: readonly string[]): ReleaseMember[] =>
+      this.orderEdges(member, byName, sections)
 
-    const visit = (member: ReleaseMember, path: readonly string[]): void => {
-      if (placed.has(member.name)) return
-      if (visiting.has(member.name)) {
+    // Install edges alone must be acyclic, and that is checked on its own graph:
+    // a peer edge leading into an install edge would otherwise read as a cycle
+    // where the install edges are perfectly orderable.
+    const installVisiting = new Set<string>()
+    const installDone = new Set<string>()
+    const checkInstall = (member: ReleaseMember, path: readonly string[]): void => {
+      if (installDone.has(member.name)) return
+      if (installVisiting.has(member.name)) {
         throw new Error(`dependency cycle in release family ${this.id}: ${[...path, member.name].join(' -> ')}`)
       }
-      visiting.add(member.name)
-      for (const dependency of this.orderEdges(member, byName)) {
-        visit(dependency, [...path, member.name])
+      installVisiting.add(member.name)
+      for (const dependency of edges(member, INSTALL_SECTIONS)) checkInstall(dependency, [...path, member.name])
+      installVisiting.delete(member.name)
+      installDone.add(member.name)
+    }
+    for (const member of byNameSorted) checkInstall(member, [])
+
+    // Emit the order over both kinds of edge. A node already on the stack closes
+    // a cycle, and that cycle carries at least one peer edge because the install
+    // edges were just proved acyclic — but the back edge that reaches the stacked
+    // node is not necessarily the peer one, so the post-condition below decides
+    // whether the emitted order survived.
+    const ordered: ReleaseMember[] = []
+    const droppedPeerEdges: DroppedPeerEdge[] = []
+    const placed = new Set<string>()
+    const onStack = new Set<string>()
+    // Members reachable from one member through install edges. A peer edge is
+    // dropped when the peer installs the member declaring it: honouring it would
+    // emit a package before something it installs, and the install edge wins.
+    const installClosure = (member: ReleaseMember): Set<string> => {
+      const reached = new Set<string>()
+      const walk = (current: ReleaseMember): void => {
+        for (const dependency of edges(current, INSTALL_SECTIONS)) {
+          if (reached.has(dependency.name)) continue
+          reached.add(dependency.name)
+          walk(dependency)
+        }
       }
-      visiting.delete(member.name)
+      walk(member)
+      return reached
+    }
+    const visit = (member: ReleaseMember): void => {
+      if (placed.has(member.name) || onStack.has(member.name)) return
+      onStack.add(member.name)
+      for (const dependency of edges(member, INSTALL_SECTIONS)) visit(dependency)
+      for (const peer of edges(member, PEER_SECTIONS)) {
+        if (installClosure(peer).has(member.name)) {
+          droppedPeerEdges.push({ consumer: member.name, peer: peer.name })
+          continue
+        }
+        // A peer already on the stack is an ancestor, so it publishes after this
+        // member rather than before it: the edge is dropped, not honoured.
+        if (onStack.has(peer.name)) droppedPeerEdges.push({ consumer: member.name, peer: peer.name })
+        visit(peer)
+      }
+      onStack.delete(member.name)
       placed.add(member.name)
       ordered.push(member)
     }
+    for (const member of byNameSorted) visit(member)
 
-    for (const member of [...members].sort((left, right) => left.name.localeCompare(right.name))) {
-      visit(member, [])
+    // A cycle mixing both kinds of edge can put an install edge's target on the
+    // stack, where the traversal skips it like a peer edge and emits a consumer
+    // before something it installs. Nothing downstream can detect that, and it
+    // would only surface as an unresolvable install for whoever consumes the
+    // published packages, so the emitted order is checked against the edges it
+    // exists to honour.
+    const position = new Map(ordered.map((entry, index) => [entry.name, index]))
+    for (const [index, member] of ordered.entries()) {
+      for (const dependency of edges(member, INSTALL_SECTIONS)) {
+        const dependencyIndex = position.get(dependency.name)
+        if (dependencyIndex !== undefined && dependencyIndex < index) continue
+        throw new Error(
+          `release family ${this.id}: no publish order honours ${member.name} -> ${dependency.name};`
+          + ' a cycle mixing peer and dependency declarations reaches this dependency through a peer edge',
+        )
+      }
     }
-    return ordered
+    return { order: ordered, droppedPeerEdges }
   }
 
   /**
-   * The family members one member depends on at runtime.
+   * The family members one member declares in the given sections.
    * @param member - the dependent member.
    * @param byName - every family member by package name.
-   * @returns Dependencies inside this family, sorted by name.
+   * @param sections - manifest sections to read.
+   * @returns Members of this family named there, sorted by name.
    */
-  private orderEdges(member: ReleaseMember, byName: ReadonlyMap<string, ReleaseMember>): ReleaseMember[] {
+  private orderEdges(
+    member: ReleaseMember,
+    byName: ReadonlyMap<string, ReleaseMember>,
+    sections: readonly string[],
+  ): ReleaseMember[] {
     const edges: ReleaseMember[] = []
-    for (const section of ORDER_SECTIONS) {
+    for (const section of sections) {
       const dependencies = member.manifest[section]
       if (dependencies === null || typeof dependencies !== 'object' || Array.isArray(dependencies)) continue
       for (const name of Object.keys(dependencies)) {
@@ -193,11 +328,22 @@ export abstract class ReleaseFamily {
   abstract readonly installedEntry: InstalledEntry | undefined
 }
 
-/** `packages/*` and `apps/*`: one shared version across the whole family. */
+/** Release packages, CLI, and Web share one version; Plus Desktop releases independently. */
 class DshFamily extends ReleaseFamily {
-  readonly id = 'dsh'
-  readonly patterns = ['packages/*/*/package.json', 'apps/*/package.json'] as const
-  readonly tagPrefix = 'dsh-v'
+  readonly id: string = 'dsh'
+  readonly patterns: readonly string[] = [
+    'packages/!(experimental)/*/package.json',
+    'apps/cli/package.json',
+    'apps/web/package.json',
+  ]
+  readonly tagPrefix: string = 'dsh-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
+
+  /** Require current artifacts from a complete official client build. */
+  override verifyBuildArtifacts(root: string): void {
+    readClientBuildRecord(root, officialClientBuildEnvironment(root))
+  }
 
   /**
    * Require one version across the family, the way a single tag can name it.
@@ -207,7 +353,7 @@ class DshFamily extends ReleaseFamily {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
       const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
-      throw new Error(`dsh release members must share one version:\n${detail}`)
+      throw new Error(`${this.id} release members must share one version:\n${detail}`)
     }
   }
 
@@ -228,7 +374,20 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+  readonly installedEntry: InstalledEntry | undefined = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+}
+
+/** Plus-owned public npm packages use their own scope, version tag, and workflow. */
+class PlusFamily extends DshFamily {
+  override readonly id = 'plus'
+  override readonly patterns = ['packages/!(experimental)/*/package.json'] as const
+  override readonly tagPrefix = 'plus-npm-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  override readonly installedEntry = undefined
 }
 
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
@@ -280,7 +439,7 @@ class VendorFamily extends ReleaseFamily {
 
 /** Every release family this module owns, in workflow order. */
 function releaseFamilies(): readonly ReleaseFamily[] {
-  return [new DshFamily(), new VendorFamily()]
+  return [new DshFamily(), new PlusFamily(), new VendorFamily()]
 }
 
 /**

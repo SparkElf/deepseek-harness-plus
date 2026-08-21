@@ -22,7 +22,7 @@ import {
   DEEPSEEK_DEFAULT_MODEL,
 } from './provider.ts'
 import type { DeepSeekSearchProviderOptions } from './provider.ts'
-import { CurrentModelSearchProvider, currentRoute } from './current.ts'
+import { CurrentModelSearchProvider } from './current.ts'
 
 export {
   DeepSeekSearchProvider,
@@ -66,8 +66,9 @@ export interface Config {
   timeoutMs?: number
 }
 
-export const Config: z<Config> = z.object({
-  selection: z.union(['deepseek', 'current-model'] as const).default('deepseek'),
+type DeepSeekSettingsConfig = Omit<Config, 'selection'>
+
+const settingsSchemaFields = {
   apiKey: z.string().role('secret'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   // Declared here rather than only at the use site: a configuration surface
@@ -79,6 +80,20 @@ export const Config: z<Config> = z.object({
   maxTokens: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_TOKENS),
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES),
   timeoutMs: z.number().step(1).min(1000).default(120000),
+}
+
+const DeepSeekSettingsConfig: z<DeepSeekSettingsConfig> = z.object(settingsSchemaFields)
+
+export const Config: z<Config> = z.object({
+  selection: z.union(['deepseek', 'current-model'] as const).default('deepseek'),
+  apiKey: settingsSchemaFields.apiKey,
+  apiKeyEnv: settingsSchemaFields.apiKeyEnv,
+  baseURL: settingsSchemaFields.baseURL,
+  model: settingsSchemaFields.model,
+  apiVersion: settingsSchemaFields.apiVersion,
+  maxTokens: settingsSchemaFields.maxTokens,
+  maxUses: settingsSchemaFields.maxUses,
+  timeoutMs: settingsSchemaFields.timeoutMs,
 })
 
 /**
@@ -100,7 +115,7 @@ export const WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE = settingsNamespace('web-sea
  * @param config - the currently authoritative section.
  * @returns options for one search.
  */
-function resolveOptions(ctx: Context, config: Config): DeepSeekSearchProviderOptions {
+function resolveOptions(ctx: Context, config: DeepSeekSettingsConfig): DeepSeekSearchProviderOptions {
   const apiKeyEnv = credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
   const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0
     ? config.apiKey
@@ -132,16 +147,16 @@ function resolveOptions(ctx: Context, config: Config): DeepSeekSearchProviderOpt
   }
 }
 
-/** Register the DeepSeek search provider with `ctx.web`. */
+/** Register the composition-selected search provider with `ctx.web`. */
 export function apply(ctx: Context, config: Config): void {
-  let current: () => Config = () => config
-  // When the composition follows the current model, the section's credential
-  // reference mirrors the active route's key so the settings page reports the
-  // key the searches actually use instead of an unrelated DeepSeek reference.
-  const sectionConfig: Config = config.selection === 'current-model'
-    ? { ...config, apiKeyEnv: currentRoute(ctx)?.profile.apiKeyEnv ?? config.apiKeyEnv ?? DEFAULT_API_KEY_ENV }
-    : config
-  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, Config, sectionConfig, {
+  if (config.selection === 'current-model') {
+    ctx.web.registerSearchProvider(new CurrentModelSearchProvider(ctx, () => config.timeoutMs ?? 120000))
+    return
+  }
+
+  const { selection: _selection, ...sectionConfig } = config
+  let current: () => DeepSeekSettingsConfig = () => sectionConfig
+  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, DeepSeekSettingsConfig, sectionConfig, {
     setSource: (source) => {
       current = source
     },
@@ -149,7 +164,5 @@ export function apply(ctx: Context, config: Config): void {
     // section per search, so a committed change needs no re-registration.
     onChange: () => {},
   })
-  ctx.web.registerSearchProvider(config.selection === 'current-model'
-    ? new CurrentModelSearchProvider(ctx, () => current().timeoutMs ?? 120000)
-    : new DeepSeekSearchProvider(() => resolveOptions(ctx, current())))
+  ctx.web.registerSearchProvider(new DeepSeekSearchProvider(() => resolveOptions(ctx, current())))
 }

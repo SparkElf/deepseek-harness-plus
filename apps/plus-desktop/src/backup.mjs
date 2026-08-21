@@ -89,13 +89,3 @@ export function restoreUserBackup(validated, dshHome) {
   validated.zip.extractAllTo(dshHome, true)
   return { entries: validated.entries }
 }
-
-/**
- * 校验并恢复备份包的一步式入口。
- * @param {string} archivePath 备份包路径。
- * @param {string} dshHome Harness 用户数据目录。
- * @returns {{ entries: number }} 恢复的条目数量。
- */
-export function importUserBackup(archivePath, dshHome) {
-  return restoreUserBackup(validateUserBackup(archivePath), dshHome)
-}

@@ -40,12 +40,13 @@ function main(): void {
     options: { family: { type: 'string' }, out: { type: 'string' } },
     allowPositionals: false,
   })
-  if (values.family === undefined) throw new Error('usage: pack.ts --family <dsh|vendor> [--out dist/npm]')
+  if (values.family === undefined) throw new Error('usage: pack.ts --family <dsh|plus|vendor> [--out dist/npm]')
 
   const family = releaseFamily(values.family)
   const root = process.cwd()
   const destination = resolve(root, values.out ?? DEFAULT_OUTPUT)
-  const members = family.publishOrder(family.members(root))
+  const members = family.publishOrder(family.members(root)).order
+  family.verifyBuildArtifacts(root)
   family.verifyVersions(members)
 
   rmSync(destination, { recursive: true, force: true })

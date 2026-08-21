@@ -10,14 +10,24 @@ type ExecFileMock = (
   callback: ExecFileCallback,
 ) => void
 
-const { execFileMock } = vi.hoisted(() => ({ execFileMock: vi.fn<ExecFileMock>() }))
+const { execFileMock, releaseMock } = vi.hoisted(() => ({
+  execFileMock: vi.fn<ExecFileMock>(),
+  releaseMock: vi.fn<() => string>(),
+}))
 
 vi.mock('node:child_process', () => ({ execFile: execFileMock }))
+vi.mock('node:os', () => ({ release: releaseMock }))
 
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { canOpenNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/native-path-opener.ts'
 
 const signal = () => new AbortController().signal
+
+beforeEach(() => { releaseMock.mockReturnValue('6.8.0-generic') })
+afterEach(() => {
+  vi.unstubAllEnvs()
+  releaseMock.mockReset()
+})
 
 describe('native path opener', () => {
   it('opens with macOS open(1)', async () => {
@@ -152,6 +162,9 @@ describe('native path opener', () => {
   })
 
   it('samples ambient WSL markers and kernel release when no fact overrides are supplied', async () => {
+    vi.stubEnv('WSL_DISTRO_NAME', '')
+    vi.stubEnv('WSL_INTEROP', '')
+    releaseMock.mockReturnValue('5.15.153.1-microsoft-standard-WSL2')
     const run = vi.fn<PathOpenerRunner>(async (command, args) => {
       if (command !== 'wslpath') return { stdout: '', stderr: '' }
       return args[0] === '-w'

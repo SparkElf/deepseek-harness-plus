@@ -12,11 +12,11 @@ The Web overlay also disabled both entries. Disabled plugins cannot register the
 
 ## Decision
 
-`dsh-tool-subagent` accepts an optional `settingsNamespace`. When present, it registers the existing `agentOptions`, `persona`, `toolFilter`, and `maxDepth` fields with the settings service. Its request builder reads that resolved source for every new child start. The configured provider validates capabilities when it mounts and when a saved settings value changes.
+`dsh-tool-subagent` accepts an optional `settingsNamespace` and reads that Host-registered section for every new child start. Its `/settings` subpath independently owns the Host-lifetime registration of `agentOptions`, `persona`, `toolFilter`, and `maxDepth`. The configured provider validates capabilities when an Agent tool mounts and when the Host owner accepts a saved value.
 
-The Web base composition assigns `subagent` to the existing spawn/continuable entry and `subagent-fork` to the existing fork/one-shot entry. Both entries remain mounted so their settings namespaces exist in the Host. The host explicitly exposes those names, and `ui-settings-plugins` renders their shared subagent card in the existing Plugins settings tab.
+The Web base composition registers Host-lifetime owners for `subagent` and `subagent-fork`; each Agent preset binds those names to its spawn/continuable and fork/one-shot tools. Settings registration therefore remains singular while tool lifetime follows the preset. The Host serves every registered namespace, and `ui-settings-plugins` registers one keyed card under each of these two names in the existing Plugins settings tab. Both cards derive from the browser's shared Settings mirror and replace only their own namespace through a bound Settings scope.
 
-The card shows the two shipped entries by name and keeps the editor focused on their existing child-default fields. Provider binding, tool name, background mode, and entry identity remain composition choices rather than browser-editable fields.
+Each card shows its shipped entry by name and keeps the editor focused on that entry's existing child-default fields. Provider binding, tool name, background mode, and entry identity remain composition choices rather than browser-editable fields.
 
 ## Alternatives considered
 
@@ -30,4 +30,4 @@ The card shows the two shipped entries by name and keeps the editor focused on t
 
 Saving a child default applies to later child runs and leaves an already-created child unchanged. A model override may be omitted to inherit the parent while still setting an output-token cap. A persona omits to preserve the deployment role, and tool visibility remains a trusted-process composition restriction rather than an authority system.
 
-The plugin card does not add task summaries, selective history inheritance, automatic model selection, budgets, or built-in child roles. Future provider entries need capability gating before they appear in the same card.
+The plugin cards do not add task summaries, selective history inheritance, automatic model selection, budgets, or built-in child roles. A future provider entry needs its own capability-driven keyed card before it appears in this settings tab.

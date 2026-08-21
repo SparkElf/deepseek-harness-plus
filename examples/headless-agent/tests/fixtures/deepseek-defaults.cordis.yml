@@ -6,8 +6,10 @@
       - id: llm-deepseek
         config:
           baseURL: !!js process.env.DSH_SNAPSHOT_BASE_URL
-          thinking: disabled
-          streamIdleTimeoutMs: 150
+          thinking: enabled
+          reasoningEffort: low
+          # The local SSE fixture writes every 400 ms and ends after 1.6 s.
+          streamIdleTimeoutMs: 1000
       - id: agent-spine
         config:
           agents:

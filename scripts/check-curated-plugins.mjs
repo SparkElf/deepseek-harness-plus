@@ -31,6 +31,27 @@ function parseFlowMap(text) {
   return map
 }
 
+function parseFlowList(text) {
+  const inner = text.trim().replace(/^\[|\]$/gu, '').trim()
+  if (inner === '') return []
+  const items = []
+  let start = 0
+  let depth = 0
+  for (let index = 0; index < inner.length; index += 1) {
+    if (inner[index] === '{') depth += 1
+    else if (inner[index] === '}') depth -= 1
+    else if (inner[index] === ',' && depth === 0) {
+      items.push(inner.slice(start, index).trim())
+      start = index + 1
+    }
+  }
+  items.push(inner.slice(start).trim())
+  return items.map((item) => {
+    if (!item.startsWith('{') || !item.endsWith('}')) throw new Error('curated.yaml: flow list entries must be maps')
+    return parseFlowMap(item)
+  })
+}
+
 /**
  * Parse the curated manifest (simple YAML subset: one `entries:` list of flat
  * maps with optional inline flow maps and empty lists).
@@ -68,13 +89,19 @@ export function parseManifest(text) {
     const key = line.slice(0, idx).trim()
     const value = line.slice(idx + 1).trim()
     if (value.startsWith('{')) current[key] = parseFlowMap(value)
-    else if (value === '[]') current[key] = []
+    else if (value.startsWith('[')) current[key] = parseFlowList(value)
     else if (value === '') current[key] = undefined
     else current[key] = parseScalar(value)
   }
   for (const entry of entries) {
     if (!entry?.name || !entry?.source?.kind || entry?.pinned === undefined) {
       throw new Error('curated.yaml: every entry needs name, source.kind, and pinned')
+    }
+    if (!Array.isArray(entry.localPatches)) throw new Error('curated.yaml: localPatches must be a list')
+    for (const patch of entry.localPatches) {
+      if (!patch.file || !patch.upstreamUrl || !patch.retireWhen) {
+        throw new Error('curated.yaml: every local patch needs file, upstreamUrl, and retireWhen')
+      }
     }
   }
   return entries

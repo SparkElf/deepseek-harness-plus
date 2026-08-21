@@ -9,7 +9,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
+import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { AgentOptions } from '@deepseek-ai/dsh-agent'
@@ -30,7 +30,7 @@ const SUBAGENT_SECTION_ORDER = 116.5
 export interface Config {
   /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
   provider: string
-  /** Optional settings namespace for live child-default overrides. */
+  /** Optional Host-registered settings namespace for live child-default overrides. */
   settingsNamespace?: string
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
@@ -81,6 +81,14 @@ export interface Config {
   maxDepth?: number | 'provider-managed'
 }
 
+/** Build a fresh tool-filter schema before each owner applies its omission default. */
+function toolFilterSchema() {
+  return z.object({
+    allow: z.array(z.string()).default(undefined as unknown as string[]),
+    deny: z.array(z.string()).default(undefined as unknown as string[]),
+  })
+}
+
 export const Config: z<Config> = z.object({
   provider: z.string().required(),
   settingsNamespace: z.string(),
@@ -95,10 +103,7 @@ export const Config: z<Config> = z.object({
   }).default(undefined as unknown as { provider: string; model: string; maxTokens: number }),
   persona: z.string(),
   // Preserve omission; Schemastery's `{ allow: [] }` default would deny every tool.
-  toolFilter: z.object({
-    allow: z.array(z.string()).default(undefined as unknown as string[]),
-    deny: z.array(z.string()).default(undefined as unknown as string[]),
-  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  toolFilter: toolFilterSchema().default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(3),
 })
 
@@ -122,10 +127,7 @@ export const SUBAGENT_SETTINGS_SCHEMA = z.object({
     maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER).default(undefined as unknown as number),
   }).default(undefined as unknown as { provider: string; model: string; maxTokens: number }),
   persona: z.string().default(undefined as unknown as string),
-  toolFilter: z.object({
-    allow: z.array(z.string()).default(undefined as unknown as string[]),
-    deny: z.array(z.string()).default(undefined as unknown as string[]),
-  }).default(undefined as unknown as { allow: string[]; deny: string[] }),
+  toolFilter: toolFilterSchema().default(undefined as unknown as { allow: string[]; deny: string[] }),
   maxDepth: z.union([
     z.natural().max(Number.MAX_SAFE_INTEGER),
     z.const('provider-managed' as const),
@@ -147,7 +149,9 @@ async function settleStart(start: Promise<SubagentRun>, signal: AbortSignal): Pr
   try {
     return await settleRun(await start)
   } catch (error: unknown) {
-    return signal.aborted
+    // Product providers aggregate startup and rollback failures. Cancellation
+    // must not turn a failed cleanup into a cleanly killed Job.
+    return signal.aborted && !(error instanceof AggregateError)
       ? { status: 'killed' }
       : { status: 'failed', detail: String(error) }
   }
@@ -174,18 +178,25 @@ function stopReasonError(result: SubagentResult): string | undefined {
 }
 
 /**
- * Append the child's preserved partial answer to a stop-reason error so a
- * truncated or cancelled child's real text still reaches the parent model.
+ * Append provider-authored failure detail and the child's preserved partial
+ * answer to a stop-reason error, keeping diagnostic text separate from the
+ * child's assistant output.
  * @param error - the stop-reason headline.
- * @param output - the child's selected output (`SubagentResult.output`).
- * @returns the headline, extended with the partial text when any exists.
+ * @param result - the child's terminal result.
+ * @returns the headline, diagnostic, and partial text that are present.
  */
-function withPartialText(error: string, output: ContentBlock[]): string {
-  const text = output
+function withDiagnosticAndPartialText(error: string, result: SubagentResult): string {
+  const diagnostic = result.diagnostic === undefined
+    ? ''
+    : `\nDiagnostic: ${result.diagnostic}`
+  const text = result.output
     .filter((block): block is Extract<ContentBlock, { type: 'text' }> => block.type === 'text')
     .map(block => block.text)
     .join('')
-  return text.length === 0 ? error : `${error}\nPartial output before the run ended:\n${text}`
+  const partial = text.length === 0
+    ? ''
+    : `\nPartial output before the run ended:\n${text}`
+  return `${error}${diagnostic}${partial}`
 }
 
 type ForegroundToolResult = {
@@ -205,7 +216,7 @@ async function settleForegroundRun(run: SubagentRun): Promise<ForegroundToolResu
       if (error !== undefined) {
         // The registry converts this throw to isError; partial output is not
         // success, but the preserved partial answer still reaches the parent.
-        throw new Error(withPartialText(error, result.output))
+        throw new Error(withDiagnosticAndPartialText(error, result))
       }
       return {
         kind: 'foreground',
@@ -298,8 +309,11 @@ function resolveDelegationRun(
   }
 }
 
-/** Project the deployment defaults into the live user-owned settings section. */
-function settingsFromConfig(config: Config): SubagentSettings {
+/** Project deployment defaults into the live user-owned settings section.
+ * @param config - composition-owned child defaults.
+ * @returns the fields a user layer may override.
+ */
+export function settingsFromConfig(config: SubagentSettings): SubagentSettings {
   const agentOptions = config.agentOptions
   return {
     ...agentOptions === undefined ? {} : {
@@ -315,8 +329,11 @@ function settingsFromConfig(config: Config): SubagentSettings {
   }
 }
 
-/** Validate live defaults at the earliest point the provider can enforce them. */
-function validateSettings(value: SubagentSettings, provider: SubagentProvider | undefined): void {
+/** Validate live defaults at the earliest point the provider can enforce them.
+ * @param value - resolved child defaults.
+ * @param provider - currently registered provider, when available.
+ */
+export function validateSettings(value: SubagentSettings, provider: SubagentProvider | undefined): void {
   if (value.maxDepth !== undefined && value.maxDepth !== 'provider-managed') {
     assertSubagentMaxDepth(value.maxDepth)
   }
@@ -336,14 +353,17 @@ function validateSettings(value: SubagentSettings, provider: SubagentProvider | 
 }
 
 export function apply(ctx: Context, config: Config): void {
-  let settingsSource: () => SubagentSettings = () => settingsFromConfig(config)
-  if (config.settingsNamespace !== undefined) {
-    const namespace = settingsNamespace(config.settingsNamespace)
-    installSettingsSection(ctx, namespace, SUBAGENT_SETTINGS_SCHEMA, settingsFromConfig(config), {
-      validate: (value) => { validateSettings(value, ctx.subagents.getProvider(config.provider)) },
-      setSource: (source) => { settingsSource = source },
-      onChange: () => {},
-    })
+  const configuredSettings = settingsFromConfig(config)
+  const namespace = config.settingsNamespace === undefined ? undefined : settingsNamespace(config.settingsNamespace)
+  const settingsSource = (): SubagentSettings => {
+    if (namespace === undefined) return configuredSettings
+    const settings = ctx.get('settings')
+    if (settings === undefined) return configuredSettings
+    const value = settings.get(namespace)
+    if (value === undefined) {
+      throw new Error(`tool-subagent: settings namespace "${namespace}" is not registered by the Host composition`)
+    }
+    return value as SubagentSettings
   }
   // Direct apply() bypasses Schemastery's constraints, so validate the initial source too.
   validateSettings(settingsSource(), undefined)
@@ -425,7 +445,7 @@ export function apply(ctx: Context, config: Config): void {
         render: (_args, value) => [{
           type: 'text',
           text: value.kind === 'background'
-            ? `started background subagent task ${value.jobId}`
+            ? `started background subagent job ${value.jobId}`
             : value.kind === 'continuable'
               ? `started subagent ${value.subagentId}`
               : outputValueText(value.output),

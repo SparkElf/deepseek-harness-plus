@@ -1,4 +1,4 @@
-# @deepseek-ai/dsh-client-ui-settings-backup
+# @sparkelf/dsh-client-ui-settings-backup
 
 English | [中文](README.zh.md)
 

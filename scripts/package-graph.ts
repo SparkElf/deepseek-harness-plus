@@ -7,12 +7,11 @@
 
 import { globSync, readFileSync } from 'node:fs'
 import { dirname, resolve, sep } from 'node:path'
-
-const SCOPE = '@deepseek-ai/dsh-'
+import { isFirstPartyDshPackageName, shortDshPackageName } from './first-party-packages.ts'
 
 /** One harness package and its in-repo peer-dependency edges. */
 export interface PackageGraphNode {
-  /** Package name with the `@deepseek-ai/dsh-` prefix removed. */
+  /** Package name with its recognized npm scope and `dsh-` prefix removed. */
   short: string
   /** Full npm package name. */
   name: string
@@ -38,15 +37,15 @@ export function collectPackageGraph(root: string, groupOrder: readonly string[],
       name: string
       peerDependencies?: Record<string, string>
     }
-    if (!json.name.startsWith(SCOPE)) continue
+    if (!isFirstPartyDshPackageName(json.name)) continue
     const [, group, leaf] = rel.split('/')
     if (group === undefined || leaf === undefined) throw new Error(`${gate}: unexpected package path ${rel}`)
     const deps = Object.keys(json.peerDependencies ?? {})
-      .filter(dep => dep.startsWith(SCOPE))
-      .map(dep => dep.slice(SCOPE.length))
+      .filter(isFirstPartyDshPackageName)
+      .map(shortDshPackageName)
       .sort()
     packages.push({
-      short: json.name.slice(SCOPE.length),
+      short: shortDshPackageName(json.name),
       name: json.name,
       group,
       rel: dirname(rel),

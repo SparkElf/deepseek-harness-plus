@@ -1,4 +1,7 @@
 - dialog "设置":
+  - button "关闭":
+    - img
+    - text: 关闭
   - navigation:
     - text: 设置
     - button "通用设置":
@@ -13,10 +16,10 @@
     - button "Agent 预设":
       - img
       - text: Agent 预设
+    - button "备份":
+      - img
+      - text: 备份
   - button "打开配置文件"
-  - button "关闭":
-    - img
-    - text: 关闭
   - heading "插件" [level=2]
   - paragraph: 配置和查看本部署已安装的插件。
   - tablist "插件视图":
@@ -33,6 +36,10 @@
           - text: Agent 循环 Agent 如何派发工具调用。
           - img
       - listitem:
-        - 'button "展开设置: 网页搜索"':
-          - text: 网页搜索 DeepSeek 搜索提供方。
+        - 'button "展开设置: 连续子代理"':
+          - text: 连续子代理 配置子代理委派默认值。
+          - img
+      - listitem:
+        - 'button "展开设置: 一次性子代理"':
+          - text: 一次性子代理 配置子代理委派默认值。
           - img

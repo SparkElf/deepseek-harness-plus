@@ -18,16 +18,10 @@
       "path": "../runtime"
     },
     {
-      "path": "../../test-support/client-runtime"
-    },
-    {
       "path": "../ui-settings"
     },
     {
       "path": "../ui-slots"
-    },
-    {
-      "path": "../web-react"
     },
     {
       "path": "../../runtime-diagnostics/invariants"

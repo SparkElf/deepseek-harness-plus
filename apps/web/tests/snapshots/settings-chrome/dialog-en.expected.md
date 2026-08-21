@@ -1,0 +1,48 @@
+- dialog "Settings":
+  - button "Close":
+    - img
+    - text: Close
+  - navigation:
+    - text: Settings
+    - button "General":
+      - img
+      - text: General
+    - button "Models":
+      - img
+      - text: Models
+    - button "Plugins":
+      - img
+      - text: Plugins
+    - button "Agent presets":
+      - img
+      - text: Agent presets
+    - button "Backup":
+      - img
+      - text: Backup
+  - button "Open configuration file"
+  - text: Agent preset Applies to sessions you start from now on. Running sessions keep the preset they began with.
+  - button "Standard mode":
+    - text: Standard mode
+    - img
+  - text: Permission Choose the default permission mode for new sessions
+  - button "Workspace Write":
+    - text: Workspace Write
+    - img
+  - text: Language
+  - button "English":
+    - text: English
+    - img
+  - text: Appearance
+  - button "Light":
+    - img
+    - text: Light
+  - button "Dark":
+    - img
+    - text: Dark
+  - button "System" [pressed]:
+    - img
+    - text: System
+  - text: Enter behavior while busy Busy only; Cmd/Ctrl+Enter uses the other behavior
+  - button "Queue":
+    - text: Queue
+    - img

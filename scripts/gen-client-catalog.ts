@@ -23,6 +23,7 @@ import {
   slotRegistrations,
   standardKitMembers,
 } from './slot-walk.ts'
+import { shortDshPackageName } from './first-party-packages.ts'
 import type { ScannedFile, SlotDeclaration, SlotRegistration, TypeDeclaration } from './slot-walk.ts'
 
 const root = resolve(import.meta.dirname, '..')
@@ -355,9 +356,9 @@ const KIND_EXAMPLE: Readonly<Record<string, readonly string[]>> = {
   chain: ['select: owner => null'],
 }
 
-/** Drop the `@deepseek-ai/dsh-` prefix so rows stay readable. */
+/** Drop the recognized npm scope and `dsh-` prefix so rows stay readable. */
 function shortPackage(name: string): string {
-  return name.replace('@deepseek-ai/dsh-', '')
+  return shortDshPackageName(name)
 }
 
 /** Truncate an over-long declaration, naming the truncation. */

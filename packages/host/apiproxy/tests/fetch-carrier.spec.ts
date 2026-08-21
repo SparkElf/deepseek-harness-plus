@@ -143,7 +143,7 @@ function fakeApi(overrides: Partial<{ muxFrames: MuxFrame[]; hostFrames: HostFra
           rpcId: request.rpcId,
           result: {
             ok: true,
-            value: { version: 'v', cwd: '/w', attachedSessions: 0, canOpenPath: true },
+            value: { version: 'v', cwd: '/w', attachedSessions: 0, home: '/h', canOpenPath: true },
           },
         }
       },
@@ -385,6 +385,10 @@ describe('unary round trip (handler ⇄ client, no network)', () => {
     })).result.ok).toBe(true)
     expect((await c.sessions.cancel({ sessionId: 's' as never })).result.ok).toBe(true)
     expect((await c.host.describe({})).result.ok).toBe(true)
+    expect((await c.settings.backupExport({})).result)
+      .toEqual({ ok: true, value: { downloadUrl: '/api/backup.export?token=stub', entries: 1 } })
+    expect((await c.settings.backupImport({ token: 'stub' })).result)
+      .toEqual({ ok: true, value: { entries: 1 } })
   })
 
   it('round-trips every agent-preset method, authoring included', async () => {
@@ -611,6 +615,23 @@ describe('handler carrier-layer statuses', () => {
     expect((await handler.fetch(new Request('http://x/other', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }))).status).toBe(404)
     expect((await handler.fetch(new Request('http://x/api/session.list', { method: 'GET' }))).status).toBe(404)
     expect((await handler.fetch(new Request('http://x/api/no.such', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: 'client-request', rpcId: 'r', method: 'no.such', payload: {} }) }))).status).toBe(404)
+  })
+
+  it('serves one-use backup downloads through GET and metadata-only HEAD', async () => {
+    const api = fakeApi()
+    api.backups.download = async token => token === 'ready'
+      ? new Response('zip-bytes', { status: 200, headers: { 'content-type': 'application/zip', 'content-length': '9' } })
+      : undefined
+    const downloads = toFetchHandler(api)
+
+    expect((await downloads.fetch(new Request('http://x/api/backup.export'))).status).toBe(400)
+    expect((await downloads.fetch(new Request('http://x/api/backup.export?token=missing'))).status).toBe(404)
+    const get = await downloads.fetch(new Request('http://x/api/backup.export?token=ready'))
+    expect(await get.text()).toBe('zip-bytes')
+    const head = await downloads.fetch(new Request('http://x/api/backup.export?token=ready', { method: 'HEAD' }))
+    expect(head.status).toBe(200)
+    expect(head.headers.get('content-type')).toBe('application/zip')
+    expect(head.body).toBeNull()
   })
 
   it('400s a non-JSON body', async () => {
