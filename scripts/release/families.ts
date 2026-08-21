@@ -1,7 +1,7 @@
 /**
- * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
- * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
+ * The four independent publish sequences this repository releases from
+ * (`@deepseek-ai/*`, `@sparkelf/*`, `vendor/`, and `native/`) and the three this
+ * module owns: `dsh`, `plus`, and `vendor`. Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -123,6 +123,16 @@ export abstract class ReleaseFamily {
    */
   verifyBuildArtifacts(_root: string): void {}
 
+  /** Whether this family owns a package selected by its path patterns. */
+  protected ownsPackage(_name: string): boolean { return true }
+
+  /**
+   * Whether an owned manifest name is allowed in this family.
+   * @param name - manifest package name.
+   * @returns Whether the family accepts the name.
+   */
+  protected acceptsPackageName(name: string): boolean { return isFirstPartyPackageName(name) }
+
   /**
    * Discover this family's members.
    * @param root - repository root.
@@ -140,7 +150,8 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!isFirstPartyPackageName(name)) throw new Error(`${normalized} must name a first-party package`)
+      if (!this.ownsPackage(name)) continue
+      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} must name a first-party package`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -319,13 +330,15 @@ export abstract class ReleaseFamily {
 
 /** Release packages, CLI, and Web share one version; Plus Desktop releases independently. */
 class DshFamily extends ReleaseFamily {
-  readonly id = 'dsh'
-  readonly patterns = [
+  readonly id: string = 'dsh'
+  readonly patterns: readonly string[] = [
     'packages/!(experimental)/*/package.json',
     'apps/cli/package.json',
     'apps/web/package.json',
-  ] as const
-  readonly tagPrefix = 'dsh-v'
+  ]
+  readonly tagPrefix: string = 'dsh-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
 
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
@@ -340,7 +353,7 @@ class DshFamily extends ReleaseFamily {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
       const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
-      throw new Error(`dsh release members must share one version:\n${detail}`)
+      throw new Error(`${this.id} release members must share one version:\n${detail}`)
     }
   }
 
@@ -361,7 +374,20 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+  readonly installedEntry: InstalledEntry | undefined = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+}
+
+/** Plus-owned public npm packages use their own scope, version tag, and workflow. */
+class PlusFamily extends DshFamily {
+  override readonly id = 'plus'
+  override readonly patterns = ['packages/!(experimental)/*/package.json'] as const
+  override readonly tagPrefix = 'plus-npm-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  override readonly installedEntry = undefined
 }
 
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
@@ -413,7 +439,7 @@ class VendorFamily extends ReleaseFamily {
 
 /** Every release family this module owns, in workflow order. */
 function releaseFamilies(): readonly ReleaseFamily[] {
-  return [new DshFamily(), new VendorFamily()]
+  return [new DshFamily(), new PlusFamily(), new VendorFamily()]
 }
 
 /**

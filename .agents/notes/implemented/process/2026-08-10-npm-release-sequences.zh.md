@@ -16,23 +16,24 @@ Status: implemented
 
 ## 决策
 
-### 三条独立序列
+### 四条独立序列
 
-`packages/`、`vendor/`、`native/` 各自一条 bump 序列、各自一次发布，不共享版本号、不共享触发、不互相等待。发 dsh 不重发 vendor，发 vendor 不重发 native。
+`@deepseek-ai/*`、`@sparkelf/*`、`vendor/`、`native/` 各自一条 bump 序列、各自一次发布，不共享版本号、不共享触发、不互相等待。发 dsh 不重发 Plus、vendor 或 native；发 Plus 不重发 dsh。
 
 | 序列 | 成员 | 版本基线 | tag | workflow |
 |---|---|---|---|---|
-| dsh | 发布集：非 experimental 的 `packages/*/*` + `apps/cli` + `apps/web`，包含精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`；私有实验性包仅加入共享版本 bump；Plus Desktop保持独立 | 发布集、私有 dsh 包与 workspace 根共用一个 `0.0.x` | `dsh-v<版本>` | `release.yml` |
+| dsh | 非 experimental 的 `packages/*/*` + `apps/cli` + `apps/web` 中属于 `@deepseek-ai` scope 的包；私有实验性包仅加入共享版本 bump；Plus-owned 包与 Plus Desktop保持独立 | 发布集、私有 dsh 包与 workspace 根共用一个版本 | `dsh-v<版本>` | `release.yml` |
+| Plus npm | `@sparkelf` scope 下由 Plus 拥有的 workspace 包，包含 `@sparkelf/dsh-client-ui-settings-backup`；外部拥有的 Mobile Bridge 仍在其源仓库独立发布 | 发布集共用一个 Plus 版本 | `plus-npm-v<版本>` | `plus-npm.yml` |
 | vendored framework | `vendor/*` 九个包 | 每包各自一条版本线 | `vendor-<包名>-v<版本>`（每包一个） | `release-vendor.yml` |
 | native | `native/landlock-run/packages/*` | 自己的 `0.0.x` | `landlock-run-v<版本>` | `landlock-run-release.yml` |
 
-默认一方 scope 是 npmjs.com 上的 `@deepseek-ai`；dsh 族还包含精确的一方包 `@sparkelf/dsh-client-ui-settings-backup`。access 由每个 manifest 拥有，而不是由 scope 或序列推断：vendored 框架、native 包与 Settings Backup 是 `public`，dsh 族其余成员是 `restricted`（[理由](2026-08-13-public-vendor-and-native-sequences.md)）。没有任何发布路径传 `--access`——一个选项无法服务级别互不相同的成员，且会覆盖真正拥有该级别的 manifest。
+dsh 发布 scope 是 npmjs.com 上的 `@deepseek-ai`，Plus npm 发布 scope 是 `@sparkelf`；Plus 族包含一方 Settings Backup 包，但不发布外部拥有的 Mobile Bridge 包。access 由每个 manifest 拥有，而不是由 scope 或序列推断：vendored 框架、native 包与 Settings Backup 是 `public`，dsh 族其余成员是 `restricted`（[理由](2026-08-13-public-vendor-and-native-sequences.md)）。没有任何发布路径传 `--access`——一个选项无法服务级别互不相同的成员，且会覆盖真正拥有该级别的 manifest。
 
 ### 版本由本地命令写进仓库，CI 只核对与上传
 
 每条序列有一条 bump-and-commit 命令：算出目标版本，写进相关 manifest，跑 `pnpm install --lockfile-only`，再把 manifest 连 lockfile 一起 commit。发布版本因此在仓库里查得到。tag 由人工在 commit 合入 master 后打；CI 不写仓库，也不需要写权限。
 
-`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进可发布族、`packages/*/*` 下的每个私有包**以及 workspace 根**。私有包不会获得发布 tag，仍位于 pack 与 publish 之外；它们跟随版本是因为 workspace 约束要求每个 dsh 包的版本等于根版本。Plus Desktop 位于该族之外，保留自己的安装器版本。根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
+`release:dsh` 接受 `major`、`minor`、`patch` 或显式版本号，把同一个版本写进 dsh 可发布族、`packages/*/*` 下的每个私有包**以及 workspace 根**。`release:plus` 接受同样的版本形式，只写 Plus-owned 包的 manifest，不改 workspace 根或 dsh 族。私有包不会获得发布 tag，仍位于 pack 与 publish 之外；它们跟随版本是因为 workspace 约束要求每个 dsh 包的版本等于根版本。Plus Desktop 位于该族之外，保留自己的安装器版本。根的检查接受预发布段。像 `0.0.1-rc.1` 这样的预发布号先把 pack、已安装产物探针和一次真实私有发布跑通，数字版本随后。dist-tag 沿用 `landlock-run-release.yml` 已有的判定：版本带预发布段就 `--tag next`，否则进 `latest`。
 
 ### 产品发版前确认是否追踪上游
 
@@ -76,7 +77,7 @@ tag 只是 commit 指针，不是发布成功的证明。bump 会向 registry �
 
 第三态拦住「改了代码却没 bump 版本」。前两态给出幂等——同一个 artifact 重跑 publish 不会重复发布，也不需要人工挑拣包。同一条规则还解决了「一次 vendor 发布携带多个 tag，而 workflow 只能从一个 ref 触发」的矛盾：workflow 从不从触发它的 tag 去推断该发哪些包。
 
-三条序列都按这套判定，native 也在内：它通过自己的脚本发布，而不是 shell 循环——一串裸 `npm publish` 无法重试，registry 对「重发已存在的版本」的回答是永久失败，因此中途失败一次就没有前路了。
+四条序列都按这套判定，native 也在内：它通过自己的脚本发布，而不是 shell 循环——一串裸 `npm publish` 无法重试，registry 对「重发已存在的版本」的回答是永久失败，因此中途失败一次就没有前路了。
 
 registry 的两个行为决定了「怎么尝试一次发布」。写入之间至少间隔两秒并带退避重试，因为连续背靠背发多个包会超出 registry 自身的处理速度，换来 `E409 Failed to save packument`。而每次重试都先重查 registry：报出来的失败可能对应一次其实已经落地的写入，所以「该版本现在存在且 integrity 与本 tarball 相同」算作已发布，而不是又一个待放置的版本。
 

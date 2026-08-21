@@ -80,6 +80,11 @@ jobs:
       - name: Pack release tarballs
         run: pnpm run release:pack --family dsh --out dist/npm
 
+      # Plus-owned packages are separate from the dsh publication family, but the
+      # Web bundle consumes their tarballs during packed-install verification.
+      - name: Pack Plus-owned tarballs for verification
+        run: pnpm run release:pack --family plus --out dist/npm-plus
+
       # The harness packages declare the vendored framework as a peer, and this
       # verification must not depend on the registry already carrying matching
       # versions — one pull request may bump both families before either
@@ -97,7 +102,7 @@ jobs:
           pnpm --dir native/landlock-run/packages/entry pack --pack-destination "$PWD/dist/npm-landlock"
 
       - name: Verify packed install
-        run: pnpm run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-vendor --from dist/npm-landlock
+        run: pnpm run release:verify-packed-install --family dsh --from dist/npm --from dist/npm-plus --from dist/npm-vendor --from dist/npm-landlock
 
       - uses: actions/upload-artifact@v4
         with:

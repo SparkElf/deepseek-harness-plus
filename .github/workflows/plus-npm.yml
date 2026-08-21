@@ -1,0 +1,97 @@
+# Publish Plus-owned npm packages without touching the upstream dsh release line.
+name: Release (Plus npm)
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish packed Plus-owned tarballs to npm. Run from a plus-npm-v* tag.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: Release-plus-npm-publish
+  cancel-in-progress: false
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  pack:
+    name: Pack Plus npm tarballs
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify Plus release version
+        env:
+          RELEASE_PUBLISH: ${{ inputs.publish }}
+        run: pnpm run release:verify --family plus
+
+      - name: Build official client artifacts
+        run: pnpm run build:official
+
+      - name: Pack Plus release tarballs
+        run: pnpm run release:pack --family plus --out dist/npm-plus
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plus-npm-tarballs
+          path: dist/npm-plus/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish Plus npm tarballs
+    if: inputs.publish
+    needs: pack
+    runs-on: ubuntu-24.04
+    environment: npm-publish
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Install (immutable, no package scripts)
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: plus-npm-tarballs
+          path: dist/npm-plus
+
+      - name: Publish Plus tarballs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm run release:publish --family plus --from dist/npm-plus

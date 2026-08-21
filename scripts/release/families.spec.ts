@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { officialClientBuildEnvironment, writeClientBuildRecord } from '../client-build-environment.ts'
 import { releaseFamily, type ReleaseMember } from './families.ts'
-import { compareVersions, nextVendorVersion, planShared, reachesPayload } from './bump.ts'
+import { compareVersions, nextVendorVersion, planScopedShared, planShared, reachesPayload } from './bump.ts'
 
 /**
  * A release member standing in for a manifest on disk.
@@ -41,13 +41,16 @@ afterEach(() => {
 })
 
 describe('release families', () => {
-  it('owns CLI, Web, and the SparkElf Backup package without owning Plus Desktop', () => {
-    const directories = releaseFamily('dsh').members(resolve(import.meta.dirname, '../..')).map(member => member.directory)
+  it('separates upstream dsh packages from Plus-owned npm packages', () => {
+    const root = resolve(import.meta.dirname, '../..')
+    const dshDirectories = releaseFamily('dsh').members(root).map(member => member.directory)
+    const plusDirectories = releaseFamily('plus').members(root).map(member => member.directory)
 
-    expect(directories).toContain('apps/cli')
-    expect(directories).toContain('apps/web')
-    expect(directories).toContain('packages/client/ui-settings-backup')
-    expect(directories).not.toContain('apps/plus-desktop')
+    expect(dshDirectories).toContain('apps/cli')
+    expect(dshDirectories).toContain('apps/web')
+    expect(dshDirectories).not.toContain('packages/client/ui-settings-backup')
+    expect(dshDirectories).not.toContain('apps/plus-desktop')
+    expect(plusDirectories).toEqual(['packages/client/ui-settings-backup'])
   })
 
   it('excludes private experimental packages from the dsh release', () => {
@@ -75,18 +78,37 @@ describe('release families', () => {
     ])
   })
 
-  it('names one tag for the whole dsh family and one per vendored package', () => {
+  it('names independent tags for dsh, Plus npm, and vendored packages', () => {
     const dsh = releaseFamily('dsh')
+    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const cli = member('apps/cli', '@deepseek-ai/dsh')
+    const backup = member('packages/client/ui-settings-backup', '@sparkelf/dsh-client-ui-settings-backup')
     const cordis = { ...member('vendor/cordis', '@deepseek-ai/cordis'), version: '4.0.1' }
 
     expect(dsh.tagFor(cli)).toBe('dsh-v0.0.1')
+    expect(plus.tagFor(backup)).toBe('plus-npm-v0.0.1')
     expect(vendor.tagFor(cordis)).toBe('vendor-cordis-v4.0.1')
     // The prefix is constructed, not recovered from a tag: a version with a
     // hyphen would defeat any suffix-stripping.
     expect(vendor.tagPrefixFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v')
     expect(vendor.tagFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v4.0.0-rc.7')
+  })
+
+  it('bumps only Plus-owned manifests without rewriting the workspace root', () => {
+    const plus = releaseFamily('plus')
+    const backup = member('packages/client/ui-settings-backup', '@sparkelf/dsh-client-ui-settings-backup')
+
+    expect(planScopedShared(plus, [backup], '0.1.0-rc.8')).toEqual({
+      version: '0.1.0-rc.8',
+      planned: [{
+        manifestPath: 'packages/client/ui-settings-backup/package.json',
+        label: 'packages/client/ui-settings-backup',
+        from: '0.0.1',
+        to: '0.1.0-rc.8',
+        tag: 'plus-npm-v0.1.0-rc.8',
+      }],
+    })
   })
 
   it('rejects a family whose members disagree on the shared version', () => {
@@ -236,13 +258,16 @@ describe('release families', () => {
     ])
   })
 
-  it('applies the harness payload policy to dsh and keeps upstream payloads for vendored packages', () => {
+  it('applies the harness payload policy to dsh and Plus while keeping upstream vendor payloads', () => {
     const dsh = releaseFamily('dsh')
+    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const harness = member('packages/a/library', '@deepseek-ai/dsh-library')
     const vendored = member('vendor/cordis', '@deepseek-ai/cordis')
 
     expect(() => { dsh.validatePayload(harness, ['package/lib/index.js', 'package/src/index.ts']) })
+      .toThrow(/publishes source file/)
+    expect(() => { plus.validatePayload(harness, ['package/lib/index.js', 'package/src/index.ts']) })
       .toThrow(/publishes source file/)
     expect(() => { vendor.validatePayload(vendored, ['package/lib/index.js', 'package/src/index.ts']) }).not.toThrow()
     expect(() => { vendor.validatePayload(vendored, []) }).toThrow(/empty tarball/)
@@ -250,6 +275,7 @@ describe('release families', () => {
 
   it('drives the installed entry only for the family that publishes one', () => {
     expect(releaseFamily('dsh').installedEntry).toEqual({ packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' })
+    expect(releaseFamily('plus').installedEntry).toBeUndefined()
     expect(releaseFamily('vendor').installedEntry).toBeUndefined()
   })
 
