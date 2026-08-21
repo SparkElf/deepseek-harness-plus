@@ -347,21 +347,25 @@ describe('BashTerminalBackend startup rollback', () => {
     await ctx.plugin(EmptySandbox)
     await ctx.plugin(SandboxPolicyService, { mode: 'danger-full-access', workspaceRoot: '/workspace' })
     let spawned: SubprocessTerminalSpawnSpec | undefined
-    let sent: TerminalSendRequest | undefined
+    const sends: TerminalSendRequest[] = []
+    let controlledPromptObserved = false
     const session = {
       motd: '',
       startSend: (request: TerminalSendRequest) => {
-        sent = request
+        sends.push(request)
+        const setupEcho = sends.length === 1
+        controlledPromptObserved = !setupEcho
         return {
           done: Promise.resolve({
-            viewport: 'setup-echo dsh> ', waitReason: 'stdin_read' as const,
+            viewport: setupEcho ? 'setup source echo dsh> still executing' : 'dsh> ',
+            waitReason: 'stdin_read' as const,
             sessionStatus: { kind: 'running' as const }, truncated: false,
           }),
           readOutput: () => ({ delta: '', truncated: false }),
           cancel: () => false,
         }
       },
-      read: () => ({ text: '', totalLines: 0, lineBegin: 0, lineEnd: 0, truncated: false }),
+      hasControlledPrompt: () => controlledPromptObserved,
     } as unknown as LocalPtySession
     const backend = new BashTerminalBackend(
       ctx,
@@ -370,8 +374,10 @@ describe('BashTerminalBackend startup rollback', () => {
       () => session,
     )
     expect(await backend.spawn(spec(agent(ctx)))).toBe(session)
-    expect(sent).toMatchObject({ text: ENCODING_PREAMBLE + PWSH_PROMPT_SETUP, submit: true })
-    expect(session.motd).toBe('setup-echo dsh> ')
+    expect(sends).toHaveLength(2)
+    expect(sends[0]).toMatchObject({ text: ENCODING_PREAMBLE + PWSH_PROMPT_SETUP, submit: true })
+    expect(sends[1]).toMatchObject({ text: '', submit: false })
+    expect(session.motd).toBe('dsh> ')
     expect(spawned?.env).toMatchObject({
       TERM: 'dumb', NO_COLOR: '1', DSH_SHELL: '1', DSH_SESSION_ID: 'agent', DSH_PTY_SESSION_ID: 'pty-1',
     })
@@ -384,11 +390,13 @@ describe('BashTerminalBackend startup rollback', () => {
     await ctx.plugin(EmptySandbox)
     await ctx.plugin(SandboxPolicyService, { mode: 'danger-full-access', workspaceRoot: '/workspace' })
     const sends: TerminalSendRequest[] = []
+    let controlledPromptObserved = false
     const session = {
       motd: '',
       startSend: (request: TerminalSendRequest) => {
         sends.push(request)
         const second = sends.length > 1
+        controlledPromptObserved = second
         return {
           done: Promise.resolve({
             viewport: second ? 'dsh> ' : 'PowerShell 7.6.4\n',
@@ -399,7 +407,7 @@ describe('BashTerminalBackend startup rollback', () => {
           cancel: () => false,
         }
       },
-      read: () => ({ text: '', totalLines: 0, lineBegin: 0, lineEnd: 0, truncated: false }),
+      hasControlledPrompt: () => controlledPromptObserved,
     } as unknown as LocalPtySession
     const backend = new BashTerminalBackend(
       ctx,
@@ -453,7 +461,7 @@ describe('BashTerminalBackend startup rollback', () => {
           cancel: () => false,
         }
       },
-      read: () => ({ text: '', totalLines: 0, lineBegin: 0, lineEnd: 0, truncated: false }),
+      hasControlledPrompt: () => true,
     } as unknown as LocalPtySession
     const backend = new BashTerminalBackend(
       ctx,

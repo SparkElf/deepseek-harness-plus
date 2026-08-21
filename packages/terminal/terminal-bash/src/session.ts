@@ -23,6 +23,8 @@ import type {
 import type { ResolvedConfig } from './config.ts'
 import { CONTROLLED_PROMPT, TerminalSanitizer } from './sanitize.ts'
 
+const CURSOR_POSITION_RESPONSE = '\x1b[1;1R'
+
 function utf8Tail(text: string, maxBytes: number): { text: string; truncated: boolean } {
   if (Buffer.byteLength(text) <= maxBytes) return { text, truncated: false }
   const chars = Array.from(text)
@@ -178,6 +180,7 @@ export class LocalPtySession implements TerminalBackendSession {
   private promptSeen = false
   private promptTextSeen = false
   private promptTail = ''
+  private controlledPromptObserved = false
   private shellPgid: number | undefined
   private initializing = false
   private lastOutputAt = Date.now()
@@ -294,7 +297,6 @@ export class LocalPtySession implements TerminalBackendSession {
         return
       }
       // Closing can race the awaited provider write even though static analysis sees only local assignments.
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- awaited provider writes can close the session.
       if (this.active === operation && !this.closing) {
         this.pollingReady = operation
         this.schedulePoll(operation)
@@ -339,6 +341,14 @@ export class LocalPtySession implements TerminalBackendSession {
     }
   }
 
+  /**
+   * Report whether this session parsed the owned marker followed by the exact printable prompt.
+   * @returns Whether controlled prompt readiness has been observed.
+   */
+  hasControlledPrompt(): boolean {
+    return this.controlledPromptObserved
+  }
+
   async signal(signal: TerminalSignal): Promise<TerminalSignalResult> {
     if (this.closing) throw new Error('PTY session is closing')
     const targetPgid = await this.terminal.signalForeground(signal)
@@ -380,6 +390,10 @@ export class LocalPtySession implements TerminalBackendSession {
   private onData(data: string): void {
     const sanitized = this.sanitizer.push(data)
     this.appendOutput(sanitized.text)
+    if (sanitized.cursorPositionQueries !== undefined) {
+      const response = CURSOR_POSITION_RESPONSE.repeat(sanitized.cursorPositionQueries)
+      void this.terminal.write(response).catch((error: unknown) => { this.onTransportFailure(error) })
+    }
     if (sanitized.prompt) {
       // TODO(pty-delayed-signal-prompt): With a reproducer, define a marker-generation boundary
       // before attributing a signal-delayed prompt to a later send.
@@ -395,6 +409,7 @@ export class LocalPtySession implements TerminalBackendSession {
       this.promptTail += sanitized.promptTail.slice(0, remaining)
       if (sanitized.promptTail.length > remaining) this.promptTail = `${CONTROLLED_PROMPT}\0`
       this.promptTextSeen = this.promptTail === CONTROLLED_PROMPT
+      this.controlledPromptObserved ||= this.promptTextSeen
     }
   }
 
@@ -470,7 +485,6 @@ export class LocalPtySession implements TerminalBackendSession {
       this.polling = false
       const active = this.active
       // Awaited provider inspection can clear or replace the active send despite static analysis.
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- awaited inspection can replace the active send.
       if (active !== undefined && this.pollingReady === active) this.schedulePoll(active)
     }
   }

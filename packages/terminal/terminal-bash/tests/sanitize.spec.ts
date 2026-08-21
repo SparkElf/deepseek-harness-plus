@@ -4,6 +4,8 @@ import { normalizeTerminalText, TerminalSanitizer } from '@deepseek-ai/dsh-termi
 describe('TerminalSanitizer', () => {
   it('removes split CSI and owned OSC prompt markers', () => {
     const sanitizer = new TerminalSanitizer(64)
+    expect(sanitizer.push('\x1b[6')).toEqual({ text: '', prompt: false })
+    expect(sanitizer.push('n\x1b[6n')).toEqual({ text: '', prompt: false, cursorPositionQueries: 2 })
     expect(sanitizer.push('red\x1b[3')).toEqual({ text: 'red', prompt: false })
     expect(sanitizer.push('1m text\x1b[0m\r\n')).toEqual({ text: ' text\n', prompt: false })
     expect(sanitizer.push('\x1b]133;')).toEqual({ text: '', prompt: false })

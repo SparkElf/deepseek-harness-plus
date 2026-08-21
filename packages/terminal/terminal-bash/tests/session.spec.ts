@@ -142,12 +142,36 @@ afterEach(() => { vi.useRealTimers() })
 
 async function initialize(session: LocalPtySession, terminal: FakeTerminal): Promise<void> {
   const pending = session.initialize()
+  expect(session.hasControlledPrompt()).toBe(false)
   terminal.emitData('\x1b]133;D;0\x07dsh> ')
   await vi.advanceTimersByTimeAsync(10)
   await pending
+  expect(session.hasControlledPrompt()).toBe(true)
 }
 
 describe('LocalPtySession readiness and output', () => {
+  it('answers cursor-position queries without exposing them as command output', async () => {
+    vi.useFakeTimers()
+    const terminal = new FakeTerminal()
+    const session = new LocalPtySession(terminal, config())
+    const operation = session.startSend({ text: '', submit: false })
+
+    terminal.emitData('\x1b[6n')
+    await Promise.resolve()
+    expect(terminal.writes).toEqual(['\x1b[1;1R'])
+    expect(operation.readOutput()).toEqual({ delta: '', truncated: false })
+    terminal.emitData('\x1b]133;D;0\x07dsh> ')
+    await vi.advanceTimersByTimeAsync(10)
+    expect((await operation.done).waitReason).toBe('stdin_read')
+
+    const failedTerminal = new FakeTerminal()
+    failedTerminal.throwWrite = true
+    const failedSession = new LocalPtySession(failedTerminal, config())
+    const failed = failedSession.startSend({ text: '', submit: false })
+    failedTerminal.emitData('\x1b[6n')
+    await expect(failed.done).rejects.toThrow('write failed')
+  })
+
   it('lets queued terminal output run before the first post-write readiness poll', async () => {
     vi.useFakeTimers()
     const terminal = new FakeTerminal()
