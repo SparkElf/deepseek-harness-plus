@@ -8,7 +8,7 @@
 
 每个插件实例把一个 `provider` 绑定到一个 `toolName`；模型不会收到提供方选择器。如需公开另一种传输，请加载另一个名称不同的实例。工具只在其提供方存在时注册，从而避免对同级加载顺序和提供方重新加载的依赖。工具描述遵循 `provider.inheritsParentContext`：新建子 agent（智能体）需要独立提示词，而 fork 子 agent 已能看到父级已完成轮次。
 
-Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个命名空间挂载一次 `@deepseek-ai/dsh-tool-subagent/settings`；任意数量的 Agent preset 工具实例通过 `settingsNamespace` 消费这个已注册分区。没有 Settings 服务时，工具使用自己的组合默认值。Settings 服务存在时，指向未注册命名空间会让工具挂载失败，而不会创建一份 Agent 生命周期注册。
+Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个命名空间挂载一次 `@deepseek-ai/dsh-tool-subagent/startup`；任意数量的 Agent preset 工具实例通过 `settingsNamespace` 消费这个已注册分区。没有 Settings 服务时，工具使用自己的组合默认值。Settings 服务存在时，指向未注册命名空间会让工具挂载失败，而不会创建一份 Agent 生命周期注册。
 
 前台调用会让执行信号贯穿启动和执行，等待 `run.result`，并且在返回前总会等待 `run.dispose()`。只有 `completed` 会返回规范值 `{ kind: 'foreground', runId, output: JsonValue[] }`，并渲染为相同的最终文本。中止、拒绝、token 上限和其他失败都会变成出错的工具结果，其消息依次包含终止原因标题、可选的提供方 `SubagentResult.diagnostic`，以及子 agent 保留下来的部分 assistant 文本。诊断与 `SubagentResult.output` 保持分离，因此被截断的回答不会被报告为成功，也不会与基础设施说明混淆。如果结果收集与 dispose（资源释放）都 reject，出错结果会保留两项失败。
 
@@ -24,7 +24,7 @@ Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个�
 | `toolName` | 面向模型的名称，默认 `subagent`；每个已加载实例必须不同。 |
 | `enableRunInBackground` | 公开后台模式，默认 `true`；禁用时也会拒绝强制后台调用。 |
 | `backgroundMode` | 后台生命周期策略，默认 `one-shot`。`one-shot` 默认前台调用；`continuable` 默认后台调用，要求提供方具备 `prepareContinuable` 能力，并返回持久化子 agent ID，且不要求加载后续消息工具。 |
-| `settingsNamespace` | 可选的 Host 已注册命名空间，用于保存实时、由用户拥有的子 agent 默认值。每次后续创建子 agent 都会读取解析后的 `agentOptions`、`persona`、`toolFilter` 与 `maxDepth`；由 `/settings` 子路径在 Host 生命周期挂载一次并持有它。 |
+| `settingsNamespace` | 可选的 Host 已注册命名空间，用于保存实时、由用户拥有的子 agent 默认值。每次后续创建子 agent 都会读取解析后的 `agentOptions`、`persona`、`toolFilter` 与 `maxDepth`；由 `/startup` 子路径在 Host 生命周期挂载一次并持有它。 |
 | `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖继承的父级选项。 |
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |

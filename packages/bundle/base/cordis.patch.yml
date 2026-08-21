@@ -312,14 +312,14 @@
 
     # Settings sections are Host-lifetime owners; Agent presets mount the tools.
     - id: subagent-settings
-      name: '@deepseek-ai/dsh-tool-subagent/settings'
+      name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
         settingsNamespace: subagent
         provider: spawn
         maxDepth: 3
 
     - id: subagent-fork-settings
-      name: '@deepseek-ai/dsh-tool-subagent/settings'
+      name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
         settingsNamespace: subagent-fork
         provider: fork

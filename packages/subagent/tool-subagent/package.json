@@ -18,7 +18,7 @@
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
     },
-    "./settings": {
+    "./startup": {
       "types": "./lib/types/startup.d.ts",
       "default": "./lib/startup.js"
     },
@@ -31,8 +31,8 @@
   },
   "files": [
     "lib/index.js",
-    "lib/startup.js",
     "lib/invariant.js",
+    "lib/startup.js",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
