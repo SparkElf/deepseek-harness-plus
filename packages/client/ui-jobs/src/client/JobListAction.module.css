@@ -63,8 +63,8 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  width: min(336px, calc(100vw - 32px));
-  max-width: calc(100vw - 32px);
+  width: min(336px, calc(100cqw - 32px));
+  max-width: calc(100cqw - 32px);
   max-height: min(420px, calc(100vh - 140px));
   margin: 0;
   padding: 4px;
@@ -83,7 +83,6 @@
   .menu {
     right: 0;
     left: auto;
-    width: min(320px, calc(100vw - 32px));
   }
 }
 
