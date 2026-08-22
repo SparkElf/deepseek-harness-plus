@@ -6,6 +6,7 @@
 .root {
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
   height: 100%;
   min-width: 0;
   background: var(--dsw-alias-bg-base);
@@ -28,7 +29,6 @@
 .header {
   position: relative;
   flex: none;
-  container-type: inline-size;
   padding: 12px 28px 0 20px;
   border-bottom: 1px solid transparent;
 }
@@ -68,7 +68,7 @@
 
 .crumbs {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   align-items: center;
   gap: 2px;
   min-width: 0;
@@ -125,6 +125,7 @@
   align-items: center;
   min-width: 0;
   gap: 4px;
+  margin-left: auto;
 }
 
 .headerUtilities {
@@ -132,7 +133,6 @@
   flex: none;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
 }
 
 .headerUtilities:empty {
@@ -141,8 +141,7 @@
 
 @media (max-width: 800px) {
   /* Keep the preset adjacent to the shrinking title instead of pinning it right. */
-  .titleCluster,
-  .crumbs {
+  .titleCluster {
     flex: 0 1 auto;
   }
 
