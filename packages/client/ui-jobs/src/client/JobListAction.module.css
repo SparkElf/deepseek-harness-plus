@@ -83,6 +83,7 @@
   .menu {
     right: 0;
     left: auto;
+    width: min(320px, calc(100vw - 32px));
   }
 }
 
