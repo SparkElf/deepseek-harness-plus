@@ -30,6 +30,7 @@ describe('CI workflow', () => {
   it('keeps a required Wine Windows job, a non-blocking native Windows job with failover, and a master-only standby', () => {
     const workflow = loadWorkflow('.github/workflows/ci.yml')
     if (!isRecord(workflow.jobs)
+      || !isRecord(workflow.jobs.impact)
       || !isRecord(workflow.jobs.windows)
       || !isRecord(workflow.jobs['windows-native'])
       || !isRecord(workflow.jobs['wine-apt-cache'])
@@ -38,9 +39,10 @@ describe('CI workflow', () => {
       || !isRecord(workflow.jobs['node-24-coverage'])
       || !isRecord(workflow.jobs['node-24-consumers'])
       || !isRecord(workflow.jobs['all-checks-passed'])) {
-      throw new TypeError('CI workflow must define windows, windows-native, wine-apt-cache, serial-windows, node-24, node-24-coverage, node-24-consumers, and all-checks-passed jobs')
+      throw new TypeError('CI workflow must define impact, windows, windows-native, wine-apt-cache, serial-windows, node-24, node-24-coverage, node-24-consumers, and all-checks-passed jobs')
     }
 
+    const impact = workflow.jobs.impact
     const windows = workflow.jobs.windows
     const windowsNative = workflow.jobs['windows-native']
     const wineAptCache = workflow.jobs['wine-apt-cache']
@@ -59,7 +61,7 @@ describe('CI workflow', () => {
     // Required PR job: Wine on ubuntu-latest, runs wine-windows-gates.sh.
     expect(windows['runs-on']).toBe('ubuntu-latest')
     expect(windows.name).toBe('windows node 24 / wine blocking')
-    expect(windows.if).toBe("github.event_name == 'pull_request'")
+    expect(windows.if).toBe("needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.windows == 'true'")
     expect(commandSteps.some(step => step.run.includes('wine-windows-gates.sh'))).toBe(true)
 
     // windows-native: non-blocking native job with failover, runs windows-complete.
@@ -71,7 +73,7 @@ describe('CI workflow', () => {
     expect(windowsNative['runs-on']).toContain('dsh-win-ci')
     expect(windowsNative['runs-on']).toContain('dsh-windows-2025-16core')
     expect(windowsNative.name).toBe('windows node 24 / native complete')
-    expect(windowsNative.if).toBe("github.event_name == 'pull_request'")
+    expect(windowsNative.if).toBe("needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.windows == 'true'")
     expect(windowsNative.env).toMatchObject({
       DSH_COVERAGE_TEST_TIMEOUT_MS: '30000',
     })
@@ -89,7 +91,12 @@ describe('CI workflow', () => {
     expect(serialWindows['runs-on']).toEqual(['self-hosted', 'dsh-win-ci', 'windows'])
     expect(serialWindows.name).toBe('serial / windows (self-hosted standby)')
 
-    // Aggregate: Wine `windows` required, native `windows-native` excluded.
+    // Aggregate: impact and Wine `windows` required, native `windows-native` excluded.
+    expect(impact).toMatchObject({
+      if: "github.event_name == 'pull_request' || github.event_name == 'schedule'",
+      name: 'CI impact plan',
+    })
+    expect(aggregate.needs).toContain('impact')
     expect(aggregate.needs).toContain('windows')
     expect(aggregate.needs).not.toContain('windows-native')
     expect(aggregate.needs).not.toContain('serial-windows')
@@ -108,6 +115,40 @@ describe('CI workflow', () => {
     expect(aggregate['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
     expect(aggregate['runs-on']).not.toContain('DSH_CI_FAILOVER_WINDOWS')
     expect(aggregate['runs-on']).toContain('vm-backup')
+  })
+
+  it('runs incremental coverage and reviewed Web cases only from the fail-open impact plan', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const node24 = workflowJob(workflow, 'node-24')
+    const coverage = workflowJob(workflow, 'node-24-coverage')
+    const consumers = workflowJob(workflow, 'node-24-consumers')
+    const aggregate = workflowJob(workflow, 'all-checks-passed')
+    const staticSteps = Array.isArray(node24.steps) ? node24.steps.filter(isRecord) : []
+    const coverageSteps = Array.isArray(coverage.steps) ? coverage.steps.filter(isRecord) : []
+    const consumerSteps = Array.isArray(consumers.steps) ? consumers.steps.filter(isRecord) : []
+    const aggregateSteps = Array.isArray(aggregate.steps) ? aggregate.steps.filter(isRecord) : []
+
+    expect(node24).toMatchObject({ needs: 'impact', if: "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule')" })
+    expect(coverage).toMatchObject({ needs: 'impact', if: "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.coverage != 'skip'" })
+    expect(consumers).toMatchObject({ needs: 'impact', if: "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.consumers != 'skip'" })
+    expect(staticSteps.find(step => step.name === 'Run static gates')?.env).toEqual({
+      DSH_ARCHIVE_BASE_REF: '${{ needs.impact.outputs.merge_base }}',
+    })
+    expect(coverageSteps.find(step => step.name === 'Run impact-selected coverage')?.run).toContain('--coverage.changed "$BASE_SHA"')
+    expect(consumerSteps.find(step => step.name === 'Run impact-selected browser and artifact gates')?.run).toContain('check:ci:web-affected')
+    expect(aggregateSteps.find(step => step.name === 'Verify selected and skipped job results')?.run).toContain('check_result coverage')
+  })
+
+  it('forces the complete impact plan on the nightly default-branch schedule', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const impact = workflowJob(workflow, 'impact')
+    if (!isRecord(workflow.on) || !Array.isArray(impact.steps)) {
+      throw new TypeError('CI workflow must define triggers and impact steps')
+    }
+    const plan = impact.steps.filter(isRecord).find(step => step.name === 'Resolve fail-open CI impact')
+
+    expect(workflow.on.schedule).toEqual([{ cron: '23 3 * * *' }])
+    expect(plan?.run).toContain('--base "$HEAD_SHA^" --head "$HEAD_SHA" --force-full')
   })
 
   it('exempts push from cancellation, so one master merge does not cancel the running drill', () => {
@@ -147,6 +188,13 @@ describe('CI workflow', () => {
     // would silently misclassify it as gated.
     const NOT_PUSH_REACHABLE = new Set([
       "github.event_name == 'pull_request'",
+      "github.event_name == 'pull_request' || github.event_name == 'schedule'",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule')",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.coverage != 'skip'",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.consumers != 'skip'",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.node_compat == 'true'",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.python == 'true'",
+      "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.windows == 'true'",
       "always() && github.event_name == 'pull_request'",
       "github.event_name == 'workflow_dispatch' && inputs.suite == 'larger-runner-benchmark'",
       "github.event_name == 'workflow_dispatch' && inputs.suite == 'consolidated-runner-benchmark'",
@@ -185,7 +233,7 @@ describe('CI workflow', () => {
     expect(config).not.toContain('packages/lsp/lsp-stdio/src/instance.ts')
   })
 
-  it('requires one release-shaped Python runtime target on every pull request', () => {
+  it('requires one release-shaped Python runtime target for full-impact pull requests', () => {
     const workflow = loadWorkflow('.github/workflows/ci.yml')
     const pythonRuntime = workflowJob(workflow, 'python-runtime')
     const aggregate = workflowJob(workflow, 'all-checks-passed')
@@ -194,7 +242,8 @@ describe('CI workflow', () => {
     }
 
     expect(pythonRuntime).toMatchObject({
-      if: "github.event_name == 'pull_request'",
+      needs: 'impact',
+      if: "needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.python == 'true'",
       name: 'python runtime / release-shaped Linux x64',
       uses: './.github/workflows/build-exe-for-python-sdk.yml',
       with: {
