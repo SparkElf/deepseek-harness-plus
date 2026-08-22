@@ -56,7 +56,7 @@ function node(value: ChatSnapshot, kind: string): ChatConversationViewNode | und
 }
 
 describe('goal command input projection', () => {
-  it('builds a separate input Node before the generic command result and restores it on replay', () => {
+  it('builds a separate input Node before the generic command result and restores the projection on replay', () => {
     const run = entry(1, 'command/run', {
       commandId: 'command-goal', name: 'goal', args: ' ', source: { kind: 'user' },
     })
