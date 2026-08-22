@@ -99,12 +99,12 @@ export function ConversationSessionHeader({
                 })}
                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
               </nav>
-              <div className={css.headerUtilities}>
-                {renderSlot('conversation.session.header.utilities', {})}
-              </div>
               <div className={css.headerActions}>
                 {renderSlot('conversation.session.header.actions', {})}
               </div>
+            </div>
+            <div className={css.headerUtilities}>
+              {renderSlot('conversation.session.header.utilities', {})}
             </div>
           </div>
           {tabs.length > 1 && (

@@ -68,7 +68,7 @@
 
 .crumbs {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 0;
   align-items: center;
   gap: 2px;
   min-width: 0;
@@ -125,7 +125,6 @@
   align-items: center;
   min-width: 0;
   gap: 4px;
-  margin-left: auto;
 }
 
 .headerUtilities {
@@ -133,6 +132,7 @@
   flex: none;
   align-items: center;
   gap: 4px;
+  margin-left: 8px;
 }
 
 .headerUtilities:empty {
@@ -146,11 +146,26 @@
   }
 
   .headerActions {
+    display: contents;
+  }
+
+  /* Slot outlets keep a display:contents anchor, so target each action below it. */
+  .headerActions [data-slot='conversation.session.header.actions'] > span {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+    z-index: 2;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div {
     position: absolute;
     right: 8px;
     bottom: 0;
     z-index: 2;
-    gap: 2px;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
+    right: 96px;
   }
 
   .tabs {
