@@ -175,6 +175,39 @@
   }
 }
 
+/* The paired phone may report a wider CSS viewport than its physical width. */
+@container (max-width: 900px) {
+  .titleCluster {
+    flex: 0 1 auto;
+  }
+
+  .headerActions {
+    display: contents;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > span {
+    position: static;
+    margin-left: 4px;
+    align-self: center;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    z-index: 2;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
+    right: 96px;
+  }
+
+  .tabs {
+    gap: 16px;
+    padding-right: 150px;
+  }
+}
+
 /* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */
 .tabs {
   position: relative;

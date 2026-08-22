@@ -103,6 +103,16 @@
   }
 }
 
+/* The phone can expose a wider CSS viewport than its physical screen. The
+   composer row is the reliable owner for this narrow menu decision. */
+@container (max-width: 720px) {
+  .menu {
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
+  }
+}
+
 .status,
 .empty {
   padding: 10px;
