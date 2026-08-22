@@ -513,7 +513,7 @@
 :global([data-dsh-frame][data-sidebar-collapsed]) .row {
   justify-content: flex-start;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .tools {
