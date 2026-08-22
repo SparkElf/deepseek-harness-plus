@@ -353,12 +353,13 @@ describe('web e2e: empty-draft Cmd+Enter steers the whole queue', () => {
       { timeout: 10_000 },
     ).toBe(2)
     expect(await page.locator('[data-queue-dock]').count()).toBe(0)
-    // The reasoning row streams independently of the steering handoff. Wait
-    // for the block to settle so the mid snapshot does not race its transient
-    // visually-hidden Running label while the question keeps the turn open.
+    // The reasoning row and question card are the stable mid-turn milestone;
+    // capture only after both are visible so the transient Running label cannot
+    // race the question handoff.
     await page.locator('[data-variant="think"][data-state="ok"]').first().waitFor({ timeout: 10_000 })
+    await page.locator('[data-question-key]').waitFor({ timeout: 10_000 })
     // Usage projections may publish on either side of the still-open question
-    // step; this mid-state golden owns only the pending conversation flow.
+    // step; this mid-state golden owns the pending conversation flow.
     const mid = await captureStableAria(page, '[data-chat-flow]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(STEER_ALL_MID, mid, MODE)
 
