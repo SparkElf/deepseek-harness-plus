@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import type { JobView } from '@deepseek-ai/dsh-client-runtime/client'
-import { IconChevronDownOutline14, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconChecklistOutline14, IconChevronDownOutline14, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -139,6 +139,7 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
         className={css.trigger}
         aria-expanded={open}
         aria-label={countLabel}
+        title={countLabel}
         onClick={() => {
           // Sample the clock in the same commit that opens the list: the
           // mount-time value predates every job, so the first painted frame
@@ -148,6 +149,9 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
           setOpen(current => !current)
         }}
       >
+        <span className={css.compactIcon} aria-hidden>
+          <IconChecklistOutline14 size={14} />
+        </span>
         {liveCount > 0 ? <StateDot state="ongoing" className={css.triggerDot} /> : null}
         <span className={css.count}>{countLabel}</span>
         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />

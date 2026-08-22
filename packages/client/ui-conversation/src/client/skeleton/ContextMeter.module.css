@@ -4,6 +4,8 @@
 .root {
   position: relative;
   display: inline-flex;
+  flex: 0 0 28px;
+  width: 28px;
 }
 
 /* Same 28px circular hit target family as the composer's attach button. */
