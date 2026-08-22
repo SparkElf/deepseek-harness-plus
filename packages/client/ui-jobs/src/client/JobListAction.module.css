@@ -30,7 +30,22 @@
   transform: rotate(180deg);
 }
 
+@media (max-width: 800px) {
+  .compactIcon {
+    display: inline-flex;
+  }
+
+  .count {
+    display: none;
+  }
+}
+
 .triggerDot {
+  flex: none;
+}
+
+.compactIcon {
+  display: none;
   flex: none;
 }
 

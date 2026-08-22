@@ -304,14 +304,12 @@
 
 .trailing {
   flex: none;
-  gap: 8px;
+  min-width: 0;
   /* Wrap keeps the left mode chips and the right controls apart when the card
-     runs out of row width: the trailing group (model + send) moves to its own
-     line instead of the left group shrinking until its chip overlaps the
-     model trigger (external:107). The auto margin re-anchors it right on the
-     wrapped line; on a single line space-between already pins it right. */
+     runs out of row width: the trailing group (model + meter + send) moves to
+     its own line instead of shrinking the model trigger into its neighbours. */
   margin-left: auto;
-  gap: 12px;
+  gap: 8px;
 }
 
 .modelSeat {
@@ -480,8 +478,9 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .row {
+    justify-content: flex-start;
     gap: 8px;
     /* Last-resort wrap: when even the shrunken model seat cannot share the
        line with the left tools, the trailing group moves down as one block. */
@@ -495,6 +494,7 @@
 
   .trailing {
     flex: 1 1 0;
+    margin-left: 0;
     gap: 6px;
   }
 
@@ -506,5 +506,6 @@
 
   .modelSeat > * {
     width: 100%;
+    min-width: 0;
   }
 }

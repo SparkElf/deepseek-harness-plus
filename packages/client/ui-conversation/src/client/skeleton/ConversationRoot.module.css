@@ -109,8 +109,12 @@
 }
 
 .crumbCurrent {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: default;
 }
 
@@ -126,12 +130,29 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  margin-left: 20px;
+  gap: 4px;
+  margin-left: 8px;
 }
 
 .headerUtilities:empty {
   display: none;
+}
+
+@media (max-width: 800px) {
+  /* Keep the session title readable above the compact action row on phone CSS widths. */
+  .titleCluster {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .crumbs {
+    flex: 1 1 100%;
+  }
+
+  .headerActions {
+    flex: 1 1 100%;
+    gap: 2px;
+  }
 }
 
 /* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */
