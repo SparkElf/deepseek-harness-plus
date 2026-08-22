@@ -20,11 +20,11 @@ ci.yml's value is that it is keyless, forkable, and always-green: any contributo
 
 ### Cost is not the constraint; reliability is
 
-Internal inference cost is not the limiting constraint, so the workflow optimizes for coverage and signal. It runs every matching `*.e2e.ts` file on multiple triggers and every trusted PR, implementing the [docs/testing.md](../../../../docs/testing.md) with-key policy.
+Internal inference cost is not the limiting constraint, so the workflow optimizes for coverage and signal. It runs every matching `*.e2e.ts` file on manual, default-branch, nightly, and trusted pull-request triggers, except when the pull-request diff contains only Client package tests that the suite cannot consume. This implements the [docs/testing.md](../../../../docs/testing.md) with-key policy.
 
 ### Triggers: trusted events only
 
-`workflow_dispatch` + `push` to `main`/`master` + nightly `schedule` (`17 0 * * *`, 08:17 Asia/Shanghai) + `pull_request`. Push gives a post-merge signal; schedule catches external-API drift; dispatch is the manual escape hatch; and trusted pull requests get a pre-merge gate. That pre-merge signal deliberately accepts the larger key-exposure surface described under § Security.
+`workflow_dispatch` + `push` to `main`/`master` + nightly `schedule` (`17 0 * * *`, 08:17 Asia/Shanghai) + `pull_request`, with `packages/client/**/tests/**` ignored only when it contains the complete pull-request diff. Push gives a post-merge signal; schedule catches external-API drift; dispatch is the manual escape hatch; and applicable trusted pull requests get a pre-merge check. That pre-merge signal deliberately accepts the larger key-exposure surface described under § Security.
 
 ### The untrusted-PR gate
 
@@ -35,7 +35,7 @@ github.event_name != 'pull_request'
   || !(github.event.pull_request.head.repo.fork || github.event.pull_request.user.login == 'dependabot[bot]')
 ```
 
-The Dependabot clause keys on the PR **author** (`pull_request.user.login`), not `github.actor` (the run trigger): a maintainer who reopens or re-runs a Dependabot PR would make `github.actor` a human while the PR is still keyless, and an author-based test stays correct across that. A job skipped by a **job-level** `if:` reports as a *successful* check (unlike a workflow/trigger-level skip, which stays pending), so this workflow is safe to mark as a required status check if desired — a fork/Dependabot PR's skipped-but-green check does not block the merge.
+The Dependabot clause keys on the PR **author** (`pull_request.user.login`), not `github.actor` (the run trigger): a maintainer who reopens or re-runs a Dependabot PR would make `github.actor` a human while the PR is still keyless, and an author-based test stays correct across that. A job skipped by a **job-level** `if:` reports as a *successful* check, so a fork or Dependabot PR's skipped-but-green check does not block a merge. The Client test-only workflow filter emits no check at all; this workflow is therefore not a universal required status check unless repository rules can express the same path condition.
 
 The gate is a *clean-skip nicety*, not the secret's security boundary (see § Security — the boundary is GitHub's own fork-secret withholding under `pull_request`). Without the gate, forks still could not read the key; they would just hit a confusing preflight hard-fail and waste compute.
 

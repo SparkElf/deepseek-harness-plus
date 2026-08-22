@@ -20,11 +20,11 @@ ci.yml 的价值在于它无密钥、可 fork、始终为绿：任何贡献者�
 
 ### 约束不是成本，而是可靠性
 
-内部推理（inference）成本不是限制因素，因此工作流针对覆盖面和信号优化。它会在多种触发条件和每个受信任 PR（Pull Request）上运行所有匹配的 `*.e2e.ts` 文件，以落实 [docs/testing.md](../../../../docs/testing.md) 的有密钥策略。
+内部推理（inference）成本不是限制因素，因此工作流针对覆盖面和信号优化。它会在手动、默认分支、nightly 与可信 PR（Pull Request）触发条件下运行所有匹配的 `*.e2e.ts` 文件；仅当 PR diff 全部由该 suite 不会消费的 Client 包测试组成时例外。这样落实 [docs/testing.md](../../../../docs/testing.md) 的有密钥策略。
 
 ### 触发条件：仅限可信事件
 
-`workflow_dispatch` + `push` 到 `main`/`master` + 每夜 `schedule`（`17 0 * * *`，即北京时间 08:17）+ `pull_request`。push 提供合并后信号；schedule 捕捉外部 API 漂移；dispatch 是手动逃生通道；可信 PR 获得合并前门禁。该合并前信号有意接受 § 安全性中描述的更大密钥暴露面。
+`workflow_dispatch` + `push` 到 `main`/`master` + 每夜 `schedule`（`17 0 * * *`，即北京时间 08:17）+ `pull_request`；只有 `packages/client/**/tests/**` 构成完整 PR diff 时才忽略该路径。push 提供合并后信号；schedule 捕捉外部 API 漂移；dispatch 是手动逃生通道；适用的可信 PR 获得合并前检查。该合并前信号有意接受 § 安全性中描述的更大密钥暴露面。
 
 ### 不可信 PR 的门禁
 
@@ -35,7 +35,7 @@ github.event_name != 'pull_request'
   || !(github.event.pull_request.head.repo.fork || github.event.pull_request.user.login == 'dependabot[bot]')
 ```
 
-Dependabot 子句基于 PR **作者**（`pull_request.user.login`）而非 `github.actor`（运行触发者）：维护者重新打开或重跑 Dependabot PR 时，`github.actor` 会变成人类，但该 PR 仍然无密钥；基于作者的判断在这种情况下依然正确。被 **job 级** `if:` 跳过的 job 报告为*成功*检查（不同于工作流/触发级跳过会保持 pending），因此如果需要将此工作流标记为 required status check 也是安全的——fork/Dependabot PR 的跳过但绿色的检查不会阻塞合并。
+Dependabot 子句基于 PR **作者**（`pull_request.user.login`）而非 `github.actor`（运行触发者）：维护者重新打开或重跑 Dependabot PR 时，`github.actor` 会变成人类，但该 PR 仍然无密钥；基于作者的判断在这种情况下依然正确。被 **job 级** `if:` 跳过的 job 报告为*成功*检查，因此 fork 或 Dependabot PR 的跳过但绿色检查不会阻塞合并。Client 纯测试 workflow filter 完全不产生检查；除非仓库规则能够表达同一条路径条件，否则此工作流不能作为通用 required status check。
 
 该门禁是一个*干净跳过的便利措施*，而非 secret 的安全边界（见 § 安全性——边界是 GitHub 自身在 `pull_request` 下对 fork 的 secret 扣留机制）。没有该门禁，fork 仍然无法读取密钥；只是会遇到令人困惑的 preflight 硬失败并浪费计算资源。
 

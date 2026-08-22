@@ -22,13 +22,15 @@ Client 映射为每个可使用增量模式的包列出 [apps/web/tests](../../.
 
 默认分支的 nightly 运行会强制选择 **full**，不依赖改动路径。它保留完整的跨平台与 release-shaped 信号，同时避免在每次 master push 上增加完整托管矩阵。
 
+dsh/vendor 打包工作流、Desktop Windows installer 与可信 real-API 工作流只在每个改动文件都是 `packages/client/**/tests/**` 下的 Client 包测试时抑制拉取请求运行。这些文件不会进入 npm tarball、Desktop 应用或外部 API suite。源码、manifest、workflow、混合改动或未知路径仍会启动各自适用的工作流。master push 保留完整验证触发器。
+
 ## 考虑过的替代方案
 
 **引入 Nx affected execution。** Nx 可以发现 pnpm project，并推断部分 TypeScript、Vite 与 Vitest 任务，但仓库的测试和构建仍是根级聚合任务，tsdown 没有第一方 Nx inference，动态 Cordis 与 Client 关系仍需要自有图规则。Nx 要先引入第二套编排层，之后才能提供此选择器的有限收益。
 
 **使用既有 change-scope 报告作为 planner 输入。** [显式范围报告](../process/2026-07-27-explicit-change-scope-report.md)通过 TypeScript 命令负责本地 committed、staged、unstaged 与 untracked 证据。CI 只需要依赖安装前的 committed merge-base 范围；在选择作业前安装 workspace 依赖会给每条 lane 增加延迟。因此 CI planner 保留一个窄范围、零依赖的 committed-diff reader，而 change-scope 继续负责更丰富的本地证据。
 
-**只使用 GitHub path filter。** Workflow path 可以抑制作业，但不能表达 Git status、经过评审的包到浏览器用例关系、改动文件覆盖率，或由 aggregate 校验有意跳过。分散的 filter 也会产生多个策略 owner。
+**把 GitHub path filter 用作 required CI planner。** Workflow path 不能表达 Git status、经过评审的包到浏览器用例关系、改动文件覆盖率，或由 aggregate 校验有意跳过。Path filter 仅用于独立打包、Desktop 与 real-API 工作流中唯一已证明不作为输入的 Client 测试目录；影响范围 planner 仍是 required CI 的策略 owner。
 
 **每个拉取请求都保留完整矩阵。** 此方案的选择风险最低，但会让无关平台与 release 约定占用最长 lane，延迟局部 Client 改动和文档的反馈。
 
@@ -36,6 +38,6 @@ Client 映射为每个可使用增量模式的包列出 [apps/web/tests](../../.
 
 ## 后果
 
-文档拉取请求在静态 lane 后完成。符合条件的 Client 改动保留改动 TypeScript 文件的按文件 100% 覆盖率和选定的真实浏览器行为，同时避免无关的兼容性、Python 与 Windows 工作。高影响和未知改动保留既有的完整拉取请求证据，nightly full 运行则保留广泛的漂移检测。
+文档拉取请求在静态 lane 后完成。符合条件的 Client 改动保留改动 TypeScript 文件的按文件 100% 覆盖率和选定的真实浏览器行为，同时避免无关的兼容性、Python、Windows 与不适用于测试改动的 release 工作。高影响和未知改动保留既有的完整拉取请求证据，nightly 与 master 验证则保留广泛的漂移检测。
 
 显式映射属于正确性基础设施，需要承担评审成本。不完整映射可能把未选择的浏览器回归推迟到 nightly full 运行，因此共享包保持 fail-open，扩展映射需要浏览器测试 owner 提供证据。此方案有意接受比通用 project graph 更少的自动范围，换取一个小型、可检查的策略 owner，并避免新增任务框架。
