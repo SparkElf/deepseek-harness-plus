@@ -4,6 +4,8 @@ on:
   push:
     branches: [master]
   pull_request:
+  schedule:
+    - cron: '23 3 * * *'
   workflow_dispatch:
     inputs:
       suite:
@@ -42,6 +44,43 @@ env:
 
 jobs:
 
+  impact:
+    if: github.event_name == 'pull_request' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    name: CI impact plan
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      coverage: ${{ steps.plan.outputs.coverage }}
+      consumers: ${{ steps.plan.outputs.consumers }}
+      node_compat: ${{ steps.plan.outputs.node_compat }}
+      python: ${{ steps.plan.outputs.python }}
+      windows: ${{ steps.plan.outputs.windows }}
+      web_tests: ${{ steps.plan.outputs.web_tests }}
+      merge_base: ${{ steps.plan.outputs.merge_base }}
+      reason: ${{ steps.plan.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+      - name: Resolve fail-open CI impact
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == 'schedule' ]]; then
+            node scripts/resolve-ci-impact.mjs --base "$HEAD_SHA^" --head "$HEAD_SHA" --force-full --github-output "$GITHUB_OUTPUT"
+          else
+            node scripts/resolve-ci-impact.mjs --base "$BASE_SHA" --head "$HEAD_SHA" --github-output "$GITHUB_OUTPUT"
+          fi
+
   # TODO(hosted-serial-ci): Re-enable the one remaining disabled hosted serial
   # reference job (serial-macos) before release. The self-hosted standby lane
   # below remains active on every master push. Re-enabling serial-macos does not
@@ -65,7 +104,8 @@ jobs:
   # serial-linux-selfhosted standby lane below. The Windows failover switch is
   # the separate DSH_CI_FAILOVER_WINDOWS variable on the windows-native job below.
   node-24:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule')
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -76,7 +116,7 @@ jobs:
     env:
       DSH_GATE_CONCURRENCY: '8'
     steps:
-      # Fetch complete history so the archive gate can read the trusted PR base from a reused shallow checkout.
+      # Fetch complete history so the archive gate can read the planner's trusted merge base from a reused shallow checkout.
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
@@ -98,8 +138,8 @@ jobs:
           store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
           echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
-      # Pull requests consume the default-branch cache but do not put cache
-      # compression and upload on the paid latency-critical path. Skipped
+      # Selected hosted runs consume the default-branch cache but do not put cache
+      # compression and upload on the latency-critical path. Skipped
       # under failover — see the coverage lane's identical rationale.
       - uses: actions/cache/restore@v4
         if: vars.DSH_CI_FAILOVER_LINUX != 'selfhosted' || github.event.pull_request.user.login == 'dependabot[bot]'
@@ -114,11 +154,12 @@ jobs:
 
       - name: Run static gates
         env:
-          DSH_ARCHIVE_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          DSH_ARCHIVE_BASE_REF: ${{ needs.impact.outputs.merge_base }}
         run: pnpm run check:ci:static
 
   node-24-coverage:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.coverage != 'skip'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -136,6 +177,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: pnpm/action-setup@v4
@@ -178,11 +220,23 @@ jobs:
           if (( install_status != 0 )); then exit "$install_status"; fi
           exit "$sandbox_status"
 
-      - name: Run exhaustive coverage
-        run: pnpm run check:ci:coverage
+      - name: Run impact-selected coverage
+        env:
+          BASE_SHA: ${{ needs.impact.outputs.merge_base }}
+          COVERAGE_MODE: ${{ needs.impact.outputs.coverage }}
+        run: |
+          if [[ "$COVERAGE_MODE" == 'full' ]]; then
+            pnpm run check:ci:coverage
+          elif [[ "$COVERAGE_MODE" == 'incremental' ]]; then
+            pnpm exec vitest run --changed "$BASE_SHA" --coverage --coverage.changed "$BASE_SHA"
+          else
+            echo "::error::Unexpected coverage mode: $COVERAGE_MODE"
+            exit 1
+          fi
 
   node-24-consumers:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.consumers != 'skip'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -220,8 +274,8 @@ jobs:
           store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
           echo "path=$store_path" >> "$GITHUB_OUTPUT"
 
-      # Pull requests restore the pnpm store and Playwright caches without paying
-      # compression and upload on the required path. No master job saves these
+      # Selected hosted runs restore the pnpm store and Playwright caches without
+      # paying compression and upload on the required path. No master job saves these
       # hosted cache keys, so each restore-keys fallback hits the matching archived
       # entry until it evicts, after which the store is cold. Skipped under failover
       # — the self-hosted VM's persistent store is already warm.
@@ -265,12 +319,24 @@ jobs:
         if: vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]'
         run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install chromium
 
-      - name: Run compatibility, snapshot, and artifact gates
-        run: pnpm run check:ci:consumers
+      - name: Run impact-selected browser and artifact gates
+        env:
+          CONSUMER_MODE: ${{ needs.impact.outputs.consumers }}
+          IMPACT_WEB_TESTS: ${{ needs.impact.outputs.web_tests }}
+        run: |
+          if [[ "$CONSUMER_MODE" == 'full' ]]; then
+            pnpm run check:ci:consumers
+          elif [[ "$CONSUMER_MODE" == 'web' ]]; then
+            DSH_WEB_SNAPSHOT_FILES="$IMPACT_WEB_TESTS" pnpm run check:ci:web-affected
+          else
+            echo "::error::Unexpected consumer mode: $CONSUMER_MODE"
+            exit 1
+          fi
 
 
   node-compat:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.node_compat == 'true'
     # Each compatibility contract receives an independent standard hosted job.
     runs-on: ${{ matrix.runner }}
     name: ${{ matrix.name }}
@@ -310,7 +376,8 @@ jobs:
         run: pnpm run check:node-compat
 
   python-sdk:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.python == 'true'
     runs-on: ubuntu-latest
     name: python 3.10 / keyless SDK
     steps:
@@ -332,14 +399,15 @@ jobs:
   # The reusable builder owns the executable, snapshot, wheel, clean-install,
   # GLIBC, and manylinux checks; release validation retains all native targets.
   python-runtime:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.python == 'true'
     name: python runtime / release-shaped Linux x64
     uses: ./.github/workflows/build-exe-for-python-sdk.yml
     with:
       targets: node24-linux-x64
       ci: true
 
-  # The required pull-request Windows signal: the two blocking win32 surfaces
+  # The required full-impact Windows signal: the two blocking win32 surfaces
   # (workspace build, production site) execute with real, checksum-verified
   # Windows Node under Wine on standard hosted Linux. The independent
   # windows-native job below keeps the complete native-kernel inventory —
@@ -350,7 +418,8 @@ jobs:
   # Current topology and fidelity limits live in
   # .agents/notes/implemented/process/2026-08-08-native-windows-pull-request-ci.md
   windows:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.windows == 'true'
     runs-on: ubuntu-latest
     name: windows node 24 / wine blocking
     timeout-minutes: 15
@@ -430,7 +499,7 @@ jobs:
         run: wineserver -k 2>/dev/null || true
 
   # Master seeds the Wine apt-archive cache in the default-branch scope,
-  # which every pull request's windows job can restore; saves from
+  # which every selected pull request's windows job can restore; saves from
   # pull-request runs are scoped to their own merge ref and help nobody
   # else. Runs in seconds when the image version already has a cache.
   wine-apt-cache:
@@ -458,7 +527,7 @@ jobs:
           cp /var/cache/apt/archives/*.deb "$HOME/wine-debs/"
           du -sh "$HOME/wine-debs"
 
-  # Every pull request also gets a real Windows-kernel signal. This job keeps
+  # Every full-impact pull request and nightly run gets a real Windows-kernel signal. This job keeps
   # its own unmasked conclusion but is deliberately absent from
   # all-checks-passed.needs, so it never delays or changes that required
   # verdict. Under normal operation it runs on the hosted larger runner; under
@@ -469,7 +538,8 @@ jobs:
   # DSH_CI_FAILOVER_LINUX variable that retargets the three required Linux jobs
   # and the all-checks-passed verdict above.
   windows-native:
-    if: github.event_name == 'pull_request'
+    needs: impact
+    if: needs.impact.result == 'success' && (github.event_name == 'pull_request' || github.event_name == 'schedule') && needs.impact.outputs.windows == 'true'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -864,34 +934,62 @@ jobs:
   # Single stable required check for branch protection: require "all checks
   # passed" instead of enumerating matrix legs whose names change as lanes and
   # node versions evolve. Every blocking job in THIS workflow must be listed in
-  # `needs`. The required Wine job is listed as `windows`; `windows-native` is
-  # deliberately absent so its independent result never delays or changes this
-  # verdict. (`needs` cannot reach across workflow files; e2e.yml stays its own
-  # check.)
-  # `if: always()` is load-bearing: without it a failed dependency
-  # would SKIP this job, and GitHub counts a skipped required check as passing
-  # — so this job always runs and fails on any non-success result, including
-  # 'cancelled' and 'skipped'.
+  # needs. Impact-selected skips are accepted only when the planner requested
+  # them; a selected failure, cancellation, or skip fails this verdict.
+  # windows-native stays observational and e2e.yml owns its separate check.
   all-checks-passed:
     name: all checks passed
-    # This bookkeeping-only verdict must not depend on custom-pool
-    # provisioning — and under Linux failover it follows the same selector as
-    # the worker jobs it aggregates, so a standard-hosted outage cannot strand
-    # the branch-protection verdict either. It retargets with the Linux switch
-    # (DSH_CI_FAILOVER_LINUX), not the Windows one, because it aggregates the
-    # required Linux workers and runs on the vm-backup pool.
+    # This bookkeeping-only verdict follows the Linux failover selector so a
+    # standard-hosted outage cannot strand branch protection.
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'ubuntu-latest' }}
-    needs: [node-24, node-24-coverage, node-24-consumers, node-compat, python-sdk, python-runtime, windows]
+    needs: [impact, node-24, node-24-coverage, node-24-consumers, node-compat, python-sdk, python-runtime, windows]
     if: always() && github.event_name == 'pull_request'
     steps:
-      - name: Fail if any needed job did not succeed
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+      - name: Verify selected and skipped job results
+        env:
+          IMPACT_RESULT: ${{ needs.impact.result }}
+          STATIC_RESULT: ${{ needs.node-24.result }}
+          COVERAGE_RESULT: ${{ needs.node-24-coverage.result }}
+          CONSUMERS_RESULT: ${{ needs.node-24-consumers.result }}
+          NODE_COMPAT_RESULT: ${{ needs.node-compat.result }}
+          PYTHON_SDK_RESULT: ${{ needs.python-sdk.result }}
+          PYTHON_RUNTIME_RESULT: ${{ needs.python-runtime.result }}
+          WINDOWS_RESULT: ${{ needs.windows.result }}
+          COVERAGE_MODE: ${{ needs.impact.outputs.coverage }}
+          CONSUMER_MODE: ${{ needs.impact.outputs.consumers }}
+          NODE_COMPAT_REQUIRED: ${{ needs.impact.outputs.node_compat }}
+          PYTHON_REQUIRED: ${{ needs.impact.outputs.python }}
+          WINDOWS_REQUIRED: ${{ needs.impact.outputs.windows }}
         run: |
-          echo "::error::Needed job results: ${{ join(needs.*.result, ', ') }}"
-          exit 1
-      - name: All checks passed
-        run: echo "All needed jobs succeeded (${{ join(needs.*.result, ', ') }})"
+          set -euo pipefail
+          failed=0
+          check_result() {
+            local name="$1"
+            local required="$2"
+            local actual="$3"
+            local expected='skipped'
+            if [[ "$required" == 'true' ]]; then expected='success'; fi
+            if [[ "$actual" != "$expected" ]]; then
+              echo "::error::$name expected $expected, got $actual"
+              failed=1
+            fi
+          }
+          coverage_required='true'
+          if [[ "$COVERAGE_MODE" == 'skip' ]]; then coverage_required='false'; fi
+          consumers_required='true'
+          if [[ "$CONSUMER_MODE" == 'skip' ]]; then consumers_required='false'; fi
+          check_result impact true "$IMPACT_RESULT"
+          check_result static true "$STATIC_RESULT"
+          check_result coverage "$coverage_required" "$COVERAGE_RESULT"
+          check_result consumers "$consumers_required" "$CONSUMERS_RESULT"
+          check_result node-compat "$NODE_COMPAT_REQUIRED" "$NODE_COMPAT_RESULT"
+          check_result python-sdk "$PYTHON_REQUIRED" "$PYTHON_SDK_RESULT"
+          check_result python-runtime "$PYTHON_REQUIRED" "$PYTHON_RUNTIME_RESULT"
+          check_result windows "$WINDOWS_REQUIRED" "$WINDOWS_RESULT"
+          exit "$failed"
+      - name: All selected checks passed
+        run: echo "Impact ${{ needs.impact.outputs.mode }} passed (${{ needs.impact.outputs.reason }})"

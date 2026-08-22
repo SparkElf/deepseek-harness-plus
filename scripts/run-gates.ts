@@ -27,6 +27,7 @@ export type Mode =
   | 'ci-coverage'
   | 'ci-snapshot'
   | 'ci-artifacts'
+  | 'ci-web-affected'
   | 'ci-consumers'
   | 'ci-windows-blocking'
   | 'ci-windows-complete'
@@ -117,6 +118,7 @@ function parseMode(raw: string | undefined): Mode {
     case 'ci-coverage':
     case 'ci-snapshot':
     case 'ci-artifacts':
+    case 'ci-web-affected':
     case 'ci-consumers':
     case 'ci-windows-blocking':
     case 'ci-windows-complete':
@@ -127,7 +129,7 @@ function parseMode(raw: string | undefined): Mode {
       return raw
     default:
       throw new Error(
-        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-snapshot | ci-artifacts | ci-consumers | ci-windows-blocking | ci-windows-complete | ci-windows-observational | node-compat | check-all | doc-sync, got ${JSON.stringify(raw)}.`,
+        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-snapshot | ci-artifacts | ci-web-affected | ci-consumers | ci-windows-blocking | ci-windows-complete | ci-windows-observational | node-compat | check-all | doc-sync, got ${JSON.stringify(raw)}.`,
       )
   }
 }
@@ -228,6 +230,16 @@ export function gatesForMode(selected: Mode): Gate[] {
       return [ciBuildGate(), snapshotGate()]
     case 'ci-artifacts':
       return ciArtifactGates()
+    case 'ci-web-affected':
+      return [
+        ciBuildGate(),
+        builtPackageInvariantsGate(['build']),
+        pnpmScript('lint-and-duplication', 'check:ci:lint:contracts-ready', {
+          label: 'lint and duplication',
+          needs: ['built-package-invariants'],
+        }),
+        affectedWebSnapshotGate(['built-package-invariants']),
+      ]
     case 'ci-consumers':
       return ciConsumerGates()
     case 'ci-windows-blocking':
@@ -457,6 +469,20 @@ function webSnapshotGate(needs: string[]): Gate {
     displayCommand: 'DSH_SNAPSHOT=replay pnpm run test:web:built',
     env: { DSH_SNAPSHOT: 'replay' },
     needs,
+  })
+}
+
+function affectedWebSnapshotGate(needs: string[]): Gate {
+  const selected = process.env.DSH_WEB_SNAPSHOT_FILES
+  if (selected === undefined || selected === '') {
+    throw new Error('run-gates: DSH_WEB_SNAPSHOT_FILES is required for ci-web-affected.')
+  }
+  return pnpmScript('web-snapshot', 'test:web:ci', {
+    label: 'affected web browser snapshots',
+    displayCommand: 'DSH_SNAPSHOT=replay DSH_WEB_SNAPSHOT_FILES=<impact-plan> pnpm run test:web:ci',
+    env: { DSH_SNAPSHOT: 'replay', DSH_WEB_SNAPSHOT_FILES: selected },
+    needs,
+    streamOutput: true,
   })
 }
 

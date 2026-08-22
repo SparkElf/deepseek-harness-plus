@@ -14,6 +14,10 @@ How this repo tests, tier by tier, and the rules that keep a green suite meaning
 
 Committed session-format JSONL uses the canonical packed-row layout, and the keyless snapshot gate discovers every such fixture by its `session` header; the [temporary migrator](../scripts/migrate-packed-session-fixtures.ts) rewrites older fixture layouts.
 
+## Pull request impact selection
+
+Every pull request runs static checks after `scripts/resolve-ci-impact.mjs` classifies its merge-base diff. Documentation additions and edits skip unrelated jobs; reviewed Client mappings run changed Vitest coverage, one official build with validation and lint, and bounded mapped Web cases. Deletions, configuration, unmapped or non-Client source, mixed areas, and invalid input select the full matrix, as does the nightly default-branch run. The required aggregate accepts only planned skips. The [fail-open impact decision](../.agents/notes/implemented/testing/2026-08-22-fail-open-pr-ci-impact.md) owns details and mapping obligations.
+
 ## The with-key policy: inference is cheap here
 
 We are DeepSeek — do not ration real-API tests. A no-key test proves plumbing; only a with-key run proves the agent works against a real model. Cover file-writing prompts, multi-turn conversations, tool use, and mid-stream cancellation. Highest-value are **smoke tests** that boot the real example, send one prompt, and check the world — they catch the "green unit tests, broken product" class that mocks cannot ([postmortem 0001](postmortem/0001-acp-default-export-drops-inject.md)). Self-skip keeps secretless CI and keyless contributors unblocked; it is not a cost signal. Every example ships keyless and with-key smokes ([examples/AGENTS.md](../examples/AGENTS.md)).

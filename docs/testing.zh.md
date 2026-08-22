@@ -14,6 +14,10 @@
 
 签入仓库的会话格式 JSONL 使用规范打包行布局，无密钥快照门禁会通过 `session` header 发现每一份此类 fixture；[临时迁移器](../scripts/migrate-packed-session-fixtures.ts)会改写旧版 fixture 布局。
 
+## 拉取请求影响范围选择
+
+每个拉取请求都在 `scripts/resolve-ci-impact.mjs` 对 merge-base 差异分类后运行静态检查。新增或修改文档时跳过无关作业；经过评审的 Client 映射运行 changed Vitest 覆盖率、一次带校验与 lint 的 official 构建，以及有界的映射 Web 用例。删除文件、修改配置、改动未映射或非 Client 源码、混合多个区域及无效输入都会选择完整矩阵，默认分支 nightly 亦然。required aggregate 只接受 plan 明确选择的跳过。[Fail-open 影响范围决策](../.agents/notes/implemented/testing/2026-08-22-fail-open-pr-ci-impact.md)负责细节和映射义务。
+
 ## 带密钥策略：推理（inference）在这里很便宜
 
 我们是 DeepSeek，不要吝惜真实 API 测试。无密钥测试只能证明底层通路；只有带密钥运行才能证明 agent（智能体）能对接真实模型正常工作。覆盖文件写入提示词、包含多个轮次的对话、工具使用和流中取消。价值最高的是**冒烟测试**：启动真实示例、发送一条提示词，并检查外部世界；它们能捕获「单元测试全绿、产品却坏了」这一类 mock 无法发现的问题（[事故复盘 0001](postmortem/0001-acp-default-export-drops-inject.md)）。自动跳过让无密钥 CI 和无密钥贡献者不受阻塞；它不是成本信号。每个示例都提供无密钥和带密钥冒烟测试（[examples/AGENTS.md](../examples/AGENTS.md)）。

@@ -225,6 +225,34 @@ describe('gate graph validation', () => {
   })
 })
 
+describe('affected Web gate', () => {
+  it('builds once and runs only the reviewed browser files after artifact validation', () => {
+    const files = [
+      'apps/web/tests/goal-bar.e2e.ts',
+      'apps/web/tests/goal-command-presentation.e2e.ts',
+    ]
+    const graph = withEnv('DSH_WEB_SNAPSHOT_FILES', JSON.stringify(files), () =>
+      withPnpmEntrypoint(() => gatesForMode('ci-web-affected')))
+
+    expect(graph.map(gate => gate.id)).toEqual(['build', 'built-package-invariants', 'lint-and-duplication', 'web-snapshot'])
+    expect(graph[2]).toMatchObject({
+      needs: ['built-package-invariants'],
+      args: ['/private/pnpm.cjs', 'run', 'check:ci:lint:contracts-ready'],
+    })
+    expect(graph[3]).toMatchObject({
+      needs: ['built-package-invariants'],
+      env: { DSH_SNAPSHOT: 'replay', DSH_WEB_SNAPSHOT_FILES: JSON.stringify(files) },
+      args: ['/private/pnpm.cjs', 'run', 'test:web:ci'],
+    })
+  })
+
+  it('fails before building when the selected Web list is absent', () => {
+    expect(() => withEnv('DSH_WEB_SNAPSHOT_FILES', undefined, () =>
+      withPnpmEntrypoint(() => gatesForMode('ci-web-affected'))))
+      .toThrow('DSH_WEB_SNAPSHOT_FILES is required')
+  })
+})
+
 describe('Oxlint gate', () => {
   it('uses the package script when no worker bound is configured', () => {
     const subject = withEnv('DSH_OXLINT_THREADS', undefined, () =>
