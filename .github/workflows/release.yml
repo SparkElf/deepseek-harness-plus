@@ -2,13 +2,16 @@
 # apps/cli and apps/web, all on one version. Plus Desktop has its own installer release line. The vendored framework and the native
 # packages are separate sequences with their own workflows and version lines.
 #
-# Pack runs without credentials on every pull request and master push, so a
-# pull request proves the whole publish set still packs. Publication is a
-# manual dispatch from a dsh-v* tag and consumes exactly the packed bytes.
+# Pack runs without credentials on artifact-affecting pull requests and every
+# master push. Client package tests are not published and do not start this
+# workflow by themselves. Publication is a manual dispatch from a dsh-v* tag
+# and consumes exactly the packed bytes.
 name: Release (dsh)
 
 on:
   pull_request:
+    paths-ignore:
+      - 'packages/client/**/tests/**'
   push:
     branches: [master]
   workflow_dispatch:

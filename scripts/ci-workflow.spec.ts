@@ -308,6 +308,52 @@ describe('DeepSeek e2e workflow', () => {
   })
 })
 
+describe('Pull request workflow fan-out', () => {
+  it('excludes Client package tests only from workflows that cannot consume them', () => {
+    const clientPackageTests = 'packages/client/**/tests/**'
+    for (const path of [
+      '.github/workflows/release.yml',
+      '.github/workflows/release-vendor.yml',
+      '.github/workflows/e2e.yml',
+    ]) {
+      expect(workflowEvent(loadWorkflow(path), 'pull_request')).toEqual({
+        'paths-ignore': [clientPackageTests],
+      })
+    }
+
+    for (const path of [
+      '.github/workflows/release.yml',
+      '.github/workflows/release-vendor.yml',
+    ]) {
+      expect(workflowEvent(loadWorkflow(path), 'push')).toEqual({ branches: ['master'] })
+    }
+    expect(workflowEvent(loadWorkflow('.github/workflows/e2e.yml'), 'push')).toEqual({
+      branches: ['main', 'master'],
+    })
+
+    const desktopWorkflow = loadWorkflow('.github/workflows/plus-desktop-windows.yml')
+    const desktopPullRequest = workflowEvent(desktopWorkflow, 'pull_request')
+    expect(desktopPullRequest.paths).toEqual([
+      '.github/workflows/plus-desktop-windows.yml',
+      'apps/plus-desktop/**',
+      'packages/**',
+      '!' + clientPackageTests,
+      'pnpm-lock.yaml',
+      'pnpm-workspace.yaml',
+    ])
+    expect(workflowEvent(desktopWorkflow, 'push')).toEqual({
+      branches: ['master'],
+      paths: [
+        '.github/workflows/plus-desktop-windows.yml',
+        'apps/plus-desktop/**',
+        'packages/**',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+      ],
+    })
+  })
+})
+
 describe('Python release workflows', () => {
   it('keeps complete wheel validation separate from protected public publication', () => {
     const workflow = loadWorkflow('.github/workflows/python-release.yml')
