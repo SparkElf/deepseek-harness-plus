@@ -65,8 +65,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: min(336px, calc(100cqw - 32px));
-  max-width: calc(100cqw - 32px);
+  width: min(336px, 92cqw);
+  max-width: 92cqw;
   max-height: min(560px, calc(100vh - 140px));
   padding: 4px;
   overflow-x: hidden;
