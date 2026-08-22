@@ -509,3 +509,31 @@
     min-width: 0;
   }
 }
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .row {
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .tools {
+  flex: none;
+  gap: 8px;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .trailing {
+  flex: 1 1 0;
+  margin-left: 0;
+  gap: 6px;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: visible;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat > * {
+  width: 100%;
+  min-width: 0;
+}

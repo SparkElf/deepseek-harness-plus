@@ -175,40 +175,38 @@
   }
 }
 
-/* The paired phone may report a wider CSS viewport than its physical width. */
-@media (max-width: 900px) {
-  .titleCluster {
-    flex: 0 1 auto;
-  }
-
-  .headerActions {
-    display: contents;
-  }
-
-  .headerActions [data-slot='conversation.session.header.actions'] > span {
-    position: static;
-    margin-left: 4px;
-    align-self: center;
-  }
-
-  .headerActions [data-slot='conversation.session.header.actions'] > div {
-    position: absolute;
-    right: 8px;
-    bottom: 0;
-    z-index: 2;
-  }
-
-  .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
-    right: 96px;
-  }
-
-  .tabs {
-    gap: 16px;
-    padding-right: 150px;
-  }
+/* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */
+/* Collapsed navigation is the host's mobile state, independent of the device CSS viewport. */
+:global([data-dsh-frame][data-sidebar-collapsed]) .titleCluster {
+  flex: 0 1 auto;
 }
 
-/* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions {
+  display: contents;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > span {
+  position: static;
+  margin-left: 4px;
+  align-self: center;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > div {
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  z-index: 2;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
+  right: 96px;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .tabs {
+  gap: 16px;
+  padding-right: 150px;
+}
+
 .tabs {
   position: relative;
   z-index: 1;

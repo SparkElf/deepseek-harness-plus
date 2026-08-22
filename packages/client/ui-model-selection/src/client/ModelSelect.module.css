@@ -103,22 +103,17 @@
   }
 }
 
-/* The phone can expose a wider CSS viewport than its physical screen. The
-   composer row is the reliable owner for this narrow menu decision. */
-@container (max-width: 720px) {
-  .menu {
-    width: min(240px, calc(100cqw - 16px));
-    min-width: min(240px, calc(100cqw - 16px));
-    max-width: calc(100cqw - 16px);
-  }
+/* The collapsed-sidebar host state identifies mobile even when its CSS viewport is wide. */
+:global([data-dsh-frame][data-sidebar-collapsed]) .root {
+  position: static;
 }
 
-@media (max-width: 900px) {
-  .menu {
-    width: min(240px, calc(100cqw - 16px));
-    min-width: min(240px, calc(100cqw - 16px));
-    max-width: calc(100cqw - 16px);
-  }
+:global([data-dsh-frame][data-sidebar-collapsed]) .menu {
+  right: 0;
+  left: auto;
+  width: min(240px, calc(100cqw - 16px));
+  min-width: min(240px, calc(100cqw - 16px));
+  max-width: calc(100cqw - 16px);
 }
 
 .status,
