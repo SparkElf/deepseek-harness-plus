@@ -343,7 +343,10 @@
 /* Plan / Read-only / model — native <select>, chip-like closed chrome
    (figma ToggleButton: 13/20 medium secondary, 12px chevron). */
 .select {
-  max-width: 220px;
+  /* The 220px cap is a desktop readability cap, not a floor: min() lets the
+     closed chip shrink with its flexible mobile seat instead of overflowing
+     the card on narrow screens. */
+  max-width: min(220px, 100%);
   height: 28px;
   padding: 0 20px 0 8px;
   border: none;
@@ -479,6 +482,9 @@
 @media (max-width: 640px) {
   .row {
     gap: 8px;
+    /* Last-resort wrap: when even the shrunken model seat cannot share the
+       line with the left tools, the trailing group moves down as one block. */
+    flex-wrap: wrap;
   }
 
   .tools {
