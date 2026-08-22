@@ -522,18 +522,27 @@
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .trailing {
-  flex: 1 1 0;
+  flex: 1 1 auto;
   margin-left: 0;
   gap: 6px;
+  min-width: 0;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .trailing > * {
+  flex: 0 0 auto;
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat {
+  display: flex;
   flex: 1 1 0;
+  justify-content: flex-end;
   min-width: 0;
   overflow: visible;
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat > * {
-  width: 100%;
+  width: auto;
+  max-width: 100%;
   min-width: 0;
+  flex: 0 1 auto;
 }
