@@ -22,13 +22,15 @@ The Client mapping names browser files under [apps/web/tests](../../../../apps/w
 
 A nightly run on the default branch forces **full**, independent of changed paths. This keeps the complete cross-platform and release-shaped signal without adding the full hosted matrix to every master push.
 
+The dsh/vendor pack workflows, Desktop Windows installer, and trusted real-API workflow suppress a pull request only when every changed file is a Client package test under `packages/client/**/tests/**`. These files do not enter npm tarballs, the Desktop application, or the external API suite. A source, manifest, workflow, mixed, or unknown path still starts each applicable workflow. Master pushes retain their complete validation triggers.
+
 ## Alternatives considered
 
 **Introduce Nx affected execution.** Nx can discover pnpm projects and infer some TypeScript, Vite, and Vitest tasks, but the repository's tests and builds remain root aggregates, tsdown has no first-party Nx inference, and dynamic Cordis and Client relationships still require owned graph rules. Nx would add a second orchestration layer before it could provide this selector's narrow benefit.
 
 **Use the existing change-scope report as the planner input.** The [explicit scope report](../process/2026-07-27-explicit-change-scope-report.md) owns local committed, staged, unstaged, and untracked evidence through a TypeScript command. CI needs only the committed merge-base range before dependency installation; installing workspace dependencies before selecting jobs would add latency to every lane. The CI planner therefore keeps a narrow zero-dependency committed-diff reader, while change-scope remains the richer local evidence owner.
 
-**Use GitHub path filters alone.** Workflow paths can suppress jobs but cannot express Git status, a reviewed package-to-browser-case relation, changed-file coverage, or aggregate verification of intentional skips. Scattered filters would also create several policy owners.
+**Use GitHub path filters as the required CI planner.** Workflow paths cannot express Git status, a reviewed package-to-browser-case relation, changed-file coverage, or aggregate verification of intentional skips. Path filtering is limited to the one proven non-input Client test tree for independent packaging, Desktop, and real-API workflows; the impact planner remains the required CI policy owner.
 
 **Keep the full matrix on every pull request.** This has the lowest selection risk but spends the longest lanes on unrelated platform and release contracts, delaying feedback for local Client changes and documentation.
 
@@ -36,6 +38,6 @@ A nightly run on the default branch forces **full**, independent of changed path
 
 ## Consequences
 
-Documentation pull requests finish after the static lane. Eligible Client changes retain 100% per-file coverage for changed TypeScript and selected real browser behavior while avoiding unrelated compatibility, Python, and Windows work. High-impact and unknown changes preserve the existing exhaustive pull-request evidence, and nightly full runs preserve broad drift detection.
+Documentation pull requests finish after the static lane. Eligible Client changes retain 100% per-file coverage for changed TypeScript and selected real browser behavior while avoiding unrelated compatibility, Python, Windows, and test-inapplicable release work. High-impact and unknown changes preserve the existing exhaustive pull-request evidence, and nightly plus master validation preserves broad drift detection.
 
 The explicit mapping is correctness infrastructure and carries review cost. An incomplete mapping can defer an unselected browser regression to the nightly full run, so shared packages stay fail-open and mapping expansion requires evidence from the browser test owners. This approach deliberately buys less automatic scope than a general project graph in exchange for one small, inspectable policy owner and no new task framework.

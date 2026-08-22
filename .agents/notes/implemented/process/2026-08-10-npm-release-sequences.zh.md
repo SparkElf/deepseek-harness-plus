@@ -116,7 +116,7 @@ dsh 族套用仓库的发布 payload 策略（拒绝源码与声明映射）。v
 
 `pack` job 一趟遍历整个发布集，把每个成员打进同一个目录，写出上传顺序，整个目录作为一份 artifact 上传；`publish` job 下载那一份 artifact，按顺序逐个发布。发布集是一个整体——绝不会出现一半的包已经上了 registry、另一半还在构建。
 
-`pack` 无凭据，在每个 pull request 和每次 master push 上跑，所以一个 pull request 就能证明发布集仍能完整打出来。`publish` 是手动 dispatch，挂在 `npm-publish` environment 后面等人工审批，且既不构建也不重建——它上传的就是 pack 产出的字节。pack 的 run 按 ref 分组，并发的 pull request 不会互相顶掉；全局分组落在 publish job 上，因为 dist-tag 是共享的 registry 状态。
+`pack` 无凭据；除非每个改动文件都是 `packages/client/**/tests/**` 下的 Client 包测试，否则它会在 pull request 上运行，并在每次 master push 上运行。这些测试不会进入任一发布 payload；每个适用的 pull request 都能证明发布集仍能完整打出来，master 则在合并后验证被跳过的纯测试改动。`publish` 是手动 dispatch，挂在 `npm-publish` environment 后面等人工审批，且既不构建也不重建——它上传的就是 pack 产出的字节。pack 的 run 按 ref 分组，并发的 pull request 不会互相顶掉；全局分组落在 publish job 上，因为 dist-tag 是共享的 registry 状态。
 
 dsh 的验证会一并安装 vendored 族的 pack 产物。harness 的包把 vendored 框架声明成 peer，而那些包属于另一条序列，无凭据的 job 无法从私有 registry 取到——所以 `release.yml` 为验证而打包 vendored 族，发布的仍只有自己那一份。
 

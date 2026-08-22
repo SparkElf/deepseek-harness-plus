@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/testing/2026-08-22-fail-open-pr-ci-impact.md
-2026-08-22-fail-open-pr-ci-impact.md: a762235c38bb5d04d5980255c74dcd1391f4f01d
-2026-08-22-fail-open-pr-ci-impact.zh.md: 1eae5e162461621947a31e003da1429955057a28
+2026-08-22-fail-open-pr-ci-impact.md: 4efe07f3ac87f9e2d94767affa74cf245f2878d2
+2026-08-22-fail-open-pr-ci-impact.zh.md: dcbb915be907a38eed2914e4233c3bff8003d33a

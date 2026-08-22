@@ -6,16 +6,18 @@ name: E2E (real DeepSeek API)
 # https://api.deepseek.com (DEEPSEEK_BASE_URL is pinned to it explicitly so a
 # stray repo-root .env can't redirect the run).
 #
-# pull_request IS a trigger, but GitHub withholds repo secrets from BOTH forked
-# PRs and Dependabot PRs (the latter are same-repo, fork==false, but still
+# pull_request is a trigger except for Client package test-only changes, but
+# GitHub withholds repo secrets from BOTH forked PRs and Dependabot PRs (the
+# latter are same-repo, fork==false, but still
 # keyless). The job-level `if:` below skips the whole job for those untrusted
 # PRs. The Dependabot test keys on the PR AUTHOR (pull_request.user.login), not
 # github.actor (the run trigger) — a maintainer reopening a Dependabot PR would
 # make github.actor human while the PR is still keyless. When the job runs, the
 # secret is expected, so the preflight hard-fails if it's missing (a missing
 # secret would otherwise make the self-skipping suite report a false green). A
-# job skipped by a job-level `if:` reports as a SUCCESSFUL check, so this
-# workflow is safe to use as a required status check if desired.
+# job skipped by a job-level `if:` reports as a SUCCESSFUL check. The Client
+# test-only trigger exclusion emits no check, so this workflow is not a
+# universal required status check.
 #
 # SECURITY — NEVER change this trigger to `pull_request_target`. `pull_request`
 # checks out and runs the PR's HEAD code WITHOUT secrets for forks, which is what
@@ -32,6 +34,8 @@ on:
   push:
     branches: [main, master]
   pull_request:
+    paths-ignore:
+      - 'packages/client/**/tests/**'
   schedule:
     # 00:17 UTC nightly = 08:17 Asia/Shanghai — off the top-of-hour cron stampede.
     - cron: '17 0 * * *'

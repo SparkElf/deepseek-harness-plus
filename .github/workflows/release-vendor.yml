@@ -2,13 +2,16 @@
 # packages under vendor/, each on its own version line. This sequence releases
 # independently of dsh and of the native packages.
 #
-# Pack runs without credentials on every pull request and master push.
-# Publication is a manual dispatch from a vendor-* tag; a vendor release can
-# carry several versions, so each package has its own tag.
+# Pack runs without credentials on pull requests except Client package
+# test-only changes, and on every master push. Publication is a manual dispatch
+# from a vendor-* tag; a vendor release can carry several versions, so each
+# package has its own tag.
 name: Release (vendor)
 
 on:
   pull_request:
+    paths-ignore:
+      - 'packages/client/**/tests/**'
   push:
     branches: [master]
   workflow_dispatch:

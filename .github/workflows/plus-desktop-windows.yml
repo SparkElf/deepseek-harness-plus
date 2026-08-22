@@ -15,6 +15,7 @@ on:
       - '.github/workflows/plus-desktop-windows.yml'
       - 'apps/plus-desktop/**'
       - 'packages/**'
+      - '!packages/client/**/tests/**'
       - 'pnpm-lock.yaml'
       - 'pnpm-workspace.yaml'
   workflow_dispatch:
