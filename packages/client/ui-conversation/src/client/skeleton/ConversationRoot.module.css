@@ -60,7 +60,7 @@
 
 .titleCluster {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -68,7 +68,7 @@
 
 .crumbs {
   display: flex;
-  flex: 1 1 0;
+  flex: 0 1 auto;
   align-items: center;
   gap: 2px;
   min-width: 0;
@@ -132,7 +132,7 @@
   flex: none;
   align-items: center;
   gap: 4px;
-  margin-left: 8px;
+  margin-left: auto;
 }
 
 .headerUtilities:empty {
@@ -153,7 +153,8 @@
   .headerActions [data-slot='conversation.session.header.actions'] > span {
     position: absolute;
     top: 12px;
-    right: 8px;
+    /* SessionLogDownloadHeaderAction owns the 28px slot at right:42px. */
+    right: 76px;
     z-index: 2;
   }
 

@@ -96,10 +96,6 @@
 }
 
 @media (max-width: 800px) {
-  .root {
-    position: static;
-  }
-
   .menu {
     width: min(240px, calc(100cqw - 16px));
     min-width: min(240px, calc(100cqw - 16px));
