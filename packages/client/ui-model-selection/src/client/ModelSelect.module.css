@@ -279,4 +279,13 @@
   .trigger {
     box-sizing: border-box;
   }
+
+  /* Keep the two-level popup inside the flexible model seat on narrow phones. */
+  .menu {
+    right: auto;
+    left: 0;
+    width: min(100%, calc(100vw - 32px));
+    min-width: 0;
+    max-width: calc(100vw - 32px);
+  }
 }
