@@ -1,5 +1,6 @@
 .root {
-  position: relative;
+  /* The popup belongs to the composer card, not the narrow model seat. */
+  position: static;
   min-width: 0;
 }
 
@@ -72,11 +73,10 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  /* Let the visible pane's rows set the card width, but keep pathological ids
-     and narrow screens inside a bounded card where ellipsis remains. */
-  width: max-content;
-  min-width: min(240px, calc(100vw - 32px));
-  max-width: min(420px, calc(100vw - 32px));
+  /* Keep the card readable while sizing it from the composer row container. */
+  width: min(240px, calc(100cqw - 16px));
+  min-width: min(240px, calc(100cqw - 16px));
+  max-width: calc(100cqw - 16px);
   max-height: min(360px, calc(100vh - 96px));
   overflow: hidden;
   padding: 4px;
@@ -267,16 +267,4 @@
 .cellChevron {
   flex: 0 0 auto;
   color: var(--dsw-alias-label-tertiary);
-}
-
-@media (max-width: 640px) {
-  .root,
-  .trigger {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .trigger {
-    box-sizing: border-box;
-  }
 }
