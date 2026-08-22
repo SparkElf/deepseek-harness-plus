@@ -289,3 +289,14 @@
     max-width: calc(100cqw - 16px);
   }
 }
+
+@container (max-width: 640px) {
+  /* The phone shell can expose a wider CSS viewport than its physical screen. */
+  .menu {
+    right: 0;
+    left: auto;
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
+  }
+}
