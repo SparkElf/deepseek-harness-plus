@@ -30,7 +30,7 @@ pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <sock
 pnpm --filter @deepseek-ai/dsh-plus-desktop supervisor:command -- --socket <socket-path> --branch <branch-name> rebuild-and-restart
 ~~~
 
-Supervisor 拥有 Harness Web、配置的 Harness 与 Supervisor 端口、可选 client HMR watcher、rebuild、runtime log 和 HTTP/SSE page。Windows 通过 unpacked bootstrap 使用 Electron utility process 启动 native Supervisor，并等待命名管道真正监听；Windows 可能拒绝替换已打开的 status manifest，因此会原位写入；初始化失败时会返回捕获的 startup stack。Supervisor 命令 socket 按空闲计时：进度行和端口等待心跳会让较长的 `start` 命令保持存活，网页启动窗口为 120 秒。`yaml` 依赖随 unpacked Supervisor 源码一起解包，使纯 Node 解析在 asar 之外也能成功；`verify:unpacked-imports` 在每次 Windows 构建后导入打包产物的 Supervisor 模块图，防止只有打包环境才会出现的解析失败再次流出。branch rebuild 在停止当前 Web process 前完成；failed build 保留当前 process，并把 raw output 留在 runtime log。
+Supervisor 拥有 Harness Web、配置的 Harness 与 Supervisor 端口、可选 client HMR watcher、rebuild、runtime log 和 HTTP/SSE page。Windows 通过 unpacked bootstrap 使用 Electron utility process 启动 native Supervisor，并等待命名管道真正监听；Windows 可能拒绝替换已打开的 status manifest，因此会原位写入；初始化失败时会返回捕获的 startup stack。Supervisor 命令 socket 按空闲计时：进度行和端口等待心跳会让较长的 `start` 命令保持存活，网页启动窗口为 120 秒。`yaml` 依赖随 unpacked Supervisor 源码一起解包，使纯 Node 解析在 asar 之外也能成功；`verify:unpacked-imports` 在每次 Windows 构建后导入打包产物的 Supervisor 模块图，防止只有打包环境才会出现的解析失败再次流出。每次 rebuild 都调用根 `build:official` 脚本，使 Web shell 与动态 client plugin 获得 official build profile。branch rebuild 在停止当前 Web process 前完成。failed build 保留当前 process，明确报告 shutdown 尚未开始并返回 runtime log 路径，同时把 raw output 留在该日志。
 
 ## Development modes
 

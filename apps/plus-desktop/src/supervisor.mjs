@@ -442,7 +442,7 @@ class RuntimeSupervisor {
     let lastLine = ''
     this.announce('build.starting')
     try {
-      const pnpm = pnpmCommand(this.buildEnvironment(), ['run', 'build'])
+      const pnpm = pnpmCommand(this.buildEnvironment(), ['run', 'build:official'])
       await run(pnpm.command, pnpm.args, this.manifest.installPath, pnpm.environment, BUILD_TIMEOUT_MS, text => {
         writeSync(log, text + String.fromCharCode(10))
         const line = text.split(String.fromCharCode(10)).map(value => value.trim()).filter(Boolean).at(-1)
@@ -451,6 +451,9 @@ class RuntimeSupervisor {
           this.announce('build.output', { line: line.slice(-240) })
         }
       }, child => { this.buildProcess = child }, true)
+    } catch (error) {
+      const logPath = join(this.manifest.dshHome, 'supervisor', 'runtime.log')
+      throw new Error(`Harness build failed before Web shutdown, so no Web process was stopped. Full output: ${logPath}`, { cause: error })
     } finally {
       this.buildProcess = undefined
     }

@@ -18,7 +18,7 @@ Vite 配置与动态 client bundle 的共享 tsdown preset 使用同一 define �
 
 `DSH_CLIENT_*` 的名称本身表示公开性。凭据、路径和其他仅供 Host 或 CI 使用的值不得使用该前缀。
 
-根构建包装脚本向两个 bundler 提供同一份精确的公开环境。每次完整构建都会把源码 Git HEAD 的七位前缀派生为 `DSH_CLIENT_COMMIT_HASH`；没有仓库元数据的构建环境可显式提供该值。除此之外，`pnpm run build` 继承调用方的 `DSH_CLIENT_*` 值，`pnpm run build:official` 则不依赖特定 shell 的环境变量语法，直接选择仓库的官方产物 profile，并设置 `DSH_CLIENT_BUILD_PROFILE=official` 供部署专属业务注册使用。完整构建成功后会写入精确的公开环境，以及覆盖 Vite 输出和所有动态 client bundle 的摘要；局部构建命令不会替换该记录。
+根构建包装脚本向两个 bundler 提供同一份精确的公开环境。每次完整构建都会把源码 Git HEAD 的七位前缀派生为 `DSH_CLIENT_COMMIT_HASH`；没有仓库元数据的构建环境可显式提供该值。除此之外，`pnpm run build` 继承调用方的 `DSH_CLIENT_*` 值，`pnpm run build:official` 则不依赖特定 shell 的环境变量语法，直接选择仓库的官方产物 profile，并设置 `DSH_CLIENT_BUILD_PROFILE=official` 供部署专属业务注册使用。运行时 Supervisor 每次 rebuild 都调用 `build:official`，使推广后的 Web process 使用与 CI 和 release 产物相同的 profile。完整构建成功后会写入精确的公开环境，以及覆盖 Vite 输出和所有动态 client bundle 的摘要；局部构建命令不会替换该记录。
 
 ## Alternatives considered
 
