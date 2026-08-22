@@ -1,6 +1,6 @@
 /**
  * SessionManager orchestration: lazy resident instances, list lifecycle, host
- * frame routing, and the pending-frame buffer for uninstantiated sessions.
+ * frame routing, command-history conversion, and pending frames for uninstantiated sessions.
  */
 
 import { describe, expect, it, vi } from 'vitest'
