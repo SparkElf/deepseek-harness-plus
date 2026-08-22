@@ -16,20 +16,24 @@
   - treeitem "workspace" [expanded]:
     - img
     - text: workspace
-  - treeitem "New Session" [selected]
+  - treeitem "workspace now" [selected]
 - button "Settings":
   - img
   - text: Settings
-- text: Into the Unknown Preview
-- button "Choose workspace":
-  - img
-  - text: workspace
-  - img
-- button "Standard mode":
+- banner:
+  - navigation "Session hierarchy":
+    - button "workspace" [disabled]
   - img
   - text: Standard mode
-  - img
-- textbox "Describe what you want to build"
+  - button "Session log":
+    - text: Session log
+    - img
+  - tablist:
+    - tab "Chat" [selected]
+    - tab "Trajectory"
+- img
+- text: plan Plan mode on. Use /plan off to leave.
+- textbox "describe your task to generate plan"
 - button "Commands":
   - img
 - 'button "Access mode, current: Workspace Write"': Workspace Write

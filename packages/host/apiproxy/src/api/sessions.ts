@@ -185,13 +185,12 @@ export interface SessionSummary {
   /** Status of the attached agent; always false for cold (unattached) sessions. */
   running: boolean
   /**
-   * Derived conversation-not-started bit: true while no turn has run.
-   * Standalone plugin events — command lifecycle
-   * records, plan/mode, titles, goals — do not open a turn and therefore do
-   * not clear it. Clients hide blank Sessions from lists and reuse them for
-   * New Session on the same workspace. A cold Session is true only when a
-   * small-artifact read verifies that no `turn/start` exists; unavailable
-   * or oversized artifacts conservatively report false.
+   * Derived reusable-session bit: true while neither `turn/start` nor
+   * `command/run` exists. Clients hide blank Sessions from lists and reuse
+   * them for New Session on the same workspace; a command makes its durable
+   * history ineligible for that reuse even without a model turn. A cold
+   * Session is true only when a small-artifact read verifies both events
+   * are absent; unavailable or oversized artifacts conservatively report false.
    */
   blank: boolean
   /** fork/spawn lineage (session.header.parentSession passthrough); absent for root sessions. */

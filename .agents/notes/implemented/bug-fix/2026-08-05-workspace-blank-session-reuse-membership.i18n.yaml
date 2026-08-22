@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-08-05-workspace-blank-session-reuse-membership.md
-2026-08-05-workspace-blank-session-reuse-membership.md: 0d46a0ccf6924c508db2e6c0f3591468e2956722
-2026-08-05-workspace-blank-session-reuse-membership.zh.md: e67810dc3a45d494f64a2b774557d04297b6fce3
+2026-08-05-workspace-blank-session-reuse-membership.md: 233d616142826818644350ee42bbb4b6147826f7
+2026-08-05-workspace-blank-session-reuse-membership.zh.md: f215d5376cec1d3b9b3bb99cb9d3145f538dd67e

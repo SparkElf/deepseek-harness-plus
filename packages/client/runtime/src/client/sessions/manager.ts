@@ -73,7 +73,7 @@ type SessionListMutation =
   | { kind: 'remove'; sessionId: SessionId }
   | { kind: 'status'; sessionId: SessionId; running: boolean }
   | { kind: 'activity'; sessionId: SessionId; updatedAt: number }
-  /** Local first-send flip: the sender clears blank without waiting for a host frame. */
+  /** Monotonic conversion when a local send or durable command starts Session history. */
   | { kind: 'engaged'; sessionId: SessionId }
 
 /** Stable identity of a frame retained until an uninstantiated Session can consume it. */
@@ -675,9 +675,9 @@ export class SessionManager {
   // ---- ConnectionController sinks (wired by boot) ----
 
   /**
-   * Mux frame entry: sessionId-bearing frames go only to instantiated sessions
-   * (no lazy build; non-pending frames for uninstantiated sessions drop —
-   * history backfills them on open).
+   * Mux frame entry: list metadata advances from durable user events before
+   * frame routing. Conversation frames go only to instantiated Sessions (no
+   * lazy build); history backfills dropped frames when a Session opens.
    * @param envelope - the frame with its wire rpcId.
    */
   handleMuxEnvelope(envelope: RpcRequest<MuxFrame>): void {
@@ -692,6 +692,10 @@ export class SessionManager {
       // admitted steer advances it between pulls. Max keeps replayed or
       // repaired older user messages from moving the row backwards.
       this.recordMutation({ kind: 'activity', sessionId: frame.sessionId, updatedAt: frame.event.time })
+    }
+    if (frame.type === 'session/event' && frame.event.type === 'command/run') {
+      this.recordMutation({ kind: 'engaged', sessionId: frame.sessionId })
+      this.sessions.get(frame.sessionId)?.handleBlank(false)
     }
     if (frame.type === 'session/projection') {
       // Finished host-computed value: land it in the resident store whether or

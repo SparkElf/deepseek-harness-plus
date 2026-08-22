@@ -153,6 +153,45 @@ describe('list lifecycle', () => {
     expect(manager.getListSnapshot().items[0]?.updatedAt).toBe(500)
   })
 
+  it('ends blank reuse when a command enters durable history', async () => {
+    const api = new FakeApiClient()
+    api.onList = () => Promise.resolve(ok({ items: [summary(S1, { blank: true })] as never[] }))
+    const manager = new SessionManager(api, fakeRemote())
+    await manager.refreshList()
+
+    manager.handleMuxEnvelope({
+      rpcId: 'command-before-open' as never,
+      payload: {
+        type: 'session/event',
+        sessionId: S1,
+        event: {
+          seq: 0,
+          time: 500,
+          type: 'command/run',
+          data: { commandId: 'cmd-1', name: 'goal', args: ' clear', source: { kind: 'user' } },
+        } as never,
+      },
+    })
+    expect(manager.getListSnapshot().items[0]?.blank).toBe(false)
+
+    const session = manager.get(S1)
+    expect(session.getSnapshot().blank).toBe(false)
+    manager.handleMuxEnvelope({
+      rpcId: 'command-after-open' as never,
+      payload: {
+        type: 'session/event',
+        sessionId: S1,
+        event: {
+          seq: 1,
+          time: 600,
+          type: 'command/run',
+          data: { commandId: 'cmd-2', name: 'goal', args: '', source: { kind: 'user' } },
+        } as never,
+      },
+    })
+    expect(session.getSnapshot().blank).toBe(false)
+  })
+
   it('keeps the error in the list snapshot on failure', async () => {
     const api = new FakeApiClient()
     api.onList = () => Promise.resolve(err({ code: 'internal', message: 'boom', details: {} }))
