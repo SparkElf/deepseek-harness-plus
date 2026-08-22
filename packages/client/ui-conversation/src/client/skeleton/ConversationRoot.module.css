@@ -139,7 +139,12 @@
 }
 
 @media (max-width: 800px) {
-  /* Preset utilities stay in the title row; task actions occupy the tab row. */
+  /* Keep the preset adjacent to the shrinking title instead of pinning it right. */
+  .titleCluster,
+  .crumbs {
+    flex: 0 1 auto;
+  }
+
   .headerActions {
     position: absolute;
     right: 8px;
