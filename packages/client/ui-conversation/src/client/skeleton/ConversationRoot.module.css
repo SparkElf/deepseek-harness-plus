@@ -151,11 +151,25 @@
   }
 
   .headerActions {
+    display: contents;
+  }
+
+  /* The preset stays with the title; subagent/job roots share the tab row. */
+  .headerActions > span {
+    position: absolute;
+    top: 12px;
+    right: 8px;
+  }
+
+  .headerActions > div {
     position: absolute;
     right: 8px;
     bottom: 0;
     z-index: 2;
-    gap: 2px;
+  }
+
+  .headerActions > div:not(:last-of-type) {
+    right: 96px;
   }
 
   .tabs {

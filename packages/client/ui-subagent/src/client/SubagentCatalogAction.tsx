@@ -587,9 +587,9 @@ export function SubagentCatalogAction({
         }}
       >
         <span className={css.compactLabel}>{t('compact.label')}</span>
-        <span className={css.activitySlot}>
-          {descendants.runningCount > 0 && <StateDot state="ongoing" />}
-        </span>
+        {descendants.runningCount > 0 && (
+          <span className={css.activitySlot}><StateDot state="ongoing" /></span>
+        )}
         <span className={css.count}>{t(totalCountKey, { count: descendantCount })}</span>
         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
       </button>

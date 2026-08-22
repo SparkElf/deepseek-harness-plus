@@ -38,6 +38,12 @@
   .count {
     display: none;
   }
+
+  .menu {
+    left: auto;
+    right: 0;
+    max-width: calc(100vw - 32px);
+  }
 }
 
 .triggerDot {
