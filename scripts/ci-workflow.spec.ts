@@ -135,7 +135,12 @@ describe('CI workflow', () => {
       DSH_ARCHIVE_BASE_REF: '${{ needs.impact.outputs.merge_base }}',
     })
     expect(coverageSteps.find(step => step.name === 'Run impact-selected coverage')?.run).toContain('--coverage.changed "$BASE_SHA"')
-    expect(consumerSteps.find(step => step.name === 'Run impact-selected browser and artifact gates')?.run).toContain('check:ci:web-affected')
+    const consumerStep = consumerSteps.find(step => step.name === 'Run impact-selected browser and artifact gates')
+    expect(consumerStep?.env).toEqual({
+      CONSUMER_MODE: '${{ needs.impact.outputs.consumers }}',
+      IMPACT_WEB_TESTS: '${{ needs.impact.outputs.web_tests }}',
+    })
+    expect(consumerStep?.run).toContain('DSH_WEB_SNAPSHOT_FILES="$IMPACT_WEB_TESTS" pnpm run check:ci:web-affected')
     expect(aggregateSteps.find(step => step.name === 'Verify selected and skipped job results')?.run).toContain('check_result coverage')
   })
 

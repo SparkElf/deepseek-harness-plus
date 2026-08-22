@@ -322,12 +322,12 @@ jobs:
       - name: Run impact-selected browser and artifact gates
         env:
           CONSUMER_MODE: ${{ needs.impact.outputs.consumers }}
-          DSH_WEB_SNAPSHOT_FILES: ${{ needs.impact.outputs.web_tests }}
+          IMPACT_WEB_TESTS: ${{ needs.impact.outputs.web_tests }}
         run: |
           if [[ "$CONSUMER_MODE" == 'full' ]]; then
             pnpm run check:ci:consumers
           elif [[ "$CONSUMER_MODE" == 'web' ]]; then
-            pnpm run check:ci:web-affected
+            DSH_WEB_SNAPSHOT_FILES="$IMPACT_WEB_TESTS" pnpm run check:ci:web-affected
           else
             echo "::error::Unexpected consumer mode: $CONSUMER_MODE"
             exit 1
