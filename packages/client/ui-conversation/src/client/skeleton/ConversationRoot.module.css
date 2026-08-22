@@ -139,37 +139,13 @@
 }
 
 @media (max-width: 800px) {
-  /* Keep actions beside the conversation tabs instead of consuming a separate row. */
-  .titleCluster {
-    display: block;
-    width: 100%;
-  }
-
-  .crumbs {
-    width: 100%;
-    flex: none;
-  }
-
+  /* Preset utilities stay in the title row; task actions occupy the tab row. */
   .headerActions {
-    display: contents;
-  }
-
-  /* The preset stays with the title; subagent/job roots share the tab row. */
-  .headerActions > span {
-    position: absolute;
-    top: 12px;
-    right: 8px;
-  }
-
-  .headerActions > div {
     position: absolute;
     right: 8px;
     bottom: 0;
     z-index: 2;
-  }
-
-  .headerActions > div:not(:last-of-type) {
-    right: 96px;
+    gap: 2px;
   }
 
   .tabs {
