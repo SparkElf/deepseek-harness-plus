@@ -1,6 +1,5 @@
 .root {
-  /* The popup belongs to the composer card, not the narrow model seat. */
-  position: static;
+  position: relative;
   min-width: 0;
 }
 
@@ -16,8 +15,6 @@
      room without letting this trailing control consume the composer. */
   max-width: 220px;
   max-width: min(360px, 45cqw);
-  max-width: 100%;
-  box-sizing: border-box;
   height: 28px;
   padding: 0 4px 0 8px;
   border: none;
@@ -75,10 +72,10 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  /* Keep the card readable while sizing it from the composer row container. */
-  width: min(240px, calc(100cqw - 16px));
-  min-width: min(240px, calc(100cqw - 16px));
-  max-width: calc(100cqw - 16px);
+  /* Let the visible rows set the card width while keeping desktop ids bounded. */
+  width: max-content;
+  min-width: min(240px, calc(100vw - 32px));
+  max-width: min(420px, calc(100vw - 32px));
   max-height: min(360px, calc(100vh - 96px));
   overflow: hidden;
   padding: 4px;
@@ -96,6 +93,18 @@
      styles/scrollbar.css for the rebinding contract). */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+@media (max-width: 800px) {
+  .root {
+    position: static;
+  }
+
+  .menu {
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
+  }
 }
 
 .status,
