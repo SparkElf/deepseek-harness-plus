@@ -25,7 +25,7 @@ Cut along the architecture's natural test hooks into three tiers, bottom-up:
 Inter-tier discipline: **each tier tests its own layer, upper tiers never re-test lower ones** — an app semantic snapshot pins only user-visible projection across the assembled plugin boundary, while Playwright smoke proves browser and carrier liveness; wire semantics belong to tier 1 and data semantics to tier 2. Pure-function layers (lineage/partial/notifier/transcript-adapter) are tested directly with zero fakes in the same package's tests/ alongside tier 2.
 
 - **Host and client source** are under the repo-wide per-file 100% coverage gate except the narrow browser-grade exclusions annotated in `vitest.config.ts`; component suites use per-file jsdom pragmas and Testing Library without changing Node suites.
-- **App-owned semantic snapshots** read built client bundles, execute them through the real loader, and drive only deterministic fixture hooks. They own stable visible state such as sidebar labels, breadcrumbs, and `document.title`, not CSS pixels or lower-layer state-machine details.
+- **App-owned semantic snapshots** read built client bundles, execute them through the real loader, and drive only deterministic fixture hooks. They own stable visible state such as sidebar labels, breadcrumbs, and `document.title`, not CSS pixels or lower-layer state-machine details. Browser scenarios assert operable interactions and visible state changes, not spacing, alignment, pixel geometry, computed CSS, or screenshot differences. Human review at target viewports owns visual styling; failure screenshots are evidence for that review, never pass criteria.
 
 ## Lane map
 
@@ -41,13 +41,13 @@ Inter-tier discipline: **each tier tests its own layer, upper tiers never re-tes
 
 ## Anti-regression discipline
 
-- **Every bug fix pins an assertion**: a browser-visible bug is pinned into its owning browser spec (smoke or e2e scenario); a data-layer bug is pinned into the matching spec (precedent: the res-close misjudgment pinned in the webserver bridge suite — pure Node, reproduces in seconds, no longer needs the 12s browser sentinel as the only defense).
+- **Every behavior bug pins an assertion**: a browser interaction or visible-state bug is pinned into its owning browser scenario; a data-layer bug is pinned into the matching spec. Visual-only corrections rely on human viewport review and do not add geometry, computed-CSS, or screenshot assertions.
 - **All-green on fixture is not done, the real wire must pass too**: what the fixture short-circuits is exactly the wire carriage chain (node:http bridge close semantics, real network timing); both empirically confirmed bugs hid there. Changes touching connection/bridge/handler/SSE must run the browser lane (`pnpm run test:web`) — its keyless e2e scenarios drive the real HTTP/SSE carriage, and the with-key real-host smoke remains the live-model complement.
 - The code-on-disk-is-the-answer reconciliation workflow: when a behavior change lands and turns existing cases red, reconcile on the spot (fix the test or fix the code, with the RFC/contract as arbiter); no red left hanging.
 
 ## Consequences
 
-Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gui` feedback, wire/object-layer semantics assert in milliseconds in Node, built-composition snapshots pin deterministic user-visible projection, and the browser carries wiring and carrier acceptance. Inter-tier discipline remains review-owned, while Linux CI mechanically enforces browser-golden freshness. Every new app snapshot must avoid unstable layout or clock output.
+Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gui` feedback, wire/object-layer semantics assert in milliseconds in Node, built-composition snapshots pin deterministic user-visible projection, and the browser carries wiring and carrier acceptance. Inter-tier discipline remains review-owned, while Linux CI mechanically enforces browser-golden freshness. Automated GUI evidence stays semantic and behavioral; visual styling remains human-reviewed.
 
 ## Alternatives considered
 
