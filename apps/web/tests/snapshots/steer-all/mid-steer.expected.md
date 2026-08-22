@@ -9,6 +9,11 @@
   - img
   - img
   - text: Think The user wants me to ask them a checkpoint question first, then continue with whatever they interject. Let me do exactly that.
+- text: Running
+- button "Ask question waiting":
+  - img
+  - img
+  - text: Ask question waiting
 - status: Deep diving...
 - text: "Interjection: include the word BANANA in your final reply."
 - button "Copy":

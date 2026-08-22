@@ -9,11 +9,9 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
-- group "Command input": /goal
-- 'button "goal No goal is currently set. Usage: /goal [<objective>|clear|edit <objective>|pause|resume]"':
-  - img
-  - img
-  - text: "goal No goal is currently set. Usage: /goal [<objective>|clear|edit <objective>|pause|resume]"
+- group "Command input": /goal clear
+- img
+- text: goal No goal to clear.
 - textbox "Message the agent"
 - button "Commands":
   - img

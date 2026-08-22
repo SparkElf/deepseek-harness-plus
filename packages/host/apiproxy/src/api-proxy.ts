@@ -530,20 +530,19 @@ function jobViews(snapshots: readonly JobSnapshot[]): JobView[] {
   }))
 }
 
-/**
- * Whether the session's conversation has started: no turn has run yet (a
- * turn is one model-loop execution). Standalone plugin events — command
- * lifecycle records, plan/mode, titles, goals — never open a turn, so
- * running `/plan` or `/goal` on a fresh session keeps it blank
- * (list-hidden, reusable).
- */
+/** Whether one durable event makes a Session list-visible and ineligible for New Session reuse. */
+function startsSessionHistory(event: SessionEvent): boolean {
+  return event.type === 'turn/start' || event.type === 'command/run'
+}
+
+/** Whether the Session has neither a model turn nor durable command history. */
 function sessionBlank(session: Session): boolean {
-  return !session.events.some(event => event.type === 'turn/start')
+  return !session.events.some(startsSessionHistory)
 }
 
 /** Advance the Session-list hint projection by one committed event. */
 function applySessionListMetadata(state: SessionListMetadata, event: SessionEvent): SessionListMetadata {
-  const blank = state.blank && event.type !== 'turn/start'
+  const blank = state.blank && !startsSessionHistory(event)
   const lastPromptAt = event.type === 'user/message' && event.data.source.kind === 'user'
     ? event.time
     : state.lastPromptAt

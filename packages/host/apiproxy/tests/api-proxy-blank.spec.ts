@@ -1,10 +1,8 @@
 /**
- * The summary blank bit means "conversation not started" (no turn has run),
- * not "log empty": standalone plugin events — command lifecycle records,
- * plan/mode, permission knob events, session titles — never flip it, so running /plan or /goal on a
- * fresh session keeps it list-hidden and reusable, while the first accepted
- * prompt's turn/start clears it. The host/session-added frame shares the
- * same predicate function (covered by the workspace spec's frame assertion).
+ * The summary blank bit means no model turn or durable command history.
+ * Passive plugin state does not flip it; `command/run` and `turn/start` do,
+ * preventing New Session from reusing a Session with durable command history.
+ * The host/session-added frame shares the same predicate function.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -42,20 +40,22 @@ async function harness(): Promise<{ ctx: Context; api: ApiProxy; attach: (sessio
   }
 }
 
-/** Append the standalone (non-conversation) event family a fresh session can accumulate. */
-function appendStandalone(session: Session): void {
-  session.append('command/run', {
-    commandId: CommandId('blank-cmd-1'), name: 'plan', args: '', source: { kind: 'user' },
-  })
+/** Append passive plugin state that does not create visible command history. */
+function appendPassiveState(session: Session): void {
   session.append('plan/mode', { active: true })
-  session.append('command/done', { commandId: CommandId('blank-cmd-1'), kind: 'success', text: 'Plan mode on.' })
   session.append('session/title', {
     title: 'standalone title', messageSeqs: [], source: { kind: 'fallback' },
   })
-  // The three permission knob events (a /permission switch on a fresh session).
   session.append('permission/preset', { preset: 'danger-full-access' })
   session.append('sandbox/mode', { mode: 'danger-full-access' })
   session.append('approval/policy', { policy: 'never' })
+}
+
+/** Append the durable start of one user command. */
+function appendCommandRun(session: Session): void {
+  session.append('command/run', {
+    commandId: CommandId('blank-cmd-1'), name: 'plan', args: '', source: { kind: 'user' },
+  })
 }
 
 async function listBlank(api: ApiProxy, id: string): Promise<boolean | undefined> {
@@ -64,21 +64,29 @@ async function listBlank(api: ApiProxy, id: string): Promise<boolean | undefined
   return response.result.value.items.find(item => item.sessionId === id)?.blank
 }
 
-describe('summary blank = conversation not started', () => {
-  it('standalone events (command lifecycle, plan/mode, title) keep the session blank', async () => {
+describe('summary blank = no turn or command history', () => {
+  it('passive plugin state keeps the session blank', async () => {
     const { ctx, api, attach } = await harness()
     const session = ctx.sessions.create()
     attach(session)
     expect(await listBlank(api, session.id)).toBe(true)
-    appendStandalone(session)
+    appendPassiveState(session)
     expect(await listBlank(api, session.id)).toBe(true)
+  })
+
+  it('the first command clears blank before a model turn', async () => {
+    const { ctx, api, attach } = await harness()
+    const session = ctx.sessions.create()
+    attach(session)
+    appendCommandRun(session)
+    expect(await listBlank(api, session.id)).toBe(false)
   })
 
   it('the first turn clears blank', async () => {
     const { ctx, api, attach } = await harness()
     const session = ctx.sessions.create()
     attach(session)
-    appendStandalone(session)
+    appendPassiveState(session)
     session.append('turn/start', { turn: 0 })
     expect(await listBlank(api, session.id)).toBe(false)
   })

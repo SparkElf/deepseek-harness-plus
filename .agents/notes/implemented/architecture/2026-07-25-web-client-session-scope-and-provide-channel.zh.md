@@ -59,16 +59,17 @@ Session 实例与 scope 同生命周期，存活资格 = host listed（一个判
 
 ### blank 位：空会话的可见投影、转正与复用
 
-「实体化但无首条提示词」的会话经 summary 派生位 `blank` 治理（派生列而非 header 字段，SessionHeader 保持不可变）：
+一个已实体化但没有 model turn 或 command history 的 Session 经 summary 派生位 `blank` 治理（派生列而非 header 字段，SessionHeader 保持不可变）。[可见命令历史决策](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md)拥有当前 predicate：
 
-- host 判据：`session.events.length === 0`（零日志事件 = 尚无用户消息）。live 会话 `summarize()` 内存直读；cold 会话恒 `false`——lazy-create 约定保证 never-appended 会话根本不进 `persistence.list()`（JSONL/SQLite 两后端均已实证真 lazy），blank 从不落盘。
-- wire 承载两处：`SessionSummary.blank` 必填列；`host/session-added` 帧必填 `blank` 字段（创建时恒 true，供别的 tab 按同一空会话状态入镜像）。
-- client 镜像只降不升（单调），三来源翻转，全部复用既有 wire 信号：
-  - 发送方本地：首次 `prompt()` 的**成功响应**翻 false（受理即证明用户消息已入 host 日志——此点翻转是确证而非乐观；`onEngaged` 同步更新列表镜像，当前 `New Session` 行原地转为普通标题，不新增列表行）。首条提示词被拒则会话保持 blank：与 host 权威对齐、继续显示为 `New Session`、在仍为该工作区成员时保持 connectWorkspace 复用资格。
-  - 其他端：`host/session-status (running:true)` 帧翻转——blank 会话从不 running，首次 running 必然已非 blank；
-  - 重连对齐：`session.list` 的 summary.blank 是权威，错过帧的端下次拉取自然对齐；陈旧的 blank:true 不能把已转正的会话重新标回 blank。
-- 列表纪律：store 保留全部行；Workspace browser 的分组、平铺、搜索和计数共用同一可见投影——所有非 blank 会话都显示，blank 会话只显示 `session.id === sessions.current` 的一条，并强制标题为 `New Session`。切换 Workspace 后，旧 blank 实体仍在镜像中但从列表隐藏，目标 Workspace 的 current blank 显示；因此用户可见面全局至多一条 blank 行。
-- 残留账零 GC：刷新后 blank 会话带位回来，下次同 workspace 且仍为成员时复用，普通单端路径使每个 workspace 至多保留一个；host 重启后 blank 无盘痕自然蒸发；多 tab 竞态多出的空壳只会成为非 current 隐藏行，后续复用消化，不做协调。
+- Host 判据是同时不存在 `turn/start` 与 `command/run`。live Session 从内存读取 `summarize()`；cold Session 使用 [cold blank 决策](../bug-fix/2026-08-13-bounded-cold-blank-verification.md)定义的有界 `sessionListMetadata` 验证。
+- Wire 通过 `SessionSummary.blank` 必填列与 `host/session-added` 的 `blank` 必填字段承载该 bit；创建时该值为 true。
+- Client mirror 只降不升，并复用既有 signal：
+  - 发送方首次 `prompt()` 成功响应会调用 `onEngaged`，原地转换当前 `New Session` row。首条 prompt 被拒时，Session 保持 blank，并在仍为 Workspace member 时保持复用资格。
+  - 每个收到 `session/event(command/run)` 的 tab 都会先对 list mirror 与 resident Session 应用同一个 engaged conversion，再路由该事件。
+  - `host/session-status (running:true)` 会转换 blank Session，因为运行中的 model loop 意味着存在 `turn/start`。
+  - `session.list` 在重连时仍是权威；陈旧的 `blank: true` 不会把已转换的本地 row 重新升回 blank。
+- 列表纪律：store 保留全部 row；Workspace browser 的 grouping、flat view、search 与 count 共用同一个 visible projection——所有 non-blank Session 都显示，blank Session 只显示 `session.id === sessions.current` 的一条，并强制 title 为 `New Session`。切换 Workspace 后，旧 blank entity 留在 mirror 中但从列表隐藏，目标 Workspace 的 current blank 显示；用户可见面因此全局至多一条 blank row。
+- 复用不需要 GC：经过验证的 blank Workspace member 会带着该 bit 返回，并在下一次连接同一个 Workspace 时复用。Never-appended blank 不留下 disk artifact；只含被动 plugin state 的小型持久 artifact 仍可验证为 blank。多 tab 创建的额外 empty shell 会成为 non-current hidden row，并由后续复用消化，无需协调。
 
 ### connectWorkspace：New Session 的唯一入口
 

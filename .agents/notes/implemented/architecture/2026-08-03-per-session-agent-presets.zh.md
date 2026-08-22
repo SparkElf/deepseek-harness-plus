@@ -52,7 +52,7 @@ Status: implemented
 
 **entry 本地 `isolate` realm 不仅对宿主不可见，对 agent 自身的 scope 同样不可见。** 只有该组内部的行能解析到该服务。这正是让 preset 的 `skills` 注册表归属单个 agent 而非共享的原因——同时也意味着：留在提供方组之外的消费方会悄然解析到宿主注册表，然后什么都不贡献。
 
-**只有空白会话才允许切换。** 一旦跑过任何轮次，那段历史就是在该 preset 的工具下产生的，替换会留下无法执行的已记录 tool call，因此 `agentPreset.select` 返回 `agent-preset-locked`。空白期的切换保留 agent 与 session，只替换子树——因为宿主丢弃了它创建的 `AgentHandle`，也没有 delete RPC；而保留它们本身就是更好的结果，会话 id、workspace 挂接与 projections 都原地不动。该替换是"先卸后装"（两份组装会把同名工具注册进同一分层），因此它在拆除任何东西之前先解析新 preset，并在新组装装载失败时恢复原来的那一份。
+**只有空白会话才允许切换。** 一旦跑过 command 或 turn，那段历史就是在该 preset 的 command 与 tool composition 下产生的，替换会让同一 Session 跨越两套 composition，因此 `agentPreset.select` 返回 `agent-preset-locked`。空白期的切换保留 agent 与 session，只替换子树——因为宿主丢弃了它创建的 `AgentHandle`，也没有 delete RPC；而保留它们本身就是更好的结果，会话 id、workspace 挂接与 projections 都原地不动。该替换是"先卸后装"（两份组装会把同名工具注册进同一分层），因此它在拆除任何东西之前先解析新 preset，并在新组装装载失败时恢复原来的那一份。
 
 **创作 preset 是一次 RPC，而且是特权 RPC。** 组装是一个文件，但“去文件系统里改它”并不是浏览器能提供的操作，因此名单在 `select` 之外新增了 `read`/`write`/`remove`。这三者被固定在环回地址：组装指明了一个会话所运行的插件，因此读取它是侦察，写入它是任意能力。`list` 与 `select` 刻意保持为普通方法。名单只携带 id 与信任级别，而局域网客户端的选择器需要它；至于选择本身，它看起来像提权——其中一个 preset 会挂载可编辑活动运行时的工具集——但 `session.create` 本就接受 `agentPreset`，只固定切换会把同一能力留在隔壁一个方法上。这份能力也不由 preset 授予：部署自带的默认 preset 本就带着 `bash` 与文件系统工具，因此任何被允许开启会话的调用方，早已能以本进程的身份执行命令。约束是 id 自身的性质（`[a-z0-9][a-z0-9-]*`），在它成为目录名之前就检查，而不是事后再去审视拼接出的路径；文本使用 loader 自身的 schema 与方言解析，因此保存不会留下任何会话都无法加载的文件。随部署提供的 preset 拒绝写入与删除，因为部署自带的那一份正是用来对照有问题的本地 preset 的——这也让“先复制、再编辑”成为创作路径本身，而非事后补充。
 

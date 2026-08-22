@@ -59,16 +59,17 @@ Session instances share the scope's lifecycle; liveness eligibility = host-liste
 
 ### The blank bit: the empty session's visible projection, conversion, and reuse
 
-A session "materialized but with no first prompt" is governed by the summary-derived bit `blank` (a derived column, not a header field; SessionHeader stays immutable):
+A Session materialized with no model turn or command history is governed by the summary-derived bit `blank` (a derived column, not a header field; SessionHeader stays immutable). The [visible command history decision](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md) owns the current predicate:
 
-- The host criterion: `session.events.length === 0` (zero log events = no user message yet). A live session reads `summarize()` straight from memory; a cold session is always `false` — the lazy-create contract guarantees a never-appended session never enters `persistence.list()` at all (both the JSONL and SQLite backends are verified truly lazy), so blank never touches disk.
-- The wire carries it in two places: the required `SessionSummary.blank` column, and the required `blank` field on the `host/session-added` frame (always true at creation, letting other tabs enter the same blank-session state into their mirrors).
-- The client mirror only lowers, never raises (monotonic), flipped from three sources, all reusing existing wire signals:
-  - The sender's own tab: the **successful response** to the first `prompt()` flips false (acceptance proves the user/message is already in the host log — this flip is confirmation, not optimism; `onEngaged` synchronously updates the list mirror, converting the current `New Session` row in place to an ordinary title, adding no list row). A rejected first prompt keeps the session blank: aligned with host authority, still shown as `New Session`, keeping its connectWorkspace reuse eligibility while it remains a Workspace member.
-  - Other tabs: the `host/session-status (running:true)` frame flips it — a blank session never runs, so the first running necessarily means no longer blank;
-  - Reconnect alignment: `session.list`'s summary.blank is authoritative, so a tab that missed frames aligns naturally on its next pull; a stale blank:true can never mark a converted session back to blank.
-- List discipline: the store retains every row; the Workspace browser's grouping, flat view, search, and counts share one visible projection — every non-blank session shows, while blank sessions show only the one with `session.id === sessions.current`, its title forced to `New Session`. After a Workspace switch, the old blank entity stays in the mirror but is hidden from the list while the target Workspace's current blank shows; the user-visible surface therefore holds at most one blank row globally.
-- The residue ledger takes zero GC: after a refresh, blank sessions come back with the bit intact and are reused on the next same-workspace connect while they remain members, so the ordinary single-tab path keeps at most one per workspace; after a host restart, blanks leave no disk trace and simply evaporate; the extra empty shells from multi-tab races only become non-current hidden rows, digested by later reuse, with no coordination.
+- The Host criterion is the absence of both `turn/start` and `command/run`. A live Session reads `summarize()` from memory; a cold Session uses the bounded `sessionListMetadata` verification described by the [cold blank decision](../bug-fix/2026-08-13-bounded-cold-blank-verification.md).
+- The wire carries the bit in the required `SessionSummary.blank` column and the required `blank` field on `host/session-added`, which is true at creation.
+- The Client mirror only lowers, never raises, from existing signals:
+  - The sender's successful first `prompt()` response calls `onEngaged`, converting the current `New Session` row in place. A rejected first prompt keeps the Session blank and reusable while it remains a Workspace member.
+  - Every tab receiving `session/event(command/run)` applies the same engaged conversion to its list mirror and resident Session before routing the event.
+  - `host/session-status (running:true)` converts a blank Session because a running model loop implies `turn/start`.
+  - `session.list` remains authoritative on reconnect; stale `blank: true` never raises a converted local row.
+- List discipline: the store retains every row; the Workspace browser's grouping, flat view, search, and counts share one visible projection — every non-blank Session shows, while blank Sessions show only the one with `session.id === sessions.current`, its title forced to `New Session`. After a Workspace switch, the old blank entity stays in the mirror but is hidden from the list while the target Workspace's current blank shows; the user-visible surface therefore holds at most one blank row globally.
+- Reuse requires no GC: verified blank Workspace members return with the bit intact and are reused on the next same-Workspace connect. Never-appended blanks leave no disk artifact; a small persisted artifact containing only passive plugin state can still verify as blank. Extra empty shells from multi-tab creation become non-current hidden rows and are consumed by later reuse without coordination.
 
 ### connectWorkspace: the sole entry point of New Session
 

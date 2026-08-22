@@ -36,9 +36,9 @@ Status: implemented
 - connection fixture 补命令路由（fixture + fake-api）：keyless 台架可跑完整命令流（目录、执行、popup 选择）。
 - apps/cli 装配挂全部新包；tsconfig path map / reference 集补齐；catalog/docs 随 wire 与事件再生成。
 
-### 装配级验收：slash-flow 快照
+### 装配级验收
 
-`apps/web/tests/slash-flow.snapshot.ts` 钉住用户可见主链（assembled keyless，包 mock 不替代装配后的 transcript（文本记录））：无会话时 composer 禁用 → 创建 Workspace 并进入已实体化的 blank 会话 → `/` 菜单选 `/echo` leadingInput → 命令执行但 blank 位不翻转、列表仍显示 `New Session` → 首条普通提示词成功受理后同一行转正；同一个会话绑定的 textarea 在 blank → active 转换期间保持不变。`workspace-flow.snapshot.ts` 另钉住 blank 行创建/复用、首条提示词遭拒后的回填，以及在发出首条提示词前切换 Workspace 时 draft 跨 input machine 搬运且旧 blank 行隐藏。
+`apps/web/tests/goal-command-presentation.e2e.ts` 通过真实无密钥 Host 与浏览器固定用户可见命令链：新 Workspace Session 执行 `/goal clear`，在没有 model adapter 时渲染输入与无 Goal 结果，在 `command/run` 时把 Session 从 blank 转换，在 reload 之前经 New Session 新建干净欢迎会话，并确认欢迎页没有命令历史且 composer 为空。转换与复用语义由[可见命令历史决策](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md)拥有。
 
 ## 曾考虑的替代方案
 
