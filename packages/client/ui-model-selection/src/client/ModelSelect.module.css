@@ -280,12 +280,12 @@
     box-sizing: border-box;
   }
 
-  /* Keep the two-level popup inside the flexible model seat on narrow phones. */
+  /* Keep the popup readable while clamping it to the composer row container. */
   .menu {
-    right: auto;
-    left: 0;
-    width: min(100%, calc(100vw - 32px));
-    min-width: 0;
-    max-width: calc(100vw - 32px);
+    right: 0;
+    left: auto;
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
   }
 }
