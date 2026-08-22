@@ -270,7 +270,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   /* 2px moved from the bottom pad to the top: the whole control row sits 2px
      lower in the card (it read too high against the textarea) while the card
      height and the controls' own centering stay untouched. */
@@ -295,15 +295,16 @@
    Read-only; the chip gap widened to 12 so the pill chips read as separate
    controls. */
 .tools {
-  gap: 16px;
+  gap: 12px;
 }
 
 .modes {
-  gap: 12px;
+  gap: 8px;
 }
 
 .trailing {
   flex: none;
+  gap: 8px;
   /* Wrap keeps the left mode chips and the right controls apart when the card
      runs out of row width: the trailing group (model + send) moves to its own
      line instead of the left group shrinking until its chip overlaps the
