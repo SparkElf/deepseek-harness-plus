@@ -176,7 +176,7 @@
 }
 
 /* The paired phone may report a wider CSS viewport than its physical width. */
-@container (max-width: 900px) {
+@media (max-width: 900px) {
   .titleCluster {
     flex: 0 1 auto;
   }

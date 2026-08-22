@@ -113,6 +113,14 @@
   }
 }
 
+@media (max-width: 900px) {
+  .menu {
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
+  }
+}
+
 .status,
 .empty {
   padding: 10px;
