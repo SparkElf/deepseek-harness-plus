@@ -139,19 +139,27 @@
 }
 
 @media (max-width: 800px) {
-  /* Keep the session title readable above the compact action row on phone CSS widths. */
+  /* Keep actions beside the conversation tabs instead of consuming a separate row. */
   .titleCluster {
-    flex-wrap: wrap;
-    row-gap: 0;
+    display: block;
+    width: 100%;
   }
 
   .crumbs {
-    flex: 1 1 100%;
+    width: 100%;
+    flex: none;
   }
 
   .headerActions {
-    flex: 1 1 100%;
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    z-index: 2;
     gap: 2px;
+  }
+
+  .tabs {
+    padding-right: 180px;
   }
 }
 

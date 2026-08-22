@@ -16,6 +16,8 @@
      room without letting this trailing control consume the composer. */
   max-width: 220px;
   max-width: min(360px, 45cqw);
+  max-width: 100%;
+  box-sizing: border-box;
   height: 28px;
   padding: 0 4px 0 8px;
   border: none;
