@@ -6,7 +6,7 @@ import {
   type SessionSummary, type SubagentAddress, type SubagentCatalogSnapshot,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import {
-  IconAgentPresetOutline16, IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14, StateDot,
+  IconChevronDownOutline14, IconChevronRightOutline14, IconRefreshOutline14, StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { NS } from './locales.ts'
@@ -586,9 +586,7 @@ export function SubagentCatalogAction({
           queueMicrotask(() => { focusAt(0) })
         }}
       >
-        <span className={css.compactIcon} aria-hidden>
-          <IconAgentPresetOutline16 size={14} />
-        </span>
+        <span className={css.compactLabel}>{t('compact.label')}</span>
         <span className={css.activitySlot}>
           {descendants.runningCount > 0 && <StateDot state="ongoing" />}
         </span>

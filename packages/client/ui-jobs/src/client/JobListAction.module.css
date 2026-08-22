@@ -31,7 +31,7 @@
 }
 
 @media (max-width: 800px) {
-  .compactIcon {
+  .compactLabel {
     display: inline-flex;
   }
 
@@ -44,7 +44,7 @@
   flex: none;
 }
 
-.compactIcon {
+.compactLabel {
   display: none;
   flex: none;
 }

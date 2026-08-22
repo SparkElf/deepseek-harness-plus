@@ -159,7 +159,8 @@
   }
 
   .tabs {
-    padding-right: 180px;
+    gap: 16px;
+    padding-right: 150px;
   }
 }
 
@@ -183,6 +184,7 @@
   line-height: 16px;
   font-weight: 500;
   color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
   cursor: pointer;
 }
 

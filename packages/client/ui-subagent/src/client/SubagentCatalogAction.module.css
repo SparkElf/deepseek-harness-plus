@@ -21,7 +21,7 @@
   margin: 0 2px;
 }
 
-.compactIcon {
+.compactLabel {
   display: none;
   flex: none;
 }
@@ -47,7 +47,7 @@
 }
 
 @media (max-width: 800px) {
-  .compactIcon {
+  .compactLabel {
     display: inline-flex;
   }
 
