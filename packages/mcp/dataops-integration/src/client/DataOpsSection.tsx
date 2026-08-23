@@ -88,7 +88,9 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
 
   const openAuthorization = (): void => {
     setFailure(undefined)
-    const popup = window.open(CONNECT_PATH, 'dsh-dataops-authorization', 'popup,width=720,height=760')
+    const connectUrl = new URL(CONNECT_PATH, window.location.origin)
+      connectUrl.searchParams.set('origin', window.location.origin)
+      const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
     if (popup === null) setFailure(t('popupBlocked'))
   }
 
