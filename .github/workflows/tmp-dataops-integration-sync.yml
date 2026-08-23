@@ -103,16 +103,19 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          needle = '    { "path": "./packages/mcp/mcp-client" },\n'
-          addition = needle + '    { "path": "./packages/mcp/dataops-integration" },\n'
-          for filename in ['tsconfig.host.json', 'tsconfig.client.json']:
+          targets = {
+              'tsconfig.host.json': '    { "path": "./packages/mcp/mcp-client" },\n',
+              'tsconfig.client.json': '    { "path": "./packages/extensions/cordis-client-runner" },\n',
+          }
+          entry = '    { "path": "./packages/mcp/dataops-integration" },\n'
+          for filename, anchor in targets.items():
               path = Path(filename)
               text = path.read_text()
               if './packages/mcp/dataops-integration' in text:
                   continue
-              if needle not in text:
-                  raise SystemExit(f'{filename}: mcp-client aggregate anchor not found')
-              path.write_text(text.replace(needle, addition, 1))
+              if anchor not in text:
+                  raise SystemExit(f'{filename}: aggregate anchor not found')
+              path.write_text(text.replace(anchor, anchor + entry, 1))
           PY
       - name: Refresh workspace metadata
         run: |
