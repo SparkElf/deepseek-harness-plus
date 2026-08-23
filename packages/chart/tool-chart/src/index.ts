@@ -6,7 +6,6 @@ import type { JsonValue } from '@deepseek-ai/dsh-tools'
 import type { ChartPresentationMeta, RenderChartArgs, RenderChartResult } from './types.ts'
 
 export type { ChartPresentationMeta, RenderChartArgs, RenderChartResult } from './types.ts'
-export { chartMetaFromUnknown } from './types.ts'
 
 /** Cordis plugin name. */
 export const name = 'tool-chart'
@@ -21,7 +20,7 @@ function normalizeArgs(args: RenderChartArgs): RenderChartResult {
   return {
     rendered: true,
     sourceResultRef,
-    ...title === undefined || title.length === 0 ? {} : { title },
+    ...(title === undefined || title.length === 0 ? {} : { title }),
   }
 }
 
@@ -31,12 +30,12 @@ export function chartPresentationMeta(args: RenderChartArgs, value: RenderChartR
     version: 1,
     sourceResultRef: value.sourceResultRef,
     option: args.option,
-    ...value.title === undefined ? {} : { title: value.title },
+    ...(value.title === undefined ? {} : { title: value.title }),
   }
   return meta as unknown as JsonValue
 }
 
-/** Register `render_chart`; rendering itself is owned by the optional browser half of this package. */
+/** Register `render_chart`; Web presentation is owned by `dsh-client-ui-chart`. */
 export function apply(ctx: Context): void {
   ctx.tools.register(defineTool({
     name: 'render_chart',
