@@ -1,4 +1,4 @@
-/** Shared JSON contracts for the interactive chart tool and its browser replay view. */
+/** JSON contracts owned by the model-facing interactive chart tool. */
 
 import type { JsonValue } from '@deepseek-ai/dsh-tools'
 
@@ -12,7 +12,7 @@ export interface RenderChartArgs {
   title?: string
 }
 
-/** Durable UI projection stored on the tool result for history replay. */
+/** Durable presentation projection stored on the tool result for browser replay. */
 export interface ChartPresentationMeta {
   version: 1
   sourceResultRef: string
@@ -25,27 +25,4 @@ export interface RenderChartResult {
   rendered: true
   sourceResultRef: string
   title?: string
-}
-
-/** Whether an opaque value is a non-array object. */
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-/**
- * Narrow live or replayed opaque tool metadata to the chart presentation shape.
- * A malformed historical value simply lets the browser card report that its chart data is unavailable.
- */
-export function chartMetaFromUnknown(value: unknown): ChartPresentationMeta | undefined {
-  if (!isRecord(value)) return undefined
-  const { version, sourceResultRef, option, title } = value
-  if (version !== 1 || typeof sourceResultRef !== 'string' || sourceResultRef.length === 0) return undefined
-  if (!isRecord(option)) return undefined
-  if (title !== undefined && typeof title !== 'string') return undefined
-  return {
-    version: 1,
-    sourceResultRef,
-    option: option as JsonValue,
-    ...title === undefined ? {} : { title },
-  }
 }
