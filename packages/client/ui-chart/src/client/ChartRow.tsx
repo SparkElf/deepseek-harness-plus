@@ -11,7 +11,7 @@ export type ChartRowProps = ToolCallViewProps & PropsLocale<'chart'>
 
 /** Render pending, failed, or durable interactive chart state for one tool call. */
 export function ChartRow({ block, inspect, t }: ChartRowProps) {
-  const result = block.kind === 'tool-result' ? block : null
+  const result = 'kind' in block && block.kind === 'tool-result' ? block : null
   const meta = result === null ? undefined : chartMetaFromUnknown(result.meta)
   const title = meta?.title ?? t('row.title')
 
