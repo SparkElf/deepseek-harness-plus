@@ -19,6 +19,10 @@ jobs:
         with:
           node-version: 24
       - run: corepack enable
+      - name: Configure git
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
       - name: Align browser callback with the actual DSH web origin
         run: |
           python - <<'PY'
@@ -57,19 +61,19 @@ jobs:
                   raise SystemExit('host source: parseTokenResponse anchor not found')
               text = text.replace(marker, helper + marker, 1)
           old = """      prunePending()
-                const state = randomBytes(32).toString('base64url')
-                const verifier = randomBytes(32).toString('base64url')
-                const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
-                const redirectUri = `http://127.0.0.1:${String(ctx.webServer.port)}${CALLBACK_PATH}`
-          """.replace('                ', '      ')
+      const state = randomBytes(32).toString('base64url')
+      const verifier = randomBytes(32).toString('base64url')
+      const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
+      const redirectUri = `http://127.0.0.1:${String(ctx.webServer.port)}${CALLBACK_PATH}`
+          """
           new = """      prunePending()
-                const callbackOrigin = callbackOriginOf(request, response)
-                if (callbackOrigin === undefined) return
-                const state = randomBytes(32).toString('base64url')
-                const verifier = randomBytes(32).toString('base64url')
-                const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
-                const redirectUri = `${callbackOrigin}${CALLBACK_PATH}`
-          """.replace('                ', '      ')
+      const callbackOrigin = callbackOriginOf(request, response)
+      if (callbackOrigin === undefined) return
+      const state = randomBytes(32).toString('base64url')
+      const verifier = randomBytes(32).toString('base64url')
+      const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
+      const redirectUri = `${callbackOrigin}${CALLBACK_PATH}`
+          """
           if old in text:
               text = text.replace(old, new, 1)
           elif 'const redirectUri = `http://127.0.0.1:' in text:
@@ -78,23 +82,21 @@ jobs:
 
           ui = Path('packages/mcp/dataops-integration/src/client/DataOpsSection.tsx')
           text = ui.read_text()
-          old = """    const popup = window.open(CONNECT_PATH, 'dsh-dataops-authorization', 'popup,width=720,height=760')
-          """
+          old = "    const popup = window.open(CONNECT_PATH, 'dsh-dataops-authorization', 'popup,width=720,height=760')\n"
           new = """    const connectUrl = new URL(CONNECT_PATH, window.location.origin)
-                connectUrl.searchParams.set('origin', window.location.origin)
-                const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
-          """.replace('                ', '    ')
+    connectUrl.searchParams.set('origin', window.location.origin)
+    const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
+          """
           if old in text:
               text = text.replace(old, new, 1)
           ui.write_text(text)
 
           spec = Path('packages/mcp/dataops-integration/tests/dataops-integration.spec.ts')
           text = spec.read_text()
-          old = """    const connect = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/connect`, { redirect: 'manual' })
-          """
+          old = "    const connect = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/connect`, { redirect: 'manual' })\n"
           new = """    const dshOrigin = `http://127.0.0.1:${String(localPort)}`
-                const connect = await fetch(`${dshOrigin}/integrations/dataops/connect?origin=${encodeURIComponent(dshOrigin)}`, { redirect: 'manual' })
-          """.replace('                ', '    ')
+    const connect = await fetch(`${dshOrigin}/integrations/dataops/connect?origin=${encodeURIComponent(dshOrigin)}`, { redirect: 'manual' })
+          """
           if old in text:
               text = text.replace(old, new, 1)
           spec.write_text(text)
@@ -117,21 +119,25 @@ jobs:
                   raise SystemExit(f'{filename}: aggregate anchor not found')
               path.write_text(text.replace(anchor, anchor + entry, 1))
           PY
+      - name: Commit source and aggregate sync
+        run: |
+          git add tsconfig.host.json tsconfig.client.json packages/mcp/dataops-integration
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix(mcp): use active DSH web origin for DataOps OAuth'
+            git push origin HEAD:feat/dataops-oauth-integration
+          fi
       - name: Refresh workspace metadata
         run: |
           pnpm install --lockfile-only --no-frozen-lockfile
           pnpm run verify-client-packages --fix
           pnpm install --lockfile-only --no-frozen-lockfile
           pnpm install --frozen-lockfile
+      - name: Commit generated metadata
+        run: |
+          git add pnpm-lock.yaml packages/mcp/dataops-integration/package.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'build(mcp): sync DataOps integration metadata'
+            git push origin HEAD:feat/dataops-oauth-integration
+          fi
       - name: Focused DataOps integration tests
         run: pnpm exec vitest run packages/mcp/dataops-integration/tests/dataops-integration.spec.ts packages/mcp/dataops-integration/tests/loader-composition.spec.ts packages/mcp/dataops-integration/tests/apply.client.spec.ts
-      - name: Commit generated and web-origin changes
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add pnpm-lock.yaml tsconfig.host.json tsconfig.client.json packages/mcp/dataops-integration
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m 'build(mcp): sync DataOps integration metadata'
-          git push origin HEAD:feat/dataops-oauth-integration
