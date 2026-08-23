@@ -34,7 +34,9 @@ const profiles = {
   },
 } as const
 
-const accessProfiles = new Map([
+type Profile = (typeof profiles)[keyof typeof profiles]
+
+const accessProfiles = new Map<string, Profile>([
   ['alice-access', profiles.alice],
   ['alice-access-2', profiles.alice],
   ['alice-refreshed-access', profiles.alice],
@@ -200,9 +202,10 @@ class MemoryCredentials {
   }
 
   describe(ref: CredentialRef): Promise<CredentialInfo> {
+    const configured = this.values.has(ref)
     return Promise.resolve({
-      configured: this.values.has(ref),
-      source: this.values.has(ref) ? 'memory' : undefined,
+      configured,
+      ...(configured ? { source: 'memory' } : {}),
       writable: this.writable,
     })
   }
