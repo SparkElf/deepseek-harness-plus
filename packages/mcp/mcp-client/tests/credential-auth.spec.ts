@@ -65,7 +65,7 @@ describe('credential-backed Streamable HTTP auth', () => {
       serverName: 'dataops',
       url: 'https://dataops.example/mcp',
       bearerTokenRef: 'DATAOPS_MCP_TOKEN',
-    } as never)
+    } as never) as StreamableHttpConfig
     expect(resolved.bearerTokenRef).toBe('DATAOPS_MCP_TOKEN')
   })
 
