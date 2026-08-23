@@ -19,67 +19,39 @@ jobs:
         with:
           node-version: 24
       - run: corepack enable
-      - name: Update authentication contract in both languages
+      - name: Align generic credential semantics with implementation
         run: |
           python - <<'PY'
           from pathlib import Path
-
-          en_path = Path('.agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.md')
-          en = en_path.read_text()
-          en = en.replace(
-            '| DataOps integration in DSH | External DataOps Auth/Integration Plugin | Starts MFA/OAuth, stores credential references, refreshes/revokes tokens, and composes the generic MCP client |',
-            '| Optional DataOps integration in DSH | External DataOps Auth/Integration Plugin | Starts Authorization Code + PKCE, acquires/stores credential references, and composes the generic MCP client; omission leaves generic MCP transport unauthenticated |',
-          )
-          en = en.replace(
-            '| Generic MCP authentication | DSH credential service and MCP client | Resolves a credential reference, attaches current transport credentials, and reconnects after refresh |',
-            '| Generic MCP authentication | DSH credential service and MCP client | With a credential reference, resolves and attaches the current transport credential; without one, sends no `Authorization` header |',
-          )
-          old_en = '''DataOps is the multi-user control plane; each DSH runtime is single-principal. DataOps may use Docker to provision and isolate runtimes, but container placement is not authentication. The first successful authentication binds an isolated runtime to one DataOps principal, and every DSH conversation in that runtime shares that principal by design. Reauthentication must resolve to the same principal; a different principal requires a different runtime.\n\nThe external DataOps Auth/Integration Plugin owns two entry paths. A direct DSH visit starts DataOps Authorization Code with PKCE and DataOps MFA. A launch from DataOps carries only a short-lived, single-use code bound to the user, OAuth client, target DSH instance, audience, state, and expiry; the plugin exchanges it server-side and removes it from the URL. Access and refresh tokens never appear in URL parameters, tool arguments, model context, browser local storage, or session logs.\n\nThe plugin stores access and refresh credentials through the DSH credential service. The generic MCP client needs a credential-reference/auth-provider option instead of literal static headers: it resolves the current bearer token, reconnects when the credential changes, and never logs the token. This is a generic authenticated-MCP enhancement, not DataOps query logic.\n\nEvery Streamable HTTP MCP request carries `Authorization: Bearer <access-token>`. DataOps validates issuer, audience, expiry, authorized client, tenant, user, and tool scopes, then projects an `AuthorizationPrincipal` into the tool handler. Tool schemas contain only business arguments. DataOps binds each MCP session identifier to the authenticated principal and rejects later requests whose principal differs; a refreshed token may continue only when its principal is unchanged. MCP session identifiers and result references are not credentials.\n'''
-          new_en = '''DataOps is the multi-user control plane; each authenticated DSH runtime is single-principal. DataOps may use Docker to provision and isolate runtimes, but container placement is not authentication. A DataOps browser may hold several active account sessions at once, so the authorization page lists the available accounts and requires an explicit user choice. The selected account is the principal that binds the isolated runtime. Reauthentication must resolve to that same principal; a different principal requires a different runtime.\n\nThe external DataOps Auth/Integration Plugin is optional. If it is not configured, or a generic Streamable HTTP MCP client is configured without a credential reference, DSH sends no `Authorization` header and simply attempts an anonymous MCP connection; the remote MCP server owns whether anonymous access exists. The production DataOps data-query MCP endpoint requires authentication and therefore rejects that anonymous attempt.\n\nFor authenticated DataOps integration, a direct DSH visit starts DataOps Authorization Code with PKCE. DataOps owns the browser authorization page and explicit account selection. If the chosen account is not currently authenticated, DataOps owns its normal login and any MFA challenge; MFA is a DataOps authentication step, not a substitute for OAuth authorization. A launch from DataOps may carry only a short-lived, single-use code bound to the user, OAuth client, target DSH instance, audience, state, and expiry; the plugin exchanges it server-side and removes it from the URL. Access and refresh credentials never appear in URL parameters, tool arguments, model context, browser local storage, or session logs.\n\nThe plugin stores provider credentials through the DSH credential service. The generic MCP client uses credential references instead of literal static headers: when a reference is configured it resolves the current bearer token at the transport boundary and never logs the token. This is a generic authenticated-MCP enhancement, not DataOps query logic.\n\nAuthenticated Streamable HTTP MCP requests carry `Authorization: Bearer <access-token>`. DataOps validates issuer, audience, expiry, authorized client, user, and tool scopes, then projects an `AuthorizationPrincipal` into the tool handler. Tool schemas contain only business arguments. DataOps binds each MCP session identifier to the authenticated principal and rejects later requests whose principal differs; a refreshed token may continue only when its principal is unchanged. MCP session identifiers and result references are not credentials.\n'''
-          if old_en not in en:
-              raise SystemExit('English authentication block changed unexpectedly')
-          en = en.replace(old_en, new_en, 1)
-          en = en.replace(
-            'DataOps adds Authorization Code with PKCE, single-use launch-code exchange, MCP-audience tokens and scopes, per-request HTTP MCP authentication, the external DSH Auth/Integration Plugin, and Streamable HTTP handlers mapped onto its existing catalog, query, API, execution, and result services. It adds QueryGuide storage only for genuine cross-resource guidance and implements Design B only in a later compiler project. The DataOps backend and MCP server do not import DSH packages; the external integration plugin consumes DSH plugin APIs outside DSH core.\n\nDSH adds only a generic credential-backed MCP authentication capability: credential references resolve outside model-visible config, and credential changes reconnect the transport. DSH otherwise reuses the existing MCP client. A later approved generic batch-result capability belongs in DSH, but DSH contains no DataOps query identifiers, SQL execution, source routing, authorization policy, or connector logic.',
-            'DataOps adds Authorization Code with PKCE, explicit selection among active browser accounts, single-use launch-code exchange, MCP-audience tokens and scopes, per-request HTTP MCP authentication, and Streamable HTTP handlers mapped onto its existing catalog, query, API, execution, and result services. It adds QueryGuide storage only for genuine cross-resource guidance and implements Design B only in a later compiler project. The DataOps backend and MCP server do not import DSH packages.\n\nDSH core adds only the generic credential-backed MCP authentication capability. An optional DataOps-specific integration package may be distributed with DSH, but it is outside the core/default profile and owns only browser OAuth, credential acquisition, and composition of the generic MCP client. It contains no DataOps query identifiers, SQL execution, source routing, authorization policy, or connector logic. A later approved generic batch-result capability belongs in DSH.',
-          )
-          en = en.replace(
-            '- DataOps owns the HTTP MCP server and external Auth/Integration Plugin; DSH adds generic credential-backed MCP authentication without a DataOps query-tool implementation.',
-            '- DataOps owns the HTTP MCP server and authorization/token endpoints; the optional DSH DataOps integration package owns browser credential acquisition and composes the generic MCP client without implementing DataOps query tools.',
-          )
-          en_path.write_text(en)
-
-          zh_path = Path('.agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.zh.md')
-          zh = zh_path.read_text()
-          zh = zh.replace(
-            '| DSH 中的 DataOps 集成 | 外部 DataOps Auth/Integration Plugin | 发起 MFA/OAuth、存储 credential reference、刷新/撤销 token，并组合通用 MCP Client |',
-            '| DSH 中的可选 DataOps 集成 | 外部 DataOps Auth/Integration Plugin | 发起 Authorization Code + PKCE、获取/存储 credential reference 并组合通用 MCP Client；省略插件时保持通用 MCP 匿名传输 |',
-          )
-          zh = zh.replace(
-            '| 通用 MCP 鉴权 | DSH credential service and MCP client | 解析 credential reference、附加当前传输凭据，并在凭据变化后重连 |',
-            '| 通用 MCP 鉴权 | DSH credential service and MCP client | 配置 credential reference 时解析并附加当前传输凭据；未配置时不发送 `Authorization` header |',
-          )
-          old_zh = '''DataOps 是多用户控制面；每个 DSH runtime 是单主体运行时。DataOps 可以使用 Docker 分配和隔离 runtime，但容器位置不是认证。第一次成功认证把隔离 runtime 绑定到一个 DataOps principal，该 runtime 内所有 DSH 对话按设计共享此 principal。重新认证必须得到同一个 principal；不同 principal 需要不同 runtime。\n\n外部 DataOps Auth/Integration Plugin 拥有两种入口。直接访问 DSH 时发起带 PKCE 的 DataOps Authorization Code 流程和 DataOps MFA。从 DataOps 启动时只携带短期一次性 code；code 绑定用户、OAuth client、目标 DSH 实例、audience、state 和过期时间，由 plugin 在服务端交换后从 URL 删除。access token 和 refresh token 不得进入 URL 参数、工具参数、模型上下文、浏览器 local storage 或 session log。\n\nPlugin 通过 DSH credential service 存储 access 和 refresh credential。通用 MCP Client 需要 credential-reference/auth-provider 选项，而不是字面量静态 header：它解析当前 bearer token，在 credential 变化后重连，并且不记录 token。这是通用 authenticated-MCP 增强，不是 DataOps 查询逻辑。\n\n每个 Streamable HTTP MCP 请求都携带 `Authorization: Bearer <access-token>`。DataOps 校验 issuer、audience、过期、授权 client、tenant、用户和工具 scope，然后向工具 handler 投影 `AuthorizationPrincipal`。工具 schema 只包含业务参数。DataOps 将每个 MCP session identifier 绑定到已认证 principal，并拒绝后续 principal 不一致的请求；只有 principal 不变时才允许刷新后的 token 继续使用。MCP session identifier 和 result reference 都不是 credential。\n'''
-          new_zh = '''DataOps 是多用户控制面；每个已认证 DSH runtime 是单主体运行时。DataOps 可以使用 Docker 分配和隔离 runtime，但容器位置不是认证。同一个 DataOps 浏览器可以同时持有多个有效账号 session，因此授权页必须列出可用账号并要求用户明确选择。被选中的账号就是绑定该隔离 runtime 的 principal。重新认证必须得到同一个 principal；不同 principal 需要不同 runtime。\n\n外部 DataOps Auth/Integration Plugin 是可选的。如果没有配置该插件，或者通用 Streamable HTTP MCP client 没有配置 credential reference，DSH 不发送 `Authorization` header，只尝试匿名 MCP 连接；是否存在匿名能力由远端 MCP server 决定。生产 DataOps 取数 MCP endpoint 要求认证，因此会拒绝该匿名尝试。\n\n需要 DataOps 身份时，直接访问 DSH 会发起带 PKCE 的 DataOps Authorization Code 流程。浏览器授权页和明确账号选择由 DataOps 拥有；如果所选账号尚未完成认证，DataOps 负责自身正常登录流程以及需要的 MFA challenge。MFA 是 DataOps 的身份认证步骤，不替代 OAuth 授权。从 DataOps 启动时可以只携带短期一次性 code；code 绑定用户、OAuth client、目标 DSH 实例、audience、state 和过期时间，由 plugin 在服务端交换后从 URL 删除。access 和 refresh credential 不得进入 URL 参数、工具参数、模型上下文、浏览器 local storage 或 session log。\n\nPlugin 通过 DSH credential service 存储 provider credential。通用 MCP Client 使用 credential reference，而不是字面量静态 header：配置 reference 时在 transport 边界解析当前 bearer token，并且不记录 token。这是通用 authenticated-MCP 增强，不是 DataOps 查询逻辑。\n\n已认证的 Streamable HTTP MCP 请求携带 `Authorization: Bearer <access-token>`。DataOps 校验 issuer、audience、过期、授权 client、用户和工具 scope，然后向工具 handler 投影 `AuthorizationPrincipal`。工具 schema 只包含业务参数。DataOps 将每个 MCP session identifier 绑定到已认证 principal，并拒绝后续 principal 不一致的请求；只有 principal 不变时才允许刷新后的 token 继续使用。MCP session identifier 和 result reference 都不是 credential。\n'''
-          if old_zh not in zh:
-              raise SystemExit('Chinese authentication block changed unexpectedly')
-          zh = zh.replace(old_zh, new_zh, 1)
-          zh = zh.replace(
-            'DataOps 新增带 PKCE 的 Authorization Code、一次性 launch-code 交换、面向 MCP audience 的 token 和 scope、按请求 HTTP MCP 鉴权、外部 DSH Auth/Integration Plugin，以及映射到现有目录、查询、API、执行和结果服务的 Streamable HTTP handler；仅为真实跨资源指导新增 QueryGuide 存储；方案 B 在后续独立编译器项目中实现。DataOps backend 和 MCP Server 不引入 DSH package；外部 integration plugin 在 DSH core 之外消费 DSH plugin API。\n\nDSH 只新增通用 credential-backed MCP 鉴权能力：credential reference 在模型可见配置之外解析，credential 变化时重连 transport。除此之外 DSH 复用现有 MCP Client。后续批准的通用批量结果能力属于 DSH，但 DSH 不包含 DataOps 查询标识、SQL 执行、来源路由、授权策略或 connector 逻辑。',
-            'DataOps 新增带 PKCE 的 Authorization Code、浏览器有效账号的明确选择、一次性 launch-code 交换、面向 MCP audience 的 token 和 scope、按请求 HTTP MCP 鉴权，以及映射到现有目录、查询、API、执行和结果服务的 Streamable HTTP handler；仅为真实跨资源指导新增 QueryGuide 存储；方案 B 在后续独立编译器项目中实现。DataOps backend 和 MCP Server 不引入 DSH package。\n\nDSH core 只新增通用 credential-backed MCP 鉴权能力。可以随 DSH 分发一个可选的 DataOps-specific integration package，但它位于 core/default profile 之外，只拥有浏览器 OAuth、credential 获取和通用 MCP Client 组合，不包含 DataOps 查询标识、SQL 执行、来源路由、授权策略或 connector 逻辑。后续批准的通用批量结果能力属于 DSH。',
-          )
-          zh = zh.replace(
-            '- DataOps 拥有 HTTP MCP Server 和外部 Auth/Integration Plugin；DSH 只新增通用 credential-backed MCP 鉴权，不新增 DataOps 查询工具实现。',
-            '- DataOps 拥有 HTTP MCP Server 和授权/token endpoint；DSH 的可选 DataOps integration package 只负责浏览器 credential 获取并组合通用 MCP Client，不实现 DataOps 查询工具。',
-          )
-          zh_path.write_text(zh)
+          pairs = [
+            (
+              Path('.agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.md'),
+              '| Generic MCP authentication | DSH credential service and MCP client | Resolves a credential reference, attaches current transport credentials, and reconnects after credential changes |',
+              '| Generic MCP authentication | DSH credential service and MCP client | With a credential reference, resolves the current bearer credential at each HTTP request boundary; without one, sends no `Authorization` header |',
+            ),
+            (
+              Path('.agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.zh.md'),
+              '| 通用 MCP 鉴权 | DSH credential service and MCP client | 解析 credential reference、附加当前传输凭据，并在凭据变化后重连 |',
+              '| 通用 MCP 鉴权 | DSH credential service and MCP client | 配置 credential reference 时在每次 HTTP 请求边界解析当前 bearer credential；未配置时不发送 `Authorization` header |',
+            ),
+          ]
+          for path, old, new in pairs:
+            text = path.read_text()
+            if old not in text:
+              if new in text:
+                continue
+              raise SystemExit(f'{path}: generic auth row anchor not found')
+            path.write_text(text.replace(old, new, 1))
           PY
       - run: pnpm install --frozen-lockfile
       - run: pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.md
-      - name: Commit bilingual design update
+      - name: Commit bilingual contract alignment
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.md .agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.zh.md .agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.i18n.yaml
-          git commit -m 'docs: clarify optional DataOps OAuth integration'
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'docs: align MCP credential request semantics'
           git push origin HEAD:docs/data-query-mcp-architecture
