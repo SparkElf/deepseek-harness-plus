@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import CredentialProvider from '@deepseek-ai/dsh-credentials'
+import CredentialProvider, { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { CredentialInfo, CredentialRef, ResolvedCredential } from '@deepseek-ai/dsh-credentials'
 
 const { httpOptions } = vi.hoisted(() => ({
@@ -20,34 +20,34 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 }))
 
 import { apply, Config as ConfigSchema } from '@deepseek-ai/dsh-mcp-client/src/index.ts'
-import type { Config } from '@deepseek-ai/dsh-mcp-client/src/index.ts'
+import type { Config, StreamableHttpConfig } from '@deepseek-ai/dsh-mcp-client/src/index.ts'
 import { createTransport } from '@deepseek-ai/dsh-mcp-client/src/transport.ts'
 
 class TestCredentials extends CredentialProvider {
   private value = 'token-one'
 
-  resolve(_ref: CredentialRef): Promise<ResolvedCredential | undefined> {
+  override resolve(_ref: CredentialRef): Promise<ResolvedCredential | undefined> {
     return Promise.resolve(this.value.length ? { value: this.value, source: 'test' } : undefined)
   }
 
-  describe(_ref: CredentialRef): Promise<CredentialInfo> {
+  override describe(_ref: CredentialRef): Promise<CredentialInfo> {
     return Promise.resolve({ configured: this.value.length > 0, source: 'test', writable: true })
   }
 
-  set(ref: CredentialRef, value: string): Promise<void> {
+  override set(ref: CredentialRef, value: string): Promise<void> {
     this.value = value
     this.notifyUpdated(ref)
     return Promise.resolve()
   }
 
-  unset(ref: CredentialRef): Promise<void> {
+  override unset(ref: CredentialRef): Promise<void> {
     this.value = ''
     this.notifyUpdated(ref)
     return Promise.resolve()
   }
 }
 
-const httpConfig = (overrides: Partial<Config> = {}): Config => ({
+const httpConfig = (overrides: Partial<StreamableHttpConfig> = {}): Config => ({
   transport: 'streamable-http',
   serverName: 'dataops',
   url: 'https://dataops.example/mcp',
@@ -56,7 +56,7 @@ const httpConfig = (overrides: Partial<Config> = {}): Config => ({
   toolCallTimeoutMs: 60_000,
   failOnStartupError: false,
   ...overrides,
-} as Config)
+})
 
 describe('credential-backed Streamable HTTP auth', () => {
   it('accepts a bearer credential reference in config', () => {
@@ -92,7 +92,7 @@ describe('credential-backed Streamable HTTP auth', () => {
     expect(options.requestInit?.headers).toEqual({})
     expect(await options.authProvider?.token()).toBe('token-one')
 
-    await ctx.credentials.set('DATAOPS_MCP_TOKEN' as CredentialRef, 'token-two')
+    await ctx.credentials.set(credentialRef('DATAOPS_MCP_TOKEN'), 'token-two')
     expect(await options.authProvider?.token()).toBe('token-two')
   })
 })
