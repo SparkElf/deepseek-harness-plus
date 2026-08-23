@@ -80,11 +80,14 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
 
   const state = useMemo(() => {
     if (loading) return { dot: 'ongoing' as const, label: t('loading') }
+    if (failure !== undefined && status === undefined) {
+      return { dot: 'warning' as const, label: t('statusUnavailable') }
+    }
     if (status?.mode === 'anonymous') return { dot: 'warning' as const, label: t('anonymousMode') }
     if (status?.authorizationAccepted === true) return { dot: 'done' as const, label: t('connected') }
     if (status?.credentialConfigured === true) return { dot: 'warning' as const, label: t('authorizationExpired') }
     return { dot: 'warning' as const, label: t('notConnected') }
-  }, [loading, status, t])
+  }, [failure, loading, status, t])
 
   const openAuthorization = (): void => {
     setFailure(undefined)
