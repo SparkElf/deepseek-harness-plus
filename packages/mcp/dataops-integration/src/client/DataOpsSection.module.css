@@ -89,7 +89,7 @@
   height: 36px;
   place-items: center;
   border-radius: 50%;
-  background: var(--dsw-alias-accent-secondary);
+  background: var(--dsw-alias-interactive-bg-hover-solid);
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
   font-weight: 600;
