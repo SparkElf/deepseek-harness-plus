@@ -16,7 +16,8 @@
 .intro,
 .detail,
 .security,
-.confirmCopy {
+.confirmCopy,
+.statusDetail {
   margin: 0;
   color: var(--dsw-alias-label-tertiary);
   font-size: 14px;
@@ -43,14 +44,31 @@
 }
 
 .statusRow {
-  gap: 8px;
+  align-items: flex-start;
+  gap: 9px;
   min-height: 24px;
+}
+
+.statusRow > :first-child {
+  margin-top: 5px;
+}
+
+.statusCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .statusLabel {
   font-size: 14px;
   line-height: 22px;
   font-weight: 500;
+}
+
+.statusDetail {
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .field {
@@ -84,14 +102,14 @@
 
 .avatar {
   display: grid;
-  flex: 0 0 36px;
-  width: 36px;
-  height: 36px;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
   place-items: center;
   border-radius: 50%;
   background: var(--dsw-alias-interactive-bg-hover-solid);
   color: var(--dsw-alias-label-primary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -99,7 +117,7 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .accountCopy strong {
@@ -118,6 +136,10 @@
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.accountUsername {
+  color: var(--dsw-alias-label-quaternary, var(--dsw-alias-label-tertiary)) !important;
 }
 
 .security {
@@ -154,6 +176,27 @@
   color: var(--dsw-alias-state-error-primary);
   font-size: 12px;
   line-height: 18px;
+}
+
+.advanced {
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  padding-top: 10px;
+}
+
+.advanced summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 20px;
+  user-select: none;
+}
+
+.advancedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 8px;
 }
 
 @media (max-width: 560px) {
