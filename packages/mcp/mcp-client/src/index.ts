@@ -15,6 +15,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.ts'
 import type { ReconnectConfig } from './connection.ts'
@@ -84,8 +85,13 @@ export interface StreamableHttpConfig {
   serverName: string
   /** MCP endpoint URL. */
   url: string
-  /** Additional headers attached to MCP requests. */
+  /** Additional non-credential headers attached to MCP requests. */
   headers: Record<string, string>
+  /**
+   * DSH credential reference whose current value is sent as the HTTP bearer
+   * token. The MCP SDK resolves it before every request through `ctx.credentials`.
+   */
+  bearerTokenRef?: string
   /** Per-tool-call timeout in milliseconds. */
   toolCallTimeoutMs: number
   /** Fail plugin activation when the initial connection or tool synchronization fails. */
@@ -121,11 +127,25 @@ export const Config = z.union([
     serverName: z.string().required().pattern(SERVER_NAME_PATTERN),
     url: z.string().required(),
     headers: z.dict(String).default({}),
+    bearerTokenRef: z.string().role('credential-ref'),
     toolCallTimeoutMs: z.number().default(DEFAULT_TOOL_CALL_TIMEOUT_MS),
     failOnStartupError: z.boolean().default(false),
     reconnect: Reconnect,
   }),
 ]) as unknown as z<Config>
+
+function validateCredentialAuth(ctx: Context, config: Config): void {
+  if (config.transport !== 'streamable-http' || config.bearerTokenRef === undefined) return
+  const ref = credentialRef(config.bearerTokenRef)
+  if (Object.keys(config.headers).some((header) => header.toLowerCase() === 'authorization')) {
+    throw new Error(
+      `mcp-client(${config.serverName}): bearerTokenRef and headers.Authorization cannot be configured together`,
+    )
+  }
+  if (ctx.get('credentials') === undefined) {
+    throw new Error(`mcp-client(${config.serverName}): bearerTokenRef "${ref}" requires the credentials service`)
+  }
+}
 
 // ---- Plugin apply ----
 
@@ -138,6 +158,8 @@ export const Config = z.union([
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
+  validateCredentialAuth(ctx, config)
+
   // Fail loud at load: reconnect misconfiguration (including programmatic
   // construction that bypassed Schemastery) rejects THIS instance before any
   // effect registers.
