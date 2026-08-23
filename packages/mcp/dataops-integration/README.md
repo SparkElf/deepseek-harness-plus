@@ -25,9 +25,9 @@ Omit both credential refs to mount the DataOps MCP endpoint immediately through 
 
 ### Browser authorization mode
 
-Configure both credential refs to enable OAuth 2.0 Authorization Code + PKCE with OIDC identity. The optional browser half adds a **DataOps** page to the existing DSH Settings UI. Choose **Connect DataOps** there.
+Configure both credential refs to enable OAuth 2.0 Authorization Code + PKCE with OIDC identity. The optional browser half adds a **DataOps** page to the existing DSH Settings UI. That page treats connection status and the currently authorized DataOps account as the primary information; server URL and connection mode are available under **Advanced connection details** instead of leading the user through transport terminology. Choose **Connect DataOps** there.
 
-DSH opens DataOps in a popup with `openid dataops.mcp` and `prompt=select_account`. DataOps reads its own browser sessions, displays the account that will authorize DSH, and requires an explicit account choice. Login, account switching, and MFA stay entirely on DataOps. DSH receives the authorization code only, exchanges it server-side, validates the resulting access token through DataOps `userinfo`, stores the delegated access and refresh tokens through their credential references, and mounts the generic MCP client with the access-token `bearerTokenRef`. The returned ID token is part of the OIDC token response but is not used as the MCP bearer token.
+DSH opens DataOps in a popup with `openid dataops.mcp` and `prompt=select_account`. DataOps renders the authorization experience through its native Vue/Wanxiang design system, reads only its own browser sessions, and requires an explicit account choice. No account is selected by default, even when only one is available, and the authorization action stays disabled until the user chooses one. **Use another account** opens the normal DataOps login/MFA experience; returning to the authorization popup refreshes the available accounts automatically. DSH receives the authorization code only, exchanges it server-side, validates the resulting access token through DataOps `userinfo`, stores the delegated access and refresh tokens through their credential references, and mounts the generic MCP client with the access-token `bearerTokenRef`. The returned ID token is part of the OIDC token response but is not used as the MCP bearer token.
 
 The Settings page shows the authorized account, supports switching accounts through the same DataOps chooser, and can remove writable DSH-managed delegated credentials without logging the user out of DataOps. Both credential references must resolve to writable providers before Settings offers a new authorization or disconnect operation.
 
@@ -45,7 +45,7 @@ For a DSH Web deployment published through a trusted ingress whose hop into DSH 
 
 ## Security
 
-DataOps browser cookies, passwords, and MFA secrets never leave the DataOps origin. Delegated access, refresh, and ID tokens never appear in the browser authorization URL, browser JavaScript, tool arguments, model context, or plugin config. The callback page is only a transient popup bridge that notifies the DSH Settings page and closes itself.
+DataOps browser cookies, passwords, and MFA secrets never leave the DataOps origin. Delegated access, refresh, and ID tokens never appear in the browser authorization URL, browser JavaScript, tool arguments, model context, or plugin config. The DataOps authorization route carries only a short-lived signed authorization request; the callback page is only a transient popup bridge that notifies the DSH Settings page and closes itself.
 
 Authentication state is outside the agent loop. This package does not implement DataOps SQL or catalog tools; it only composes the existing generic MCP client.
 
