@@ -123,6 +123,13 @@
   max-width: calc(100cqw - 16px);
 }
 
+.portalMenu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 100;
+}
+
 .status,
 .empty {
   padding: 10px;
