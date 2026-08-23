@@ -111,6 +111,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
   }
 
   const connectedAccount = status?.mode === 'oidc' ? status.account : null
+  const showActions = !confirmingDisconnect && (status?.mode === 'oidc' || failure !== undefined)
 
   return (
     <section className={styles.section}>
@@ -151,14 +152,14 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
 
         {failure !== undefined && <p className={styles.error} role="alert">{failure}</p>}
 
-        {status?.mode === 'oidc' && !confirmingDisconnect && (
+        {showActions && (
           <div className={styles.actions}>
-            {status.credentialWritable !== false && (
+            {status?.mode === 'oidc' && status.credentialWritable !== false && (
               <Button variant="primary" onClick={openAuthorization}>
                 {status.authorizationAccepted === true ? t('switchAccount') : t('connect')}
               </Button>
             )}
-            {status.credentialConfigured === true && status.credentialWritable !== false && (
+            {status?.mode === 'oidc' && status.credentialConfigured === true && status.credentialWritable !== false && (
               <Button variant="outline" onClick={() => { setConfirmingDisconnect(true) }}>
                 {t('disconnect')}
               </Button>
