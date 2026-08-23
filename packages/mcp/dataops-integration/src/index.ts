@@ -238,6 +238,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   let mcpFiber: Fiber | undefined
   let activePrincipalSub: string | undefined
   let refreshTimer: ReturnType<typeof setTimeout> | undefined
+  let nominalAccessTtlSeconds: number | undefined
 
   const mcpConfig = (): McpClient.StreamableHttpConfig => ({
     transport: 'streamable-http',
@@ -349,8 +350,15 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 
   let refreshAuthorization: () => Promise<void>
 
-  const scheduleRefresh = (token: TokenResponse): void => {
+  const scheduleRefresh = (token: TokenResponse, resetLifetime: boolean): void => {
     clearRefreshTimer()
+    if (resetLifetime || nominalAccessTtlSeconds === undefined) {
+      nominalAccessTtlSeconds = token.expires_in
+    } else if (token.expires_in < nominalAccessTtlSeconds) {
+      return
+    } else {
+      nominalAccessTtlSeconds = token.expires_in
+    }
     const delayMs = token.expires_in * 1000 / 2
     refreshTimer = setTimeout(() => {
       refreshTimer = undefined
@@ -362,13 +370,17 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }, delayMs)
   }
 
-  const acceptAuthorization = async (token: TokenResponse, account: AccountResponse): Promise<void> => {
+  const acceptAuthorization = async (
+    token: TokenResponse,
+    account: AccountResponse,
+    resetRefreshLifetime = false,
+  ): Promise<void> => {
     if (activePrincipalSub !== undefined && activePrincipalSub !== account.sub) {
       await unmountMcp()
     }
     await storeAuthorization(token)
     activePrincipalSub = account.sub
-    scheduleRefresh(token)
+    scheduleRefresh(token, resetRefreshLifetime)
     await ensureMcpMounted()
   }
 
@@ -480,7 +492,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         const token = parseTokenResponse(await tokenResponse.json())
         const account = await fetchAccount(token.access_token)
         if (account === null) throw new Error('DataOps access token was rejected by userinfo')
-        await acceptAuthorization(token, account)
+        await acceptAuthorization(token, account, true)
         popupBridge(response, 'connected')
       } catch (error) {
         ctx.logger.warn('mcp-dataops: DataOps authorization callback failed')
@@ -505,6 +517,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       await credentials!.unset(accessRef)
       await credentials!.unset(refreshRef)
       activePrincipalSub = undefined
+      nominalAccessTtlSeconds = undefined
       sendJson(response, 200, { disconnected: true })
     },
   }), 'mcp-dataops: disconnect route')
