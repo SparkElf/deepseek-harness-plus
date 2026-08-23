@@ -14,9 +14,9 @@ DataOps MCP 集成需要 bearer 认证，同时 OAuth 获取和刷新仍应位�
 
 `@deepseek-ai/dsh-mcp-client` 在 `streamable-http` 配置分支增加可选 `bearerTokenRef`。该值是 DSH `CredentialRef`，不是 token。
 
-配置 `bearerTokenRef` 后，MCP client 要求存在 `ctx.credentials`，并向 MCP SDK 提供 bearer `authProvider`。其 `token()` 方法会在每次 HTTP 请求前通过 `ctx.credentials` 解析引用，由 MCP SDK 负责构造 `Authorization: Bearer <value>` 请求头。
+配置 `bearerTokenRef` 后，MCP client 要求存在 `ctx.credentials`，并为 MCP SDK transport 提供 custom `fetch`。该 fetch 会在每次 HTTP 请求真正发出前通过 `ctx.credentials` 解析引用，设置 `Authorization: Bearer <value>` 请求头，再委托给平台 fetch 实现。
 
-这一实现直接复用现有 credential service 的 per-operation resolution 规则。Provider 管理的 token 刷新会在下一次 MCP 请求生效，不需要重启插件，也不需要新增 MCP connection lifecycle 状态。
+这一实现直接复用现有 credential service 的 per-operation resolution 规则，以及当前 MCP SDK v1 的 Streamable HTTP fetch 扩展点。Provider 管理的 token 刷新会在下一次 MCP 请求生效，不需要重启插件、升级 SDK，也不需要新增 MCP connection lifecycle 状态。
 
 静态 HTTP headers 继续受支持。`headers.Authorization` 与 `bearerTokenRef` 不能同时配置，因为这会让同一个请求头出现两个 owner。
 
@@ -31,7 +31,7 @@ DataOps MCP 集成需要 bearer 认证，同时 OAuth 获取和刷新仍应位�
 
 ## 验证
 
-聚焦测试覆盖配置解析、缺失 credential service、`Authorization` owner 冲突，以及重复调用 `authProvider.token()` 时读取当前 credential 值。Package typecheck、build、lint、documentation synchronization 和现有 MCP client tests 仍由仓库现有检查负责。
+聚焦测试覆盖配置解析、缺失 credential service、`Authorization` owner 冲突，以及重复 transport fetch 调用时读取当前 credential 值并保留其他请求头。Package typecheck、build、lint、documentation synchronization 和现有 MCP client tests 仍由仓库现有检查负责。
 
 ## 与取数设计的关系
 
