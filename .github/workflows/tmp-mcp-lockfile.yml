@@ -22,15 +22,29 @@ jobs:
         with:
           node-version: 24
       - run: corepack enable
-      - run: pnpm install --lockfile-only --ignore-scripts
-      - name: Commit generated lockfile
+      - name: Remove unrelated lockfile metadata refresh
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('pnpm-lock.yaml')
+          text = path.read_text()
+          line = "\n    deprecated: this version has critical issues, please update to the latest version"
+          count = text.count(line)
+          if count != 2:
+              raise SystemExit(f"expected exactly 2 generated deprecated metadata lines, found {count}")
+          path.write_text(text.replace(line, '', 2))
+          PY
+      - name: Verify frozen lockfile
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Commit narrowed lockfile
         run: |
           if git diff --quiet -- pnpm-lock.yaml; then
-            echo "pnpm-lock.yaml already synchronized"
+            echo "pnpm-lock.yaml already narrow"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pnpm-lock.yaml
-          git commit -m "build(mcp): sync lockfile"
+          git commit -m "build(mcp): narrow lockfile sync"
           git push origin HEAD:feat/mcp-credential-auth
