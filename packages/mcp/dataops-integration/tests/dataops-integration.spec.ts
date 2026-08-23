@@ -10,6 +10,7 @@ type Fixture = {
   server: Server
   baseUrl: string
   mcpAuthorization: Array<string | undefined>
+  accountAuthorization: Array<string | undefined>
   tokenRequests: URLSearchParams[]
 }
 
@@ -23,6 +24,7 @@ afterEach(async () => {
 
 async function fixture(): Promise<Fixture> {
   const mcpAuthorization: Array<string | undefined> = []
+  const accountAuthorization: Array<string | undefined> = []
   const tokenRequests: URLSearchParams[] = []
   const server = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1')
@@ -30,6 +32,24 @@ async function fixture(): Promise<Fixture> {
       mcpAuthorization.push(typeof request.headers.authorization === 'string' ? request.headers.authorization : undefined)
       response.writeHead(401)
       response.end('unauthorized')
+      return
+    }
+    if (url.pathname === '/api/auth/dsh/account') {
+      const authorization = typeof request.headers.authorization === 'string' ? request.headers.authorization : undefined
+      accountAuthorization.push(authorization)
+      if (authorization !== 'Bearer fixture-mcp-token') {
+        response.writeHead(401)
+        response.end('unauthorized')
+        return
+      }
+      response.writeHead(200, { 'content-type': 'application/json' })
+      response.end(JSON.stringify({
+        account: {
+          username: 'alice',
+          displayName: 'Alice',
+          email: 'alice@example.com',
+        },
+      }))
       return
     }
     if (url.pathname === '/api/auth/dsh/token' && request.method === 'POST') {
@@ -60,7 +80,13 @@ async function fixture(): Promise<Fixture> {
   })
   const address = server.address()
   if (address === null || typeof address === 'string') throw new Error('fixture did not bind TCP')
-  const result = { server, baseUrl: `http://127.0.0.1:${String(address.port)}`, mcpAuthorization, tokenRequests }
+  const result = {
+    server,
+    baseUrl: `http://127.0.0.1:${String(address.port)}`,
+    mcpAuthorization,
+    accountAuthorization,
+    tokenRequests,
+  }
   fixtures.push(result)
   return result
 }
@@ -97,7 +123,7 @@ class MemoryCredentials {
 }
 
 describe('mcp-dataops integration', () => {
-  it('omits Authorization when credentialRef is not configured', async () => {
+  it('omits Authorization and reports anonymous mode when credentialRef is absent', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
 
@@ -109,9 +135,17 @@ describe('mcp-dataops integration', () => {
     })
 
     expect(dataops.mcpAuthorization[0]).toBeUndefined()
+    const status = await fetch(`http://127.0.0.1:${String(ctx.webServer.port)}/integrations/dataops/status`)
+    expect(await status.json()).toMatchObject({
+      mode: 'anonymous',
+      baseUrl: dataops.baseUrl,
+      credentialConfigured: null,
+      authorizationAccepted: null,
+      account: null,
+    })
   })
 
-  it('uses PKCE browser authorization and mounts bearer MCP only after the credential is stored', async () => {
+  it('uses PKCE browser authorization, reports the selected account, and disconnects only this MCP identity', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
     const credentials = new MemoryCredentials()
@@ -128,6 +162,14 @@ describe('mcp-dataops integration', () => {
 
     expect(dataops.mcpAuthorization).toEqual([])
     const localPort = ctx.webServer.port
+    const initialStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`)
+    expect(await initialStatus.json()).toMatchObject({
+      mode: 'oauth',
+      credentialConfigured: false,
+      authorizationAccepted: false,
+      account: null,
+    })
+
     const connect = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/connect`, { redirect: 'manual' })
     expect(connect.status).toBe(303)
     const authorize = new URL(connect.headers.get('location')!)
@@ -146,6 +188,7 @@ describe('mcp-dataops integration', () => {
     const completed = await fetch(callback)
 
     expect(completed.status).toBe(200)
+    expect(await completed.text()).toContain('dsh:dataops-oauth')
     expect(credentials.values.get(ref)).toBe('fixture-mcp-token')
     expect(dataops.tokenRequests).toHaveLength(1)
     const tokenRequest = dataops.tokenRequests[0]!
@@ -154,5 +197,23 @@ describe('mcp-dataops integration', () => {
     const verifier = tokenRequest.get('code_verifier')!
     expect(createHash('sha256').update(verifier, 'ascii').digest('base64url')).toBe(challenge)
     expect(dataops.mcpAuthorization[0]).toBe('Bearer fixture-mcp-token')
+
+    const connectedStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`)
+    expect(await connectedStatus.json()).toMatchObject({
+      mode: 'oauth',
+      credentialConfigured: true,
+      credentialWritable: true,
+      authorizationAccepted: true,
+      account: {
+        username: 'alice',
+        displayName: 'Alice',
+        email: 'alice@example.com',
+      },
+    })
+    expect(dataops.accountAuthorization.at(-1)).toBe('Bearer fixture-mcp-token')
+
+    const disconnected = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/disconnect`, { method: 'POST' })
+    expect(disconnected.status).toBe(200)
+    expect(credentials.values.has(ref)).toBe(false)
   })
 })
