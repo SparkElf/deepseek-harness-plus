@@ -120,7 +120,7 @@ Contributors can opt into the comprehensive local gate set with `pnpm run check:
 
 ### CI gates
 
-The keyless [CI workflow](../.github/workflows/ci.yml) resolves one fail-open impact plan before its broad lanes. Selected browser consumers wait for one official build and built-package validation; full-impact runs retain the coverage, artifact, compatibility, Python, and Windows lanes. The separate real-API workflow runs `pnpm run test:e2e` with its configured worker bound. See [scripts/run-gates.ts](../scripts/run-gates.ts) and the workflow files for the current gate and job inventory.
+The keyless [CI workflow](../.github/workflows/ci.yml) resolves one fail-open impact plan before its broad lanes. Selected browser consumers wait for one official build and built-package validation; full-impact runs retain the coverage, artifact, compatibility, Python, and Windows lanes. GitHub Actions does not run `pnpm run test:e2e` or receive DeepSeek API credentials. See [scripts/run-gates.ts](../scripts/run-gates.ts) and the workflow files for the current gate and job inventory.
 
 ### Daily commands
 

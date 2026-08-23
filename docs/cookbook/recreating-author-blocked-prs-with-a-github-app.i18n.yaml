@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/cookbook/recreating-author-blocked-prs-with-a-github-app.md
-recreating-author-blocked-prs-with-a-github-app.md: 255a685dffd0c474c760237d826742d9c42f0369
-recreating-author-blocked-prs-with-a-github-app.zh.md: 2674562bb5af2ba6c96df5452a77b358848de0e6
+recreating-author-blocked-prs-with-a-github-app.md: 5e25a6c1c088981f292ba262a245c2eecb3b7d7d
+recreating-author-blocked-prs-with-a-github-app.zh.md: e72ae14012d410bfcdc7e68c81f7e2e8d7627e6a

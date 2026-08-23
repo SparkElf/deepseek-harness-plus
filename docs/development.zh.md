@@ -120,7 +120,7 @@ vendor manifest 守卫检查 `vendor/*/src` 下的改动是否连同对应的 `v
 
 ### CI 门禁
 
-keyless [CI 工作流](../.github/workflows/ci.yml) 会在宽粒度 lane 启动前解析一份 fail-open 影响范围 plan。被选中的浏览器消费方会等待一次 official 构建和 built-package 校验；完整影响范围运行保留覆盖率、产物、兼容性、Python 与 Windows lane。单独的真实 API 工作流按其配置的 worker 上限运行 `pnpm run test:e2e`。当前门禁和 job 清单以 [scripts/run-gates.ts](../scripts/run-gates.ts) 和工作流文件为准。
+keyless [CI 工作流](../.github/workflows/ci.yml) 会在宽粒度 lane 启动前解析一份 fail-open 影响范围 plan。被选中的浏览器消费方会等待一次 official 构建和 built-package 校验；完整影响范围运行保留覆盖率、产物、兼容性、Python 与 Windows lane。GitHub Actions不运行`pnpm run test:e2e`，也不接收DeepSeek API凭据。当前门禁和job清单以[scripts/run-gates.ts](../scripts/run-gates.ts)和工作流文件为准。
 
 ### 日常命令
 

@@ -22,6 +22,12 @@ Use a harmless repository read with GH_TOKEN to verify the installation:
 
     GH_TOKEN="$GH_APP_TOKEN" gh api repos/<owner>/<repo> --jq '{full_name,default_branch}'
 
+## Prepare the required PR body
+
+GitHub does not apply [the repository PR template](../../.github/pull_request_template.md) to REST-created PRs. Before every App-authored PR, copy that template to a temporary body file, replace every placeholder with concrete evidence or `not applicable` plus a reason, and submit the complete file as the REST `body` field.
+
+For a replacement PR, verify that the source body already contains every required template heading before capturing it. If it does not, complete the source PR body first, then capture and preserve that completed body. Never create an App-authored PR with an ad hoc summary in place of the template.
+
 ## Migrate one PR
 
 Capture the source PR title, body, headRefOid, and baseRefName before changing it.
