@@ -71,7 +71,7 @@ describe('DataOps settings section', () => {
     expect(screen.queryByText('Alice Example')).toBeNull()
   })
 
-  it('keeps a retry action available when the initial status read fails', async () => {
+  it('keeps an unavailable state and retry action when the initial status read fails', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: false } as Response)
       .mockResolvedValueOnce({
@@ -82,7 +82,9 @@ describe('DataOps settings section', () => {
 
     render(<DataOpsSection t={t} />)
 
-    expect((await screen.findByRole('alert')).textContent).toBe('Unable to read DataOps connection status.')
+    expect((await screen.findByText('Status unavailable')).textContent).toBe('Status unavailable')
+    expect(screen.getByRole('alert').textContent).toBe('Unable to read DataOps connection status.')
+    expect(screen.queryByText('Not connected')).toBeNull()
     const retry = screen.getByRole('button', { name: 'Retry' })
     expect(retry).not.toBeNull()
 
