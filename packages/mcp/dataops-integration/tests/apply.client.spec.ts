@@ -41,7 +41,7 @@ describe('mcp-dataops client apply', () => {
     const injected = entries[0]!.inject as unknown as () => { t: (key: 'intro') => string }
     expect(injected().t('intro')).toContain('Harness')
     b.locale.setLocale('en')
-    expect(injected().t('intro')).toContain('Connect this Harness')
+    expect(injected().t('intro')).toContain('Connect Harness to DataOps')
 
     await fiber.dispose()
     expect(b.slots.entries('settings.section')).toHaveLength(0)
