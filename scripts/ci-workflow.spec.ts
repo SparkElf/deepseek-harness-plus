@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import * as yaml from 'js-yaml'
 import { describe, expect, it } from 'vitest'
@@ -294,27 +294,36 @@ describe('E2B e2e workflow', () => {
   })
 })
 
-describe('DeepSeek e2e workflow', () => {
-  it('prepares bubblewrap from the pinned payload without a package transaction', () => {
-    const workflow = loadWorkflow('.github/workflows/e2e.yml')
-    const e2e = workflowJob(workflow, 'e2e')
-    if (!Array.isArray(e2e.steps)) throw new TypeError('DeepSeek e2e workflow must define steps')
+describe('GitHub Actions credential policy', () => {
+  it('keeps DeepSeek API credentials out of every workflow', () => {
+    const workflowDirectory = resolve(root, '.github/workflows')
+    const workflowSources = readdirSync(workflowDirectory)
+      .filter(path => path.endsWith('.yml') || path.endsWith('.yaml'))
+      .map(path => readFileSync(resolve(workflowDirectory, path), 'utf8'))
 
-    const steps = e2e.steps.filter(isRecord)
-    expect(steps.find(step => step.name === 'Prepare bubblewrap (unrestrict userns)')).toMatchObject({
-      run: 'bash scripts/prepare-ci-bubblewrap.sh',
-    })
-    expect(JSON.stringify(steps)).not.toContain('apt-get')
+    expect(workflowSources.join('\n')).not.toContain('DEEPSEEK_API_KEY')
+  })
+})
+
+describe('Pull request evidence governance', () => {
+  it('keeps the repository template aligned with every required evidence heading', () => {
+    const template = readFileSync(resolve(root, '.github/pull_request_template.md'), 'utf8')
+    const workflow = readFileSync(resolve(root, '.github/workflows/plus-governance.yml'), 'utf8')
+    const templateHeadings = [...template.matchAll(/^## .+$/gm)]
+      .map(match => match[0])
+      .filter(heading => heading !== '## Related issue')
+
+    expect(templateHeadings).toHaveLength(8)
+    for (const heading of templateHeadings) expect(workflow).toContain(`'${heading}'`)
   })
 })
 
 describe('Pull request workflow fan-out', () => {
-  it('excludes Client package tests only from workflows that cannot consume them', () => {
+  it('excludes Client package tests only from release workflows that cannot consume them', () => {
     const clientPackageTests = 'packages/client/**/tests/**'
     for (const path of [
       '.github/workflows/release.yml',
       '.github/workflows/release-vendor.yml',
-      '.github/workflows/e2e.yml',
     ]) {
       expect(workflowEvent(loadWorkflow(path), 'pull_request')).toEqual({
         'paths-ignore': [clientPackageTests],
@@ -327,10 +336,6 @@ describe('Pull request workflow fan-out', () => {
     ]) {
       expect(workflowEvent(loadWorkflow(path), 'push')).toEqual({ branches: ['master'] })
     }
-    expect(workflowEvent(loadWorkflow('.github/workflows/e2e.yml'), 'push')).toEqual({
-      branches: ['main', 'master'],
-    })
-
     const desktopWorkflow = loadWorkflow('.github/workflows/plus-desktop-windows.yml')
     const desktopPullRequest = workflowEvent(desktopWorkflow, 'pull_request')
     expect(desktopPullRequest.paths).toEqual([

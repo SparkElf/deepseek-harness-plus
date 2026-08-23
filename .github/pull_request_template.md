@@ -1,5 +1,6 @@
 <!-- Use Fixes #NN to close an issue. Use Related to #NN to associate without closing. -->
 <!-- Do not include credentials, customer data, private workspaces, or hidden model prompts. -->
+<!-- REST and automation authors must load this file explicitly; GitHub does not apply it to API-created PRs. -->
 
 ## Product design
 

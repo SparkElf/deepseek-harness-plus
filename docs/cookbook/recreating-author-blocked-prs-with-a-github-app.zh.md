@@ -22,6 +22,12 @@
 
     GH_TOKEN="$GH_APP_TOKEN" gh api repos/<owner>/<repo> --jq '{full_name,default_branch}'
 
+## 准备Required PR正文
+
+GitHub不会把[仓库PR模板](../../.github/pull_request_template.md)自动应用到REST创建的PR。每次由App创建PR之前，都要把模板复制到临时正文文件，为每个占位项填写具体证据；不适用的项目要填写`不适用`并说明原因，然后把完整文件作为REST的`body`字段提交。
+
+创建替代PR时，捕获源PR正文前先确认它包含模板要求的所有标题。如果缺少，先补全源PR正文，再捕获并原样保留补全后的正文。不能用临时摘要代替模板创建App PR。
+
 ## 迁移一个PR
 
 在修改前保存源PR的标题、正文、headRefOid和baseRefName。
