@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-23-mcp-data-query-architecture.md
-2026-08-23-mcp-data-query-architecture.md: c35bf1dec8c25b36ebc536f4461954125c0b950d
-2026-08-23-mcp-data-query-architecture.zh.md: 3b246f83e36469c06154e3a055061c506b8e1de4
+2026-08-23-mcp-data-query-architecture.md: 2976c3a5d501f908c7a4ae1afabc4bf18d818e70
+2026-08-23-mcp-data-query-architecture.zh.md: e15db42032327384893e4be8f4094ebea8ef672b
