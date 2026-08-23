@@ -3,9 +3,12 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentError } from './error.ts'
 import type {
+  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
+  SaveFileAttachment,
   SaveImageAttachment,
+  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
@@ -15,11 +18,20 @@ export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
 export { admitEncodedImages } from './admission.ts'
 export type {
   AttachmentId as AttachmentIdType,
+  DocumentAttachmentLimits,
+  DocumentAttachmentRef,
+  DocumentMediaType,
+  EncodedDocumentAttachment,
   EncodedImageAttachment,
+  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
   ImageMediaType,
+  SaveDocumentAttachment,
+  SaveFileAttachment,
   SaveImageAttachment,
+  StoredDocumentAttachment,
+  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
@@ -29,7 +41,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Immutable binary attachment service. Implementations validate bytes before publishing a reference. */
+/** Immutable binary attachment service. Implementations validate format-specific bytes before publishing references. */
 export abstract class AttachmentStore extends Service {
   constructor(ctx: Context) {
     super(ctx, 'attachments')
@@ -37,6 +49,15 @@ export abstract class AttachmentStore extends Service {
 
   /** Deployment-resolved image policy used by authoritative and fast-path validation. */
   abstract readonly imageLimits: ImageAttachmentLimits
+
+  /**
+   * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
+   * This primitive is used by supported documents and parser artifacts; it deliberately performs no image decoding.
+   */
+  abstract saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef>
+
+  /** Read one generic file object and verify that its bytes still match the content-addressed reference. */
+  abstract readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment>
 
   /**
    * Validate one image without persisting it.
