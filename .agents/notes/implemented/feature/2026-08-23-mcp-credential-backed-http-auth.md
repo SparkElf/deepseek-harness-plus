@@ -14,9 +14,9 @@ The DataOps MCP integration needs bearer authentication while keeping OAuth acqu
 
 `@deepseek-ai/dsh-mcp-client` adds optional `bearerTokenRef` to the `streamable-http` config branch. The value is a DSH `CredentialRef`, not a token.
 
-When `bearerTokenRef` is configured, the MCP client requires `ctx.credentials` and gives the MCP SDK a bearer `authProvider`. Its `token()` method resolves the reference through `ctx.credentials` for every HTTP request. The MCP SDK owns construction of the `Authorization: Bearer <value>` header.
+When `bearerTokenRef` is configured, the MCP client requires `ctx.credentials` and supplies the MCP SDK transport with a custom `fetch`. That fetch resolves the reference through `ctx.credentials` immediately before every HTTP request, sets `Authorization: Bearer <value>` on the request, and delegates to the platform fetch implementation.
 
-This uses the existing credential service's per-operation resolution rule. A provider-managed token refresh reaches the next MCP request without a plugin restart or a new MCP connection lifecycle state.
+This uses the existing credential service's per-operation resolution rule and the current MCP SDK v1 Streamable HTTP fetch extension point. A provider-managed token refresh reaches the next MCP request without a plugin restart, an SDK upgrade, or a new MCP connection lifecycle state.
 
 Static HTTP headers remain supported. `headers.Authorization` and `bearerTokenRef` cannot be configured together because they would assign the same request header to two owners.
 
@@ -31,7 +31,7 @@ The generic package does not implement Authorization Code, PKCE, MFA, refresh-to
 
 ## Verification
 
-Focused tests cover config parsing, missing credential-service failure, conflicting `Authorization` ownership, and repeated `authProvider.token()` calls observing the current credential value. Package typecheck, build, lint, documentation synchronization, and the existing MCP client tests remain the owning repository checks.
+Focused tests cover config parsing, missing credential-service failure, conflicting `Authorization` ownership, and repeated transport fetch calls observing the current credential value while preserving other request headers. Package typecheck, build, lint, documentation synchronization, and the existing MCP client tests remain the owning repository checks.
 
 ## Relationship to the data-query design
 
