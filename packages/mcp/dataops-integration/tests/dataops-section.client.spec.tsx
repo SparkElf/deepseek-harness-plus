@@ -35,8 +35,8 @@ describe('DataOps settings section', () => {
 
     render(<DataOpsSection t={t} />)
 
+    expect(screen.getByText('Use a DataOps account for permission-controlled data access.')).not.toBeNull()
     expect((await screen.findByText('Connected')).textContent).toBe('Connected')
-    expect(screen.getByText('Harness can use DataOps with the permissions of this account.')).not.toBeNull()
     expect(screen.getByText('Alice Example')).not.toBeNull()
     expect(screen.getByText('alice@example.com')).not.toBeNull()
     expect(screen.getByText('alice')).not.toBeNull()
@@ -52,7 +52,7 @@ describe('DataOps settings section', () => {
     expect(fetchMock).toHaveBeenCalledWith('/integrations/dataops/status', { cache: 'no-store' })
   })
 
-  it('offers the user-facing connect action before any transport terminology', async () => {
+  it('offers the user-facing connect action without repeating a second explanatory status sentence', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -66,7 +66,6 @@ describe('DataOps settings section', () => {
     render(<DataOpsSection t={t} />)
 
     expect((await screen.findByText('Not connected')).textContent).toBe('Not connected')
-    expect(screen.getByText('Connect a DataOps account to use authenticated data access.')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Connect DataOps' })).not.toBeNull()
     expect(screen.queryByText('Alice Example')).toBeNull()
   })
