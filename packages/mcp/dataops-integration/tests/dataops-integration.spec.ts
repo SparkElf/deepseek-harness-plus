@@ -170,7 +170,8 @@ describe('mcp-dataops integration', () => {
       account: null,
     })
 
-    const connect = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/connect`, { redirect: 'manual' })
+    const dshOrigin = `http://127.0.0.1:${String(localPort)}`
+      const connect = await fetch(`${dshOrigin}/integrations/dataops/connect?origin=${encodeURIComponent(dshOrigin)}`, { redirect: 'manual' })
     expect(connect.status).toBe(303)
     const authorize = new URL(connect.headers.get('location')!)
     expect(authorize.origin).toBe(dataops.baseUrl)

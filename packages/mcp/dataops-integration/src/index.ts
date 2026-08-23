@@ -125,6 +125,30 @@ function popupBridge(response: ServerResponse, result: 'connected' | 'cancelled'
   response.end(`<!doctype html><html><head><meta charset="utf-8"><title>DataOps</title></head><body><script>if(window.opener){window.opener.postMessage(${payload},window.location.origin);window.close()}else{window.location.replace('/')}</script></body></html>`)
 }
 
+function callbackOriginOf(request: IncomingMessage, response: ServerResponse): string | undefined {
+  const requestUrl = new URL(request.url ?? CONNECT_PATH, 'http://dsh.local')
+  const rawOrigin = requestUrl.searchParams.get('origin') ?? ''
+  let candidate: URL
+  try {
+    candidate = new URL(rawOrigin)
+  } catch {
+    sendJson(response, 400, { error: 'The DSH browser origin is invalid.' })
+    return undefined
+  }
+  const requestHost = request.headers.host?.trim().toLowerCase() ?? ''
+  if (!['http:', 'https:'].includes(candidate.protocol)
+    || candidate.username !== ''
+    || candidate.password !== ''
+    || candidate.pathname !== '/'
+    || candidate.search !== ''
+    || candidate.hash !== ''
+    || candidate.host.toLowerCase() !== requestHost) {
+    sendJson(response, 400, { error: 'The DSH browser origin does not match this DSH host.' })
+    return undefined
+  }
+  return candidate.origin
+}
+
 function parseTokenResponse(value: unknown): TokenResponse {
   if (!value || typeof value !== 'object') throw new Error('DataOps token endpoint returned an invalid response')
   const record = value as Record<string, unknown>
@@ -267,10 +291,12 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     handler: (request, response) => {
       if (!requireLoopback(request, response) || !requireMethod(request, response, 'GET')) return
       prunePending()
+      const callbackOrigin = callbackOriginOf(request, response)
+      if (callbackOrigin === undefined) return
       const state = randomBytes(32).toString('base64url')
       const verifier = randomBytes(32).toString('base64url')
       const challenge = createHash('sha256').update(verifier, 'ascii').digest('base64url')
-      const redirectUri = `http://127.0.0.1:${String(ctx.webServer.port)}${CALLBACK_PATH}`
+      const redirectUri = `${callbackOrigin}${CALLBACK_PATH}`
       pending.set(state, { verifier, redirectUri, createdAt: Date.now() })
       const authorize = new URL('/api/auth/dsh/authorize', baseUrl)
       authorize.searchParams.set('client_id', CLIENT_ID)
