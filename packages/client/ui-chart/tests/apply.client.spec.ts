@@ -21,7 +21,7 @@ async function bench() {
   return { ctx, slots }
 }
 
-describe('tool-chart client apply', () => {
+describe('ui-chart client apply', () => {
   it('registers one localized keyed render_chart view and disposes it with the fiber', async () => {
     const b = await bench()
     expect(inject).toEqual(['slots', 'locale'])

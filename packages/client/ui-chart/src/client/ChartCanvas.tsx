@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as echarts from 'echarts'
 import type { ECharts, EChartsOption } from 'echarts'
-import type { JsonValue } from '@deepseek-ai/dsh-tools'
 import css from './ChartRow.module.css'
 
 function isDarkTheme(): boolean {
@@ -11,7 +10,7 @@ function isDarkTheme(): boolean {
 }
 
 /** Render one option and keep its canvas sized and themed with the Harness shell. */
-export function ChartCanvas({ option, ariaLabel }: { option: JsonValue; ariaLabel: string }) {
+export function ChartCanvas({ option, ariaLabel }: { option: Record<string, unknown>; ariaLabel: string }) {
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -23,7 +22,7 @@ export function ChartCanvas({ option, ariaLabel }: { option: JsonValue; ariaLabe
 
     const mount = () => {
       chart = echarts.init(root, dark ? 'dark' : undefined)
-      chart.setOption(option as unknown as EChartsOption, { notMerge: true, lazyUpdate: false })
+      chart.setOption(option as EChartsOption, { notMerge: true, lazyUpdate: false })
     }
 
     try {

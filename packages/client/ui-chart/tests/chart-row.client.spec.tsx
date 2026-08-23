@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
-import type { JsonValue } from '@deepseek-ai/dsh-tools'
 import { ChartRow, type ChartRowProps } from '../src/client/ChartRow.tsx'
 
 const mocks = vi.hoisted(() => ({
@@ -29,7 +28,7 @@ const copy = {
   'chart.aria': 'Interactive data chart',
 } as const
 
-function props(meta: JsonValue): ChartRowProps {
+function props(meta: Record<string, unknown>): ChartRowProps {
   return {
     callId: 'chart-1',
     toolName: 'render_chart',

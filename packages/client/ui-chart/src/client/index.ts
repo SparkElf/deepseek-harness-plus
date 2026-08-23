@@ -8,13 +8,14 @@ import { en, NS, zh } from './locales.ts'
 
 export { ChartCanvas } from './ChartCanvas.tsx'
 export { ChartRow, type ChartRowProps } from './ChartRow.tsx'
+export { chartMetaFromUnknown, type ChartPresentationMeta } from './meta.ts'
 export { en, NS, zh, type ChartKey } from './locales.ts'
 
 export const inject = ['slots', 'locale']
 
 /** Register localized copy and the keyed chart tool row. */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'tool-chart: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-chart: dictionaries')
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
     name: 'tool.call.toolview',
     key: 'render_chart',
