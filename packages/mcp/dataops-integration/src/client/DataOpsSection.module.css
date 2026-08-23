@@ -16,8 +16,7 @@
 .intro,
 .detail,
 .security,
-.confirmCopy,
-.statusDetail {
+.confirmCopy {
   margin: 0;
   color: var(--dsw-alias-label-tertiary);
   font-size: 14px;
@@ -44,31 +43,15 @@
 }
 
 .statusRow {
-  align-items: flex-start;
-  gap: 9px;
+  gap: 8px;
   min-height: 24px;
 }
 
-.statusRow > :first-child {
-  margin-top: 5px;
-}
-
-.statusCopy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 1px;
-}
-
 .statusLabel {
+  min-width: 0;
   font-size: 14px;
   line-height: 22px;
   font-weight: 500;
-}
-
-.statusDetail {
-  font-size: 12px;
-  line-height: 18px;
 }
 
 .field {
