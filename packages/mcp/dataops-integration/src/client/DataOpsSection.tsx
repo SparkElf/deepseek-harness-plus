@@ -110,6 +110,8 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
       .finally(() => { setDisconnecting(false) })
   }
 
+  const connectedAccount = status?.mode === 'oidc' ? status.account : null
+
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{t('title')}</h2>
@@ -118,37 +120,30 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
       <div className={styles.card}>
         <div className={styles.statusRow}>
           <StateDot state={state.dot} />
-          <span className={styles.statusLabel}>{state.label}</span>
+          <div className={styles.statusCopy}>
+            <span className={styles.statusLabel}>{state.label}</span>
+            {!loading && status?.mode === 'oidc' && (
+              <span className={styles.statusDetail}>
+                {status.authorizationAccepted === true ? t('connectedDetail') : t('notConnectedDetail')}
+              </span>
+            )}
+          </div>
         </div>
 
-        {status !== undefined && (
-          <>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>{t('server')}</span>
-              <span className={styles.fieldValue} title={status.baseUrl}>{status.baseUrl}</span>
-            </div>
-            <div className={styles.field}>
-              <span className={styles.fieldLabel}>{t('mode')}</span>
-              <span className={styles.fieldValue}>
-                {status.mode === 'anonymous' ? t('anonymousMode') : t('oidcMode')}
-              </span>
-            </div>
-          </>
-        )}
-
-        {status?.mode === 'anonymous' && <p className={styles.detail}>{t('anonymousDetail')}</p>}
-
-        {status?.mode === 'oidc' && status.account !== null && (
+        {connectedAccount !== null && connectedAccount !== undefined && (
           <div className={styles.accountRow}>
             <span className={styles.avatar} aria-hidden="true">
-              {(status.account.displayName || status.account.username).slice(0, 1).toUpperCase()}
+              {(connectedAccount.displayName || connectedAccount.username).slice(0, 1).toUpperCase()}
             </span>
             <span className={styles.accountCopy}>
-              <strong>{status.account.displayName || status.account.username}</strong>
-              <span>{status.account.username} · {status.account.email}</span>
+              <strong>{connectedAccount.displayName || connectedAccount.username}</strong>
+              <span>{connectedAccount.email}</span>
+              <span className={styles.accountUsername}>{connectedAccount.username}</span>
             </span>
           </div>
         )}
+
+        {status?.mode === 'anonymous' && <p className={styles.detail}>{t('anonymousDetail')}</p>}
 
         {status?.mode === 'oidc' && status.credentialWritable === false && (
           <p className={styles.detail}>{t('externallyManaged')}</p>
@@ -190,6 +185,25 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
         )}
 
         {loading && failure === undefined && status === undefined && <p className={styles.detail}>{t('loading')}</p>}
+
+        {status !== undefined && (
+          <details className={styles.advanced}>
+            <summary>{t('advanced')}</summary>
+            <div className={styles.advancedBody}>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>{t('server')}</span>
+                <span className={styles.fieldValue} title={status.baseUrl}>{status.baseUrl}</span>
+              </div>
+              <div className={styles.field}>
+                <span className={styles.fieldLabel}>{t('mode')}</span>
+                <span className={styles.fieldValue}>
+                  {status.mode === 'anonymous' ? t('anonymousMode') : t('oidcMode')}
+                </span>
+              </div>
+            </div>
+          </details>
+        )}
+
         <p className={styles.security}>{t('security')}</p>
       </div>
     </section>
