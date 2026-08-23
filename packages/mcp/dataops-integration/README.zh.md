@@ -25,9 +25,9 @@
 
 ### 浏览器授权模式
 
-同时配置两个 credential reference 后，插件启用 OAuth 2.0 Authorization Code + PKCE，并使用 OIDC identity。这个可选包的浏览器半边会在 DSH 现有 Settings 中增加一个 **DataOps** 页面，用户从那里点击**连接 DataOps**。
+同时配置两个 credential reference 后，插件启用 OAuth 2.0 Authorization Code + PKCE，并使用 OIDC identity。这个可选包的浏览器半边会在 DSH 现有 Settings 中增加一个 **DataOps** 页面。页面把连接状态和当前授权 DataOps 账号作为主要信息；服务地址与连接模式收进**高级连接信息**，不要求普通用户先理解 transport 术语。用户从这里点击**连接 DataOps**。
 
-DSH 会以 popup 打开 DataOps，并请求 `openid dataops.mcp` 与 `prompt=select_account`。DataOps 读取自己的浏览器登录会话，明确展示即将授权 DSH 的账号，并要求用户显式选择。登录、账号切换和 MFA 都只在 DataOps 内完成。DSH 只接收 authorization code，由后端与 DataOps 做 server-to-server exchange，再通过 DataOps `userinfo` 确认 access token 对应身份，把委托 access token 与 refresh token 分别写入 credential reference，并使用 access-token `bearerTokenRef` 挂载通用 MCP client。OIDC token response 中的 ID token 不会作为 MCP bearer token 使用。
+DSH 会以 popup 打开 DataOps，并请求 `openid dataops.mcp` 与 `prompt=select_account`。DataOps 使用自己的 Vue/万相设计系统呈现授权体验，只读取自己的浏览器登录会话，并要求用户显式选择账号。即使只有一个可用账号也不会默认勾选，用户选择前授权按钮保持禁用。点击**使用其他账号**会进入正常 DataOps 登录/MFA 体验；完成登录返回授权 popup 后，可用账号列表会自动刷新。DSH 只接收 authorization code，由后端与 DataOps 做 server-to-server exchange，再通过 DataOps `userinfo` 确认 access token 对应身份，把委托 access token 与 refresh token 分别写入 credential reference，并使用 access-token `bearerTokenRef` 挂载通用 MCP client。OIDC token response 中的 ID token 不会作为 MCP bearer token 使用。
 
 Settings 页面会展示当前授权账号，可以通过同一个 DataOps 账号选择页切换账号，也可以删除由 DSH 可写 credential provider 管理的两项委托凭据，而不会退出 DataOps 网页登录。只有当两个 credential reference 都可写时，Settings 才允许发起新授权或断开。
 
@@ -45,7 +45,7 @@ credential mutation 与 integration management routes 仍只接受 loopback ingr
 
 ## 安全
 
-DataOps 浏览器 cookie、密码和 MFA 密钥永远不会离开 DataOps origin。委托 access token、refresh token 与 ID token 都不会进入浏览器授权 URL、浏览器 JavaScript、工具参数、模型上下文或插件配置。callback 页面只是一个瞬时 popup bridge，用于通知 DSH Settings 页面后自动关闭。
+DataOps 浏览器 cookie、密码和 MFA 密钥永远不会离开 DataOps origin。委托 access token、refresh token 与 ID token 都不会进入浏览器授权 URL、浏览器 JavaScript、工具参数、模型上下文或插件配置。DataOps 授权 UI 的 URL 只携带短生命周期、已签名的 authorization request；callback 页面只是一个瞬时 popup bridge，用于通知 DSH Settings 页面后自动关闭。
 
 认证状态完全位于 agent loop 之外。这个包不实现 DataOps SQL 或 catalog 工具，只负责组合现有通用 MCP client。
 
