@@ -8,7 +8,7 @@ import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
 import { CallId } from '@deepseek-ai/dsh-llm'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
-import * as ToolChart from '@deepseek-ai/dsh-tool-chart'
+import * as ToolChart from '../src/index.ts'
 
 let root: string | undefined
 let context: Context | undefined
