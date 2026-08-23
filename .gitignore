@@ -41,3 +41,6 @@ apps/plus-desktop/src/release-source.mjs
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# Local GitHub App private keys
+*.private-key.pem
