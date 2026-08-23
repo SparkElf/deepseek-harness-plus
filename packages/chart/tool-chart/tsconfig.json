@@ -1,0 +1,20 @@
+{
+  "extends": "../../client/tsconfig.base.client.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": ".",
+    "outDir": "./lib/types",
+    "tsBuildInfoFile": "./lib/types/.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "references": [
+    { "path": "../../../vendor/cordis" },
+    { "path": "../../core/tools" },
+    { "path": "../../runtime-diagnostics/invariants" },
+    { "path": "../../client/runtime" },
+    { "path": "../../client/locale" },
+    { "path": "../../client/ui-slots" },
+    { "path": "../../client/ui-primitives" },
+    { "path": "../../client/ui-tool" }
+  ]
+}
