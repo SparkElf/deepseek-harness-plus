@@ -24,20 +24,24 @@ function buildChildEnv(extra: Record<string, string>): Record<string, string> {
   return { ...scrubbedParentEnv(), ...extra }
 }
 
-function bearerAuthProvider(ctx: Context, rawRef: string) {
+/**
+ * Wrap the transport's HTTP fetch so every request resolves the current bearer
+ * value from the credential service immediately before network I/O.
+ */
+function credentialFetch(ctx: Context, rawRef: string): typeof globalThis.fetch {
   const ref = credentialRef(rawRef)
-  return {
-    token: async (): Promise<string> => {
-      const provider = ctx.get('credentials')
-      if (provider === undefined) {
-        throw new Error(`mcp-client: credential service unavailable while resolving "${ref}"`)
-      }
-      const resolved = await provider.resolve(ref)
-      if (resolved === undefined) {
-        throw new Error(`mcp-client: credential "${ref}" is not configured`)
-      }
-      return resolved.value
-    },
+  return async (input, init) => {
+    const provider = ctx.get('credentials')
+    if (provider === undefined) {
+      throw new Error(`mcp-client: credential service unavailable while resolving "${ref}"`)
+    }
+    const resolved = await provider.resolve(ref)
+    if (resolved === undefined) {
+      throw new Error(`mcp-client: credential "${ref}" is not configured`)
+    }
+    const headers = new Headers(init?.headers)
+    headers.set('Authorization', `Bearer ${resolved.value}`)
+    return globalThis.fetch(input, { ...init, headers })
   }
 }
 
@@ -61,9 +65,9 @@ export function createTransport(config: Config, ctx?: Context): Transport {
       if (config.bearerTokenRef !== undefined && ctx === undefined) {
         throw new Error('mcp-client: credential-backed Streamable HTTP transport requires a Cordis context')
       }
-      const authProvider = config.bearerTokenRef === undefined
+      const authenticatedFetch = config.bearerTokenRef === undefined
         ? undefined
-        : bearerAuthProvider(ctx!, config.bearerTokenRef)
+        : credentialFetch(ctx!, config.bearerTokenRef)
       // The MCP SDK's StreamableHTTPClientTransport has optional callback
       // properties typed without `| undefined` (exactOptionalPropertyTypes
       // mismatch with the Transport interface); the SDK constructed the
@@ -72,7 +76,7 @@ export function createTransport(config: Config, ctx?: Context): Transport {
         new URL(config.url),
         {
           requestInit: { headers: config.headers },
-          ...(authProvider === undefined ? {} : { authProvider }),
+          ...(authenticatedFetch === undefined ? {} : { fetch: authenticatedFetch }),
         },
       ) as Transport
     }
