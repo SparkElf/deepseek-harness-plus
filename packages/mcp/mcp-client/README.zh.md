@@ -19,17 +19,20 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
     env:
       GITHUB_TOKEN: !!js process.env.GITHUB_TOKEN
 
-- id: mcp-web
+- id: mcp-dataops
   name: '@deepseek-ai/dsh-mcp-client'
   config:
-    serverName: web
+    serverName: dataops
     transport: streamable-http
-    url: http://localhost:3000/mcp
+    url: https://dataops.example/mcp
+    bearerTokenRef: DATAOPS_MCP_TOKEN
     headers:
-      Authorization: !!js '`Bearer ${process.env.MCP_TOKEN}`'
+      X-DataOps-Client: dsh
 ```
 
-模型会看到 `mcp__github__create_issue`、`mcp__web__search` 等工具，这与 Claude Code 和 Codex 使用的服务器限定形状相同。HMR（热模块替换）支持热替换：编辑配置项会触发断开 + 重新连接，无需重启进程；`serverName` 不变时会生成完全相同的工具名称。
+模型会看到 `mcp__github__create_issue`、`mcp__dataops__search_resources` 等工具，这与 Claude Code 和 Codex 使用的服务器限定形状相同。HMR（热模块替换）支持热替换：编辑配置项会触发断开 + 重新连接，无需重启进程；`serverName` 不变时会生成完全相同的工具名称。
+
+`bearerTokenRef` 是 DSH credential 引用，不是 token 值。Streamable HTTP transport 会在每次 HTTP 请求前向 `ctx.credentials` 读取当前值，并由 MCP SDK 附加 `Authorization: Bearer ...` 请求头。因此 credential 轮换后，下一次请求即可使用新值，无需重启插件。对于明确自行管理字面量请求头的部署，仍可使用静态 `headers.Authorization`，但不能同时配置 `bearerTokenRef`。
 
 ## 配置
 
@@ -42,7 +45,8 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
 | `env` | stdio | 否 | 合并到已清理环境中的额外环境变量 |
 | `cwd` | stdio | 否 | 子进程工作目录 |
 | `url` | http | 是 | MCP 服务器 URL |
-| `headers` | http | 否 | 额外标头（例如认证 token） |
+| `headers` | http | 否 | 额外非 credential 请求头；未配置 `bearerTokenRef` 时也可使用字面量 `Authorization` |
+| `bearerTokenRef` | http | 否 | 每次请求前通过 `ctx.credentials` 解析并作为 bearer token 发送的 credential 引用 |
 | `toolCallTimeoutMs` | 两者 | 否 | 每次 `callTool` 调用的超时（默认 60000） |
 | `failOnStartupError` | 两者 | 否 | 初始连接或工具同步失败时拒绝插件激活（默认 `false`） |
 | `reconnect.enabled` | 两者 | 否 | 连接丢失后自动重新连接（默认 `true`） |
@@ -62,6 +66,7 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
 ## 行为
 
 - 连接时：插件激活会等待 `listTools()`，并在组合开始首个轮次前通过 `ctx.tools.register()` 以公开名称注册每个工具。初始连接、发现或注册失败始终会记录日志；`failOnStartupError` 为 true 时拒绝激活，否则插件仍会激活但不注册工具。
+- 对 credential-backed Streamable HTTP，插件加载时会把 `bearerTokenRef` 校验为 credential 引用，并要求已挂载 credentials 服务。MCP SDK 的 bearer auth provider 在每次 HTTP 请求前解析该引用；secret 不会被复制进 Cordis 配置或模型可见的工具参数。
 - 监听 `notifications/tools/list_changed` → 重新同步；获取阶段失败时保留上一世代的注册，注册冲突则会回滚本次尝试的世代，并且不保留该服务器的任何工具。
 - 工具执行：`client.callTool({ name: rawName, arguments }, { signal })`，支持超时 + 中止；公开名称绝不会发给服务器。
 - 规范成功值是 `{ content: JsonValue[], structuredContent? }`；完整的 JSON MCP 块会保留给编程调用方。受支持且已声明的 `outputSchema` 会验证 `structuredContent`；不受支持的 schema 词汇会回退为不受约束的 `JsonValue`。
@@ -75,6 +80,7 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
 | 服务 | 用途 |
 |---|---|
 | `ctx.tools` | 注册／注销 MCP 工具 |
+| `ctx.credentials` | 为 credential-backed Streamable HTTP 请求解析 `bearerTokenRef` |
 | `ctx.attachments` | 可选；在模型投影前校验并持久保存图片结果批次 |
 | `ctx.llm` | 可选；证明确切调用路由明确支持图片输入 |
 
@@ -84,7 +90,7 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
 
 #### 模型看到的内容
 
-初始发现成功后，每个已声明的 MCP 工具都会显示为名为 `mcp__<serverName>__<rawName>`（或其确定性规范化形式）的原生工具，并携带服务器提供的描述和输入 schema。成功的重新同步——包括自动重连后的同步——会替换整个世代；对插件执行 dispose（资源释放）或重连预算耗尽会移除该世代。
+初始发现成功后，每个已声明的 MCP 工具都会显示为名为 `mcp__<serverName>__<rawName>`（或其确定性规范化形式）的原生工具，并携带服务器提供的描述和输入 schema。成功的重新同步——包括自动重连后的同步——会替换整个世代；对插件执行 dispose（资源释放）或重连预算耗尽会移除该世代。Credential 引用和解析后的 bearer 值都不是模型可见字段。
 
 #### Token 影响
 
@@ -111,7 +117,8 @@ MCP 客户端桥接插件：连接外部 [Model Context Protocol](https://modelc
 ## 已知限制与暂缓事项
 
 - **只桥接 MCP 的工具能力**：资源和提示词没有 harness 消费接口，暂缓实现。
+- **完整交互式 OAuth 仍由外部集成负责**：MCP client 只消费 credential 引用并提供其当前 bearer 值；获取、刷新、撤销和保存用户 OAuth credential 属于拥有该 Provider 专用流程的 integration plugin。
 - **启动超时继承自 MCP SDK**：DSH 尚未公开连接／发现超时。每次 initialize 请求或分页 `tools/list` 请求都使用 SDK 默认的 60 秒，因此在初始同步完成期间，无响应的 server 或 cursor chain 可能同时延迟激活与 teardown。
-- **重连在传输关闭时触发**：崩溃的 stdio 子进程会触发重连；Streamable HTTP 失败通过每次请求以及 SDK 传输自身的 SSE（Server-Sent Events）流恢复机制暴露，因此不可达的 HTTP 服务器会按调用重试，而非由 supervisor 重新 spawn。
+- **重连在传输关闭时触发**：崩溃的 stdio 子进程会触发重连；Streamable HTTP 失败通过每次请求以及 SDK transport 自身的 SSE（Server-Sent Events）流恢复机制暴露，因此不可达的 HTTP 服务器会按调用重试，而非由 supervisor 重新 spawn。
 - **图片是唯一的持久丰富结果桥接**：PNG、JPEG、WebP 和 GIF 可以在确切能力得到证明后进入 Native 上下文。音频和嵌入资源载荷仍只存在于执行局部，并配有明确诊断；资源链接只以文本保留名称和 URI。
 - **不强制执行不受支持的 MCP 输出 schema**：已声明 schema 使用 harness 子集之外的词汇时，`structuredContent` 会回退到 `JsonValue`。
