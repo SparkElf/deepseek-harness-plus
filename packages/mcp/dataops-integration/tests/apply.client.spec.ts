@@ -35,7 +35,7 @@ describe('mcp-dataops client apply', () => {
     const entries = b.slots.entries('settings.section')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.component).toBe(DataOpsSection)
-    expect(entries[0]!.options).toMatchObject({ id: 'dataops', order: 30 })
+    expect(entries[0]!.options).toMatchObject({ id: 'dataops', order: 25 })
     expect(resolveSlotLabel(entries[0]!.options.label)).toBe('DataOps')
 
     const injected = entries[0]!.inject as unknown as () => { t: (key: 'intro') => string }
