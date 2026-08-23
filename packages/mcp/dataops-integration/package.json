@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-mcp-dataops",
-  "description": "Optional DataOps MCP integration with browser OAuth authorization",
+  "description": "Optional DataOps MCP integration with delegated OIDC browser authorization",
   "version": "0.1.0-rc.8",
   "publishConfig": {
     "access": "public"
