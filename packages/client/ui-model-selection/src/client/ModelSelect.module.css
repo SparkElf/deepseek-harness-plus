@@ -105,13 +105,14 @@
 
 /* The collapsed-sidebar host state identifies mobile even when its CSS viewport is wide. */
 :global([data-dsh-frame][data-sidebar-collapsed]) .root {
-  position: relative;
+  position: static;
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .trigger {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 :global([data-dsh-frame][data-sidebar-collapsed]) .menu {
