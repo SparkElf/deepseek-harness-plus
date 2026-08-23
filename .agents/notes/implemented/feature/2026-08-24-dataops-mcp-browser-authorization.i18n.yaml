@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-24-dataops-mcp-browser-authorization.md
-2026-08-24-dataops-mcp-browser-authorization.md: e67d0305eceab9c564e7121d104b9d9f0b7b14f7
-2026-08-24-dataops-mcp-browser-authorization.zh.md: a744e3f8aca663495461fb04f4514abb1abc4979
+2026-08-24-dataops-mcp-browser-authorization.md: a4cd0af727795e3fc2d2a91d4a203357a05e2ec0
+2026-08-24-dataops-mcp-browser-authorization.zh.md: 353c798adb0a8a174f8726c4332ecbb45c68208d
