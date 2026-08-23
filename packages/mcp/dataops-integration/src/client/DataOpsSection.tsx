@@ -18,7 +18,7 @@ interface Account {
 interface Status {
   baseUrl: string
   serverName: string
-  mode: 'anonymous' | 'oauth'
+  mode: 'anonymous' | 'oidc'
   credentialConfigured: boolean | null
   credentialWritable: boolean | null
   authorizationAccepted: boolean | null
@@ -89,8 +89,8 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
   const openAuthorization = (): void => {
     setFailure(undefined)
     const connectUrl = new URL(CONNECT_PATH, window.location.origin)
-      connectUrl.searchParams.set('origin', window.location.origin)
-      const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
+    connectUrl.searchParams.set('origin', window.location.origin)
+    const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
     if (popup === null) setFailure(t('popupBlocked'))
   }
 
@@ -130,7 +130,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
             <div className={styles.field}>
               <span className={styles.fieldLabel}>{t('mode')}</span>
               <span className={styles.fieldValue}>
-                {status.mode === 'anonymous' ? t('anonymousMode') : t('oauthMode')}
+                {status.mode === 'anonymous' ? t('anonymousMode') : t('oidcMode')}
               </span>
             </div>
           </>
@@ -138,7 +138,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
 
         {status?.mode === 'anonymous' && <p className={styles.detail}>{t('anonymousDetail')}</p>}
 
-        {status?.mode === 'oauth' && status.account !== null && (
+        {status?.mode === 'oidc' && status.account !== null && (
           <div className={styles.accountRow}>
             <span className={styles.avatar} aria-hidden="true">
               {(status.account.displayName || status.account.username).slice(0, 1).toUpperCase()}
@@ -150,13 +150,13 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
           </div>
         )}
 
-        {status?.mode === 'oauth' && status.credentialWritable === false && (
+        {status?.mode === 'oidc' && status.credentialWritable === false && (
           <p className={styles.detail}>{t('externallyManaged')}</p>
         )}
 
         {failure !== undefined && <p className={styles.error} role="alert">{failure}</p>}
 
-        {status?.mode === 'oauth' && !confirmingDisconnect && (
+        {status?.mode === 'oidc' && !confirmingDisconnect && (
           <div className={styles.actions}>
             {status.credentialWritable !== false && (
               <Button variant="primary" onClick={openAuthorization}>
