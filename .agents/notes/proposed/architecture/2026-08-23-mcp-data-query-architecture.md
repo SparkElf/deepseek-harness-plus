@@ -10,11 +10,11 @@ DataOps currently exposes AI data capabilities through contracts coupled to Data
 
 The designs solve different problems. Design A gives the model physical query knowledge and lets it write SQL. Design B gives the model a logical query interface and lets DataOps select physical sources and compile SQL. A resource description is not a semantic compiler, and a logical semantic model is insufficient context for a model that must write physical SQL.
 
-The existing DataOps MCP server is a reusable adapter foundation, but its current tools forward large JSON payloads directly and bind identity through fixed process environment variables. The migration therefore also needs bounded results, reusable result references, session-scoped identity, and explicit ownership of batch model work.
+The existing DataOps MCP server is a reusable adapter foundation, but its current tools forward large JSON payloads directly and bind identity through fixed process environment variables. The migration therefore also needs bounded results, reusable result references, a single-principal DSH runtime contract, credential-backed HTTP MCP authentication, and explicit ownership of batch model work.
 
 ## Proposal
 
-Use DataOps as the MCP server and reuse `@deepseek-ai/dsh-mcp-client` in DSH. Do not add a DataOps-specific DSH plugin, execute SQL in DSH, or use Bash as the formal query interface. DataOps owns authentication, authorization, resource discovery, API connectors, query execution, result materialization, and audit.
+Use DataOps as the Streamable HTTP MCP server and reuse `@deepseek-ai/dsh-mcp-client` in DSH. Add a DataOps-owned external Auth/Integration Plugin for login, credential lifecycle, and MCP composition, but do not add a DataOps query-tool implementation to DSH, execute SQL in DSH, or use Bash as the formal query interface. DataOps owns user authentication, authorization, resource discovery, API connectors, query execution, result materialization, and audit.
 
 Expose two selectable query facets. Design A is the migration MVP for broad ad hoc coverage. Design B is a later governed capability for business models whose metric and physical-routing correctness justifies a compiler. Both reuse the same result, export, and chart contracts.
 
@@ -22,20 +22,33 @@ Expose two selectable query facets. Design A is the migration MVP for broad ad h
 
 | Responsibility | Owner | Contract |
 | --- | --- | --- |
-| MCP bridge | DSH MCP client and DataOps MCP server | DSH discovers and calls tools; DataOps serves them |
+| User authentication and DSH instance distribution | DataOps | DataOps authenticates users, provisions isolated DSH runtimes, and binds one principal to each runtime |
+| DataOps integration in DSH | External DataOps Auth/Integration Plugin | Starts MFA/OAuth, stores credential references, refreshes/revokes tokens, and composes the generic MCP client |
+| Generic MCP authentication | DSH credential service and MCP client | Resolves a credential reference, attaches current transport credentials, and reconnects after credential changes |
+| MCP tools | DSH MCP client and DataOps MCP server | DSH discovers and calls tools; DataOps authenticates each HTTP request and serves the tools |
 | Resource catalog | DataOps | Search, complete listing, detail, visibility, descriptions, usage manuals, columns, and lineage |
 | Design A query | Model plus DataOps query executor | Model selects physical resources and writes SQL; DataOps performs generic checks and executes |
 | Design B query | DataOps semantic query service | Model submits logical members; DataOps selects sources and compiles SQL |
 | Result snapshots | DataOps | Immutable authorized result references, bounded pages, export, expiry, and audit |
 | Batch AI analysis | DSH generic workflow/agent capability | DSH owns model calls, budgets, retry, checkpoints, and aggregation |
 
-The first deployment starts one DataOps MCP stdio process per authenticated DSH session or isolated workspace. The process receives its user, conversation, and backend credential through its private launch environment and is not shared by unrelated users. A later Streamable HTTP server may use request-scoped authentication. A shared static DataOps identity is not a valid multi-user deployment.
+### Authentication and deployment
 
-The existing [DataOps MCP server](https://github.com/SparkElf/dataops/blob/master/infra/docker-workspace/runtime-daemon/src/dataops-mcp-server.mjs) is the adapter starting point. Its handlers delegate to existing DataOps services instead of duplicating SQL, permission, connector, or audit logic.
+DataOps is the multi-user control plane; each DSH runtime is single-principal. DataOps may use Docker to provision and isolate runtimes, but container placement is not authentication. The first successful authentication binds an isolated runtime to one DataOps principal, and every DSH conversation in that runtime shares that principal by design. Reauthentication must resolve to the same principal; a different principal requires a different runtime.
+
+The external DataOps Auth/Integration Plugin owns two entry paths. A direct DSH visit starts DataOps Authorization Code with PKCE and DataOps MFA. A launch from DataOps carries only a short-lived, single-use code bound to the user, OAuth client, target DSH instance, audience, state, and expiry; the plugin exchanges it server-side and removes it from the URL. Access and refresh tokens never appear in URL parameters, tool arguments, model context, browser local storage, or session logs.
+
+The plugin stores access and refresh credentials through the DSH credential service. The generic MCP client needs a credential-reference/auth-provider option instead of literal static headers: it resolves the current bearer token, reconnects when the credential changes, and never logs the token. This is a generic authenticated-MCP enhancement, not DataOps query logic.
+
+Every Streamable HTTP MCP request carries `Authorization: Bearer <access-token>`. DataOps validates issuer, audience, expiry, authorized client, tenant, user, and tool scopes, then projects an `AuthorizationPrincipal` into the tool handler. Tool schemas contain only business arguments. DataOps binds each MCP session identifier to the authenticated principal and rejects later requests whose principal differs; a refreshed token may continue only when its principal is unchanged. MCP session identifiers and result references are not credentials.
+
+The DSH conversation identifier is correlation metadata, not user authentication and not an access-token claim. The new reusable MCP service removes the current requirement for a process-global DataOps `conversationId`; permission and results bind to the authenticated principal. A later generic per-call MCP metadata facility may add DSH session correlation for audit without changing authorization.
+
+The existing [DataOps MCP server](https://github.com/SparkElf/dataops/blob/main/infra/docker-workspace/runtime-daemon/src/dataops-mcp-server.mjs) is the implementation starting point. Its handler delegation is reused while the production service replaces the fixed-identity stdio transport with Streamable HTTP. If the MCP server and DataOps backend are separate services, workload identity authenticates the MCP service and the delegated user principal authorizes the operation.
 
 ## MCP contracts
 
-MCP arguments and `structuredContent` use JSON. Model-facing text may be compact, but it must not duplicate the complete structured payload. Cross-boundary identifiers are opaque and principal-scoped. Models never receive database credentials, connection strings, or unscoped internal numeric IDs.
+MCP arguments and `structuredContent` use JSON. Model-facing text may be compact, but it must not duplicate the complete structured payload. Cross-boundary identifiers are opaque and principal-scoped. Access tokens travel only in the HTTP `Authorization` header; tool arguments never contain access tokens, refresh tokens, user IDs, tenant IDs, or verification fields. Models never receive database credentials, connection strings, or unscoped internal numeric IDs.
 
 ### Catalog tools
 
@@ -75,7 +88,7 @@ Design B is a governed semantic compiler. Model discovery uses `list_semantic_mo
 
 `execute_semantic_query` accepts a logical request such as `{modelRef:"semantic-model:trajectory",dimensions:["month"],metrics:["total_distance"],filters:[],orderBy:[{field:"month",direction:"asc"}],limit:1000}`.
 
-The DataOps compiler validates members, loads the active semantic snapshot, finds eligible physical sources, checks member coverage and source grain, expands metric definitions, resolves approved relationships, rejects unsafe fanout, renders target-dialect SQL, applies authorization predicates, and invokes the existing query executor. It returns a result reference and compact provenance with model, selected source, dimensions, and metrics.
+The DataOps compiler validates members, loads the active semantic snapshot, finds eligible physical sources, checks member coverage and source grain, expands metric definitions, resolves approved relationships, rejects unsafe fanout, renders target-dialect SQL, applies authorization predicates, and invokes the existing query executor. It returns a result reference and compact provenance containing `semanticSnapshotRef`, semantic version, compiler version, selected `resourceRef` values, dimensions, metrics, and a stable compiled-SQL hash. DataOps retains the authorized compiled SQL for audit; the model receives the hash and a redacted preview only when policy permits.
 
 The compiler selects a summary source when it covers every requested dimension, metric, and filter. It selects a detail source when a required member is absent from the summary. It never joins summary and detail merely because they share an identifier. Physical source grain, metric additivity, relationship cardinality, freshness, and security scope are compiler facts.
 
@@ -83,11 +96,13 @@ The compiler selects a summary source when it covers every requested dimension, 
 
 ### Shared result tools
 
-`execute_sql`, `execute_semantic_query`, and `call_data_api` return a bounded preview and immutable `resultRef`. The reference is reusable until its server-owned TTL expires; repeating the same reference and cursor reads the same snapshot without rerunning the query.
+`execute_sql`, `execute_semantic_query`, and `call_data_api` use one execution lifecycle. Work completed inside the interactive server budget returns `{status:"completed", resultRef, preview, provenance}`. Work that cannot complete before the MCP call timeout returns `{status:"accepted", executionRef}` before the transport deadline; it does not leave an untracked database query behind.
 
-`read_query_result` accepts `{resultRef, cursor?, columns?, limit?}` and returns a bounded page of rows or JSON items, returned count, total count when known, `hasMore`, and `nextCursor`. The DataOps result service applies a byte bound before MCP/model projection; row count is only a secondary bound.
+`get_query_execution` accepts an opaque `executionRef` and returns `queued`, `running`, `completed`, `failed`, or `cancelled`, plus `resultRef` only after completion. `cancel_query_execution` requests cancellation and DataOps propagates it to the owned SQL/API execution when cancellation is supported. MCP transport abort cancels work that has not been durably accepted; after an accepted response, explicit cancellation owns the lifecycle. DataOps persists execution state, expiry, failure details, and principal binding.
 
-`export_query_result` turns a result reference into a downloadable artifact. It is the full-data delivery path. `render_chart` consumes a result reference and validated chart specification and returns a chart artifact or a later generic chart specification. Neither operation reruns the original query.
+A completed immutable `resultRef` is reusable until its server-owned TTL expires; repeating the same reference and cursor reads the same snapshot without rerunning the query. `read_query_result` accepts `{resultRef, cursor?, columns?, limit?}` and returns a byte-bounded page of rows or JSON items, returned count, total count when known, `hasMore`, and an opaque `nextCursor`. The DataOps result service applies the byte bound before MCP/model projection; row count is only a secondary bound. Every read reauthorizes the current principal; knowing a result reference grants no access.
+
+`export_query_result` converts a result reference into `{artifactRef, fileName, mediaType, sizeBytes, downloadUrl, expiresAt}`. DataOps owns the short-lived authorized download URL; the current DSH MCP bridge may present it as a text/resource link and does not claim to ingest CSV or XLSX as a chat attachment. `render_chart` consumes a result reference and validated chart specification and returns an image artifact or a later generic chart specification. Neither operation reruns the original query.
 
 A future generic DSH `analyze_query_result` capability may read pages, call models in bounded batches, checkpoint stable row references, retry failed batches, and return an output result reference. DSH owns this because it owns model invocation and context budgets. It is deferred until a real full-result AI-analysis workflow requires it.
 
@@ -121,15 +136,17 @@ Do not switch DataOps to a filesystem source of truth to copy Wren's MDL layout.
 
 ## Implementation split
 
-DataOps adds or revises MCP handlers, maps them to existing catalog/query/API/result services, adds QueryGuide storage only for genuine cross-resource guidance, and implements Design B only in a later compiler project. DataOps does not import DSH packages.
+DataOps adds Authorization Code with PKCE, single-use launch-code exchange, MCP-audience tokens and scopes, per-request HTTP MCP authentication, the external DSH Auth/Integration Plugin, and Streamable HTTP handlers mapped onto its existing catalog, query, API, execution, and result services. It adds QueryGuide storage only for genuine cross-resource guidance and implements Design B only in a later compiler project. The DataOps backend and MCP server do not import DSH packages; the external integration plugin consumes DSH plugin APIs outside DSH core.
 
-DSH reuses its existing MCP client composition. A later approved generic batch-result capability belongs in DSH, but DSH contains no DataOps identifiers, SQL execution, source routing, permissions, or connector logic.
+DSH adds only a generic credential-backed MCP authentication capability: credential references resolve outside model-visible config, and credential changes reconnect the transport. DSH otherwise reuses the existing MCP client. A later approved generic batch-result capability belongs in DSH, but DSH contains no DataOps query identifiers, SQL execution, source routing, authorization policy, or connector logic.
 
 The [previous HTTP `dq/v1` proposal](../../rejected/architecture/2026-08-19-generic-data-query-protocol.md) and hypothetical `dsh-plugin-dataquery` are superseded. MCP is the chosen transport.
 
 ## Alternatives considered
 
-**HTTP plus a DSH data-query plugin.** Rejected because DSH already bridges MCP tools; another plugin would duplicate transport, schema projection, cancellation, and result handling.
+**HTTP plus a DSH data-query plugin.** Rejected because DSH already bridges MCP tools; another query plugin would duplicate transport, schema projection, cancellation, and result handling. This does not reject the separate DataOps Auth/Integration Plugin, which owns OAuth and credential lifecycle without implementing tools.
+
+**Static tokens in MCP config, stdio environment, or launch URLs.** Rejected because tokens expire and those locations leak or cannot refresh safely. The accepted path is a credential reference for MCP HTTP requests and a one-time launch code for browser entry.
 
 **Bash calling HTTP endpoints.** Rejected as the formal contract because stdout truncation, string parsing, credential exposure, shell permission, and weak audit identity remain.
 
@@ -144,13 +161,14 @@ The [previous HTTP `dq/v1` proposal](../../rejected/architecture/2026-08-19-gene
 ## Acceptance criteria
 
 - The note keeps Design A model-generated physical SQL and Design B DataOps-compiled logical queries distinct.
-- DataOps owns the MCP server and DSH reuses its existing MCP client; no DataOps-specific DSH plugin is required.
+- DataOps owns the HTTP MCP server and external Auth/Integration Plugin; DSH adds only generic credential-backed MCP authentication and no DataOps query-tool implementation.
 - Catalog contracts distinguish fuzzy candidates, complete listing, and selected detail; a fuzzy miss is never an existence result.
 - QueryGuide is sparse cross-resource knowledge layered over existing resource facts and does not duplicate complete schemas.
 - Design A explicitly excludes automatic routing, SQL rewrite, and search-history proof.
-- Design B defines logical input, compiler ownership, source selection, grain/metric rules, SQL rendering, and provenance.
-- Shared results define reusable immutable references, bounded pages, export, charts, and future batch-analysis ownership.
-- Authentication, session isolation, permissions, audit, result expiry, and the prohibition on shared static identity are explicit.
+- Design B defines logical input, compiler ownership, source selection, grain/metric rules, SQL rendering, and versioned provenance.
+- Query execution defines completed and accepted outcomes, status, cancellation, transport-abort ownership, and the transition from `executionRef` to immutable `resultRef`.
+- Shared results define reusable immutable references, bounded pages, explicit DataOps download artifacts, charts, and future batch-analysis ownership.
+- Authentication defines one principal per DSH runtime, OAuth/PKCE and one-time launch entry, credential refresh, per-request bearer transport, server-derived principal context, and no identity fields in tool arguments.
 - The old HTTP proposal is rejected and points to this MCP proposal.
 
 ## Risks
@@ -159,9 +177,11 @@ The [previous HTTP `dq/v1` proposal](../../rejected/architecture/2026-08-19-gene
 - QueryGuide can become stale if it repeats Resource facts; it must reference resources and state only cross-resource exceptions.
 - Large inventories require pagination and artifact export before complete rows enter model context.
 - Result references require principal binding, expiry, authorization on every read, and creation/access audit.
-- The existing stdio identity is unsafe for a shared multi-user process; deployment must isolate sessions or authenticate each HTTP request.
+- A DSH runtime must never serve simultaneous DataOps principals. Docker isolation alone is not authentication; the Auth/Integration Plugin and DataOps token service establish the principal.
+- Static MCP headers cannot refresh credentials. The generic credential-reference integration and reconnect behavior must ship before production HTTP MCP authentication.
+- Accepted executions require durable DataOps state and explicit cancellation; otherwise an MCP timeout can leave an unowned database query.
 - Design B is substantial compiler work and must not be advertised as available until its compiler and conformance coverage ship.
 
 ## Verification
 
-This PR is design-only. Run the repository bilingual-pairing, Markdown-link, Agent Note format, and whitespace checks. Implementation PRs must add a real MCP composition test, DataOps MCP contract tests, result snapshot/page/expiry coverage, query-template coverage, and a keyless model-visible snapshot. Design B must cover summary selection, detail fallback, additive and non-additive metrics, unsafe fanout rejection, dialect rendering, and permission predicates before availability.
+This PR is design-only. Run the repository bilingual-pairing, Markdown-link, Agent Note format, and whitespace checks. Implementation PRs must cover direct MFA login, single-use launch-code exchange, token refresh and MCP reconnect, principal-mismatch rejection, per-request scope enforcement, the absence of secrets and identity fields from model-visible calls, completed/accepted/cancelled execution paths, result snapshot/page/expiry authorization, export-link fields, query templates, and a keyless model-visible snapshot. Design B must cover summary selection, detail fallback, additive and non-additive metrics, unsafe fanout rejection, dialect rendering, permission predicates, and stable versioned provenance before availability.
