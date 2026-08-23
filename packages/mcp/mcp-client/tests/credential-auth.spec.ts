@@ -83,16 +83,32 @@ describe('credential-backed Streamable HTTP auth', () => {
     httpOptions.length = 0
     const ctx = new Context()
     await ctx.plugin(TestCredentials)
+    const originalFetch = globalThis.fetch
+    const seenHeaders: Headers[] = []
+    globalThis.fetch = vi.fn(async (_input, init) => {
+      seenHeaders.push(new Headers(init?.headers))
+      return new Response(null, { status: 200 })
+    }) as typeof globalThis.fetch
 
-    createTransport(httpConfig(), ctx)
-    const options = httpOptions.at(-1) as {
-      authProvider?: { token(): Promise<string> }
-      requestInit?: { headers?: Record<string, string> }
+    try {
+      createTransport(httpConfig(), ctx)
+      const options = httpOptions.at(-1) as {
+        fetch?: typeof globalThis.fetch
+        requestInit?: { headers?: Record<string, string> }
+      }
+      expect(options.requestInit?.headers).toEqual({})
+      expect(options.fetch).toBeDefined()
+
+      await options.fetch?.('https://dataops.example/mcp', { headers: { 'X-Test': 'one' } })
+      expect(seenHeaders.at(-1)?.get('authorization')).toBe('Bearer token-one')
+      expect(seenHeaders.at(-1)?.get('x-test')).toBe('one')
+
+      await ctx.credentials.set(credentialRef('DATAOPS_MCP_TOKEN'), 'token-two')
+      await options.fetch?.('https://dataops.example/mcp', { headers: { 'X-Test': 'two' } })
+      expect(seenHeaders.at(-1)?.get('authorization')).toBe('Bearer token-two')
+      expect(seenHeaders.at(-1)?.get('x-test')).toBe('two')
+    } finally {
+      globalThis.fetch = originalFetch
     }
-    expect(options.requestInit?.headers).toEqual({})
-    expect(await options.authProvider?.token()).toBe('token-one')
-
-    await ctx.credentials.set(credentialRef('DATAOPS_MCP_TOKEN'), 'token-two')
-    expect(await options.authProvider?.token()).toBe('token-two')
   })
 })
