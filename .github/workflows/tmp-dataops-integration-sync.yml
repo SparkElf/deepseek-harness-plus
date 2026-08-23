@@ -1,0 +1,54 @@
+name: Temporary DataOps integration sync
+
+on:
+  push:
+    branches: [feat/dataops-oauth-integration]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/dataops-oauth-integration
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - name: Register dual-half package in TypeScript aggregates
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          needle = '    { "path": "./packages/mcp/mcp-client" },\n'
+          addition = needle + '    { "path": "./packages/mcp/dataops-integration" },\n'
+          for filename in ['tsconfig.host.json', 'tsconfig.client.json']:
+              path = Path(filename)
+              text = path.read_text()
+              if './packages/mcp/dataops-integration' in text:
+                  continue
+              if needle not in text:
+                  raise SystemExit(f'{filename}: mcp-client aggregate anchor not found')
+              path.write_text(text.replace(needle, addition, 1))
+          PY
+      - name: Refresh workspace metadata
+        run: |
+          pnpm install --lockfile-only --no-frozen-lockfile
+          pnpm run verify-client-packages --fix
+          pnpm install --lockfile-only --no-frozen-lockfile
+          pnpm install --frozen-lockfile
+      - name: Focused DataOps integration tests
+        run: pnpm exec vitest run packages/mcp/dataops-integration/tests/dataops-integration.spec.ts packages/mcp/dataops-integration/tests/loader-composition.spec.ts
+      - name: Commit mechanical outputs
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add pnpm-lock.yaml tsconfig.host.json tsconfig.client.json packages/mcp/dataops-integration/package.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'build(mcp): sync DataOps integration metadata'
+          git push origin HEAD:feat/dataops-oauth-integration
