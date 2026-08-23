@@ -32,7 +32,7 @@ One plugin instance per MCP server in `cordis.yml`:
 
 The model sees `mcp__github__create_issue`, `mcp__dataops__search_resources`, … — the same server-qualified shape Claude Code and Codex use. HMR hot-swaps: editing the entry triggers disconnect + reconnect without process restart; an unchanged `serverName` reproduces identical tool names.
 
-`bearerTokenRef` is a DSH credential reference, not a token value. The Streamable HTTP transport asks `ctx.credentials` for its current value before every HTTP request and lets the MCP SDK attach the `Authorization: Bearer ...` header. A rotated credential therefore reaches the next request without restarting the plugin. Static `headers.Authorization` remains available for deployments that intentionally manage their own literal header, but it cannot be combined with `bearerTokenRef`.
+`bearerTokenRef` is a DSH credential reference, not a token value. The Streamable HTTP transport wraps its HTTP fetch path so `ctx.credentials` resolves the current value immediately before every request, then sets `Authorization: Bearer ...` on that request. A rotated credential therefore reaches the next request without restarting the plugin. Static `headers.Authorization` remains available for deployments that intentionally manage their own literal header, but it cannot be combined with `bearerTokenRef`.
 
 ## Config
 
@@ -46,7 +46,7 @@ The model sees `mcp__github__create_issue`, `mcp__dataops__search_resources`, �
 | `cwd` | stdio | no | Working directory for the child process |
 | `url` | http | yes | MCP server URL |
 | `headers` | http | no | Additional non-credential headers, or a literal `Authorization` header when `bearerTokenRef` is absent |
-| `bearerTokenRef` | http | no | Credential reference resolved through `ctx.credentials` before every request and sent as a bearer token |
+| `bearerTokenRef` | http | no | Credential reference resolved through `ctx.credentials` immediately before every request and sent as a bearer token |
 | `toolCallTimeoutMs` | both | no | Timeout per `callTool` invocation (default 60000) |
 | `failOnStartupError` | both | no | Reject plugin activation when initial connection or tool synchronization fails (default `false`) |
 | `reconnect.enabled` | both | no | Reconnect automatically after a lost connection (default `true`) |
@@ -66,7 +66,7 @@ Every MCP tool has two names: the raw MCP name (sent on the wire in `tools/call`
 ## Behavior
 
 - On connect: plugin activation awaits `listTools()` and registers each tool via `ctx.tools.register()` under its public name before the composition starts its first turn. Initial connection, discovery, or registration failure is always logged; it rejects activation when `failOnStartupError` is true and otherwise activates with no tools.
-- For credential-backed Streamable HTTP, `bearerTokenRef` is validated as a credential reference at plugin load. The credentials service must be mounted, and the MCP SDK's bearer auth provider resolves the reference before every HTTP request. The secret is never copied into Cordis config or model-visible tool arguments.
+- For credential-backed Streamable HTTP, `bearerTokenRef` is validated as a credential reference at plugin load. The credentials service must be mounted, and the transport's custom fetch resolves the current value immediately before every HTTP request and injects the bearer header. The secret is never copied into Cordis config or model-visible tool arguments.
 - Listens for `notifications/tools/list_changed` → re-syncs; a fetch-phase failure keeps the previous generation registered, while a registration conflict rolls back the attempted generation and leaves no tools from that server.
 - Tool execute: `client.callTool({ name: rawName, arguments }, { signal })` with timeout + abort support—the public name is never sent to the server.
 - Canonical success is `{ content: JsonValue[], structuredContent? }`; complete JSON MCP blocks survive for programmatic callers. A supported advertised `outputSchema` validates `structuredContent`; unsupported schema vocabulary falls back to unconstrained `JsonValue`.
