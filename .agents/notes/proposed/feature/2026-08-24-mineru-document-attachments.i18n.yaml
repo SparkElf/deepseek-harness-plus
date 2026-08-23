@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-24-mineru-document-attachments.md
+2026-08-24-mineru-document-attachments.md: 41f37afdfb0225f5412064d283cb8c234fc8dc84
+2026-08-24-mineru-document-attachments.zh.md: 66eddaf9594c1cf4f11e469131bc1751c80d21c3
