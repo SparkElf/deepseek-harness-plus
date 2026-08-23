@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DataOpsSection, type DataOpsSectionInjected } from '../src/client/DataOpsSection.tsx'
 import { en } from '../src/client/locales.ts'
@@ -69,5 +69,26 @@ describe('DataOps settings section', () => {
     expect(screen.getByText('Connect a DataOps account to use authenticated data access.')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Connect DataOps' })).not.toBeNull()
     expect(screen.queryByText('Alice Example')).toBeNull()
+  })
+
+  it('keeps a retry action available when the initial status read fails', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({ ok: false } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => connectedStatus,
+      } as Response)
+    vi.stubGlobal('fetch', fetchMock)
+
+    render(<DataOpsSection t={t} />)
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Unable to read DataOps connection status.')
+    const retry = screen.getByRole('button', { name: 'Retry' })
+    expect(retry).not.toBeNull()
+
+    fireEvent.click(retry)
+
+    expect((await screen.findByText('Connected')).textContent).toBe('Connected')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
