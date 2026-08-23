@@ -21,7 +21,7 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'dataops',
-    order: 30,
+    order: 25,
     label: () => t('nav'),
     inject: () => ({ t }),
   }, DataOpsSection))
