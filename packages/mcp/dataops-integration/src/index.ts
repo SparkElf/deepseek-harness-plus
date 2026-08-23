@@ -19,8 +19,10 @@ export const inject = ['webServer', 'tools']
 const CLIENT_ID = 'deepseek-harness-plus'
 const SCOPE = 'dataops.mcp'
 const INTEGRATION_PATH = '/integrations/dataops'
+const STATUS_PATH = `${INTEGRATION_PATH}/status`
 const CONNECT_PATH = `${INTEGRATION_PATH}/connect`
 const CALLBACK_PATH = `${INTEGRATION_PATH}/callback`
+const DISCONNECT_PATH = `${INTEGRATION_PATH}/disconnect`
 const PENDING_TTL_MS = 10 * 60 * 1000
 
 export interface Config {
@@ -57,12 +59,13 @@ type TokenResponse = Readonly<{
   scope: string
 }>
 
-const escapeHtml = (value: string): string => value
-  .replaceAll('&', '&amp;')
-  .replaceAll('<', '&lt;')
-  .replaceAll('>', '&gt;')
-  .replaceAll('"', '&quot;')
-  .replaceAll("'", '&#39;')
+type AccountResponse = Readonly<{
+  account: Readonly<{
+    username: string
+    displayName: string
+    email: string
+  }>
+}>
 
 function normalizeBaseUrl(value: string): string {
   let url: URL
@@ -94,33 +97,32 @@ function requireLoopback(request: IncomingMessage, response: ServerResponse): bo
   return false
 }
 
-function requireGet(request: IncomingMessage, response: ServerResponse): boolean {
-  if (request.method === 'GET') return true
-  response.writeHead(405, { allow: 'GET' })
+function requireMethod(
+  request: IncomingMessage,
+  response: ServerResponse,
+  method: 'GET' | 'POST',
+): boolean {
+  if (request.method === method) return true
+  response.writeHead(405, { allow: method })
   response.end()
   return false
 }
 
-function sendHtml(response: ServerResponse, status: number, body: string): void {
-  response.writeHead(status, { 'content-type': 'text/html; charset=utf-8' })
-  response.end(body)
+function sendJson(response: ServerResponse, status: number, value: unknown): void {
+  response.writeHead(status, {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+  })
+  response.end(JSON.stringify(value))
 }
 
-function statusPage(input: { baseUrl: string; authConfigured: boolean; credentialConfigured: boolean | null }): string {
-  const mode = input.authConfigured ? 'OAuth 授权模式' : '匿名 MCP 模式'
-  const state = input.authConfigured
-    ? input.credentialConfigured ? '已保存 DataOps MCP 授权凭证。' : '尚未授权 DataOps 账号。'
-    : 'DSH 会在不发送 Authorization 的情况下尝试连接远端 MCP。'
-  const action = input.authConfigured && !input.credentialConfigured
-    ? `<p><a href="${CONNECT_PATH}">连接并选择 DataOps 账号</a></p>`
-    : input.authConfigured
-      ? `<p><a href="${CONNECT_PATH}">重新选择 DataOps 账号授权</a></p>`
-      : ''
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DataOps Integration</title></head><body><main><h1>DataOps Integration</h1><p>${mode}</p><p>${escapeHtml(state)}</p><p>DataOps: ${escapeHtml(input.baseUrl)}</p>${action}</main></body></html>`
-}
-
-function resultPage(ok: boolean, message: string): string {
-  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DataOps Authorization</title></head><body><main><h1>${ok ? 'DataOps 已连接' : 'DataOps 授权失败'}</h1><p>${escapeHtml(message)}</p><p><a href="${INTEGRATION_PATH}">返回 DataOps Integration</a></p></main></body></html>`
+function popupBridge(response: ServerResponse, result: 'connected' | 'cancelled' | 'failed'): void {
+  const payload = JSON.stringify({ type: 'dsh:dataops-oauth', result })
+  response.writeHead(200, {
+    'content-type': 'text/html; charset=utf-8',
+    'cache-control': 'no-store',
+  })
+  response.end(`<!doctype html><html><head><meta charset="utf-8"><title>DataOps</title></head><body><script>if(window.opener){window.opener.postMessage(${payload},window.location.origin);window.close()}else{window.location.replace('/')}</script></body></html>`)
 }
 
 function parseTokenResponse(value: unknown): TokenResponse {
@@ -133,6 +135,27 @@ function parseTokenResponse(value: unknown): TokenResponse {
     throw new Error('DataOps token endpoint returned an invalid response')
   }
   return record as unknown as TokenResponse
+}
+
+function parseAccountResponse(value: unknown): AccountResponse {
+  if (!value || typeof value !== 'object' || !('account' in value)) {
+    throw new Error('DataOps account endpoint returned an invalid response')
+  }
+  const account = (value as { account?: unknown }).account
+  if (!account || typeof account !== 'object') {
+    throw new Error('DataOps account endpoint returned an invalid response')
+  }
+  const record = account as Record<string, unknown>
+  if (typeof record.username !== 'string'
+    || typeof record.displayName !== 'string'
+    || typeof record.email !== 'string') {
+    throw new Error('DataOps account endpoint returned an invalid response')
+  }
+  return { account: {
+    username: record.username,
+    displayName: record.displayName,
+    email: record.email,
+  } }
 }
 
 /** Compose the DataOps browser authorization surface and generic MCP client. */
@@ -164,11 +187,18 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     const fiber = ctx.plugin(McpClient, mcpConfig())
     mcpFiber = fiber
     try {
-      await fiber
+      await fiber.await()
     } catch (error) {
       if (mcpFiber === fiber) mcpFiber = undefined
+      await fiber.dispose()
       throw error
     }
+  }
+
+  const unmountMcp = async (): Promise<void> => {
+    const fiber = mcpFiber
+    mcpFiber = undefined
+    if (fiber !== undefined && fiber.uid !== null) await fiber.dispose()
   }
 
   const prunePending = (): void => {
@@ -178,15 +208,51 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
   }
 
+  const currentAccount = async () => {
+    if (ref === undefined) return { credential: null, account: null, authorizationAccepted: null }
+    const info = await credentials!.describe(ref)
+    if (!info.configured) {
+      return { credential: info, account: null, authorizationAccepted: false }
+    }
+    const resolved = await credentials!.resolve(ref)
+    if (resolved === undefined) {
+      return { credential: info, account: null, authorizationAccepted: false }
+    }
+    const response = await fetch(new URL('/api/auth/dsh/account', baseUrl), {
+      headers: { authorization: `Bearer ${resolved.value}` },
+    })
+    if (response.status === 401 || response.status === 403) {
+      return { credential: info, account: null, authorizationAccepted: false }
+    }
+    if (!response.ok) throw new Error(`DataOps account lookup failed with HTTP ${String(response.status)}`)
+    return {
+      credential: info,
+      account: parseAccountResponse(await response.json()).account,
+      authorizationAccepted: true,
+    }
+  }
+
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
-    path: INTEGRATION_PATH,
+    path: STATUS_PATH,
     handler: async (request, response) => {
-      if (!requireLoopback(request, response) || !requireGet(request, response)) return
-      const credentialConfigured = ref === undefined
-        ? null
-        : (await credentials!.describe(ref)).configured
-      sendHtml(response, 200, statusPage({ baseUrl, authConfigured: ref !== undefined, credentialConfigured }))
+      if (!requireLoopback(request, response) || !requireMethod(request, response, 'GET')) return
+      try {
+        const accountState = await currentAccount()
+        sendJson(response, 200, {
+          baseUrl,
+          serverName: config.serverName,
+          mode: ref === undefined ? 'anonymous' : 'oauth',
+          credentialConfigured: accountState.credential?.configured ?? null,
+          credentialWritable: accountState.credential?.writable ?? null,
+          authorizationAccepted: accountState.authorizationAccepted,
+          account: accountState.account,
+        })
+      } catch (error) {
+        ctx.logger.warn('mcp-dataops: integration status lookup failed')
+        ctx.logger.warn(error)
+        sendJson(response, 502, { error: 'Unable to read DataOps connection status.' })
+      }
     },
   }), 'mcp-dataops: status route')
 
@@ -199,7 +265,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     kind: 'exact',
     path: CONNECT_PATH,
     handler: (request, response) => {
-      if (!requireLoopback(request, response) || !requireGet(request, response)) return
+      if (!requireLoopback(request, response) || !requireMethod(request, response, 'GET')) return
       prunePending()
       const state = randomBytes(32).toString('base64url')
       const verifier = randomBytes(32).toString('base64url')
@@ -222,23 +288,22 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     kind: 'exact',
     path: CALLBACK_PATH,
     handler: async (request, response) => {
-      if (!requireLoopback(request, response) || !requireGet(request, response)) return
+      if (!requireLoopback(request, response) || !requireMethod(request, response, 'GET')) return
       const callback = new URL(request.url ?? CALLBACK_PATH, 'http://127.0.0.1')
       const state = callback.searchParams.get('state') ?? ''
       const authorization = pending.get(state)
       pending.delete(state)
       if (authorization === undefined || Date.now() - authorization.createdAt > PENDING_TTL_MS) {
-        sendHtml(response, 400, resultPage(false, '授权请求不存在或已经过期，请重新连接。'))
+        popupBridge(response, 'failed')
         return
       }
-      const oauthError = callback.searchParams.get('error')
-      if (oauthError !== null) {
-        sendHtml(response, 400, resultPage(false, 'DataOps 未完成本次授权。'))
+      if (callback.searchParams.get('error') !== null) {
+        popupBridge(response, 'cancelled')
         return
       }
       const code = callback.searchParams.get('code') ?? ''
       if (code === '') {
-        sendHtml(response, 400, resultPage(false, 'DataOps 回调缺少 authorization code。'))
+        popupBridge(response, 'failed')
         return
       }
       try {
@@ -257,14 +322,30 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         const token = parseTokenResponse(await tokenResponse.json())
         await credentials!.set(ref, token.access_token)
         await ensureMcpMounted()
-        sendHtml(response, 200, resultPage(true, '已保存所选 DataOps 账号的 MCP 授权，取数工具会使用该身份。'))
+        popupBridge(response, 'connected')
       } catch (error) {
         ctx.logger.warn('mcp-dataops: DataOps authorization callback failed')
         ctx.logger.warn(error)
-        sendHtml(response, 502, resultPage(false, '无法完成 DataOps 授权，请返回后重新连接。'))
+        popupBridge(response, 'failed')
       }
     },
   }), 'mcp-dataops: callback route')
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: DISCONNECT_PATH,
+    handler: async (request, response) => {
+      if (!requireLoopback(request, response) || !requireMethod(request, response, 'POST')) return
+      const info = await credentials!.describe(ref)
+      if (!info.writable) {
+        sendJson(response, 409, { error: 'This DataOps credential is managed by a read-only credential source.' })
+        return
+      }
+      await credentials!.unset(ref)
+      await unmountMcp()
+      sendJson(response, 200, { disconnected: true })
+    },
+  }), 'mcp-dataops: disconnect route')
 
   if ((await credentials!.describe(ref)).configured) await ensureMcpMounted()
 }
