@@ -71,6 +71,7 @@
     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
     "@deepseek-ai/dsh-client-ui-tool": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
     "@testing-library/react": "^16.3.2",
     "@types/react": "~18.3.1",
