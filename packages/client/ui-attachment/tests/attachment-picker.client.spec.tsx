@@ -115,4 +115,31 @@ describe('AttachmentPicker', () => {
 
     expect(releaseDrafts).toHaveBeenCalledWith(created)
   })
+
+  it('honors an empty projected document capability before creating browser drafts', () => {
+    const createDrafts = vi.fn()
+    const base = props()
+    const view = render(<AttachmentPicker {...props({
+      createDrafts,
+      useProjection: ((key: string) => key === 'documentLimits'
+        ? {
+            maxDocumentBytes: 1,
+            maxDocumentsPerMessage: 1,
+            maxMessageDocumentBytes: 1,
+            mediaTypes: [],
+          }
+        : key === 'imageLimits'
+          ? base.useProjection('imageLimits')
+          : undefined) as AttachmentPickerProps['useProjection'],
+    })} />)
+    const picker = view.container.querySelector('input[type="file"]')
+    if (!(picker instanceof HTMLInputElement)) throw new Error('picker input missing')
+
+    fireEvent.change(picker, { target: { files: [
+      new File([Uint8Array.of(1)], 'report.pdf', { type: 'application/pdf' }),
+    ] } })
+
+    expect(createDrafts).not.toHaveBeenCalled()
+    expect(view.getByText('document.unsupportedType')).toBeTruthy()
+  })
 })
