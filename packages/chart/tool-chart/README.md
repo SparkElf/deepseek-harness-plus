@@ -24,7 +24,7 @@ The package also exports `./invariant`. The tool owns no independent state/event
 
 ## Model Experience
 
-Use this tool when the user wants an interactive visualization of an already prepared result. Prefer one DataOps SQL result whose rows are already at the business/display granularity the chart needs. Simple cases may call `render_chart` directly. When dynamic series, reshaping, date/number conversion, percentages, cumulative/reference statistics, annotations, or other visualization-oriented work makes the chart more accurate, Code Mode may read the one result and synthesize the ECharts option programmatically.
+Use this tool when the user wants an interactive visualization of an already prepared result. Prefer one DataOps SQL result whose rows are already at the business/display granularity the chart needs. `execute_sql.preview` is not assumed to contain the complete result: when it reports more rows, use `read_query_result` to collect the rows required by the intended chart before constructing the final option. Simple complete results may call `render_chart` directly. When dynamic series, reshaping, date/number conversion, percentages, cumulative/reference statistics, annotations, or other visualization-oriented work makes the chart more accurate, Code Mode may read the one result and synthesize the ECharts option programmatically.
 
 Do not force Code Mode to be a passive field mapper. Normal `map`, `filter`, `sort`, `reduce`, reshaping, and derived visual statistics are valid. If the result still requires database-scale joins or substantial business aggregation, issue a better DataOps query instead of rebuilding the query engine inside chart code.
 
