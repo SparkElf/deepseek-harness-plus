@@ -1,0 +1,25 @@
+name: Temporary chart lockfile generator
+
+on:
+  push:
+    branches:
+      - feat/interactive-chart-rendering
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: pnpm install --lockfile-only --no-frozen-lockfile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chart-generated-lockfile
+          path: pnpm-lock.yaml
+          if-no-files-found: error
