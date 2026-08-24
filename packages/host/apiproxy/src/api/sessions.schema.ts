@@ -15,7 +15,12 @@ import type {
   ModelReasoningEffort, ModelSelection, SessionListMetadata, SessionProjectionsBlock, SessionSearchItem, SessionSummary,
 } from './sessions.ts'
 import type { ToolEventView } from './events.ts'
-import type { AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import type {
+  AttachmentIdType,
+  DocumentAttachmentLimits,
+  ImageAttachmentLimits,
+  ImageAttachmentRef,
+} from '@deepseek-ai/dsh-attachment'
 import type { WorkspaceId } from './workspace.ts'
 import {
   SESSION_SEARCH_RESULT_LIMIT,
@@ -30,7 +35,7 @@ export const sessionIdSchema = z.string().min(1) as unknown as z.ZodType<Session
 export const messageIdSchema = z.string().min(1) as unknown as z.ZodType<MessageId>
 
 /**
- * WorkspaceId: the workspace domain's one brand cast. Hosted here rather
+ * WorkspaceId: one brand cast after non-empty string validation. Hosted here rather
  * than in workspace.schema because session.create references it while
  * workspace.schema references sessionIdSchema — schema modules must stay a
  * DAG (both casts used at module top level; a cycle is a load-time TDZ).
@@ -235,6 +240,14 @@ export const imageLimitsProjectionSchema = z.object({
   mediaTypes: z.array(z.string()),
 }) as unknown as z.ZodType<ImageAttachmentLimits>
 
+/** documentLimits projection unit schema (same boot-constant semantics as imageLimits). */
+export const documentLimitsProjectionSchema = z.object({
+  maxDocumentBytes: z.number().int().positive(),
+  maxDocumentsPerMessage: z.number().int().positive(),
+  maxMessageDocumentBytes: z.number().int().positive(),
+  mediaTypes: z.array(z.string()),
+}) as unknown as z.ZodType<DocumentAttachmentLimits>
+
 /** session.history response value (projections rides the tail page only). */
 export const sessionHistoryValueSchema: z.ZodType<Wire<ResponseValue<'session.history'>>> = z.object({
   events: z.array(historyEntrySchema),
@@ -279,10 +292,19 @@ export const imageMediaTypeSchema = z.union([
   z.literal('image/gif'),
 ])
 
+/** Durable generic document media types accepted by the version-one browser wire. */
+export const documentMediaTypeSchema = z.union([
+  z.literal('application/pdf'),
+  z.literal('application/vnd.openxmlformats-officedocument.wordprocessingml.document'),
+  z.literal('application/vnd.openxmlformats-officedocument.presentationml.presentation'),
+  z.literal('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+])
+
 /** Prompt wire content is intentionally narrower than merge-extensible durable core content. */
 export const promptContentPartSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('text'), text: z.string() }),
   z.object({ type: z.literal('image'), mediaType: imageMediaTypeSchema, data: z.string(), name: z.string().optional() }),
+  z.object({ type: z.literal('document'), mediaType: documentMediaTypeSchema, data: z.string(), name: z.string().min(1) }),
 ])
 
 /** session.prompt request payload, including optional browser-local request provenance. */
