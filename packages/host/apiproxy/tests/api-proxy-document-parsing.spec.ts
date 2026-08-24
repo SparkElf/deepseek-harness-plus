@@ -3,9 +3,14 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import AttachmentStore, { AttachmentId } from '@deepseek-ai/dsh-attachment'
-import type { FileAttachmentRef, ImageAttachmentRef, SaveFileAttachment, UserMessage } from '@deepseek-ai/dsh-llm'
+import AttachmentStore, {
+  AttachmentId,
+  type FileAttachmentRef,
+  type ImageAttachmentRef,
+  type SaveFileAttachment,
+} from '@deepseek-ai/dsh-attachment'
 import LlmRuntime from '@deepseek-ai/dsh-llm'
+import type { UserMessage } from '@deepseek-ai/dsh-llm'
 import { DocumentParserError } from '@deepseek-ai/dsh-document-parser'
 import SessionStore from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session'
