@@ -135,11 +135,11 @@ async function readBoundedBody(response: Response, maxBytes: number): Promise<Ui
   let totalBytes = 0
   try {
     while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      if (value === undefined || value.byteLength === 0) continue
+      const part = await reader.read()
+      if (part.done) break
+      const value = part.value
       totalBytes += value.byteLength
-      if (!Number.isSafeInteger(totalBytes) || totalBytes > maxBytes) {
+      if (totalBytes > maxBytes) {
         await reader.cancel().catch(() => undefined)
         throw new DocumentParserError(
           'Document parser response exceeds the configured byte limit.',
@@ -175,7 +175,7 @@ function unzipBounded(archive: Uint8Array, maxBytes: number): Record<string, Uin
       filter(file) {
         if (declaredTooLarge) return false
         declaredBytes += file.originalSize
-        if (!Number.isSafeInteger(declaredBytes) || declaredBytes > maxBytes) {
+        if (declaredBytes > maxBytes) {
           declaredTooLarge = true
           return false
         }
@@ -192,7 +192,8 @@ function unzipBounded(archive: Uint8Array, maxBytes: number): Record<string, Uin
     )
   }
   const extractedBytes = Object.values(entries).reduce((sum, value) => sum + value.byteLength, 0)
-  if (!Number.isSafeInteger(extractedBytes) || extractedBytes > maxBytes) {
+  /* v8 ignore next -- fflate verifies each inflated entry against the ZIP-declared original size; this is a defense-in-depth check for a future decoder change. */
+  if (extractedBytes > maxBytes) {
     throw new DocumentParserError(
       'Document parser extracted output exceeds the configured byte limit.',
       'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
@@ -229,11 +230,8 @@ export function parseArchive(entries: Readonly<Record<string, Uint8Array>>): Doc
       'DOCUMENT_PARSE_INVALID_OUTPUT',
     )
   }
-  const markdownBytes = markdown[0]?.[1]
-  const contentListBytes = contentLists[0]?.[1]
-  if (markdownBytes === undefined || contentListBytes === undefined) {
-    throw new DocumentParserError('Document parser ZIP is missing required outputs.', 'DOCUMENT_PARSE_INVALID_OUTPUT')
-  }
+  const markdownBytes = markdown[0]![1]
+  const contentListBytes = contentLists[0]![1]
 
   validateUtf8(markdownBytes, 'Markdown')
   const contentListText = validateUtf8(contentListBytes, 'content-list JSON')
@@ -247,8 +245,7 @@ export function parseArchive(entries: Readonly<Record<string, Uint8Array>>): Doc
   const images: ParsedDocumentImage[] = []
   for (const [path, data] of files) {
     if (!path.split('/').includes('images')) continue
-    const name = path.split('/').at(-1)
-    if (name === undefined || name.length === 0) continue
+    const name = path.split('/').at(-1)!
     const mediaType = imageMediaType(name)
     if (mediaType === undefined) {
       throw new DocumentParserError(
