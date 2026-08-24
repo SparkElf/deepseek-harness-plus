@@ -13,8 +13,8 @@ import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets/types'
-import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import { AttachmentError, admitEncodedDocuments, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
+import type { DocumentAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import { contentHasImage, createUserMessage, freezeMessage, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { errorChain } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, MessageSource } from '@deepseek-ai/dsh-llm'
@@ -92,7 +92,7 @@ import type { ApprovalOutcome, ApprovalRequestId } from '@deepseek-ai/dsh-user-a
 // `ctx.get('approval')` without a value dependency on the seam (optional composition).
 import type {} from '@deepseek-ai/dsh-user-approval'
 import { approvalResponsePayloadSchema } from './api/approvals.schema.ts'
-import { imageLimitsProjectionSchema, sessionListMetadataProjectionSchema } from './api/sessions.schema.ts'
+import { documentLimitsProjectionSchema, imageLimitsProjectionSchema, sessionListMetadataProjectionSchema } from './api/sessions.schema.ts'
 import { questionResponsePayloadSchema } from './api/questions.schema.ts'
 import type { ClientResponse, RpcError, RpcReceipt, RpcRequest, RpcResponse } from './api/rpc.ts'
 import { RpcId } from './api/rpc.ts'
@@ -212,17 +212,30 @@ export const DEFAULT_COLD_BLANK_PROBE_MAX_BYTES = 1024
 /** Conversation message event types (the pagination counting unit). */
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
 
-/** Validate one prompt as a batch before publishing any durable image object. */
+/**
+ * Validate one prompt's image and document batches before appending its user
+ * event, then rebuild durable core blocks in the exact browser order. The
+ * content-addressed stores intentionally do not roll back already published
+ * unreachable objects when a later batch or event append fails.
+ */
 async function durablePromptContent(ctx: Context, content: readonly PromptContentPart[]): Promise<ContentBlock[]> {
   if (content.every(part => part.type === 'text')) {
     return content.map(part => ({ type: 'text', text: part.text }))
   }
-  const refs = await admitEncodedImages(ctx.attachments, content.filter(part => part.type === 'image'))
-  let next = 0
-  return content.map(part => part.type === 'text'
-    ? { type: 'text', text: part.text }
-    // admitEncodedImages returns one reference per image part in order.
-    : { type: 'image', attachment: refs[next++] as ImageAttachmentRef })
+  const imageRefs = await admitEncodedImages(ctx.attachments, content.filter(part => part.type === 'image'))
+  const documentRefs = await admitEncodedDocuments(content.filter(part => part.type === 'document'), ctx.attachments)
+  let imageIndex = 0
+  let documentIndex = 0
+  return content.map((part): ContentBlock => {
+    switch (part.type) {
+      case 'text':
+        return { type: 'text', text: part.text }
+      case 'image':
+        return { type: 'image', attachment: imageRefs[imageIndex++] as ImageAttachmentRef }
+      case 'document':
+        return { type: 'document', attachment: documentRefs[documentIndex++] as DocumentAttachmentRef }
+    }
+  })
 }
 
 /** Search durable content for an image reference, including nested tool results. */
@@ -1352,19 +1365,9 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     })
   })
 
-  // The imageLimits projection unit: the attachments config this proxy
-  // enforces at prompt admission, constant per host boot. `apply` keeps the
-  // same state reference for every event, so no change frames are ever
-  // pushed — baselines alone carry the value — and clients pre-check intake
-  // and label upload affordances from it. Registered here, not in the
-  // attachment Service Definition: dsh-llm depends on dsh-attachment, so the
-  // seam package cannot reference the projection registry without a cycle,
-  // and the per-message rules the value describes are this proxy's own
-  // admission checks. The child activates only while both seams are composed.
-  // `view` reading the live service instead of the (null) state is sanctioned
-  // exactly for boot-constant units: the value cannot change within a process
-  // lifetime, so the fold stays observationally pure, and a stale persisted
-  // cache row re-viewing to the current config is the correct outcome.
+  // Attachment-intake projections are boot-constant views of the service
+  // config this proxy authoritatively enforces. They never emit change frames;
+  // history/list baselines alone carry the current deployment policy.
   ctx.inject(['sessionProjections', 'attachments'], (projectionCtx) => {
     projectionCtx.sessionProjections.register<'imageLimits', null>({
       key: 'imageLimits',
@@ -1372,6 +1375,14 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       init: () => null,
       apply: state => state,
       view: () => projectionCtx.attachments.imageLimits,
+      stateVersion: 1,
+    })
+    projectionCtx.sessionProjections.register<'documentLimits', null>({
+      key: 'documentLimits',
+      schema: documentLimitsProjectionSchema,
+      init: () => null,
+      apply: state => state,
+      view: () => projectionCtx.attachments.documentLimits,
       stateVersion: 1,
     })
   })
