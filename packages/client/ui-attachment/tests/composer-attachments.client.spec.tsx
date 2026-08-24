@@ -89,15 +89,15 @@ describe('ComposerAttachments', () => {
     expect(view.queryByRole('status')).toBeNull()
 
     const image = attachment('dropped').file
-    const document = documentAttachment('report').file
-    const dataTransfer = { types: ['Files'], files: [image, document], dropEffect: 'none' }
+    const documentFile = documentAttachment('report').file
+    const dataTransfer = { types: ['Files'], files: [image, documentFile], dropEffect: 'none' }
     expect(fireEvent.dragEnter(document.body, { dataTransfer })).toBe(false)
     expect(view.getByRole('status').textContent).toContain('拖动图片或文档到此处即可添加')
     expect(fireEvent.dragOver(document.body, { dataTransfer })).toBe(false)
     expect(dataTransfer.dropEffect).toBe('copy')
     expect(fireEvent.drop(document.body, { dataTransfer })).toBe(false)
     expect(onAddImages).toHaveBeenCalledWith([image])
-    expect(onAddDocuments).toHaveBeenCalledWith([document])
+    expect(onAddDocuments).toHaveBeenCalledWith([documentFile])
     expect(view.queryByRole('status')).toBeNull()
   })
 
@@ -147,21 +147,21 @@ describe('ComposerAttachments', () => {
     const onRemoveImage = vi.fn()
     const onRemoveDocument = vi.fn()
     const image = attachment('draft-1', 'pixel.png')
-    const document = documentAttachment('draft-2', 'report.pdf')
-    const initial = props({ attachments: [image], documents: [document], onRemoveImage, onRemoveDocument })
+    const documentFile = documentAttachment('draft-2', 'report.pdf')
+    const initial = props({ attachments: [image], documents: [documentFile], onRemoveImage, onRemoveDocument })
     const view = render(<ComposerAttachments {...initial} />)
 
     expect(view.getByText('report.pdf')).toBeTruthy()
     expect(view.getByText('PDF')).toBeTruthy()
     expect(view.getByText('12 KB')).toBeTruthy()
     fireEvent.click(view.getByRole('button', { name: '移除文档 report.pdf' }))
-    expect(onRemoveDocument).toHaveBeenCalledWith(document.id)
+    expect(onRemoveDocument).toHaveBeenCalledWith(documentFile.id)
     fireEvent.click(view.getByRole('button', { name: '移除图片 pixel.png' }))
     expect(onRemoveImage).toHaveBeenCalledWith(image.id)
 
     fireEvent.click(view.getByTitle('查看原图'))
     expect(view.getByRole('dialog', { name: '原图预览' })).toBeTruthy()
-    view.rerender(<ComposerAttachments {...props({ attachments: [], documents: [document], onRemoveImage, onRemoveDocument })} />)
+    view.rerender(<ComposerAttachments {...props({ attachments: [], documents: [documentFile], onRemoveImage, onRemoveDocument })} />)
     expect(view.queryByRole('dialog', { name: '原图预览' })).toBeNull()
   })
 
