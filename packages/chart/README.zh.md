@@ -4,6 +4,8 @@
 
 为模型已经准备好的结果提供交互式数据可视化。查询执行留在该能力之外，而当程序生成更容易得到准确交互 option 时，Harness 可以继续使用普通 Code Mode。面向模型的工具属于 agent plane，ECharts renderer 属于浏览器 UI 包。
 
+两个插件都是 opt-in，不进入 shipped default agent preset 或默认 Web browser roster。需要完整交互体验的 deployment 显式组合 tool 与 browser renderer。
+
 | 包 | 职责 | ctx 键 |
 |---|---|---|
 | [`tool-chart/`](tool-chart/README.zh.md) | Agent plane 的 `render_chart` 工具；记录完整、可回放的 JSON option metadata。 | `ctx.tools` |
