@@ -19,6 +19,13 @@ import css from './MessageItem.module.css'
 type UserImage = Extract<UserMessageNode['content'][number], { type: 'image' }>
 type UserDocument = Extract<UserMessageNode['content'][number], { type: 'document' }>
 
+const DOCUMENT_TYPE_LABELS: Record<UserDocument['attachment']['mediaType'], string> = {
+  'application/pdf': 'PDF',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+}
+
 function contentParts(content: readonly unknown[]): {
   text: string
   images: { attachment: UserImage['attachment'] }[]
@@ -223,23 +230,24 @@ function projectUserText(text: string, sessionLabels: readonly string[]): ReactN
 }
 
 /** Compact durable-document cards rendered from session-owned metadata only. */
-function DocumentChips({ documents, t }: {
+function DocumentCards({ documents, t }: {
   documents: readonly { attachment: UserDocument['attachment'] }[]
   t: ChatViewSlotProps['t']
 }): ReactNode {
   if (documents.length === 0) return null
   return (
-    <div>
+    <div className={css.documentList} role="group" aria-label={t('document.label')}>
       {documents.map(({ attachment }) => (
-        <span
+        <div
           key={String(attachment.attachmentId)}
-          className={css.refChip}
-          data-ref-chip="file"
-          title={`${attachment.mediaType} · ${documentSize(attachment.bytes)}`}
+          className={css.documentCard}
+          data-message-document
+          title={attachment.name}
         >
-          <ReferenceIcon kind="file" size={16} className={css.refIcon} />
-          {attachment.name || t('document.label')}
-        </span>
+          <span className={css.documentType}>{DOCUMENT_TYPE_LABELS[attachment.mediaType]}</span>
+          <span className={css.documentName}>{attachment.name}</span>
+          <span className={css.documentDetail}>{documentSize(attachment.bytes)}</span>
+        </div>
       ))}
     </div>
   )
@@ -261,13 +269,13 @@ function UserStyleBubble({
 }): ReactNode {
   const { text, images, documents, rest } = contentParts(content)
   const truncated = (total: number): string => t('json.truncated', { total })
-  const showBubble = text !== '' || documents.length > 0 || rest.length > 0
+  const showBubble = text !== '' || rest.length > 0
   return (
     <div className={css.userRow} data-pending-steering={pending || undefined} data-time-hover-root>
       <div className={css.userStack}>
         {renderMessageImages({ images, align: 'end' })}
+        <DocumentCards documents={documents} t={t} />
         {showBubble && <div className={css.bubble}>
-          <DocumentChips documents={documents} t={t} />
           {projectUserText(text, referenceLabels)}
           {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
         </div>}
