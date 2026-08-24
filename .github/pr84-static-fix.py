@@ -1,163 +1,176 @@
 from pathlib import Path
+import re
+import subprocess
+
+BASE_FIX_COMMIT = '3e31b3f5e5ab80919de558074bfbba93abdcd899'
 
 
-def replace_one(path: str, old: str, new: str) -> None:
-    p = Path(path)
-    text = p.read_text()
-    count = text.count(old)
-    if count == 0 and text.count(new) == 1:
+def run_checked(*args: str) -> None:
+    subprocess.run(args, check=True)
+
+
+# Reuse the already exercised convergence patch from the immediately preceding
+# PR head. This wrapper is temporary too: the workflow deletes it before the
+# verified tree is committed.
+legacy = subprocess.check_output(
+    ['git', 'show', f'{BASE_FIX_COMMIT}:.github/pr84-static-fix.py'],
+    text=True,
+)
+exec(compile(legacy, f'{BASE_FIX_COMMIT}:.github/pr84-static-fix.py', 'exec'), {'__name__': '__main__'})
+
+
+# The English graph/catalog pages are generated, while their Chinese peers are
+# reviewed bilingual counterparts. Generate the changed English pages first,
+# then carry the machine-owned portions across before recording a new pairing.
+run_checked('pnpm', 'run', 'gen-config-catalog')
+run_checked('pnpm', 'run', 'gen-doc-graphs')
+run_checked('pnpm', 'run', 'gen-module-graph')
+
+
+def sync_first_fence(english_path: str, chinese_path: str, info: str) -> None:
+    marker = f'```{info}\n'
+    english = Path(english_path).read_text()
+    chinese = Path(chinese_path).read_text()
+
+    english_start = english.index(marker)
+    english_end = english.index('\n```', english_start) + len('\n```')
+    chinese_start = chinese.index(marker)
+    chinese_end = chinese.index('\n```', chinese_start) + len('\n```')
+
+    Path(chinese_path).write_text(
+        chinese[:chinese_start]
+        + english[english_start:english_end]
+        + chinese[chinese_end:]
+    )
+
+
+sync_first_fence('docs/capability-seams.md', 'docs/capability-seams.zh.md', 'mermaid')
+sync_first_fence('docs/module-graph.md', 'docs/module-graph.zh.md', 'mermaid')
+
+
+def anchored_section(text: str, package: str) -> tuple[int, int, str] | None:
+    heading = f'## `{package}`'
+    heading_at = text.find(heading)
+    if heading_at < 0:
+        return None
+    start = text.rfind('<a id="', 0, heading_at)
+    if start < 0:
+        raise SystemExit(f'config catalog: missing anchor before {package}')
+    candidates = [
+        pos
+        for pos in (
+            text.find('\n<a id="', heading_at + len(heading)),
+            text.find('\n## ', heading_at + len(heading)),
+        )
+        if pos >= 0
+    ]
+    end = min(candidates) if candidates else len(text)
+    return start, end, text[start:end].rstrip()
+
+
+def localize_catalog_section(section: str) -> str:
+    return (
+        section
+        .replace('\nRequires: ', '\n需要：')
+        .replace('\nDepends on: ', '\n依赖：')
+        .replace('\nSource: ', '\n来源：')
+    )
+
+
+def sync_catalog_package(package: str) -> None:
+    english_path = Path('docs/config-catalog.md')
+    chinese_path = Path('docs/config-catalog.zh.md')
+    english = english_path.read_text()
+    chinese = chinese_path.read_text()
+    source = anchored_section(english, package)
+
+    if source is not None:
+        source_start, source_end, source_text = source
+        localized = localize_catalog_section(source_text)
+        existing = anchored_section(chinese, package)
+        if existing is not None:
+            existing_start, existing_end, _ = existing
+            chinese_path.write_text(
+                chinese[:existing_start] + localized + chinese[existing_end:]
+            )
+            return
+
+        insertion: int | None = None
+        for match in re.finditer(r'<a id="[^"]+"></a>', english[source_end:]):
+            anchor = match.group(0)
+            candidate = chinese.find(anchor)
+            if candidate >= 0:
+                insertion = candidate
+                break
+        if insertion is None:
+            insertion = chinese.find('\n## 无配置的可加载插件')
+        if insertion is None or insertion < 0:
+            raise SystemExit(f'config catalog: cannot place {package} in Chinese peer')
+        chinese_path.write_text(
+            chinese[:insertion] + localized + '\n\n' + chinese[insertion:]
+        )
         return
-    if count != 1:
-        raise SystemExit(f'{path}: expected one old match or one completed replacement, found {count}: {old!r}')
-    p.write_text(text.replace(old, new, 1))
+
+    # Defensive support for a package that the catalog classifies as a
+    # config-free plugin or an abstract seam instead of a configured section.
+    lines = english.splitlines()
+    prefix = f'- `{package}`'
+    try:
+        line_index = next(i for i, line in enumerate(lines) if line.startswith(prefix))
+    except StopIteration as error:
+        raise SystemExit(f'config catalog: {package} is absent from generated English catalog') from error
+
+    english_line = lines[line_index]
+    localized_line = (
+        english_line
+        .replace(' — requires ', ' — 需要 ')
+        .replace(' — abstract ', ' — 抽象 ')
+    )
+    existing_at = chinese.find(prefix)
+    if existing_at >= 0:
+        existing_end = chinese.find('\n', existing_at)
+        if existing_end < 0:
+            existing_end = len(chinese)
+        chinese_path.write_text(
+            chinese[:existing_at] + localized_line + chinese[existing_end:]
+        )
+        return
+
+    summary_marker = (
+        '## Seam 包（不可直接加载）'
+        if ' — abstract ' in english_line
+        else '## 无配置的可加载插件'
+    )
+    summary_at = chinese.find(summary_marker)
+    if summary_at < 0:
+        raise SystemExit(f'config catalog: missing Chinese summary for {package}')
+
+    insertion = -1
+    for following in lines[line_index + 1:]:
+        if following.startswith('## '):
+            break
+        if not following.startswith('- `'):
+            continue
+        next_package = following.split('`', 2)[1]
+        candidate = chinese.find(f'- `{next_package}`', summary_at)
+        if candidate >= 0:
+            insertion = candidate
+            break
+    if insertion < 0:
+        next_heading = chinese.find('\n## ', summary_at + len(summary_marker))
+        insertion = len(chinese) if next_heading < 0 else next_heading
+
+    chinese_path.write_text(
+        chinese[:insertion] + localized_line + '\n' + chinese[insertion:]
+    )
 
 
-# Build failures shared by snapshots, Node 22, Wine, and release-shaped exe.
-replace_one(
-    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
-    "import AttachmentStore, {\n  AttachmentId,\n  type FileAttachmentRef,\n  type ImageAttachmentRef,\n  type SaveFileAttachment,\n} from '@deepseek-ai/dsh-attachment'",
-    "import {\n  AttachmentId,\n  type FileAttachmentRef,\n  type ImageAttachmentRef,\n  type SaveFileAttachment,\n} from '@deepseek-ai/dsh-attachment'",
-)
-replace_one(
-    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
-    'const parse = options.parse ?? (data => Promise.resolve({',
-    'const parse = options.parse ?? (() => Promise.resolve({',
-)
-replace_one(
-    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
-    "      mediaTypes: ['image/png'],",
-    "      mediaTypes: ['image/png'] as const,",
-)
-replace_one(
-    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
-    "      mediaTypes: ['application/pdf'],",
-    "      mediaTypes: ['application/pdf'] as const,",
-)
-replace_one(
-    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
-    "    saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]) {\n      return AttachmentStore.prototype.saveImages.call(attachments, inputs)\n    },",
-    "    async saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]): Promise<readonly ImageAttachmentRef[]> {\n      const refs: ImageAttachmentRef[] = []\n      for (const input of inputs) refs.push(await saveImage(input))\n      return refs\n    },",
-)
+sync_catalog_package('@deepseek-ai/dsh-document-parser')
+sync_catalog_package('@deepseek-ai/dsh-document-parser-mineru')
 
-# Export JSDoc completeness.
-replace_one(
-    'packages/attachment/document-parser-mineru/src/provider.ts',
-    '/** Select exactly one v1 Markdown and content-list output plus every extracted raster image. */\nexport function parseArchive(entries: Readonly<Record<string, Uint8Array>>): DocumentParseResult {',
-    '/**\n * Select exactly one v1 Markdown and content-list output plus every extracted raster image.\n * @param entries - decompressed ZIP entries keyed by archive path.\n * @returns complete validated parser outputs with transient bytes.\n */\nexport function parseArchive(entries: Readonly<Record<string, Uint8Array>>): DocumentParseResult {',
-)
-replace_one(
-    'packages/host/apiproxy/src/document-parsing.ts',
-    ' * attachment retention policy; no user event is appended by the caller.\n */\nexport async function parseDocumentRefs(',
-    ' * attachment retention policy; no user event is appended by the caller.\n * @param ctx - Host context carrying the attachment store and optional parser runtime.\n * @param refs - durable original-document references in submitted order.\n * @returns immutable document references carrying durable parser artifacts when parsing is composed.\n */\nexport async function parseDocumentRefs(',
-)
-replace_one(
-    'packages/llm/llm/src/content.ts',
-    '/** True when content contains a document whose complete Markdown is stored durably. */\nexport function contentHasParsedDocument(content: readonly ContentBlock[]): boolean {',
-    '/**\n * Test whether typed content contains a durable parsed-document reference.\n * @param content - provider-neutral content blocks, including nested tool results.\n * @returns whether any document carries complete durable parsed Markdown.\n */\nexport function contentHasParsedDocument(content: readonly ContentBlock[]): boolean {',
-)
-replace_one(
-    'packages/llm/llm/src/content.ts',
-    ' * while this provider request is assembled. A fresh mutable message array is\n * returned because provider GenerateOptions owns a mutable request snapshot.\n */\nexport async function projectRequestDocumentsWithAttachments(',
-    ' * while this provider request is assembled. A fresh mutable message array is\n * returned because provider GenerateOptions owns a mutable request snapshot.\n * @param messages - durable provider-neutral messages in request order.\n * @param attachments - durable resolver for parser Markdown references.\n * @param signal - optional cancellation for attachment reads.\n * @returns a mutable transient request snapshot with every document projected to text.\n */\nexport async function projectRequestDocumentsWithAttachments(',
-)
-
-# Catalog ownership and type links.
-replace_one(
-    'scripts/gen-cordis-catalog.ts',
-    "  attachments: 'attachment.md',\n  shell: 'shell.md',",
-    "  attachments: 'attachment.md',\n  documentParser: 'attachment.md',\n  shell: 'shell.md',",
-)
-replace_one(
-    'scripts/gen-cordis-catalog.ts',
-    "  EncodedImageAttachment: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',",
-    "  EncodedImageAttachment: 'attachment.md',\n  FileAttachmentRef: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveFileAttachment: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredFileAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',\n  DocumentParserProvider: 'attachment.md',\n  DocumentParseRequest: 'attachment.md',\n  DocumentParseResult: 'attachment.md',",
-)
-
-# Capability graph role classification.
-attachments_role = """  {
-    key: 'attachments',
-    pkg: 'attachment',
-    title: 'Durable binary attachment storage',
-    mode: 'seam',
-    implementations: ['attachment-local'],
-    consumers: ['host-runtime', 'llm-pi-ai'],
-    note: 'The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content.',
-  },
-"""
-parser_role = attachments_role + """  {
-    key: 'documentParser',
-    pkg: 'document-parser',
-    title: 'External document parser registry',
-    mode: 'seam',
-    implementations: ['document-parser-mineru'],
-    consumers: ['apiproxy'],
-    note: 'Parser providers convert already-durable document originals into transient final artifacts; Host admission persists those artifacts and owns the aggregate direct-context budget before publishing the user message.',
-  },
-"""
-replace_one('scripts/gen-doc-graphs.ts', attachments_role, parser_role)
-
-# Model Experience short-form audit for indirect packages.
-replace_one(
-    'scripts/verify-package-readme-model-experience.ts',
-    "  'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The local backend delegates model request rendering to provider adapters.' },",
-    "  'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The local backend delegates model request rendering to provider adapters.' },\n  'packages/attachment/document-parser': { kind: 'indirect', reason: 'The parser seam supplies durable parser outputs; Host admission and LLM projection own model rendering.' },\n  'packages/attachment/document-parser-mineru': { kind: 'indirect', reason: 'The MinerU backend supplies parser output bytes; the parser seam, Host admission, and LLM projection own model rendering.' },",
-)
-replace_one(
-    'packages/attachment/document-parser/README.md',
-    'Indirectly through Host document admission and LLM request projection. Accepted parsed documents reach text-capable providers as complete UTF-8 Markdown between explicit document delimiters; session history retains only the originals and parser-artifact references. A submitted document batch whose aggregate parsed Markdown exceeds the configured direct-context budget is rejected rather than truncated.',
-    'Indirectly, through Host document admission and LLM request projection.',
-)
-replace_one(
-    'packages/attachment/document-parser-mineru/README.md',
-    "Indirectly through the document parser seam. MinerU's complete Markdown is the version-one provider-neutral representation sent to text-capable models after durable resolution. `content_list` and extracted images remain durable for later block/page/search tooling but are not automatically injected into every model request.",
-    'Indirectly, through the document-parser seam and Host-owned durable Markdown projection.',
-)
-
-# Translation pairing requires identical link destinations and literal fenced blocks.
-replace_one(
-    'packages/attachment/document-parser/README.zh.md',
-    '[`@deepseek-ai/dsh-attachment`](../attachment/README.zh.md)',
-    '[`@deepseek-ai/dsh-attachment`](../attachment/README.md)',
-)
-replace_one(
-    'packages/attachment/document-parser-mineru/README.zh.md',
-    '[`documentParser`](../document-parser/README.zh.md)',
-    '[`documentParser`](../document-parser/README.md)',
-)
-zh_block = """```text
-校验文档批次
-  -> 持久化原始文档字节
-  -> 读取已持久化原文件
-  -> 通过 ctx.documentParser 逐个解析
-  -> 校验并持久化 Markdown/content_list/提取图像
-  -> 检查本次提交的完整 Markdown 合计字节预算
-  -> 构建携带持久解析引用的 DocumentBlock
-  -> 追加/排队用户消息
-```"""
-en_block = """```text
-validate document batch
-  -> persist original document bytes
-  -> read the persisted originals
-  -> parse each document through ctx.documentParser
-  -> validate and persist Markdown/content_list/extracted images
-  -> check aggregate complete Markdown byte budget for the submitted message
-  -> build DocumentBlock values carrying durable parsed refs
-  -> append/queue the user message
-```"""
-replace_one(
-    '.agents/notes/implemented/feature/2026-08-24-mineru-document-parsing.zh.md',
-    zh_block,
-    en_block,
-)
-
-# Inherited #82 contextual type-equiv source fixes.
-replace_one(
-    'docs/subsystems/llm-streaming.md',
-    'interface LlmModelContext {\n  /** Maximum combined request and response context, when disclosed. */\n  contextWindow: number\n}',
-    'interface LlmModelContext {\n  /** Maximum combined request and response context in tokens. */\n  contextWindow: number\n}',
-)
-replace_one(
-    'docs/subsystems/llm-streaming.zh.md',
-    'interface LlmModelInfo {\n  /** Provider route that owns this model entry. */\n  provider: string\n  /** Model id passed to {@link GenerateOptions.model}. */\n  id: string\n  /** Human-readable model name for selectors and diagnostics. */\n  name: string',
-    'interface LlmModelInfo {\n  /** Provider route that owns this model entry. */\n  provider: string\n  /** Model id passed to {@link GenerateOptions.model}. */\n  id: string\n  /** Human-readable model name for selectors. */\n  name: string',
-)
+for paired_path in (
+    'docs/capability-seams.md',
+    'docs/config-catalog.md',
+    'docs/module-graph.md',
+):
+    run_checked('pnpm', 'run', 'verify-translation-pairing', '--write', paired_path)
