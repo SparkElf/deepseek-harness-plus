@@ -57,6 +57,7 @@ jobs:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: node .github/issue-management/policy.mjs lifecycle
 
+  # Second synchronize commit intentionally triggers this temporary PR-only job.
   fix-pr84-static-and-generated:
     name: Fix PR84 static and generated artifacts
     if: >-
@@ -101,14 +102,11 @@ jobs:
                   raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
               p.write_text(text.replace(old, new, 1))
 
-          # Build failure shared by snapshots, Node 22, Wine, and release-shaped exe.
           replace_one(
               'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
               'const parse = options.parse ?? (data => Promise.resolve({',
               'const parse = options.parse ?? (() => Promise.resolve({',
           )
-
-          # Export JSDoc completeness.
           replace_one(
               'packages/attachment/document-parser-mineru/src/provider.ts',
               '/** Select exactly one v1 Markdown and content-list output plus every extracted raster image. */\nexport function parseArchive(entries: Readonly<Record<string, Uint8Array>>): DocumentParseResult {',
@@ -129,8 +127,6 @@ jobs:
               ' * while this provider request is assembled. A fresh mutable message array is\n * returned because provider GenerateOptions owns a mutable request snapshot.\n */\nexport async function projectRequestDocumentsWithAttachments(',
               ' * while this provider request is assembled. A fresh mutable message array is\n * returned because provider GenerateOptions owns a mutable request snapshot.\n * @param messages - durable provider-neutral messages in request order.\n * @param attachments - durable resolver for parser Markdown references.\n * @param signal - optional cancellation for attachment reads.\n * @returns a mutable transient request snapshot with every document projected to text.\n */\nexport async function projectRequestDocumentsWithAttachments(',
           )
-
-          # Cordis subsystem ownership and type-link coverage.
           replace_one(
               'scripts/gen-cordis-catalog.ts',
               "  attachments: 'attachment.md',\n  shell: 'shell.md',",
@@ -141,8 +137,6 @@ jobs:
               "  EncodedImageAttachment: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',",
               "  EncodedImageAttachment: 'attachment.md',\n  FileAttachmentRef: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveFileAttachment: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredFileAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',\n  DocumentParserProvider: 'attachment.md',\n  DocumentParseRequest: 'attachment.md',\n  DocumentParseResult: 'attachment.md',",
           )
-
-          # These two packages are indirect model-context producers, like the attachment storage packages.
           replace_one(
               'scripts/verify-package-readme-model-experience.ts',
               "  'packages/attachment/attachment-local': { kind: 'indirect', reason: 'The local backend delegates model request rendering to provider adapters.' },",
@@ -158,8 +152,6 @@ jobs:
               "Indirectly through the document parser seam. MinerU's complete Markdown is the version-one provider-neutral representation sent to text-capable models after durable resolution. `content_list` and extracted images remain durable for later block/page/search tooling but are not automatically injected into every model request.",
               'Indirectly, through the document-parser seam and Host-owned durable Markdown projection.',
           )
-
-          # Translation pairing: link destinations and literal fenced blocks must match.
           replace_one(
               'packages/attachment/document-parser/README.zh.md',
               '[`@deepseek-ai/dsh-attachment`](../attachment/README.zh.md)',
@@ -195,8 +187,6 @@ validate document batch
               zh_block,
               en_block,
           )
-
-          # Inherited #82 type-equiv source fixes: change only the contextual occurrences.
           replace_one(
               'docs/subsystems/llm-streaming.md',
               '''interface LlmModelContext {
