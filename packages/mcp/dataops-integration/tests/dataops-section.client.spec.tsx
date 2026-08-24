@@ -7,8 +7,6 @@ import { en } from '../src/client/locales.ts'
 const t: DataOpsSectionInjected['t'] = key => en[key]
 
 const connectedStatus = {
-  baseUrl: 'https://dataops.example.com',
-  serverName: 'dataops',
   mode: 'oidc' as const,
   credentialConfigured: true,
   credentialWritable: true,
@@ -26,7 +24,7 @@ afterEach(() => {
 })
 
 describe('DataOps settings section', () => {
-  it('leads with connection and account identity while keeping transport details collapsed', async () => {
+  it('shows connection state, account identity, and account actions', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => connectedStatus,
@@ -35,24 +33,15 @@ describe('DataOps settings section', () => {
 
     render(<DataOpsSection t={t} />)
 
-    expect(screen.getByText('Use a DataOps account for permission-controlled data access.')).not.toBeNull()
     expect((await screen.findByText('Connected')).textContent).toBe('Connected')
     expect(screen.getByText('Alice Example')).not.toBeNull()
     expect(screen.getByText('alice@example.com')).not.toBeNull()
-    expect(screen.getByText('alice')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Switch account' })).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Disconnect' })).not.toBeNull()
-
-    const advancedSummary = screen.getByText('Advanced connection details')
-    const advanced = advancedSummary.closest('details') as HTMLDetailsElement | null
-    expect(advanced).not.toBeNull()
-    expect(advanced?.open).toBe(false)
-    expect(advanced?.textContent).toContain('https://dataops.example.com')
-    expect(advanced?.textContent).toContain('DataOps account authorization')
     expect(fetchMock).toHaveBeenCalledWith('/integrations/dataops/status', { cache: 'no-store' })
   })
 
-  it('offers the user-facing connect action without repeating a second explanatory status sentence', async () => {
+  it('offers the connect action when DataOps is not connected', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -70,7 +59,25 @@ describe('DataOps settings section', () => {
     expect(screen.queryByText('Alice Example')).toBeNull()
   })
 
-  it('keeps an unavailable state and retry action when the initial status read fails', async () => {
+  it('shows a short managed state without account actions when credentials are externally managed', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        ...connectedStatus,
+        credentialWritable: false,
+        authorizationAccepted: false,
+        account: null,
+      }),
+    } as Response))
+
+    render(<DataOpsSection t={t} />)
+
+    expect((await screen.findByText('Managed by administrator')).textContent).toBe('Managed by administrator')
+    expect(screen.queryByRole('button', { name: 'Connect DataOps' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Disconnect' })).toBeNull()
+  })
+
+  it('keeps a failure state and retry action when the initial status read fails', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: false } as Response)
       .mockResolvedValueOnce({
@@ -81,8 +88,7 @@ describe('DataOps settings section', () => {
 
     render(<DataOpsSection t={t} />)
 
-    expect((await screen.findByText('Status unavailable')).textContent).toBe('Status unavailable')
-    expect(screen.getByRole('alert').textContent).toBe('Unable to read DataOps connection status.')
+    expect((await screen.findByRole('alert')).textContent).toBe('Connection failed')
     expect(screen.queryByText('Not connected')).toBeNull()
     const retry = screen.getByRole('button', { name: 'Retry' })
     expect(retry).not.toBeNull()
