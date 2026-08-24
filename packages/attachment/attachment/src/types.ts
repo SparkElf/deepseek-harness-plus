@@ -55,7 +55,7 @@ export interface ParsedDocumentRef {
   /** Complete parser structural block list retained for future document tools. */
   contentList: FileAttachmentRef
   /** Extracted raster images in parser output order. */
-  images: readonly ImageAttachmentRef[]
+  images: ImageAttachmentRef[]
 }
 
 /** Durable metadata for one supported user-authored document. */
