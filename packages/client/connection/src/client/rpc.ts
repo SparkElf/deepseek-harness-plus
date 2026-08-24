@@ -7,8 +7,8 @@ import {
 } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { ClientConnectionRpc } from '../rpc.ts'
 import { randomUuid } from './random-uuid.ts'
+import { resolveWebUrl } from './web-base.ts'
 
-const INTERNAL_BASE = 'http://dsh.internal/'
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
 const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 
@@ -28,7 +28,7 @@ export function createWebConnectionRpc(): ClientConnectionRpc {
         payload,
       }
       const response = await globalThis.fetch(
-        new URL(`${channel}/${endpoint}`.replace(/^\//u, ''), resolveBase()),
+        resolveWebUrl(`${channel}/${endpoint}`),
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -46,12 +46,6 @@ export function createWebConnectionRpc(): ClientConnectionRpc {
       return full.result
     },
   }
-}
-
-function resolveBase(): string {
-  if (typeof document !== 'undefined') return document.baseURI
-  const location = (globalThis as { location?: { origin?: string } }).location
-  return location?.origin !== undefined && location.origin !== 'null' ? `${location.origin}/` : INTERNAL_BASE
 }
 
 function assertTarget(channel: string, endpoint: string): void {
