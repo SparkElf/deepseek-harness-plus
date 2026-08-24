@@ -121,6 +121,16 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts')
+          text = path.read_text()
+          needle = '    expect(response.result.ok).toBe(true)'
+          replacement = "    console.error('PR84_RESPONSE', JSON.stringify(response.result))\n" + needle
+          if text.count(needle) != 1:
+              raise SystemExit(f'expected one response assertion, found {text.count(needle)}')
+          path.write_text(text.replace(needle, replacement, 1))
+          PY
           pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts \
             -t 'persists parser outputs and appends only durable parsed references' \
             2>&1 | tee /tmp/pr84-host-persist.log
