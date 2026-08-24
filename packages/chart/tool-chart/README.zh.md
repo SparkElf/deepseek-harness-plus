@@ -2,7 +2,9 @@
 
 [English](README.md) | 中文
 
-Agent plane 的产品插件，负责暴露 `render_chart`。它有意是展示工具而不是查询引擎：Harness 从一个 chart-ready 结果准备完整、可 JSON 序列化的 ECharts option，必要时使用 Code Mode，然后调用可见的顶层工具。浏览器渲染由独立的 [`@deepseek-ai/dsh-client-ui-chart`](../../client/ui-chart/README.zh.md) 负责，与 shipped agent preset 和 Web boot 的真实生命周期保持一致。
+Agent plane 的产品插件，负责暴露 `render_chart`。它有意是展示工具而不是查询引擎：Harness 从一个 chart-ready 结果准备完整、可 JSON 序列化的 ECharts option，必要时使用 Code Mode，然后调用可见的顶层工具。浏览器渲染由独立的 [`@deepseek-ai/dsh-client-ui-chart`](../../client/ui-chart/README.zh.md) 负责。
+
+这个包是 opt-in，不会由 shipped default agent preset 自动挂载。需要 `render_chart` 的 deployment 在目标 agent preset 中显式加入它；如果 Web UI 还要显示交互式图表，则再独立组合 browser renderer。
 
 ## API
 
