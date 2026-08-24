@@ -38,10 +38,10 @@ describe('mcp-dataops client apply', () => {
     expect(entries[0]!.options).toMatchObject({ id: 'dataops', order: 25 })
     expect(resolveSlotLabel(entries[0]!.options.label)).toBe('DataOps')
 
-    const injected = entries[0]!.inject as unknown as () => { t: (key: 'intro') => string }
-    expect(injected().t('intro')).toContain('Harness')
+    const injected = entries[0]!.inject as unknown as () => { t: (key: 'connected') => string }
+    expect(injected().t('connected')).toBe('已连接')
     b.locale.setLocale('en')
-    expect(injected().t('intro')).toContain('Connect Harness to DataOps')
+    expect(injected().t('connected')).toBe('Connected')
 
     await fiber.dispose()
     expect(b.slots.entries('settings.section')).toHaveLength(0)
