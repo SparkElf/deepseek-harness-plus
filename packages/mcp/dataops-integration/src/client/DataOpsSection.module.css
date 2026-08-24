@@ -1,8 +1,8 @@
 .section {
   display: flex;
+  max-width: 720px;
   flex-direction: column;
   gap: 12px;
-  max-width: 720px;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -13,9 +13,13 @@
   font-weight: 500;
 }
 
-.intro,
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 .detail,
-.security,
 .confirmCopy {
   margin: 0;
   color: var(--dsw-alias-label-tertiary);
@@ -23,18 +27,7 @@
   line-height: 22px;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  margin-top: 8px;
-  padding: 16px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 12px;
-}
-
 .statusRow,
-.field,
 .accountRow,
 .actions,
 .confirmActions {
@@ -43,8 +36,8 @@
 }
 
 .statusRow {
-  gap: 8px;
   min-height: 24px;
+  gap: 8px;
 }
 
 .statusLabel {
@@ -52,28 +45,6 @@
   font-size: 14px;
   line-height: 22px;
   font-weight: 500;
-}
-
-.field {
-  gap: 12px;
-  min-height: 32px;
-}
-
-.fieldLabel {
-  flex: 0 0 124px;
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.fieldValue {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--dsw-alias-label-primary);
-  font-size: 13px;
-  line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .accountRow {
@@ -85,9 +56,9 @@
 
 .avatar {
   display: grid;
-  flex: 0 0 40px;
   width: 40px;
   height: 40px;
+  flex: 0 0 40px;
   place-items: center;
   border-radius: 50%;
   background: var(--dsw-alias-interactive-bg-hover-solid);
@@ -121,16 +92,6 @@
   white-space: nowrap;
 }
 
-.accountUsername {
-  color: var(--dsw-alias-label-quaternary, var(--dsw-alias-label-tertiary)) !important;
-}
-
-.security {
-  padding-top: 2px;
-  font-size: 12px;
-  line-height: 18px;
-}
-
 .actions,
 .confirmActions {
   flex-wrap: wrap;
@@ -161,38 +122,7 @@
   line-height: 18px;
 }
 
-.advanced {
-  border-top: 1px solid var(--dsw-alias-border-l2);
-  padding-top: 10px;
-}
-
-.advanced summary {
-  width: fit-content;
-  cursor: pointer;
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 20px;
-  user-select: none;
-}
-
-.advancedBody {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-top: 8px;
-}
-
 @media (max-width: 560px) {
-  .field {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .fieldLabel {
-    flex-basis: auto;
-  }
-
   .actions > button,
   .confirmActions > button {
     flex: 1 1 auto;
