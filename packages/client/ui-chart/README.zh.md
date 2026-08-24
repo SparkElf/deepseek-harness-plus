@@ -4,6 +4,8 @@
 
 仅浏览器使用的 `render_chart` 结果展示插件。Host 工具位于 [`@deepseek-ai/dsh-tool-chart`](../../chart/tool-chart/README.zh.md)；本包只负责 Web keyed tool view 与 ECharts 生命周期，与 browser boot plane 保持一致。
 
+这个 renderer 是 opt-in，不会由默认 Web browser roster 自动挂载。启用 `dsh-tool-chart` 的 deployment 如果希望持久图表结果显示成交互式 ECharts，而不是 generic tool presentation，需要再显式组合这个 browser plugin。
+
 ## API 与扩展点
 
 `./client` 入口在现有 keyed `tool.call.toolview` slot 下以 `render_chart` 作为 key 注册本地化组件。它读取 version 1 的持久 `tool/result.meta`，并从其中保存的 JSON option 初始化 ECharts。
