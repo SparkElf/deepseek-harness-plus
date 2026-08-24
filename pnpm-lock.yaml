@@ -255,9 +255,6 @@ importers:
       '@deepseek-ai/dsh-tool-bash-persistent':
         specifier: workspace:^
         version: link:../../packages/shell/tool-bash-persistent
-      '@deepseek-ai/dsh-tool-chart':
-        specifier: workspace:^
-        version: link:../../packages/chart/tool-chart
       '@deepseek-ai/dsh-tool-cordis':
         specifier: workspace:^
         version: link:../../packages/extensions/tool-cordis
@@ -1336,9 +1333,6 @@ importers:
       '@deepseek-ai/dsh-client-ui-brand-official':
         specifier: workspace:^
         version: link:../../client/ui-brand-official
-      '@deepseek-ai/dsh-client-ui-chart':
-        specifier: workspace:^
-        version: link:../../client/ui-chart
       '@deepseek-ai/dsh-client-ui-commands':
         specifier: workspace:^
         version: link:../../client/ui-commands
