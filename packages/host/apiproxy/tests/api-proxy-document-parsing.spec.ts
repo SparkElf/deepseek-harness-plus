@@ -9,8 +9,8 @@ import {
   type ImageAttachmentRef,
   type SaveFileAttachment,
 } from '@deepseek-ai/dsh-attachment'
-import LlmRuntime from '@deepseek-ai/dsh-llm'
-import type { UserMessage } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { LlmAdapter } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, StreamChunk, UserMessage } from '@deepseek-ai/dsh-llm'
 import { DocumentParserError } from '@deepseek-ai/dsh-document-parser'
 import SessionStore from '@deepseek-ai/dsh-session'
 import type { SessionId } from '@deepseek-ai/dsh-session'
@@ -23,6 +23,13 @@ import { createApiProxy } from '../src/api-proxy.ts'
 let nextRpc = 1
 function request<P>(payload: P): RpcRequest<P> {
   return { rpcId: RpcId(`document-parse-${String(nextRpc++)}`), payload }
+}
+
+/** Model-resolution stub: prompt admission resolves the route but this harness never streams. */
+class DocumentAdmissionAdapter extends LlmAdapter {
+  override async *stream(_options: GenerateOptions): AsyncIterable<StreamChunk> {
+    throw new Error('document parsing admission never streams')
+  }
 }
 
 interface Harness {
@@ -48,6 +55,7 @@ async function harness(options: {
   await ctx.plugin(LlmRuntime)
   await ctx.plugin(UserQuestionService)
   await ctx.plugin(AgentRegistry)
+  ctx.llm.registerAdapter(['deepseek-official'], new DocumentAdmissionAdapter())
 
   let nextAttachment = 1
   const files = new Map<string, { ref: FileAttachmentRef; data: Uint8Array }>()
