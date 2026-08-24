@@ -1,9 +1,10 @@
 name: Temporary chart lockfile generator
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/interactive-chart-rendering
+      - master
+      - docs/resultref-interactive-chart-design
 
 permissions:
   contents: read
