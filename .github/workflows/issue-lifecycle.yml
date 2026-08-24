@@ -108,18 +108,22 @@ jobs:
           rm .github/pr84-static-fix.py
       - name: Build corrected tree
         run: pnpm run build
-      - name: Run focused document tests
-        shell: bash
-        run: |
-          pnpm exec vitest run \
-            packages/attachment/document-parser/tests/runtime.spec.ts \
-            packages/attachment/document-parser-mineru/tests/provider.spec.ts \
-            packages/attachment/document-parser-mineru/tests/transport.spec.ts \
-            packages/attachment/document-parser-mineru/tests/loader-composition.spec.ts \
-            packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts \
-            packages/llm/llm/tests/parsed-document-content.spec.ts \
-            packages/llm/llm-deepseek/tests/parsed-document-adapter.spec.ts \
-            packages/llm/llm-pi-ai/tests/parsed-document-adapter.spec.ts
+      - name: Test document parser runtime
+        run: pnpm exec vitest run packages/attachment/document-parser/tests/runtime.spec.ts
+      - name: Test MinerU provider
+        run: pnpm exec vitest run packages/attachment/document-parser-mineru/tests/provider.spec.ts
+      - name: Test MinerU transport
+        run: pnpm exec vitest run packages/attachment/document-parser-mineru/tests/transport.spec.ts
+      - name: Test MinerU loader composition
+        run: pnpm exec vitest run packages/attachment/document-parser-mineru/tests/loader-composition.spec.ts
+      - name: Test Host document parsing admission
+        run: pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts
+      - name: Test LLM parsed-document projection
+        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts
+      - name: Test DeepSeek parsed-document adapter
+        run: pnpm exec vitest run packages/llm/llm-deepseek/tests/parsed-document-adapter.spec.ts
+      - name: Test pi-ai parsed-document adapter
+        run: pnpm exec vitest run packages/llm/llm-pi-ai/tests/parsed-document-adapter.spec.ts
       - name: Validate static repository gates
         run: pnpm run check:ci:static
       - name: Commit verified generated tree
