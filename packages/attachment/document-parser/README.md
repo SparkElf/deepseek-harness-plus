@@ -9,7 +9,7 @@ Provider-neutral external document parsing capability for DeepSeek Harness. This
 | Key | Default | Meaning |
 |---|---|---|
 | `provider` | auto-select | Parser provider id. When omitted, exactly one usable registered provider must exist. |
-| `maxDirectMarkdownBytes` | required | Positive safe-integer byte limit for one document's complete parsed Markdown before its user event can be accepted. |
+| `maxDirectMarkdownBytes` | required | Positive safe-integer bound on the aggregate complete parsed Markdown bytes of all documents in one submitted message. |
 
 ```yaml
 - id: document-parser
@@ -23,13 +23,13 @@ Provider selection is registration-order independent. A configured missing/unava
 
 ## Lifecycle
 
-The Host persists the admitted original document first, calls `ctx.documentParser.parse(...)`, persists the parser bundle through the existing attachment store, and only then appends the owning user message. `maxDirectMarkdownBytes` is checked against the complete Markdown artifact before that event is appended. Parser failures can therefore leave unreachable immutable attachment objects, but cannot leave a durable user message whose model-visible contents cannot be reconstructed.
+The Host persists every admitted original document first, calls `ctx.documentParser.parse(...)` for each document, persists each parser bundle through the existing attachment store, and only then appends the owning user message. `maxDirectMarkdownBytes` is checked against the aggregate complete Markdown bytes across that submitted document batch before the event is appended. Parser failures can therefore leave unreachable immutable attachment objects, but cannot leave a durable user message whose model-visible contents cannot be reconstructed.
 
 The parser result is transient bytes: complete Markdown, complete `content_list` JSON, and zero or more extracted raster images. Durable session state records only attachment references created by the Host.
 
 ## Model Experience
 
-Indirectly through Host document admission and LLM request projection. An accepted parsed document reaches text-capable providers as the complete UTF-8 Markdown between explicit document delimiters; session history retains only the original document and parser-artifact references. Documents over the configured direct-context budget are rejected rather than truncated.
+Indirectly through Host document admission and LLM request projection. Accepted parsed documents reach text-capable providers as complete UTF-8 Markdown between explicit document delimiters; session history retains only the originals and parser-artifact references. A submitted document batch whose aggregate parsed Markdown exceeds the configured direct-context budget is rejected rather than truncated.
 
 #### KV Cache effect
 
