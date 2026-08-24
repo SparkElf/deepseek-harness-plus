@@ -17,24 +17,34 @@ import { MessageIconActions } from './MessageIconActions.tsx'
 import css from './MessageItem.module.css'
 
 type UserImage = Extract<UserMessageNode['content'][number], { type: 'image' }>
+type UserDocument = Extract<UserMessageNode['content'][number], { type: 'document' }>
 
 function contentParts(content: readonly unknown[]): {
   text: string
   images: { attachment: UserImage['attachment'] }[]
+  documents: { attachment: UserDocument['attachment'] }[]
   rest: unknown[]
 } {
   const texts: string[] = []
   const images: { attachment: UserImage['attachment'] }[] = []
+  const documents: { attachment: UserDocument['attachment'] }[] = []
   const rest: unknown[] = []
   for (const block of content) {
     const b = block as { type?: string; text?: string; attachment?: unknown }
     if (b.type === 'text' && typeof b.text === 'string') texts.push(b.text)
     else if (b.type === 'image' && b.attachment !== undefined) {
       images.push({ attachment: (b as UserImage).attachment })
-    }
-    else rest.push(block)
+    } else if (b.type === 'document' && b.attachment !== undefined) {
+      documents.push({ attachment: (b as UserDocument).attachment })
+    } else rest.push(block)
   }
-  return { text: texts.join(''), images, rest }
+  return { text: texts.join(''), images, documents, rest }
+}
+
+function documentSize(bytes: number): string {
+  if (bytes < 1024) return `${String(bytes)} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`
 }
 
 function retrySeconds(milliseconds: number): number {
@@ -212,6 +222,29 @@ function projectUserText(text: string, sessionLabels: readonly string[]): ReactN
   return <>{parts}</>
 }
 
+/** Compact durable-document cards rendered from session-owned metadata only. */
+function DocumentChips({ documents, t }: {
+  documents: readonly { attachment: UserDocument['attachment'] }[]
+  t: ChatViewSlotProps['t']
+}): ReactNode {
+  if (documents.length === 0) return null
+  return (
+    <div>
+      {documents.map(({ attachment }) => (
+        <span
+          key={String(attachment.attachmentId)}
+          className={css.refChip}
+          data-ref-chip="file"
+          title={`${attachment.mediaType} · ${documentSize(attachment.bytes)}`}
+        >
+          <ReferenceIcon kind="file" size={16} className={css.refIcon} />
+          {attachment.name || t('document.label')}
+        </span>
+      ))}
+    </div>
+  )
+}
+
 /** Right-aligned bubble shared by user and steering rows. */
 function UserStyleBubble({
   content, renderMessageImages, actions, pending = false, referenceLabels = [], t,
@@ -226,14 +259,15 @@ function UserStyleBubble({
   referenceLabels?: readonly string[]
   t: ChatViewSlotProps['t']
 }): ReactNode {
-  const { text, images, rest } = contentParts(content)
+  const { text, images, documents, rest } = contentParts(content)
   const truncated = (total: number): string => t('json.truncated', { total })
-  const showBubble = text !== '' || rest.length > 0
+  const showBubble = text !== '' || documents.length > 0 || rest.length > 0
   return (
     <div className={css.userRow} data-pending-steering={pending || undefined} data-time-hover-root>
       <div className={css.userStack}>
         {renderMessageImages({ images, align: 'end' })}
         {showBubble && <div className={css.bubble}>
+          <DocumentChips documents={documents} t={t} />
           {projectUserText(text, referenceLabels)}
           {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
         </div>}
