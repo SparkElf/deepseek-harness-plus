@@ -39,7 +39,7 @@ export function chartPresentationMeta(args: RenderChartArgs, value: RenderChartR
 export function apply(ctx: Context): void {
   ctx.tools.register(defineTool({
     name: 'render_chart',
-    description: 'Render one interactive chart from a JSON-serializable ECharts option prepared from exactly one chart-ready resultRef. The option must include all chart data required for durable replay. Use DataOps SQL to produce the right business granularity; Code Mode may perform visualization-oriented mapping, reshape, derived statistics, and annotation before this call.',
+    description: 'Render one interactive chart from a complete JSON-serializable ECharts option prepared from exactly one chart-ready resultRef. If execute_sql returned only a preview and that preview has more rows, read the result pages needed for the complete chart before building the option. The option must contain all chart data required for durable replay. Use DataOps SQL to produce the right business granularity; Code Mode may perform visualization-oriented mapping, reshape, derived statistics, and annotation before this call.',
     parameters: {
       sourceResultRef: {
         type: 'string',
@@ -50,7 +50,7 @@ export function apply(ctx: Context): void {
         type: 'object',
         additionalProperties: true,
         required: true,
-        description: 'Complete JSON-serializable ECharts option. Include the dataset/series data needed to render the chart again from session history.',
+        description: 'Complete JSON-serializable ECharts option. Include every result row required by the intended chart, not merely an incomplete query preview, plus the dataset/series data needed to render the chart again from session history.',
       },
       title: {
         type: 'string',
