@@ -1,8 +1,8 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { AttachmentError, AttachmentId } from '@deepseek-ai/dsh-attachment'
+import { AttachmentId } from '@deepseek-ai/dsh-attachment'
 import { readFileObject, saveFileObject } from '../src/store.ts'
 
 const roots: string[] = []
@@ -48,7 +48,7 @@ describe('generic attachment objects', () => {
     const object = join(storage, 'objects', sha.slice(0, 2), sha)
     await writeFile(object, 'changed')
 
-    await expect(readFileObject(storage, ref)).rejects.toMatchObject<Partial<AttachmentError>>({
+    await expect(readFileObject(storage, ref)).rejects.toMatchObject({
       code: 'ATTACHMENT_CORRUPT',
     })
   })
@@ -61,7 +61,7 @@ describe('generic attachment objects', () => {
       bytes: 0,
     }
 
-    await expect(readFileObject(storage, ref)).rejects.toMatchObject<Partial<AttachmentError>>({
+    await expect(readFileObject(storage, ref)).rejects.toMatchObject({
       code: 'INVALID_ATTACHMENT_REF',
     })
   })
