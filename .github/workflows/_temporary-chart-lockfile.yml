@@ -3,24 +3,32 @@ name: Temporary chart lockfile generator
 on:
   pull_request:
     branches:
-      - master
       - docs/resultref-interactive-chart-design
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   generate:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: feat/interactive-chart-rendering
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: corepack enable
       - run: pnpm install --lockfile-only --no-frozen-lockfile
-      - uses: actions/upload-artifact@v4
-        with:
-          name: chart-generated-lockfile
-          path: pnpm-lock.yaml
-          if-no-files-found: error
+      - name: Commit generated lockfile
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "lockfile already current"
+            exit 0
+          fi
+          git config user.name "sparkelf-pr-bot[bot]"
+          git config user.email "320089753+sparkelf-pr-bot[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore: regenerate chart lockfile"
+          git push origin HEAD:feat/interactive-chart-rendering
