@@ -1,11 +1,65 @@
 /** Content-block structure helpers. @module @deepseek-ai/dsh-llm/content */
 
-import type { ContentBlock } from './types.ts'
+import type { ContentBlock, DocumentBlock } from './types.ts'
 import type { Message } from './message.ts'
 
 /** Model-facing stand-in for an image removed to fit a provider request bound. */
 export const OFFLOADED_IMAGE_TEXT
   = '[image omitted to keep the request within its image limit; older images are omitted first. If this image is still needed, read its file again when a path is available; otherwise ask the user to attach it again.]'
+
+/**
+ * Truthful generic-model projection for an accepted document before a parser
+ * has produced model-readable content. Generic document intake must never make
+ * a provider silently behave as if the file was read.
+ * @param block - durable original-document block.
+ * @returns explicit provider-neutral text marker.
+ */
+export function unparsedDocumentText(block: DocumentBlock): string {
+  const { name, mediaType } = block.attachment
+  return `[attached document: ${name} (${mediaType}); the document is stored, but its contents have not been parsed and are not available to the model yet.]`
+}
+
+/**
+ * Replace durable document blocks with explicit unparsed markers for a model
+ * request without mutating session history. Nested tool-result content is
+ * projected recursively; every other merge-extensible block is preserved.
+ * The stacked parser feature can replace this generic projection with parsed
+ * Markdown while retaining the same durable original-document block.
+ * @param blocks - durable content blocks.
+ * @returns original array when no document occurs, otherwise a projected copy.
+ */
+export function projectUnparsedDocuments(blocks: readonly ContentBlock[]): ContentBlock[] {
+  let next: ContentBlock[] | undefined
+  for (const [index, block] of blocks.entries()) {
+    if (block.type === 'document') {
+      next ??= blocks.slice(0, index)
+      next.push({ type: 'text', text: unparsedDocumentText(block) })
+      continue
+    }
+    if (block.type === 'tool-result') {
+      const content = projectUnparsedDocuments(block.content)
+      if (content !== block.content) {
+        next ??= blocks.slice(0, index)
+        next.push({ ...block, content })
+        continue
+      }
+    }
+    next?.push(block)
+  }
+  return next ?? blocks as ContentBlock[]
+}
+
+/** Project documents in every request message without changing durable messages. */
+export function projectRequestDocuments(messages: readonly Message[]): readonly Message[] {
+  let changed = false
+  const projected = messages.map((message) => {
+    const content = projectUnparsedDocuments(message.content)
+    if (content === message.content) return message
+    changed = true
+    return { ...message, content }
+  })
+  return changed ? projected : messages
+}
 
 /**
  * True when typed model content contains an image block, walking nested
