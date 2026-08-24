@@ -63,10 +63,12 @@ export class DocumentParserRuntime extends Service {
         'DOCUMENT_PARSER_DUPLICATE_PROVIDER',
       )
     }
+    const providers = this.providers
+    const providerId = provider.id
     const dispose = this.ctx.effect(function* () {
-      this.providers.set(provider.id, provider)
-      yield () => this.providers.delete(provider.id)
-    }.bind(this), 'documentParser.registerProvider()')
+      providers.set(providerId, provider)
+      yield () => providers.delete(providerId)
+    }, 'documentParser.registerProvider()')
     return () => void dispose()
   }
 

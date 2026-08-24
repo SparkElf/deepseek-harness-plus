@@ -9,6 +9,7 @@ import { mkdir, mkdtemp, readFile, rm, stat } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { restoreUserBackup, validateUserBackup, writeUserBackup } from './backup.ts'
+import { parseDocumentRefs } from './document-parsing.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { installModelSelection } from '@deepseek-ai/dsh-agent'
 import type { Agent, ModelSelection, ModelSelectionRef, AgentOptions, AgentStatus } from '@deepseek-ai/dsh-agent'
@@ -224,6 +225,7 @@ async function durablePromptContent(ctx: Context, content: readonly PromptConten
   }
   const imageRefs = await admitEncodedImages(ctx.attachments, content.filter(part => part.type === 'image'))
   const documentRefs = await admitEncodedDocuments(content.filter(part => part.type === 'document'), ctx.attachments)
+  const parsedDocumentRefs = await parseDocumentRefs(ctx, documentRefs)
   let imageIndex = 0
   let documentIndex = 0
   return content.map((part): ContentBlock => {
@@ -233,7 +235,7 @@ async function durablePromptContent(ctx: Context, content: readonly PromptConten
       case 'image':
         return { type: 'image', attachment: imageRefs[imageIndex++] as ImageAttachmentRef }
       case 'document':
-        return { type: 'document', attachment: documentRefs[documentIndex++] as DocumentAttachmentRef }
+        return { type: 'document', attachment: parsedDocumentRefs[documentIndex++] as DocumentAttachmentRef }
     }
   })
 }
