@@ -12,7 +12,7 @@ Status: implemented
 
 已经落地的通用文档层先扩展现有附件能力，再叠加任何解析器集成。PDF、DOCX、PPTX 和 XLSX 原件通过通用 `saveFile` / `readFile` 原语，与图片共用同一套内容寻址对象命名空间。浏览器和 Host 准入会在用户消息可被接受之前持久保存不可变 `DocumentAttachmentRef`，核心内容则通过角色无关的 `DocumentBlock` 记录该引用。
 
-本说明只负责通用基础。更完整的 MinerU 方案仍由 [使用 MinerU 解析的持久文档附件](../../proposed/feature/2026-08-24-mineru-document-attachments.zh.md) 持有；解析、解析产物包以及直接正文投影仍属于后续工作。
+本说明只负责通用基础。更完整的 MinerU 方案仍由 [使用 MinerU 解析的持久文档附件](../../proposed/feature/2026-08-24-mineru-document-attachments.md) 持有；解析、解析产物包以及直接正文投影仍属于后续工作。
 
 ## Admission and storage
 
