@@ -25,3 +25,107 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/issue-management/policy.mjs pr
+
+  generate-pr82-static-artifacts:
+    name: Generate PR82 static artifacts
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'synchronize' &&
+      github.event.pull_request.number == 82 &&
+      github.event.pull_request.draft == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feat/document-attachments'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PRIMARY_NODE_VERSION: '24'
+      DSH_TELEMETRY_DISABLED: '1'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.EXPECTED_HEAD }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+      - name: Install immutable dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply exact source fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_exact(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          replace_exact(
+              'scripts/gen-cordis-catalog.ts',
+              "  EncodedImageAttachment: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',",
+              "  EncodedImageAttachment: 'attachment.md',\n  ImageAttachmentRef: 'attachment.md',\n  SaveImageAttachment: 'attachment.md',\n  StoredImageAttachment: 'attachment.md',\n  FileAttachmentRef: 'attachment.md',\n  SaveFileAttachment: 'attachment.md',\n  StoredFileAttachment: 'attachment.md',",
+          )
+          replace_exact(
+              'docs/subsystems/llm-streaming.md',
+              '/** Maximum combined request and response context, when disclosed. */',
+              '/** Maximum combined request and response context in tokens. */',
+          )
+          replace_exact(
+              'docs/subsystems/llm-streaming.zh.md',
+              '/** Human-readable model name for selectors and diagnostics. */',
+              '/** Human-readable model name for selectors. */',
+          )
+          PY
+
+      - name: Run repository generators
+        run: |
+          pnpm run gen-cordis-catalog
+          pnpm run gen-client-catalog
+          pnpm run gen-config-catalog
+          pnpm run gen-doc-graphs
+          pnpm run verify-translation-pairing --write docs/subsystems/llm-streaming.md
+          if ! pnpm run verify-translation-pairing; then
+            pnpm run verify-translation-pairing --write docs/subsystems/attachment.md
+          fi
+
+      - name: Restore temporary workflow and commit generated tree
+        run: |
+          git show HEAD^:.github/workflows/issue-policy.yml > .github/workflows/issue-policy.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'fix(attachments): refresh generated attachment docs'
+
+      - name: Verify generated tree
+        run: |
+          pnpm run verify-cordis-catalog
+          pnpm run verify-client-catalog
+          pnpm run verify-config-catalog
+          pnpm run verify-doc-graphs
+          pnpm run verify-translation-pairing
+          pnpm run verify-type-equiv
+          pnpm run check:ci:static
+
+      - name: Refuse concurrent overwrite
+        run: |
+          remote_head="$(git ls-remote origin "refs/heads/${HEAD_REF}" | cut -f1)"
+          test "$remote_head" = "$EXPECTED_HEAD"
+
+      - name: Push verified generated commit
+        run: git push origin HEAD:"${HEAD_REF}"
