@@ -3,6 +3,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentError } from './error.ts'
 import type {
+  DocumentAttachmentLimits,
   FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
@@ -13,9 +14,9 @@ import type {
 } from './types.ts'
 
 export { AttachmentId } from './brand.ts'
-export { AttachmentError, isImageAdmissionError } from './error.ts'
-export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
-export { admitEncodedImages } from './admission.ts'
+export { AttachmentError, isDocumentAdmissionError, isImageAdmissionError } from './error.ts'
+export type { AttachmentErrorCode, DocumentAdmissionErrorCode, ImageAdmissionErrorCode } from './error.ts'
+export { admitEncodedDocuments, admitEncodedImages } from './admission.ts'
 export type {
   AttachmentId as AttachmentIdType,
   DocumentAttachmentLimits,
@@ -49,6 +50,9 @@ export abstract class AttachmentStore extends Service {
 
   /** Deployment-resolved image policy used by authoritative and fast-path validation. */
   abstract readonly imageLimits: ImageAttachmentLimits
+
+  /** Deployment-resolved document policy used by authoritative and fast-path validation. */
+  abstract readonly documentLimits: DocumentAttachmentLimits
 
   /**
    * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
