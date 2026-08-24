@@ -23,10 +23,10 @@ declare module './contract/slots.ts' {
 
   interface ComposerBarInjected {
     /** Register supported documents in the browser draft registry. */
-    addDocuments: ((files: readonly File[]) => string | null) | undefined
+    addDocuments?: ((files: readonly File[]) => string | null) | undefined
     /** Release one document from the browser draft registry and input state. */
-    removeDocument: ((id: DraftAttachmentId) => void) | undefined
+    removeDocument?: ((id: DraftAttachmentId) => void) | undefined
     /** Resolve ordered input ids to browser-owned draft documents. */
-    draftDocuments: ((ids: readonly DraftAttachmentId[]) => readonly ComposerDocumentAttachment[]) | undefined
+    draftDocuments?: ((ids: readonly DraftAttachmentId[]) => readonly ComposerDocumentAttachment[]) | undefined
   }
 }
