@@ -68,22 +68,24 @@ export abstract class AttachmentStore extends Service {
   /**
    * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
    * Legacy image-only stores fail loud; document-capable stores override this primitive.
-   * @param _input - immutable bytes plus caller-owned media/display metadata.
+   * @param input - immutable bytes plus caller-owned media/display metadata.
    * @returns a durable content-addressed reference when the store supports generic files.
    */
-  async saveFile(_input: SaveFileAttachment): Promise<FileAttachmentRef> {
+  async saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
+    void input
     throw new AttachmentError('This attachment store does not support generic file persistence.', 'ATTACHMENT_WRITE_FAILED')
   }
 
   /**
    * Read one generic file object and verify that its bytes still match the content-addressed reference.
    * Legacy image-only stores fail loud; document-capable stores override this primitive.
-   * @param _ref - durable generic-file reference to resolve.
+   * @param ref - durable generic-file reference to resolve.
    * @param signal - optional cancellation observed before the unsupported-operation failure.
    * @returns the verified file bytes when the store supports generic files.
    */
-  async readFile(_ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
+  async readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
     signal?.throwIfAborted()
+    void ref
     throw new AttachmentError('This attachment store does not support generic file reads.', 'ATTACHMENT_READ_FAILED')
   }
 
