@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
-import AttachmentStore, {
+import {
   AttachmentId,
   type FileAttachmentRef,
   type ImageAttachmentRef,
@@ -81,25 +81,25 @@ async function harness(options: {
       maxMessageImageBytes: 2048,
       maxImagePixels: 4,
       maxImageDimension: 4,
-      mediaTypes: ['image/png'],
+      mediaTypes: ['image/png'] as const,
     },
     documentLimits: {
       maxDocumentBytes: 1024,
       maxDocumentsPerMessage: 2,
       maxMessageDocumentBytes: 2048,
-      mediaTypes: ['application/pdf'],
+      mediaTypes: ['application/pdf'] as const,
     },
     validateImage: () => Promise.resolve(),
     saveImage,
     saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]) {
-      return AttachmentStore.prototype.saveImages.call(attachments, inputs)
+      return Promise.all(inputs.map(input => saveImage(input)))
     },
     saveFile,
     readFile,
   }
   ctx.provide('attachments', attachments as never)
 
-  const parse = options.parse ?? (data => Promise.resolve({
+  const parse = options.parse ?? (_data => Promise.resolve({
     parser: 'mineru',
     result: {
       markdown: new TextEncoder().encode('# parsed'),
