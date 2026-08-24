@@ -136,7 +136,76 @@ jobs:
         run: pnpm exec vitest run packages/llm/llm-deepseek/tests/parsed-document-adapter.spec.ts
       - name: Test pi-ai parsed-document adapter
         run: pnpm exec vitest run packages/llm/llm-pi-ai/tests/parsed-document-adapter.spec.ts
-      - name: Validate static repository gates
+      - name: Diagnose cordis catalog
+        id: static_cordis
+        continue-on-error: true
+        run: pnpm run verify-cordis-catalog
+      - name: Diagnose client catalog
+        id: static_client
+        continue-on-error: true
+        run: pnpm run verify-client-catalog
+      - name: Diagnose config catalog
+        id: static_config
+        continue-on-error: true
+        run: pnpm run verify-config-catalog
+      - name: Diagnose export JSDoc
+        id: static_jsdoc
+        continue-on-error: true
+        run: pnpm run verify-export-jsdoc
+      - name: Diagnose doc graphs
+        id: static_doc_graphs
+        continue-on-error: true
+        run: pnpm run verify-doc-graphs
+      - name: Diagnose module graph
+        id: static_module_graph
+        continue-on-error: true
+        run: pnpm run verify-module-graph
+      - name: Diagnose README model experience
+        id: static_model_experience
+        continue-on-error: true
+        run: pnpm run verify-package-readme-model-experience
+      - name: Diagnose type equivalence
+        id: static_type_equiv
+        continue-on-error: true
+        run: pnpm run verify-type-equiv
+      - name: Diagnose translation pairing
+        id: static_translation
+        continue-on-error: true
+        run: pnpm run verify-translation-pairing
+      - name: Require diagnostic static gates
+        if: always()
+        shell: bash
+        env:
+          CORDIS: ${{ steps.static_cordis.outcome }}
+          CLIENT: ${{ steps.static_client.outcome }}
+          CONFIG: ${{ steps.static_config.outcome }}
+          JSDOC: ${{ steps.static_jsdoc.outcome }}
+          DOC_GRAPHS: ${{ steps.static_doc_graphs.outcome }}
+          MODULE_GRAPH: ${{ steps.static_module_graph.outcome }}
+          MODEL_EXPERIENCE: ${{ steps.static_model_experience.outcome }}
+          TYPE_EQUIV: ${{ steps.static_type_equiv.outcome }}
+          TRANSLATION: ${{ steps.static_translation.outcome }}
+        run: |
+          printf '%s\n' \
+            "cordis=$CORDIS" \
+            "client=$CLIENT" \
+            "config=$CONFIG" \
+            "jsdoc=$JSDOC" \
+            "doc_graphs=$DOC_GRAPHS" \
+            "module_graph=$MODULE_GRAPH" \
+            "model_experience=$MODEL_EXPERIENCE" \
+            "type_equiv=$TYPE_EQUIV" \
+            "translation=$TRANSLATION"
+          test "$CORDIS" = success
+          test "$CLIENT" = success
+          test "$CONFIG" = success
+          test "$JSDOC" = success
+          test "$DOC_GRAPHS" = success
+          test "$MODULE_GRAPH" = success
+          test "$MODEL_EXPERIENCE" = success
+          test "$TYPE_EQUIV" = success
+          test "$TRANSLATION" = success
+      - name: Validate full static repository gates
         run: pnpm run check:ci:static
       - name: Commit verified generated tree
         shell: bash
