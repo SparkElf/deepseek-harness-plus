@@ -10,12 +10,12 @@ import { attachmentRailLabels, dropOverlayLabels, lightboxLabels } from './label
 import css from './ComposerAttachments.module.css'
 
 /** Rail image retaining its browser-owned attachment for callbacks. */
-interface ComposerImageRailItem extends Extract<AttachmentRailItem, { kind: 'image' }> {
+type ComposerImageRailItem = Extract<AttachmentRailItem, { kind: 'image' }> & {
   attachment: ComposerAttachment
 }
 
 /** Rail document retaining its browser-owned attachment for callbacks. */
-interface ComposerDocumentRailItem extends Extract<AttachmentRailItem, { kind: 'document' }> {
+type ComposerDocumentRailItem = Extract<AttachmentRailItem, { kind: 'document' }> & {
   attachment: ComposerDocumentAttachment
 }
 
