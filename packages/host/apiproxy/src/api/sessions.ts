@@ -5,7 +5,14 @@
  */
 
 import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-import type { AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType } from '@deepseek-ai/dsh-attachment'
+import type {
+  AttachmentIdType,
+  DocumentAttachmentLimits,
+  DocumentMediaType,
+  ImageAttachmentLimits,
+  ImageAttachmentRef,
+  ImageMediaType,
+} from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm/types'
 import type { SessionEvent, SessionId } from '@deepseek-ai/dsh-session/types'
 // The pure-type outlet: api/ is browser-importable, and the package root's
@@ -32,6 +39,11 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
      * composed — clients skip the pre-check and let the host answer.
      */
     imageLimits: ImageAttachmentLimits
+    /**
+     * The deployment's document-intake limits, exposed beside imageLimits so
+     * browser draft admission mirrors the Host's authoritative batch policy.
+     */
+    documentLimits: DocumentAttachmentLimits
   }
 }
 
@@ -83,10 +95,11 @@ export interface SessionProjectionsBlock {
   values: Partial<SessionProjectionMap>
 }
 
-/** Browser-submitted prompt content; the host promotes image bytes to durable references. */
+/** Browser-submitted prompt content; the host promotes temporary bytes to durable references. */
 export type PromptContentPart =
   | { type: 'text'; text: string }
   | { type: 'image'; mediaType: ImageMediaType; data: string; name?: string }
+  | { type: 'document'; mediaType: DocumentMediaType; data: string; name: string }
 
 /** Complete model selection for one session. */
 export interface ModelSelection {
@@ -267,8 +280,8 @@ export interface SessionsApi {
    * `maxMessages`, so a compaction's `compaction/summary` record stays on the page of its replacement. The tail
    * page (beforeSeq absent) additionally carries the in-flight
    * partial — chunk events already emitted for the last unfinalized message.
-   * Each entry pairs the raw SessionEvent with the host-computed view (tool events whose
-   * presenter produced one, evaluated against the registry at pagination time); the client
+   * Each entry pairs the raw SessionEvent with the host-computed render
+   * intent (tool events whose presenter produced one, evaluated against the registry at pagination time); the client
    * rebuilds the surface from the events with the shared fold.
    * The tail page — and only the tail page — additionally carries `projections`
    * when the deployment mounts the session-projection registry: every moment
@@ -337,11 +350,11 @@ export interface SessionsApi {
   Promise<RpcResponse<{ sessionId: SessionId }>>
 
   /**
-   * Sends text and temporary image bytes to an ordinary session Agent after durable host admission.
-   * Browser callers attach their current IANA zone;
-   * the Host validates, canonicalizes, and records it on that exact user message. Omission remains
-   * valid for non-browser callers. Session-backed subagents reject with `agent-busy` and use
-   * `subagent.prompt`.
+   * Sends text plus temporary image/document bytes to an ordinary session
+   * Agent after durable Host admission. Browser callers attach their current
+   * IANA zone; the Host validates, canonicalizes, and records it on that exact
+   * user message. Omission remains valid for non-browser callers.
+   * Session-backed subagents reject with `agent-busy` and use `subagent.prompt`.
    */
   prompt(request: RpcRequest<{
     sessionId: SessionId
