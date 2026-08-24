@@ -25,3 +25,144 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node .github/issue-management/policy.mjs pr
+
+  validate-pr84-mineru-slice:
+    name: Validate PR84 MinerU slice
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'synchronize' &&
+      github.event.pull_request.number == 84 &&
+      github.event.pull_request.draft == true &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'feat/mineru-document-parsing'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      PRIMARY_NODE_VERSION: '24'
+      DSH_TELEMETRY_DISABLED: '1'
+      EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+      HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CLEAN_BASE: 439dd5510a1485cab05705dbf6ddae9497be73ef
+    steps:
+      - name: Check out exact PR head
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: true
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - name: Apply exact integration patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_one(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Host: parse admitted originals and use parsed refs in the durable block.
+          replace_one(
+              'packages/host/apiproxy/src/api-proxy.ts',
+              "import { restoreUserBackup, validateUserBackup, writeUserBackup } from './backup.ts'",
+              "import { restoreUserBackup, validateUserBackup, writeUserBackup } from './backup.ts'\nimport { parseDocumentRefs } from './document-parsing.ts'",
+          )
+          replace_one(
+              'packages/host/apiproxy/src/api-proxy.ts',
+              "  const documentRefs = await admitEncodedDocuments(content.filter(part => part.type === 'document'), ctx.attachments)\n  let imageIndex = 0",
+              "  const documentRefs = await admitEncodedDocuments(content.filter(part => part.type === 'document'), ctx.attachments)\n  const parsedDocumentRefs = await parseDocumentRefs(ctx, documentRefs)\n  let imageIndex = 0",
+          )
+          replace_one(
+              'packages/host/apiproxy/src/api-proxy.ts',
+              "        return { type: 'document', attachment: documentRefs[documentIndex++] as DocumentAttachmentRef }",
+              "        return { type: 'document', attachment: parsedDocumentRefs[documentIndex++] as DocumentAttachmentRef }",
+          )
+
+          # Avoid generator-this typing ambiguity in the provider registry effect.
+          replace_one(
+              'packages/attachment/document-parser/src/index.ts',
+              "    const dispose = this.ctx.effect(function* () {\n      this.providers.set(provider.id, provider)\n      yield () => this.providers.delete(provider.id)\n    }.bind(this), 'documentParser.registerProvider()')",
+              "    const providers = this.providers\n    const providerId = provider.id\n    const dispose = this.ctx.effect(function* () {\n      providers.set(providerId, provider)\n      yield () => providers.delete(providerId)\n    }, 'documentParser.registerProvider()')",
+          )
+
+          # Replace the temporary wrapper/copy tactic with minimal direct adapter edits.
+          deepseek_base = Path('packages/llm/llm-deepseek/src/adapter-base.ts')
+          deepseek = deepseek_base.read_text()
+          old_import = "import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'"
+          new_import = "import { attributionHeaders, contentHasImage, contentHasParsedDocument, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, projectRequestDocumentsWithAttachments, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'"
+          if deepseek.count(old_import) != 1:
+              raise SystemExit('deepseek adapter: expected exact LLM import')
+          deepseek = deepseek.replace(old_import, new_import, 1)
+          marker = "  async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {\n"
+          if deepseek.count(marker) != 1:
+              raise SystemExit('deepseek adapter: expected exact stream marker')
+          block = marker + "    if (options.messages.some(message => contentHasParsedDocument(message.content))) {\n      const attachments = this.config.resolveAttachments?.()\n      if (attachments === undefined) {\n        throw new LlmError(\n          'DeepSeek parsed-document conversion requires the durable attachment service.',\n          'UNSUPPORTED_CONTENT',\n        )\n      }\n      const messages = await projectRequestDocumentsWithAttachments(options.messages, attachments, options.signal)\n      yield* this.stream({ ...options, messages })\n      return\n    }\n"
+          Path('packages/llm/llm-deepseek/src/adapter.ts').write_text(deepseek.replace(marker, block, 1))
+          deepseek_base.unlink()
+
+          piai_base = Path('packages/llm/llm-pi-ai/src/adapter-base.ts')
+          piai = piai_base.read_text()
+          piai_import = "  attributionHeaders,\n  contentHasImage,\n  LlmAdapter,"
+          piai_import_new = "  attributionHeaders,\n  contentHasImage,\n  contentHasParsedDocument,\n  LlmAdapter,\n  projectRequestDocumentsWithAttachments,"
+          if piai.count(piai_import) != 1:
+              raise SystemExit('pi-ai adapter: expected exact LLM import block')
+          piai = piai.replace(piai_import, piai_import_new, 1)
+          piai_marker = "  async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {\n"
+          if piai.count(piai_marker) != 1:
+              raise SystemExit('pi-ai adapter: expected exact stream marker')
+          piai_block = piai_marker + "    if (options.messages.some(message => contentHasParsedDocument(message.content))) {\n      const attachments = this.config.resolveAttachments?.()\n      if (attachments === undefined) {\n        throw new LlmError(\n          'pi-ai parsed-document conversion requires the durable attachment service.',\n          'UNSUPPORTED_CONTENT',\n        )\n      }\n      const messages = await projectRequestDocumentsWithAttachments(options.messages, attachments, options.signal)\n      yield* this.stream({ ...options, messages })\n      return\n    }\n"
+          Path('packages/llm/llm-pi-ai/src/adapter.ts').write_text(piai.replace(piai_marker, piai_block, 1))
+          piai_base.unlink()
+
+          # Root Host aggregate owns both new package projects.
+          replace_one(
+              'tsconfig.host.json',
+              '    { "path": "./packages/attachment/attachment" },\n    { "path": "./packages/attachment/attachment-local" },',
+              '    { "path": "./packages/attachment/attachment" },\n    { "path": "./packages/attachment/attachment-local" },\n    { "path": "./packages/attachment/document-parser" },\n    { "path": "./packages/attachment/document-parser-mineru" },',
+          )
+          PY
+
+      - name: Set up dependencies and lockfile
+        shell: bash
+        run: |
+          pnpm install --lockfile-only
+          pnpm install --frozen-lockfile
+
+      - name: Validate parser packages and host aggregate
+        shell: bash
+        run: |
+          pnpm exec tsc -b packages/attachment/document-parser/tsconfig.json packages/attachment/document-parser-mineru/tsconfig.json --pretty false
+          pnpm exec tsc -b packages/llm/llm-deepseek/tsconfig.json packages/llm/llm-pi-ai/tsconfig.json --pretty false
+          pnpm exec tsc -b tsconfig.host.json --pretty false
+          pnpm run constraints
+          pnpm run verify-package-invariants
+
+      - name: Restore temporary workflow and commit validated slice
+        shell: bash
+        run: |
+          git show "${CLEAN_BASE}:.github/workflows/issue-policy.yml" > .github/workflows/issue-policy.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'feat(documents): wire MinerU parsing into prompt admission'
+
+      - name: Refuse concurrent overwrite
+        shell: bash
+        run: |
+          REMOTE_HEAD="$(git ls-remote origin "refs/heads/${HEAD_REF}" | cut -f1)"
+          test "${REMOTE_HEAD}" = "${EXPECTED_HEAD}"
+
+      - name: Push validated slice
+        shell: bash
+        run: git push origin "HEAD:refs/heads/${HEAD_REF}"
