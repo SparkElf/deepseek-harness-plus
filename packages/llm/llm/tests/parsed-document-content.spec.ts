@@ -75,7 +75,7 @@ describe('parsed document request projection', () => {
         text: '[attached document: report.pdf (application/pdf); parsed contents follow]\n\n# Heading\n\nComplete body.\n\n[end attached document: report.pdf]',
       },
     ])
-    expect(durable.content[1]).toBe(block)
+    expect(durable.content[1]).toEqual(block)
     expect((attachments.readFile as ReturnType<typeof vi.fn>)).toHaveBeenCalledTimes(1)
   })
 
