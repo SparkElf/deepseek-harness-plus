@@ -52,7 +52,7 @@ export async function parseDocumentRefs(
       }
 
       directMarkdownBytes += markdown.bytes
-      if (!Number.isSafeInteger(directMarkdownBytes) || directMarkdownBytes > parser.maxDirectMarkdownBytes) {
+      if (directMarkdownBytes > parser.maxDirectMarkdownBytes) {
         throw new DocumentParserError(
           'Parsed documents exceed the configured direct-context Markdown byte limit for one submitted message.',
           'DOCUMENT_PARSE_CONTEXT_TOO_LARGE',
