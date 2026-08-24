@@ -4,7 +4,7 @@
  * @module dsh-llm-pi-ai/context
  */
 
-import { CallId, contentHasImage, LlmError, offloadRequestImages } from '@deepseek-ai/dsh-llm'
+import { CallId, contentHasImage, LlmError, offloadRequestImages, projectRequestDocuments } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { Context as PiContext, ImageContent, Message as PiMessage, TextContent, Tool as PiTool } from '@earendil-works/pi-ai'
@@ -17,7 +17,6 @@ function flattenText(message: Message): string {
     .map(block => block.text)
     .join('')
 }
-
 
 /** Flatten text recursively inside one tool result. */
 function toolResultText(blocks: readonly ContentBlock[]): string {
@@ -99,7 +98,8 @@ function piContext(options: GenerateOptions, messages: PiMessage[]): PiContext {
 function textOnlyContext(options: GenerateOptions, onReplayDegrade?: (reason: string) => void): PiContext {
   const toolNames = new Map<CallId, string>()
   const messages: PiMessage[] = []
-  for (const message of options.messages) {
+  const requestMessages = projectRequestDocuments(options.messages)
+  for (const message of requestMessages) {
     if (contentHasImage(message.content)) {
       throw new LlmError('pi-ai image conversion requires the durable attachment service', 'UNSUPPORTED_CONTENT')
     }
@@ -135,7 +135,8 @@ function textOnlyContext(options: GenerateOptions, onReplayDegrade?: (reason: st
 
 /**
  * Convert text-only harness history to a synchronous pi-ai Context. Tool
- * result names are recovered from preceding assistant tool calls.
+ * result names are recovered from preceding assistant tool calls. Durable
+ * generic documents become explicit unparsed text markers before conversion.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
  * @param attachments - absent; selects the synchronous conversion.
  * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.
@@ -151,7 +152,9 @@ export function toPiContext(
  * Tool result names are recovered from preceding assistant tool calls. When
  * the accumulated base64 image payload exceeds `maxRequestImageBytes`, the
  * oldest images are replaced by text placeholders until the request fits, so
- * an image-heavy session keeps clearing gateway request-size caps.
+ * an image-heavy session keeps clearing gateway request-size caps. Generic
+ * documents remain durable originals and project as explicit unparsed text in
+ * this generic layer; the parser feature later projects parsed Markdown.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
  * @param attachments - durable byte resolver for image references.
  * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.
@@ -181,8 +184,9 @@ async function toPiContextWithImages(
   onReplayDegrade?: (reason: string) => void,
   maxRequestImageBytes?: number,
 ): Promise<PiContext> {
-  assertSupportedImageRoles(options.messages)
-  const requestMessages = offloadRequestImages(options.messages, maxRequestImageBytes)
+  const projected = projectRequestDocuments(options.messages)
+  assertSupportedImageRoles(projected)
+  const requestMessages = offloadRequestImages(projected, maxRequestImageBytes)
   const toolNames = new Map<CallId, string>()
   const messages: PiMessage[] = []
 
