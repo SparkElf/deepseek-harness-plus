@@ -14,8 +14,9 @@ const CONTENT_LIST_MEDIA_TYPE = 'application/json'
 
 /**
  * Parse every admitted original when a parser runtime is composed, persist the
- * complete parser bundle, prove the direct-context Markdown bound, and return
- * immutable document refs carrying only durable artifact references.
+ * complete parser bundle, prove the submitted batch's aggregate direct-context
+ * Markdown bound, and return immutable document refs carrying only durable
+ * artifact references.
  *
  * No parser runtime preserves the generic #82 behavior: originals remain
  * durable and project to the explicit unparsed marker. Parsed output objects
@@ -30,6 +31,7 @@ export async function parseDocumentRefs(
   if (parser === undefined || refs.length === 0) return refs
 
   const parsedRefs: DocumentAttachmentRef[] = []
+  let directMarkdownBytes = 0
   for (const ref of refs) {
     try {
       const original = await ctx.attachments.readFile(ref)
@@ -49,9 +51,10 @@ export async function parseDocumentRefs(
         images.push(await ctx.attachments.saveImage(image))
       }
 
-      if (markdown.bytes > parser.maxDirectMarkdownBytes) {
+      directMarkdownBytes += markdown.bytes
+      if (!Number.isSafeInteger(directMarkdownBytes) || directMarkdownBytes > parser.maxDirectMarkdownBytes) {
         throw new DocumentParserError(
-          `Parsed document "${ref.name}" exceeds the configured direct-context Markdown byte limit.`,
+          'Parsed documents exceed the configured direct-context Markdown byte limit for one submitted message.',
           'DOCUMENT_PARSE_CONTEXT_TOO_LARGE',
         )
       }
