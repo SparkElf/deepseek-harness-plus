@@ -106,10 +106,11 @@ jobs:
         run: |
           git show "${CLEAN_BASE}:.github/workflows/issue-lifecycle.yml" > .github/workflows/issue-lifecycle.yml
           rm .github/pr84-static-fix.py
-      - name: Validate corrected tree
+      - name: Build corrected tree
+        run: pnpm run build
+      - name: Run focused document tests
         shell: bash
         run: |
-          pnpm run build
           pnpm exec vitest run \
             packages/attachment/document-parser/tests/runtime.spec.ts \
             packages/attachment/document-parser-mineru/tests/provider.spec.ts \
@@ -119,7 +120,8 @@ jobs:
             packages/llm/llm/tests/parsed-document-content.spec.ts \
             packages/llm/llm-deepseek/tests/parsed-document-adapter.spec.ts \
             packages/llm/llm-pi-ai/tests/parsed-document-adapter.spec.ts
-          pnpm run check:ci:static
+      - name: Validate static repository gates
+        run: pnpm run check:ci:static
       - name: Commit verified generated tree
         shell: bash
         run: |
