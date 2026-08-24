@@ -51,9 +51,11 @@ export class MinerUDocumentParserProvider implements DocumentParserProvider {
     const timeout = AbortSignal.timeout(this.timeoutMs)
     const combined = signal === undefined ? timeout : AbortSignal.any([signal, timeout])
     const form = new FormData()
+    const fileBytes = new Uint8Array(request.data.byteLength)
+    fileBytes.set(request.data)
     form.append(
       'files',
-      new Blob([request.data], { type: request.attachment.mediaType }),
+      new Blob([fileBytes.buffer], { type: request.attachment.mediaType }),
       request.attachment.name,
     )
     form.append('return_md', 'true')
