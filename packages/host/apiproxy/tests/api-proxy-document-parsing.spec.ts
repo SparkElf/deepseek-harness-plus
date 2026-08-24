@@ -212,4 +212,32 @@ describe('session.prompt document parsing admission', () => {
     expect(state.saveFile).toHaveBeenCalledTimes(3)
     await state.ctx.fiber.dispose()
   })
+
+  it('enforces the direct Markdown byte budget across every document in one submitted message', async () => {
+    const markdown = new TextEncoder().encode('abc')
+    const state = await harness({
+      maxDirectMarkdownBytes: 5,
+      parse: () => Promise.resolve({
+        parser: 'mineru',
+        result: { markdown, contentList: new TextEncoder().encode('[]'), images: [] },
+      }),
+    })
+    const response = await apiFor(state.ctx).sessions.prompt(request({
+      sessionId: state.sessionId,
+      mode: 'queue' as const,
+      content: [
+        { type: 'document' as const, mediaType: 'application/pdf' as const, data: pdf, name: 'one.pdf' },
+        { type: 'document' as const, mediaType: 'application/pdf' as const, data: pdf, name: 'two.pdf' },
+      ],
+    }))
+
+    expect(response.result).toMatchObject({
+      ok: false,
+      error: { code: 'attachment-error', details: { reason: 'DOCUMENT_PARSE_CONTEXT_TOO_LARGE' } },
+    })
+    expect(state.followup).not.toHaveBeenCalled()
+    expect(state.readFile).toHaveBeenCalledTimes(2)
+    expect(state.saveFile).toHaveBeenCalledTimes(6)
+    await state.ctx.fiber.dispose()
+  })
 })
