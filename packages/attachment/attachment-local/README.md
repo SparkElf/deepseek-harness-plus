@@ -14,7 +14,7 @@ Generic files use `saveFile` / `readFile`. The local service exposes independent
 
 ## Model Experience
 
-Indirectly, by keeping durable image and document references reconstructable after restart and fork. The local store performs no model call and does not decide how a document is projected to a provider.
+Indirectly, through durable attachment references that remain reconstructable after restart and fork.
 
 #### KV Cache effect
 
