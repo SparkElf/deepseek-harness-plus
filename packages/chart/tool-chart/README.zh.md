@@ -24,7 +24,7 @@ render_chart({
 
 ## Model Experience
 
-当用户希望把一个已经准备好的结果渲染成交互式图表时使用此工具。优先让一个 DataOps SQL 结果直接处在图表需要的业务／展示粒度。简单场景可以直接调用 `render_chart`；如果动态 series、reshape、日期／数字转换、百分比、累计／参考统计、标注或其他可视化导向计算能让图表更准确，Code Mode 可以读取这个唯一结果并用程序生成 ECharts option。
+当用户希望把一个已经准备好的结果渲染成交互式图表时使用此工具。优先让一个 DataOps SQL 结果直接处在图表需要的业务／展示粒度。不能假设 `execute_sql.preview` 就是完整结果；如果 preview 表明还有更多行，在构造最终 option 之前应通过 `read_query_result` 读取这张图实际需要的完整行。结果本身已经完整时可以直接调用 `render_chart`；如果动态 series、reshape、日期／数字转换、百分比、累计／参考统计、标注或其他可视化导向计算能让图表更准确，Code Mode 可以读取这个唯一结果并用程序生成 ECharts option。
 
 不要为了架构形式而把 Code Mode 限制成被动字段映射器。普通 `map`、`filter`、`sort`、`reduce`、reshape 和派生可视化统计都是允许的。如果结果还需要数据库规模的 join 或大量业务聚合，应重新发起更合适的 DataOps 查询，而不是在图表代码里重新实现查询引擎。
 
