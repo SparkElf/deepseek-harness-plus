@@ -120,21 +120,20 @@ async function projectDocumentsWithAttachments(
 /**
  * Resolve every durable parsed-document Markdown reference for one provider request.
  * Session history remains ref-only; the complete Markdown exists transiently only
- * while this provider request is assembled.
+ * while this provider request is assembled. A fresh mutable message array is
+ * returned because provider GenerateOptions owns a mutable request snapshot.
  */
 export async function projectRequestDocumentsWithAttachments(
   messages: readonly Message[],
   attachments: AttachmentStore,
   signal?: AbortSignal,
-): Promise<readonly Message[]> {
-  let changed = false
+): Promise<Message[]> {
   const projected: Message[] = []
   for (const message of messages) {
     const content = await projectDocumentsWithAttachments(message.content, attachments, signal)
-    if (content !== message.content) changed = true
     projected.push(content === message.content ? message : { ...message, content })
   }
-  return changed ? projected : messages
+  return projected
 }
 
 /**
