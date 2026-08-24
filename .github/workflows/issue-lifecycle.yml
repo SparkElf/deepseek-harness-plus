@@ -124,8 +124,14 @@ jobs:
         run: pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts -t 'rejects over-budget complete Markdown before appending the user message'
       - name: Test Host aggregate Markdown budget
         run: pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts -t 'enforces the direct Markdown byte budget across every document in one submitted message'
-      - name: Test LLM parsed-document projection
-        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts
+      - name: Test LLM parsed Markdown projection
+        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts -t 'resolves complete durable Markdown into a delimited transient text block'
+      - name: Test LLM nested tool-result projection
+        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts -t 'projects parsed documents recursively inside tool results'
+      - name: Test LLM unparsed document honesty
+        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts -t 'keeps semantic honesty for an unparsed durable document'
+      - name: Test LLM invalid UTF-8 rejection
+        run: pnpm exec vitest run packages/llm/llm/tests/parsed-document-content.spec.ts -t 'rejects invalid UTF-8 parser Markdown instead of inserting replacement characters'
       - name: Test DeepSeek parsed-document adapter
         run: pnpm exec vitest run packages/llm/llm-deepseek/tests/parsed-document-adapter.spec.ts
       - name: Test pi-ai parsed-document adapter
