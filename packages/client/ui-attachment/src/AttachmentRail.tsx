@@ -1,5 +1,5 @@
-/** Draft-attachment thumbnail rail: scrollbar-less horizontal overflow paged
- * by edge arrows, hover-revealed per-item remove, single-click open. */
+/** Draft-attachment rail: image thumbnails and compact document cards share
+ * one scrollbar-less horizontal overflow surface, paged by edge arrows. */
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
@@ -8,17 +8,35 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './AttachmentRail.module.css'
 
-/** One rail thumbnail; strings arrive resolved (zero-cordis atom). */
-export interface AttachmentRailItem {
+interface AttachmentRailItemBase {
   /** Stable identity for the React key. */
   id: string
+  /** Accessible label of the item's remove control. */
+  removeLabel: string
+}
+
+/** One image thumbnail in the mixed composer rail. */
+export interface ImageAttachmentRailItem extends AttachmentRailItemBase {
+  kind: 'image'
   /** Object or data URL rendered as the thumbnail. */
   previewUrl: string
   /** Image alt text (display name with the owner's fallback applied). */
   alt: string
-  /** Accessible label of the item's remove control. */
-  removeLabel: string
 }
+
+/** One durable-document draft card in the mixed composer rail. */
+export interface DocumentAttachmentRailItem extends AttachmentRailItemBase {
+  kind: 'document'
+  /** User-facing basename. */
+  name: string
+  /** Compact format label such as PDF/DOCX. */
+  typeLabel: string
+  /** Secondary metadata, currently the formatted byte size. */
+  detail: string
+}
+
+/** Any draft attachment presentation item. */
+export type AttachmentRailItem = ImageAttachmentRailItem | DocumentAttachmentRailItem
 
 /** Rail-level strings the owner resolves from its own locale namespace. */
 export interface AttachmentRailLabels {
@@ -45,34 +63,22 @@ function pageBehavior(): ScrollBehavior {
 }
 
 /**
- * Horizontal thumbnail rail over the caller's draft attachments.
+ * Horizontal mixed-attachment rail over the caller's draft attachments.
  *
- * The rail scrolls with its scrollbar hidden; overflow is announced by edge
- * arrows recomputed from scroll geometry on scroll, item-count changes, and
- * rail size changes (a ResizeObserver on the rail element, so sidebar or
- * panel resizes count, not only window resizes). A vertical wheel pans the
- * rail horizontally and is consumed exclusively (non-passive listener), a
- * newly added item is revealed at the rail's end while a rail that mounts
- * over an existing draft keeps its start position, and each thumbnail opens
- * on a single click while its remove control sits inside the card and
- * reveals on hover or focus. The owner decides mounting; it renders the rail
- * only while items exist.
- *
- * @param props.items - resolved thumbnails in draft order.
- * @param props.labels - rail-level strings (group name, open tooltip, arrows).
- * @param props.onOpen - single-click open of one item's original image.
- * @param props.onRemove - remove one item from the draft.
- * @returns the rail group with its paging arrows.
+ * Images keep the existing single-click original preview. Documents are
+ * intentionally inert cards: generic document intake exposes only type/name/
+ * size, never parser internals. Both kinds share removal, overflow paging, and
+ * wheel behavior.
  */
 export function AttachmentRail<T extends AttachmentRailItem>({ items, labels, onOpen, onRemove }: {
   items: readonly T[]
   labels: AttachmentRailLabels
-  onOpen: (item: T) => void
+  onOpen?: (item: T) => void
   onRemove: (item: T) => void
 }) {
   const railRef = useRef<HTMLDivElement | null>(null)
   // null marks the first layout pass: a rail that MOUNTS over an existing
-  // draft (session switch back to held images) is initial display, not
+  // draft (session switch back to held attachments) is initial display, not
   // growth, and must not jump to the end.
   const countRef = useRef<number | null>(null)
   const [edges, setEdges] = useState({ left: false, right: false })
@@ -99,25 +105,12 @@ export function AttachmentRail<T extends AttachmentRailItem>({ items, labels, on
     const el = railRef.current
     /* v8 ignore next -- defensive: the rail div renders unconditionally, so the mount effect always finds it. */
     if (el === null) return
-    // The rail's width follows the composer, which resizes with sidebars and
-    // panels, not only the window — observe the element itself. jsdom (the
-    // unit lane) implements no ResizeObserver; every browser gets the
-    // subscription.
     let disconnect = (): void => {}
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(updateEdges)
       observer.observe(el)
       disconnect = () => { observer.disconnect() }
     }
-    // The rail scrolls horizontally ONLY: any wheel tick with a vertical
-    // component is consumed — without preventDefault it would also scroll the
-    // conversation behind the composer, and React's root wheel listener is
-    // passive, so the exclusion needs this manually attached non-passive
-    // listener. A diagonal trackpad pan keeps its horizontal intent; a pure
-    // vertical wheel converts to a horizontal step, with LINE and PAGE deltas
-    // (Firefox notch wheels) normalized to pixels before the per-tick clamp
-    // that keeps a fast wheel followable. A purely horizontal pan stays
-    // native.
     const onWheel = (event: globalThis.WheelEvent): void => {
       if (event.deltaY === 0) return
       const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE
@@ -141,7 +134,7 @@ export function AttachmentRail<T extends AttachmentRailItem>({ items, labels, on
     const el = railRef.current
     /* v8 ignore next -- defensive: the arrows render only while the rail is mounted, so a click cannot find a null ref. */
     if (el === null) return
-    // One viewport minus a card keeps the last visible thumbnail as context;
+    // One viewport minus a card keeps the last visible attachment as context;
     // the floor keeps narrow rails paging a useful distance.
     el.scrollBy({ left: direction * Math.max(el.clientWidth - 64, 200), behavior: pageBehavior() })
   }
@@ -165,15 +158,27 @@ export function AttachmentRail<T extends AttachmentRailItem>({ items, labels, on
         onScroll={updateEdges}
       >
         {items.map(item => (
-          <div key={item.id} className={css.item}>
-            <button
-              type="button"
-              className={css.thumbnail}
-              title={labels.open}
-              onClick={() => { onOpen(item) }}
-            >
-              <img src={item.previewUrl} alt={item.alt} />
-            </button>
+          <div
+            key={item.id}
+            className={clsx(css.item, item.kind === 'document' && css.itemDocument)}
+            data-attachment-kind={item.kind}
+          >
+            {item.kind === 'image' ? (
+              <button
+                type="button"
+                className={css.thumbnail}
+                title={labels.open}
+                onClick={() => { onOpen?.(item) }}
+              >
+                <img src={item.previewUrl} alt={item.alt} />
+              </button>
+            ) : (
+              <div className={css.document} title={item.name}>
+                <span className={css.documentType}>{item.typeLabel}</span>
+                <span className={css.documentName}>{item.name}</span>
+                <span className={css.documentDetail}>{item.detail}</span>
+              </div>
+            )}
             <button
               type="button"
               className={css.remove}
