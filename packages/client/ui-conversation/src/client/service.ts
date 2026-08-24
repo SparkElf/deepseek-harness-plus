@@ -214,7 +214,11 @@ export class ConversationController extends Service implements IConversation {
     })
   }
 
-  /** Register supported generic documents without creating object URLs. */
+  /**
+   * Register supported generic documents without creating object URLs.
+   * @param files - browser files to validate and register as document drafts.
+   * @returns ordered runtime-only document descriptors.
+   */
   createDraftDocuments(files: readonly File[]): readonly ComposerDocumentAttachment[] {
     for (const file of files) {
       documentMediaType(file.type)
@@ -227,7 +231,11 @@ export class ConversationController extends Service implements IConversation {
     })
   }
 
-  /** Resolve ordered input-state ids to runtime-owned draft images only. */
+  /**
+   * Resolve ordered input-state ids to runtime-owned draft images only.
+   * @param ids - opaque mixed attachment ids in input-state order.
+   * @returns the live image descriptors among those ids, preserving their order.
+   */
   draftImages(ids: readonly DraftAttachmentId[]): readonly ComposerAttachment[] {
     const attachments: ComposerAttachment[] = []
     for (const id of ids) {
@@ -237,7 +245,11 @@ export class ConversationController extends Service implements IConversation {
     return attachments
   }
 
-  /** Resolve ordered input-state ids to runtime-owned draft documents only. */
+  /**
+   * Resolve ordered input-state ids to runtime-owned draft documents only.
+   * @param ids - opaque mixed attachment ids in input-state order.
+   * @returns the live document descriptors among those ids, preserving their order.
+   */
   draftDocuments(ids: readonly DraftAttachmentId[]): readonly ComposerDocumentAttachment[] {
     const attachments: ComposerDocumentAttachment[] = []
     for (const id of ids) {
@@ -247,7 +259,11 @@ export class ConversationController extends Service implements IConversation {
     return attachments
   }
 
-  /** Whether any currently live draft id denotes a document. */
+  /**
+   * Whether any currently live draft id denotes a document.
+   * @param ids - opaque mixed attachment ids to inspect.
+   * @returns whether at least one live id resolves to a document draft.
+   */
   hasDraftDocuments(ids: readonly DraftAttachmentId[]): boolean {
     return ids.some(id => this.draftAttachments.get(id)?.kind === 'document')
   }
@@ -256,6 +272,8 @@ export class ConversationController extends Service implements IConversation {
    * Serialize ordered draft images to command-submit wire payloads without
    * sending or releasing them. Generic documents are deliberately rejected:
    * command claims have no document contract in the generic document PR.
+   * @param imageIds - opaque attachment ids that must all resolve to images.
+   * @returns command-wire image payloads in the same order as the supplied ids.
    */
   async serializeDraftImages(imageIds: readonly DraftAttachmentId[]): Promise<readonly SubmitImageAttachment[]> {
     const attachments = this.draftImages(imageIds)
@@ -265,7 +283,10 @@ export class ConversationController extends Service implements IConversation {
     return Promise.all(attachments.map(attachment => this.encodeImage(attachment.file)))
   }
 
-  /** Release one browser-owned draft attachment, revoking image URLs only. */
+  /**
+   * Release one browser-owned draft attachment, revoking image URLs only.
+   * @param id - opaque draft attachment id to remove from the runtime registry.
+   */
   releaseDraftAttachment(id: DraftAttachmentId): void {
     const attachment = this.draftAttachments.get(id)
     if (attachment === undefined) return
@@ -276,22 +297,34 @@ export class ConversationController extends Service implements IConversation {
     }
   }
 
-  /** Backward-compatible image-specific release used by current image callers. */
+  /**
+   * Backward-compatible image-specific release used by current image callers.
+   * @param id - opaque draft image id to release.
+   */
   releaseDraftImage(id: DraftAttachmentId): void {
     this.releaseDraftAttachment(id)
   }
 
-  /** Document-specific release used by the mixed attachment rail. */
+  /**
+   * Document-specific release used by the mixed attachment rail.
+   * @param id - opaque draft document id to release.
+   */
   releaseDraftDocument(id: DraftAttachmentId): void {
     this.releaseDraftAttachment(id)
   }
 
-  /** Release a set of browser-owned draft images. */
+  /**
+   * Release a set of browser-owned draft images.
+   * @param attachments - image descriptors whose ids should be released.
+   */
   releaseDraftImages(attachments: readonly ComposerAttachment[]): void {
     for (const attachment of attachments) this.releaseDraftAttachment(attachment.id)
   }
 
-  /** Release any set of browser-owned draft attachments. */
+  /**
+   * Release any set of browser-owned draft attachments.
+   * @param attachments - mixed image/document descriptors whose ids should be released.
+   */
   releaseDraftAttachments(attachments: readonly BrowserDraftAttachment[]): void {
     for (const attachment of attachments) this.releaseDraftAttachment(attachment.id)
   }
