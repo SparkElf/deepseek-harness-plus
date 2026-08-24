@@ -6,14 +6,13 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { ChartRow } from './ChartRow.tsx'
 import { en, NS, zh } from './locales.ts'
 
-export { ChartCanvas } from './ChartCanvas.tsx'
-export { ChartRow, type ChartRowProps } from './ChartRow.tsx'
-export { chartMetaFromUnknown, type ChartPresentationMeta } from './meta.ts'
-export { en, NS, zh, type ChartKey } from './locales.ts'
-
+/** Client services required before the keyed chart renderer can register. */
 export const inject = ['slots', 'locale']
 
-/** Register localized copy and the keyed chart tool row. */
+/**
+ * Register localized copy and the keyed chart tool row.
+ * @param ctx - Browser Cordis context carrying slots and locale services.
+ */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-chart: dictionaries')
   ctx.slots.inject('tool.call.toolview', () => ctx.slots.register({
