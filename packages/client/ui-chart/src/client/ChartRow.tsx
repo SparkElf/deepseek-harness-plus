@@ -1,13 +1,13 @@
 /** Keyed `render_chart` tool row with the chart as its primary completed content. */
 
 import { IconInspectOutline12 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
-import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
+import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 import { ChartCanvas } from './ChartCanvas.tsx'
 import { chartMetaFromUnknown } from './meta.ts'
 import css from './ChartRow.module.css'
 
-export type ChartRowProps = ToolCallViewProps & PropsLocale<'chart'>
+export type ChartRowProps = PropsRuntime<'tool.call.toolview'> & PropsLocale<'chart'>
 
 /** Render pending, failed, or durable interactive chart state for one tool call. */
 export function ChartRow({ block, inspect, t }: ChartRowProps) {
