@@ -49,7 +49,11 @@ export function projectUnparsedDocuments(blocks: readonly ContentBlock[]): Conte
   return next ?? blocks as ContentBlock[]
 }
 
-/** Project documents in every request message without changing durable messages. */
+/**
+ * Project documents in every provider request message without changing durable messages.
+ * @param messages - durable provider-neutral messages in request order.
+ * @returns the original list when no document occurs, otherwise shallow message copies with document markers.
+ */
 export function projectRequestDocuments(messages: readonly Message[]): readonly Message[] {
   let changed = false
   const projected = messages.map((message) => {
