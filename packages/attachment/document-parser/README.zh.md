@@ -9,7 +9,7 @@ DeepSeek Harness 的提供方中立外部文档解析能力。本包拥有 `ctx.
 | 键 | 默认值 | 含义 |
 |---|---|---|
 | `provider` | 自动选择 | 解析提供方 id。省略时，必须恰好存在一个可用的已注册提供方。 |
-| `maxDirectMarkdownBytes` | 必填 | 单个文档完整解析 Markdown 在用户事件被接受前允许的正安全整数字节上限。 |
+| `maxDirectMarkdownBytes` | 必填 | 一次提交中所有文档完整解析 Markdown 合计允许的正安全整数字节上限。 |
 
 ```yaml
 - id: document-parser
@@ -23,13 +23,13 @@ DeepSeek Harness 的提供方中立外部文档解析能力。本包拥有 `ctx.
 
 ## 生命周期
 
-Host 先持久化已通过准入的原始文档，再调用 `ctx.documentParser.parse(...)`，把解析结果通过现有附件存储持久化，最后才追加所属用户消息。`maxDirectMarkdownBytes` 会针对完整 Markdown 产物在事件追加前检查。因此解析失败可能留下未被引用的不可变附件对象，但不会留下其模型可见内容无法重建的持久用户消息。
+Host 先持久化本次提交中所有已通过准入的原始文档，再对每个文档调用 `ctx.documentParser.parse(...)`，把各自解析结果通过现有附件存储持久化，最后才追加所属用户消息。`maxDirectMarkdownBytes` 会针对该提交中全部文档完整 Markdown 的合计字节数在事件追加前检查。因此解析失败可能留下未被引用的不可变附件对象，但不会留下其模型可见内容无法重建的持久用户消息。
 
 解析结果是临时字节：完整 Markdown、完整 `content_list` JSON，以及零个或多个提取出的栅格图像。持久 session 状态只记录 Host 创建的附件引用。
 
 ## 模型体验
 
-通过 Host 文档准入与 LLM 请求投影间接生效。一个被接受的已解析文档会以完整 UTF-8 Markdown、置于明确的文档分隔标记之间，送给文本模型；session 历史只保留原文档与解析产物引用。超过所配置直接上下文预算的文档会被拒绝，而不是被截断。
+通过 Host 文档准入与 LLM 请求投影间接生效。被接受的已解析文档会以完整 UTF-8 Markdown、置于明确的文档分隔标记之间，送给文本模型；session 历史只保留原文档与解析产物引用。一次提交中文档的解析 Markdown 合计超过所配置直接上下文预算时会被拒绝，而不是被截断。
 
 #### KV Cache 影响
 
