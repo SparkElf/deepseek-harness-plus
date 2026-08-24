@@ -35,7 +35,7 @@ function documentTypeLabel(file: File): string {
 /** Draft mixed-attachment rail, document-level drop target, and image preview slot entry. */
 export function ComposerAttachments({
   attachments, documents, canAcceptDrop, onAddImages, onAddDocuments,
-  onRemoveImage, onRemoveDocument, dropLimits, t,
+  onRemoveImage, onRemoveDocument, t,
 }: ComposerAttachmentsProps) {
   const [preview, setPreview] = useState<ComposerAttachment | null>(null)
   const [dragActive, setDragActive] = useState(false)
@@ -120,9 +120,7 @@ export function ComposerAttachments({
       name: attachment.file.name,
       typeLabel: documentTypeLabel(attachment.file),
       detail: sizeLabel(attachment.file.size),
-      // Reuse the existing remove-label shape until the conversation locale
-      // owns generic document strings; the visible card itself is file-specific.
-      removeLabel: t('image.remove', { name: attachment.file.name }),
+      removeLabel: t('document.remove', { name: attachment.file.name }),
       attachment,
     })),
   ], [attachments, documents, t])
@@ -132,7 +130,7 @@ export function ComposerAttachments({
       {dragActive && (
         <DropOverlay
           disabled={!canAcceptDrop}
-          labels={dropOverlayLabels(t, canAcceptDrop, dropLimits)}
+          labels={dropOverlayLabels(t, canAcceptDrop)}
         />
       )}
       {railItems.length > 0 && (
