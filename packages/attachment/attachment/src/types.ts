@@ -42,14 +42,6 @@ export interface ImageAttachmentRef {
   name?: string
 }
 
-/** Durable metadata for one supported user-authored document. */
-export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, 'mediaType' | 'name'> {
-  /** Exact supported document media type admitted with the original bytes. */
-  mediaType: DocumentMediaType
-  /** Browser/provider display name after path stripping and control-character cleanup. */
-  name: string
-}
-
 /**
  * Durable parser outputs associated with one original document. The session
  * records only immutable attachment references; parser response paths and
@@ -64,6 +56,16 @@ export interface ParsedDocumentRef {
   contentList: FileAttachmentRef
   /** Extracted raster images in parser output order. */
   images: readonly ImageAttachmentRef[]
+}
+
+/** Durable metadata for one supported user-authored document. */
+export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, 'mediaType' | 'name'> {
+  /** Exact supported document media type admitted with the original bytes. */
+  mediaType: DocumentMediaType
+  /** Browser/provider display name after path stripping and control-character cleanup. */
+  name: string
+  /** Optional immutable parse bundle; absence truthfully means the document has not been parsed. */
+  parsed?: ParsedDocumentRef
 }
 
 /** Deployment-resolved limits used by image upload admission and request buffering. */
