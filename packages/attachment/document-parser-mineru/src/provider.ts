@@ -107,8 +107,9 @@ export class MinerUDocumentParserProvider implements DocumentParserProvider {
 
     let archive: Uint8Array
     try {
-      archive = new Uint8Array(await response.arrayBuffer())
+      archive = await readBoundedBody(response, this.maxResponseBytes)
     } catch (error: unknown) {
+      if (error instanceof DocumentParserError) throw error
       if (signal?.aborted === true) {
         throw new DocumentParserError('Document parsing was cancelled.', 'DOCUMENT_PARSE_ABORTED', { cause: error })
       }
@@ -121,29 +122,83 @@ export class MinerUDocumentParserProvider implements DocumentParserProvider {
       }
       throw new DocumentParserError('Unable to read the document parser response.', 'DOCUMENT_PARSE_FAILED', { cause: error })
     }
-    if (archive.byteLength > this.maxResponseBytes) {
-      throw new DocumentParserError(
-        'Document parser response exceeds the configured byte limit.',
-        'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
-      )
-    }
 
-    let entries: Record<string, Uint8Array>
-    try {
-      entries = unzipSync(archive)
-    } catch (error: unknown) {
-      throw new DocumentParserError('Document parser returned an invalid ZIP archive.', 'DOCUMENT_PARSE_INVALID_OUTPUT', { cause: error })
-    }
-    const extractedBytes = Object.values(entries).reduce((sum, value) => sum + value.byteLength, 0)
-    if (!Number.isSafeInteger(extractedBytes) || extractedBytes > this.maxResponseBytes) {
-      throw new DocumentParserError(
-        'Document parser extracted output exceeds the configured byte limit.',
-        'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
-      )
-    }
-
-    return parseArchive(entries)
+    return parseArchive(unzipBounded(archive, this.maxResponseBytes))
   }
+}
+
+/** Read a response body without ever retaining more than the configured compressed-byte bound. */
+async function readBoundedBody(response: Response, maxBytes: number): Promise<Uint8Array> {
+  if (response.body === null) return new Uint8Array()
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (value === undefined || value.byteLength === 0) continue
+      totalBytes += value.byteLength
+      if (!Number.isSafeInteger(totalBytes) || totalBytes > maxBytes) {
+        await reader.cancel().catch(() => undefined)
+        throw new DocumentParserError(
+          'Document parser response exceeds the configured byte limit.',
+          'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
+        )
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const body = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    body.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return body
+}
+
+/**
+ * Reject archives whose declared aggregate uncompressed size already exceeds
+ * the configured bound before fflate inflates those entries. The post-inflate
+ * byte count remains authoritative in case malformed metadata understates it.
+ */
+function unzipBounded(archive: Uint8Array, maxBytes: number): Record<string, Uint8Array> {
+  let declaredBytes = 0
+  let declaredTooLarge = false
+  let entries: Record<string, Uint8Array>
+  try {
+    entries = unzipSync(archive, {
+      filter(file) {
+        if (declaredTooLarge) return false
+        declaredBytes += file.originalSize
+        if (!Number.isSafeInteger(declaredBytes) || declaredBytes > maxBytes) {
+          declaredTooLarge = true
+          return false
+        }
+        return true
+      },
+    })
+  } catch (error: unknown) {
+    throw new DocumentParserError('Document parser returned an invalid ZIP archive.', 'DOCUMENT_PARSE_INVALID_OUTPUT', { cause: error })
+  }
+  if (declaredTooLarge) {
+    throw new DocumentParserError(
+      'Document parser extracted output exceeds the configured byte limit.',
+      'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
+    )
+  }
+  const extractedBytes = Object.values(entries).reduce((sum, value) => sum + value.byteLength, 0)
+  if (!Number.isSafeInteger(extractedBytes) || extractedBytes > maxBytes) {
+    throw new DocumentParserError(
+      'Document parser extracted output exceeds the configured byte limit.',
+      'DOCUMENT_PARSE_RESPONSE_TOO_LARGE',
+    )
+  }
+  return entries
 }
 
 /** Validate a configured HTTP(S) parser endpoint without silently rewriting it. */
