@@ -28,10 +28,25 @@ export type ImageAdmissionErrorCode = typeof IMAGE_ADMISSION_ERROR_CODES[number]
 /** Caller-correctable attachment failure codes raised while admitting document input. */
 export type DocumentAdmissionErrorCode = typeof DOCUMENT_ADMISSION_ERROR_CODES[number]
 
+/** Parser failures that occur after the original document is durable but before its user event is appended. */
+export type DocumentParseAttachmentErrorCode =
+  | 'DOCUMENT_PARSER_DUPLICATE_PROVIDER'
+  | 'DOCUMENT_PARSER_CONFIGURED_MISSING'
+  | 'DOCUMENT_PARSER_CONFIGURED_UNAVAILABLE'
+  | 'DOCUMENT_PARSER_UNAVAILABLE'
+  | 'DOCUMENT_PARSER_AMBIGUOUS'
+  | 'DOCUMENT_PARSE_FAILED'
+  | 'DOCUMENT_PARSE_INVALID_OUTPUT'
+  | 'DOCUMENT_PARSE_RESPONSE_TOO_LARGE'
+  | 'DOCUMENT_PARSE_TIMEOUT'
+  | 'DOCUMENT_PARSE_ABORTED'
+  | 'DOCUMENT_PARSE_CONTEXT_TOO_LARGE'
+
 /** Stable attachment failure codes used for protocol error routing. */
 export type AttachmentErrorCode =
   | ImageAdmissionErrorCode
   | DocumentAdmissionErrorCode
+  | DocumentParseAttachmentErrorCode
   | 'INVALID_ATTACHMENT_REF'
   | 'ATTACHMENT_CORRUPT'
   | 'ATTACHMENT_WRITE_FAILED'
