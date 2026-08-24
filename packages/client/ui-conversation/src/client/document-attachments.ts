@@ -13,8 +13,6 @@ declare module './contract/slots.ts' {
   interface ComposerAttachmentsOwnerProps {
     /** Browser-owned draft documents in input order. */
     documents: readonly ComposerDocumentAttachment[]
-    /** Opaque mixed image/document ids in the exact composer order. */
-    attachmentOrder: readonly DraftAttachmentId[]
     /** Add one document batch through the composer's validation path. */
     onAddDocuments: (files: readonly File[]) => void
     /** Remove one draft document through the conversation service. */
