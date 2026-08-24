@@ -24,7 +24,7 @@ Durable document-history cards are rendered by the conversation package from `Do
 
 ## Model Experience
 
-None. This plugin only renders attachment state and invokes owner callbacks; it neither creates durable content nor assembles provider requests.
+None, as this package only renders attachment state and invokes owner callbacks.
 
 #### KV Cache effect
 
