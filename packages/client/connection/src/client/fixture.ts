@@ -2508,6 +2508,18 @@ function createFixtureWorld(options: FixtureOptions): FixtureWorld {
         const userText = content.map(b => (b.type === 'text' ? b.text : '')).join('')
         const durable: ContentBlock[] = content.map((block) => {
           if (block.type === 'text') return block
+          if (block.type === 'document') {
+            const attachmentId = `fixture:${randomUuid()}` as AttachmentIdType
+            const bytes = Math.max(
+              1,
+              Math.floor(block.data.length * 3 / 4)
+              - (block.data.endsWith('==') ? 2 : block.data.endsWith('=') ? 1 : 0),
+            )
+            return {
+              type: 'document',
+              attachment: { attachmentId, mediaType: block.mediaType, bytes, name: block.name },
+            }
+          }
           const attachment: ImageAttachmentRef = {
             attachmentId: `fixture:${randomUuid()}` as AttachmentIdType,
             mediaType: block.mediaType,
