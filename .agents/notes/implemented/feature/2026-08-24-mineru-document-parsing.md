@@ -12,7 +12,7 @@ The integration also cannot be a DeepSeek-only file feature. Parsed content must
 
 ## Decision
 
-The parser feature adds an optional `ctx.documentParser` Service Definition and a separate MinerU provider package. The service owns registration-order-independent provider selection and a required `maxDirectMarkdownBytes` policy. The MinerU package registers provider id `mineru` and communicates with an externally managed synchronous `/file_parse` endpoint; Harness does not embed MinerU's Python/model/GPU runtime.
+The parser feature adds an optional `ctx.documentParser` Service Definition and a separate MinerU provider package. The service owns registration-order-independent provider selection and a required `maxDirectMarkdownBytes` policy for the aggregate parsed Markdown of one submitted message. The MinerU package registers provider id `mineru` and communicates with an externally managed synchronous `/file_parse` endpoint; Harness does not embed MinerU's Python/model/GPU runtime.
 
 A parsed `DocumentAttachmentRef` keeps the original immutable document identity and adds a `ParsedDocumentRef` containing durable references to complete Markdown, complete `content_list` JSON, and extracted raster images. Session content therefore remains reference-only. Parser response entry names and extracted byte buffers exist only during the admission operation.
 
@@ -26,14 +26,14 @@ validate document batch
   -> read the persisted originals
   -> parse each document through ctx.documentParser
   -> validate and persist Markdown/content_list/extracted images
-  -> check complete Markdown byte budget
+  -> check aggregate complete Markdown byte budget for the submitted message
   -> build DocumentBlock values carrying durable parsed refs
   -> append/queue the user message
 ```
 
 The content-addressed store does not roll back already published objects. A later parser, persistence, or budget failure may therefore leave unreachable immutable objects, matching the existing attachment-store policy, but no user event is appended from the failed prompt.
 
-The direct-context check uses the complete persisted Markdown byte length. Version one does not silently truncate a document or accept only an initial page range. Documents over `maxDirectMarkdownBytes` fail with an explicit parser admission error before the message commit point.
+The direct-context check sums the complete persisted Markdown byte lengths of every document in the submitted message. Version one does not silently truncate a document or accept only an initial page range. A batch whose aggregate exceeds `maxDirectMarkdownBytes` fails with an explicit parser admission error before the message commit point, even when each document would fit independently.
 
 ## MinerU transport
 
@@ -61,6 +61,6 @@ The same projection helper is shared by both adapter paths so document semantics
 
 ## Consequences
 
-Small and medium supported documents can now become complete model-readable text while preserving durable originals and parse artifacts across replay and fork. Parser failures and over-budget Markdown are explicit prompt-admission failures rather than silent model degradation.
+Small and medium supported document batches can become complete model-readable text while preserving durable originals and parse artifacts across replay and fork. Parser failures and aggregate over-budget Markdown are explicit prompt-admission failures rather than silent model degradation.
 
 The trade-off is synchronous submit latency and an explicit size ceiling for direct context. This implementation intentionally establishes the durable parser surface first; long-document retrieval, background parsing, parser tuning UX, and selective extracted-image inspection remain follow-up capabilities rather than hidden behavior in version one.
