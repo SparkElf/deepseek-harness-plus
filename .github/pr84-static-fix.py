@@ -91,6 +91,71 @@ def sync_table_rows_after(
     chinese_file.write_text(rendered)
 
 
+def sync_identical_table_rows_in_english_order(
+    english_path: str,
+    chinese_path: str,
+    row_prefixes: tuple[str, ...],
+) -> None:
+    english_lines = Path(english_path).read_text().splitlines()
+    chinese_file = Path(chinese_path)
+    chinese_text = chinese_file.read_text()
+    trailing_newline = chinese_text.endswith('\n')
+    chinese_lines = chinese_text.splitlines()
+
+    selected: list[tuple[int, str, str]] = []
+    for prefix in row_prefixes:
+        matches = [(index, line) for index, line in enumerate(english_lines) if line.startswith(prefix)]
+        if len(matches) != 1:
+            raise SystemExit(
+                f'{english_path}: expected one table row starting {prefix!r}, found {len(matches)}'
+            )
+        index, row = matches[0]
+        selected.append((index, prefix, row))
+    selected.sort()
+
+    # Remove stale prior insertions, then place every language-invariant row at
+    # the exact position implied by the generated English table. Searching for
+    # the next identical surviving row avoids guessing topology-dependent order.
+    chinese_lines = [
+        line for line in chinese_lines
+        if not any(line.startswith(prefix) for _, prefix, _ in selected)
+    ]
+    selected_indexes = {index for index, _, _ in selected}
+    for english_index, _, row in selected:
+        insertion: int | None = None
+        for following_index in range(english_index + 1, len(english_lines)):
+            if following_index in selected_indexes:
+                continue
+            following = english_lines[following_index]
+            if not following.startswith('| '):
+                continue
+            try:
+                insertion = chinese_lines.index(following)
+                break
+            except ValueError:
+                continue
+        if insertion is None:
+            for previous_index in range(english_index - 1, -1, -1):
+                if previous_index in selected_indexes:
+                    continue
+                previous = english_lines[previous_index]
+                if not previous.startswith('| '):
+                    continue
+                try:
+                    insertion = chinese_lines.index(previous) + 1
+                    break
+                except ValueError:
+                    continue
+        if insertion is None:
+            raise SystemExit(f'{chinese_path}: cannot locate generated table position for {row!r}')
+        chinese_lines.insert(insertion, row)
+
+    rendered = '\n'.join(chinese_lines)
+    if trailing_newline:
+        rendered += '\n'
+    chinese_file.write_text(rendered)
+
+
 sync_table_rows_after(
     'docs/capability-seams.md',
     'docs/capability-seams.zh.md',
@@ -101,14 +166,13 @@ sync_table_rows_after(
         '解析器提供方把已持久化的原始文档转换为临时最终产物；Host admission 持久化这些产物，并在发布用户消息前负责聚合的直接上下文预算。',
     ),),
 )
-sync_table_rows_after(
+sync_identical_table_rows_in_english_order(
     'docs/module-graph.md',
     'docs/module-graph.zh.md',
     (
         '| [`document-parser`](../packages/attachment/document-parser) |',
         '| [`document-parser-mineru`](../packages/attachment/document-parser-mineru) |',
     ),
-    '| [`attachment-local`](../packages/attachment/attachment-local) |',
 )
 
 
