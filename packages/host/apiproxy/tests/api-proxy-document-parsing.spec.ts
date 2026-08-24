@@ -91,15 +91,17 @@ async function harness(options: {
     },
     validateImage: () => Promise.resolve(),
     saveImage,
-    saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]) {
-      return Promise.all(inputs.map(input => saveImage(input)))
+    async saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]): Promise<readonly ImageAttachmentRef[]> {
+      const refs: ImageAttachmentRef[] = []
+      for (const input of inputs) refs.push(await saveImage(input))
+      return refs
     },
     saveFile,
     readFile,
   }
   ctx.provide('attachments', attachments as never)
 
-  const parse = options.parse ?? (_data => Promise.resolve({
+  const parse = options.parse ?? (() => Promise.resolve({
     parser: 'mineru',
     result: {
       markdown: new TextEncoder().encode('# parsed'),
