@@ -13,7 +13,7 @@
 `AttachmentId` 是带类型标记的不透明字符串。本地后端目前生成 `sha256:<digest>`，但消费方既不能解析这种表示，也不能据此派生文件系统路径。
 
 ```ts type-equiv
-/** Raster image formats accepted by the version-one attachment path. */
+/** Raster image formats accepted by the version-one image attachment path. */
 type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
 ```
 
@@ -36,7 +36,7 @@ interface ImageAttachmentRef {
 ```
 
 ```ts type-equiv
-/** Deployment-resolved limits used by upload admission and request buffering. */
+/** Deployment-resolved limits used by image upload admission and request buffering. */
 interface ImageAttachmentLimits {
   maxImageBytes: number
   maxImagesPerMessage: number
