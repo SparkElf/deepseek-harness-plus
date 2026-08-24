@@ -13,7 +13,7 @@ Source: [`packages/attachment/attachment/src/types.ts`](../../packages/attachmen
 `AttachmentId` is a branded opaque string. The local backend currently emits `sha256:<digest>`, but consumers must neither parse that representation nor derive a filesystem path from it.
 
 ```ts type-equiv
-/** Raster image formats accepted by the version-one attachment path. */
+/** Raster image formats accepted by the version-one image attachment path. */
 type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
 ```
 
@@ -36,7 +36,7 @@ interface ImageAttachmentRef {
 ```
 
 ```ts type-equiv
-/** Deployment-resolved limits used by upload admission and request buffering. */
+/** Deployment-resolved limits used by image upload admission and request buffering. */
 interface ImageAttachmentLimits {
   maxImageBytes: number
   maxImagesPerMessage: number
