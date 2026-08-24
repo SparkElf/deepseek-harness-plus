@@ -1,0 +1,12 @@
+# Optional deployment overlay for mounting dsh web below a reverse-proxy path.
+# Use together with `--base-path`, for example:
+#   dsh web --base-path /dataops/dsh --patch <this-file>
+#
+# A patch replaces a row's entire config, so host and port are restated from
+# the same webStartup service as the shipped Web bundle.
+
+- id: webserver
+  config:
+    host: !!js ctx.webStartup.host ?? '127.0.0.1'
+    port: !!js ctx.webStartup.port ?? 3080
+    basePath: !!js ctx.webStartup.basePath
