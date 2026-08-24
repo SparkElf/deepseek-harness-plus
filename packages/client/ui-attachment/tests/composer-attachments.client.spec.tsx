@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render } from '@testing-library/react'
 import type {
-  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
+  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps, ComposerDocumentAttachment,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { ComposerAttachments } from '../src/client/ComposerAttachments.tsx'
 
@@ -22,24 +22,24 @@ afterEach(() => {
 
 const t = ((key: string, params?: Readonly<Record<string, unknown>>): string => {
   const messages: Record<string, string> = {
+    'attachment.pending': '待发送附件',
+    'attachment.dropBlocked': '当前无法添加附件',
+    'attachment.dropTitle': '拖动图片或文档到此处即可添加',
+    'attachment.scrollLeft': '向左滚动附件',
+    'attachment.scrollRight': '向右滚动附件',
     'image.pending': '待发送图片',
     'image.original': '原图',
     'image.preview': '原图预览',
     'image.closePreview': '关闭原图预览',
     'image.openOriginal': '查看原图',
-    'image.scrollLeft': '向左滚动图片',
-    'image.scrollRight': '向右滚动图片',
-    'image.dropBlocked': '当前无法添加图片',
-    'image.dropTitle': '图片拖动到此处即可添加',
   }
   if (key === 'image.remove') {
     const name = params?.name
     return `移除图片 ${typeof name === 'string' ? name : ''}`
   }
-  if (key === 'image.dropDesc') {
-    const count = params?.count
-    const size = params?.size
-    return `最多 ${typeof count === 'number' ? String(count) : ''} 张，每张 ${typeof size === 'string' ? size : ''}`
+  if (key === 'document.remove') {
+    const name = params?.name
+    return `移除文档 ${typeof name === 'string' ? name : ''}`
   }
   return messages[key] ?? key
 }) as ComposerAttachmentsProps['t']
@@ -53,24 +53,33 @@ function attachment(id: string, name = `${id}.png`): ComposerAttachment {
   }
 }
 
+function documentAttachment(id: string, name = `${id}.pdf`): ComposerDocumentAttachment {
+  return {
+    kind: 'document',
+    id: id as ComposerDocumentAttachment['id'],
+    file: new File([new Uint8Array(12 * 1024)], name, { type: 'application/pdf' }),
+  }
+}
+
 function props(overrides: Partial<ComposerAttachmentsOwnerProps> = {}): ComposerAttachmentsProps {
   return {
     attachments: [],
+    documents: [],
     canAcceptDrop: true,
     onAddImages: () => {},
+    onAddDocuments: () => {},
     onRemoveImage: () => {},
+    onRemoveDocument: () => {},
     t,
     ...overrides,
   } as unknown as ComposerAttachmentsProps
 }
 
 describe('ComposerAttachments', () => {
-  it('accepts file drops anywhere on the document and keeps non-file drags native', () => {
+  it('splits mixed file drops between image and document intake', () => {
     const onAddImages = vi.fn()
-    const view = render(<ComposerAttachments {...props({
-      onAddImages,
-      dropLimits: { count: 20, size: '5MB' },
-    })} />)
+    const onAddDocuments = vi.fn()
+    const view = render(<ComposerAttachments {...props({ onAddImages, onAddDocuments })} />)
 
     expect(fireEvent.dragEnter(document.body, { dataTransfer: null })).toBe(true)
     const textTransfer = { types: ['text/plain'], files: [], dropEffect: 'none' }
@@ -80,14 +89,15 @@ describe('ComposerAttachments', () => {
     expect(view.queryByRole('status')).toBeNull()
 
     const image = attachment('dropped').file
-    const dataTransfer = { types: ['Files'], files: [image], dropEffect: 'none' }
+    const document = documentAttachment('report').file
+    const dataTransfer = { types: ['Files'], files: [image, document], dropEffect: 'none' }
     expect(fireEvent.dragEnter(document.body, { dataTransfer })).toBe(false)
-    expect(view.getByRole('status').textContent).toContain('图片拖动到此处即可添加')
-    expect(view.getByRole('status').textContent).toContain('最多 20 张，每张 5MB')
+    expect(view.getByRole('status').textContent).toContain('拖动图片或文档到此处即可添加')
     expect(fireEvent.dragOver(document.body, { dataTransfer })).toBe(false)
     expect(dataTransfer.dropEffect).toBe('copy')
     expect(fireEvent.drop(document.body, { dataTransfer })).toBe(false)
     expect(onAddImages).toHaveBeenCalledWith([image])
+    expect(onAddDocuments).toHaveBeenCalledWith([document])
     expect(view.queryByRole('status')).toBeNull()
   })
 
@@ -119,42 +129,49 @@ describe('ComposerAttachments', () => {
 
   it('shows a blocked drop without forwarding its files', () => {
     const onAddImages = vi.fn()
-    const view = render(<ComposerAttachments {...props({ canAcceptDrop: false, onAddImages })} />)
+    const onAddDocuments = vi.fn()
+    const view = render(<ComposerAttachments {...props({ canAcceptDrop: false, onAddImages, onAddDocuments })} />)
     const image = attachment('blocked').file
     const dataTransfer = { types: ['Files'], files: [image], dropEffect: 'copy' }
     fireEvent.dragEnter(document.body, { dataTransfer })
-    expect(view.getByRole('status').textContent).toBe('当前无法添加图片')
+    expect(view.getByRole('status').textContent).toBe('当前无法添加附件')
     fireEvent.dragOver(document.body, { dataTransfer })
     expect(dataTransfer.dropEffect).toBe('none')
     fireEvent.drop(document.body, { dataTransfer })
     expect(onAddImages).not.toHaveBeenCalled()
+    expect(onAddDocuments).not.toHaveBeenCalled()
     expect(view.queryByRole('status')).toBeNull()
   })
 
-  it('routes rail removal and closes previews on Escape or attachment removal', () => {
+  it('renders document cards and routes image/document removal independently', () => {
     const onRemoveImage = vi.fn()
+    const onRemoveDocument = vi.fn()
     const image = attachment('draft-1', 'pixel.png')
-    const initial = props({ attachments: [image], onRemoveImage })
+    const document = documentAttachment('draft-2', 'report.pdf')
+    const initial = props({ attachments: [image], documents: [document], onRemoveImage, onRemoveDocument })
     const view = render(<ComposerAttachments {...initial} />)
 
+    expect(view.getByText('report.pdf')).toBeTruthy()
+    expect(view.getByText('PDF')).toBeTruthy()
+    expect(view.getByText('12 KB')).toBeTruthy()
+    fireEvent.click(view.getByRole('button', { name: '移除文档 report.pdf' }))
+    expect(onRemoveDocument).toHaveBeenCalledWith(document.id)
     fireEvent.click(view.getByRole('button', { name: '移除图片 pixel.png' }))
     expect(onRemoveImage).toHaveBeenCalledWith(image.id)
+
     fireEvent.click(view.getByTitle('查看原图'))
     expect(view.getByRole('dialog', { name: '原图预览' })).toBeTruthy()
-    view.rerender(<ComposerAttachments {...props({ attachments: [], onRemoveImage })} />)
-    expect(view.queryByRole('dialog', { name: '原图预览' })).toBeNull()
-
-    view.rerender(<ComposerAttachments {...initial} />)
-    fireEvent.click(view.getByTitle('查看原图'))
-    fireEvent.keyDown(window, { key: 'Escape' })
+    view.rerender(<ComposerAttachments {...props({ attachments: [], documents: [document], onRemoveImage, onRemoveDocument })} />)
     expect(view.queryByRole('dialog', { name: '原图预览' })).toBeNull()
   })
 
-  it('labels an unnamed attachment and its original-image preview', () => {
+  it('closes image previews on Escape and labels an unnamed image', () => {
     const image = attachment('unnamed', '')
     const view = render(<ComposerAttachments {...props({ attachments: [image] })} />)
     expect(view.getByAltText('待发送图片')).toBeTruthy()
     fireEvent.click(view.getByTitle('查看原图'))
     expect(view.getByAltText('原图')).toBeTruthy()
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(view.queryByRole('dialog', { name: '原图预览' })).toBeNull()
   })
 })
