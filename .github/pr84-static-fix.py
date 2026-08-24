@@ -48,6 +48,70 @@ sync_first_fence('docs/capability-seams.md', 'docs/capability-seams.zh.md', 'mer
 sync_first_fence('docs/module-graph.md', 'docs/module-graph.zh.md', 'mermaid')
 
 
+def sync_table_rows_after(
+    english_path: str,
+    chinese_path: str,
+    row_prefixes: tuple[str, ...],
+    anchor_prefix: str,
+    replacements: tuple[tuple[str, str], ...] = (),
+) -> None:
+    english_lines = Path(english_path).read_text().splitlines()
+    chinese_file = Path(chinese_path)
+    chinese_text = chinese_file.read_text()
+    trailing_newline = chinese_text.endswith('\n')
+    chinese_lines = chinese_text.splitlines()
+
+    selected: list[str] = []
+    for prefix in row_prefixes:
+        matches = [line for line in english_lines if line.startswith(prefix)]
+        if len(matches) != 1:
+            raise SystemExit(
+                f'{english_path}: expected one table row starting {prefix!r}, found {len(matches)}'
+            )
+        row = matches[0]
+        for old, new in replacements:
+            row = row.replace(old, new)
+        selected.append(row)
+
+    # Idempotent when a prior convergence attempt already inserted the rows.
+    chinese_lines = [
+        line for line in chinese_lines
+        if not any(line.startswith(prefix) for prefix in row_prefixes)
+    ]
+    anchors = [index for index, line in enumerate(chinese_lines) if line.startswith(anchor_prefix)]
+    if len(anchors) != 1:
+        raise SystemExit(
+            f'{chinese_path}: expected one table anchor starting {anchor_prefix!r}, found {len(anchors)}'
+        )
+    insertion = anchors[0] + 1
+    chinese_lines[insertion:insertion] = selected
+    rendered = '\n'.join(chinese_lines)
+    if trailing_newline:
+        rendered += '\n'
+    chinese_file.write_text(rendered)
+
+
+sync_table_rows_after(
+    'docs/capability-seams.md',
+    'docs/capability-seams.zh.md',
+    ('| `ctx.documentParser` |',),
+    '| `ctx.attachments` |',
+    ((
+        'Parser providers convert already-durable document originals into transient final artifacts; Host admission persists those artifacts and owns the aggregate direct-context budget before publishing the user message.',
+        '解析器提供方把已持久化的原始文档转换为临时最终产物；Host admission 持久化这些产物，并在发布用户消息前负责聚合的直接上下文预算。',
+    ),),
+)
+sync_table_rows_after(
+    'docs/module-graph.md',
+    'docs/module-graph.zh.md',
+    (
+        '| [`document-parser`](../packages/attachment/document-parser) |',
+        '| [`document-parser-mineru`](../packages/attachment/document-parser-mineru) |',
+    ),
+    '| [`attachment-local`](../packages/attachment/attachment-local) |',
+)
+
+
 def anchored_section(text: str, package: str) -> tuple[int, int, str] | None:
     heading = f'## `{package}`'
     heading_at = text.find(heading)
