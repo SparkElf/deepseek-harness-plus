@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-24-durable-generic-document-attachments.md
 2026-08-24-durable-generic-document-attachments.md: 759cf9ddc4d8365c75303b617983b8b4a6d301d9
-2026-08-24-durable-generic-document-attachments.zh.md: cdb738e086c29a40d42f37f07eadb55b6e3d338a
+2026-08-24-durable-generic-document-attachments.zh.md: d0f19b63a7766c196efd1de69c33963a6d73c020
