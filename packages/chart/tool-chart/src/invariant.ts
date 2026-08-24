@@ -9,7 +9,10 @@ const PACKAGE_NAME = '@deepseek-ai/dsh-tool-chart'
 export const name = 'tool-chart-invariant'
 export const inject = ['invariants']
 
-/** The chart tool owns no independent mutable state or session event relation beyond tool/result metadata. */
+/**
+ * No runtime invariant: the tool owns no mutable state or event relation beyond metadata already
+ * committed by the tools runtime on `tool/result`.
+ */
 const install: InvariantInstaller = () => {}
 
 export const apply = (ctx: Context): Promise<() => void> =>
