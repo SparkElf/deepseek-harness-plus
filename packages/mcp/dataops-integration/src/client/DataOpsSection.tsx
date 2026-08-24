@@ -16,8 +16,6 @@ interface Account {
 }
 
 interface Status {
-  baseUrl: string
-  serverName: string
   mode: 'anonymous' | 'oidc'
   credentialConfigured: boolean | null
   credentialWritable: boolean | null
@@ -81,11 +79,12 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
   const state = useMemo(() => {
     if (loading) return { dot: 'ongoing' as const, label: t('loading') }
     if (failure !== undefined && status === undefined) {
-      return { dot: 'warning' as const, label: t('statusUnavailable') }
+      return { dot: 'warning' as const, label: t('connectionFailed') }
     }
-    if (status?.mode === 'anonymous') return { dot: 'warning' as const, label: t('anonymousMode') }
     if (status?.authorizationAccepted === true) return { dot: 'done' as const, label: t('connected') }
-    if (status?.credentialConfigured === true) return { dot: 'warning' as const, label: t('authorizationExpired') }
+    if (status?.mode === 'anonymous' || status?.credentialWritable === false) {
+      return { dot: 'warning' as const, label: t('managedByAdministrator') }
+    }
     return { dot: 'warning' as const, label: t('notConnected') }
   }, [failure, loading, status, t])
 
@@ -113,18 +112,26 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
       .finally(() => { setDisconnecting(false) })
   }
 
-  const connectedAccount = status?.mode === 'oidc' ? status.account : null
-  const showActions = !confirmingDisconnect && (status?.mode === 'oidc' || failure !== undefined)
+  const connectedAccount = status?.mode === 'oidc' && status.authorizationAccepted === true ? status.account : null
+  const accountIdentity = connectedAccount?.email || connectedAccount?.username
+  const showActions = !confirmingDisconnect && (
+    status?.mode === 'oidc'
+    || (status === undefined && failure !== undefined)
+  )
 
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>{t('title')}</h2>
-      <p className={styles.intro}>{t('intro')}</p>
 
-      <div className={styles.card}>
+      <div className={styles.body}>
         <div className={styles.statusRow}>
           <StateDot state={state.dot} />
-          <span className={styles.statusLabel}>{state.label}</span>
+          <span
+            className={styles.statusLabel}
+            role={failure !== undefined && status === undefined ? 'alert' : undefined}
+          >
+            {state.label}
+          </span>
         </div>
 
         {connectedAccount !== null && connectedAccount !== undefined && (
@@ -134,19 +141,18 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
             </span>
             <span className={styles.accountCopy}>
               <strong>{connectedAccount.displayName || connectedAccount.username}</strong>
-              <span>{connectedAccount.email}</span>
-              <span className={styles.accountUsername}>{connectedAccount.username}</span>
+              <span>{accountIdentity}</span>
             </span>
           </div>
         )}
 
-        {status?.mode === 'anonymous' && <p className={styles.detail}>{t('anonymousDetail')}</p>}
-
-        {status?.mode === 'oidc' && status.credentialWritable === false && (
-          <p className={styles.detail}>{t('externallyManaged')}</p>
+        {status?.authorizationAccepted === true && status.credentialWritable === false && (
+          <p className={styles.detail}>{t('managedByAdministrator')}</p>
         )}
 
-        {failure !== undefined && <p className={styles.error} role="alert">{failure}</p>}
+        {failure !== undefined && status !== undefined && (
+          <p className={styles.error} role="alert">{failure}</p>
+        )}
 
         {showActions && (
           <div className={styles.actions}>
@@ -160,7 +166,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
                 {t('disconnect')}
               </Button>
             )}
-            {failure !== undefined && (
+            {status === undefined && failure !== undefined && (
               <Button variant="ghost" onClick={load}>{t('retry')}</Button>
             )}
           </div>
@@ -180,28 +186,6 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
             </div>
           </div>
         )}
-
-        {loading && failure === undefined && status === undefined && <p className={styles.detail}>{t('loading')}</p>}
-
-        {status !== undefined && (
-          <details className={styles.advanced}>
-            <summary>{t('advanced')}</summary>
-            <div className={styles.advancedBody}>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>{t('server')}</span>
-                <span className={styles.fieldValue} title={status.baseUrl}>{status.baseUrl}</span>
-              </div>
-              <div className={styles.field}>
-                <span className={styles.fieldLabel}>{t('mode')}</span>
-                <span className={styles.fieldValue}>
-                  {status.mode === 'anonymous' ? t('anonymousMode') : t('oidcMode')}
-                </span>
-              </div>
-            </div>
-          </details>
-        )}
-
-        <p className={styles.security}>{t('security')}</p>
       </div>
     </section>
   )
