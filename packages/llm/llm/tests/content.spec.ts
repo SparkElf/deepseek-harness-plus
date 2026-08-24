@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
-import { CallId, createUserMessage, OFFLOADED_IMAGE_TEXT, offloadRequestImages } from '../src/index.ts'
+import {
+  CallId, createUserMessage, OFFLOADED_IMAGE_TEXT, offloadRequestImages,
+  projectRequestDocuments, projectUnparsedDocuments, unparsedDocumentText,
+} from '../src/index.ts'
 import type { ContentBlock } from '../src/index.ts'
 
 const source = { kind: 'plugin' as const, plugin: 'test' }
@@ -17,6 +20,59 @@ function image(bytes: number): ContentBlock {
     },
   }
 }
+
+function document(name = 'report.pdf'): ContentBlock {
+  return {
+    type: 'document',
+    attachment: {
+      attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
+      mediaType: 'application/pdf',
+      bytes: 5,
+      name,
+    },
+  }
+}
+
+describe('generic document request projection', () => {
+  it('uses an explicit unparsed marker without exposing opaque attachment ids', () => {
+    const block = document('evidence.pdf')
+    if (block.type !== 'document') throw new Error('document fixture narrowed incorrectly')
+    const text = unparsedDocumentText(block)
+    expect(text).toContain('evidence.pdf')
+    expect(text).toContain('application/pdf')
+    expect(text).toContain('contents have not been parsed')
+    expect(text).not.toContain(String(block.attachment.attachmentId))
+  })
+
+  it('projects nested documents without mutating durable content', () => {
+    const nestedDocument = document()
+    const durable: ContentBlock[] = [{
+      type: 'tool-result',
+      toolCallId: CallId('read'),
+      content: [{ type: 'text', text: 'before' }, nestedDocument],
+    }]
+
+    const projected = projectUnparsedDocuments(durable)
+    expect(projected).not.toBe(durable)
+    expect(projected).toEqual([{
+      type: 'tool-result',
+      toolCallId: CallId('read'),
+      content: [
+        { type: 'text', text: 'before' },
+        {
+          type: 'text',
+          text: '[attached document: report.pdf (application/pdf); the document is stored, but its contents have not been parsed and are not available to the model yet.]',
+        },
+      ],
+    }])
+    expect(durable[0]).toMatchObject({ type: 'tool-result', content: [{ type: 'text', text: 'before' }, nestedDocument] })
+  })
+
+  it('preserves message and array identity when no document needs projection', () => {
+    const messages = [createUserMessage({ content: [{ type: 'text', text: 'unchanged' }], source })]
+    expect(projectRequestDocuments(messages)).toBe(messages)
+  })
+})
 
 describe('offloadRequestImages', () => {
   it('preserves the original request when its base64 payload fits exactly', () => {
