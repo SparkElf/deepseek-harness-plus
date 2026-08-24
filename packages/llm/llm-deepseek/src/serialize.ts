@@ -6,7 +6,7 @@
  * @module dsh-llm-deepseek/serialize
  */
 
-import { contentHasImage, LlmError, offloadRequestImages } from '@deepseek-ai/dsh-llm'
+import { contentHasImage, LlmError, offloadRequestImages, projectRequestDocuments } from '@deepseek-ai/dsh-llm'
 import type { ContentBlock, GenerateOptions, Message } from '@deepseek-ai/dsh-llm'
 import { AttachmentError } from '@deepseek-ai/dsh-attachment'
 import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
@@ -72,7 +72,7 @@ function resolveThinking(options: GenerateOptions, defaults: RequestDefaults): R
 }
 
 /** Join the text blocks of a message (used for user/tool-result content). */
-function flattenText(blocks: ContentBlock[]): string {
+function flattenText(blocks: readonly ContentBlock[]): string {
   return blocks
     .filter(block => block.type === 'text')
     .map(block => block.text)
@@ -193,16 +193,19 @@ function serializeAssistant(message: Message): WireMessage {
 }
 
 /**
- * Serialize the conversation. `tool-result` blocks become standalone
+ * Serialize the conversation. Generic unparsed documents are first projected
+ * to explicit text markers so no provider path can silently pretend to have
+ * read binary document contents. `tool-result` blocks become standalone
  * `{role: 'tool'}` messages; the harness puts each tool result in its own
  * user-role message, so a mixed user message contributes its text first and
  * its tool results as separate wire messages after.
  * @param messages - the harness conversation, in order.
  * @returns the wire messages; order preserved, each tool result expanded into its own entry.
  */
-export function serializeMessages(messages: Message[]): WireMessage[] {
+export function serializeMessages(messages: readonly Message[]): WireMessage[] {
+  const projected = projectRequestDocuments(messages)
   const wire: WireMessage[] = []
-  for (const message of messages) {
+  for (const message of projected) {
     assertTextOnly(message.content)
     if (message.role === 'system') {
       wire.push({ role: 'system', content: flattenText(message.content) })
@@ -232,7 +235,8 @@ export function serializeMessages(messages: Message[]): WireMessage[] {
 }
 
 /**
- * Serialize image-capable history after resolving durable attachments.
+ * Serialize image-capable history after resolving durable attachments. Generic
+ * documents are projected to explicit text markers before image materialization.
  * Consecutive tool results keep string `tool` messages and share one following
  * user message containing their images.
  * @param messages - transient request history after request-size offloading.
@@ -245,7 +249,8 @@ export async function serializeMessagesWithImages(
   attachments: AttachmentStore,
   signal: AbortSignal,
 ): Promise<WireMessage[]> {
-  assertSupportedImageRoles(messages)
+  const projected = projectRequestDocuments(messages)
+  assertSupportedImageRoles(projected)
   const wire: WireMessage[] = []
   let pendingToolImages: WireImageContentPart[] = []
   const flushToolImages = (): void => {
@@ -257,7 +262,7 @@ export async function serializeMessagesWithImages(
     pendingToolImages = []
   }
 
-  for (const message of messages) {
+  for (const message of projected) {
     if (message.role === 'system') {
       flushToolImages()
       wire.push({ role: 'system', content: flattenText(message.content) })
@@ -352,7 +357,8 @@ export function serializeRequest(
 /**
  * Build one image-capable request while keeping durable bytes out of session
  * messages. Oversized oldest images become deterministic text before any
- * attachment read.
+ * attachment read. Generic documents are projected by the serializer to an
+ * explicit unparsed marker and never sent as arbitrary provider binary files.
  * @param options - harness request containing image-capable user content.
  * @param images - attachment resolver, request bound, and cancellation.
  * @param defaults - adapter-level thinking defaults.
@@ -363,8 +369,9 @@ export async function serializeRequestWithImages(
   images: ImageSerializationOptions,
   defaults: RequestDefaults = {},
 ): Promise<WireRequest> {
-  assertSupportedImageRoles(options.messages)
-  const requestMessages = offloadRequestImages(options.messages, images.maxRequestImageBytes)
+  const projected = projectRequestDocuments(options.messages)
+  assertSupportedImageRoles(projected)
+  const requestMessages = offloadRequestImages(projected, images.maxRequestImageBytes)
   const messages: WireMessage[] = []
   if (options.system !== undefined) {
     messages.push({ role: 'system', content: options.system })
