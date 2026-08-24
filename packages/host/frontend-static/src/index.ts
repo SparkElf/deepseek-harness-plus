@@ -41,7 +41,7 @@ export function injectDocumentBase(html: string, basePath: string): string {
   return head === -1 ? `${tag}${html}` : `${html.slice(0, head + 6)}${tag}${html.slice(head + 6)}`
 }
 
-/** Parser-blocking plugin preloads are injected after the base tag and must be document-relative. */
+/** Parser-blocking plugin preloads are injected as root URLs by the Host graph and become document-relative here. */
 export function relativizePluginPreloads(html: string): string {
   return html.replaceAll('src="/plugins/', 'src="plugins/')
 }
@@ -78,8 +78,11 @@ export function apply(ctx: Context, config: Config): void {
   const distIndex = config.distIndex
   const distRoot = dirname(distIndex)
   const renderIndex = async (): Promise<string> => {
-    const html = injectDocumentBase(await readFile(distIndex, 'utf8'), ctx.webServer.basePath)
-    return relativizePluginPreloads(ctx.webServer.applyIndexTaps(html))
+    const source = await readFile(distIndex, 'utf8')
+    const tapped = ctx.webServer.applyIndexTaps(source)
+    // Injecting after taps places <base> before any parser-blocking scripts that
+    // those taps inserted at the beginning of <head>.
+    return relativizePluginPreloads(injectDocumentBase(tapped, ctx.webServer.basePath))
   }
   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
