@@ -1,5 +1,6 @@
 /** Content-block structure helpers. @module @deepseek-ai/dsh-llm/content */
 
+import type { AttachmentStore } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock, DocumentBlock } from './types.ts'
 import type { Message } from './message.ts'
 
@@ -23,8 +24,6 @@ export function unparsedDocumentText(block: DocumentBlock): string {
  * Replace durable document blocks with explicit unparsed markers for a model
  * request without mutating session history. Nested tool-result content is
  * projected recursively; every other merge-extensible block is preserved.
- * The stacked parser feature can replace this generic projection with parsed
- * Markdown while retaining the same durable original-document block.
  * @param blocks - durable content blocks.
  * @returns original array when no document occurs, otherwise a projected copy.
  */
@@ -51,6 +50,8 @@ export function projectUnparsedDocuments(blocks: readonly ContentBlock[]): Conte
 
 /**
  * Project documents in every provider request message without changing durable messages.
+ * This synchronous path is retained for generic unparsed documents and adapters
+ * that do not need a durable parser artifact read.
  * @param messages - durable provider-neutral messages in request order.
  * @returns the original list when no document occurs, otherwise shallow message copies with document markers.
  */
@@ -62,6 +63,77 @@ export function projectRequestDocuments(messages: readonly Message[]): readonly 
     changed = true
     return { ...message, content }
   })
+  return changed ? projected : messages
+}
+
+/** True when content contains a document whose complete Markdown is stored durably. */
+export function contentHasParsedDocument(content: readonly ContentBlock[]): boolean {
+  return content.some(block => block.type === 'document'
+    ? block.attachment.parsed !== undefined
+    : block.type === 'tool-result' && contentHasParsedDocument(block.content))
+}
+
+/** Decode one accepted parser Markdown artifact without replacement characters. */
+async function parsedDocumentText(
+  block: DocumentBlock,
+  attachments: AttachmentStore,
+  signal?: AbortSignal,
+): Promise<string> {
+  const parsed = block.attachment.parsed
+  if (parsed === undefined) return unparsedDocumentText(block)
+  const stored = await attachments.readFile(parsed.markdown, signal)
+  let markdown: string
+  try {
+    markdown = new TextDecoder('utf-8', { fatal: true }).decode(stored.data)
+  } catch (error: unknown) {
+    throw new Error(`Parsed Markdown for document "${block.attachment.name}" is not valid UTF-8.`, { cause: error })
+  }
+  return `[attached document: ${block.attachment.name} (${block.attachment.mediaType}); parsed contents follow]\n\n${markdown}\n\n[end attached document: ${block.attachment.name}]`
+}
+
+/** Resolve parsed document references to complete Markdown while preserving unparsed truth markers. */
+async function projectDocumentsWithAttachments(
+  blocks: readonly ContentBlock[],
+  attachments: AttachmentStore,
+  signal?: AbortSignal,
+): Promise<ContentBlock[]> {
+  let next: ContentBlock[] | undefined
+  for (const [index, block] of blocks.entries()) {
+    if (block.type === 'document') {
+      next ??= blocks.slice(0, index)
+      next.push({ type: 'text', text: await parsedDocumentText(block, attachments, signal) })
+      continue
+    }
+    if (block.type === 'tool-result') {
+      const content = await projectDocumentsWithAttachments(block.content, attachments, signal)
+      if (content !== block.content) {
+        next ??= blocks.slice(0, index)
+        next.push({ ...block, content })
+        continue
+      }
+    }
+    next?.push(block)
+  }
+  return next ?? blocks as ContentBlock[]
+}
+
+/**
+ * Resolve every durable parsed-document Markdown reference for one provider request.
+ * Session history remains ref-only; the complete Markdown exists transiently only
+ * while this provider request is assembled.
+ */
+export async function projectRequestDocumentsWithAttachments(
+  messages: readonly Message[],
+  attachments: AttachmentStore,
+  signal?: AbortSignal,
+): Promise<readonly Message[]> {
+  let changed = false
+  const projected: Message[] = []
+  for (const message of messages) {
+    const content = await projectDocumentsWithAttachments(message.content, attachments, signal)
+    if (content !== message.content) changed = true
+    projected.push(content === message.content ? message : { ...message, content })
+  }
   return changed ? projected : messages
 }
 
