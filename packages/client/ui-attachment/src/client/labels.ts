@@ -29,35 +29,20 @@ export function messageImageLabels(t: TranslateNS<'conversation'>): MessageImage
   }
 }
 
-/**
- * Resolve the document-level drop invitation and its optional limits line.
- * @param t - conversation namespace translator.
- * @param accepting - whether the composer can accept dropped files.
- * @param limits - optional translated count and size values.
- * @returns translated drop-overlay labels.
- */
+/** Resolve the generic file-drop invitation shared by image and document intake. */
 export function dropOverlayLabels(
   t: TranslateNS<'conversation'>,
   accepting: boolean,
-  limits?: { readonly count: number; readonly size: string },
 ): DropOverlayLabels {
-  if (!accepting) return { title: t('image.dropBlocked') }
-  return {
-    title: t('image.dropTitle'),
-    desc: limits === undefined ? undefined : t('image.dropDesc', limits),
-  }
+  return { title: accepting ? t('attachment.dropTitle') : t('attachment.dropBlocked') }
 }
 
-/**
- * Resolve draft-image rail strings from the conversation namespace.
- * @param t - conversation namespace translator.
- * @returns translated attachment-rail labels.
- */
+/** Resolve mixed draft-attachment rail strings from the conversation namespace. */
 export function attachmentRailLabels(t: TranslateNS<'conversation'>): AttachmentRailLabels {
   return {
-    group: t('image.pending'),
+    group: t('attachment.pending'),
     open: t('image.openOriginal'),
-    scrollLeft: t('image.scrollLeft'),
-    scrollRight: t('image.scrollRight'),
+    scrollLeft: t('attachment.scrollLeft'),
+    scrollRight: t('attachment.scrollRight'),
   }
 }
