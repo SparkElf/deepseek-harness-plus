@@ -237,7 +237,7 @@ describe('the shipped Web composition', () => {
       // depend on ripgrep being present on the machine.
       expect(toolNames(ctx, handle.agent).filter(name => name !== 'glob' && name !== 'grep')).toEqual([
         'ask_user_question', 'bash', 'create_goal', 'edit', 'exit_plan_mode',
-        'get_goal', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'ralph', 'read', 'read_image', 'render_chart', 'send_message', 'skill',
+        'get_goal', 'interrupt_agent', 'job_kill', 'job_list', 'job_output', 'list_agents', 'ralph', 'read', 'read_image', 'send_message', 'skill',
         'subagent', 'subagent_fork', 'todo_write', 'update_goal', 'web_search',
         'workflow', 'write',
       ])
@@ -303,7 +303,7 @@ describe('the shipped Web composition', () => {
         'cordis_define', 'cordis_run', 'cordis_stop', 'cordis_undefine',
       ]))
       // And it keeps the standard agent's own tools rather than replacing them.
-      expect(tools).toEqual(expect.arrayContaining(['bash', 'read', 'edit', 'skill', 'render_chart']))
+      expect(tools).toEqual(expect.arrayContaining(['bash', 'read', 'edit', 'skill']))
       expect(tools).not.toContain('str_replace_editor')
 
       // The preset's own authoring skill registers into ITS layer of the host
@@ -335,7 +335,6 @@ describe('the shipped Web composition', () => {
       const sdk = assembly.sections.find(section => section.name === 'tools:sdk')?.text ?? ''
       expect(sdk).not.toContain('str_replace_editor')
       expect(sdk).toContain('web_search')
-      expect(sdk).toContain('render_chart')
 
       // The presentation is this agent's alone: the deployment default is
       // native, and the session composed from `standard` still sees it.
