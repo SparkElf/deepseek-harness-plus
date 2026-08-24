@@ -29,7 +29,12 @@ export function messageImageLabels(t: TranslateNS<'conversation'>): MessageImage
   }
 }
 
-/** Resolve the generic file-drop invitation shared by image and document intake. */
+/**
+ * Resolve the generic file-drop invitation shared by image and document intake.
+ * @param t - conversation namespace translator.
+ * @param accepting - whether the current composer may accept another file drop.
+ * @returns translated drop-overlay labels for the current acceptance state.
+ */
 export function dropOverlayLabels(
   t: TranslateNS<'conversation'>,
   accepting: boolean,
@@ -37,7 +42,11 @@ export function dropOverlayLabels(
   return { title: accepting ? t('attachment.dropTitle') : t('attachment.dropBlocked') }
 }
 
-/** Resolve mixed draft-attachment rail strings from the conversation namespace. */
+/**
+ * Resolve mixed draft-attachment rail strings from the conversation namespace.
+ * @param t - conversation namespace translator.
+ * @returns translated group/open/paging labels for the mixed attachment rail.
+ */
 export function attachmentRailLabels(t: TranslateNS<'conversation'>): AttachmentRailLabels {
   return {
     group: t('attachment.pending'),
