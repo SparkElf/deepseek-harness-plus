@@ -9,11 +9,7 @@
 
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-api-remotes/client'
-// Type-only: the settings slot declarations (settings.section) and the
-// ctx.settingsScope Context merge. Cross-plugin collaboration goes through
-// the slot system, never a value import.
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-// Type-only: pulls ctx.locale into this program.
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import { BackupSection, type BackupSectionInjected } from './BackupSection.tsx'
 import { en, zh, type SettingsBackupKey } from './locales.ts'
@@ -28,16 +24,15 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
-/** Dictionary namespace owned by this plugin. */
 const NS = 'settingsBackup'
-
-/** Required services (cordis fiber inject). */
 export const inject = ['slots', 'locale', 'connection']
 
-/**
- * Register the `settingsBackup` dictionaries and the Backup section entry.
- * @param ctx - client root context.
- */
+/** Resolve a Host logical path beneath the runtime-injected document base. */
+function browserHostUrl(path: string): string {
+  const base = typeof document === 'undefined' ? 'http://dsh.internal/' : document.baseURI
+  return new URL(path.replace(/^\//u, ''), base).toString()
+}
+
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-settings-backup: dictionaries')
   const connection = ctx.get('connection') as ConnectionHandle
@@ -45,10 +40,13 @@ export function apply(ctx: ClientContext): void {
     exportArchive: async () => {
       const { result } = await connection.api.settings.backupExport({})
       if (!result.ok) throw new Error(result.error.message)
-      return result.value
+      return {
+        ...result.value,
+        downloadUrl: browserHostUrl(result.value.downloadUrl),
+      }
     },
     importArchive: async (file: File) => {
-      const upload = await fetch('/api/backup.upload', { method: 'POST', body: file })
+      const upload = await fetch(browserHostUrl('/api/backup.upload'), { method: 'POST', body: file })
       if (!upload.ok) throw new Error('backup upload failed')
       const { token } = await upload.json() as { token: string }
       const { result } = await connection.api.settings.backupImport({ token })
@@ -56,8 +54,6 @@ export function apply(ctx: ClientContext): void {
       return result.value
     },
   })
-  // Ordered after the feature sections: backup is a data-safety net, not a
-  // deployment-shaping page.
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'backup',
