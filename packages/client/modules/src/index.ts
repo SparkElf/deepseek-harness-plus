@@ -41,44 +41,29 @@ export type {
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** The web plugin table (provided by the client-modules node half). */
     clientModules: ClientModuleRegistry
   }
 }
 
-/** package.json `dsh.client` declaration fields, validated one by one after reading the file. */
 interface DshClientDeclaration {
   inject?: string[]
   platform: string
-  /** Boot phase-one prefetch mark; absent means lazy (fetched on demand). */
   immediately?: boolean
-  /**
-   * Exact module-table requests beyond the implicit client baseline. Any
-   * specifier is valid, including subpaths such as `<pkg>/client`; each
-   * importing package declares its own exceptional requests. A type-only
-   * import is not a request because the transform erases it before resolution.
-   * Absent means the package uses only the baseline externals.
-   */
   external?: string[]
 }
 
-/** The declared fields a graph row carries, normalized (absent array declarations become empty). */
 interface WebBootRowFields {
   inject?: string[]
-  /** Module specifiers the package requests from the module table. */
   external: string[]
   immediately: boolean
 }
 
-/** Resolved package metadata for one `dsh.client` package (cached per name, never expires). */
 interface PkgMeta extends WebBootRowFields {
   clientPath: string
 }
 
-/** Recovery instruction shared by grouped startup and steady-state bundle diagnostics. */
 const CLIENT_BUNDLE_BUILD_INSTRUCTION = 'run `pnpm run build` before launch'
 
-/** Missing built client export, retained as structured data for activation-error grouping. */
 class MissingClientBundleError extends Error {
   constructor(
     readonly packageName: string,
@@ -96,7 +81,6 @@ class MissingClientBundleError extends Error {
   }
 }
 
-/** Activation failures grouped by actionable package-build errors and unrelated failures. */
 class ClientPackageCompositionError extends AggregateError {
   constructor(failures: Error[]) {
     const missingBundles = failures.filter((error): error is MissingClientBundleError => error instanceof MissingClientBundleError)
@@ -116,13 +100,11 @@ class ClientPackageCompositionError extends AggregateError {
   }
 }
 
-/** One composed table row: the wire entry plus the resolved package metadata behind it. */
 interface WebPluginRecord {
   entry: WebBootEntry
   meta: PkgMeta
 }
 
-/** Narrow an unknown parsed JSON value to the `dsh.client` declaration, throwing on malformed fields. */
 function parseDshClient(pkgName: string, value: unknown): DshClientDeclaration | undefined {
   if (value === undefined) return undefined
   if (typeof value !== 'object' || value === null) {
@@ -145,7 +127,6 @@ function parseDshClient(pkgName: string, value: unknown): DshClientDeclaration |
   }
 }
 
-/** Resolve `exports["./client"]` to a relative path, accepting the string and one-level conditional forms. */
 function clientExportOf(pkgName: string, exportsField: unknown): string | undefined {
   if (typeof exportsField !== 'object' || exportsField === null) return undefined
   const client = (exportsField as Record<string, unknown>)['./client']
@@ -158,16 +139,19 @@ function clientExportOf(pkgName: string, exportsField: unknown): string | undefi
   throw new Error(`client-modules: ${pkgName} exports["./client"] must be a string or an object with a string default`)
 }
 
-/** sha1 content hash shortened to 12 hex chars (bundle rev / graph rev). */
 function shortHash(input: string | Buffer): string {
   return createHash('sha1').update(input).digest('hex').slice(0, 12)
 }
 
-/** Graph row for one bundle rev (url carries the rev as its cache-busting query). */
+/**
+ * Graph URLs are document-base relative. The Host still serves the logical
+ * `/plugins` route; a reverse-proxy mount is owned solely by the injected
+ * document base and the webserver's prefix stripping.
+ */
 function graphRow(id: string, rev: string, fields: WebBootRowFields): WebBootEntry {
   return {
     id,
-    url: `/plugins/${id}/client.js?rev=${rev}`,
+    url: `plugins/${id}/client.js?rev=${rev}`,
     rev,
     ...(fields.inject !== undefined ? { inject: fields.inject } : {}),
     ...(fields.immediately ? { immediately: true } : {}),
@@ -175,16 +159,6 @@ function graphRow(id: string, rev: string, fields: WebBootRowFields): WebBootEnt
   }
 }
 
-/**
- * Order composed rows so every requested dynamic package precedes its
- * consumers. An `external` specifier is either the package row it names
- * (`<pkg>/client` aliases the bare package) or a static-table name that adds no
- * graph edge.
- * @param entries - composed rows in scan order.
- * @returns the same rows reordered; scan order breaks every tie.
- * @throws {Error} when a row requests itself or when the module graph has a
- * cycle; the message lists the packages on it.
- */
 export function orderByModuleGraph(entries: readonly WebBootEntry[]): WebBootEntry[] {
   const rowsById = new Map<string, WebBootEntry>()
   for (const entry of entries) rowsById.set(entry.id, entry)
@@ -219,16 +193,10 @@ export function orderByModuleGraph(entries: readonly WebBootEntry[]): WebBootEnt
   return ordered
 }
 
-/** Bootstrap package whose ordinary client bundle supplies the module-system implementation. */
 const CLIENT_MODULES_ID = '@deepseek-ai/dsh-client-modules'
-
-/** Dynamic package whose ordinary client bundle must be registered before plugin boot starts. */
 const CLIENT_RUNTIME_ID = '@deepseek-ai/dsh-client-runtime'
-
-/** Ordinary dynamic bundles the HTML parser executes before the Vite shell. */
 const PARSER_PRELOAD_IDS = [CLIENT_MODULES_ID, CLIENT_RUNTIME_ID] as const
 
-/** Escape a graph URL before placing it in a quoted HTML attribute. */
 function escapeHtmlAttribute(value: string): string {
   return value
     .replaceAll('&', '&amp;')
@@ -237,18 +205,6 @@ function escapeHtmlAttribute(value: string): string {
     .replaceAll('>', '&gt;')
 }
 
-/**
- * Inject the boot protocol into index.html. The inline registration queue precedes
- * blocking classic scripts for modules' and runtime's ordinary
- * `lib/client.js` artifacts. Its `create()` method materializes the modules
- * bundle, delegates construction to that bundle, and leaves the same facade
- * in live-registration mode. The graph script follows before the shell reads
- * it. `<` is escaped in JSON so a plugin-controlled string cannot break out
- * of the script element.
- * @param html - the index.html source.
- * @param graph - the composed entry graph.
- * @returns the html with the graph script injected.
- */
 export function injectBootManifest(html: string, graph: WebBootGraph): string {
   const json = JSON.stringify(graph).replaceAll('<', '\\u003c')
   const bootstrapId = JSON.stringify(CLIENT_MODULES_ID)
@@ -281,24 +237,13 @@ window.__ModuleLoader__={
   const script = `${queue}${preload}<script>window.__DSH_BOOT__ = ${json}</script>`
   const head = html.indexOf('<head>')
   if (head !== -1) return `${html.slice(0, head + 6)}${script}${html.slice(head + 6)}`
-  // Headless fixture pages may lack <head>; prepending keeps the read-before-shell ordering.
   return `${script}${html}`
 }
 
-/**
- * The web plugin table service: incremental `dsh.client` scan + wire composition
- * + bundle route + index tap. Construction runs the activation scan
- * synchronously — a malformed declaration or missing bundle among the
- * already-loaded entries aggregates into one loud throw (FAILED fiber; the
- * boot activation audit reports it).
- */
 export class ClientModuleRegistry extends Service {
   static inject = ['webServer', 'loader']
 
   private readonly table = new Map<string, WebPluginRecord>()
-  // Negative verdicts (unresolvable specifier — builtins like cordis:include,
-  // subpath rows — or a package without a web `dsh.client` declaration) are
-  // cached as null and never expire: plugin-set changes take effect on restart.
   private readonly pkgMeta = new Map<string, PkgMeta | null>()
   private readonly rebuildListeners = new Set<(id: string, rev: string) => void>()
   private readonly graphListeners = new Set<() => void>()
@@ -307,276 +252,188 @@ export class ClientModuleRegistry extends Service {
   private flushQueued = false
   private composed: WebBootGraph
 
-  /**
-   * Build the service: subscribe, seed, and run the activation flush.
-   * @param ctx - plugin context carrying webServer and loader.
-   */
   constructor(ctx: Context) {
     super(ctx, 'clientModules')
-    // Resolution anchor: the config tree's baseUrl (the cordis.yml directory,
-    // whose package declares every composed plugin as a dependency). The
-    // modules package's own URL would miss sibling packages under pnpm's
-    // isolated node_modules.
     if (ctx.baseUrl === undefined) {
-      throw new Error('client-modules: ctx.baseUrl is unset — the node half needs the config-tree anchor to resolve plugin packages')
+      throw new Error('client-modules: ctx.baseUrl missing; cannot resolve configured plugin packages')
     }
-    const require = createRequire(ctx.baseUrl)
-    this.resolvePkgJson = spec => require.resolve(`${spec}/package.json`)
+    this.resolvePkgJson = createRequire(new URL('package.json', ctx.baseUrl)).resolve
+    this.composed = { rev: shortHash('[]'), entries: [] }
 
-    // Subscribe before seeding so a fiber arriving mid-activation lands in the
-    // same dirty set (Set idempotence makes the overlap harmless). An entry-less
-    // fiber is a child plugin or a manual mount — never a loader row; O(1) drop.
-    ctx.on('internal/plugin', (fiber) => {
-      const entryName = fiber.entry?.options.name
-      if (entryName === undefined) return
-      this.dirty.add(entryName)
-      if (this.flushQueued) return
-      this.flushQueued = true
-      queueMicrotask(() => {
-        this.flushQueued = false
-        this.flush((err) => { ctx.logger.warn(err) })
-      })
+    ctx.on('internal/plugin', (entry) => {
+      if (entry.name === undefined) return
+      this.markDirty(entry.name)
     })
-
-    // Activation pass: the initial scan IS the incremental path over the
-    // current entries, flushed synchronously (nothing async between subscribe,
-    // seed, and flush).
-    for (const entry of ctx.loader.entries()) this.dirty.add(entry.options.name)
-    this.composed = this.compose()
-    const failures: Error[] = []
-    this.flush(err => failures.push(err))
-    if (failures.length > 0) {
-      throw new ClientPackageCompositionError(failures)
+    for (const entry of ctx.loader.entries()) {
+      if (entry.name !== undefined) this.dirty.add(entry.name)
     }
+    const failures = this.flushDirty()
+    if (failures.length > 0) throw new ClientPackageCompositionError(failures)
 
-    ctx.effect(
-      () => ctx.webServer.register({ kind: 'prefix', path: '/plugins', handler: this.serveBundle }),
-      'client-modules: bundle route',
-    )
-    ctx.effect(
-      () => ctx.webServer.tapIndex(html => injectBootManifest(html, this.composed)),
-      'client-modules: boot manifest injection',
-    )
+    ctx.effect(() => ctx.webServer.register({
+      kind: 'prefix',
+      path: '/plugins',
+      handler: (req, res) => this.serveBundle(req, res),
+    }), 'client-modules: bundle route')
+    ctx.effect(() => ctx.webServer.tapIndex(html => injectBootManifest(html, this.composed)), 'client-modules: boot manifest')
+    ctx.effect(() => () => {
+      this.rebuildListeners.clear()
+      this.graphListeners.clear()
+    }, 'client-modules: listeners')
   }
 
-  /**
-   * Current composed entry graph (stable object between changes).
-   * @returns the graph served as `window.__DSH_BOOT__`.
-   */
-  graph(): WebBootGraph {
+  get graph(): WebBootGraph {
     return this.composed
   }
 
-  /**
-   * Absolute path of an entry's client bundle.
-   * @param id - entry id (package name).
-   * @returns the path, or undefined for an unknown id.
-   */
-  clientPath(id: string): string | undefined {
-    return this.table.get(id)?.meta.clientPath
-  }
-
-  /**
-   * Re-hash one bundle (the HMR watch's registration hook — the only entry
-   * point through which bundle content changes reach the graph).
-   * @param id - entry id (package name).
-   * @returns the new rev, or undefined for an unknown id.
-   */
-  rebuilt(id: string): string | undefined {
-    const record = this.table.get(id)
-    if (record === undefined) return undefined
-    const rev = shortHash(readFileSync(record.meta.clientPath))
-    if (rev === record.entry.rev) return rev
-    record.entry = graphRow(id, rev, record.meta)
-    this.composed = this.compose()
-    for (const notify of this.rebuildListeners) {
-      // Containment: rebuilt() runs inside the HMR watch callback — a
-      // throwing subscriber must not kill the poll or skip later subscribers.
-      try {
-        notify(id, rev)
-      } catch (error) {
-        this.ctx.logger.error(error)
-      }
-    }
-    this.notifyGraphChanged()
-    return rev
-  }
-
-  /**
-   * Subscribe to bundle rebuilds; fires only when the re-hash changed the rev.
-   * @param listener - receives the entry id and its new bundle rev.
-   * @returns the unsubscriber.
-   */
   onRebuilt(listener: (id: string, rev: string) => void): () => void {
     this.rebuildListeners.add(listener)
     return () => { this.rebuildListeners.delete(listener) }
   }
 
-  /**
-   * Fires after any flush that recomposed the graph (row added/removed, or a
-   * rebuilt rev change). Pull model: listeners re-read {@link graph}.
-   * @param listener - notified with no payload.
-   * @returns the unsubscriber.
-   */
   onGraphChanged(listener: () => void): () => void {
     this.graphListeners.add(listener)
     return () => { this.graphListeners.delete(listener) }
   }
 
-  private compose(): WebBootGraph {
-    const entries = orderByModuleGraph([...this.table.values()].map(record => record.entry))
-    return { rev: shortHash(JSON.stringify(entries)), entries }
+  async rebuilt(id: string): Promise<void> {
+    const record = this.table.get(id)
+    if (record === undefined) throw new Error(`client-modules: unknown client package ${id}`)
+    let source: string
+    try {
+      source = await readFile(record.meta.clientPath, 'utf8')
+    } catch (cause) {
+      throw new MissingClientBundleError(id, record.meta.clientPath, cause)
+    }
+    const rev = shortHash(source)
+    if (rev === record.entry.rev) return
+    record.entry = graphRow(id, rev, record.meta)
+    this.recompose()
+    for (const listener of [...this.rebuildListeners]) listener(id, rev)
   }
 
-  private notifyGraphChanged(): void {
-    for (const listener of this.graphListeners) {
-      // A throwing subscriber must not skip later subscribers (or escape into
-      // whatever triggered the flush — possibly an fs.watchFile callback).
+  private markDirty(name: string): void {
+    this.dirty.add(name)
+    if (this.flushQueued) return
+    this.flushQueued = true
+    queueMicrotask(() => {
+      this.flushQueued = false
+      const failures = this.flushDirty()
+      for (const error of failures) this.ctx.logger.warn(error)
+    })
+  }
+
+  private flushDirty(): Error[] {
+    if (this.dirty.size === 0) return []
+    const names = [...this.dirty]
+    this.dirty.clear()
+    const failures: Error[] = []
+    let changed = false
+    for (const name of names) {
       try {
-        listener()
+        changed = this.reconcile(name) || changed
       } catch (error) {
-        this.ctx.logger.error(error)
+        failures.push(error instanceof Error ? error : new Error(String(error)))
       }
     }
+    if (changed) this.recompose()
+    return failures
   }
 
-  private resolveMeta(pkgName: string): PkgMeta | null {
-    const cached = this.pkgMeta.get(pkgName)
-    if (cached !== undefined) return cached
-    let pkgPath: string
+  private reconcile(name: string): boolean {
+    const entry = this.ctx.loader.entries().find(candidate => candidate.name === name)
+    if (entry === undefined) return this.table.delete(name)
+    const meta = this.metaOf(name)
+    if (meta === null) return this.table.delete(name)
+    let source: string
     try {
-      pkgPath = this.resolvePkgJson(pkgName)
-    } catch {
-      // Not a resolvable package root: loader builtins (cordis:include) and
-      // subpath entries (…/gateway) land here — permanently not a client row.
-      this.pkgMeta.set(pkgName, null)
-      return null
+      source = readFileSync(meta.clientPath, 'utf8')
+    } catch (cause) {
+      throw new MissingClientBundleError(name, meta.clientPath, cause)
     }
-    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as Record<string, unknown>
-    const dsh = pkg.dsh
-    const decl = parseDshClient(
-      pkgName,
-      dsh !== null && typeof dsh === 'object' ? (dsh as Record<string, unknown>).client : undefined,
-    )
-    if (decl === undefined || decl.platform !== 'web') {
-      this.pkgMeta.set(pkgName, null)
-      return null
-    }
-    const clientRel = clientExportOf(pkgName, pkg.exports)
-    if (clientRel === undefined) {
-      throw new Error(`client-modules: ${pkgName} declares dsh.client but exports no "./client" bundle`)
-    }
-    const meta: PkgMeta = {
-      clientPath: join(dirname(pkgPath), clientRel),
-      ...(decl.inject !== undefined ? { inject: decl.inject } : {}),
-      external: decl.external ?? [],
-      immediately: decl.immediately === true,
-    }
-    this.pkgMeta.set(pkgName, meta)
-    return meta
-  }
-
-  /**
-   * Read the activation-time bundle revision.
-   * @param pkgName - package that declares the client bundle.
-   * @param clientPath - absolute path of the built client artifact.
-   * @returns the bundle content's short hash for use as its revision.
-   * @throws {MissingClientBundleError} when the read fails with `ENOENT`; other filesystem errors are rethrown unchanged.
-   */
-  private initialBundleRevision(pkgName: string, clientPath: string): string {
-    try {
-      return shortHash(readFileSync(clientPath))
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-      throw new MissingClientBundleError(pkgName, clientPath, error)
-    }
-  }
-
-  /** Reconcile one entry name against the live loader entries. @returns whether the table changed. */
-  private processOne(entryName: string): boolean {
-    let qualifies = false
-    for (const entry of this.ctx.loader.entries()) {
-      if (entry.options.name === entryName && entry.fiber !== undefined && !entry.disabled) {
-        qualifies = true
-        break
-      }
-    }
-    if (!qualifies) return this.table.delete(entryName)
-    if (this.table.has(entryName)) return false
-    const meta = this.resolveMeta(entryName)
-    if (meta === null) return false
-    // The rev rides the row from here on: a fiber restart reuses the row (and
-    // its rev) untouched; only rebuilt() re-reads the bundle.
-    const rev = this.initialBundleRevision(entryName, meta.clientPath)
-    this.table.set(entryName, { entry: graphRow(entryName, rev, meta), meta })
+    const rev = shortHash(source)
+    const current = this.table.get(name)
+    if (current !== undefined && current.entry.rev === rev) return false
+    this.table.set(name, { entry: graphRow(name, rev, meta), meta })
     return true
   }
 
-  private flush(onError: (err: Error) => void): void {
-    let changed = false
-    for (const entryName of [...this.dirty]) {
-      this.dirty.delete(entryName)
-      try {
-        if (this.processOne(entryName)) changed = true
-      } catch (error) {
-        // Steady state: one broken package must not poison the others; the
-        // activation pass aggregates these into a loud throw instead.
-        onError(error instanceof Error ? error : new Error(String(error)))
-      }
-    }
-    if (!changed) return
-    let composed: WebBootGraph
+  private metaOf(name: string): PkgMeta | null {
+    if (this.pkgMeta.has(name)) return this.pkgMeta.get(name) ?? null
+    let pkgJsonPath: string
     try {
-      composed = this.compose()
-    } catch (error) {
-      // An unorderable module graph is a property of the whole table, not of
-      // the arriving package, so it surfaces here: aggregated into the
-      // activation throw, or warned in steady state while the last orderable
-      // graph stays served.
-      onError(error as Error)
-      return
+      pkgJsonPath = this.resolvePkgJson(`${name}/package.json`)
+    } catch {
+      this.pkgMeta.set(name, null)
+      return null
     }
-    this.composed = composed
-    this.notifyGraphChanged()
+    const pkg = JSON.parse(readFileSync(pkgJsonPath, 'utf8')) as Record<string, unknown>
+    const declaration = parseDshClient(name, pkg['dsh.client'])
+    const clientExport = clientExportOf(name, pkg.exports)
+    if (declaration === undefined || declaration.platform !== 'web' || clientExport === undefined) {
+      this.pkgMeta.set(name, null)
+      return null
+    }
+    const meta: PkgMeta = {
+      clientPath: join(dirname(pkgJsonPath), clientExport),
+      inject: declaration.inject,
+      external: declaration.external ?? [],
+      immediately: declaration.immediately === true,
+    }
+    this.pkgMeta.set(name, meta)
+    return meta
   }
 
-  private readonly serveBundle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+  private recompose(): void {
+    const entries = orderByModuleGraph([...this.table.values()].map(record => record.entry))
+    this.composed = {
+      rev: shortHash(JSON.stringify(entries)),
+      entries,
+    }
+    for (const listener of [...this.graphListeners]) listener()
+  }
+
+  private async serveBundle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405)
       res.end()
       return
     }
-    /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server requests. */
-    const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
-    // The id may contain a scope slash. Anything else under /plugins (including
-    // /plugins/events when the HMR row is absent) is an unknown resource.
-    const prefix = '/plugins/'
-    const mapSuffix = '/client.js.map'
-    const bundleSuffix = '/client.js'
-    const isSourceMap = pathname.startsWith(prefix) && pathname.endsWith(mapSuffix)
-    const suffix = isSourceMap ? mapSuffix : bundleSuffix
-    const clientPath = pathname.startsWith(prefix) && pathname.endsWith(suffix)
-      ? this.clientPath(pathname.slice(prefix.length, -suffix.length))
-      : undefined
-    const path = clientPath === undefined ? undefined : `${clientPath}${isSourceMap ? '.map' : ''}`
-    if (path === undefined) {
+    const pathname = new URL(req.url ?? '/', 'http://x').pathname
+    const match = /^\/plugins\/(.+)\/client\.js(?:\.map)?$/u.exec(pathname)
+    if (match === null) {
       res.writeHead(404)
       res.end()
       return
     }
+    const encodedId = match[1]
+    let id: string
+    try {
+      id = decodeURIComponent(encodedId)
+    } catch {
+      res.writeHead(400)
+      res.end()
+      return
+    }
+    const record = this.table.get(id)
+    if (record === undefined) {
+      res.writeHead(404)
+      res.end()
+      return
+    }
+    const isMap = pathname.endsWith('.map')
+    const path = isMap ? `${record.meta.clientPath}.map` : record.meta.clientPath
     try {
       const body = await readFile(path)
       res.writeHead(200, {
-        'content-type': isSourceMap ? 'application/json; charset=utf-8' : 'text/javascript; charset=utf-8',
+        'content-type': isMap ? 'application/json' : 'text/javascript; charset=utf-8',
         'cache-control': 'no-cache',
       })
-      res.end(body)
+      if (req.method === 'HEAD') res.end()
+      else res.end(body)
     } catch {
-      // Registered but unreadable (bundle not built yet): loud 404 beats a silent SPA-fallback HTML page.
       res.writeHead(404)
       res.end()
     }
   }
 }
-
-export default ClientModuleRegistry
