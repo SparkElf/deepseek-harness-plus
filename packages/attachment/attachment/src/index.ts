@@ -42,6 +42,14 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/** Empty document capability inherited by legacy image-only attachment stores. */
+const NO_DOCUMENT_CAPABILITY: DocumentAttachmentLimits = Object.freeze({
+  maxDocumentBytes: 1,
+  maxDocumentsPerMessage: 1,
+  maxMessageDocumentBytes: 1,
+  mediaTypes: Object.freeze([]),
+})
+
 /** Immutable binary attachment service. Implementations validate format-specific bytes before publishing references. */
 export abstract class AttachmentStore extends Service {
   constructor(ctx: Context) {
@@ -51,17 +59,33 @@ export abstract class AttachmentStore extends Service {
   /** Deployment-resolved image policy used by authoritative and fast-path validation. */
   abstract readonly imageLimits: ImageAttachmentLimits
 
-  /** Deployment-resolved document policy used by authoritative and fast-path validation. */
-  abstract readonly documentLimits: DocumentAttachmentLimits
+  /**
+   * Deployment-resolved document policy used by authoritative and fast-path validation.
+   * Legacy image-only stores inherit an empty media-type set and therefore reject document admission before persistence.
+   */
+  readonly documentLimits: DocumentAttachmentLimits = NO_DOCUMENT_CAPABILITY
 
   /**
    * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
-   * This primitive is used by supported documents and parser artifacts; it deliberately performs no image decoding.
+   * Legacy image-only stores fail loud; document-capable stores override this primitive.
+   * @param _input - immutable bytes plus caller-owned media/display metadata.
+   * @returns a durable content-addressed reference when the store supports generic files.
    */
-  abstract saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef>
+  async saveFile(_input: SaveFileAttachment): Promise<FileAttachmentRef> {
+    throw new AttachmentError('This attachment store does not support generic file persistence.', 'ATTACHMENT_WRITE_FAILED')
+  }
 
-  /** Read one generic file object and verify that its bytes still match the content-addressed reference. */
-  abstract readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment>
+  /**
+   * Read one generic file object and verify that its bytes still match the content-addressed reference.
+   * Legacy image-only stores fail loud; document-capable stores override this primitive.
+   * @param _ref - durable generic-file reference to resolve.
+   * @param signal - optional cancellation observed before the unsupported-operation failure.
+   * @returns the verified file bytes when the store supports generic files.
+   */
+  async readFile(_ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
+    signal?.throwIfAborted()
+    throw new AttachmentError('This attachment store does not support generic file reads.', 'ATTACHMENT_READ_FAILED')
+  }
 
   /**
    * Validate one image without persisting it.
