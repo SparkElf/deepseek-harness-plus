@@ -17,8 +17,8 @@ interface DraftAttachmentRegistry {
   releaseDraftAttachment(id: DraftAttachmentId): void
 }
 
-/** Slot registry plus the conversation draft registry used by the picker. */
-export const inject = ['slots', 'conversation']
+/** Only the slot registry is a boot dependency; the picker resolves conversation lazily when used. */
+export const inject = ['slots']
 
 /** Resolve the concrete draft-only attachment verbs without a runtime package import. */
 function drafts(ctx: ClientContext): DraftAttachmentRegistry {
