@@ -78,6 +78,9 @@ export function AttachmentPicker({
     if (documents.some(file => file.name.trim() === '')) return t('document.nameRequired')
 
     if (imageLimits !== undefined) {
+      if (images.some(file => !(imageLimits.mediaTypes as readonly string[]).includes(file.type))) {
+        return t('image.unsupportedType')
+      }
       if (existing.images.count + images.length > imageLimits.maxImagesPerMessage) {
         return t('image.tooMany', { count: imageLimits.maxImagesPerMessage })
       }
@@ -91,6 +94,9 @@ export function AttachmentPicker({
     }
 
     if (documentLimits !== undefined) {
+      if (documents.some(file => !(documentLimits.mediaTypes as readonly string[]).includes(file.type))) {
+        return t('document.unsupportedType')
+      }
       if (existing.documents.count + documents.length > documentLimits.maxDocumentsPerMessage) {
         return t('document.tooMany', { count: documentLimits.maxDocumentsPerMessage })
       }
