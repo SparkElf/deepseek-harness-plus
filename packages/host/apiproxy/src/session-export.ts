@@ -1,16 +1,16 @@
 /**
  * Host-side session-log download: streams one ZIP archive whose files are the
- * sessions' stored artifact text verbatim plus every referenced media object.
- * The root artifact sits under its original base name (`session.jsonl`); each
- * subagent descendant under `subagents/<id>/<filename>`; each image referenced
- * by any included log under `media/<attachmentId>.<ext>` (content-addressed,
- * so one archive never duplicates a shared image). No manifest is written —
- * every file is byte-identical to the backend's durable artifact or attachment
- * store and self-describing through its own header line or media type. Before
- * each live session's artifact read, the SessionStore flush barrier makes the
- * current in-memory log durable; cold sessions need no barrier. Request abort
- * and response-consumer cancellation share one producer signal and terminate
- * the active compressor.
+ * sessions' stored artifact text verbatim plus every referenced attachment
+ * object. The root artifact sits under its original base name (`session.jsonl`);
+ * each subagent descendant under `subagents/<id>/<filename>`; each image under
+ * `media/<attachmentId>.<ext>` and each original generic document under
+ * `documents/<attachmentId>.<ext>`. References sharing the same immutable id
+ * and media type land once. No manifest is written — every file is byte-identical
+ * to the backend's durable artifact or attachment store and maps back through
+ * the durable reference recorded in the log. Before each live session's artifact
+ * read, the SessionStore flush barrier makes the current in-memory log durable;
+ * cold sessions need no barrier. Request abort and response-consumer cancellation
+ * share one producer signal and terminate the active compressor.
  * Compression runs on the host with fflate's streaming Zip API, so the archive
  * bytes are produced incrementally and the host never holds the whole archive
  * in one buffer; production waits for consumer pull whenever the response queue
@@ -21,7 +21,12 @@
 
 import { Zip, ZipDeflate } from 'fflate'
 import type { Context } from '@deepseek-ai/cordis'
-import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+import type {
+  AttachmentStore,
+  DocumentAttachmentRef,
+  DocumentMediaType,
+  ImageAttachmentRef,
+} from '@deepseek-ai/dsh-attachment'
 import type { SessionLineageNode, SessionQueryEngine } from '@deepseek-ai/dsh-session-query'
 import type { SessionId, SessionStore } from '@deepseek-ai/dsh-session'
 import type { SessionPersistence, SessionRawArtifact } from '@deepseek-ai/dsh-session-persistence'
@@ -84,7 +89,7 @@ export async function flushLiveSessionLog(
   signal?.throwIfAborted()
 }
 
-/** One exported file: a stored artifact text or one referenced media object. */
+/** One exported file: a stored artifact text or one referenced attachment object. */
 export type SessionLogZipEntry =
   | { readonly path: string; readonly content: string }
   | { readonly path: string; readonly data: Uint8Array }
@@ -95,6 +100,14 @@ const MEDIA_TYPE_EXTENSIONS: Record<ImageAttachmentRef['mediaType'], string> = {
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'image/gif': 'gif',
+}
+
+/** Zip extension for each durable generic document media type. */
+const DOCUMENT_TYPE_EXTENSIONS: Record<DocumentMediaType, string> = {
+  'application/pdf': 'pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
 }
 
 /**
@@ -108,13 +121,22 @@ function mediaEntryPath(ref: ImageAttachmentRef): string {
   return `media/${String(ref.attachmentId)}.${MEDIA_TYPE_EXTENSIONS[ref.mediaType]}`
 }
 
+/** Stable archive path for one original generic document. */
+function documentEntryPath(ref: DocumentAttachmentRef): string {
+  return `documents/${String(ref.attachmentId)}.${DOCUMENT_TYPE_EXTENSIONS[ref.mediaType]}`
+}
+
+interface ArtifactAttachmentRefs {
+  readonly images: Map<string, ImageAttachmentRef>
+  /** Keyed by archive path so the same bytes under disagreeing OOXML metadata remain representable. */
+  readonly documents: Map<string, DocumentAttachmentRef>
+}
+
 /**
- * Collect every image reference inside one content array, descending into
- * nested tool results the way the live attachment route does.
- * @param content - an event content array (or nested tool-result content).
- * @param refs - the dedupe map being filled (keyed by attachment id).
+ * Collect every image/document reference inside one content array, descending
+ * into nested tool results the way the live content scanners do.
  */
-function collectImageRefs(content: unknown, refs: Map<string, ImageAttachmentRef>): void {
+function collectAttachmentRefs(content: unknown, refs: ArtifactAttachmentRefs): void {
   if (!Array.isArray(content)) return
   const pending: unknown[] = []
   for (const item of content) pending.push(item)
@@ -122,9 +144,14 @@ function collectImageRefs(content: unknown, refs: Map<string, ImageAttachmentRef
     const value = pending.pop()
     if (typeof value !== 'object' || value === null || Array.isArray(value)) continue
     const block = value as { type?: unknown; attachment?: unknown; content?: unknown }
-    if (block.type === 'image' && typeof block.attachment === 'object' && block.attachment !== null) {
-      const ref = block.attachment as ImageAttachmentRef
-      refs.set(String(ref.attachmentId), ref)
+    if (typeof block.attachment === 'object' && block.attachment !== null) {
+      if (block.type === 'image') {
+        const ref = block.attachment as ImageAttachmentRef
+        refs.images.set(String(ref.attachmentId), ref)
+      } else if (block.type === 'document') {
+        const ref = block.attachment as DocumentAttachmentRef
+        refs.documents.set(documentEntryPath(ref), ref)
+      }
     }
     if (Array.isArray(block.content)) {
       for (const item of block.content) pending.push(item)
@@ -133,13 +160,10 @@ function collectImageRefs(content: unknown, refs: Map<string, ImageAttachmentRef
 }
 
 /**
- * Collect every image reference one session event carries, across the same
- * carriers the live attachment route scans (direct content, message content,
- * inserted messages, and completed assistant chunk blocks).
- * @param event - one parsed JSONL event object.
- * @param refs - the dedupe map being filled (keyed by attachment id).
+ * Collect every attachment reference one session event carries, across direct
+ * content, message content, inserted messages, and completed assistant chunks.
  */
-function collectEventImageRefs(event: unknown, refs: Map<string, ImageAttachmentRef>): void {
+function collectEventAttachmentRefs(event: unknown, refs: ArtifactAttachmentRefs): void {
   const data = (event as { data?: unknown }).data
   if (typeof data !== 'object' || data === null) return
   const carrier = data as {
@@ -148,23 +172,24 @@ function collectEventImageRefs(event: unknown, refs: Map<string, ImageAttachment
     inserted?: Array<{ content?: unknown }>
     chunk?: { type?: unknown; block?: unknown }
   }
-  collectImageRefs(carrier.content, refs)
-  if (carrier.message !== undefined) collectImageRefs(carrier.message.content, refs)
+  collectAttachmentRefs(carrier.content, refs)
+  if (carrier.message !== undefined) collectAttachmentRefs(carrier.message.content, refs)
   if (carrier.inserted !== undefined) {
-    for (const message of carrier.inserted) collectImageRefs(message.content, refs)
+    for (const message of carrier.inserted) collectAttachmentRefs(message.content, refs)
   }
-  if (carrier.chunk?.type === 'block-end') collectImageRefs([carrier.chunk.block], refs)
+  if (carrier.chunk?.type === 'block-end') collectAttachmentRefs([carrier.chunk.block], refs)
 }
 
 /**
- * Collect the distinct media references one stored artifact text names.
- * Lines that fail to parse cannot reference media and are skipped (the
- * artifact text itself is exported verbatim regardless).
- * @param content - the stored artifact text.
- * @returns the dedupe map keyed by attachment id.
+ * Collect the distinct durable attachment references one stored artifact text
+ * names. Lines that fail to parse cannot be inspected and are skipped; the
+ * artifact text itself is still exported verbatim.
  */
-function imageRefsInArtifact(content: string): Map<string, ImageAttachmentRef> {
-  const refs = new Map<string, ImageAttachmentRef>()
+function attachmentRefsInArtifact(content: string): ArtifactAttachmentRefs {
+  const refs: ArtifactAttachmentRefs = {
+    images: new Map<string, ImageAttachmentRef>(),
+    documents: new Map<string, DocumentAttachmentRef>(),
+  }
   for (const line of content.split('\n')) {
     if (line === '') continue
     let event: unknown
@@ -173,7 +198,7 @@ function imageRefsInArtifact(content: string): Map<string, ImageAttachmentRef> {
     } catch {
       continue
     }
-    collectEventImageRefs(event, refs)
+    collectEventAttachmentRefs(event, refs)
   }
   return refs
 }
@@ -204,10 +229,11 @@ export function sessionLogZipFilename(sessionId: string): string {
  * Yield the export entries in zip order: the preloaded root artifact first,
  * then every subagent descendant in lineage order (each flushed when live,
  * read from the persistence backend right before it is yielded, and dropped
- * after the consumer moves on), then every distinct media object referenced by any of
- * the included logs (read and verified from the attachment store, one archive
- * entry per attachment id). The host holds at most one descendant's artifact
- * text and one media object at a time beyond the root.
+ * after the consumer moves on), then every distinct image and original document
+ * referenced by any included log. Generic documents are read through readFile,
+ * so the same digest and byte-length verification used by the durable store is
+ * performed during export. The host holds at most one descendant artifact and
+ * one attachment object at a time beyond the root.
  * @param deps - the mounted export services (the caller answered 500 before this runs).
  * @param root - the already-read root artifact (read by the caller so the
  * missing-session path can answer cleanly before streaming starts).
@@ -223,11 +249,14 @@ export async function* sessionLogZipEntries(
   includeDescendants: boolean,
   signal?: AbortSignal,
 ): AsyncGenerator<SessionLogZipEntry> {
-  const media = new Map<string, ImageAttachmentRef>()
-  const rememberMedia = (content: string): void => {
-    for (const [id, ref] of imageRefsInArtifact(content)) media.set(id, ref)
+  const images = new Map<string, ImageAttachmentRef>()
+  const documents = new Map<string, DocumentAttachmentRef>()
+  const rememberAttachments = (content: string): void => {
+    const refs = attachmentRefsInArtifact(content)
+    for (const [id, ref] of refs.images) images.set(id, ref)
+    for (const [path, ref] of refs.documents) documents.set(path, ref)
   }
-  rememberMedia(root.content)
+  rememberAttachments(root.content)
   yield { path: root.filename, content: root.content }
   if (includeDescendants) {
     const seen = new Set<SessionId>([sessionId])
@@ -245,7 +274,7 @@ export async function* sessionLogZipEntries(
         if (raw === undefined) {
           throw new Error(`subagent "${id}" has no stored log artifact`)
         }
-        rememberMedia(raw.content)
+        rememberAttachments(raw.content)
         yield {
           path: `subagents/${safeSessionIdSegment(id)}/${raw.filename}`,
           content: raw.content,
@@ -257,18 +286,24 @@ export async function* sessionLogZipEntries(
     signal?.throwIfAborted()
     yield* collect(lineage.descendants)
   }
-  for (const ref of media.values()) {
+  for (const ref of images.values()) {
     signal?.throwIfAborted()
     const stored = await deps.attachments.readImage(ref, signal)
     signal?.throwIfAborted()
     yield { path: mediaEntryPath(ref), data: stored.data }
+  }
+  for (const [path, ref] of documents) {
+    signal?.throwIfAborted()
+    const stored = await deps.attachments.readFile(ref, signal)
+    signal?.throwIfAborted()
+    yield { path, data: stored.data }
   }
 }
 
 /** How many code units of artifact text one zip push carries (bounded encode memory). */
 const PUSH_CHUNK_CODE_UNITS = 1 << 16
 
-/** How many bytes of media one zip push carries (bounded memory; images are already size-capped). */
+/** How many bytes of one attachment object each zip push carries. */
 const PUSH_CHUNK_BYTES = 1 << 16
 
 /** Byte capacity retained by the response stream before ZIP production waits for pull. */
@@ -308,10 +343,10 @@ class ResponseCapacityGate {
 }
 
 /**
- * Push one media object's bytes into a deflate stream in bounded chunks,
+ * Push one attachment object's bytes into a deflate stream in bounded chunks,
  * waiting for consumer capacity between chunks like the artifact path does.
  * @param deflate - the zip entry's deflate stream.
- * @param data - the stored image bytes.
+ * @param data - the verified durable attachment bytes.
  * @param controller - response queue controller.
  * @param capacity - pull-driven response-capacity gate.
  * @param signal - cancellation; throws when aborted.
@@ -375,8 +410,8 @@ async function pushArtifactChunks(
  * read and validated by the caller before this is called (missing root or
  * missing services answer cleanly before any byte is produced); each entry is
  * then encoded and deflated in bounded chunks as it is produced, so the
- * archive bytes arrive incrementally. A descendant that fails to read errors
- * the stream (fail-loud, never silent under-export).
+ * archive bytes arrive incrementally. A descendant or attachment that fails to
+ * read errors the stream (fail-loud, never silent under-export).
  * @param deps - the mounted export services (the caller answered 500 before this runs).
  * @param root - the already-read root artifact (first zip entry).
  * @param sessionId - the root session id.
