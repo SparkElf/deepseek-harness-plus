@@ -13,6 +13,11 @@ def replace_one(path: str, old: str, new: str) -> None:
 # Build failures shared by snapshots, Node 22, Wine, and release-shaped exe.
 replace_one(
     'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
+    "import AttachmentStore, {\n  AttachmentId,\n  type FileAttachmentRef,\n  type ImageAttachmentRef,\n  type SaveFileAttachment,\n} from '@deepseek-ai/dsh-attachment'",
+    "import {\n  AttachmentId,\n  type FileAttachmentRef,\n  type ImageAttachmentRef,\n  type SaveFileAttachment,\n} from '@deepseek-ai/dsh-attachment'",
+)
+replace_one(
+    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
     'const parse = options.parse ?? (data => Promise.resolve({',
     'const parse = options.parse ?? (() => Promise.resolve({',
 )
@@ -25,6 +30,11 @@ replace_one(
     'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
     "      mediaTypes: ['application/pdf'],",
     "      mediaTypes: ['application/pdf'] as const,",
+)
+replace_one(
+    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
+    "    saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]) {\n      return AttachmentStore.prototype.saveImages.call(attachments, inputs)\n    },",
+    "    async saveImages(inputs: readonly { data: Uint8Array; mediaType: 'image/png'; name?: string }[]): Promise<readonly ImageAttachmentRef[]> {\n      const refs: ImageAttachmentRef[] = []\n      for (const input of inputs) refs.push(await saveImage(input))\n      return refs\n    },",
 )
 
 # Export JSDoc completeness.
