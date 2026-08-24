@@ -55,7 +55,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
     setFailure(undefined)
     void readStatus()
       .then(setStatus)
-      .catch(() => { setFailure(t('statusFailed')) })
+      .catch(() => { setFailure(t('connectionFailed')) })
       .finally(() => { setLoading(false) })
   }
 
