@@ -43,6 +43,7 @@ jobs:
       DSH_TELEMETRY_DISABLED: '1'
       EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
       HEAD_REF: ${{ github.event.pull_request.head.ref }}
+      CLEAN_BASE: f9b2365536777330a743b170084bc351a7dec467
     steps:
       - name: Check out exact PR head
         uses: actions/checkout@v6
@@ -82,13 +83,13 @@ jobs:
           )
           replace_exact(
               'docs/subsystems/llm-streaming.md',
-              '/** Maximum combined request and response context, when disclosed. */',
-              '/** Maximum combined request and response context in tokens. */',
+              "interface LlmModelContext {\n  /** Maximum combined request and response context, when disclosed. */\n  contextWindow: number\n}",
+              "interface LlmModelContext {\n  /** Maximum combined request and response context in tokens. */\n  contextWindow: number\n}",
           )
           replace_exact(
               'docs/subsystems/llm-streaming.zh.md',
-              '/** Human-readable model name for selectors and diagnostics. */',
-              '/** Human-readable model name for selectors. */',
+              "interface LlmModelInfo {\n  /** Provider route that owns this model entry. */\n  provider: string\n  /** Model id passed to {@link GenerateOptions.model}. */\n  id: string\n  /** Human-readable model name for selectors and diagnostics. */\n  name: string",
+              "interface LlmModelInfo {\n  /** Provider route that owns this model entry. */\n  provider: string\n  /** Model id passed to {@link GenerateOptions.model}. */\n  id: string\n  /** Human-readable model name for selectors. */\n  name: string",
           )
           PY
 
@@ -105,7 +106,7 @@ jobs:
 
       - name: Restore temporary workflow and commit generated tree
         run: |
-          git show HEAD^:.github/workflows/issue-policy.yml > .github/workflows/issue-policy.yml
+          git show "${CLEAN_BASE}:.github/workflows/issue-policy.yml" > .github/workflows/issue-policy.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
