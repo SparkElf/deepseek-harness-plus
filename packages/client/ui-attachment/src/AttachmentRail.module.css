@@ -1,6 +1,5 @@
-/* Thumbnail geometry mirrors DeepSeek Chat's composer rail: 64px cards with a
-   16px radius, remove control fully inside the card, arrows overlaid at the
-   edges instead of a scrollbar. */
+/* Mixed attachment rail: images keep the existing 64px thumbnail geometry;
+   documents widen into compact metadata cards on the same overflow surface. */
 
 .root {
   position: relative;
@@ -12,11 +11,7 @@
   gap: 10px;
   overflow-x: auto;
   overflow-y: hidden;
-  /* Edge arrows page the overflow; the scrollbar stays hidden (both engines). */
   scrollbar-width: none;
-  /* The rail scrolls on the composer's elevated input surface: bind the l2
-     pair (ui-theme styles/scrollbar.css rebinding contract) so anything that
-     does draw a thumb here matches the surface. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
@@ -30,6 +25,11 @@
   flex: 0 0 64px;
   width: 64px;
   height: 64px;
+}
+
+.itemDocument {
+  flex-basis: 168px;
+  width: 168px;
 }
 
 .thumbnail {
@@ -48,6 +48,59 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.document {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  column-gap: 8px;
+  align-items: center;
+  width: 168px;
+  height: 64px;
+  padding: 8px 30px 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
+  border-radius: 16px;
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.documentType {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  min-width: 38px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--dsw-specific-input-major);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.documentName,
+.documentDetail {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.documentName {
+  align-self: end;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.documentDetail {
+  align-self: start;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 15px;
 }
 
 .remove {
@@ -74,7 +127,6 @@
   opacity: 1;
 }
 
-/* Touch surfaces have no hover to reveal the control. */
 @media (pointer: coarse) {
   .remove {
     opacity: 1;
