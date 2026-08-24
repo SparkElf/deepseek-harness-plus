@@ -10,11 +10,21 @@ def replace_one(path: str, old: str, new: str) -> None:
     p.write_text(text.replace(old, new, 1))
 
 
-# Build failure shared by snapshots, Node 22, Wine, and release-shaped exe.
+# Build failures shared by snapshots, Node 22, Wine, and release-shaped exe.
 replace_one(
     'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
     'const parse = options.parse ?? (data => Promise.resolve({',
     'const parse = options.parse ?? (() => Promise.resolve({',
+)
+replace_one(
+    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
+    "      mediaTypes: ['image/png'],",
+    "      mediaTypes: ['image/png'] as const,",
+)
+replace_one(
+    'packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts',
+    "      mediaTypes: ['application/pdf'],",
+    "      mediaTypes: ['application/pdf'] as const,",
 )
 
 # Export JSDoc completeness.
