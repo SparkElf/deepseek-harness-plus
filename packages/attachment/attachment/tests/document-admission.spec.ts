@@ -20,12 +20,18 @@ function encoded(bytes: number[]): string {
   return Buffer.from(Uint8Array.from(bytes)).toString('base64')
 }
 
-function store(saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => ({
-  attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
-  mediaType: input.mediaType,
-  bytes: input.data.byteLength,
-  ...(input.name === undefined ? {} : { name: input.name }),
-}))): AttachmentStore {
+function storedRef(input: SaveFileAttachment, digest: string): FileAttachmentRef {
+  return {
+    attachmentId: AttachmentId(`sha256:${digest.repeat(64)}`),
+    mediaType: input.mediaType,
+    bytes: input.data.byteLength,
+    ...(input.name === undefined ? {} : { name: input.name }),
+  }
+}
+
+function store(saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => (
+  storedRef(input, 'a')
+))): AttachmentStore {
   return {
     documentLimits: limits,
     saveFile,
@@ -34,12 +40,7 @@ function store(saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileA
 
 describe('admitEncodedDocuments', () => {
   it('normalizes display names and stores a valid PDF only after batch validation', async () => {
-    const saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => ({
-      attachmentId: AttachmentId(`sha256:${'b'.repeat(64)}`),
-      mediaType: input.mediaType,
-      bytes: input.data.byteLength,
-      name: input.name,
-    }))
+    const saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => storedRef(input, 'b'))
     const refs = await admitEncodedDocuments([{
       mediaType: 'application/pdf',
       name: 'C:\\Users\\me\\report.pdf',
@@ -52,12 +53,7 @@ describe('admitEncodedDocuments', () => {
   })
 
   it('accepts the OOXML zip container for DOCX/PPTX/XLSX without parsing the archive', async () => {
-    const saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => ({
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
-      mediaType: input.mediaType,
-      bytes: input.data.byteLength,
-      name: input.name,
-    }))
+    const saveFile = vi.fn(async (input: SaveFileAttachment): Promise<FileAttachmentRef> => storedRef(input, 'c'))
     const zip = encoded([0x50, 0x4b, 0x03, 0x04, 0x00, 0x00])
     const refs = await admitEncodedDocuments([
       { mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', name: 'a.docx', data: zip },
