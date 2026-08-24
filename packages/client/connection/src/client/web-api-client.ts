@@ -5,22 +5,15 @@ import { AbstractApiClient } from './api.ts'
 import { hostFrameSchema, muxFrameSchema } from '@deepseek-ai/dsh-host-apiproxy/api/events.schema'
 import { serverRequestSchema } from '@deepseek-ai/dsh-host-apiproxy/api/rpc.schema'
 import { HOST_EVENTS_PATH, MUX_EVENTS_PATH } from '../api-path.ts'
+import { resolveWebUrl } from './web-base.ts'
 
 type SocketItem<F> = { kind: 'frame'; envelope: RpcRequest<F> } | { kind: 'end' }
 type Parser<F> = { parse(value: unknown): F }
 
-/** Resolve one logical root path below the runtime-injected document base. */
-function browserUrl(path: string): URL {
-  const base = typeof document === 'undefined' ? undefined : document.baseURI
-  if (base === undefined) return new URL(path, 'http://dsh.internal')
-  return new URL(path.replace(/^\//u, ''), base)
-}
-
 /** Browser platform subclass: unary/respond use fetch; mux/host use downlink-only WebSockets. */
 export class WebApiClient extends AbstractApiClient {
   protected doFetch(input: URL, init?: RequestInit): Promise<Response> {
-    const url = browserUrl(`${input.pathname}${input.search}`)
-    return globalThis.fetch(url, init)
+    return globalThis.fetch(resolveWebUrl(`${input.pathname}${input.search}`), init)
   }
 
   protected override openMux(
@@ -45,7 +38,7 @@ export class WebApiClient extends AbstractApiClient {
     frameSchema: Parser<F>,
     onOpen?: () => void,
   ): AsyncGenerator<RpcRequest<F>> {
-    const url = browserUrl(path)
+    const url = resolveWebUrl(path)
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
     const socket = new WebSocket(url)
     const inbox: SocketItem<F>[] = []
