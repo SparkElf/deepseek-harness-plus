@@ -28,6 +28,7 @@ export type {
   ImageAttachmentLimits,
   ImageAttachmentRef,
   ImageMediaType,
+  ParsedDocumentRef,
   SaveDocumentAttachment,
   SaveFileAttachment,
   SaveImageAttachment,
