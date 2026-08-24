@@ -2,7 +2,9 @@
 
 English | [中文](README.zh.md)
 
-Agent-plane product plugin that exposes `render_chart`. It is deliberately a presentation tool rather than a query engine: Harness prepares a complete JSON-serializable ECharts option from one chart-ready result, optionally using Code Mode, then calls the visible top-level tool. Browser rendering is owned separately by [`@deepseek-ai/dsh-client-ui-chart`](../../client/ui-chart/README.md), matching the shipped agent-preset and Web boot lifecycles.
+Agent-plane product plugin that exposes `render_chart`. It is deliberately a presentation tool rather than a query engine: Harness prepares a complete JSON-serializable ECharts option from one chart-ready result, optionally using Code Mode, then calls the visible top-level tool. Browser rendering is owned separately by [`@deepseek-ai/dsh-client-ui-chart`](../../client/ui-chart/README.md).
+
+The package is opt-in and is not mounted by the shipped default agent presets. A deployment adds it to the agent preset that should expose `render_chart`; add the browser renderer separately when the Web UI should display the interactive chart.
 
 ## API
 
