@@ -183,7 +183,12 @@ async function saveObject(root: string, data: Uint8Array, failureMessage: string
   return { sha256, attachmentId: AttachmentId(`sha256:${sha256}`) }
 }
 
-/** Persist format-agnostic immutable bytes for documents and parser artifacts. */
+/**
+ * Persist format-agnostic immutable bytes for documents and parser artifacts.
+ * @param root - absolute `DSH_HOME/attachments/v1` root.
+ * @param input - already-admitted immutable bytes plus media/display metadata.
+ * @returns durable content-addressed generic-file reference.
+ */
 export async function saveFileObject(root: string, input: SaveFileAttachment): Promise<FileAttachmentRef> {
   const { attachmentId } = await saveObject(root, input.data, 'Unable to persist attachment.')
   const name = displayName(input.name)
@@ -195,7 +200,13 @@ export async function saveFileObject(root: string, input: SaveFileAttachment): P
   }
 }
 
-/** Read one generic immutable object and verify digest and encoded length. */
+/**
+ * Read one generic immutable object and verify digest and encoded length.
+ * @param root - absolute `DSH_HOME/attachments/v1` root.
+ * @param ref - durable generic-file reference recorded by a consumer.
+ * @param signal - optional cancellation for filesystem and verification work.
+ * @returns verified immutable bytes and the canonical reference.
+ */
 export async function readFileObject(
   root: string,
   ref: FileAttachmentRef,
