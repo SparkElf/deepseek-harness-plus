@@ -50,6 +50,22 @@ export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, 'mediaTyp
   name: string
 }
 
+/**
+ * Durable parser outputs associated with one original document. The session
+ * records only immutable attachment references; parser response paths and
+ * transient extracted bytes never become session state.
+ */
+export interface ParsedDocumentRef {
+  /** Provider id that produced this immutable parse bundle. */
+  parser: string
+  /** Complete parsed Markdown used for direct model projection. */
+  markdown: FileAttachmentRef
+  /** Complete parser structural block list retained for future document tools. */
+  contentList: FileAttachmentRef
+  /** Extracted raster images in parser output order. */
+  images: readonly ImageAttachmentRef[]
+}
+
 /** Deployment-resolved limits used by image upload admission and request buffering. */
 export interface ImageAttachmentLimits {
   maxImageBytes: number
