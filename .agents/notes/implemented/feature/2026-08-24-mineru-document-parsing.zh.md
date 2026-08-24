@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-解析功能新增可选的 `ctx.documentParser` Service Definition，以及独立 MinerU 提供方包。service 拥有与注册顺序无关的提供方选择，以及必填的 `maxDirectMarkdownBytes` 策略。MinerU 包注册提供方 id `mineru`，与外部管理的同步 `/file_parse` 端点通信；Harness 不内嵌 MinerU 的 Python/模型/GPU 运行时。
+解析功能新增可选的 `ctx.documentParser` Service Definition，以及独立 MinerU 提供方包。service 拥有与注册顺序无关的提供方选择，以及针对一次提交全部解析 Markdown 合计字节的必填 `maxDirectMarkdownBytes` 策略。MinerU 包注册提供方 id `mineru`，与外部管理的同步 `/file_parse` 端点通信；Harness 不内嵌 MinerU 的 Python/模型/GPU 运行时。
 
 解析后的 `DocumentAttachmentRef` 保留原始不可变文档身份，并新增 `ParsedDocumentRef`，其中保存完整 Markdown、完整 `content_list` JSON 和提取栅格图像的持久引用。因此 session 内容仍然只包含引用。解析响应条目名和提取出的字节缓冲只存在于本次准入操作期间。
 
@@ -26,14 +26,14 @@ Host prompt 准入保持一个提交边界：
   -> 读取已持久化原文件
   -> 通过 ctx.documentParser 逐个解析
   -> 校验并持久化 Markdown/content_list/提取图像
-  -> 检查完整 Markdown 字节预算
+  -> 检查本次提交的完整 Markdown 合计字节预算
   -> 构建携带持久解析引用的 DocumentBlock
   -> 追加/排队用户消息
 ```
 
 内容寻址存储不会回滚已发布对象。因此后续解析、持久化或预算失败可能留下未被引用的不可变对象，这与现有附件存储策略一致；但失败 prompt 不会追加用户事件。
 
-直接上下文检查使用完整已持久 Markdown 的字节长度。版本一不会静默截断文档，也不会只接受前几页。超过 `maxDirectMarkdownBytes` 的文档会在消息提交点之前以明确的解析准入错误失败。
+直接上下文检查会累加本次提交中每个文档完整已持久 Markdown 的字节长度。版本一不会静默截断文档，也不会只接受前几页。即使每个文档单独都能放入预算，只要合计超过 `maxDirectMarkdownBytes`，整个批次仍会在消息提交点之前以明确的解析准入错误失败。
 
 ## MinerU 传输
 
@@ -61,6 +61,6 @@ MinerU `/tasks` 不是 Harness 持久 job 状态。版本一保持同步；如�
 
 ## 结果
 
-中小型受支持文档现在可以成为模型可读取的完整文本，同时原文件与解析产物在重放和分叉后仍保持持久。解析失败和 Markdown 超预算会成为明确的 prompt 准入失败，而不是静默模型降级。
+中小型受支持文档批次现在可以成为模型可读取的完整文本，同时原文件与解析产物在重放和分叉后仍保持持久。解析失败和合计 Markdown 超预算会成为明确的 prompt 准入失败，而不是静默模型降级。
 
 代价是同步提交延迟和直接上下文的明确大小上限。该实现有意先建立正确的持久解析面；长文档检索、后台解析、解析调参 UX 和提取图像的选择性检查仍是后续能力，不会作为版本一的隐藏行为出现。
