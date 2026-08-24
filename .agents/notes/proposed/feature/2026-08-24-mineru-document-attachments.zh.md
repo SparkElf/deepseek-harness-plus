@@ -65,12 +65,12 @@ MinerU 以外部服务运行，通常是 `mineru-api` 或 `mineru-router`；DSH 
 
 ```text
 browser draft
-  -> host 验证完整 document batch
-  -> host 持久化 original documents
-  -> MinerU 解析每个需要处理的文档
-  -> host 验证并持久化 Markdown/content_list/images
-  -> host 确认 parsed Markdown 满足首版配置的 model projection budget
-  -> host 写入包含 durable DocumentBlock reference 的 user message
+  -> host validates the complete document batch
+  -> host persists original documents
+  -> MinerU parses each required document
+  -> host validates and persists Markdown/content_list/images
+  -> host proves parsed Markdown fits the configured version-one model projection budget
+  -> host appends the user message with durable DocumentBlock references
 ```
 
 如果验证、解析、输出持久化或 parsed-content admission 任一步失败，不追加 user event，浏览器恢复草稿。与现有 content-addressed image store 一样，如果较早步骤已经发布了 immutable original/parser-output object，而后续步骤失败，这些对象可以暂时成为 unreferenced object；首版不为了文档单独增加 destructive rollback 或 reference-counted garbage collection。
