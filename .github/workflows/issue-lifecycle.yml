@@ -117,31 +117,7 @@ jobs:
       - name: Test MinerU loader composition
         run: pnpm exec vitest run packages/attachment/document-parser-mineru/tests/loader-composition.spec.ts
       - name: Test Host persists parsed refs
-        id: host-persist
-        shell: bash
-        run: |
-          set -o pipefail
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts')
-          text = path.read_text()
-          needle = '    expect(response.result.ok).toBe(true)'
-          replacement = "    console.error('PR84_RESPONSE', JSON.stringify(response.result))\n" + needle
-          if text.count(needle) != 1:
-              raise SystemExit(f'expected one response assertion, found {text.count(needle)}')
-          path.write_text(text.replace(needle, replacement, 1))
-          PY
-          pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts \
-            -t 'persists parser outputs and appends only durable parsed references' \
-            2>&1 | tee /tmp/pr84-host-persist.log
-      - name: Upload Host persists log
-        if: ${{ failure() && steps.host-persist.outcome == 'failure' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr84-host-persist-log
-          path: /tmp/pr84-host-persist.log
-          if-no-files-found: error
-          retention-days: 1
+        run: pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts -t 'persists parser outputs and appends only durable parsed references'
       - name: Test Host parser failure admission
         run: pnpm exec vitest run packages/host/apiproxy/tests/api-proxy-document-parsing.spec.ts -t 'maps parser failure to attachment-error and appends no user message'
       - name: Test Host over-budget admission
