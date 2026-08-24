@@ -24,7 +24,7 @@ declare module '@deepseek-ai/cordis' {
 export interface Config {
   /** Explicit parser provider id; omission auto-selects exactly one usable provider. */
   provider?: string
-  /** Maximum complete parsed Markdown bytes accepted for direct-context version one. */
+  /** Maximum aggregate parsed Markdown bytes accepted from one submitted message for direct-context version one. */
   maxDirectMarkdownBytes: number
 }
 
@@ -38,7 +38,7 @@ export const Config: z<Config> = z.object({
 export class DocumentParserRuntime extends Service {
   private providers = new Map<string, DocumentParserProvider>()
   private readonly providerId: string | undefined
-  /** Maximum complete Markdown bytes Host admission may attach to one parsed document. */
+  /** Maximum aggregate Markdown bytes Host admission may attach across parsed documents in one submitted message. */
   readonly maxDirectMarkdownBytes: number
 
   constructor(ctx: Context, config: Config) {
