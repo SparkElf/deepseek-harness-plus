@@ -82,7 +82,7 @@ export class LocalAttachmentStore extends AttachmentStore {
   /** Absolute versioned storage root. */
   readonly root: string
   readonly imageLimits: ImageAttachmentLimits
-  readonly documentLimits: DocumentAttachmentLimits
+  override readonly documentLimits: DocumentAttachmentLimits
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
@@ -108,11 +108,11 @@ export class LocalAttachmentStore extends AttachmentStore {
     })
   }
 
-  async saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
+  override async saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
     return saveFileObject(this.root, input)
   }
 
-  async readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
+  override async readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
     return readFileObject(this.root, ref, signal)
   }
 
