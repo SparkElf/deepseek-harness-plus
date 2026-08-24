@@ -44,6 +44,7 @@ export interface ImageAttachmentRef {
 
 /** Durable metadata for one supported user-authored document. */
 export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, 'mediaType' | 'name'> {
+  /** Exact supported document media type admitted with the original bytes. */
   mediaType: DocumentMediaType
   /** Browser/provider display name after path stripping and control-character cleanup. */
   name: string
@@ -62,9 +63,13 @@ export interface ImageAttachmentLimits {
 
 /** Deployment-resolved limits used by document upload admission and request buffering. */
 export interface DocumentAttachmentLimits {
+  /** Maximum encoded bytes admitted for one supported document. */
   maxDocumentBytes: number
+  /** Maximum number of supported documents admitted in one submitted message. */
   maxDocumentsPerMessage: number
+  /** Maximum aggregate encoded document bytes admitted in one submitted message. */
   maxMessageDocumentBytes: number
+  /** Exact document media types accepted by this deployment. */
   mediaTypes: readonly DocumentMediaType[]
 }
 
@@ -90,8 +95,11 @@ export interface EncodedDocumentAttachment {
 
 /** Generic immutable bytes to commit to the shared content-addressed object store. */
 export interface SaveFileAttachment {
+  /** Already-admitted immutable bytes to persist. */
   data: Uint8Array
+  /** Caller-owned media type recorded beside the immutable object reference. */
   mediaType: string
+  /** Optional display name; storage providers must never treat it as a path. */
   name?: string
 }
 
@@ -106,14 +114,19 @@ export interface SaveImageAttachment {
 
 /** Request to durably commit one already-admitted user document. */
 export interface SaveDocumentAttachment {
+  /** Already-admitted original document bytes. */
   data: Uint8Array
+  /** Exact supported document media type. */
   mediaType: DocumentMediaType
+  /** Required normalized display name; never a storage path. */
   name: string
 }
 
 /** Stored generic file bytes returned after reference and digest verification. */
 export interface StoredFileAttachment {
+  /** Canonical durable reference verified against the returned bytes. */
   ref: FileAttachmentRef
+  /** Immutable stored bytes after digest and byte-length verification. */
   data: Uint8Array
 }
 
@@ -125,6 +138,8 @@ export interface StoredImageAttachment {
 
 /** Stored document bytes returned after reference and digest verification. */
 export interface StoredDocumentAttachment {
+  /** Canonical supported-document reference verified against the returned bytes. */
   ref: DocumentAttachmentRef
+  /** Immutable original document bytes. */
   data: Uint8Array
 }
