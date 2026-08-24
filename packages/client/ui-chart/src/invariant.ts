@@ -9,6 +9,10 @@ const PACKAGE_NAME = '@deepseek-ai/dsh-client-ui-chart'
 export const name = 'client-ui-chart-invariant'
 export const inject = ['invariants']
 
+/**
+ * No runtime invariant: this browser plugin contributes a keyed render slot and owns no durable
+ * state or independent event/data relation.
+ */
 const install: InvariantInstaller = () => {}
 
 export const apply = (ctx: Context): Promise<() => void> =>
