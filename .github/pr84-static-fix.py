@@ -5,8 +5,10 @@ def replace_one(path: str, old: str, new: str) -> None:
     p = Path(path)
     text = p.read_text()
     count = text.count(old)
+    if count == 0 and text.count(new) == 1:
+        return
     if count != 1:
-        raise SystemExit(f'{path}: expected one match, found {count}: {old!r}')
+        raise SystemExit(f'{path}: expected one old match or one completed replacement, found {count}: {old!r}')
     p.write_text(text.replace(old, new, 1))
 
 
