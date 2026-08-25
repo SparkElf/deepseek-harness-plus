@@ -14,7 +14,7 @@ DataOps 当前通过与自身服务强绑定的合同提供 AI 取数能力，�
 
 ## Proposal
 
-DataOps 继续拥有 MCP 查询合同，DSH 复用现有 `@deepseek-ai/dsh-mcp-client`。独立 DSH 使用已认证 Streamable HTTP MCP。DataOps 托管的每用户容器使用本地 MCP adapter 和 DataOps-owned Unix broker，使 workspace principal 不进入 DSH 主进程。独立浏览器授权和 credential 生命周期由可选 DataOps Auth/Integration Plugin 提供，但不在 DSH 中新增 DataOps 查询工具实现，不让 DSH 执行 SQL，也不把 Bash 作为正式查询接口。DataOps 拥有用户认证、授权、runtime 分配、资源发现、API connector、查询执行、结果物化和审计。
+DataOps继续拥有MCP查询合同，DSH复用现有`@deepseek-ai/dsh-mcp-client`。本文把用户直接打开并自行维护`DSH_HOME`、通过Settings连接DataOps的形态称为“直接使用的DSH（standalone）”；把用户从DataOps工作区进入、身份和容器由DataOps分配的形态称为“DataOps托管DSH”。直接使用的DSH使用已认证Streamable HTTP MCP。DataOps托管的每用户容器使用本地 MCP adapter 和 DataOps-owned Unix broker，使 workspace principal 不进入 DSH 主进程。独立浏览器授权和 credential 生命周期由可选 DataOps Auth/Integration Plugin 提供，但不在 DSH 中新增 DataOps 查询工具实现，不让 DSH 执行 SQL，也不把 Bash 作为正式查询接口。DataOps 拥有用户认证、授权、runtime 分配、资源发现、API connector、查询执行、结果物化和审计。
 
 本集成遵循[插件归属与分发决策](../../implemented/architecture/2026-08-20-plugin-ownership-and-distribution.md)：DataOps 专属身份、配置、UI、工具和部署只能留在可选 plugin 或 profile overlay。缺少 DSH 扩展点时，必须另行汇报并取得用户显式批准后才能修改 core source；本 RFC 本身不构成该批准。
 
@@ -43,13 +43,13 @@ DataOps 托管容器不重复浏览器 OAuth。已认证 DataOps 浏览器只通
 
 外部`@sparkelf/dsh-dataops-integration` plugin只用于可选独立DSH。它读取自己的delegated access credential，并用普通`Authorization` header挂载通用Streamable HTTP MCP client。没有该plugin时，直接配置的通用MCP client只发送显式header，也可以尝试匿名连接；是否存在匿名能力由远端MCP Server决定。生产DataOps取数MCP endpoint要求认证，因此拒绝匿名尝试。
 
-直接访问独立 DSH 时发起带 PKCE 的 DataOps Authorization Code 流程。loopback HTTP callback无需注册；所有非loopback HTTP或HTTPS callback origin都必须显式注册，HTTP表示可信内网合同而不是HTTPS fallback。DSH 在 credential store 中生成一次随机 target reference，并在该 `DSH_HOME` 的整个生命周期中保留。浏览器授权页、正常登录、MFA 和明确账号确认由 DataOps 拥有。首次批准会将未绑定target reference原子绑定到所选OIDC `sub`；后续批准、重连和MCP session都必须使用该owner。一个delegated access token只在其绑定的DataOps `AuthSession`、账号、target owner、audience、scope和当前权限持续有效时可用。Disconnect会撤销并清除该access credential，但保留target reference及其DataOps绑定，因此其他账号会被拒绝，不能重新绑定当前runtime。
+直接访问独立DSH时发起带PKCE的DataOps Authorization Code流程。loopback HTTP callback无需注册；所有非loopback HTTP或HTTPS callback origin都必须显式注册，HTTP表示可信内网合同而不是HTTPS fallback。DSH为每次standalone连接在credential store中保存一个随机target reference。浏览器授权页、正常登录、MFA和明确账号确认由DataOps拥有。首次批准会将未绑定target reference原子绑定到所选OIDC `sub`；当前连接的后续批准和MCP session都必须使用该owner。一个delegated access token只在其绑定的DataOps `AuthSession`、账号、target owner、audience、scope和当前权限持续有效时可用。显式Disconnect验证并撤销grant、释放standalone binding并轮换可写target，因此下一次Connect重新进入明确账号选择。DataOps托管workspace target保持不可变，且不提供standalone连接操作。
 
-从 DataOps 启动时只可携带绑定用户、OAuth client、目标 DSH instance、audience、state 和过期时间的短期一次性 code；plugin 在服务端交换后从 URL 删除。delegated access credential不得进入URL参数、工具参数、模型上下文、浏览器local storage或session log。Plugin通过DSH credential service存储它，并把它提供给通用MCP child的普通HTTP header配置。显式重新授权只替换credential并重挂该child一次；不存在后台refresh、周期轮换或周期remount。
+从DataOps启动时只可携带绑定用户、OAuth client、目标DSH instance、audience、state和过期时间的短期一次性code；plugin在服务端交换后从URL删除。delegated access credential不得进入URL参数、工具参数、模型上下文、浏览器local storage或session log。DataOps Web access token和refresh cookie继续按tab隔离；新的重新授权popup通过签名授权请求和浏览器自动携带的HttpOnly cookie识别已有active browser session，不复制上一个popup的token或auth-tab identity。Plugin通过DSH credential service存储delegated credential，并把它提供给通用MCP child的普通HTTP header配置。显式重新授权只替换credential并重挂该child一次；不存在后台refresh、周期轮换或周期remount。
 
 已认证的 Streamable HTTP MCP 请求携带 `Authorization: Bearer <access-token>`。DataOps校验issuer、audience、仍有效的绑定`AuthSession`、授权client、用户、target owner和MCP scope，然后向工具handler投影`AuthorizationPrincipal`。MCP audience 和 scope 只允许进入受保护 endpoint，不授予任何 Resource access。现有 DataOps permission 和 Resource authorization 判定每个工具操作，并在结果分页和导出时重新授权当前用户。DSH 不复制或解释 DataOps role/permission matrix。
 
-DataOps 将每个 MCP session identifier 绑定到不可变 runtime principal。同一OIDC `sub`的显式重新授权credential可以替换旧grant并重挂MCP child一次；不同`sub`会被拒绝，不能在该runtime中替换credential或remount该child。MCP session identifier、DSH conversation identifier 和 result reference 都不是 credential。Conversation identifier 后续可以提供审计关联，但不改变授权。
+DataOps将每个已连接MCP session identifier绑定到一个runtime principal。同一OIDC `sub`的显式重新授权credential可以替换旧grant并重挂MCP child一次；该连接存在时，不同`sub`会被拒绝。显式Disconnect结束standalone连接后，新target才可选择其他账号。MCP session identifier、DSH conversation identifier和result reference都不是credential。Conversation identifier后续可以提供审计关联，但不改变授权。
 
 现有 [DataOps MCP Server](https://github.com/SparkElf/dataops/blob/main/infra/docker-workspace/runtime-daemon/src/dataops-mcp-server.mjs) 继续作为 embedded adapter 起点。独立生产模式使用 Streamable HTTP；托管容器使用 adapter 和 Unix broker。两种 transport 都在调用相同 catalog、query、result、permission 和 audit owner 前派生相同 DataOps principal。
 
@@ -127,9 +127,9 @@ Design A MVP 只实现同步 completed 路径。`execute_sql` 和 `call_data_api
 
 `@sparkelf/dsh-chart` 在 DSH 中注册顶层 `render_chart({sourceResultRef, option, title?})` 工具，而不是注册到 DataOps MCP。一张图只有一个非空 `sourceResultRef`。DataOps 必须先产出适合展示粒度的结果；如果仍需数据库规模的过滤、Join 或聚合，Agent 应重新执行更合适的查询，不能在可视化代码中重建数据引擎。
 
-简单图表可以由 Agent 直接调用 `render_chart`。需要展示级映射、过滤、排序、reshape、类型转换、百分比、累计值、参考线或注释时，DSH Code Mode 先读取所需结果页并生成 JSON ECharts option，再执行顶层工具调用。Code Mode 不 Join 多个 result reference。
+在Native或Both mode中，简单图表可以由Agent直接调用`render_chart`。在Code Mode中，程序读取所需结果页，完成展示级映射、过滤、排序、reshape、类型转换、百分比、累计值、参考线或注释，再通过nested SDK dispatch调用`render_chart`并传入完整JSON ECharts option。Code Mode不Join多个result reference。
 
-`option` 包含回放所需的全部数据，并且必须可 JSON 序列化；不允许 JavaScript callback function。DSH 将完整 option 保存在持久 tool-result `presentationMeta` 中，`sourceResultRef` 只保留 provenance。Session replay 直接渲染已记录 option，不访问 DataOps，也不依赖 result TTL。
+`option`包含回放所需的全部数据，并且必须可JSON序列化；不允许JavaScript callback function。直接结果将完整option保存在tool-result `presentationMeta`中；nested Code Mode结果将同一份已验证投影保存在持久`tool/code-dispatch.content`内的chart-owned block中，该日志内容不会回流模型。`sourceResultRef`只保留provenance。Session replay直接渲染已记录option，不访问DataOps，也不依赖result TTL。
 
 Keyed Web Client view 渲染交互式 ECharts presentation，并拥有初始化、resize、theme recreation 和 disposal。正常 conversation view 只显示可选标题、图表和必要 loading/failure state，不暴露 option JSON、result reference、plugin 实现术语或原始 ECharts exception。该 plugin 为 opt-in，由 DataOps 托管 DSH profile 显式包含，不进入 DSH default profile。
 
@@ -163,9 +163,9 @@ DataOps 继续以数据库为事实源。Resource `remark`、`usageManual`、字
 
 ## Implementation split
 
-DataOps `AiWorkspaceService` 拥有一用户一容器映射、独立 `DSH_HOME` 分配、不可变 per-target browser origin、Workspace Web Gateway 和 broker identity。DataOps 还为独立集成提供带 PKCE 的 Authorization Code，原子记录未绑定 target 的首次 owner，并在后续选择中校验该 owner，交换一次性 launch code，签发面向 MCP audience 的 token 和 scope，鉴权每个 HTTP MCP 请求，并将两种 transport 映射到现有 catalog、query、API、result、permission 和 audit service；仅为真实跨资源指导新增 QueryGuide 存储；方案 B 在后续独立编译器项目中实现。DataOps backend 和 MCP Server 不引入 DSH package。
+DataOps `AiWorkspaceService`拥有一用户一容器映射、独立`DSH_HOME`分配、不可变per-target browser origin、Workspace Web Gateway和broker identity。DataOps还为独立集成提供带PKCE的Authorization Code，原子记录未绑定target的connection owner，在该连接的后续选择中校验owner，只在验证后的Disconnect释放standalone binding，交换一次性launch code，签发面向MCP audience的token和scope，鉴权每个HTTP MCP请求，并将两种transport映射到现有catalog、query、API、result、permission和audit service；仅为真实跨资源指导新增 QueryGuide 存储；方案 B 在后续独立编译器项目中实现。DataOps backend 和 MCP Server 不引入 DSH package。
 
-DSH core不需要改动。可选`@sparkelf/dsh-dataops-integration` package从`dsh-plugins-plus`分发给独立DSH，位于core和default profile之外，并拥有持久target reference、浏览器OAuth、access credential、普通MCP header配置和通用MCP client组合，不能在运行中的 identity workspace 内替换已绑定 principal，并且不在 DataOps 托管容器中挂载。该 package 不包含 DataOps 查询标识、SQL 执行、来源路由、授权策略或 connector 逻辑。DSH 通过公开 plugin/profile 扩展点组合 `@sparkelf/dsh-chart` 和 `@sparkelf/dsh-query-result-analysis`；两个 plugin 只消费公开结果能力，不能接收 DataOps transport credential。
+DSH core不需要改动。可选`@sparkelf/dsh-dataops-integration` package从`dsh-plugins-plus`分发给独立DSH，位于core和default profile之外，并拥有connection-scoped target reference、浏览器OAuth、access credential、普通MCP header配置和通用MCP client组合，不能在active connection内替换已绑定principal；Disconnect只轮换可写standalone target，并且该package不在DataOps托管容器中挂载。该 package 不包含 DataOps 查询标识、SQL 执行、来源路由、授权策略或 connector 逻辑。DSH 通过公开 plugin/profile 扩展点组合 `@sparkelf/dsh-chart` 和 `@sparkelf/dsh-query-result-analysis`；两个 plugin 只消费公开结果能力，不能接收 DataOps transport credential。
 
 此前 [HTTP `dq/v1` 提案](../../rejected/architecture/2026-08-19-generic-data-query-protocol.md) 和假设的 `dsh-plugin-dataquery` 被本提案取代。选定传输是 MCP。
 
@@ -202,8 +202,8 @@ DSH core不需要改动。可选`@sparkelf/dsh-dataops-integration` package从`d
 - Design A MVP 只暴露 completed 的不可变 `resultRef`；在真实负载要求前，不提供持久 accepted execution、状态和取消工具。
 - 共用结果定义不可变 snapshot、字节有界分页、当前 principal 重新授权、DataOps 导出产物，以及由 DSH 拥有的图表和 AI 分析消费者。
 - 确定性数据处理在创建 `resultRef` 前完成；`analyze_query_result` 只执行有界 AI 语义归纳，不能定义精确数值事实。
-- 每个 `render_chart` 调用只指定一个 source result，并将完整 JSON ECharts option 持久化为 DSH presentation metadata；回放不解引用 DataOps，chart code 不 Join result reference。
-- DataOps 为每个用户分配恰好一个拥有独立 `DSH_HOME` 的容器和一个不可变 browser origin；托管容器使用可信内网 HTTP target host、gateway 和 broker identity，独立集成使用 OAuth/PKCE 和一次性 target 绑定，两条路径都不能把运行中的 runtime 重新绑定到其他 principal。
+- 每个`render_chart`调用只指定一个source result，并将完整JSON ECharts option持久化到直接presentation metadata或nested chart-owned dispatch block；回放不解引用DataOps，chart code不Join result reference。
+- DataOps 为每个用户分配恰好一个拥有独立 `DSH_HOME` 的容器和一个不可变 browser origin；托管容器使用可信内网 HTTP target host、gateway 和 broker identity，独立集成使用OAuth/PKCE和connection-scoped target绑定，两条路径都不能把active runtime重新绑定到其他principal；standalone用户可以先显式Disconnect再重新选择。
 - MCP audience 和 scope 只授予 endpoint 入口；每个工具调用、结果页和导出仍以 DataOps permission 和 Resource authorization 为权威，工具参数不包含身份字段。
 - 旧 HTTP 提案被拒绝并指向本 MCP 提案。
 
@@ -221,4 +221,4 @@ DSH core不需要改动。可选`@sparkelf/dsh-dataops-integration` package从`d
 
 ## Verification
 
-该决策的验证范围包括独立 `DSH_HOME` 的一用户一容器分配、隔离 browser storage 的 per-target origin、可信内网 HTTP bootstrap、无需 DSH core 修改的原生 root routing、DSH 进程不含 secret 的托管 gateway/broker identity、独立模式MFA登录和一次性launch-code交换、session-lifetime access与显式同principal重新授权、target-owner 和 principal 不一致拒绝、托管模式不提供账号切换操作、按请求 scope 和 Resource authorization、模型可见调用中不存在 secret 和身份字段、completed 结果物化、snapshot/分页/过期授权、不重新执行来源操作的导出、精确八加二工具组合和无 key 模型可见 snapshot。图表覆盖必须证明顶层工具注册、单 source 校验、从 presentation metadata 持久回放、keyed browser rendering、theme/resize lifecycle 和通用用户可见失败输出。批量分析覆盖必须证明有界分页读取、稳定行证据、每个批次或归并调用只使用一个持久子会话、子会话完整重建模型可见内容、由 AgentLoop 拥有提供方重试、父级取消、已完成批次续跑、分层归并，以及不修改 DSH core。方案 B 在可用前必须覆盖汇总来源选择、明细 fallback、可加和不可加指标、不安全 fanout 拒绝、方言渲染、权限谓词和稳定带版本 provenance。
+该决策的验证范围包括独立 `DSH_HOME` 的一用户一容器分配、隔离 browser storage 的 per-target origin、可信内网 HTTP bootstrap、无需 DSH core 修改的原生 root routing、DSH 进程不含 secret 的托管 gateway/broker identity、独立模式MFA登录和一次性launch-code交换、session-lifetime access与无需再次登录的同principal重新授权、连接期间target-owner和principal不一致拒绝、standalone Disconnect后重新选择账号、托管模式不提供账号切换操作、按请求 scope 和 Resource authorization、模型可见调用中不存在 secret 和身份字段、completed 结果物化、snapshot/分页/过期授权、不重新执行来源操作的导出、精确八加二工具组合和无 key 模型可见 snapshot。图表覆盖必须证明顶层工具注册、单source校验、direct与nested Code Mode调用后的持久回放、keyed browser rendering、theme/resize lifecycle和通用用户可见失败输出。批量分析覆盖必须证明有界分页读取、稳定行证据、每个批次或归并调用只使用一个持久子会话、子会话完整重建模型可见内容、由 AgentLoop 拥有提供方重试、父级取消、已完成批次续跑、分层归并，以及不修改 DSH core。方案 B 在可用前必须覆盖汇总来源选择、明细 fallback、可加和不可加指标、不安全 fanout 拒绝、方言渲染、权限谓词和稳定带版本 provenance。
