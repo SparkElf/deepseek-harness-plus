@@ -117,7 +117,7 @@ Design A MVP 只实现同步 completed 路径。`execute_sql` 和 `call_data_api
 
 `read_query_result` 接受 `{resultRef, cursor?, columns?, limit?}`，返回受字节上限约束的完整行或 JSON item 页面、返回数量、已知时的总数、`hasMore` 和 opaque 且绑定列投影的 `nextCursor`。DataOps Result Service 在 MCP/模型投影前应用字节上限；行数只是第二层限制。分页使用对模型隐藏的稳定行序号，不重新执行来源操作，并在每一页重新授权当前 principal。
 
-`export_query_result` 通过同一授权分页路径消费 `resultRef`，增量创建 CSV 或 JSONL，且不重新执行来源操作。它返回 `{artifactRef, fileName, mediaType, sizeBytes, downloadUrl, expiresAt}`；有期限授权下载由 DataOps 拥有。
+`export_query_result` 通过同一授权分页路径消费 `resultRef`，增量创建 CSV 或 JSONL，且不重新执行来源操作。它返回 `{artifactRef, fileName, mediaType, sizeBytes, downloadUrl, expiresAt}`。`downloadUrl` 是不含 credential 的 DataOps application绝对路由；用户打开后，页面使用当前 DataOps 登录态，binary endpoint重新校验 result owner、expiry和来源 Resource权限。
 
 `analyze_query_result({resultRef, instruction, resumeAnalysisRef?, maxBatchRetries?})` 对 DataOps 已按所需业务粒度完成过滤、Join、聚合和排序的结果执行 AI 语义分析。每个 DataOps 页面成为一个 DSH 模型批次，并使用稳定 `<resultRef>#row-N` 证据标签。DSH 保存已完成批次断点，只在请求上限内重试符合 provider policy 的失败，传播取消，并分组归并批次摘要，最终返回 `analysisRef`、`summary`、行数、批次数、续跑状态和 provider/model 事实。
 
