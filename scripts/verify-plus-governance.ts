@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { load } from 'js-yaml'
+import { PROFILE_TEMPLATES } from '../packages/boot/app-boot/src/profile.ts'
+import { bundledPinIssues, localPatchIssues, parseManifest } from './check-curated-plugins.mjs'
 
 type RecordValue = Record<string, unknown>
 
@@ -76,6 +78,48 @@ function verifyDiffRegistry(relativePath: string): void {
   }
 }
 
+function verifyCuratedPlugins(): void {
+  const relativePath = '.agents/plugins/curated.yaml'
+  let entries
+  try {
+    entries = parseManifest(readFileSync(resolve(root, relativePath), 'utf8'))
+  } catch (error) {
+    issues.push(relativePath + ': ' + String(error))
+    return
+  }
+  const bundlePath = 'packages/bundle/web-app/package.json'
+  const bundle = expectRecord(JSON.parse(readFileSync(resolve(root, bundlePath), 'utf8')), bundlePath)
+  if (!bundle) return
+  const dependencies = expectRecord(bundle.dependencies, bundlePath + '.dependencies')
+  if (!dependencies) return
+  const defaultBundles = PROFILE_TEMPLATES.web
+  if (defaultBundles === undefined) {
+    issues.push('PROFILE_TEMPLATES.web: missing shipped Web profile')
+    return
+  }
+  const versions: Record<string, string> = {}
+  for (const [name, version] of Object.entries(dependencies)) {
+    if (typeof version === 'string') versions[name] = version
+  }
+  for (const issue of bundledPinIssues(entries, versions, defaultBundles)) issues.push(relativePath + ': ' + issue)
+
+  const workspacePath = 'pnpm-workspace.yaml'
+  const workspace = readYaml(workspacePath)
+  if (!workspace) return
+  const patchedDependencies = expectRecord(workspace.patchedDependencies, workspacePath + '.patchedDependencies')
+  if (!patchedDependencies) return
+  const registrations: Record<string, string> = {}
+  for (const [name, patch] of Object.entries(patchedDependencies)) {
+    if (typeof patch === 'string') registrations[name] = patch
+  }
+  for (const issue of localPatchIssues(entries, registrations)) issues.push(relativePath + ': ' + issue)
+  for (const entry of entries) {
+    for (const patch of entry.localPatches) {
+      if (!existsSync(resolve(root, patch.file))) issues.push(relativePath + ': missing local patch ' + patch.file)
+    }
+  }
+}
+
 function verifyCompositionRegistry(): void {
   const relativePath = 'presets/compositions/registry.yaml'
   const registry = readYaml(relativePath)
@@ -115,11 +159,12 @@ function verifyCompositionRegistry(): void {
 verifyDiffRegistry('diffs/core/registry.yaml')
 verifyDiffRegistry('diffs/community/registry.yaml')
 verifyCompositionRegistry()
+verifyCuratedPlugins()
 
 if (issues.length) {
   console.error('verify-plus-governance: invalid Plus governance metadata:')
   for (const issue of issues) console.error('  - ' + issue)
   process.exitCode = 1
 } else {
-  console.log('verify-plus-governance: core and community diff registries plus composition claims are valid.')
+  console.log('verify-plus-governance: diff registries, composition claims, and curated plugin pins are valid.')
 }

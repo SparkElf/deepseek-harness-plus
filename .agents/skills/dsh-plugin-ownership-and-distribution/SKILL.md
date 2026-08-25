@@ -36,6 +36,10 @@ An external plugin is admissible only when all of these are true:
 
 When a gate fails, fix the extension point or keep the capability first-party. Do not hide the failure behind a thin package or compatibility path. Registry scope is part of ownership: missing publish authority is a release blocker, never a reason to change scope, publish a fork under the owner's name, or widen sibling version ranges.
 
+## Submit External Changes Upstream
+
+Every Plus-authored change to external plugin source, whether a fix, enhancement, or new feature, requires an upstream pull request with code and tests. An Issue may track the work but never replaces the pull request; if no pull request can be opened, report the work as blocked. Before adopting a release, classify local overlap as absorbed, divergent, or adjacent risk and block unresolved differences. Record any temporary local patch, implementation PR, retirement condition, and adoption review under the [external plugin maintenance scheme](../../notes/implemented/process/2026-08-19-external-plugin-maintenance.md).
+
 ## Placement Decision
 
 Prefer an external repository when the capability has an independent maintainer or release cadence, its own deployed service or protocol, its own credential or trust boundary, meaningful install choice, or consumers beyond one Harness distribution. Prefer the Harness monorepo when the capability defines a baseline extension point, follows private persisted formats, or must change in lockstep with internal packages.
