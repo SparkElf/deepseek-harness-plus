@@ -398,6 +398,11 @@
     },
     {
       "doc": "docs/subsystems/llm-streaming.md",
+      "symbol": "DocumentBlock",
+      "source": "packages/llm/llm/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/llm-streaming.md",
       "symbol": "AppIdentity",
       "source": "packages/llm/llm/src/attribution.ts"
     },
@@ -904,6 +909,71 @@
       "doc": "docs/subsystems/attachment.md",
       "symbol": "ImageMediaType",
       "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentMediaType",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "FileAttachmentRef",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "ParsedDocumentRef",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentAttachmentRef",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentAttachmentLimits",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "EncodedDocumentAttachment",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "SaveFileAttachment",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "StoredFileAttachment",
+      "source": "packages/attachment/attachment/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentParserErrorCode",
+      "source": "packages/attachment/document-parser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentParseRequest",
+      "source": "packages/attachment/document-parser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "ParsedDocumentImage",
+      "source": "packages/attachment/document-parser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentParseResult",
+      "source": "packages/attachment/document-parser/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/attachment.md",
+      "symbol": "DocumentParserProvider",
+      "source": "packages/attachment/document-parser/src/types.ts"
     },
     {
       "doc": "docs/subsystems/attachment.md",

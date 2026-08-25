@@ -49,6 +49,12 @@ describe('attachment rejection copy', () => {
     maxImageDimension: 2000,
     mediaTypes: ['image/png'] as const,
   }
+  const documentLimits = {
+    maxDocumentBytes: 20 * 1024 * 1024,
+    maxDocumentsPerMessage: 10,
+    maxMessageDocumentBytes: 50 * 1024 * 1024,
+    mediaTypes: ['application/pdf'] as const,
+  }
 
   it('renders megabytes without a trailing fraction unless one exists', () => {
     expect(imageSizeText(10 * 1024 * 1024)).toBe('10MB')
@@ -66,14 +72,20 @@ describe('attachment rejection copy', () => {
     expect(attachmentErrorText(t, 'IMAGES_TOO_LARGE', limits)).toBe('图片总大小超过 100MB，请移除部分图片')
     expect(attachmentErrorText(t, 'IMAGE_DIMENSION_TOO_LARGE', limits)).toBe('图片宽高不能超过 2000px，请缩小后重试')
     expect(attachmentErrorText(enT, 'TOO_MANY_IMAGES', limits)).toBe('A message can include up to 20 images')
+    expect(attachmentErrorText(t, 'DOCUMENT_PARSER_UNAVAILABLE')).toBe('文档解析服务当前不可用，文件仍在输入框中')
+    expect(attachmentErrorText(t, 'DOCUMENT_PARSE_FAILED')).toBe('文档解析失败，文件仍在输入框中，可重试或移除')
+    expect(attachmentErrorText(t, 'DOCUMENT_PARSE_CONTEXT_TOO_LARGE')).toBe('文档解析内容超过直接阅读上限，请移除或改用更小的文档')
+    expect(attachmentErrorText(t, 'TOO_MANY_DOCUMENTS', limits, documentLimits)).toBe('一条消息最多添加 10 个文档')
+    expect(attachmentErrorText(t, 'DOCUMENT_TOO_LARGE', limits, documentLimits)).toBe('单个文档不能超过 20MB')
+    expect(attachmentErrorText(t, 'DOCUMENTS_TOO_LARGE', limits, documentLimits)).toBe('文档总大小超过 50MB，请移除部分文档')
   })
 
   it('folds unknown reasons and limit reasons without projected limits into the send-failed line', () => {
-    expect(attachmentErrorText(t, 'INVALID_IMAGE_BASE64')).toBe('图片发送失败（INVALID_IMAGE_BASE64），请重新添加图片后再试')
-    expect(attachmentErrorText(t, 'TOO_MANY_IMAGES')).toBe('图片发送失败（TOO_MANY_IMAGES），请重新添加图片后再试')
-    expect(attachmentErrorText(t, 'IMAGE_TOO_LARGE')).toBe('图片发送失败（IMAGE_TOO_LARGE），请重新添加图片后再试')
-    expect(attachmentErrorText(t, 'IMAGES_TOO_LARGE')).toBe('图片发送失败（IMAGES_TOO_LARGE），请重新添加图片后再试')
-    expect(attachmentErrorText(t, 'IMAGE_DIMENSION_TOO_LARGE')).toBe('图片发送失败（IMAGE_DIMENSION_TOO_LARGE），请重新添加图片后再试')
+    expect(attachmentErrorText(t, 'INVALID_IMAGE_BASE64')).toBe('附件发送失败（INVALID_IMAGE_BASE64），文件仍在输入框中，可重试或移除')
+    expect(attachmentErrorText(t, 'TOO_MANY_IMAGES')).toBe('附件发送失败（TOO_MANY_IMAGES），文件仍在输入框中，可重试或移除')
+    expect(attachmentErrorText(t, 'IMAGE_TOO_LARGE')).toBe('附件发送失败（IMAGE_TOO_LARGE），文件仍在输入框中，可重试或移除')
+    expect(attachmentErrorText(t, 'IMAGES_TOO_LARGE')).toBe('附件发送失败（IMAGES_TOO_LARGE），文件仍在输入框中，可重试或移除')
+    expect(attachmentErrorText(t, 'IMAGE_DIMENSION_TOO_LARGE')).toBe('附件发送失败（IMAGE_DIMENSION_TOO_LARGE），文件仍在输入框中，可重试或移除')
   })
 })
 

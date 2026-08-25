@@ -212,7 +212,7 @@ export interface InputMachineOptions {
 /** Published input state (the currency; per-session). */
 export interface InputState {
   readonly draft: string
-  /** Ordered runtime-only image ids; bytes and URLs stay in ConversationController. */
+  /** Ordered runtime-only attachment ids; browser files and image URLs stay in the conversation service. */
   readonly imageIds: readonly DraftAttachmentId[]
   /** Monotonic draft revision (span CAS compares against this). */
   readonly draftRev: number

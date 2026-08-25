@@ -30,14 +30,14 @@ The existing `$DSH_HOME/attachments/v1/objects` content-addressed store remains 
 
 ### Parsed document references
 
-A successfully parsed document keeps both the original `DocumentAttachmentRef` and durable references to parser outputs. The exact type names may be refined during implementation, but the intended information is:
+A successfully parsed document keeps both the original `DocumentAttachmentRef` and durable references to parser outputs. The implementation uses these fields:
 
 ```text
 interface ParsedDocumentRef {
-  parser: 'mineru'
-  markdownAttachmentId: AttachmentId
-  contentListAttachmentId: AttachmentId
-  imageAttachmentIds: readonly AttachmentId[]
+  parser: string
+  markdown: FileAttachmentRef
+  contentList: FileAttachmentRef
+  images: readonly ImageAttachmentRef[]
 }
 
 interface DocumentBlock {
@@ -69,7 +69,7 @@ browser draft
   -> host persists original documents
   -> MinerU parses each required document
   -> host validates and persists Markdown/content_list/images
-  -> host proves parsed Markdown fits the configured version-one model projection budget
+  -> host proves the complete rendered document text, including delimiters and metadata, fits the configured version-one model projection budget
   -> host appends the user message with durable DocumentBlock references
 ```
 
@@ -81,7 +81,7 @@ Parsing completes before message acceptance in version one. The UI may show a ge
 
 Version one uses parsed Markdown as the provider-neutral model representation for accepted documents. At the provider/request projection boundary, DSH resolves the durable Markdown reference and emits a clearly delimited text representation containing the original document name and parsed content. This works with ordinary text models and does not require each LLM adapter to understand PDF or OOXML bytes.
 
-The version-one scope deliberately targets documents whose parsed Markdown fits an explicit configurable direct-context budget. If the parse output is larger than that budget, admission fails clearly before the user event is appended; the implementation does not silently truncate the document or pretend that a partial document is complete.
+The version-one scope deliberately targets documents whose complete rendered text fits an explicit configurable direct-context budget. Admission counts the full Markdown plus document delimiters and metadata; if that result is larger than the budget, admission fails clearly before the user event is appended rather than truncating the document or pretending that partial content is complete.
 
 Long-document retrieval is a later capability, not a hidden part of the first parser integration. The durable `content_list` leaves a direct path to future `read_document`/`search_document` tools, block/page reads, or semantic retrieval without re-parsing the original. Version one does not create embeddings, a vector database, automatic chunking/RAG orchestration, reranking, or a fixed LangGraph-style document workflow.
 
@@ -138,7 +138,7 @@ The backup plugin copies only original user files and the minimum source metadat
 - A MinerU integration can synchronously parse a persisted supported document through `/file_parse` and persist Markdown, `content_list`, and extracted images without storing temporary parser paths in the session.
 - Parse or persistence failure appends no user event and restores the browser draft; no automatic retry or speculative background queue is introduced.
 - Accepted `DocumentBlock` content is reconstructable from the session log plus durable attachment objects across reload, resume, and fork.
-- Small/medium accepted documents project their complete parsed Markdown to text-capable models; over-budget parsed output fails explicitly rather than silently truncating.
+- Small/medium accepted documents project their complete parsed Markdown to text-capable models; over-budget complete rendered document text fails explicitly rather than silently truncating.
 - Extracted images remain durable and `content_list` preserves page/block structure for later Harness tools, while version one does not automatically inject every extracted image into every request.
 - The implementation adds focused attachment/parser tests, Web composer/history behavior tests, session replay coverage, provider projection coverage, and a real Loader composition test for the product-visible plugin path.
 - Version one adds no vector database, embeddings, automatic RAG pipeline, MinerU task persistence, embedded Python runtime, or second attachment store.

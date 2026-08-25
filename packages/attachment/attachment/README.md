@@ -2,22 +2,27 @@
 
 English | [中文](README.zh.md)
 
-The durable attachment seam. `ctx.attachments` validates and durably commits immutable image bytes, then returns a serializable `ImageAttachmentRef`; consumers never persist browser paths, object URLs, provider URLs, or base64 in session events.
+The durable attachment seam. `ctx.attachments` owns one content-addressed immutable-object namespace for raster images, supported human documents, and parser artifacts. Consumers persist opaque references in session events rather than browser paths, object URLs, provider URLs, or base64 payloads.
 
-Unsent composer images remain browser-owned temporary drafts. `validateImage` runs the same admission policy without persisting. `saveImages` owns batch count and aggregate-byte limits, validates every member before writing any member, then commits in order and returns references only after the complete batch succeeds. A later storage failure returns no partial references, although an earlier immutable content-addressed object may remain unreachable until reference-aware garbage collection exists. `AttachmentError.code` uses the closed `AttachmentErrorCode` string union. Its `ImageAdmissionErrorCode` subset marks caller-correctable image-input failures; `isImageAdmissionError` recognizes that subset at runtime so each protocol adapter can map its own error vocabulary. `saveImage` commits one accepted image before any model-visible session event is published, and `readImage` verifies the content-addressed object against its logged metadata. Callers may cancel `readImage`; implementations observe cancellation around backend and verification work and preserve it instead of translating it into a storage failure.
+Images keep their format-specific path. `validateImage` applies the deployment policy without writing, `saveImages` validates a complete ordered batch before publishing any member, `saveImage` commits one accepted raster, and `readImage` verifies digest plus recorded image metadata. `admitEncodedImages(attachments, images)` is the canonical browser-wire entry and rejects non-canonical base64 before delegating count, aggregate-byte, media-type, decode, dimension, and pixel limits to the store.
 
-`admitEncodedImages(attachments, images)` is the shared wire entry used by every RPC endpoint that accepts browser uploads (the session prompt endpoint and the command executor): it enforces canonical base64 on every member, then delegates batch admission — limits, validation, ordered commit — to `saveImages`. The base64 upload form is `EncodedImageAttachment`, exported from `@deepseek-ai/dsh-attachment/types` so wire contracts can reference it.
+Generic documents are additive. Version one admits PDF, DOCX, PPTX, and XLSX through `admitEncodedDocuments(documents, attachments)`. It validates the whole decoded batch before persistence, enforces deployment `DocumentAttachmentLimits`, normalizes the display filename, checks filename extension against the declared media type, and performs a minimal container-signature check (PDF header or OOXML ZIP container). It then stores the original bytes through `saveFile`, producing a durable `DocumentAttachmentRef`. `readFile` verifies the content-addressed digest and recorded byte length. These generic file primitives also provide the storage surface for later parser outputs without introducing a parser-specific object store. Image-only attachment providers declare an empty `documentLimits.mediaTypes`; the Host then does not advertise document intake, and direct generic-file calls fail explicitly.
+
+The service intentionally does not parse document bodies. Provider projection, parser orchestration, browser presentation, and session authorization belong to their consumers. The Host admission consumer persists each original first, then requires parser success and durable Markdown, content-list, and extracted-image references before it may append a `DocumentBlock`; a deployment without a parser does not advertise or accept document input.
+
+`AttachmentError.code` remains the stable failure vocabulary. `ImageAdmissionErrorCode` / `isImageAdmissionError` and `DocumentAdmissionErrorCode` / `isDocumentAdmissionError` distinguish caller-correctable admission failures from storage faults so each protocol boundary can map them into its own wire errors.
 
 ## Model Experience
 
-Indirectly, through the role-neutral core `ImageBlock` and provider adapters that resolve its durable reference.
+Indirectly, through role-neutral `ImageBlock` and `DocumentBlock` content. This package stores and verifies bytes; model-facing projection is owned by the LLM/provider consumer. A durable `DocumentBlock` always carries separate original and parsed references. Complete Markdown enters every provider request; extracted images remain durable for later selective document tooling and are not automatically injected in version one.
 
 #### KV Cache effect
 
-Adding an image changes the provider request and therefore invalidates the affected request suffix.
+Adding an image or document changes the provider request suffix and therefore invalidates that affected suffix. The attachment store itself performs no model call and consumes no tokens.
 
 ## Known Limitations and Deferred Work
 
-- Version one accepts PNG, JPEG, WebP, and GIF only.
+- Raster image intake accepts PNG, JPEG, WebP, and GIF; generic document intake accepts PDF, DOCX, PPTX, and XLSX only.
+- OOXML admission verifies the ZIP container and filename/media-type agreement, not the complete internal Office package structure. A document parser remains the authority for extracting usable body content.
 - Retention and garbage collection are deferred because resumed and forked sessions may share immutable objects.
-- Generic files, audio, video, and persistent unsent drafts require separate lifecycle and provider contracts.
+- Long-document retrieval/search, audio, video, arbitrary binaries, and persistent unsent drafts require separate capabilities or lifecycle contracts.

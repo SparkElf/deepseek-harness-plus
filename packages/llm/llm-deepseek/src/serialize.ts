@@ -72,7 +72,7 @@ function resolveThinking(options: GenerateOptions, defaults: RequestDefaults): R
 }
 
 /** Join the text blocks of a message (used for user/tool-result content). */
-function flattenText(blocks: ContentBlock[]): string {
+function flattenText(blocks: readonly ContentBlock[]): string {
   return blocks
     .filter(block => block.type === 'text')
     .map(block => block.text)
@@ -193,14 +193,16 @@ function serializeAssistant(message: Message): WireMessage {
 }
 
 /**
- * Serialize the conversation. `tool-result` blocks become standalone
+ * Serialize the conversation after the adapter has resolved every durable
+ * document to complete parsed Markdown. A direct caller leaving a document
+ * block in this input fails the text-only content assertion. `tool-result` blocks become standalone
  * `{role: 'tool'}` messages; the harness puts each tool result in its own
  * user-role message, so a mixed user message contributes its text first and
  * its tool results as separate wire messages after.
  * @param messages - the harness conversation, in order.
  * @returns the wire messages; order preserved, each tool result expanded into its own entry.
  */
-export function serializeMessages(messages: Message[]): WireMessage[] {
+export function serializeMessages(messages: readonly Message[]): WireMessage[] {
   const wire: WireMessage[] = []
   for (const message of messages) {
     assertTextOnly(message.content)
@@ -232,7 +234,8 @@ export function serializeMessages(messages: Message[]): WireMessage[] {
 }
 
 /**
- * Serialize image-capable history after resolving durable attachments.
+ * Serialize image-capable history after durable documents have been resolved
+ * to text and durable image references are ready for materialization.
  * Consecutive tool results keep string `tool` messages and share one following
  * user message containing their images.
  * @param messages - transient request history after request-size offloading.
@@ -352,7 +355,8 @@ export function serializeRequest(
 /**
  * Build one image-capable request while keeping durable bytes out of session
  * messages. Oversized oldest images become deterministic text before any
- * attachment read.
+ * attachment read. Document blocks have already been projected from their
+ * required durable Markdown references by the adapter.
  * @param options - harness request containing image-capable user content.
  * @param images - attachment resolver, request bound, and cancellation.
  * @param defaults - adapter-level thinking defaults.

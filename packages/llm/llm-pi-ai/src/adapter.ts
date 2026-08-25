@@ -34,7 +34,9 @@ import type {
 import {
   attributionHeaders,
   contentHasImage,
+  contentHasDocument,
   LlmAdapter,
+  projectRequestDocumentsWithAttachments,
   LlmError,
   ReasoningEffortId,
 } from '@deepseek-ai/dsh-llm'
@@ -301,11 +303,7 @@ export class PiAiAdapter extends LlmAdapter {
     if (options.stop !== undefined) {
       throw new LlmError('llm-pi-ai does not support GenerateOptions.stop', 'UNSUPPORTED_OPTION')
     }
-    // One capture per stream call, taken before any await: the profile, the
-    // model descriptor, and the collection all come from the same immutable
-    // snapshot, and the credential freezes with them. A configuration change
-    // mid-request builds a separate snapshot, so this request finishes under
-    // the one it started with and the next call picks up the new one.
+    // provider/model snapshot必须在任何attachment I/O前固定；同一请求不会递归重进stream或跨配置generation。
     const snapshot = this.current()
     const profile = this.profileOf(snapshot, options.provider)
     const model = this.modelOf(snapshot, options.provider, options.model)
@@ -313,6 +311,23 @@ export class PiAiAdapter extends LlmAdapter {
       model,
       options.reasoningEffort ?? profile.reasoning,
     )
+    let requestOptions = options
+    let documentAttachments: AttachmentStore | undefined
+    if (options.messages.some(message => contentHasDocument(message.content))) {
+      documentAttachments = this.config.resolveAttachments?.()
+      if (documentAttachments === undefined) {
+        throw new LlmError(
+          'pi-ai parsed-document conversion requires the durable attachment service.',
+          'UNSUPPORTED_CONTENT',
+        )
+      }
+      const messages = await projectRequestDocumentsWithAttachments(
+        options.messages,
+        documentAttachments,
+        options.signal,
+      )
+      requestOptions = { ...options, messages }
+    }
     const apiKey = await this.config.resolveApiKey(options.provider, profile)
 
     const consumer = new AbortController()
@@ -323,11 +338,13 @@ export class PiAiAdapter extends LlmAdapter {
     using watchdog = idleWatchdog(upstream, streamIdleTimeoutMs, 'LLM_STREAM_IDLE_TIMEOUT')
 
     try {
-      const containsImage = options.messages.some(message => contentHasImage(message.content))
+      const containsImage = requestOptions.messages.some(message => contentHasImage(message.content))
       if (containsImage && !model.input.includes('image')) {
         throw new LlmError(`pi-ai model "${model.id}" does not support image input`, 'UNSUPPORTED_CONTENT')
       }
-      const attachments = containsImage ? this.config.resolveAttachments?.() : undefined
+      const attachments = containsImage
+        ? documentAttachments ?? this.config.resolveAttachments?.()
+        : undefined
       if (containsImage && attachments === undefined) {
         throw new LlmError('pi-ai image input requires the durable attachment service', 'UNSUPPORTED_CONTENT')
       }
@@ -335,8 +352,8 @@ export class PiAiAdapter extends LlmAdapter {
         this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
       }
       const context = attachments === undefined
-        ? toPiContext(options, undefined, onReplayDegrade)
-        : await toPiContext(options, attachments, onReplayDegrade, profile.maxRequestImageBytes)
+        ? toPiContext(requestOptions, undefined, onReplayDegrade)
+        : await toPiContext(requestOptions, attachments, onReplayDegrade, profile.maxRequestImageBytes)
       const events = snapshot.models.streamSimple(model, context, {
         ...profileOptions(profile, reasoning, apiKey),
         ...options.temperature === undefined ? {} : { temperature: options.temperature },

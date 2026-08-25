@@ -12,9 +12,11 @@ import type { DraftAttachmentId } from '../src/client/input/contract.ts'
 const mention = '@[Research](dsh-session:InNvdXJjZSI)'
 const spacedMention = '@[Research notes](dsh-session:InNvdXJjZSI)'
 const commandImages = {
+  selectIds: (ids: readonly DraftAttachmentId[]) => ids,
   serialize: () => Promise.resolve([]),
   release: () => {},
   unsupportedNotice: (token: string) => `${token.trim()} images-unsupported`,
+  unsupportedDocumentNotice: (token: string) => `${token.trim()} documents-unsupported`,
 }
 
 function chip(shell: SessionInputShell): void {

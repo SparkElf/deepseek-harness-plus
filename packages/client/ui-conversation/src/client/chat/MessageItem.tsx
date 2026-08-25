@@ -17,24 +17,41 @@ import { MessageIconActions } from './MessageIconActions.tsx'
 import css from './MessageItem.module.css'
 
 type UserImage = Extract<UserMessageNode['content'][number], { type: 'image' }>
+type UserDocument = Extract<UserMessageNode['content'][number], { type: 'document' }>
+
+const DOCUMENT_TYPE_LABELS: Record<UserDocument['attachment']['mediaType'], string> = {
+  'application/pdf': 'PDF',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+}
 
 function contentParts(content: readonly unknown[]): {
   text: string
   images: { attachment: UserImage['attachment'] }[]
+  documents: { attachment: UserDocument['attachment'] }[]
   rest: unknown[]
 } {
   const texts: string[] = []
   const images: { attachment: UserImage['attachment'] }[] = []
+  const documents: { attachment: UserDocument['attachment'] }[] = []
   const rest: unknown[] = []
   for (const block of content) {
     const b = block as { type?: string; text?: string; attachment?: unknown }
     if (b.type === 'text' && typeof b.text === 'string') texts.push(b.text)
     else if (b.type === 'image' && b.attachment !== undefined) {
       images.push({ attachment: (b as UserImage).attachment })
-    }
-    else rest.push(block)
+    } else if (b.type === 'document' && b.attachment !== undefined) {
+      documents.push({ attachment: (b as UserDocument).attachment })
+    } else rest.push(block)
   }
-  return { text: texts.join(''), images, rest }
+  return { text: texts.join(''), images, documents, rest }
+}
+
+function documentSize(bytes: number): string {
+  if (bytes < 1024) return `${String(bytes)} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(bytes < 10 * 1024 ? 1 : 0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(bytes < 10 * 1024 * 1024 ? 1 : 0)} MB`
 }
 
 function retrySeconds(milliseconds: number): number {
@@ -212,6 +229,30 @@ function projectUserText(text: string, sessionLabels: readonly string[]): ReactN
   return <>{parts}</>
 }
 
+/** Compact durable-document cards rendered from session-owned metadata only. */
+function DocumentCards({ documents, t }: {
+  documents: readonly { attachment: UserDocument['attachment'] }[]
+  t: ChatViewSlotProps['t']
+}): ReactNode {
+  if (documents.length === 0) return null
+  return (
+    <div className={css.documentList} role="group" aria-label={t('document.label')}>
+      {documents.map(({ attachment }) => (
+        <div
+          key={String(attachment.attachmentId)}
+          className={css.documentCard}
+          data-message-document
+          title={attachment.name}
+        >
+          <span className={css.documentType}>{DOCUMENT_TYPE_LABELS[attachment.mediaType]}</span>
+          <span className={css.documentName}>{attachment.name}</span>
+          <span className={css.documentDetail}>{documentSize(attachment.bytes)}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** Right-aligned bubble shared by user and steering rows. */
 function UserStyleBubble({
   content, renderMessageImages, actions, pending = false, referenceLabels = [], t,
@@ -226,13 +267,14 @@ function UserStyleBubble({
   referenceLabels?: readonly string[]
   t: ChatViewSlotProps['t']
 }): ReactNode {
-  const { text, images, rest } = contentParts(content)
+  const { text, images, documents, rest } = contentParts(content)
   const truncated = (total: number): string => t('json.truncated', { total })
   const showBubble = text !== '' || rest.length > 0
   return (
     <div className={css.userRow} data-pending-steering={pending || undefined} data-time-hover-root>
       <div className={css.userStack}>
         {renderMessageImages({ images, align: 'end' })}
+        <DocumentCards documents={documents} t={t} />
         {showBubble && <div className={css.bubble}>
           {projectUserText(text, referenceLabels)}
           {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}

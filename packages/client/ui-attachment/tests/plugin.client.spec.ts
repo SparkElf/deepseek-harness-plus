@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
 import { apply as applyHost } from '../src/index.ts'
 import { apply, inject } from '../src/client/index.ts'
+import { AttachmentPicker } from '../src/client/AttachmentPicker.tsx'
 import { ComposerAttachments } from '../src/client/ComposerAttachments.tsx'
 import { MessageImages } from '../src/client/MessageImages.tsx'
 
@@ -13,6 +14,7 @@ async function bench() {
     name: 'root',
     children: {
       'conversation.input.attachments': { kind: 'single', scope: 'session-maybe' },
+      'conversation.input.left': { kind: 'list', scope: 'session' },
       'conversation.message.images': { kind: 'single', scope: 'session' },
     },
   } as never, () => null)
@@ -26,12 +28,18 @@ describe('attachment plugin', () => {
     expect(() => { applyHost() }).not.toThrow()
   })
 
-  it('registers both entries and removes them with the plugin fiber', async () => {
+  it('registers picker, composer rail, and history image entries and removes them with the plugin fiber', async () => {
     const { ctx, fiber } = await bench()
     expect(inject).toEqual(['slots'])
     expect(ctx.slots.entries('conversation.input.attachments')).toMatchObject([{
       locale: 'conversation',
       component: ComposerAttachments,
+    }])
+    expect(ctx.slots.entries('conversation.input.left')).toMatchObject([{
+      id: 'attachment-picker',
+      order: 10,
+      locale: 'conversation',
+      component: AttachmentPicker,
     }])
     expect(ctx.slots.entries('conversation.message.images')).toMatchObject([{
       locale: 'conversation',
@@ -41,6 +49,7 @@ describe('attachment plugin', () => {
     await fiber.dispose()
 
     expect(ctx.slots.entries('conversation.input.attachments')).toHaveLength(0)
+    expect(ctx.slots.entries('conversation.input.left')).toHaveLength(0)
     expect(ctx.slots.entries('conversation.message.images')).toHaveLength(0)
   })
 })

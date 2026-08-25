@@ -53,12 +53,16 @@ export interface SessionInputDeps {
   ): Promise<SubmitOutcome>
   /** Command-plane image plumbing (the hub owns the conversation face and the copy). */
   commandImages: {
-    /** Resolve ordered draft ids to wire payloads without sending them; rejects when an id no longer resolves. */
+    /** Select image ids from the composer's ordered mixed attachment ids. */
+    selectIds(ids: readonly DraftAttachmentId[]): readonly DraftAttachmentId[]
+    /** Resolve ordered image ids to wire payloads without sending them; rejects when an id no longer resolves. */
     serialize(ids: readonly DraftAttachmentId[]): Promise<readonly SubmitImageAttachment[]>
     /** Free consumed draft images after a successful command submit. */
     release(ids: readonly DraftAttachmentId[]): void
     /** Localized composer notice for a claimed command that does not accept images. */
     unsupportedNotice(token: string): string
+    /** Localized composer notice because command claims do not accept documents. */
+    unsupportedDocumentNotice(token: string): string
   }
 }
 
@@ -228,7 +232,12 @@ export class SessionInputShell implements SessionInput {
     // Enter-time adjudication applies the same policy for unclaimed lines
     // inside the command source itself.
     const before = this.snapshot
-    if (before.phase === 'claimed' && this.imageIds.length > 0 && before.claim?.images !== true) {
+    const commandImageIds = this.deps.commandImages.selectIds(this.imageIds)
+    if (before.phase === 'claimed' && commandImageIds.length !== this.imageIds.length) {
+      this.notify('error', this.deps.commandImages.unsupportedDocumentNotice(before.claim?.token ?? before.draft))
+      return
+    }
+    if (before.phase === 'claimed' && commandImageIds.length > 0 && before.claim?.images !== true) {
       this.notify('error', this.deps.commandImages.unsupportedNotice(before.claim?.token ?? before.draft))
       return
     }
@@ -532,7 +541,8 @@ export class SessionInputShell implements SessionInput {
       this.run(this.core.dispatch({ type: 'adjudicated', attempt, outcome: undefined }))
       return
     }
-    inputTriggers.adjudicate(draft.trim(), attempt.signal, { images: this.imageIds.length }).then(
+    const imageIds = this.deps.commandImages.selectIds(this.imageIds)
+    inputTriggers.adjudicate(draft.trim(), attempt.signal, { images: imageIds.length }).then(
       (outcome: PickOutcome) => {
         if (this.dead(attempt)) return
         this.run(this.core.dispatch({ type: 'adjudicated', attempt, outcome }))
@@ -548,12 +558,22 @@ export class SessionInputShell implements SessionInput {
   /**
    * The submit transaction: claim.submit against the session scope; ok maps
    * from the outcome kind. An accepting claim receives the serialized draft
-   * images, which are cleared and released only on a success outcome; a
-   * failure (serialize, transport, or handler error) keeps draft and images
-   * for correction.
+   * images, which are cleared and released only on a success outcome. Document
+   * drafts are rejected before claim submission and remain available for an
+   * ordinary prompt; every failure keeps the draft attachments for correction.
    */
   private beginSubmit(attempt: SubmitAttempt, claim: CommandClaim, args: string): void {
-    const imageIds = claim.images === true ? [...this.imageIds] : []
+    const selectedImageIds = this.deps.commandImages.selectIds(this.imageIds)
+    if (selectedImageIds.length !== this.imageIds.length) {
+      this.run(this.core.dispatch({
+        type: 'submit-settled',
+        attempt,
+        ok: false,
+        message: this.deps.commandImages.unsupportedDocumentNotice(claim.token),
+      }))
+      return
+    }
+    const imageIds = claim.images === true ? selectedImageIds : []
     Promise.resolve()
       .then(async () => {
         const images = imageIds.length > 0 ? await this.deps.commandImages.serialize(imageIds) : []

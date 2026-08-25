@@ -337,10 +337,16 @@ export interface Config {
   maxImagePixels?: number
   /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
   maxImageDimension?: number
+  /** Maximum encoded bytes accepted for one supported document. */
+  maxDocumentBytes?: number
+  /** Maximum document count accepted in one submitted message. */
+  maxDocumentsPerMessage?: number
+  /** Maximum aggregate encoded document bytes accepted in one submitted message. */
+  maxMessageDocumentBytes?: number
 }
 ```
 
-Source: [`packages/attachment/attachment-local/src/index.ts:31`](../packages/attachment/attachment-local/src/index.ts)
+Source: [`packages/attachment/attachment-local/src/index.ts:47`](../packages/attachment/attachment-local/src/index.ts)
 
 <a id="deepseek-aidsh-bash-local"></a>
 
@@ -568,6 +574,42 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:55`](../packages/credentials/credentials-local/src/index.ts)
+
+<a id="deepseek-aidsh-document-parser"></a>
+
+## `@deepseek-ai/dsh-document-parser`
+
+```ts config-catalog
+/** Deployment choices owned by the provider-neutral parser seam. */
+export interface Config {
+  /** Explicit parser provider id; omission auto-selects exactly one registered provider. */
+  provider?: string
+  /** Maximum aggregate rendered-document bytes, including delimiters and metadata, accepted for direct-context version one. */
+  maxDirectMarkdownBytes: number
+}
+```
+
+Source: [`packages/attachment/document-parser/src/index.ts:24`](../packages/attachment/document-parser/src/index.ts)
+
+<a id="deepseek-aidsh-document-parser-mineru"></a>
+
+## `@deepseek-ai/dsh-document-parser-mineru`
+
+Requires: `documentParser`
+
+```ts config-catalog
+/** External MinerU endpoint and bounded synchronous parse policy. */
+export interface Config {
+  /** Absolute MinerU synchronous `/file_parse` endpoint. */
+  endpoint: string
+  /** Maximum wall-clock milliseconds for one parse. */
+  timeoutMs: number
+  /** Maximum compressed response and aggregate extracted output bytes. */
+  maxResponseBytes: number
+}
+```
+
+Source: [`packages/attachment/document-parser-mineru/src/index.ts:20`](../packages/attachment/document-parser-mineru/src/index.ts)
 
 <a id="deepseek-aidsh-e2b"></a>
 

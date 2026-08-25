@@ -103,7 +103,10 @@ const COMMANDS: FakeCommand[] = [
 const PNG: SubmitImageAttachment = { mediaType: 'image/png', data: 'AA==' }
 
 /** Real scope bench: SessionRuntime over one listed session + InputTriggerController + shell listeners (the hub wiring shape). */
-async function scopedBench(register?: (inputTriggers: InputTriggerService) => void) {
+async function scopedBench(
+  register?: (inputTriggers: InputTriggerService) => void,
+  selectImageIds: (ids: readonly DraftAttachmentId[]) => readonly DraftAttachmentId[] = ids => ids,
+) {
   const ctx = new Context()
   const api = new FakeApiClient()
   api.onWorkspaceList = () => Promise.resolve(ok({ items: [] }))
@@ -122,7 +125,7 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
   const sink = vi.fn(() => Promise.resolve<SubmitOutcome>({ kind: 'success' }))
   const serialize = vi.fn((ids: readonly DraftAttachmentId[]) => Promise.resolve(ids.map(() => PNG)))
   const release = vi.fn()
-  const shell = new SessionInputShell({ actx, inputTriggers: () => controller, defaultSink: sink, commandImages: { serialize, release, unsupportedNotice: (token: string) => `${token.trim()} images-unsupported` } })
+  const shell = new SessionInputShell({ actx, inputTriggers: () => controller, defaultSink: sink, commandImages: { selectIds: selectImageIds, serialize, release, unsupportedNotice: (token: string) => `${token.trim()} images-unsupported`, unsupportedDocumentNotice: (token: string) => `${token.trim()} documents-unsupported` } })
   // The hub's listener wiring, verbatim.
   actx.on('slash/input-begin-command', req => shell.beginCommand(req.claim, req.span) ? true : undefined)
   actx.on('slash/input-insert-reference', req => shell.insertReference(req.reference, req.span) ? true : undefined)
@@ -188,11 +191,14 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
   return { ctx, inputTriggers, controller, shell, wiring, view, textarea, type, sink, serialize, release }
 }
 
-async function bench(executeImpl?: (line: string) => Promise<SubmitOutcome>) {
+async function bench(
+  executeImpl?: (line: string) => Promise<SubmitOutcome>,
+  selectImageIds?: (ids: readonly DraftAttachmentId[]) => readonly DraftAttachmentId[],
+) {
   const execute = vi.fn(executeImpl ?? ((line: string) =>
     Promise.resolve({ kind: 'success' as const, text: `已执行 ${line}` })))
   const { source, executed, envelopes } = commandSource(COMMANDS, execute)
-  const base = await scopedBench((inputTriggers) => { inputTriggers.registerSource(source) })
+  const base = await scopedBench((inputTriggers) => { inputTriggers.registerSource(source) }, selectImageIds)
   return { ...base, execute, executed, envelopes }
 }
 
@@ -282,6 +288,25 @@ describe('scenario: images ride an accepting command through the real pipeline',
     expect(b.release).toHaveBeenCalledWith(['img-1'])
     expect(b.shell.snapshot.imageIds).toEqual([])
     expect(b.sink).not.toHaveBeenCalled()
+  })
+
+  it('rejects document drafts before command submission and retains them for an ordinary prompt', async () => {
+    const b = await bench(undefined, ids => ids.filter(id => String(id).startsWith('img-')))
+    const documentId = 'document-1' as DraftAttachmentId
+    act(() => { b.shell.addImages([documentId]) })
+    act(() => { b.shell.setDraft('/vision read this document') })
+    fireEvent.keyDown(b.textarea, { key: 'Enter' })
+
+    await vi.waitFor(() => { expect(b.shell.snapshot.phase).toBe('plain') })
+    expect(b.envelopes).toEqual([{ images: 0 }])
+    expect(b.execute).not.toHaveBeenCalled()
+    expect(b.serialize).not.toHaveBeenCalled()
+    expect(b.release).not.toHaveBeenCalled()
+    expect(b.shell.snapshot.imageIds).toEqual([documentId])
+    expect(b.shell.notices.getSnapshot()).toMatchObject({
+      level: 'error',
+      text: '/vision documents-unsupported',
+    })
   })
 
   it('an imageless enter adjudicates with a zero-image envelope', async () => {

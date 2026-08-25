@@ -33,6 +33,9 @@
       "path": "../../attachment/attachment"
     },
     {
+      "path": "../../attachment/document-parser"
+    },
+    {
       "path": "../../llm/llm"
     },
     {

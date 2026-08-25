@@ -39,6 +39,7 @@ export async function probeImage(data: Uint8Array): Promise<DetectedImage> {
   try {
     return await imageMetadata(sharp(data, { failOn: 'error', limitInputPixels: false }))
   } catch (error) {
+    console.error('attachment-local: image metadata probe failed', error)
     if (error instanceof AttachmentError) throw error
     throw new AttachmentError('Unsupported or malformed image data.', 'INVALID_IMAGE', { cause: error })
   }
@@ -71,6 +72,7 @@ export async function detectImage(data: Uint8Array, limits?: DecodedImageLimits)
     await image.raw().toBuffer()
     return detected
   } catch (error) {
+    console.error('attachment-local: image decode or policy check failed', error)
     if (error instanceof AttachmentError) throw error
     throw new AttachmentError('Unsupported or malformed image data.', 'INVALID_IMAGE', { cause: error })
   }

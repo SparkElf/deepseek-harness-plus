@@ -46,6 +46,10 @@ flowchart LR
   cfg --> plugin_dsh_base_session_persistence_jsonl
   plugin_dsh_base_attachment_local["attachment-local<br/>@deepseek-ai/dsh-attachment-local"]
   cfg --> plugin_dsh_base_attachment_local
+  plugin_dsh_base_document_parser["document-parser<br/>@deepseek-ai/dsh-document-parser"]
+  cfg --> plugin_dsh_base_document_parser
+  plugin_dsh_base_document_parser_mineru["document-parser-mineru<br/>@deepseek-ai/dsh-document-parser-mineru"]
+  cfg --> plugin_dsh_base_document_parser_mineru
   plugin_dsh_base_session_query_sqlite["session-query-sqlite<br/>@deepseek-ai/dsh-session-query-sqlite"]
   cfg --> plugin_dsh_base_session_query_sqlite
   plugin_dsh_base_session_projection["session-projection<br/>@deepseek-ai/dsh-session-projection"]
@@ -187,6 +191,8 @@ flowchart LR
 | `llm-pi-ai` | `@deepseek-ai/dsh-llm-pi-ai` |
 | `session-persistence-jsonl` | `@deepseek-ai/dsh-session-persistence-jsonl` |
 | `attachment-local` | `@deepseek-ai/dsh-attachment-local` |
+| `document-parser` | `@deepseek-ai/dsh-document-parser` |
+| `document-parser-mineru` | `@deepseek-ai/dsh-document-parser-mineru` |
 | `session-query-sqlite` | `@deepseek-ai/dsh-session-query-sqlite` |
 | `session-projection` | `@deepseek-ai/dsh-session-projection` |
 | `session-telemetry-otel` | `@deepseek-ai/dsh-session-telemetry-otel` |

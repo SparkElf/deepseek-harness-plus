@@ -16,9 +16,13 @@ import type {
   ComposerChainProps, ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionInjected,
   DetailsInjected,
 } from './contract/slots.ts'
+import type {} from './document-attachments.ts'
 import type { InputNotice } from './input/contract.ts'
 import { createChatStore } from './stores.ts'
-import { ConversationController, UnsupportedImageMediaTypeError } from './service.ts'
+import {
+  ConversationController, InvalidDocumentNameError, UnsupportedDocumentMediaTypeError,
+  UnsupportedImageMediaTypeError,
+} from './service.ts'
 import type { IConversation } from './service.ts'
 import { ComposerBlockRegistry } from './input/blocks.ts'
 import type { ComposerBlock } from './input/blocks.ts'
@@ -217,15 +221,15 @@ export function apply(ctx: Context): void {
         if (sessionId !== undefined && nextId !== sessionId) {
           const from = inputHub.shell(sessionId)
           const draft = from.snapshot.draft
-          const imageIds = from.snapshot.imageIds
+          const attachmentIds = from.snapshot.imageIds
           const next = inputHub.shell(nextId)
-          if (imageIds.length === 0 || next.addImages(imageIds)) {
+          if (attachmentIds.length === 0 || next.addImages(attachmentIds)) {
             if (draft !== '') {
               next.setDraft(draft)
               from.setDraft('')
             }
-            if (imageIds.length > 0) {
-              for (const id of imageIds) from.removeImage(id)
+            if (attachmentIds.length > 0) {
+              for (const id of attachmentIds) from.removeImage(id)
             }
           }
         }
@@ -294,6 +298,9 @@ export function apply(ctx: Context): void {
           addImages: undefined,
           removeImage: undefined,
           draftImages: undefined,
+          addDocuments: undefined,
+          removeDocument: undefined,
+          draftDocuments: undefined,
           resolveSubmitMode: (running, gesture, steeringAvailable) =>
             submissionPolicy.resolve(running, gesture, steeringAvailable),
           toggleCommandMenu: undefined,
@@ -315,6 +322,8 @@ export function apply(ctx: Context): void {
             }
             return null
           } catch (error: unknown) {
+            ctx.logger.error('ui-conversation: image draft creation failed')
+            ctx.logger.error(error)
             if (error instanceof UnsupportedImageMediaTypeError) {
               // Positive copy: the supported list is fixed in imageMediaType,
               // and naming it beats echoing the rejected MIME type back.
@@ -328,6 +337,26 @@ export function apply(ctx: Context): void {
           shell.removeImage(id)
         },
         draftImages: ids => conversation.draftImages(ids),
+        addDocuments: (files) => {
+          try {
+            const documents = conversation.createDraftDocuments(files)
+            if (!shell.addImages(documents.map(document => document.id))) {
+              conversation.releaseDraftAttachments(documents)
+            }
+            return null
+          } catch (error: unknown) {
+            ctx.logger.error('ui-conversation: document draft creation failed')
+            ctx.logger.error(error)
+            if (error instanceof UnsupportedDocumentMediaTypeError) return t('document.unsupportedType')
+            if (error instanceof InvalidDocumentNameError) return t('document.nameRequired')
+            return error instanceof Error ? error.message : String(error)
+          }
+        },
+        removeDocument: (id) => {
+          conversation.releaseDraftDocument(id)
+          shell.removeImage(id)
+        },
+        draftDocuments: ids => conversation.draftDocuments(ids),
         resolveSubmitMode: (running, gesture, steeringAvailable) =>
           submissionPolicy.resolve(running, gesture, steeringAvailable),
         toggleCommandMenu: inputTriggers === undefined

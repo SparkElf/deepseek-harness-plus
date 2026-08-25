@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { AttachmentId } from '@deepseek-ai/dsh-attachment'
-import { CallId, createUserMessage, OFFLOADED_IMAGE_TEXT, offloadRequestImages } from '../src/index.ts'
+import {
+  CallId, createUserMessage, OFFLOADED_IMAGE_TEXT, offloadRequestImages,
+} from '../src/index.ts'
 import type { ContentBlock } from '../src/index.ts'
 
 const source = { kind: 'plugin' as const, plugin: 'test' }
