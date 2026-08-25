@@ -33,7 +33,7 @@ DataOps 继续拥有 MCP 查询合同，DSH 复用现有 `@deepseek-ai/dsh-mcp-c
 | Design B query | DataOps semantic query service | 模型提交逻辑成员；DataOps 选择来源并编译 SQL |
 | Result snapshots | DataOps | 不可变授权结果引用、有界分页、导出、过期和审计 |
 | Interactive chart | `@sparkelf/dsh-chart` | DSH 注册顶层 `render_chart` 工具并拥有持久图表呈现 |
-| Batch AI analysis | `@sparkelf/dsh-query-result-analysis` | DSH 注册顶层 `analyze_query_result` 工具并拥有模型调用、重试、断点和归并 |
+| Batch AI analysis | `@sparkelf/dsh-query-result-analysis` 与 DSH 内建、由会话支撑的进程内 `spawn` 提供方 | 插件注册 `analyze_query_result` 并拥有分页、断点和归并；持久子会话及其 AgentLoop 拥有模型调用、记录和重试 |
 
 ### Authentication and deployment
 
@@ -119,7 +119,7 @@ Design A MVP 只实现同步 completed 路径。`execute_sql` 和 `call_data_api
 
 `export_query_result` 通过同一授权分页路径消费 `resultRef`，增量创建 CSV 或 JSONL，且不重新执行来源操作。它返回 `{artifactRef, fileName, mediaType, sizeBytes, downloadUrl, expiresAt}`。`downloadUrl` 是不含 credential 的 DataOps application绝对路由；用户打开后，页面使用当前 DataOps 登录态，binary endpoint重新校验 result owner、expiry和来源 Resource权限。
 
-`analyze_query_result({resultRef, instruction, resumeAnalysisRef?, maxBatchRetries?})` 对 DataOps 已按所需业务粒度完成过滤、Join、聚合和排序的结果执行 AI 语义分析。每个 DataOps 页面成为一个 DSH 模型批次，并使用稳定 `<resultRef>#row-N` 证据标签。DSH 保存已完成批次断点，只在请求上限内重试符合 provider policy 的失败，传播取消，并分组归并批次摘要，最终返回 `analysisRef`、`summary`、行数、批次数、续跑状态和 provider/model 事实。
+`analyze_query_result({resultRef, instruction, resumeAnalysisRef?})` 对 DataOps 已按所需业务粒度完成过滤、Join、聚合和排序的结果执行 AI 语义分析。每个 DataOps 页面进入一个仅调用模型的 DSH 持久子会话并使用稳定 `<resultRef>#row-N` 证据标签；分组归并也使用同类子会话。插件保存已完成批次断点、传播取消并逐层归并摘要，最终返回 `analysisRef`、`summary`、行数、批次数、续跑状态和全部分析子会话 ID。每个子会话继承当前模型提供方和模型配置，由普通 AgentLoop 持久记录完整模型可见输入与输出，并执行提供方重试策略。操作断点仍是插件文件而非根会话事件，因此该可选包不需要 DSH core 事件类型，也不使会话读取依赖插件。
 
 确定性过滤、Join、聚合、排名、去重和精确统计必须在创建 `resultRef` 前由 `execute_sql` 或 `call_data_api` 完成。`analyze_query_result` 只解释和归纳多页结果；有损模型摘要不能作为精确数值事实源。
 
@@ -221,4 +221,4 @@ DSH core不需要改动。可选`@sparkelf/dsh-dataops-integration` package从`d
 
 ## Verification
 
-该决策的验证范围包括独立 `DSH_HOME` 的一用户一容器分配、隔离 browser storage 的 per-target origin、可信内网 HTTP bootstrap、无需 DSH core 修改的原生 root routing、DSH 进程不含 secret 的托管 gateway/broker identity、独立模式MFA登录和一次性launch-code交换、session-lifetime access与显式同principal重新授权、target-owner 和 principal 不一致拒绝、托管模式不提供账号切换操作、按请求 scope 和 Resource authorization、模型可见调用中不存在 secret 和身份字段、completed 结果物化、snapshot/分页/过期授权、不重新执行来源操作的导出、精确八加二工具组合和无 key 模型可见 snapshot。图表覆盖必须证明顶层工具注册、单 source 校验、从 presentation metadata 持久回放、keyed browser rendering、theme/resize lifecycle 和通用用户可见失败输出。批量分析覆盖必须证明有界分页读取、稳定行证据、遵循 provider policy 的重试、取消、已完成批次续跑和分层归并。方案 B 在可用前必须覆盖汇总来源选择、明细 fallback、可加和不可加指标、不安全 fanout 拒绝、方言渲染、权限谓词和稳定带版本 provenance。
+该决策的验证范围包括独立 `DSH_HOME` 的一用户一容器分配、隔离 browser storage 的 per-target origin、可信内网 HTTP bootstrap、无需 DSH core 修改的原生 root routing、DSH 进程不含 secret 的托管 gateway/broker identity、独立模式MFA登录和一次性launch-code交换、session-lifetime access与显式同principal重新授权、target-owner 和 principal 不一致拒绝、托管模式不提供账号切换操作、按请求 scope 和 Resource authorization、模型可见调用中不存在 secret 和身份字段、completed 结果物化、snapshot/分页/过期授权、不重新执行来源操作的导出、精确八加二工具组合和无 key 模型可见 snapshot。图表覆盖必须证明顶层工具注册、单 source 校验、从 presentation metadata 持久回放、keyed browser rendering、theme/resize lifecycle 和通用用户可见失败输出。批量分析覆盖必须证明有界分页读取、稳定行证据、每个批次或归并调用只使用一个持久子会话、子会话完整重建模型可见内容、由 AgentLoop 拥有提供方重试、父级取消、已完成批次续跑、分层归并，以及不修改 DSH core。方案 B 在可用前必须覆盖汇总来源选择、明细 fallback、可加和不可加指标、不安全 fanout 拒绝、方言渲染、权限谓词和稳定带版本 provenance。
