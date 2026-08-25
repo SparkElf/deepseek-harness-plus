@@ -16,6 +16,10 @@ Harness 把每项产品能力都实现为插件，但这一事实并不决定其
 
 集成需求本身不授权修改 Harness core。当已发布扩展点无法满足当前集成时，implementation 必须在编辑 core source 前停止。提案必须汇报具体扩展点缺口、拟修改的 core package 和 public API、plugin 或 profile 不能拥有该行为的原因、独立于本集成的通用消费者、原生模式与默认 profile 影响、替代方案，以及原生和集成模式的验证。只有用户显式批准所汇报的范围后才能开始 core 工作；对一个缺口的批准不授权相邻 core 改动。集成身份、endpoint、credential、产品 UI 和部署配置不得进入通用 core contract。
 
+已声明的部署信任与管理控制是设计输入，不是等待应用代码补偿的缺陷。显式可信内网可以使用HTTP；外部ingress使用显式配置的HTTPS且不做fallback。没有产品或协议要求时，集成不得以通用安全为名增加短期token轮换、refresh机制、应用层加密、锁、队列或周期性remount。网络策略、账号与session生命周期、权限执行和运维撤销拥有这些控制，同时继续执行协议明确要求的身份与授权校验。
+
+安全生命周期选择以完整用户路径为目标：一次可理解的授权应持续可用，直到用户或管理员改变其所属session、账号、权限或连接。没有明确威胁或协议要求时，即使某个机制通常被描述为加固，只要它增加重复授权、后台抖动、工具中断或恢复状态，就应否决。
+
 仓库所有权服从变化所有权，而不是包的可见性。定义 Harness 基线扩展点、消费私有持久化格式或必须与内部包锁步变化的能力留在一方仓库。具有独立维护者或发布节奏、自有部署服务或协议、自有凭据或信任边界、有意义的安装选择，或服务于不止一个 Harness 发行版的能力归外部仓库。npm 产物可以继续以 Harness monorepo 为源码归属；外部产物也可以被 Plus 默认 profile 选中，而不改变任一所有者。
 
 设置备份客户端继续作为一方包，因为其归档行为随 Harness 设置和存储数据演进；它以 `@sparkelf/dsh-client-ui-settings-backup` 加入 DSH 包家族发布，源码继续归 `deepseek-harness-plus`，并由 Web bundle 默认挂载。所有者选择的 npm scope 不转移仓库所有权。移动桥接归 `dsh-plugins-plus`：其 Host 隧道、Client 设置区、移动端呈现、中继协议、配置和文档均由 `@sparkelf/dsh-mobile-bridge` 交付。Plus Web profile 钉扎并默认挂载该外部包，因为所有者把移动访问选为此发行版的一部分；更高层 profile patch 可以禁用它，上游 Harness 不因此取得其源码或发布责任。
