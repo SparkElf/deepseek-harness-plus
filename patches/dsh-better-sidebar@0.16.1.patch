@@ -1,8 +1,166 @@
+diff --git a/lib/client-editor.js b/lib/client-editor.js
+index 8afe15ae00a41f7ece391d0458bc2cfe288cf9eb..6aab6400f486fe30205aa4a5d5678141589a2251 100644
+--- a/lib/client-editor.js
++++ b/lib/client-editor.js
+@@ -17910,6 +17910,16 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;
+ 	}
+ 	//#endregion
++	//#region src/client/host-route-url.ts
++	/** Resolve one Host-owned client route against the injected document base.
++	* @param path - Root-style or relative Host route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute route URL.
++	*/
++	function hostRouteUrl(path, baseUrl = document.baseURI) {
++		return new URL(path.replace(/^\/+/, ""), baseUrl);
++	}
++	//#endregion
+ 	//#region src/client/api.ts
+ 	/**
+ 	* Typed fetch wrapper over the /sidebar JSON API. Every call posts to
+@@ -17930,7 +17940,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 	async function call$1(method, payload, signal) {
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/api/${method}`, {
++			response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/json" },
+ 				body: JSON.stringify(payload),
+@@ -17959,7 +17969,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/upload?${params.toString()}`, {
++			response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/octet-stream" },
+ 				body,
+@@ -18101,7 +18111,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 	* client-side platform signal is needed.
+ 	*/
+ 	function htmlUrl(scope, path) {
+-		return encodeHtmlUrl(scope.sessionId, path);
++		return hostRouteUrl(encodeHtmlUrl(scope.sessionId, path)).href;
+ 	}
+ 	//#endregion
+ 	//#region src/client/paths.ts
+@@ -18224,7 +18234,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 			path: normalizeLocalPath(candidate)
+ 		});
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+-		return `${origin}/sidebar/file?${params.toString()}`;
++		return hostRouteUrl(`sidebar/file?${params.toString()}`, origin).href;
+ 	}
+ 	function rewriteLocalImageUrls(text, scope, filePath, origin) {
+ 		const resolve = (dest) => resolveLocalMediaDest(dest, scope, filePath, origin);
+@@ -44470,7 +44480,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		"@deepseek-ai/dsh-client-runtime/client"
+ 	];
+ 	/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-	const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++	const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 	/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 	*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 	*  chunk loads behind the revalidation barrier. */
+@@ -47995,7 +48005,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		*  absolute media URLs (see {@link rewriteLocalImageUrls}); the raw
+ 		*  `mdText` stays untouched for selection/line lookup and for mermaid-block
+ 		*  detection, which are unaffected by image syntax. */
+-		const previewText = markdown ? rewriteLocalImageUrls(mdText, scope, path, window.location.origin) : mdText;
++		const previewText = markdown ? rewriteLocalImageUrls(mdText, scope, path, document.baseURI) : mdText;
+ 		/** md/mermaid block split for the preview (mermaid fences lift out). Split
+ 		*  only in preview mode: edit-mode keystrokes must not re-scan the source. */
+ 		const mdBlocks = (0, react.useMemo)(() => markdown && mode === "preview" ? splitMermaidBlocks(mdText) : [], [
 diff --git a/lib/client-registry.js b/lib/client-registry.js
-index 233bf0938de790c77bf0f79c6726aa0961a577f0..c74ab6d5b5794b9494a17919f1c82525e2772539 100644
+index 233bf0938de790c77bf0f79c6726aa0961a577f0..53f318ab2c552dba4395e97c1f27726178e6ea45 100644
 --- a/lib/client-registry.js
 +++ b/lib/client-registry.js
-@@ -21445,7 +21445,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+@@ -1690,6 +1690,26 @@ window.__ModuleLoader__.load({
+ 			return state.activePane ?? "";
+ 		}
+ 		//#endregion
++		//#region src/client/host-route-url.ts
++		/** Resolve one Host-owned client route against the injected document base.
++		* @param path - Root-style or relative Host route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute route URL.
++		*/
++		function hostRouteUrl(path, baseUrl = document.baseURI) {
++			return new URL(path.replace(/^\/+/, ""), baseUrl);
++		}
++		/** Resolve one Host-owned WebSocket route against the injected document base.
++		* @param path - Root-style or relative Host WebSocket route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute ws: or wss: route URL.
++		*/
++		function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++			const url = hostRouteUrl(path, baseUrl);
++			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++			return url;
++		}
++		//#endregion
+ 		//#region src/client/chunk-loader.ts
+ 		/**
+ 		* The platform externals a chunk bundle may require (mirror of
+@@ -1713,7 +1733,7 @@ window.__ModuleLoader__.load({
+ 			"@deepseek-ai/dsh-client-runtime/client"
+ 		];
+ 		/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-		const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++		const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 		/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 		*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 		*  chunk loads behind the revalidation barrier. */
+@@ -10150,7 +10170,7 @@ window.__ModuleLoader__.load({
+ 		async function call(method, payload, signal) {
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/api/${method}`, {
++				response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/json" },
+ 					body: JSON.stringify(payload),
+@@ -10179,7 +10199,7 @@ window.__ModuleLoader__.load({
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/upload?${params.toString()}`, {
++				response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/octet-stream" },
+ 					body,
+@@ -10329,7 +10349,7 @@ window.__ModuleLoader__.load({
+ 			});
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			if (download) params.set("download", "1");
+-			return `/sidebar/file?${params.toString()}`;
++			return hostRouteUrl(`sidebar/file?${params.toString()}`).href;
+ 		}
+ 		//#endregion
+ 		//#region src/client/binary-download.tsx
+@@ -18872,8 +18892,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-terminals", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-terminals");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -18926,8 +18945,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-opens", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-opens");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -21445,7 +21463,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
  		}
  		//#endregion
  		//#region \0dsh-css:/home/runner/work/DSH-better-sidebar/DSH-better-sidebar/src/client/layout.css.mjs
@@ -11,11 +169,153 @@ index 233bf0938de790c77bf0f79c6726aa0961a577f0..c74ab6d5b5794b9494a17919f1c82525
  		const tagId = "dsh-external/dsh-better-sidebar/layout.css";
  		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
  			const tag = document.createElement("style");
+diff --git a/lib/client-terminal.js b/lib/client-terminal.js
+index 98c15f364ead8ab51b1f3dd95428ea05677f9764..28b0a62436e7a1494e3d6ae939fffa37486f3045 100644
+--- a/lib/client-terminal.js
++++ b/lib/client-terminal.js
+@@ -8031,6 +8031,26 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 		};
+ 	}
+ 	//#endregion
++	//#region src/client/host-route-url.ts
++	/** Resolve one Host-owned client route against the injected document base.
++	* @param path - Root-style or relative Host route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute route URL.
++	*/
++	function hostRouteUrl(path, baseUrl = document.baseURI) {
++		return new URL(path.replace(/^\/+/, ""), baseUrl);
++	}
++	/** Resolve one Host-owned WebSocket route against the injected document base.
++	* @param path - Root-style or relative Host WebSocket route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute ws: or wss: route URL.
++	*/
++	function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++		const url = hostRouteUrl(path, baseUrl);
++		url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++		return url;
++	}
++	//#endregion
+ 	//#region src/client/api.ts
+ 	/** One wire failure. */
+ 	var SidebarApiError = class extends Error {
+@@ -8043,7 +8063,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 	async function call(method, payload, signal) {
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/api/${method}`, {
++			response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/json" },
+ 				body: JSON.stringify(payload),
+@@ -8072,7 +8092,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/upload?${params.toString()}`, {
++			response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/octet-stream" },
+ 				body,
+@@ -8939,8 +8959,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 			let retry;
+ 			let failures = 0;
+ 			const wsUrl = () => {
+-				const url = new URL("/sidebar/ws/terminal", location.origin);
+-				url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++				const url = hostWebSocketUrl("sidebar/ws/terminal");
+ 				if (isAgentTabId(tabId)) url.search = new URLSearchParams({ uuid: agentUuidOf(tabId) }).toString();
+ 				else {
+ 					const params = new URLSearchParams({
 diff --git a/lib/client.js b/lib/client.js
-index 6cf688cbba1345a61e6db0738638ae215ad1d2e0..a02d45653ac300cd75b601d31344af99c4749543 100644
+index 6cf688cbba1345a61e6db0738638ae215ad1d2e0..6a1a81445d07c36057dfddc900955f458526c2ac 100644
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -21445,7 +21445,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+@@ -1690,6 +1690,26 @@ window.__ModuleLoader__.load({
+ 			return state.activePane ?? "";
+ 		}
+ 		//#endregion
++		//#region src/client/host-route-url.ts
++		/** Resolve one Host-owned client route against the injected document base.
++		* @param path - Root-style or relative Host route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute route URL.
++		*/
++		function hostRouteUrl(path, baseUrl = document.baseURI) {
++			return new URL(path.replace(/^\/+/, ""), baseUrl);
++		}
++		/** Resolve one Host-owned WebSocket route against the injected document base.
++		* @param path - Root-style or relative Host WebSocket route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute ws: or wss: route URL.
++		*/
++		function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++			const url = hostRouteUrl(path, baseUrl);
++			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++			return url;
++		}
++		//#endregion
+ 		//#region src/client/chunk-loader.ts
+ 		/**
+ 		* The platform externals a chunk bundle may require (mirror of
+@@ -1713,7 +1733,7 @@ window.__ModuleLoader__.load({
+ 			"@deepseek-ai/dsh-client-runtime/client"
+ 		];
+ 		/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-		const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++		const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 		/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 		*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 		*  chunk loads behind the revalidation barrier. */
+@@ -10150,7 +10170,7 @@ window.__ModuleLoader__.load({
+ 		async function call(method, payload, signal) {
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/api/${method}`, {
++				response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/json" },
+ 					body: JSON.stringify(payload),
+@@ -10179,7 +10199,7 @@ window.__ModuleLoader__.load({
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/upload?${params.toString()}`, {
++				response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/octet-stream" },
+ 					body,
+@@ -10329,7 +10349,7 @@ window.__ModuleLoader__.load({
+ 			});
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			if (download) params.set("download", "1");
+-			return `/sidebar/file?${params.toString()}`;
++			return hostRouteUrl(`sidebar/file?${params.toString()}`).href;
+ 		}
+ 		//#endregion
+ 		//#region src/client/binary-download.tsx
+@@ -18872,8 +18892,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-terminals", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-terminals");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -18926,8 +18945,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-opens", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-opens");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -21445,7 +21463,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
  		}
  		//#endregion
  		//#region \0dsh-css:/home/runner/work/DSH-better-sidebar/DSH-better-sidebar/src/client/layout.css.mjs
@@ -24,6 +324,195 @@ index 6cf688cbba1345a61e6db0738638ae215ad1d2e0..a02d45653ac300cd75b601d31344af99
  		const tagId = "dsh-better-sidebar/layout.css";
  		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
  			const tag = document.createElement("style");
+diff --git a/lib/types/client/host-route-url.d.ts b/lib/types/client/host-route-url.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..93ae02cbb65d656bf3f90bc6ac4a5696f91565e0
+--- /dev/null
++++ b/lib/types/client/host-route-url.d.ts
+@@ -0,0 +1,12 @@
++/** Resolve one Host-owned client route against the injected document base.
++ * @param path - Root-style or relative Host route path.
++ * @param baseUrl - Browser document base or an explicit test base.
++ * @returns The absolute route URL.
++ */
++export declare function hostRouteUrl(path: string, baseUrl?: string): URL;
++/** Resolve one Host-owned WebSocket route against the injected document base.
++ * @param path - Root-style or relative Host WebSocket route path.
++ * @param baseUrl - Browser document base or an explicit test base.
++ * @returns The absolute ws: or wss: route URL.
++ */
++export declare function hostWebSocketUrl(path: string, baseUrl?: string): URL;
+diff --git a/src/client/Sidebar.tsx b/src/client/Sidebar.tsx
+index 97c8160b07f0c81db36eed4dbec181267d7c0ac2..f551267dbd639aa2ab38c25751e4f6a672eb6c46 100644
+--- a/src/client/Sidebar.tsx
++++ b/src/client/Sidebar.tsx
+@@ -47,6 +47,7 @@ import { layoutPushSize } from './layout-push.ts'
+ import { parseDesktopEnv } from './desktop-env.ts'
+ import { getWcoSnapshot, subscribeWco } from './wco.ts'
+ import { getShellPreset } from './shell-presets.ts'
++import { hostWebSocketUrl } from './host-route-url.ts'
+ import { computeTitleBarStrip } from './titlebar-strip.ts'
+ import type { NewTabOption } from './TabBar.tsx'
+ import { TAB_DRAG_TYPE, parseDrag, type TabDragPayload } from './TabBar.tsx'
+@@ -428,8 +429,7 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
+     let failures = 0
+     const connect = (): void => {
+       if (closed) return
+-      const url = new URL('/sidebar/ws/agent-terminals', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/agent-terminals')
+       url.search = new URLSearchParams({ sessionId }).toString()
+       socket = new WebSocket(url.toString())
+       socket.onmessage = (event) => {
+@@ -485,8 +485,7 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
+     let failures = 0
+     const connect = (): void => {
+       if (closed) return
+-      const url = new URL('/sidebar/ws/agent-opens', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/agent-opens')
+       url.search = new URLSearchParams({ sessionId }).toString()
+       socket = new WebSocket(url.toString())
+       socket.onmessage = (event) => {
+diff --git a/src/client/TerminalView.tsx b/src/client/TerminalView.tsx
+index a226fc92e60a59e7e8505947985cb55e00efe934..cf2d5c17f73be0edf9b43dc0fb9d6d48372cffd1 100644
+--- a/src/client/TerminalView.tsx
++++ b/src/client/TerminalView.tsx
+@@ -42,6 +42,7 @@ import { api, type SessionScope, type TerminalDepsStatus } from './api.ts'
+ import { agentUuidOf, isAgentTabId, type SidebarStore } from './state.ts'
+ import { isDarkScheme, subscribeColorScheme, effectiveTokenValue, tokenValue } from './theme.ts'
+ import { resolveTerminalFont } from './terminal-font.ts'
++import { hostWebSocketUrl } from './host-route-url.ts'
+ import css from './sidebar.module.css'
+ 
+ /** How many consecutive unreasoned failures before showing the error banner. */
+@@ -142,8 +143,7 @@ export function TerminalView(props: { scope: SessionScope; tabId: string; store:
+     let failures = 0
+ 
+     const wsUrl = (): string => {
+-      const url = new URL('/sidebar/ws/terminal', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/terminal')
+       // Agent terminals attach by uuid (the host looks them up in the agent
+       // pty registry); UI-tab terminals attach by sessionId+tab (the host
+       // uses the UI-tab pty manager). Same upgrade endpoint, different query.
+@@ -154,9 +154,7 @@ export function TerminalView(props: { scope: SessionScope; tabId: string; store:
+         if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+         url.search = params.toString()
+       }
+-      // Same construction the app's own downlink WebSockets use (new URL
+-      // over location.origin + protocol swap): whatever the environment
+-      // does to the app's websockets applies identically here.
++      // The injected document base keeps the socket under the same reverse-proxy prefix as the page.
+       return url.toString()
+     }
+ 
+diff --git a/src/client/TextEditor.tsx b/src/client/TextEditor.tsx
+index b9ef995bf867824fe9ed1ac250e3c4718ba3b39a..7ea5f5b08376a2347f9bdbbefe59674d8aec1311 100644
+--- a/src/client/TextEditor.tsx
++++ b/src/client/TextEditor.tsx
+@@ -250,7 +250,7 @@ export function TextEditor(props: FileViewerProps) {
+    *  `mdText` stays untouched for selection/line lookup and for mermaid-block
+    *  detection, which are unaffected by image syntax. */
+   const previewText = markdown
+-    ? rewriteLocalImageUrls(mdText, scope, path, window.location.origin)
++    ? rewriteLocalImageUrls(mdText, scope, path, document.baseURI)
+     : mdText
+   /** md/mermaid block split for the preview (mermaid fences lift out). Split
+    *  only in preview mode: edit-mode keystrokes must not re-scan the source. */
+diff --git a/src/client/api.ts b/src/client/api.ts
+index 8173cd90cb4917dbae044d286236a109c2f3ae40..19c2501427caa467c19ca65f711ee977d383d860 100644
+--- a/src/client/api.ts
++++ b/src/client/api.ts
+@@ -7,6 +7,7 @@
+  * request). Failures surface as {@link SidebarApiError} with the wire code.
+  */
+ import { encodeHtmlUrl } from '../html-route.ts'
++import { hostRouteUrl } from './host-route-url.ts'
+ import type { LastActivity } from '../subagent-activity.ts'
+ import type { SidechatThreadInfo } from '../sidechat-core.ts'
+ import type { BrowserProbeResult } from './browser.ts'
+@@ -115,7 +116,7 @@ export type TerminalDepsStatus =
+ async function call<T>(method: string, payload: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+   let response: Response
+   try {
+-    response = await fetch(`/sidebar/api/${method}`, {
++    response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+       body: JSON.stringify(payload),
+@@ -153,7 +154,7 @@ async function fetchUpload<T>(
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+   let response: Response
+   try {
+-    response = await fetch(`/sidebar/upload?${params.toString()}`, {
++    response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+       method: 'POST',
+       headers: { 'content-type': 'application/octet-stream' },
+       body,
+@@ -341,7 +342,7 @@ function fileUrl(scope: SessionScope, path: string, download: boolean): string {
+   const params = new URLSearchParams({ sessionId: scope.sessionId, path })
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+   if (download) params.set('download', '1')
+-  return `/sidebar/file?${params.toString()}`
++  return hostRouteUrl(`sidebar/file?${params.toString()}`).href
+ }
+ 
+ /**
+@@ -353,5 +354,5 @@ function fileUrl(scope: SessionScope, path: string, download: boolean): string {
+  * client-side platform signal is needed.
+  */
+ export function htmlUrl(scope: SessionScope, path: string): string {
+-  return encodeHtmlUrl(scope.sessionId, path)
++  return hostRouteUrl(encodeHtmlUrl(scope.sessionId, path)).href
+ }
+diff --git a/src/client/chunk-loader.ts b/src/client/chunk-loader.ts
+index 30f0a9afa1297470ae7ed106137f1ee2a03e6152..8d47aeaebc3c0660222908732b362c33c8670d01 100644
+--- a/src/client/chunk-loader.ts
++++ b/src/client/chunk-loader.ts
+@@ -49,6 +49,8 @@
+  * client.js); an edit that does land while a core HMR happens is caught by
+  * the ETag comparison on the next activation.
+  */
++import { hostRouteUrl } from './host-route-url.ts'
++
+ export type ChunkName = 'terminal' | 'editor' | 'mermaid'
+ 
+ /** The module exports a chunk factory provides (namespace-ish record). */
+@@ -80,7 +82,7 @@ export const CHUNK_EXTERNALS: readonly string[] = [
+ ]
+ 
+ /** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-const CHUNK_URL = (name: ChunkName): string => `/sidebar/bundle/${name}.js`
++const CHUNK_URL = (name: ChunkName): string => hostRouteUrl(`sidebar/bundle/${name}.js`).href
+ 
+ /** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+  *  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+diff --git a/src/client/host-route-url.ts b/src/client/host-route-url.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..5fa7d67520538cbf530a7382649850cc202c0ea9
+--- /dev/null
++++ b/src/client/host-route-url.ts
+@@ -0,0 +1,19 @@
++/** Resolve one Host-owned client route against the injected document base.
++ * @param path - Root-style or relative Host route path.
++ * @param baseUrl - Browser document base or an explicit test base.
++ * @returns The absolute route URL.
++ */
++export function hostRouteUrl(path: string, baseUrl: string = document.baseURI): URL {
++  return new URL(path.replace(/^\/+/, ''), baseUrl)
++}
++
++/** Resolve one Host-owned WebSocket route against the injected document base.
++ * @param path - Root-style or relative Host WebSocket route path.
++ * @param baseUrl - Browser document base or an explicit test base.
++ * @returns The absolute ws: or wss: route URL.
++ */
++export function hostWebSocketUrl(path: string, baseUrl: string = document.baseURI): URL {
++  const url = hostRouteUrl(path, baseUrl)
++  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++  return url
++}
 diff --git a/src/client/layout.css b/src/client/layout.css
 index 17075c6188972f69e141ad798425da7e37a51e24..2d378f076d6fbeca8d86438e6b249f1e6e18b046 100644
 --- a/src/client/layout.css
@@ -128,3 +617,24 @@ index 17075c6188972f69e141ad798425da7e37a51e24..2d378f076d6fbeca8d86438e6b249f1e
    #root [data-dsh-frame] > [data-pane="conversation"],
    #root :has(> [data-slot="conversation"]) {
      transition: none;
+diff --git a/src/client/markdown-images.ts b/src/client/markdown-images.ts
+index cb223c9fb87a74dcac732131811f67cf226b011d..5aab4a6fc2b09c1cc50f5978fa091d8fb4ca0551 100644
+--- a/src/client/markdown-images.ts
++++ b/src/client/markdown-images.ts
+@@ -11,6 +11,7 @@
+  */
+ 
+ import type { SessionScope } from './api.ts'
++import { hostRouteUrl } from './host-route-url.ts'
+ import { isAbsolutePath } from './paths.ts'
+ 
+ /**
+@@ -90,7 +91,7 @@ export function resolveLocalMediaDest(
+   // absolute so the shared MarkdownText http(s) allowlist accepts it.
+   const params = new URLSearchParams({ sessionId: scope.sessionId, path: normalizeLocalPath(candidate) })
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+-  return `${origin}/sidebar/file?${params.toString()}`
++  return hostRouteUrl(`sidebar/file?${params.toString()}`, origin).href
+ }
+ 
+ export function rewriteLocalImageUrls(

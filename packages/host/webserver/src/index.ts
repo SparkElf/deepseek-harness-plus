@@ -27,7 +27,7 @@ export type WebRouteKind = 'exact' | 'prefix'
 /** One named route registration. */
 export interface WebRoute {
   kind: WebRouteKind
-  /** Absolute pathname, no trailing slash. */
+  /** Absolute logical pathname, no trailing slash. */
   path: string
   /** Owns the full response lifecycle (may hold the response open, e.g. SSE). */
   handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>
@@ -35,18 +35,37 @@ export interface WebRoute {
 
 /** One exact-path HTTP upgrade registration. */
 export interface WebUpgradeRoute {
-  /** Absolute pathname, no trailing slash. */
+  /** Absolute logical pathname, no trailing slash. */
   path: string
   /** Owns protocol negotiation and the upgraded socket after dispatch. */
   handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>
 }
 
-/** Gateway config: the listen address. */
+/** Gateway config: the listen address and optional reverse-proxy mount path. */
 export interface Config {
   /** Listen host; the two supported values are loopback and all-interfaces. */
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /** External URL prefix. Empty means site root; otherwise `/segment[/segment]` without a trailing slash. */
+  basePath?: string
+}
+
+/**
+ * Validate and canonicalize the external mount prefix. Internally all route
+ * owners continue to register logical root paths such as `/api` and `/plugins`.
+ */
+export function normalizeWebBasePath(value: string | undefined): string {
+  const candidate = value?.trim() ?? ''
+  if (candidate === '' || candidate === '/') return ''
+  if (!candidate.startsWith('/') || candidate.endsWith('/') || candidate.includes('?') || candidate.includes('#')) {
+    throw new Error('webserver: basePath must be empty or an absolute path without query, fragment, or trailing slash')
+  }
+  const segments = candidate.slice(1).split('/')
+  if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
+    throw new Error('webserver: basePath must contain only non-empty path segments and no dot segments')
+  }
+  return candidate
 }
 
 /**
@@ -60,6 +79,7 @@ export class WebServer extends Service {
   static Config: z<Config> = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
     port: z.natural().max(65535).required(),
+    basePath: z.string().default(''),
   })
 
   private readonly exact = new Map<string, WebRoute>()
@@ -70,9 +90,11 @@ export class WebServer extends Service {
   private fallback: WebRoute['handler'] | undefined
   private server!: Server
   private listenedPort!: number
+  private readonly mountedBasePath: string
 
   constructor(ctx: Context, private config: Config) {
     super(ctx, 'webServer')
+    this.mountedBasePath = normalizeWebBasePath(config.basePath)
   }
 
   /** The listening port (the OS-assigned value when config.port is 0). */
@@ -85,11 +107,14 @@ export class WebServer extends Service {
     return this.config.host
   }
 
+  /** External reverse-proxy mount prefix; empty means the site root. */
+  get basePath(): string {
+    return this.mountedBasePath
+  }
+
   /**
    * Register a named route. Duplicate (kind, path) throws — route patterns are
    * a composition-level contract, so a collision is a misconfiguration.
-   * @param route - kind, path, and the owning handler.
-   * @returns the disposer removing the route.
    */
   register(route: WebRoute): () => void {
     const table = route.kind === 'exact' ? this.exact : this.prefixes
@@ -100,12 +125,7 @@ export class WebServer extends Service {
     return () => { table.delete(route.path) }
   }
 
-  /**
-   * Register an exact-path HTTP upgrade route. Duplicate paths throw because
-   * one socket can have only one protocol owner.
-   * @param route - pathname and handler owning negotiation plus socket use.
-   * @returns the disposer removing the route.
-   */
+  /** Register an exact-path HTTP upgrade route. */
   registerUpgrade(route: WebUpgradeRoute): () => void {
     if (this.upgrades.has(route.path)) {
       throw new Error(`webserver: duplicate upgrade route "${route.path}"`)
@@ -114,14 +134,7 @@ export class WebServer extends Service {
     return () => { this.upgrades.delete(route.path) }
   }
 
-  /**
-   * Claim the fallback seat: the handler answering every request no named
-   * route matches (the SPA dist server in the shipped Web composition). One
-   * owner only — a second registration throws, because two fallbacks cannot
-   * compose.
-   * @param handler - owns the full response lifecycle of unmatched requests.
-   * @returns the disposer releasing the seat.
-   */
+  /** Claim the fallback seat. */
   registerFallback(handler: WebRoute['handler']): () => void {
     if (this.fallback !== undefined) {
       throw new Error('webserver: fallback already registered')
@@ -130,12 +143,7 @@ export class WebServer extends Service {
     return () => { this.fallback = undefined }
   }
 
-  /**
-   * Register an index.html transform, applied by the fallback owner to every
-   * index response ({@link applyIndexTaps}) in registration order.
-   * @param transform - pure html-to-html function.
-   * @returns the disposer removing the transform.
-   */
+  /** Register an index.html transform. */
   tapIndex(transform: (html: string) => string): () => void {
     this.indexTaps.push(transform)
     return () => {
@@ -147,26 +155,28 @@ export class WebServer extends Service {
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init](): Promise<void> {
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-      /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
-      requests; the field is only optional on the client-side IncomingMessage type */
-      const rawPath = new URL(req.url ?? '/', 'http://x').pathname
-      const route = this.match(rawPath)
-      if (route !== undefined) {
-        await route.handler(req, res)
-        return
-      }
-      const fallback = this.fallback
-      if (fallback === undefined) {
+      const logicalUrl = this.logicalUrl(req.url ?? '/')
+      if (logicalUrl === null) {
         res.writeHead(404)
         res.end()
         return
       }
-      await fallback(req, res)
+      await this.withLogicalUrl(req, logicalUrl, async () => {
+        const rawPath = new URL(req.url ?? '/', 'http://x').pathname
+        const route = this.match(rawPath)
+        if (route !== undefined) {
+          await route.handler(req, res)
+          return
+        }
+        const fallback = this.fallback
+        if (fallback === undefined) {
+          res.writeHead(404)
+          res.end()
+          return
+        }
+        await fallback(req, res)
+      })
     }
-    // Last-resort guard: handle() rejecting would otherwise be an unhandled
-    // rejection killing the process on one malformed request (bad %-escape,
-    // client dropping mid-body). Per-request failures log and answer 400 —
-    // never a process exit.
     this.server = createServer((req, res) => {
       handle(req, res).catch((err: unknown) => {
         this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
@@ -188,10 +198,14 @@ export class WebServer extends Service {
         socket.off('error', onError)
         this.upgradedSockets.delete(socket)
       })
+      const logicalUrl = this.logicalUrl(req.url ?? '/')
+      if (logicalUrl === null) {
+        socket.destroy()
+        return
+      }
       let route: WebUpgradeRoute | undefined
       try {
-        /* v8 ignore next -- node:http always sets url on server requests. */
-        route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
+        route = this.upgrades.get(new URL(logicalUrl, 'http://x').pathname)
       } catch (error) {
         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
         socket.destroy()
@@ -203,7 +217,7 @@ export class WebServer extends Service {
       }
       this.upgradedSockets.add(socket)
       try {
-        Promise.resolve(route.handler(req, socket, head)).catch((error: unknown) => {
+        Promise.resolve(this.withLogicalUrl(req, logicalUrl, () => route.handler(req, socket, head))).catch((error: unknown) => {
           this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
           socket.destroy()
         })
@@ -223,8 +237,6 @@ export class WebServer extends Service {
       })
     })
 
-    // Node does not include upgraded sockets in closeAllConnections(). The service
-    // owns them with the other connections, so it tracks and destroys them explicitly.
     this.ctx.effect(() => async () => {
       const serverClosed = new Promise<void>((resolve) => {
         this.server.close(() => { resolve() })
@@ -236,6 +248,27 @@ export class WebServer extends Service {
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
     }, 'webServer.listen')
+  }
+
+  /** Strip the externally visible mount prefix while retaining query text. */
+  private logicalUrl(rawUrl: string): string | null {
+    const parsed = new URL(rawUrl, 'http://x')
+    const basePath = this.mountedBasePath
+    if (basePath === '') return `${parsed.pathname}${parsed.search}`
+    if (parsed.pathname === basePath) return `/${parsed.search}`
+    if (!parsed.pathname.startsWith(`${basePath}/`)) return null
+    return `${parsed.pathname.slice(basePath.length)}${parsed.search}`
+  }
+
+  /** Present one logical URL to existing route owners without leaking the external prefix. */
+  private async withLogicalUrl<T>(req: IncomingMessage, logicalUrl: string, run: () => T | Promise<T>): Promise<T> {
+    const original = req.url
+    req.url = logicalUrl
+    try {
+      return await run()
+    } finally {
+      req.url = original
+    }
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */
@@ -250,12 +283,7 @@ export class WebServer extends Service {
     return best
   }
 
-  /**
-   * Run an index.html body through the registered taps in registration order
-   * — called by the fallback owner on every index response it renders.
-   * @param html - the raw index.html body.
-   * @returns the transformed body.
-   */
+  /** Run an index.html body through registered taps. */
   applyIndexTaps(html: string): string {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)

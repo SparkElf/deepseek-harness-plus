@@ -1,14 +1,8 @@
 /**
  * @deepseek-ai/dsh-host-frontend-static — SPA dist server over the webserver
- * fallback seat: serves the built frontend directory with the semantics the
- * Web shell locked at step1 — traversal outside the dist root is 403, any
- * miss falls back to index.html with HTTP 200 (SPA routing), unknown
- * extensions ship as octet-stream, non-GET/HEAD is 405. Every index response
- * runs through the webserver's registered index taps (boot-manifest
- * injection). The dist location is workspace knowledge of the composing
- * application, so `distIndex` is typically supplied through a `!!js`
- * expression, never hardcoded by a deployment.
- * @module @deepseek-ai/dsh-host-frontend-static
+ * fallback seat. The webserver presents logical root-relative request paths,
+ * while this package injects the external mount path as the document base so
+ * browser-relative assets stay beneath a reverse proxy prefix.
  */
 
 import type { ServerResponse } from 'node:http'
@@ -18,15 +12,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 
-/** Stable Cordis plugin name. */
 export const name = 'frontend-static'
-
-/** Service required before the fallback seat can be claimed. */
 export const inject = ['webServer']
 
-/** Plugin config: the dist anchor. */
 export interface Config {
-  /** Absolute path of index.html inside the dist root. */
   distIndex: string
 }
 
@@ -44,23 +33,24 @@ const MIME: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 }
 
-/**
- * Serve one GET/HEAD static request from the dist root.
- * @param pathname - decoded URL pathname of the request.
- * @param res - the node:http response to write.
- * @param distRoot - absolute dist root directory (resolved by the caller).
- * @param distIndex - absolute path of index.html inside distRoot.
- * @param renderIndex - produces the index.html body (index-tap injection) for
- * `/` and every SPA fallback.
- */
+/** Inject one canonical document base before runtime boot scripts execute. */
+export function injectDocumentBase(html: string, basePath: string): string {
+  const href = `${basePath}/`
+  const tag = `<base href="${href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">`
+  const head = html.indexOf('<head>')
+  return head === -1 ? `${tag}${html}` : `${html.slice(0, head + 6)}${tag}${html.slice(head + 6)}`
+}
+
+/** Parser-blocking plugin preloads are injected as root URLs by the Host graph and become document-relative here. */
+export function relativizePluginPreloads(html: string): string {
+  return html.replaceAll('src="/plugins/', 'src="plugins/')
+}
+
 export async function serveStatic(
   pathname: string, res: ServerResponse, distRoot: string, distIndex: string,
   renderIndex: () => Promise<string>,
 ): Promise<void> {
   const target = resolve(normalize(join(distRoot, pathname)))
-  // Traversal rejection: the target must be distRoot itself (`/`) or stay under
-  // it. `sep`, not '/': resolve() emits backslash paths on Windows, where a '/'
-  // suffix would reject every legitimate subpath as traversal.
   if (target !== distRoot && !target.startsWith(distRoot + sep)) {
     res.writeHead(403)
     res.end()
@@ -80,30 +70,26 @@ export async function serveStatic(
     res.writeHead(200, { 'content-type': MIME[extname(target)] ?? 'application/octet-stream' })
     res.end(body)
   } catch {
-    // Miss (ENOENT/EISDIR) falls back to index.html with 200 (SPA routing).
     await serveIndex()
   }
 }
 
-/**
- * Claim the webserver fallback seat and serve the dist.
- * @param ctx - plugin context carrying the webServer service.
- * @param config - validated {@link Config}.
- */
 export function apply(ctx: Context, config: Config): void {
   const distIndex = config.distIndex
   const distRoot = dirname(distIndex)
-  const renderIndex = async (): Promise<string> =>
-    ctx.webServer.applyIndexTaps(await readFile(distIndex, 'utf8'))
+  const renderIndex = async (): Promise<string> => {
+    const source = await readFile(distIndex, 'utf8')
+    const tapped = ctx.webServer.applyIndexTaps(source)
+    // Injecting after taps places <base> before any parser-blocking scripts that
+    // those taps inserted at the beginning of <head>.
+    return relativizePluginPreloads(injectDocumentBase(tapped, ctx.webServer.basePath))
+  }
   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
-    // Non-GET/HEAD without a matching named route is 405 (fallback-only
-    // semantics: named routes own their method handling).
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       res.writeHead(405)
       res.end()
       return
     }
-    /* v8 ignore next -- node:http always sets url on server requests */
     const rawPath = new URL(req.url ?? '/', 'http://x').pathname
     await serveStatic(decodeURIComponent(rawPath), res, distRoot, distIndex, renderIndex)
   }), 'frontend-static: fallback seat')
