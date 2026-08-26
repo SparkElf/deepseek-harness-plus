@@ -328,7 +328,7 @@ describe('image draft rail', () => {
     expect(model.view.getByRole('alert').textContent).toContain('当前模型不支持图片，请切换支持图片的模型')
     cleanup()
     const unknown = bench({ promptError: attachmentError('ATTACHMENT_NOT_REFERENCED') })
-    expect(unknown.view.getByRole('alert').textContent).toContain('图片发送失败（ATTACHMENT_NOT_REFERENCED）')
+    expect(unknown.view.getByRole('alert').textContent).toContain('附件发送失败（ATTACHMENT_NOT_REFERENCED）')
     cleanup()
     const other = bench({
       promptError: { op: 'send', error: { code: 'internal', message: 'boom', details: {} } },
@@ -373,7 +373,7 @@ describe('image draft rail', () => {
       const paste = () => {
         fireEvent.paste(textarea, {
           clipboardData: {
-            items: [{ kind: 'file', type: 'text/plain', getAsFile: () => new File(['x'], 'note.txt', { type: 'text/plain' }) }],
+            items: [{ kind: 'file', type: 'image/bmp', getAsFile: () => new File(['x'], 'image.bmp', { type: 'image/bmp' }) }],
             getData: () => '',
           },
         })

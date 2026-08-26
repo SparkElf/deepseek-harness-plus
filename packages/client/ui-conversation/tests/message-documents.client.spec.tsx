@@ -43,7 +43,7 @@ describe('message document cards', () => {
     expect(view.getByRole('group', { name: '文档' })).toBeTruthy()
     expect(view.getByText('PDF')).toBeTruthy()
     expect(view.getByText('report.pdf')).toBeTruthy()
-    expect(view.getByText('2 KB')).toBeTruthy()
+    expect(view.getByText('2.0 KB')).toBeTruthy()
     expect(view.queryByText('附加内容块')).toBeNull()
     expect(view.container.querySelector('[data-message-document]')).toBeTruthy()
   })

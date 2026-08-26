@@ -297,7 +297,7 @@ describe('scenario: images ride an accepting command through the real pipeline',
     act(() => { b.shell.setDraft('/vision read this document') })
     fireEvent.keyDown(b.textarea, { key: 'Enter' })
 
-    await vi.waitFor(() => { expect(b.shell.snapshot.phase).toBe('plain') })
+    await vi.waitFor(() => { expect(b.shell.snapshot.phase).toBe('claimed') })
     expect(b.envelopes).toEqual([{ images: 0 }])
     expect(b.execute).not.toHaveBeenCalled()
     expect(b.serialize).not.toHaveBeenCalled()

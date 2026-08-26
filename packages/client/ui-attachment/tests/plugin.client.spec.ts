@@ -36,8 +36,7 @@ describe('attachment plugin', () => {
       component: ComposerAttachments,
     }])
     expect(ctx.slots.entries('conversation.input.left')).toMatchObject([{
-      id: 'attachment-picker',
-      order: 10,
+      options: { id: 'attachment-picker', order: 10 },
       locale: 'conversation',
       component: AttachmentPicker,
     }])
