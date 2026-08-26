@@ -1,0 +1,102 @@
+name: Curated plugin upstream drift
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: curated-plugin-upstream-drift
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Compare curated pins with upstream
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Check curated plugin versions
+        id: drift
+        shell: bash
+        run: |
+          set +e
+          node scripts/check-curated-plugins.mjs --fail-on-drift > "$RUNNER_TEMP/curated-plugin-drift.txt" 2>&1
+          status=$?
+          set -e
+          cat "$RUNNER_TEMP/curated-plugin-drift.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+      - name: Reconcile upstream drift issue
+        uses: actions/github-script@v7
+        env:
+          REPORT_PATH: ${{ runner.temp }}/curated-plugin-drift.txt
+          CHECK_STATUS: ${{ steps.drift.outputs.status }}
+        with:
+          script: |
+            const fs = require('node:fs')
+            const title = '[automation] Curated plugin upstream drift'
+            const marker = '<!-- curated-plugin-upstream-drift -->'
+            const report = fs.readFileSync(process.env.REPORT_PATH, 'utf8').trim()
+            const status = Number(process.env.CHECK_STATUS)
+            const { data: trackedIssues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              sort: 'updated',
+              direction: 'desc',
+              per_page: 100,
+            })
+            const issue = trackedIssues.find(item => item.title === title && item.pull_request === undefined)
+            if (status === 0) {
+              if (issue?.state === 'open') {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  body: marker + '\nAll curated plugin pins match their upstream sources.',
+                })
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  state: 'closed',
+                })
+              }
+              return
+            }
+            const body = [
+              marker,
+              'The scheduled curated-plugin check found an upstream version drift or could not complete a lookup.',
+              '',
+              'Review the upstream release, run the relevant Plus checks, then update the curated pin and lockfile in a normal pull request.',
+              '',
+              '```text',
+              report,
+              '```',
+            ].join('\n')
+            if (issue === undefined) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+              })
+            } else {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body,
+                state: 'open',
+              })
+            }
+      - name: Fail on drift or lookup failure
+        if: steps.drift.outputs.status != '0'
+        shell: bash
+        run: exit ${{ steps.drift.outputs.status }}

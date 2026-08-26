@@ -30,7 +30,23 @@
   transform: rotate(180deg);
 }
 
+@media (max-width: 800px) {
+  .compactLabel {
+    display: inline-flex;
+  }
+
+  .count {
+    display: none;
+  }
+
+}
+
 .triggerDot {
+  flex: none;
+}
+
+.compactLabel {
+  display: none;
   flex: none;
 }
 
@@ -47,12 +63,13 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  width: 336px;
-  max-width: min(400px, calc(100vw - 32px));
+  width: min(336px, 92cqw);
+  max-width: 92cqw;
   max-height: min(420px, calc(100vh - 140px));
   margin: 0;
   padding: 4px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   list-style: none;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 12px;
@@ -60,6 +77,13 @@
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   box-shadow: var(--dsw-shadow-lv3);
+}
+
+@media (max-width: 800px) {
+  .menu {
+    right: 0;
+    left: auto;
+  }
 }
 
 .row {

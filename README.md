@@ -59,8 +59,9 @@ pnpm dsh web
 | 能力 | 状态 |
 | --- | --- |
 | 桌面安装引导与 tray 管理的本地 runtime（含无控制台启动、备份恢复、开机自启、端口接管） | Linux/Windows 0.5.0 安装包已在 [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.5.0) 发布；macOS 延后到配置好签名和 notarization 后再恢复 |
-| 外部插件维护（策展清单、漂移检查、并行补丁政策）与自有插件仓 dsh-plugins-plus | 已落地；首个策展插件 better-sidebar 已收录 |
-| better-sidebar 侧边栏默认集成 | 0.4.0 起 web profile 模板默认挂载，存量安装自动规范化 |
+| 外部插件维护（策展清单、定时漂移 Issue、并行补丁政策）与自有插件仓 dsh-plugins-plus | 已落地；默认策展插件使用精确 pin 并由 CI 检查上游发布 |
+| better-sidebar 侧边栏默认集成 | web profile 模板默认挂载，安装包维护的历史组合自动规范化 |
+| dsh-market 插件市场默认集成 | web profile 模板默认挂载 `dshmarket@1.29.2`，提供插件搜索、安装、更新、启停和卸载 |
 | 泛用智能取数工具与中台协议 | 方案已记录（proposed Agent Note），待开发 |
 | 代码开发预设 | 暂未实现 |
 | 智能问数预设 | 暂未实现 |
@@ -126,8 +127,9 @@ Installable packages link to a release; source-only changes are labeled explicit
 | Capability | Status |
 | --- | --- |
 | Desktop setup wizard and tray-managed local runtime (console-free launch, backup/restore, launch-at-startup, port takeover) | Linux/Windows 0.5.0 packages on [Releases](https://github.com/SparkElf/deepseek-harness-plus/releases/tag/plus-v0.5.0); macOS deferred pending signing and notarization |
-| External plugin maintenance (curation manifest, drift checker, parallel patch policy) and the dsh-plugins-plus repo | Shipped; first curated plugin better-sidebar recorded |
-| better-sidebar default integration | 0.4.0 web profile template mounts it by default; stock installs normalize automatically |
+| External plugin maintenance (curation manifest, scheduled drift Issue, parallel patch policy) and the dsh-plugins-plus repo | Shipped; exact default-plugin pins are checked against upstream releases by CI |
+| better-sidebar default integration | The web profile template mounts it by default; installation-owned historical compositions normalize automatically |
+| dsh-market default integration | The web profile template mounts `dshmarket@1.29.2` for plugin search, install, update, enable, disable, and removal |
 | Generic intelligent data-query tool and middle-platform protocol | Design recorded (proposed Agent Note), implementation pending |
 | Code development preset | Not implemented |
 | Intelligent data Q&A preset | Not implemented |

@@ -65,6 +65,18 @@ Use GitHub Markdown as a teaching surface:
 - Include an image only when it lets a reader inspect a real user-facing state, such as an installer step or a visual change. Give it descriptive alt text. Do not use decorative images as evidence.
 - A screenshot supports explanation; it never replaces a functional result or verification command.
 
+## Publish and verify Markdown
+
+Write every multiline PR body to a UTF-8 Markdown file and pass it with `gh pr create --body-file` or `gh pr edit --body-file`. Never encode intended line breaks as literal `\n` sequences in an inline shell or JSON string.
+
+After every create or body update, read the authoritative body back from GitHub:
+
+```sh
+gh pr view <number> --repo <owner/repo> --json url,body --jq '.url, .body'
+```
+
+Fail the authoring step if intended line breaks appear as literal `\n`. Open the returned URL and inspect headings, lists, tables, links, and images in GitHub's rendered view when the body uses them. A successful `gh` exit code proves only that GitHub accepted bytes, not that the Markdown renders correctly.
+
 ## Evidence map
 
 For every material claim, give the smallest useful proof:
@@ -124,7 +136,7 @@ Creating a PR, passing checks, or holding a repository bypass does not authorize
 - A new contributor can summarize the PR after reading only the first two sections.
 - Existing user-selected PRs contain every completed local change they own; no stale remote head was replaced merely because an aggregate branch was newer.
 - Every release or availability claim matches the current repository state.
-- Each required template heading is present and populated.
+- Each required template heading is present and populated in the body read back from GitHub; intended line breaks render as structure rather than literal escape text.
 - Evidence links are readable without searching the repository.
 - Deferred work is visible and not buried in a log block.
 - The PR contains no secret, hidden prompt, personal workspace path, or internal reasoning transcript.

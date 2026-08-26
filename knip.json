@@ -20,6 +20,7 @@
   ],
   "ignoreDependencies": [
     "@yarnpkg/cli-dist",
+    "dshmarket",
     "lightningcss"
   ],
   "workspaces": {
@@ -827,7 +828,8 @@
         "@deepseek-ai/.+",
         "@sparkelf/dsh-client-ui-settings-backup",
         "@sparkelf/dsh-mobile-bridge",
-        "dsh-better-sidebar"
+        "dsh-better-sidebar",
+        "dshmarket"
       ]
     }
   }

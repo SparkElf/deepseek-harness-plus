@@ -5,21 +5,28 @@
 #     pinned: <exact version or sha>   # the version/SHA Plus integrates and tests
 #     interest: <one line why we track it>
 #     owner: <maintainer handle>
-#     localPatches: []       # list of {file, upstreamUrl, retireWhen}; parallel-patch policy
+#     localPatches: []       # list of {file, upstreamUrl, retireWhen}; upstreamUrl is the implementation PR
 #     plusBundle: false      # whether the Plus profile bundle mounts it by default
-# Policy: .agents/notes/proposed/architecture/2026-08-19-external-plugin-maintenance.md
+# Policy: .agents/notes/implemented/process/2026-08-19-external-plugin-maintenance.md
 entries:
   - name: dsh-better-sidebar
     source: { kind: npm, spec: dsh-better-sidebar }
-    pinned: 0.14.0
+    pinned: 0.16.1
     interest: VSCode-like right sidebar (explorer/editor/terminal/git) with a registration service for third-party tabs
     owner: omdsh-dev
-    localPatches: [{ file: patches/dsh-better-sidebar@0.14.0.patch, upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/254, retireWhen: remove after an npm release at or above 0.14.1 includes PR 254 }]
+    localPatches: [{ file: patches/dsh-better-sidebar@0.16.1.patch, upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }]
     plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
     source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
-    pinned: 0.2.2
+    pinned: 0.2.8
     interest: End-to-end encrypted mobile access with a Host tunnel, first-class Settings section, and separately deployed blind relay
     owner: SparkElf
+    localPatches: [{ file: patches/@sparkelf__dsh-mobile-bridge@0.2.8.patch, upstreamUrl: https://github.com/SparkElf/dsh-plugins-plus/pull/30, retireWhen: A released @sparkelf/dsh-mobile-bridge version includes equivalent serialized autosave and action-ordering behavior }]
+    plusBundle: true
+  - name: dshmarket
+    source: { kind: npm, spec: dshmarket }
+    pinned: 1.29.2
+    interest: Searchable Web marketplace for installing, updating, disabling, and removing community dsh plugins
+    owner: dsh-market
     localPatches: []
     plusBundle: true

@@ -59,6 +59,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`commander`](https://github.com/tj/commander.js) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
+| [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |
 | [`e2b`](https://github.com/e2b-dev/e2b) | MIT |
 | [`eventsource-parser`](https://github.com/rexxars/eventsource-parser) | MIT |
 | [`fflate`](https://github.com/101arrowz/fflate) | MIT |
@@ -99,7 +100,8 @@ External packages that a workspace package resolves at runtime. The tier covers 
 
 pnpm applies local patches to the following packages at install time, so shipped artifacts carry modified copies; each patch file is the complete record of the modification:
 
-- `dsh-better-sidebar@0.14.0` — [`patches/dsh-better-sidebar@0.14.0.patch`](patches/dsh-better-sidebar@0.14.0.patch)
+- `@sparkelf/dsh-mobile-bridge@0.2.8` — [`patches/@sparkelf__dsh-mobile-bridge@0.2.8.patch`](patches/@sparkelf__dsh-mobile-bridge@0.2.8.patch)
+- `dsh-better-sidebar@0.16.1` — [`patches/dsh-better-sidebar@0.16.1.patch`](patches/dsh-better-sidebar@0.16.1.patch)
 - `node-pty@1.1.0` — [`patches/node-pty@1.1.0.patch`](patches/node-pty@1.1.0.patch)
 - `node-pty@1.2.0-beta.15` — [`patches/node-pty@1.2.0-beta.15.patch`](patches/node-pty@1.2.0-beta.15.patch)
 
