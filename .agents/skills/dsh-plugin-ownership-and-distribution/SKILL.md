@@ -1,6 +1,6 @@
 ---
 name: dsh-plugin-ownership-and-distribution
-description: Use before adding, moving, publishing, curating, or default-mounting a DSH capability to decide plugin ownership, npm distribution, repository placement, and profile composition independently.
+description: Use before adding, moving, publishing, curating, or default-mounting a DSH capability to decide plugin ownership, distribution, placement, composition, and whether an integration-triggered core proposal needs explicit user approval.
 ---
 
 # DSH Plugin Ownership And Distribution
@@ -34,7 +34,13 @@ An external plugin is admissible only when all of these are true:
 4. Supported Harness versions are expressible through package metadata and documented public contracts.
 5. A named maintainer owns releases, compatibility, security fixes, and retirement.
 
-When a gate fails, fix the extension point or keep the capability first-party. Do not hide the failure behind a thin package or compatibility path. Registry scope is part of ownership: missing publish authority is a release blocker, never a reason to change scope, publish a fork under the owner's name, or widen sibling version ranges.
+When a gate fails, a generic extension-point proposal may be appropriate, but the integration does not authorize that core work. Do not hide the failure behind a thin package or compatibility path. Registry scope is part of ownership: missing publish authority is a release blocker, never a reason to change scope, publish a fork under the owner's name, or widen sibling version ranges.
+
+## Core-Change Approval Gate
+
+Stop before editing Harness core source when an integration cannot use published extension points. Report the exact missing capability, proposed core packages and public API, why the plugin or profile cannot own the behavior, at least one generic consumer independent of the integration, native and default-profile impact, alternatives, and verification in both native and integrated modes. Obtain explicit user approval for that exact scope before implementation; one approval does not cover adjacent core changes discovered later.
+
+An approved core API remains independent of the initiating integration. Product identity, endpoints, credentials, integration UI, and deployment configuration stay in the plugin or profile overlay. Native behavior and default composition remain unchanged unless the approval explicitly includes them.
 
 ## Submit External Changes Upstream
 

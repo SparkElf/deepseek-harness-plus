@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-08-20-plugin-ownership-and-distribution.md
-2026-08-20-plugin-ownership-and-distribution.md: 1a07a3bc835f60d29769a77a4754eb65152fa1bf
-2026-08-20-plugin-ownership-and-distribution.zh.md: 560b13d9a4d41e239eb30aa161a8193f441ff95e
+2026-08-20-plugin-ownership-and-distribution.md: 5d4e87dea0fb450d4d6dcdb55d07b9e3b4fa3b30
+2026-08-20-plugin-ownership-and-distribution.zh.md: bca05cd0c09dcecfde2b72b0102f8f6f5c2c1a7c

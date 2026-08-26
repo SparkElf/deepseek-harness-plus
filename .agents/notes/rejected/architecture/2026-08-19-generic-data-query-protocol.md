@@ -1,6 +1,6 @@
 # Agent Note: Generic Intelligent Data-Query Tool and Middle-Platform Protocol
 
-Status: proposed
+Status: rejected — replaced by the MCP A/B query architecture
 
 English | [中文](2026-08-19-generic-data-query-protocol.zh.md)
 
@@ -24,6 +24,8 @@ The dataops AI agent catalog (`ai-agent-tool-catalog.ts`) exposes exactly these 
 The two governance tools (`govern_metadata`, `glossary_resource_binding`) are write-path, skill-gated, and preview/confirm flows; they are deliberately outside the read-only `dq/v1` protocol and deferred to an optional governance facet.
 
 ## Proposal
+
+This proposal is replaced by the [MCP Data Query Integration and A/B Query Designs](../../proposed/architecture/2026-08-23-mcp-data-query-architecture.md).
 
 Split the capability into three layers: a harness-side generic tool set, a wire protocol any middle platform implements, and a thin dataops adapter that implements the protocol over the existing services.
 
