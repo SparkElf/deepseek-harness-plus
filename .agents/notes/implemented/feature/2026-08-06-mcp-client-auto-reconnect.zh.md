@@ -14,7 +14,7 @@ Status: implemented
 
 **触发条件。** 监督器在每一代上挂载 `client.onclose`。SDK 在 stdio 子进程退出时触发该回调，因此崩溃无需轮询即可感知。`StreamableHTTPClientTransport` 仅在主动关闭时触发 `onclose`——它内部拥有自己的 SSE（Server-Sent Events）流恢复机制，并将请求失败以逐调用方式暴露——因此 HTTP 服务器实际上不在监督器的重启范围内；包 README 记录了该限制。
 
-**代隔离，无交错。** 每次尝试构建一个全新的 transport 和 `Client`（SDK 将一个 Protocol 绑定到一个 transport 上终身使用）。每个监督器内部有一个队列将所有 `syncTools` 调用串行化——跨所有代的初始同步和 `list_changed` 再同步——`isCurrent` 栅栏使过时的代变为惰性，从而确保不会有两次同步交错执行 dispose 上一代/注册下一代的切换（否则会对同一代执行两次 dispose 并泄漏另一代）。该队列还消除了一个先前存在的竞态：两次快速的 `list_changed` 通知同时触发重新同步。严格启动注册由激活尝试本身显式拥有，而非由首个入队者拥有；提前到达的 `list_changed` 采用故障隔离的再同步语义，不能消费 `failOnStartupError`。失败信号按代幂等：一次连接拒绝与其自身 transport 关闭竞态时，仅调度恰好一次重试。失败尝试只有在 `Client.close()` 结算且 transport 报告 `onclose` 后才能进入退避；对 stdio 而言，`onclose` 证明子进程已退出；若关闭信号始终未到，则在 SDK 的有界终止窗口结束后停止重连，而不是允许两个服务器进程重叠运行。dispose 使用同一个有界关闭信号屏障；若关停未完成则予以报告，且绝不重启。
+**代隔离，无交错。** 每次尝试构建一个全新的transport和`Client`（SDK将一个Protocol绑定到一个transport上终身使用）。每个监督器内部有一个队列将所有`syncTools`调用串行化——跨所有代的初始同步和`list_changed`再同步——`isCurrent`栅栏使过时的代变为惰性，从而确保不会有两次同步交错执行dispose上一代/注册下一代的切换（否则会对同一代执行两次dispose并泄漏另一代）。该队列还消除了一个先前存在的竞态：两次快速的`list_changed`通知同时触发重新同步。严格启动注册由激活尝试本身显式拥有，而非由首个入队者拥有；提前到达的`list_changed`采用故障隔离的再同步语义，不能消费`failOnStartupError`。失败信号按代幂等：一次连接拒绝与其自身transport关闭竞态时，仅调度恰好一次重试。失败尝试会发起`Client.close()`，并等待transport报告`onclose`后才进入退避；对stdio而言，`onclose`证明子进程已退出。SDK close Promise可能在该信号后仍pending，因此不作为第二项quiescence条件。关闭信号始终未到时，五秒终止窗口会停止重连，避免两个服务器进程重叠。dispose使用同一个有界关闭信号屏障；若关停未完成则予以报告，且绝不重启。
 
 **有界退避与故障预算。** 延迟从 `initialDelayMs` 起逐次翻倍，上限为 `maxDelayMs`。一次故障期间共享 `maxAttempts` 次连续失败尝试的预算；耗尽后注销该服务器的工具、以 error 级别记录日志并停止，直到 dispose 或重新加载。连接在存活超过稳定窗口——即 `maxDelayMs`，作为最长退避间隔从配置推导得出而非作为第五个独立调参项——之后重置预算；因此偶尔崩溃的服务器可无限恢复，而连接短暂成功后立即再次崩溃的循环无法将其预算洗白为重启风暴。
 
@@ -22,7 +22,7 @@ Status: implemented
 
 **可观测状态。** 初始尝试或重试尝试失败时记录 `connection failed`，已建立的代结束时记录 `connection lost`；重试的 warn 日志包含尝试次数和延迟，恢复以 info 级别记录，最终失败和禁用重连时的断连以 error 级别记录。故障期间，上一个正常代保持注册，对其工具的调用返回失败——确定性公开名称意味着恢复后未变化的工具列表会复现相同的定义，保持模型可见 schema 前缀稳定而非反复抖动。设置 `reconnect.enabled: false` 后，断连保持 v1 的手动恢复行为。
 
-**资源释放。** dispose 翻转栅栏、取消待执行的定时器、关闭当前 client，然后等待正在进行的尝试和同步队列完成后再注销工具——完全停稳，而非仅发出停止请求。重连定时器使用 unref，因此等待中的退避不会阻止进程正常退出。
+**资源释放。** dispose翻转栅栏、取消待执行的定时器、请求关闭当前client，并等待transport `onclose`信号，最长五秒；然后等待正在进行的尝试和同步队列完成后再注销工具。完全停稳由transport信号和owned queue证明，不依赖SDK close Promise结算。重连定时器使用unref，因此等待中的退避不会阻止进程正常退出。
 
 ## 曾考虑的替代方案
 
