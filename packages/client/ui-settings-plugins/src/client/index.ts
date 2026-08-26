@@ -24,8 +24,8 @@ import { AgentLoopCard } from './AgentLoopCard.tsx'
 import { BashCard } from './BashCard.tsx'
 import { ConfigurablePluginsTab } from './ConfigurablePluginsTab.tsx'
 import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
-import { SubagentCard } from './SubagentCard.tsx'
-import type { SubagentCardInjected } from './SubagentCard.tsx'
+import { SubagentSettingsSection } from './SubagentCard.tsx'
+import type { SubagentSettingsSectionInjected } from './SubagentCard.tsx'
 import type { PluginsSettingsSectionInjected, PluginsSettingsTabEntry } from './PluginsSettingsSection.tsx'
 import { WebSearchCard } from './WebSearchCard.tsx'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.ts'
@@ -33,7 +33,7 @@ import { SHELL_NS, BashCardController } from './bash-card-controller.ts'
 import { ConfigurablePluginsTabController } from './tab-store.ts'
 import { WEB_SEARCH_NS, WebSearchCardController } from './web-search-card-controller.ts'
 import { SubagentSettingsStore } from './subagent-store.ts'
-import type { SubagentSettingsNamespace, SubagentSettingsValue } from './subagent-store.ts'
+import type { SubagentSettingsValue } from './subagent-store.ts'
 import { en, zh } from './locales.ts'
 
 export type { PluginsSettingsSectionInjected, PluginsSettingsSectionProps } from './PluginsSettingsSection.tsx'
@@ -56,7 +56,7 @@ const NS = 'settings.plugins'
 export const inject = ['slots', 'locale', 'connection', 'remote', 'settingsScope']
 
 /**
- * Mount the plugin configuration section and the cards this package ships.
+ * Mount plugin configuration and the dedicated subagent settings section.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: ClientContext): void {
@@ -72,8 +72,7 @@ export function apply(ctx: ClientContext): void {
     'subagent-fork': ctx.settingsScope.bind<SubagentSettingsValue>({ namespace: 'subagent-fork' }),
   }, api)
 
-  const subagentInjected = (namespace: SubagentSettingsNamespace): SubagentCardInjected => ({
-    namespace,
+  const subagentInjected = (): SubagentSettingsSectionInjected => ({
     hooks: { subagentSettings: subagent.store },
     ensure: () => { subagent.ensure() },
     stage: (entry, value) => { subagent.stage(entry, value) },
@@ -146,12 +145,21 @@ export function apply(ctx: ClientContext): void {
     },
   })
 
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'subagents',
+    order: 15,
+    label: () => t('subagentNav'),
+    locale: NS,
+    inject: subagentInjected,
+  }, SubagentSettingsSection))
+
   // This package owns the one Plugins navigation entry and the tab chrome;
   // feature plugins contribute pages without competing for Settings nav rows.
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'plugins',
-    order: 15,
+    order: 16,
     label: () => t('nav'),
     locale: NS,
     inject: sectionInjected,
@@ -189,13 +197,5 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => webSearch.inject(),
     }, WebSearchCard)
-    for (const namespace of ['subagent', 'subagent-fork'] as const) {
-      yield ctx.slots.register({
-        name: 'settings.plugin.item',
-        key: namespace,
-        locale: NS,
-        inject: () => subagentInjected(namespace),
-      }, SubagentCard)
-    }
   })
 }

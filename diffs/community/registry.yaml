@@ -66,7 +66,7 @@ records:
         baseline: 64bdc3a
       - name: SparkElf/dsh-plugins-plus
         url: https://github.com/SparkElf/dsh-plugins-plus
-        baseline: 60aea82
+        baseline: d12c474
     files:
       - packages/boot/app-boot/src/profile.ts
       - packages/boot/app-boot/tests/profile.spec.ts
@@ -79,7 +79,7 @@ records:
       - .agents/plugins/curated.yaml
       - presets/compositions/registry.yaml
     plugins:
-      - '@sparkelf/dsh-mobile-bridge@0.2.7'
+      - '@sparkelf/dsh-mobile-bridge@0.2.8'
     compatibility: Plus pins the external npm artifact and mounts it after the first-party Web bundle; a higher profile patch can disable the row without leaving a Host-owned Client wrapper.
     owner: plus-community
     verification:

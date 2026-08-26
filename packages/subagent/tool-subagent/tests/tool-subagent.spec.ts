@@ -681,7 +681,7 @@ describe('dsh-tool-subagent', () => {
     await callSubagent(ctx, { description: 'd', prompt: 'p' })
     expect(seen?.persona).toBe('You are the child.')
     expect(seen?.toolFilter).toMatchObject({ deny: ['subagent'] })
-    expect(seen?.maxDepth).toBe(2)
+    expect(seen?.maxDepth).toBe(3)
   })
 
   it.each([
@@ -1318,18 +1318,18 @@ describe('depth budget configuration', () => {
     return { ctx, requests }
   }
 
-  it('defaults maxDepth to 3 and forwards it in the start request', async () => {
+  it('defaults nesting to 0 and forwards an absolute child-depth cap of 1', async () => {
     const { ctx, requests } = await captureSetup()
     await callSubagent(ctx, { description: 'd', prompt: 'p' })
     expect(requests[0]?.label).toBe('d')
-    expect(requests[0]?.maxDepth).toBe(3)
+    expect(requests[0]?.maxDepth).toBe(1)
     expect(requests[0]?.toolFilter).toBeUndefined()
   })
 
   it('forwards an explicit tool filter unchanged instead of encoding the depth policy into it', async () => {
     const { ctx, requests } = await captureSetup({ toolFilter: { deny: ['dangerous'] }, maxDepth: 0 })
     await callSubagent(ctx, { description: 'd', prompt: 'p' })
-    expect(requests[0]?.maxDepth).toBe(0)
+    expect(requests[0]?.maxDepth).toBe(1)
     expect(requests[0]?.toolFilter).toEqual({ deny: ['dangerous'] })
   })
 
@@ -1380,11 +1380,13 @@ describe('live settings defaults', () => {
     expect(tool.settingsFromConfig({ agentOptions: { provider: 'child-provider' } }))
       .toEqual({ agentOptions: { provider: 'child-provider' } })
     expect(tool.settingsFromConfig({
+      enabled: true,
       agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
       persona: 'reviewer',
       toolFilter: { allow: ['read'] },
       maxDepth: 2,
     })).toEqual({
+      enabled: true,
       agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
       persona: 'reviewer',
       toolFilter: { allow: ['read'] },
@@ -1405,6 +1407,7 @@ describe('live settings defaults', () => {
       { provider: 'mock', settingsNamespace: 'subagent' },
       { onStart: (request) => { seen = request } },
       {
+        enabled: true,
         agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
         persona: 'reviewer',
         toolFilter: { deny: ['write'] },
@@ -1417,7 +1420,7 @@ describe('live settings defaults', () => {
       agentOptions: { provider: 'child-provider', model: 'child-model', maxTokens: 4096 },
       persona: 'reviewer',
       toolFilter: { deny: ['write'] },
-      maxDepth: 2,
+      maxDepth: 3,
     })
   })
 

@@ -56,6 +56,7 @@ import * as ToolSchedule from '@deepseek-ai/dsh-schedule'
 import Lsp from '@deepseek-ai/dsh-lsp'
 import * as ToolLsp from '@deepseek-ai/dsh-tool-lsp'
 import * as ToolSkill from '@deepseek-ai/dsh-tool-skill'
+import * as ToolChart from '@deepseek-ai/dsh-tool-chart'
 import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
 import * as ToolTasks from '@deepseek-ai/dsh-tool-jobs'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
@@ -437,6 +438,17 @@ const TOOL_PACKAGES: ToolPackage[] = [
       })
       await ctx.plugin(ToolSkill)
     },
+  },
+  {
+    pkg: '@deepseek-ai/dsh-tool-chart',
+    dir: 'tool-chart',
+    source: 'packages/chart/tool-chart/src/index.ts',
+    requires: ['ctx.tools'],
+    writes: ['tool/call', 'tool/result'],
+    async mount(ctx) {
+      await ctx.plugin(ToolChart)
+    },
+    note: 'The compact canonical result keeps the full ECharts option in direct presentation metadata or a nested dsh/chart content block for durable browser replay.',
   },
   {
     pkg: '@deepseek-ai/dsh-tool-session-query',

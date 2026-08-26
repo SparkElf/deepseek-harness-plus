@@ -1,0 +1,30 @@
+name: Chart lockfile generation
+
+on:
+  push:
+    branches:
+      - chore/chart-lockfile-generation
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - run: corepack enable
+
+      - name: Generate lockfile
+        run: pnpm install --lockfile-only --ignore-scripts
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chart-pnpm-lock
+          path: pnpm-lock.yaml
+          if-no-files-found: error

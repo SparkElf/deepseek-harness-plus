@@ -270,7 +270,7 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   /* 2px moved from the bottom pad to the top: the whole control row sits 2px
      lower in the card (it read too high against the textarea) while the card
      height and the controls' own centering stay untouched. */
@@ -295,22 +295,21 @@
    Read-only; the chip gap widened to 12 so the pill chips read as separate
    controls. */
 .tools {
-  gap: 16px;
+  gap: 12px;
 }
 
 .modes {
-  gap: 12px;
+  gap: 8px;
 }
 
 .trailing {
   flex: none;
+  min-width: 0;
   /* Wrap keeps the left mode chips and the right controls apart when the card
-     runs out of row width: the trailing group (model + send) moves to its own
-     line instead of the left group shrinking until its chip overlaps the
-     model trigger (external:107). The auto margin re-anchors it right on the
-     wrapped line; on a single line space-between already pins it right. */
+     runs out of row width: the trailing group (model + meter + send) moves to
+     its own line instead of shrinking the model trigger into its neighbours. */
   margin-left: auto;
-  gap: 12px;
+  gap: 8px;
 }
 
 .modelSeat {
@@ -479,8 +478,9 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 800px) {
   .row {
+    justify-content: flex-start;
     gap: 8px;
     /* Last-resort wrap: when even the shrunken model seat cannot share the
        line with the left tools, the trailing group moves down as one block. */
@@ -494,6 +494,7 @@
 
   .trailing {
     flex: 1 1 0;
+    margin-left: 0;
     gap: 6px;
   }
 
@@ -505,5 +506,43 @@
 
   .modelSeat > * {
     width: 100%;
+    min-width: 0;
   }
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .row {
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .tools {
+  flex: none;
+  gap: 8px;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .trailing {
+  flex: 1 1 auto;
+  margin-left: 0;
+  gap: 6px;
+  min-width: 0;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .trailing > * {
+  flex: 0 0 auto;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat {
+  display: flex;
+  flex: 1 1 0;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: visible;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .modelSeat > * {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
 }

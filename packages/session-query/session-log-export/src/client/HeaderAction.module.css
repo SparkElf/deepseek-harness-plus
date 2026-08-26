@@ -45,7 +45,7 @@
     border-radius: 50%;
   }
 
-  :global(body[data-dsh-sidebar-collapsed]) .sessionLogButton {
+  :global([data-dsh-frame][data-sidebar-collapsed]) .sessionLogButton {
     position: fixed;
     top: calc(3px + env(safe-area-inset-top));
     right: 42px;
@@ -60,4 +60,26 @@
     width: 16px;
     height: 16px;
   }
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .sessionLogButton {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  position: fixed;
+  top: calc(3px + env(safe-area-inset-top));
+  right: 42px;
+  z-index: 45;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .sessionLogButton span {
+  display: none;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .sessionLogButton svg {
+  width: 16px;
+  height: 16px;
 }

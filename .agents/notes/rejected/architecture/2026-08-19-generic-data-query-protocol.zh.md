@@ -1,6 +1,6 @@
 # Agent Note: 泛用智能取数工具与中台协议
 
-Status: proposed
+Status: rejected — replaced by the MCP A/B query architecture
 
 [English](2026-08-19-generic-data-query-protocol.md) | 中文
 
@@ -24,6 +24,8 @@ dataops AI 代理目录（`ai-agent-tool-catalog.ts`）中恰有以下取数工�
 两个治理工具（`govern_metadata`、`glossary_resource_binding`）是写路径、技能门控、preview/confirm 流程；刻意置于只读 `dq/v1` 协议之外，推迟为可选治理面。
 
 ## Proposal
+
+本提案由 [MCP 数据查询接入与 A/B 查询方案](../../proposed/architecture/2026-08-23-mcp-data-query-architecture.md) 取代。
 
 把能力拆成三层：Harness 侧泛用工具集、任意中台可实现的线上协议、以及一个在现有服务之上实现协议的 dataops 薄适配层。
 

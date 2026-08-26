@@ -114,7 +114,7 @@ Local real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_
 - **Switch on discriminant tags.** Closed unions end in `assertNever`; merge-extensible unions fall through a documented default.
 - **Waterfall listeners MUST call `next()`** to delegate; returning without it short-circuits the chain ([semantics](docs/cordis-primer.md#cordis-waterfall-semantics)).
 - **Model-visible ⟺ logged**: anything that reaches a model request must be reconstructable from the session log; a new model-visible input requires a session event.
-- **Plugins, not loop changes**: new behavior goes on documented extension points; changing `agent-loop` requires updating docs/architecture.md.
+- **Plugins own integrations; security follows trust and convenience.** Core edits need explicit approval. Respect trusted HTTP/internal and HTTPS/external without fallback; absent product/protocol need, reject rotation, refresh, locks, queues, polling, reauthorization, or remounts ([decision](.agents/notes/implemented/architecture/2026-08-20-plugin-ownership-and-distribution.md)).
 - **A capability seam comprises Service Definition / Service Provider / Consumer roles.** It is complete, never one role; split only when roles evolve independently ([glossary](docs/glossary.md#capability-seam)).
 - **Prefer maintained dependencies over hand-rolling** when they genuinely delete owned code and tests ([policy](.agents/notes/implemented/process/2026-07-26-dependencies-over-hand-rolling.md)).
 - **Explicit > implicit at package boundaries**: defaulting is an explicit `resolve(request): Spec` step in the owning implementation, never a hidden `?? default` inside `run()` (the `dsh-shell` request/spec split is the template).

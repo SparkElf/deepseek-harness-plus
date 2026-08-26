@@ -6,7 +6,7 @@
 
 ## 提供方选择与生命周期
 
-每个插件实例把一个 `provider` 绑定到一个 `toolName`；模型不会收到提供方选择器。如需公开另一种传输，请加载另一个名称不同的实例。工具只在其提供方存在时注册，从而避免对同级加载顺序和提供方重新加载的依赖。工具描述遵循 `provider.inheritsParentContext`：新建子 agent（智能体）需要独立提示词，而 fork 子 agent 已能看到父级已完成轮次。
+每个插件实例把一个 `provider` 绑定到一个 `toolName`；模型不会收到提供方选择器。如需公开另一种传输，请加载另一个名称不同的实例。工具只在其提供方存在且解析后的 `enabled` 设置为 true 时注册，从而避免对同级加载顺序和提供方重新加载的依赖。settings 提交会立即添加或移除面向模型的工具。工具描述遵循 `provider.inheritsParentContext`：新建子 agent（智能体）需要独立提示词，而 fork 子 agent 已能看到父级已完成轮次。
 
 Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个命名空间挂载一次 `@deepseek-ai/dsh-tool-subagent/startup`；任意数量的 Agent preset 工具实例通过 `settingsNamespace` 消费这个已注册分区。没有 Settings 服务时，工具使用自己的组合默认值。Settings 服务存在时，指向未注册命名空间会让工具挂载失败，而不会创建一份 Agent 生命周期注册。
 
@@ -21,14 +21,15 @@ Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个�
 | 键 | 含义 |
 |---|---|
 | `provider`（必填） | 提供方名称（`spawn`、`fork`、`acp` 等）。 |
+| `enabled` | 是否注册面向模型的委派入口；直接组装工具时默认 `true`，由 Host 持有的 settings schema 默认 `false`。 |
 | `toolName` | 面向模型的名称，默认 `subagent`；每个已加载实例必须不同。 |
 | `enableRunInBackground` | 公开后台模式，默认 `true`；禁用时也会拒绝强制后台调用。 |
 | `backgroundMode` | 后台生命周期策略，默认 `one-shot`。`one-shot` 默认前台调用；`continuable` 默认后台调用，要求提供方具备 `prepareContinuable` 能力，并返回持久化子 agent ID，且不要求加载后续消息工具。 |
-| `settingsNamespace` | 可选的 Host 已注册命名空间，用于保存实时、由用户拥有的子 agent 默认值。每次后续创建子 agent 都会读取解析后的 `agentOptions`、`persona`、`toolFilter` 与 `maxDepth`；由 `/startup` 子路径在 Host 生命周期挂载一次并持有它。 |
+| `settingsNamespace` | 可选的 Host 已注册命名空间，用于保存实时、由用户拥有的子 agent 默认值。工具会遵循解析后的 `enabled` 值，每次后续创建子 agent 都会读取 `agentOptions`、`persona`、`toolFilter` 与 `maxDepth`；由 `/startup` 子路径在 Host 生命周期挂载一次并持有它。 |
 | `agentOptions` | 传给具体提供方的子 agent `provider`、`model` 和正整数 `maxTokens`；进程内提供方会用显式值覆盖继承的父级选项。 |
 | `persona` | 每个子 agent 独立的 persona；要求提供方具备 `persona` 能力。 |
 | `toolFilter` | 每个子 agent 独立的全局工具限制；要求提供方具备 `toolFilter` 能力。 |
-| `maxDepth` | 绝对委派深度上限，默认 `3`（`0` 禁止委派）；数值上限要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |
+| `maxDepth` | 直接子 agent 之下允许继续委派的层数，默认 `0`（允许直接子 agent，但禁止孙 agent）；工具会把它转换为提供方使用的绝对子级深度上限。数值要求 `depthLimit` 能力，缺失时挂载失败。对于预算由子 harness 拥有的进程外提供方，`'provider-managed'` 不发送上限。工具在达到上限时仍然可见；每次尝试启动都会检查调用 agent 的当前深度，被拒绝时返回出错的工具结果。 |
 
 ## 并发
 
@@ -40,7 +41,7 @@ Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个�
 
 #### 模型看到的内容
 
-当提供方存在时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述。启用后台模式会添加 `run_in_background`：可继续模式会记录其默认值为 `true`、运行时结算通知与显式前台覆盖；一次性模式会记录其默认值为 `false`，以及用 `job_output` 收集或用 `job_kill` 停止的 job id。当工具在本次组装的作用域中可见时，一个 `tool:<toolName>` 系统提示词 section 会指示模型同时启动相互独立的可继续委派、在它们运行时继续工作，并且仅当下一步动作依赖结果时选择前台；工具限制会同时移除其 schema 和这段指引。
+当提供方存在且入口已启用时，以当前实例配置的名称公开已生成的默认 [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent)。提供方是否继承上下文会改变工具描述和提示词描述。启用后台模式会添加 `run_in_background`：可继续模式会记录其默认值为 `true`、运行时结算通知与显式前台覆盖；一次性模式会记录其默认值为 `false`，以及用 `job_output` 收集或用 `job_kill` 停止的 job id。当工具在本次组装的作用域中可见时，一个 `tool:<toolName>` 系统提示词 section 会指示模型同时启动相互独立的可继续委派、在它们运行时继续工作，并且仅当下一步动作依赖结果时选择前台；工具限制会同时移除其 schema 和这段指引。
 
 #### Token 影响
 
@@ -82,4 +83,4 @@ Settings 生命周期与 Agent 生命周期相互独立。Host 组合为每个�
 
 - **后台运行不通过本工具公开结果**：一次性任务的最终输出通过通用 Task 接口收集，可继续子 agent 的输出留在其自身会话中，按其 subagent id 读取。结算通知会说明该子 agent 如何结束，并携带可能存在的最终 assistant 消息，但它不是本次调用的返回值，也无法在此等待。
 - **等待中的一次性实例较晚才发现重复名称**（`TODO(subagent-dup-toolname)`）：可继续实例会在插件应用期间预留提示词 section 名称，但若要阻止等待中的一次性实例回滚提供方注册，仍需要一份预期名称注册表。
-- **入口身份在每个实例中固定**：修改 `provider`、`toolName`、`enableRunInBackground` 或 `backgroundMode` 需要改变组合。配置了由 Host 注册的 `settingsNamespace` 后，只会改变后续运行使用的子 agent 默认值；它不会改变已有子 agent，也不会创建另一种上下文历史策略。
+- **入口身份在每个实例中固定**：修改 `provider`、`toolName`、`enableRunInBackground` 或 `backgroundMode` 需要改变组合。配置了由 Host 注册的 `settingsNamespace` 后，可以启用或禁用入口，并改变后续运行使用的子 agent 默认值；它不会改变已有子 agent，也不会创建另一种上下文历史策略。

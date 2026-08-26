@@ -18,7 +18,6 @@ function flattenText(message: Message): string {
     .join('')
 }
 
-
 /** Flatten text recursively inside one tool result. */
 function toolResultText(blocks: readonly ContentBlock[]): string {
   return blocks.map(block => block.type === 'text'
@@ -135,7 +134,8 @@ function textOnlyContext(options: GenerateOptions, onReplayDegrade?: (reason: st
 
 /**
  * Convert text-only harness history to a synchronous pi-ai Context. Tool
- * result names are recovered from preceding assistant tool calls.
+ * result names are recovered from preceding assistant tool calls. Durable
+ * generic documents become explicit unparsed text markers before conversion.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
  * @param attachments - absent; selects the synchronous conversion.
  * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.
@@ -151,7 +151,9 @@ export function toPiContext(
  * Tool result names are recovered from preceding assistant tool calls. When
  * the accumulated base64 image payload exceeds `maxRequestImageBytes`, the
  * oldest images are replaced by text placeholders until the request fits, so
- * an image-heavy session keeps clearing gateway request-size caps.
+ * an image-heavy session keeps clearing gateway request-size caps. Generic
+ * documents remain durable originals and project as explicit unparsed text in
+ * this generic layer; the parser feature later projects parsed Markdown.
  * @param options - the harness request; `options.system` maps to pi-ai's single `systemPrompt` slot.
  * @param attachments - durable byte resolver for image references.
  * @param onReplayDegrade - forwarded to {@link toPiAssistant} for each assistant message.

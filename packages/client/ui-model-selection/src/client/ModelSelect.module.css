@@ -72,8 +72,7 @@
   z-index: 20;
   display: flex;
   flex-direction: column;
-  /* Let the visible pane's rows set the card width, but keep pathological ids
-     and narrow screens inside a bounded card where ellipsis remains. */
+  /* Let the visible rows set the card width while keeping desktop ids bounded. */
   width: max-content;
   min-width: min(240px, calc(100vw - 32px));
   max-width: min(420px, calc(100vw - 32px));
@@ -94,6 +93,41 @@
      styles/scrollbar.css for the rebinding contract). */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+@media (max-width: 800px) {
+  .menu {
+    width: min(240px, calc(100cqw - 16px));
+    min-width: min(240px, calc(100cqw - 16px));
+    max-width: calc(100cqw - 16px);
+  }
+}
+
+/* The collapsed-sidebar host state identifies mobile even when its CSS viewport is wide. */
+:global([data-dsh-frame][data-sidebar-collapsed]) .root {
+  position: relative;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .trigger {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .menu {
+  right: 0;
+  left: auto;
+  width: min(240px, calc(100cqw - 16px));
+  min-width: min(240px, calc(100cqw - 16px));
+  max-width: calc(100cqw - 16px);
+}
+
+.portalMenu {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  z-index: 100;
 }
 
 .status,
@@ -267,16 +301,4 @@
 .cellChevron {
   flex: 0 0 auto;
   color: var(--dsw-alias-label-tertiary);
-}
-
-@media (max-width: 640px) {
-  .root,
-  .trigger {
-    width: 100%;
-    max-width: 100%;
-  }
-
-  .trigger {
-    box-sizing: border-box;
-  }
 }

@@ -337,10 +337,16 @@ export interface Config {
   maxImagePixels?: number
   /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
   maxImageDimension?: number
+  /** Maximum encoded bytes accepted for one supported document. */
+  maxDocumentBytes?: number
+  /** Maximum document count accepted in one submitted message. */
+  maxDocumentsPerMessage?: number
+  /** Maximum aggregate encoded document bytes accepted in one submitted message. */
+  maxMessageDocumentBytes?: number
 }
 ```
 
-Source: [`packages/attachment/attachment-local/src/index.ts:31`](../packages/attachment/attachment-local/src/index.ts)
+Source: [`packages/attachment/attachment-local/src/index.ts:47`](../packages/attachment/attachment-local/src/index.ts)
 
 <a id="deepseek-aidsh-bash-local"></a>
 
@@ -568,6 +574,42 @@ export interface Config {
 ```
 
 Source: [`packages/credentials/credentials-local/src/index.ts:55`](../packages/credentials/credentials-local/src/index.ts)
+
+<a id="deepseek-aidsh-document-parser"></a>
+
+## `@deepseek-ai/dsh-document-parser`
+
+```ts config-catalog
+/** Deployment choices owned by the provider-neutral parser seam. */
+export interface Config {
+  /** Explicit parser provider id; omission auto-selects exactly one registered provider. */
+  provider?: string
+  /** Maximum aggregate rendered-document bytes, including delimiters and metadata, accepted for direct-context version one. */
+  maxDirectMarkdownBytes: number
+}
+```
+
+Source: [`packages/attachment/document-parser/src/index.ts:24`](../packages/attachment/document-parser/src/index.ts)
+
+<a id="deepseek-aidsh-document-parser-mineru"></a>
+
+## `@deepseek-ai/dsh-document-parser-mineru`
+
+Requires: `documentParser`
+
+```ts config-catalog
+/** External MinerU endpoint and bounded synchronous parse policy. */
+export interface Config {
+  /** Absolute MinerU synchronous `/file_parse` endpoint. */
+  endpoint: string
+  /** Maximum wall-clock milliseconds for one parse. */
+  timeoutMs: number
+  /** Maximum compressed response and aggregate extracted output bytes. */
+  maxResponseBytes: number
+}
+```
+
+Source: [`packages/attachment/document-parser-mineru/src/index.ts:20`](../packages/attachment/document-parser-mineru/src/index.ts)
 
 <a id="deepseek-aidsh-e2b"></a>
 
@@ -2769,6 +2811,8 @@ export interface Config {
   provider: string
   /** Optional Host-registered settings namespace for live child-default overrides. */
   settingsNamespace?: string
+  /** Whether this model-facing delegation entry is registered (default true). */
+  enabled?: boolean
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.
@@ -2807,8 +2851,9 @@ export interface Config {
     deny?: string[]
   }
   /**
-   * Maximum child depth: a non-negative safe integer (default `3`; `0` forbids
-   * delegation entirely), or `'provider-managed'` to send no cap. A numeric cap
+   * Additional delegation generations below a direct child: a non-negative safe
+   * integer (default `0`; `0` permits a child but forbids grandchildren), or
+   * `'provider-managed'` to send no cap. A numeric cap
    * requires the provider's `depthLimit` capability (mount fails loud
    * otherwise). The provider checks the calling agent's current depth at every
    * start; the tool remains model-visible so runtime policy owns rejection.
@@ -3211,6 +3256,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-chart` ([`packages/client/ui-chart/src/index.ts`](../packages/client/ui-chart/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-commands` ([`packages/client/ui-commands/src/index.ts`](../packages/client/ui-commands/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-conversation` ([`packages/client/ui-conversation/src/index.ts`](../packages/client/ui-conversation/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-cordis` ([`packages/extensions/ui-cordis/src/index.ts`](../packages/extensions/ui-cordis/src/index.ts))
@@ -3267,6 +3313,7 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-terminal` ([`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.ts))
 - `@deepseek-ai/dsh-tool-ask-user` — requires `tools` · `userQuestions` ([`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts))
 - `@deepseek-ai/dsh-tool-call-timeout-policy` — requires `tools` ([`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts))
+- `@deepseek-ai/dsh-tool-chart` — requires `tools` ([`packages/chart/tool-chart/src/index.ts`](../packages/chart/tool-chart/src/index.ts))
 - `@deepseek-ai/dsh-tool-cordis` — requires `tools` · `systemPrompt` · `dynamicCordisRunner` · `cordisInspect` ([`packages/extensions/tool-cordis/src/index.ts`](../packages/extensions/tool-cordis/src/index.ts))
 - `@deepseek-ai/dsh-tool-subagent-control` — requires `tools` · `subagents` ([`packages/subagent/tool-subagent-control/src/index.ts`](../packages/subagent/tool-subagent-control/src/index.ts))
 - `@deepseek-ai/dsh-user-questions` ([`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts))

@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
-// Multimodal image surfaces over the BUILT client graph (the code-mode-fixture
-// idiom: real bundles via AppWebEntry, keyless FixtureApiClient transport).
-// Opens the fixture history session whose turn 73 carries an image in BOTH a
-// user message and an assistant message, and pins the product surfaces: the
-// history ImageGallery loading real fixture bytes through the authorized
-// sessions.attachment route, the single-click ImageLightbox, and the composer
-// intake chain (paste → ordered thumbnail rail → image-only send enablement → remove).
+// Image and document attachment surfaces over the built client graph: real bundles
+// through AppWebEntry with the keyless FixtureApiClient transport.
 import { fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { expect, it } from 'vitest'
 import { installAssembledBootEnv, mountAssembledApp } from './assembled-boot.ts'
@@ -148,6 +143,38 @@ it('accepts pasted images into the composer rail in order and removes them', asy
   await waitFor(() => {
     expect(screen.queryByText(unsupportedMessage)).toBeNull()
   }, { timeout: 6_000 })
+})
+
+it('adds a parser-backed document through the paperclip and renders its durable history card', async () => {
+  mountAssembledApp()
+
+  const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
+  const start = tree.querySelector<HTMLButtonElement>('button[aria-label="New session in fixture"]')
+  if (start === null) throw new Error('fixture Workspace new-session action missing')
+  fireEvent.click(start)
+
+  const textarea = await screen.findByPlaceholderText('Describe what you want to build', {}, { timeout: 10_000 })
+  const picker = document.querySelector<HTMLInputElement>('input[type="file"][accept*="application/pdf"]')
+  if (picker === null) throw new Error('parser-backed attachment picker missing')
+  const documentFile = new File([new TextEncoder().encode('%PDF-1.7 fixture')], 'brief.pdf', { type: 'application/pdf' })
+  fireEvent.change(picker, { target: { files: [documentFile] } })
+
+  const pending = await waitFor(() => {
+    const card = document.querySelector('[data-attachment-kind="document"]')
+    if (card === null) throw new Error('pending document card missing')
+    return card
+  })
+  expect(pending.textContent).toMatchInlineSnapshot('"PDFbrief.pdf16 B"')
+
+  fireEvent.change(textarea, { target: { value: 'Read the attached document.' } })
+  fireEvent.keyDown(textarea, { key: 'Enter' })
+  const durable = await waitFor(() => {
+    const card = document.querySelector('[data-message-document]')
+    if (card === null) throw new Error('durable document card missing')
+    return card
+  }, { timeout: 10_000 })
+  expect(durable.textContent).toMatchInlineSnapshot('"PDFbrief.pdf16 B"')
+  expect(document.querySelector('[data-attachment-kind="document"]')).toBeNull()
 })
 
 it('accepts a whole-page drop under the limits-labeled overlay and refuses an over-limit batch at intake', async () => {

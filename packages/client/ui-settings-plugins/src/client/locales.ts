@@ -11,7 +11,10 @@ export type PluginsSettingsLocaleKey =
   | 'webSearchTitle' | 'webSearchDescription'
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
   | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
-  | 'subagentDescription' | 'subagentContinuous' | 'subagentOneShot'
+  | 'subagentNav' | 'subagentTitle' | 'subagentIntro' | 'subagentModes'
+  | 'subagentContinuous' | 'subagentOneShot'
+  | 'subagentContinuousDescription' | 'subagentOneShotDescription'
+  | 'subagentEnableContinuous' | 'subagentEnableOneShot'
   | 'subagentModel' | 'subagentFollowParent' | 'subagentFixedModel' | 'subagentProvider' | 'subagentModelId' | 'subagentMaxTokens'
   | 'subagentPersona' | 'subagentInheritPersona' | 'subagentOverridePersona' | 'subagentPersonaPlaceholder'
   | 'subagentTools' | 'subagentAllTools' | 'subagentAllowTools' | 'subagentDenyTools' | 'subagentToolNamesPlaceholder'
@@ -56,9 +59,16 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
-  subagentDescription: 'Defaults for child delegation.',
+  subagentNav: 'Subagents',
+  subagentTitle: 'Subagents',
+  subagentIntro: 'Choose which delegation modes agents may use and configure each mode’s child defaults.',
+  subagentModes: 'Subagent modes',
   subagentContinuous: 'Continuous subagent',
   subagentOneShot: 'One-shot subagent',
+  subagentContinuousDescription: 'Starts a fresh child conversation that can receive follow-up messages.',
+  subagentOneShotDescription: 'Forks completed context for one task and returns its result.',
+  subagentEnableContinuous: 'Enable continuous mode',
+  subagentEnableOneShot: 'Enable one-shot mode',
   subagentModel: 'Model',
   subagentFollowParent: 'Follow the current agent',
   subagentFixedModel: 'Use a fixed model',
@@ -117,9 +127,16 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: '留空则使用提供方默认地址。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
-  subagentDescription: '配置子代理委派默认值。',
+  subagentNav: '子代理',
+  subagentTitle: '子代理',
+  subagentIntro: '选择智能体可使用的委派方式，并分别配置子代理默认值。',
+  subagentModes: '子代理模式',
   subagentContinuous: '连续子代理',
   subagentOneShot: '一次性子代理',
+  subagentContinuousDescription: '创建全新子会话，之后可以继续发送消息。',
+  subagentOneShotDescription: '继承已完成的对话内容，执行一次任务后返回结果。',
+  subagentEnableContinuous: '启用连续模式',
+  subagentEnableOneShot: '启用一次性模式',
   subagentModel: '模型',
   subagentFollowParent: '跟随当前智能体',
   subagentFixedModel: '固定模型',

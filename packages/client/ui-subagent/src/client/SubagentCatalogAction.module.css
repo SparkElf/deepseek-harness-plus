@@ -5,7 +5,7 @@
 .trigger {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   min-height: 28px;
   padding: 3px 2px;
   border: 0;
@@ -18,7 +18,12 @@
 }
 
 .count {
-  margin: 0 5px;
+  margin: 0 2px;
+}
+
+.compactLabel {
+  display: none;
+  flex: none;
 }
 
 .activitySlot {
@@ -41,6 +46,17 @@
   transform: rotate(180deg);
 }
 
+@media (max-width: 800px) {
+  .compactLabel {
+    display: inline-flex;
+  }
+
+  .count {
+    display: none;
+  }
+
+}
+
 .menu {
   position: absolute;
   top: calc(100% + 5px);
@@ -49,16 +65,25 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  width: 336px;
-  max-width: min(400px, calc(100vw - 32px));
+  width: min(336px, 92cqw);
+  max-width: 92cqw;
   max-height: min(560px, calc(100vh - 140px));
   padding: 4px;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 12px;
   background: var(--dsw-specific-menu);
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
   box-shadow: var(--dsw-shadow-lv3);
+}
+
+@media (max-width: 800px) {
+  .menu {
+    right: 0;
+    left: auto;
+  }
 }
 
 .node {

@@ -73,12 +73,15 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin-win32-ia32-msvc@0.1.4
   - node-addon-require-builtin-win32-x64-msvc@0.1.4
   - node-addon-require-builtin@0.1.4
-  - dsh-better-sidebar@0.14.0
+  - dsh-better-sidebar@0.16.1
+  - dshmarket@1.29.2
   # Plus owns and verifies this external plugin's release before pinning it.
   - '@sparkelf/dsh-mobile-bridge'
 
 patchedDependencies:
-  dsh-better-sidebar@0.14.0: patches/dsh-better-sidebar@0.14.0.patch
+  # Temporary plugin patches retire when the implementation PRs named in curated.yaml ship.
+  '@sparkelf/dsh-mobile-bridge@0.2.8': patches/@sparkelf__dsh-mobile-bridge@0.2.8.patch
+  dsh-better-sidebar@0.16.1: patches/dsh-better-sidebar@0.16.1.patch
   # Better Sidebar still carries 1.1 and needs the single-executable spawn helper path.
   node-pty@1.1.0: patches/node-pty@1.1.0.patch
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch

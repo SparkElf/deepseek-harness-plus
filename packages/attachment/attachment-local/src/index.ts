@@ -4,11 +4,20 @@ import { join, resolve } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import { AttachmentStore } from '@deepseek-ai/dsh-attachment'
-import type { ImageAttachmentLimits, ImageAttachmentRef, SaveImageAttachment, StoredImageAttachment } from '@deepseek-ai/dsh-attachment'
+import type {
+  DocumentAttachmentLimits,
+  FileAttachmentRef,
+  ImageAttachmentLimits,
+  ImageAttachmentRef,
+  SaveFileAttachment,
+  SaveImageAttachment,
+  StoredFileAttachment,
+  StoredImageAttachment,
+} from '@deepseek-ai/dsh-attachment'
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
-import { readImageFile, saveImageFile, validateImageFile } from './store.ts'
+import { readFileObject, readImageFile, saveFileObject, saveImageFile, validateImageFile } from './store.ts'
 
-export { readImageFile, saveImageFile, validateImageFile } from './store.ts'
+export { readFileObject, readImageFile, saveFileObject, saveImageFile, validateImageFile } from './store.ts'
 
 /** Default maximum encoded bytes for one image. */
 export const DEFAULT_MAX_IMAGE_BYTES = 3.5 * 1024 * 1024
@@ -27,6 +36,13 @@ export const DEFAULT_MAX_IMAGE_PIXELS = 40_000_000
  */
 export const DEFAULT_MAX_IMAGE_DIMENSION = 2000
 
+/** Provisional version-one maximum encoded bytes for one user document. */
+export const DEFAULT_MAX_DOCUMENT_BYTES = 16 * 1024 * 1024
+/** Provisional version-one maximum document count in one submitted message. */
+export const DEFAULT_MAX_DOCUMENTS_PER_MESSAGE = 4
+/** Provisional version-one maximum aggregate document bytes in one submitted message. */
+export const DEFAULT_MAX_MESSAGE_DOCUMENT_BYTES = 32 * 1024 * 1024
+
 /** Local attachment backend configuration. */
 export interface Config {
   /** Explicit harness home; omitted follows `DSH_HOME`, then `~/.dsh`. */
@@ -41,6 +57,12 @@ export interface Config {
   maxImagePixels?: number
   /** Maximum intrinsic width and maximum intrinsic height accepted for one image. */
   maxImageDimension?: number
+  /** Maximum encoded bytes accepted for one supported document. */
+  maxDocumentBytes?: number
+  /** Maximum document count accepted in one submitted message. */
+  maxDocumentsPerMessage?: number
+  /** Maximum aggregate encoded document bytes accepted in one submitted message. */
+  maxMessageDocumentBytes?: number
 }
 
 /** Persistent content-addressed local attachment store. */
@@ -52,11 +74,15 @@ export class LocalAttachmentStore extends AttachmentStore {
     maxMessageImageBytes: z.number().step(1).min(1).default(DEFAULT_MAX_MESSAGE_IMAGE_BYTES),
     maxImagePixels: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGE_PIXELS),
     maxImageDimension: z.number().step(1).min(1).default(DEFAULT_MAX_IMAGE_DIMENSION),
+    maxDocumentBytes: z.number().step(1).min(1).default(DEFAULT_MAX_DOCUMENT_BYTES),
+    maxDocumentsPerMessage: z.number().step(1).min(1).default(DEFAULT_MAX_DOCUMENTS_PER_MESSAGE),
+    maxMessageDocumentBytes: z.number().step(1).min(1).default(DEFAULT_MAX_MESSAGE_DOCUMENT_BYTES),
   })
 
   /** Absolute versioned storage root. */
   readonly root: string
   readonly imageLimits: ImageAttachmentLimits
+  override readonly documentLimits: DocumentAttachmentLimits
 
   constructor(ctx: Context, config: Config) {
     super(ctx)
@@ -69,6 +95,25 @@ export class LocalAttachmentStore extends AttachmentStore {
       maxImageDimension: config.maxImageDimension ?? DEFAULT_MAX_IMAGE_DIMENSION,
       mediaTypes: Object.freeze(['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const),
     })
+    this.documentLimits = Object.freeze({
+      maxDocumentBytes: config.maxDocumentBytes ?? DEFAULT_MAX_DOCUMENT_BYTES,
+      maxDocumentsPerMessage: config.maxDocumentsPerMessage ?? DEFAULT_MAX_DOCUMENTS_PER_MESSAGE,
+      maxMessageDocumentBytes: config.maxMessageDocumentBytes ?? DEFAULT_MAX_MESSAGE_DOCUMENT_BYTES,
+      mediaTypes: Object.freeze([
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ] as const),
+    })
+  }
+
+  override async saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
+    return saveFileObject(this.root, input)
+  }
+
+  override async readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
+    return readFileObject(this.root, ref, signal)
   }
 
   async validateImage(input: SaveImageAttachment): Promise<void> {

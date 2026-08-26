@@ -44,8 +44,9 @@
     }
   },
   "dependencies": {
-    "@sparkelf/dsh-mobile-bridge": "0.2.7",
-    "dsh-better-sidebar": "0.14.0",
+    "@sparkelf/dsh-mobile-bridge": "0.2.8",
+    "dsh-better-sidebar": "0.16.1",
+    "dshmarket": "1.29.2",
     "@deepseek-ai/dsh-agent-presets": "workspace:^",
     "@deepseek-ai/dsh-api-remotes": "workspace:^",
     "@deepseek-ai/dsh-app-boot": "workspace:^",
@@ -59,6 +60,7 @@
     "@sparkelf/dsh-client-ui-settings-backup": "workspace:^",
     "@deepseek-ai/dsh-client-ui-attachment": "workspace:^",
     "@deepseek-ai/dsh-client-ui-brand-official": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-chart": "workspace:^",
     "@deepseek-ai/dsh-client-ui-commands": "workspace:^",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
     "@deepseek-ai/dsh-client-ui-cordis": "workspace:^",

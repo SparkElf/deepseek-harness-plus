@@ -11,7 +11,7 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-settings-plugins/clien
 import type {
   ConfigurablePluginsTabFace, PluginsSettingsSectionInjected,
 } from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
-import type { SubagentCardInjected } from '../src/client/SubagentCard.tsx'
+import type { SubagentSettingsSectionInjected } from '../src/client/SubagentCard.tsx'
 import type { SubagentEntryView } from '../src/client/subagent-store.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
@@ -75,16 +75,19 @@ describe('ui-settings-plugins apply', () => {
     expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'settingsScope'])
   })
 
-  it('registers one Plugins section and declares the tab and card slots', async () => {
+  it('registers Subagents and Plugins sections and declares the plugin tab and card slots', async () => {
     const { ctx, slots } = await bench()
     declareRoot(slots)
 
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    const section = slots.entries('settings.section')[0]!
-    expect(section.options).toMatchObject({ id: 'plugins', order: 15 })
-    // The nav label is a locale-following thunk; owners resolve it at read time.
-    expect(resolveSlotLabel(section.options.label)).toBe('插件')
+    const sections = slots.entries('settings.section')
+    expect(sections.map(section => ({ id: section.options.id, order: section.options.order }))).toEqual([
+      { id: 'subagents', order: 15 },
+      { id: 'plugins', order: 16 },
+    ])
+    // Nav labels are locale-following thunks; owners resolve them at read time.
+    expect(sections.map(section => resolveSlotLabel(section.options.label))).toEqual(['子代理', '插件'])
     expect(slots.spec('settings.plugins.tab')).toMatchObject({ kind: 'list', scope: 'root' })
     const tab = slots.entries('settings.plugins.tab')[0]!
     expect(tab.options).toMatchObject({ id: 'configurable', order: 0 })
@@ -98,8 +101,9 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    const section = slots.entries('settings.section')[0]!
-    const sectionFace = (section.inject as unknown as () => PluginsSettingsSectionInjected)()
+    const sections = slots.entries('settings.section')
+    const pluginsSection = sections.find(entry => entry.options.id === 'plugins')!
+    const sectionFace = (pluginsSection.inject as unknown as () => PluginsSettingsSectionInjected)()
     const initialTabs = sectionFace.hooks.tabs.getSnapshot()
     expect(initialTabs).toEqual([
       { id: 'configurable', order: 0, label: '插件配置' },
@@ -122,22 +126,21 @@ describe('ui-settings-plugins apply', () => {
       const face = (entry as { inject?: () => unknown }).inject?.() as { hooks: Record<string, unknown> }
       // Each card injects exactly one snapshot store plus its own actions.
       expect(Object.keys(face.hooks)).toHaveLength(1)
-      if (entry.options.key === 'subagent') {
-        const subagentFace = face as unknown as SubagentCardInjected
-        const item: SubagentEntryView = {
-          ns: 'subagent', kind: 'spawn', label: 'subagentContinuous',
-          context: 'fresh', background: 'continuable', value: {},
-        }
-        subagentFace.ensure()
-        await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(1) })
-        ctx.remote.$dispatch('llm/adapters-updated', [])
-        await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(2) })
-        subagentFace.stage(item, { persona: 'reviewer' })
-        await subagentFace.save(item)
-        subagentFace.reset(item)
-        subagentFace.discard(item)
-      }
     }
+    const subagentsSection = sections.find(entry => entry.options.id === 'subagents')!
+    const subagentFace = (subagentsSection.inject as unknown as () => SubagentSettingsSectionInjected)()
+    const item: SubagentEntryView = {
+      ns: 'subagent', kind: 'spawn', label: 'subagentContinuous',
+      context: 'fresh', background: 'continuable', value: {},
+    }
+    subagentFace.ensure()
+    await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(1) })
+    ctx.remote.$dispatch('llm/adapters-updated', [])
+    await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(2) })
+    subagentFace.stage(item, { enabled: true, persona: 'reviewer' })
+    await subagentFace.save(item)
+    subagentFace.reset(item)
+    subagentFace.discard(item)
   })
 
   it('keys each card it ships on the settings namespace that card edits', async () => {
@@ -147,7 +150,7 @@ describe('ui-settings-plugins apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     expect(slots.entries('settings.plugin.item').map(entry => entry.options.key))
-      .toEqual(['shell', 'agent-loop', 'web-search-deepseek', 'subagent', 'subagent-fork'])
+      .toEqual(['shell', 'agent-loop', 'web-search-deepseek'])
   })
 
   it('dispatches the served namespaces its cards claim, and no others', async () => {
@@ -225,7 +228,7 @@ describe('ui-settings-plugins apply', () => {
 
     declareRoot(slots)
 
-    await vi.waitFor(() => { expect(slots.entries('settings.section')).toHaveLength(1) })
+    await vi.waitFor(() => { expect(slots.entries('settings.section')).toHaveLength(2) })
   })
 
   it('collapses every contribution on teardown', async () => {
@@ -233,7 +236,7 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(slots.entries('settings.plugin.item')).toHaveLength(5)
+    expect(slots.entries('settings.plugin.item')).toHaveLength(3)
 
     await fiber.dispose()
 

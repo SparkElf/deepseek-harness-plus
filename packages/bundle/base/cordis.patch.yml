@@ -100,11 +100,30 @@
       config:
         root: !!js dshHomePath('sessions')
 
-    # Durable image bytes live outside the append-only session log. Messages
-    # keep content-addressed references that this shared backend resolves for
-    # provider requests and authorized history reads.
+    # Durable image, document, and parser-artifact bytes live outside the
+    # append-only session log. Messages keep content-addressed references that
+    # this shared backend resolves for provider requests and authorized reads.
     - id: attachment-local
       name: '@deepseek-ai/dsh-attachment-local'
+
+    # Generic document intake stays absent by default. Enable both rows together
+    # in a later patch layer after choosing the direct-context budget and MinerU
+    # endpoint policy; enabling only the Definition leaves no resolvable provider
+    # and therefore publishes no document picker capability.
+    - id: document-parser
+      name: '@deepseek-ai/dsh-document-parser'
+      disabled: true
+      config:
+        provider: mineru
+        maxDirectMarkdownBytes: 1048576
+
+    - id: document-parser-mineru
+      name: '@deepseek-ai/dsh-document-parser-mineru'
+      disabled: true
+      config:
+        endpoint: 'http://127.0.0.1:8000/file_parse'
+        timeoutMs: 120000
+        maxResponseBytes: 67108864
 
     # Full-text session search is opt-in. `openAt: never` keeps
     # ctx.sessionQuery mounted — exact reads, titles, and lineage traces
@@ -316,14 +335,16 @@
       config:
         settingsNamespace: subagent
         provider: spawn
-        maxDepth: 3
+        enabled: false
+        maxDepth: 0
 
     - id: subagent-fork-settings
       name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
         settingsNamespace: subagent-fork
         provider: fork
-        maxDepth: 3
+        enabled: false
+        maxDepth: 0
 
     # Optional direct-child return channel; absent from roots and one-shot agents.
     - id: tool-subagent-report

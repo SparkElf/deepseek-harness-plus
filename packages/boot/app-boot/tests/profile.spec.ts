@@ -168,6 +168,7 @@ describe('loadProfile', () => {
       '@deepseek-ai/dsh-headless': { patch: '[]\n' },
       'dsh-better-sidebar': { patch: '[]\n' },
       '@sparkelf/dsh-mobile-bridge': { patch: '[]\n' },
+      'dshmarket': { patch: '[]\n' },
       'custom-bundle': { patch: '[]\n' },
     })
     const webHome = tmp()
@@ -175,7 +176,17 @@ describe('loadProfile', () => {
     initProfile(stockWeb, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
     loadProfile('t', 'web', anchor, webHome)
     expect(readProfileManifest('t', stockWeb).dsh?.profile?.bundles)
-      .toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-better-sidebar', '@sparkelf/dsh-mobile-bridge'])
+      .toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-better-sidebar', '@sparkelf/dsh-mobile-bridge', 'dshmarket'])
+
+    const previousWebHome = tmp()
+    const previousStockWeb = resolveProfileDir('web', previousWebHome)
+    initProfile(previousStockWeb, [
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-better-sidebar', '@sparkelf/dsh-mobile-bridge',
+    ])
+    loadProfile('t', 'web', anchor, previousWebHome)
+    expect(readProfileManifest('t', previousStockWeb).dsh?.profile?.bundles)
+      .toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'dsh-better-sidebar', '@sparkelf/dsh-mobile-bridge', 'dshmarket'])
+
     const home = tmp()
     const stock = resolveProfileDir('headless', home)
     initProfile(stock, [

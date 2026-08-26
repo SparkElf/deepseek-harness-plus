@@ -6,6 +6,7 @@
 .root {
   display: flex;
   flex-direction: column;
+  container-type: inline-size;
   height: 100%;
   min-width: 0;
   background: var(--dsw-alias-bg-base);
@@ -59,16 +60,17 @@
 
 .titleCluster {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 
 .crumbs {
   display: flex;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
@@ -77,7 +79,7 @@
 .crumbSeg {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -108,31 +110,103 @@
 }
 
 .crumbCurrent {
+  min-width: 0;
+  overflow: hidden;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: default;
 }
 
 .headerActions {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 8px;
+  min-width: 0;
+  gap: 4px;
 }
 
 .headerUtilities {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  margin-left: 20px;
+  gap: 4px;
+  margin-left: auto;
 }
 
 .headerUtilities:empty {
   display: none;
 }
 
+@media (max-width: 800px) {
+  /* Keep the preset adjacent to the shrinking title instead of pinning it right. */
+  .titleCluster {
+    flex: 0 1 auto;
+  }
+
+  .headerActions {
+    display: contents;
+  }
+
+  /* Slot outlets keep a display:contents anchor, so target each action below it. */
+  .headerActions [data-slot='conversation.session.header.actions'] > span {
+    position: absolute;
+    top: 12px;
+    /* SessionLogDownloadHeaderAction owns the 28px slot at right:42px. */
+    right: 76px;
+    z-index: 2;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    z-index: 2;
+  }
+
+  .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
+    right: 96px;
+  }
+
+  .tabs {
+    gap: 16px;
+    padding-right: 150px;
+  }
+}
+
 /* figma Tab_Group 34:11441: 35px strip, gap 36, pad-left 8, tabs bottom-aligned. */
+/* Collapsed navigation is the host's mobile state, independent of the device CSS viewport. */
+:global([data-dsh-frame][data-sidebar-collapsed]) .titleCluster {
+  flex: 0 1 auto;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions {
+  display: contents;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > span {
+  position: static;
+  margin-left: 4px;
+  align-self: center;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > div {
+  position: absolute;
+  right: 8px;
+  bottom: 0;
+  z-index: 2;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .headerActions [data-slot='conversation.session.header.actions'] > div:not(:last-child) {
+  right: 96px;
+}
+
+:global([data-dsh-frame][data-sidebar-collapsed]) .tabs {
+  gap: 16px;
+  padding-right: 150px;
+}
+
 .tabs {
   position: relative;
   z-index: 1;
@@ -152,6 +226,7 @@
   line-height: 16px;
   font-weight: 500;
   color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
   cursor: pointer;
 }
 

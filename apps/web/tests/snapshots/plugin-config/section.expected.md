@@ -10,6 +10,9 @@
     - button "模型":
       - img
       - text: 模型
+    - button "子代理":
+      - img
+      - text: 子代理
     - button "插件":
       - img
       - text: 插件
@@ -34,12 +37,4 @@
       - listitem:
         - 'button "展开设置: Agent 循环"':
           - text: Agent 循环 Agent 如何派发工具调用。
-          - img
-      - listitem:
-        - 'button "展开设置: 连续子代理"':
-          - text: 连续子代理 配置子代理委派默认值。
-          - img
-      - listitem:
-        - 'button "展开设置: 一次性子代理"':
-          - text: 一次性子代理 配置子代理委派默认值。
           - img

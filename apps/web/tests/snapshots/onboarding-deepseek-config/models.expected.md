@@ -10,6 +10,9 @@
     - button "模型":
       - img
       - text: 模型
+    - button "子代理":
+      - img
+      - text: 子代理
     - button "插件":
       - img
       - text: 插件

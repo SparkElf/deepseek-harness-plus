@@ -3,23 +3,35 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentError } from './error.ts'
 import type {
+  DocumentAttachmentLimits,
+  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
+  SaveFileAttachment,
   SaveImageAttachment,
+  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
 export { AttachmentId } from './brand.ts'
-export { AttachmentError, isImageAdmissionError } from './error.ts'
-export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
-export { admitEncodedImages } from './admission.ts'
+export { AttachmentError, isDocumentAdmissionError, isImageAdmissionError } from './error.ts'
+export type { AttachmentErrorCode, DocumentAdmissionErrorCode, ImageAdmissionErrorCode } from './error.ts'
+export { admitEncodedDocuments, admitEncodedImages } from './admission.ts'
 export type {
   AttachmentId as AttachmentIdType,
+  DocumentAttachmentLimits,
+  DocumentAttachmentRef,
+  DocumentMediaType,
+  EncodedDocumentAttachment,
   EncodedImageAttachment,
+  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
   ImageMediaType,
+  ParsedDocumentRef,
+  SaveFileAttachment,
   SaveImageAttachment,
+  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
@@ -29,7 +41,15 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Immutable binary attachment service. Implementations validate bytes before publishing a reference. */
+/** Explicit absence of generic-document support for image-only attachment providers. */
+const NO_DOCUMENT_CAPABILITY: DocumentAttachmentLimits = Object.freeze({
+  maxDocumentBytes: 1,
+  maxDocumentsPerMessage: 1,
+  maxMessageDocumentBytes: 1,
+  mediaTypes: Object.freeze([]),
+})
+
+/** Immutable binary attachment service. Implementations validate format-specific bytes before publishing references. */
 export abstract class AttachmentStore extends Service {
   constructor(ctx: Context) {
     super(ctx, 'attachments')
@@ -37,6 +57,38 @@ export abstract class AttachmentStore extends Service {
 
   /** Deployment-resolved image policy used by authoritative and fast-path validation. */
   abstract readonly imageLimits: ImageAttachmentLimits
+
+  /** Deployment-resolved document policy; an empty media-type set declares an image-only provider. */
+  readonly documentLimits: DocumentAttachmentLimits = NO_DOCUMENT_CAPABILITY
+
+  /**
+   * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
+   * @param input - immutable bytes plus caller-owned media/display metadata.
+   * @returns a durable content-addressed reference.
+   */
+  saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
+    void input
+    return Promise.reject(
+      new AttachmentError('This attachment provider does not support generic files.', 'ATTACHMENT_WRITE_FAILED'),
+    )
+  }
+
+  /**
+   * Read one generic file object and verify that its bytes still match the content-addressed reference.
+   * @param ref - durable generic-file reference to resolve.
+   * @param signal - optional cancellation for backend read and verification work.
+   * @returns the verified file bytes.
+   */
+  readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
+    if (signal?.aborted === true) {
+      const reason = signal.reason instanceof Error ? signal.reason : new Error('attachment read aborted')
+      return Promise.reject(reason)
+    }
+    void ref
+    return Promise.reject(
+      new AttachmentError('This attachment provider does not support generic files.', 'ATTACHMENT_READ_FAILED'),
+    )
+  }
 
   /**
    * Validate one image without persisting it.

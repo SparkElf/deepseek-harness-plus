@@ -2,11 +2,13 @@
 
 [English](README.md) | 中文
 
-持久二进制附件 seam 及其本地文件系统实现。两者均为产品包。
+持久二进制附件存储、提供方中立文档解析能力、本地内容寻址提供方，以及可选 MinerU HTTP 解析器。它们都是产品包；文档解析复用同一附件对象存储，不引入解析器自有存储。
 
 | 包 | 角色 | ctx 键 |
 |---|---|---|
-| `attachment/` | 不可变附件引用、图片限制和存储服务 | `ctx.attachments` |
-| `attachment-local/` | `DSH_HOME` 下的私有内容寻址存储 | （注册至 `ctx.attachments`） |
+| `attachment/` | 不可变文件/图片/文档引用、准入限制与存储服务 | `ctx.attachments` |
+| `attachment-local/` | `DSH_HOME` 下的私有内容寻址存储 | （提供 `ctx.attachments`） |
+| `document-parser/` | 解析提供方注册表与完整文档直读文本合计预算 | `ctx.documentParser` |
+| `document-parser-mineru/` | 同步外部 MinerU `/file_parse` 提供方 | （注册至 `ctx.documentParser`） |
 
-未发送的浏览器草稿刻意位于这项能力之外。只有用户提交提示词，或提供方适配器提交结构化模型输出时，字节才进入持久存储。
+未发送的浏览器草稿仍位于这项能力族之外。图片原件在所属用户事件前持久化。只有组合解析器后才宣告并接受文档输入；Host 会持久保存原件、完整 Markdown、`content_list` 与提取图片，通过完整渲染文档文本合计预算后，才把它们的必填引用写入用户事件。

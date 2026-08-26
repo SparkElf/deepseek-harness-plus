@@ -119,7 +119,7 @@
     provider: spawn
     toolName: subagent
     backgroundMode: continuable
-    maxDepth: 1
+    maxDepth: 0
 
 # Fork stays one-shot because a continuable child's `report` tool and prompt
 # section precede the inherited history a fork reuses; `run_in_background` is off
@@ -132,7 +132,7 @@
     toolName: subagent_fork
     backgroundMode: one-shot
     enableRunInBackground: false
-    maxDepth: 1
+    maxDepth: 0
 
 
 # The worker-thread workflow engine fans a model-written JavaScript script's

@@ -2,13 +2,13 @@
 
 English | [中文](README.zh.md)
 
-The **Plugins** settings section and its **Plugin configuration** tab. The section owns the heading and compact tab chrome; feature plugins contribute pages through `settings.plugins.tab`. This package's own tab shows one expandable card per Host plugin whose configuration a user owns. A card shows the plugin's name and what it governs; expanding it in place reveals hand-written controls bound to that plugin's settings namespace, each field marking whether the user overrode it and offering a reset back to the value the deployment composed.
+The dedicated **Subagents** settings section plus the **Plugins** section and its **Plugin configuration** tab. Subagents presents the continuous and one-shot modes as two tabs in one card; each mode keeps its own settings namespace, enable switch, and child defaults. The section owns the heading and compact tab chrome; feature plugins contribute pages through `settings.plugins.tab`. This package's own tab shows one expandable card per Host plugin whose configuration a user owns. A card shows the plugin's name and what it governs; expanding it in place reveals hand-written controls bound to that plugin's settings namespace, each field marking whether the user overrode it and offering a reset back to the value the deployment composed.
 
 ## What appears here
 
 The configurable tab reads which settings namespaces the Host serves and dispatches one slot key per namespace, so what renders is the intersection of two ledgers: the namespaces a live Host plugin registered, and the cards registered under those keys. A served namespace no card claims renders nothing — another surface owns it, or this deployment ships no browser half for it — and a card whose namespace this deployment does not serve is never dispatched, so an uncomposed plugin leaves no trace and does not hold the tab back from its empty line. The empty line waits for the Host's first answer, so an unanswered read never reads as "this deployment configures no plugin". Cards appear in the order they registered, which is stable for the cards one package installs together and not stable across plugins: apply order between packages is unconstrained.
 
-The cards this package ships cover the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), the DeepSeek search provider (`web-search-deepseek`), and the two shipped subagent delegation entries (`subagent` and `subagent-fork`).
+The cards this package ships cover the shell executor (`bash`), the agent loop's tool-call parallelism (`agent-loop`), and the DeepSeek search provider (`web-search-deepseek`). The Subagents section binds `subagent` and `subagent-fork` directly, so those product modes do not appear as plugin cards.
 
 ## Extension point
 
@@ -18,7 +18,7 @@ The section declares `settings.plugins.tab`, a root list slot whose labels becom
 
 A card stages what the user types and writes it only when they save. Each control renders staged text, so what is on screen is exactly what a save would store; **Discard** drops the drafts, and a card holding unsaved edits says so on its header even while collapsed. A reset stages the composed default rather than writing immediately, and a draft the field does not accept blocks the save instead of being dropped.
 
-Scalar cards write each staged field through a client settings scope, while each subagent card replaces its complete staged entry through its namespace scope. Both paths fence the write with the namespace revision they read, so a form that has drifted from the document is refused rather than overwriting a concurrent change. The scope folds a committed answer into the shared Settings mirror; a rejected replacement reports that the save did not land and keeps the draft for the user to correct.
+Scalar cards write each staged field through a client settings scope, while each mode in the Subagents section replaces its complete staged entry through its namespace scope. Both paths fence the write with the namespace revision they read, so a form that has drifted from the document is refused rather than overwriting a concurrent change. The scope folds a committed answer into the shared Settings mirror; a rejected replacement reports that the save did not land and keeps the draft for the user to correct.
 
 A key can also be written from another surface — the Models page addresses the same reference — which changes no settings section, so the card re-reads on the forwarded `credentials/updated` event for the reference it watches.
 

@@ -31,6 +31,7 @@ interface ConversationAttachmentFace {
     mode: InputSubmitMode,
     signal?: AbortSignal,
   ): Promise<SubmitOutcome>
+  draftImages(ids: readonly DraftAttachmentId[]): readonly { readonly id: DraftAttachmentId }[]
   serializeDraftImages(imageIds: readonly DraftAttachmentId[]): Promise<readonly SubmitImageAttachment[]>
   releaseDraftImage(id: DraftAttachmentId): void
 }
@@ -80,6 +81,7 @@ export class InputHub implements SessionInputResolver {
       defaultSink: (text, imageIds, mode, signal) => this.sink(session, text, imageIds, mode, signal),
       steerQueue: () => { void this.steerQueue(session, shell) },
       commandImages: {
+        selectIds: ids => this.conversation().draftImages(ids).map(image => image.id),
         serialize: ids => this.conversation().serializeDraftImages(ids),
         // Asymmetric with serialize on purpose: release settles AFTER the
         // submit RPC, where session teardown may already have unloaded the
@@ -90,6 +92,9 @@ export class InputHub implements SessionInputResolver {
           for (const imageId of ids) conversation?.releaseDraftImage(imageId)
         },
         unsupportedNotice: token => this.t('command.imagesUnsupported', {
+          command: token.trim().replace(/^\//u, ''),
+        }),
+        unsupportedDocumentNotice: token => this.t('command.documentsUnsupported', {
           command: token.trim().replace(/^\//u, ''),
         }),
       },
