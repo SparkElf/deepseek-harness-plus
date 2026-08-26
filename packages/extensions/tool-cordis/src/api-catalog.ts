@@ -428,12 +428,29 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   {
     key: 'attachments',
     summary: 'Immutable binary attachment service.',
-    description: 'Immutable binary attachment service. Implementations validate bytes before publishing a reference.',
+    description: 'Immutable binary attachment service. Implementations validate format-specific bytes before publishing references.',
     methods: [
       {
         signature: 'abstract readonly imageLimits: ImageAttachmentLimits',
         description: 'Deployment-resolved image policy used by authoritative and fast-path validation.',
         parameters: [],
+      },
+      {
+        signature: 'readonly documentLimits: DocumentAttachmentLimits = NO_DOCUMENT_CAPABILITY',
+        description: 'Deployment-resolved document policy; an empty media-type set declares an image-only provider.',
+        parameters: [],
+      },
+      {
+        signature: 'saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef>',
+        description: 'Persist one format-agnostic immutable object after its caller has completed domain-specific admission.',
+        parameters: [{ name: 'input', description: 'immutable bytes plus caller-owned media/display metadata.' }],
+        returns: 'a durable content-addressed reference.',
+      },
+      {
+        signature: 'readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment>',
+        description: 'Read one generic file object and verify that its bytes still match the content-addressed reference.',
+        parameters: [{ name: 'ref', description: 'durable generic-file reference to resolve.' }, { name: 'signal', description: 'optional cancellation for backend read and verification work.' }],
+        returns: 'the verified file bytes.',
       },
       {
         signature: 'abstract validateImage(input: SaveImageAttachment): Promise<void>',
@@ -619,6 +636,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'The backend\'s interaction capability.',
         parameters: [],
         returns: 'the discriminated capability consumers switch on.',
+      },
+    ],
+  },
+  {
+    key: 'documentParser',
+    summary: 'Provider-neutral parser registry and direct-context policy owner.',
+    description: 'Provider-neutral parser registry and direct-context policy owner.',
+    methods: [
+      {
+        signature: 'readonly maxDirectMarkdownBytes: number',
+        description: 'Maximum aggregate rendered-document bytes Host admission may attach in one submitted message.',
+        parameters: [],
+      },
+      {
+        signature: 'registerProvider(provider: DocumentParserProvider): () => void',
+        description: 'Register one parser provider until the owning Cordis fiber disposes.',
+        parameters: [{ name: 'provider', description: 'provider implementation keyed by its non-empty id.' }],
+        returns: 'disposer that withdraws exactly this registration.',
+      },
+      {
+        signature: 'isSelectionResolvable(): boolean',
+        description: 'Report whether current registry state resolves the configured provider selection. This does not probe provider health or external endpoint availability.',
+        parameters: [],
+        returns: 'true only when a parse call can select exactly one registered provider.',
+      },
+      {
+        signature: 'async parse( request: DocumentParseRequest, signal?: AbortSignal, ): Promise<{ parser: string; result: DocumentParseResult }>',
+        description: 'Parse one already-persisted document through the deployment-selected provider.',
+        parameters: [{ name: 'request', description: 'verified original bytes and their durable metadata.' }, { name: 'signal', description: 'optional cancellation forwarded to the provider.' }],
+        returns: 'provider id together with the complete transient parse bundle.',
       },
     ],
   },
@@ -2955,7 +3002,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ContentBlockMap',
-    declaration: 'export interface ContentBlockMap {\n    \'text\': TextBlock;\n    \'reasoning\': ReasoningBlock;\n    \'image\': ImageBlock;\n    \'tool-call\': ToolCallBlock;\n    \'tool-result\': ToolResultBlock;\n}',
+    declaration: 'export interface ContentBlockMap {\n    \'text\': TextBlock;\n    \'reasoning\': ReasoningBlock;\n    \'image\': ImageBlock;\n    \'document\': DocumentBlock;\n    \'tool-call\': ToolCallBlock;\n    \'tool-result\': ToolResultBlock;\n}',
   },
   {
     name: 'ContentBlockType',
@@ -3078,6 +3125,34 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
   },
   {
+    name: 'DocumentAttachmentLimits',
+    declaration: 'export interface DocumentAttachmentLimits {\n    maxDocumentBytes: number;\n    maxDocumentsPerMessage: number;\n    maxMessageDocumentBytes: number;\n    mediaTypes: readonly DocumentMediaType[];\n}',
+  },
+  {
+    name: 'DocumentAttachmentRef',
+    declaration: 'export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, \'mediaType\' | \'name\'> {\n    mediaType: DocumentMediaType;\n    name: string;\n}',
+  },
+  {
+    name: 'DocumentBlock',
+    declaration: 'export interface DocumentBlock {\n    type: \'document\';\n    attachment: DocumentAttachmentRef;\n    parsed: ParsedDocumentRef;\n}',
+  },
+  {
+    name: 'DocumentMediaType',
+    declaration: 'export type DocumentMediaType = \'application/pdf\' | \'application/vnd.openxmlformats-officedocument.wordprocessingml.document\' | \'application/vnd.openxmlformats-officedocument.presentationml.presentation\' | \'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\';',
+  },
+  {
+    name: 'DocumentParseRequest',
+    declaration: 'export interface DocumentParseRequest {\n    attachment: DocumentAttachmentRef;\n    data: Uint8Array;\n}',
+  },
+  {
+    name: 'DocumentParseResult',
+    declaration: 'export interface DocumentParseResult {\n    markdown: Uint8Array;\n    contentList: Uint8Array;\n    images: readonly ParsedDocumentImage[];\n}',
+  },
+  {
+    name: 'DocumentParserProvider',
+    declaration: 'export interface DocumentParserProvider {\n    readonly id: string;\n    parse(request: DocumentParseRequest, signal?: AbortSignal): Promise<DocumentParseResult>;\n}',
+  },
+  {
     name: 'Domain',
     declaration: 'export interface Domain<S extends DomainSpec> {\n    readonly name: string;\n    readonly global: DomainGlobalHandleOf<S>;\n    table<N extends keyof S[\'tables\'] & string>(name: N): KvTable<TableKeyOf<S, N>, TableValueOf<S, N>>;\n    close(): Promise<void>;\n}',
   },
@@ -3160,6 +3235,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'EpochHeader',
     declaration: 'export interface EpochHeader {\n    config: LlmCallConfig;\n    adapterDefaults?: LlmCallConfigAdapterDefaults;\n    system?: string;\n    tools?: ToolSchema[];\n}',
+  },
+  {
+    name: 'FileAttachmentRef',
+    declaration: 'export interface FileAttachmentRef {\n    attachmentId: AttachmentId;\n    mediaType: string;\n    bytes: number;\n    name?: string;\n}',
   },
   {
     name: 'FileDiff',
@@ -3610,6 +3689,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
   },
   {
+    name: 'ParsedDocumentImage',
+    declaration: 'export interface ParsedDocumentImage {\n    name: string;\n    mediaType: ImageMediaType;\n    data: Uint8Array;\n}',
+  },
+  {
+    name: 'ParsedDocumentRef',
+    declaration: 'export interface ParsedDocumentRef {\n    parser: string;\n    markdown: FileAttachmentRef;\n    contentList: FileAttachmentRef;\n    images: ImageAttachmentRef[];\n}',
+  },
+  {
     name: 'PermissionSelect',
     declaration: 'export interface PermissionSelect {\n    options: PresetOption[];\n    currentValue: string;\n}',
   },
@@ -3812,6 +3899,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SandboxPolicyRequest',
     declaration: 'export interface SandboxPolicyRequest {\n    session?: Session;\n    mode?: SandboxMode;\n}',
+  },
+  {
+    name: 'SaveFileAttachment',
+    declaration: 'export interface SaveFileAttachment {\n    data: Uint8Array;\n    mediaType: string;\n    name?: string;\n}',
   },
   {
     name: 'SaveImageAttachment',
@@ -4244,6 +4335,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'StorageForms',
     declaration: 'export interface StorageForms {\n}',
+  },
+  {
+    name: 'StoredFileAttachment',
+    declaration: 'export interface StoredFileAttachment {\n    ref: FileAttachmentRef;\n    data: Uint8Array;\n}',
   },
   {
     name: 'StoredImageAttachment',

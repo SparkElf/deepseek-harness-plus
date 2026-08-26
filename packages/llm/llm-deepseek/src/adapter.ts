@@ -8,7 +8,7 @@
  * @module dsh-llm-deepseek/adapter
  */
 
-import { attributionHeaders, contentHasImage, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { attributionHeaders, contentHasImage, contentHasDocument, CONTEXT_WINDOW_EXCEEDED_CODE, isContextWindowExceededError, isQuotaExceededError, LlmAdapter, LlmError, projectRequestDocumentsWithAttachments, ProviderRequestId, QUOTA_EXCEEDED_CODE, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions,
   LlmModelInfo,
@@ -226,23 +226,38 @@ export class DeepSeekAdapter extends LlmAdapter {
   }
 
   async * stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-    // One resolution per stream call: connection facts and the credential
-    // freeze here and hold for this whole request, so an in-flight stream
-    // never observes a configuration change and the next call re-resolves.
-    // The key resolves *from this snapshot*, so an endpoint and the secret
-    // sent to it can never come from different configuration generations.
+    // provider/model snapshot必须在任何attachment I/O前固定；同一请求不会递归重进stream或跨配置generation。
     const connection = this.config.options()
-    const hasImages = options.messages.some(message => contentHasImage(message.content))
+    const model = connection.models.find(entry => entry.id === options.model)
+    const supportsImages = model?.inputModalities?.includes('image') === true
+    let requestOptions = options
+    let documentAttachments: AttachmentStore | undefined
+    if (options.messages.some(message => contentHasDocument(message.content))) {
+      documentAttachments = this.config.resolveAttachments?.()
+      if (documentAttachments === undefined) {
+        throw new LlmError(
+          'DeepSeek parsed-document conversion requires the durable attachment service.',
+          'UNSUPPORTED_CONTENT',
+        )
+      }
+      const messages = await projectRequestDocumentsWithAttachments(
+        options.messages,
+        documentAttachments,
+        options.signal,
+      )
+      requestOptions = { ...options, messages }
+    }
+
+    const hasImages = requestOptions.messages.some(message => contentHasImage(message.content))
     let attachments: AttachmentStore | undefined
     if (hasImages) {
-      const model = connection.models.find(entry => entry.id === options.model)
-      if (model?.inputModalities?.includes('image') !== true) {
+      if (!supportsImages) {
         throw new LlmError(
           `DeepSeek model "${options.model}" does not accept image input.`,
           'UNSUPPORTED_CONTENT',
         )
       }
-      attachments = this.config.resolveAttachments?.()
+      attachments = documentAttachments ?? this.config.resolveAttachments?.()
       if (attachments === undefined) {
         throw new LlmError(
           'DeepSeek image conversion requires the durable attachment service.',
@@ -250,6 +265,7 @@ export class DeepSeekAdapter extends LlmAdapter {
         )
       }
     }
+    // The key resolves from the same frozen connection snapshot.
     const apiKey = await this.config.resolveApiKey(connection)
     const userId = this.config.resolveUserId()
     const consumer = new AbortController()
@@ -258,7 +274,7 @@ export class DeepSeekAdapter extends LlmAdapter {
       : AbortSignal.any([options.signal, consumer.signal])
     using watchdog = idleWatchdog(upstream, connection.streamIdleTimeoutMs, STREAM_IDLE_TIMEOUT_CODE)
     const iterator = this.request(
-      options,
+      requestOptions,
       watchdog.signal,
       connection,
       apiKey,

@@ -30,14 +30,14 @@ Host 在接受消息前验证完整 document batch，把每个原始文档保存
 
 ### Parsed document reference
 
-解析成功的文档同时保留原始 `DocumentAttachmentRef` 与 parser 输出的持久引用。精确类型名可以在实现中按仓库约定细化，但目标信息为：
+解析成功的文档同时保留原始 `DocumentAttachmentRef` 与 parser 输出的持久引用。实现采用以下字段：
 
 ```text
 interface ParsedDocumentRef {
-  parser: 'mineru'
-  markdownAttachmentId: AttachmentId
-  contentListAttachmentId: AttachmentId
-  imageAttachmentIds: readonly AttachmentId[]
+  parser: string
+  markdown: FileAttachmentRef
+  contentList: FileAttachmentRef
+  images: readonly ImageAttachmentRef[]
 }
 
 interface DocumentBlock {
@@ -69,7 +69,7 @@ browser draft
   -> host persists original documents
   -> MinerU parses each required document
   -> host validates and persists Markdown/content_list/images
-  -> host proves parsed Markdown fits the configured version-one model projection budget
+  -> host proves the complete rendered document text, including delimiters and metadata, fits the configured version-one model projection budget
   -> host appends the user message with durable DocumentBlock references
 ```
 
@@ -81,7 +81,7 @@ browser draft
 
 首版以 parsed Markdown 作为 provider-neutral model representation。provider/request projection 在发送模型请求时解析 durable Markdown reference，并输出带原始文档名和完整解析内容的清晰分隔文本。这样普通文本模型就能使用文档，不要求每个 LLM adapter 理解 PDF 或 OOXML bytes。
 
-首版明确只接受 parsed Markdown 能放进可配置 direct-context budget 的文档。如果解析结果超过这个 budget，系统在 user event 写入前明确拒绝；不会悄悄截断文档，也不会把 partial document 当成完整内容。
+首版明确只接受完整渲染文本能放进可配置 direct-context budget 的文档。准入计算完整 Markdown、文档分隔符与元数据；如果结果超过 budget，系统会在 user event 写入前明确拒绝，而不会截断文档或把 partial content 当成完整内容。
 
 长文档 retrieval 是后续能力，不是首个 parser integration 中隐藏的子系统。持久 `content_list` 为未来 `read_document`/`search_document` 工具、block/page read 或 semantic retrieval 留下直接基础，不需要重新解析原文档。首版不增加 embedding、vector database、自动 chunk/RAG orchestration、rerank 或固定 LangGraph 式 document workflow。
 
@@ -138,7 +138,7 @@ DSH 继续作为 model projection、session replay、resume、fork 和 session e
 - MinerU integration 可以通过 `/file_parse` 同步解析已持久化支持文档，并保存 Markdown、`content_list` 与 extracted images，不把临时 parser path 写进 session。
 - parse 或 persistence 失败不追加 user event，并恢复 browser draft；不增加自动 retry 或推测性 background queue。
 - 接受后的 `DocumentBlock` 能通过 session log + durable attachment object 在 reload、resume、fork 中重建。
-- 小/中型接受文档把完整 parsed Markdown 投影给 text-capable model；超过 budget 的 parsed output 明确失败而不是静默截断。
+- 小/中型接受文档把完整 parsed Markdown 投影给 text-capable model；超过 budget 的完整渲染文档文本明确失败而不是静默截断。
 - extracted image 保持 durable，`content_list` 保存 page/block structure 供后续 Harness tool 使用，但首版不在每次请求自动注入所有 extracted image。
 - 实现增加聚焦的 attachment/parser test、Web composer/history behavior test、session replay coverage、provider projection coverage 和真实 Loader composition test。
 - 首版不增加 vector database、embedding、automatic RAG pipeline、MinerU task persistence、embedded Python runtime 或第二套 attachment store。

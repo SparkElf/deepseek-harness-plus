@@ -17,11 +17,11 @@ import {
 import type {} from '@deepseek-ai/dsh-plan-mode/client'
 // Type-only: the `goal` projection key merge (hint disambiguation).
 import type {} from '@deepseek-ai/dsh-goal/client'
-// The `imageLimits` projection key merge (intake pre-check) arrives with the
-// wire types: apiproxy's sessions contract declares it, and client-runtime's
-// api-remotes import already places it in every client program.
+// The attachment-limit projection key merges arrive through apiproxy's
+// sessions contract and are therefore available in every client program.
 import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ComposerBarProps } from '../contract/slots.ts'
+import type {} from '../document-attachments.ts'
 import { deriveDecorations } from '../input/decorations.ts'
 import type { DraftDecorations } from '../input/decorations.ts'
 import { attachmentErrorText, imageSizeText } from '../image-labels.ts'
@@ -38,6 +38,7 @@ export type InputBarProps = ComposerBarProps
 
 export function InputBar({
   useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
+  addDocuments, removeDocument, draftDocuments,
   resolveSubmitMode, toggleCommandMenu, stop, command, t,
   renderSlot, useNotices, useLexicon, useMenuLauncher,
   useProjection, sessionId, variant, disabled: inert = false, blocked,
@@ -61,12 +62,19 @@ export function InputBar({
   // current; the bar renders the same DOM inert instead of a parallel tree.
   const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
   const draft = input?.draft ?? ''
+  // One opaque input id list owns both kinds. Runtime registries filter it into
+  // presentation groups while preserving the id list as the authoritative
+  // relative ordering for Host serialization.
   const attachments = useMemo(
     () => input === undefined || draftImages === undefined ? [] : draftImages(input.imageIds),
     [draftImages, input?.imageIds],
   )
-  const empty = draft.trim() === '' && attachments.length === 0
-  // Transient error banner (machine notices, image-intake rejections, and
+  const documents = useMemo(
+    () => input === undefined || draftDocuments === undefined ? [] : draftDocuments(input.imageIds),
+    [draftDocuments, input?.imageIds],
+  )
+  const empty = draft.trim() === '' && attachments.length === 0 && documents.length === 0
+  // Transient error banner (machine notices, attachment-intake rejections, and
   // prompt failures): the seq keys the Toast so an identical repeated message
   // restarts the hold-then-fade cycle instead of reusing the faded one.
   const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
@@ -76,22 +84,21 @@ export function InputBar({
     setToast({ seq: toastSeq.current, text })
   }, [])
   const dismissToast = useCallback(() => { setToast(null) }, [])
-  // The deployment's image-intake limits (absent while no attachment service
-  // is composed — the pre-check below then defers entirely to the host).
+  // Projection presence is the live upload capability: image limits require the
+  // attachment service, while document limits additionally require a parser.
   const imageLimits = useProjection('imageLimits')
+  const documentLimits = useProjection('documentLimits')
   // Prompt failures are ordinary failures (no create/attach transaction exists
   // anymore): the toast announces promptError, the draft stays in the machine,
   // and the user resubmits. A remount over a session whose machine still holds
   // an unresolved promptError deliberately re-announces it once — the failure
-  // is still pending, and a transient banner is its only surface. Attachment
-  // rejections show product copy keyed by the wire reason; other codes are
-  // developer-facing and keep the raw message plus code.
+  // is still pending, and a transient banner is its only surface.
   useEffect(() => {
     if (promptError === null) return
     showToast(promptError.error.code === 'attachment-error'
-      ? attachmentErrorText(t, promptError.error.details.reason, imageLimits)
+      ? attachmentErrorText(t, promptError.error.details.reason, imageLimits, documentLimits)
       : `${promptError.error.message} (${promptError.error.code})`)
-  }, [promptError, showToast, t, imageLimits])
+  }, [promptError, showToast, t, imageLimits, documentLimits])
   useEffect(() => {
     if (notice?.level === 'error') showToast(notice.text)
   }, [notice, showToast])
@@ -142,12 +149,15 @@ export function InputBar({
   const canSteerQueue = !locked && !machineBusy && !commandMenuOpen && empty && running && subagent === null
     && input.queue.some(row => row.placement === 'queued')
 
+  // The machine's `imageIds` field is the ordered opaque registry key list for
+  // every draft attachment kind. Prune only ids whose runtime object disappeared.
   useEffect(() => {
     if (input === undefined || inputActions === undefined) return
-    if (attachments.length !== input.imageIds.length) {
-      inputActions.pruneImages(attachments.map(attachment => attachment.id))
+    const liveIds = new Set([...attachments, ...documents].map(attachment => attachment.id))
+    if (liveIds.size !== input.imageIds.length) {
+      inputActions.pruneImages(input.imageIds.filter(id => liveIds.has(id)))
     }
-  }, [attachments, input?.imageIds, inputActions])
+  }, [attachments, documents, input?.imageIds, inputActions])
 
   // A native Safari edit that shortens the draft may leave the previous
   // soft-wrap layout behind after the mirror shrinks. The native-change signal
@@ -413,7 +423,7 @@ export function InputBar({
       .filter(item => item.kind === 'file')
       .map(item => item.getAsFile())
       .filter((file): file is File => file !== null)
-    if (files.length > 0) intakeImages(files)
+    if (files.length > 0) intakeFiles(files)
     const text = e.clipboardData.getData('text/plain')
     if (text === '') {
       if (files.length > 0) e.preventDefault()
@@ -432,18 +442,12 @@ export function InputBar({
     keyboard.track(keyboard.snapshot.draft, caret)
   }
 
-  // Intake pre-check (DeepSeek Chat semantics): an addition that would break
-  // a projected limit is refused as a whole batch, announced immediately, and
-  // never enters the rail — no more submit-time failure rolling the rail
-  // back. The host enforces the same limits at submit for callers that bypass
-  // this composer.
+  // Image intake pre-check: a rejected addition never enters the rail. Host
+  // repeats the same authoritative limits for callers bypassing this composer.
   const intakeImages = useCallback((files: readonly File[]): void => {
     if (addImages === undefined || files.length === 0) return
     const rejected = ((): string | null => {
       if (imageLimits !== undefined) {
-        // Format precedes limits (DeepSeek Chat's filter order): a batch with
-        // a non-image must announce the format problem, not a count or size
-        // it could never pass anyway — addImages rejects it authoritatively.
         if (files.some(file => !(imageLimits.mediaTypes as readonly string[]).includes(file.type))) {
           return addImages(files)
         }
@@ -464,7 +468,46 @@ export function InputBar({
     if (rejected !== null) showToast(rejected)
   }, [addImages, attachments, imageLimits, showToast, t])
 
-  const canAcceptDrop = !locked && !machineBusy && addImages !== undefined
+  // Generic document intake mirrors Host count/per-file/aggregate limits. MIME
+  // and required filename validation remain authoritative in addDocuments/Host.
+  const intakeDocuments = useCallback((files: readonly File[]): void => {
+    if (files.length === 0) return
+    if (addDocuments === undefined || documentLimits === undefined) {
+      showToast(t('document.unavailable'))
+      return
+    }
+    const rejected = ((): string | null => {
+      if (files.some(file => !(documentLimits.mediaTypes as readonly string[]).includes(file.type))) {
+        return addDocuments(files)
+      }
+      if (documents.length + files.length > documentLimits.maxDocumentsPerMessage) {
+        return t('document.tooMany', { count: documentLimits.maxDocumentsPerMessage })
+      }
+      if (files.some(file => file.size > documentLimits.maxDocumentBytes)) {
+        return t('document.fileTooLarge', { size: imageSizeText(documentLimits.maxDocumentBytes) })
+      }
+      const total = documents.reduce((sum, attachment) => sum + attachment.file.size, 0)
+        + files.reduce((sum, file) => sum + file.size, 0)
+      if (total > documentLimits.maxMessageDocumentBytes) {
+        return t('document.totalTooLarge', { size: imageSizeText(documentLimits.maxMessageDocumentBytes) })
+      }
+      return addDocuments(files)
+    })()
+    if (rejected !== null) showToast(rejected)
+  }, [addDocuments, documentLimits, documents, showToast, t])
+
+  const intakeFiles = useCallback((files: readonly File[]): void => {
+    const images: File[] = []
+    const genericDocuments: File[] = []
+    for (const file of files) {
+      if (file.type.startsWith('image/')) images.push(file)
+      else genericDocuments.push(file)
+    }
+    intakeImages(images)
+    intakeDocuments(genericDocuments)
+  }, [intakeDocuments, intakeImages])
+
+  const canAcceptDrop = !locked && !machineBusy && (addImages !== undefined || addDocuments !== undefined)
 
   const onSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>): void => {
     // Any caret/selection gesture ends a live paste attempt (the machine
@@ -634,12 +677,19 @@ export function InputBar({
         {accessory !== undefined && <div className={css.accessory}>{accessory}</div>}
         {renderSlot('conversation.input.attachments', {
           attachments,
+          documents,
           canAcceptDrop,
           onAddImages: intakeImages,
+          onAddDocuments: intakeDocuments,
           onRemoveImage: (id) => { removeImage?.(id) },
+          onRemoveDocument: (id) => { removeDocument?.(id) },
           dropLimits: imageLimits === undefined ? undefined : {
             count: imageLimits.maxImagesPerMessage,
             size: imageSizeText(imageLimits.maxImageBytes),
+          },
+          documentDropLimits: documentLimits === undefined ? undefined : {
+            count: documentLimits.maxDocumentsPerMessage,
+            size: imageSizeText(documentLimits.maxDocumentBytes),
           },
         })}
         {/* One scrollport, two text layers. The hidden mirror renders draft+'\n' and stretches the

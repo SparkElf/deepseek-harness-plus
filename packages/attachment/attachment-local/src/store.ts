@@ -9,9 +9,12 @@ import {
   AttachmentId,
 } from '@deepseek-ai/dsh-attachment'
 import type {
+  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
+  SaveFileAttachment,
   SaveImageAttachment,
+  StoredFileAttachment,
   StoredImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
 import { detectImage, probeImage } from './image.ts'
@@ -37,7 +40,7 @@ function objectPath(root: string, sha256: string): string {
   return join(root, 'objects', sha256.slice(0, 2), sha256)
 }
 
-function ensureReference(ref: ImageAttachmentRef): string {
+function ensureReference(ref: Pick<FileAttachmentRef, 'attachmentId'>): string {
   const match = ID_PATTERN.exec(String(ref.attachmentId))
   if (match?.[1] === undefined) throw new AttachmentError('Attachment reference is invalid.', 'INVALID_ATTACHMENT_REF')
   return match[1]
@@ -126,17 +129,9 @@ async function ensureDurableHome(path: string): Promise<string> {
   return home
 }
 
-/**
- * Save and verify immutable image bytes below a versioned attachment root.
- * @param root - absolute `DSH_HOME/attachments/v1` root.
- * @param input - encoded bytes and declared metadata.
- * @param limits - resolved storage policy.
- * @returns durable content-addressed reference.
- */
-export async function saveImageFile(root: string, input: SaveImageAttachment, limits: ImageAttachmentLimits): Promise<ImageAttachmentRef> {
-  if (input.data.byteLength > limits.maxImageBytes) throw new AttachmentError('Image exceeds the configured byte limit.', 'IMAGE_TOO_LARGE')
-  const metadata = await inspectMetadata(input.data, input.mediaType, limits)
-  const sha256 = digest(input.data)
+/** Publish bytes once into the shared content-addressed object namespace. */
+async function saveObject(root: string, data: Uint8Array, failureMessage: string): Promise<{ sha256: string; attachmentId: AttachmentId }> {
+  const sha256 = digest(data)
   const bucket = join(root, 'objects', sha256.slice(0, 2))
   const staging = join(root, 'tmp')
   // Establish DSH_HOME itself against the filesystem root once per process.
@@ -150,13 +145,14 @@ export async function saveImageFile(root: string, input: SaveImageAttachment, li
   let handle
   try {
     handle = await open(temporary, constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY, 0o600)
-    await handle.writeFile(input.data)
+    await handle.writeFile(data)
     await handle.sync()
     await handle.close()
     handle = undefined
     try {
       await link(temporary, target)
     } catch (error) {
+      console.debug('attachment-local: immutable object link did not publish', error)
       /* v8 ignore next -- Private same-filesystem directories make EEXIST the only recoverable link race. */
       if (!(error instanceof Error && 'code' in error && error.code === 'EEXIST')) throw error
       const existing = new Uint8Array(await readFile(target))
@@ -170,24 +166,87 @@ export async function saveImageFile(root: string, input: SaveImageAttachment, li
     await syncDirectory(join(root, 'objects'))
     await unlink(temporary)
   } catch (error) {
+    console.error('attachment-local: immutable object write failed', error)
     /* v8 ignore next -- A descriptor can remain open only when the underlying write/sync/close operation fails. */
-    if (handle !== undefined) await handle.close().catch(
-      /* v8 ignore next -- Close failure is superseded by the storage operation that entered cleanup. */
-      () => {},
-    )
-    await unlink(temporary).catch(
-      /* v8 ignore next -- The callback requires a second independent staging-unlink failure. */
-      (cleanupError: unknown) => {
-        /* v8 ignore next -- Cleanup is best-effort only for a staging file already removed by a failed operation. */
-        if (!(cleanupError instanceof Error && 'code' in cleanupError && cleanupError.code === 'ENOENT')) throw cleanupError
-      },
-    )
+    if (handle !== undefined) {
+      try {
+        await handle.close()
+      } catch (cleanupError: unknown) {
+        console.error('attachment-local: staging descriptor cleanup failed', cleanupError)
+      }
+    }
+    try {
+      await unlink(temporary)
+    } catch (cleanupError: unknown) {
+      console.error('attachment-local: staging file cleanup failed', cleanupError)
+    }
     if (error instanceof AttachmentError) throw error
-    throw new AttachmentError('Unable to persist image attachment.', 'ATTACHMENT_WRITE_FAILED', { cause: error })
+    throw new AttachmentError(failureMessage, 'ATTACHMENT_WRITE_FAILED', { cause: error })
   }
+  return { sha256, attachmentId: AttachmentId(`sha256:${sha256}`) }
+}
+
+/**
+ * Persist format-agnostic immutable bytes for documents and parser artifacts.
+ * @param root - absolute `DSH_HOME/attachments/v1` root.
+ * @param input - already-admitted immutable bytes plus media/display metadata.
+ * @returns durable content-addressed generic-file reference.
+ */
+export async function saveFileObject(root: string, input: SaveFileAttachment): Promise<FileAttachmentRef> {
+  const { attachmentId } = await saveObject(root, input.data, 'Unable to persist attachment.')
   const name = displayName(input.name)
   return {
-    attachmentId: AttachmentId(`sha256:${sha256}`),
+    attachmentId,
+    mediaType: input.mediaType,
+    bytes: input.data.byteLength,
+    ...(name !== undefined ? { name } : {}),
+  }
+}
+
+/**
+ * Read one generic immutable object and verify digest and encoded length.
+ * @param root - absolute `DSH_HOME/attachments/v1` root.
+ * @param ref - durable generic-file reference recorded by a consumer.
+ * @param signal - optional cancellation for filesystem and verification work.
+ * @returns verified immutable bytes and the canonical reference.
+ */
+export async function readFileObject(
+  root: string,
+  ref: FileAttachmentRef,
+  signal?: AbortSignal,
+): Promise<StoredFileAttachment> {
+  signal?.throwIfAborted()
+  const sha256 = ensureReference(ref)
+  let data: Uint8Array
+  try {
+    data = new Uint8Array(await readFile(objectPath(root, sha256), { signal }))
+  } catch (error) {
+    console.error('attachment-local: immutable file read failed', error)
+    signal?.throwIfAborted()
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') throw new AttachmentError('Attachment object is missing.', 'ATTACHMENT_NOT_FOUND', { cause: error })
+    throw new AttachmentError('Unable to read attachment.', 'ATTACHMENT_READ_FAILED', { cause: error })
+  }
+  signal?.throwIfAborted()
+  if (digest(data) !== sha256 || data.byteLength !== ref.bytes) {
+    throw new AttachmentError('Stored attachment failed integrity verification.', 'ATTACHMENT_CORRUPT')
+  }
+  return { ref, data }
+}
+
+/**
+ * Save and verify immutable image bytes below a versioned attachment root.
+ * @param root - absolute `DSH_HOME/attachments/v1` root.
+ * @param input - encoded bytes and declared metadata.
+ * @param limits - resolved storage policy.
+ * @returns durable content-addressed reference.
+ */
+export async function saveImageFile(root: string, input: SaveImageAttachment, limits: ImageAttachmentLimits): Promise<ImageAttachmentRef> {
+  if (input.data.byteLength > limits.maxImageBytes) throw new AttachmentError('Image exceeds the configured byte limit.', 'IMAGE_TOO_LARGE')
+  const metadata = await inspectMetadata(input.data, input.mediaType, limits)
+  const { attachmentId } = await saveObject(root, input.data, 'Unable to persist image attachment.')
+  const name = displayName(input.name)
+  return {
+    attachmentId,
     ...metadata,
     ...(name !== undefined ? { name } : {}),
   }
@@ -212,8 +271,9 @@ export async function readImageFile(
   try {
     data = new Uint8Array(await readFile(objectPath(root, sha256), { signal }))
   } catch (error) {
+    console.error('attachment-local: immutable image read failed', error)
     signal?.throwIfAborted()
-    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') throw new AttachmentError('Attachment object is missing.', 'ATTACHMENT_NOT_FOUND')
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') throw new AttachmentError('Attachment object is missing.', 'ATTACHMENT_NOT_FOUND', { cause: error })
     throw new AttachmentError('Unable to read image attachment.', 'ATTACHMENT_READ_FAILED', { cause: error })
   }
   signal?.throwIfAborted()

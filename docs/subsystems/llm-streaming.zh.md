@@ -23,12 +23,28 @@ interface ContentBlockMap {
   'text': TextBlock
   'reasoning': ReasoningBlock
   'image': ImageBlock
+  'document': DocumentBlock
   'tool-call': ToolCallBlock
   'tool-result': ToolResultBlock
 }
 ```
 
-各块接口（完整字段见源码）：`TextBlock`（`text`）、`ReasoningBlock`（thinking，区别于可见文本）、`ImageBlock`（一个持久的[图片附件](attachment.md)）、`ToolCallBlock`（`id: CallId`、`name`、原始 JSON `arguments`），以及 `ToolResultBlock`（`toolCallId`、嵌套 `content: ContentBlock[]`、`isError?`）。`ContentBlock = ContentBlockMap[ContentBlockType]`。仅当适配器、UI、压缩（compaction）和持久回放路径均支持某种新模态时，才将其纳入可合并扩展的 map。
+```ts type-equiv
+/**
+ * A durable generic document with required original and parsed references. The
+ * Host commits both before the user event; adapters resolve complete Markdown
+ * transiently for each model request.
+ */
+interface DocumentBlock {
+  type: 'document'
+  /** Immutable original document bytes and display metadata owned by the attachment service. */
+  attachment: DocumentAttachmentRef
+  /** Required immutable provider-neutral parser outputs used by model projection and document tools. */
+  parsed: ParsedDocumentRef
+}
+```
+
+各块接口（完整字段见源码）：`TextBlock`（`text`）、`ReasoningBlock`（thinking，区别于可见文本）、`ImageBlock`（一个持久的[图片附件](attachment.md)）、`DocumentBlock`（必填的原件与解析引用；每次请求临时解析完整 Markdown）、`ToolCallBlock`（`id: CallId`、`name`、原始 JSON `arguments`），以及 `ToolResultBlock`（`toolCallId`、嵌套 `content: ContentBlock[]`、`isError?`）。`ContentBlock = ContentBlockMap[ContentBlockType]`。仅当适配器、UI、压缩（compaction）和持久回放路径均支持某种新模态时，才将其纳入可合并扩展的 map。
 
 源码：[`packages/llm/llm/src/message.ts`](../../packages/llm/llm/src/message.ts)
 

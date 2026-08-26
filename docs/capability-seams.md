@@ -10,11 +10,14 @@ flowchart LR
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
-  pkg_host_runtime["host-runtime"]
+  pkg_apiproxy["apiproxy"]
+  pkg_llm_deepseek["llm-deepseek"]
   pkg_llm_pi_ai["llm-pi-ai"]
+  pkg_document_parser["document-parser"]
+  svc_documentParser["ctx.documentParser<br/>Provider-neutral document parsing"]
+  pkg_document_parser_mineru["document-parser-mineru"]
   pkg_llm["llm"]
   svc_llm["ctx.llm<br/>LLM adapter registry"]
-  pkg_llm_deepseek["llm-deepseek"]
   pkg_llm_replay["llm-replay"]
   pkg_agent_loop["agent-loop"]
   pkg_compaction_basic["compaction-basic"]
@@ -47,7 +50,6 @@ flowchart LR
   pkg_settings["settings"]
   svc_settings["ctx.settings<br/>User-settings seam"]
   pkg_settings_file["settings-file"]
-  pkg_apiproxy["apiproxy"]
   pkg_credentials["credentials"]
   svc_credentials["ctx.credentials<br/>Credential seam"]
   pkg_credentials_local["credentials-local"]
@@ -225,6 +227,8 @@ flowchart LR
   pkg_directory_picker --> svc_directoryPicker
   pkg_directory_picker_browse --> svc_directoryPicker
   pkg_directory_picker_native --> svc_directoryPicker
+  pkg_document_parser --> svc_documentParser
+  pkg_document_parser_mineru --> svc_documentParser
   pkg_e2b --> svc_e2b
   pkg_file_reference --> svc_fileReferences
   pkg_file_reference_local --> svc_fileReferences
@@ -313,7 +317,8 @@ flowchart LR
   svc_apiProxy --> pkg_connection
   svc_approval --> pkg_tool_bash
   svc_approval --> pkg_tools
-  svc_attachments --> pkg_host_runtime
+  svc_attachments --> pkg_apiproxy
+  svc_attachments --> pkg_llm_deepseek
   svc_attachments --> pkg_llm_pi_ai
   svc_clientModules --> pkg_hmr
   svc_codeRuntime --> pkg_tools
@@ -323,6 +328,7 @@ flowchart LR
   svc_credentials --> pkg_llm_deepseek
   svc_credentials --> pkg_llm_pi_ai
   svc_directoryPicker --> pkg_apiproxy
+  svc_documentParser --> pkg_apiproxy
   svc_dynamicCordisRunner --> pkg_tool_cordis
   svc_e2b --> pkg_fs_e2b
   svc_e2b --> pkg_subprocess_e2b
@@ -421,7 +427,8 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
-| `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | `host-runtime`, [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |
+| `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | `apiproxy`, [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai) | - | The Host commits accepted image originals and complete document bundles before session events; LLM adapters resolve authorized durable references into provider request content. |
+| `ctx.documentParser` | `seam` | [`document-parser`](../packages/attachment/document-parser) | [`document-parser-mineru`](../packages/attachment/document-parser-mineru) | `apiproxy` | - | The Host supplies durable original bytes to the selected parser, persists its complete transient bundle, and rejects the user event unless complete rendered-document admission succeeds. |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | Adapters register provider implementations; the loop and compaction call the provider-neutral stream service. |
 | `ctx.tokenMeter` | `core` | [`token-meter`](../packages/llm/token-meter) | - | [`compaction-basic`](../packages/compaction/compaction-basic) | - | Owns isolated per-session replay folds; pressure consumers share immutable revisioned measurements. |
 | `ctx.toolResultPruner` | `core` | [`compaction-tool-result-pruner`](../packages/compaction/compaction-tool-result-pruner) | - | [`compaction-basic`](../packages/compaction/compaction-basic) | - | Rewrites oversized current tool results through replayable single-node surface replacements before summary compaction. |
