@@ -30,8 +30,9 @@ const FILE_REFERENCE_PROMPT = fileURLToPath(new URL(
  * ripgrep-dependent pair below. The absences are deliberate, not incidental
  * gaps: the `cordis_*` toolset executes model-written JavaScript that no
  * sandbox row confines, `web_fetch` chooses its own request target, and
- * `mcp_*` servers spawn outside `ctx.shell`. The composition Agent Note owns the
- * rationale and its sources.
+ * `mcp_*` servers spawn outside `ctx.shell`, and subagent tools remain disabled
+ * until a member enables a delegation mode in Settings. The composition Agent
+ * Notes own the rationale and their sources.
  */
 const EXPECTED_TOOLS = [
   'ask_user_question',
@@ -48,10 +49,9 @@ const EXPECTED_TOOLS = [
   'ralph',
   'read',
   'read_image',
+  'render_chart',
   'send_message',
   'skill',
-  'subagent',
-  'subagent_fork',
   'todo_write',
   'update_goal',
   'web_search',

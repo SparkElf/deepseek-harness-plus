@@ -9,6 +9,7 @@ const PACKAGE_NAME = '@deepseek-ai/dsh-client-ui-chart'
 export const name = 'client-ui-chart-invariant'
 export const inject = ['invariants']
 
+// No runtime invariant: browser slot registration has no Host event or data relation to inspect.
 const install: InvariantInstaller = () => {}
 
 export const apply = (ctx: Context): Promise<() => void> =>

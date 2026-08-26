@@ -10,6 +10,9 @@
     - button "Models":
       - img
       - text: Models
+    - button "Subagents":
+      - img
+      - text: Subagents
     - button "Plugins":
       - img
       - text: Plugins

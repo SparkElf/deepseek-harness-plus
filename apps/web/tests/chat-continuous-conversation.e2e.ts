@@ -24,6 +24,7 @@ const MODE = webSnapshotMode()
 const TURN_COUNT = 12
 const TOOL_TURNS = [4, 9] as const
 const STREAM_PACE_MS = 10
+const PARTIAL_ENFORCEMENT_NOTICE = 'landlock-run: partial enforcement (older Landlock ABI)'
 
 interface TurnSpec {
   readonly index: number
@@ -310,7 +311,11 @@ describe('web e2e: continuous conversation grown through the composer', () => {
       expect(results[0]?.data.turn).toBe(spec.index)
       expect(results[0]?.data.message.source.callId).toBe(spec.callId)
       expect(results[0]?.data.message.content[0].isError).toBe(false)
-      expect(toolResultText(results[0]!)).toBe(`${spec.toolResultMarker}\n`)
+      const resultText = toolResultText(results[0]!)
+      expect([
+        `${spec.toolResultMarker}\n`,
+        `${spec.toolResultMarker}\n[stderr]\n${PARTIAL_ENFORCEMENT_NOTICE}\n`,
+      ]).toContain(resultText)
 
       const toolRow = page.locator(`[data-chat-call-id="${spec.callId}"]`)
       await expect.poll(() => toolRow.count(), { timeout: 10_000 }).toBe(1)
@@ -322,6 +327,9 @@ describe('web e2e: continuous conversation grown through the composer', () => {
       // The collapsed summary deliberately repeats the result marker; the
       // last exact match is the expanded terminal output owned by this call.
       await toolRow.getByText(spec.toolResultMarker, { exact: true }).last().waitFor({ timeout: 10_000 })
+      if (resultText.includes(PARTIAL_ENFORCEMENT_NOTICE)) {
+        await toolRow.getByText(PARTIAL_ENFORCEMENT_NOTICE, { exact: true }).waitFor({ timeout: 10_000 })
+      }
       await disclosure.click()
       await expect.poll(() => disclosure.getAttribute('aria-expanded'), { timeout: 10_000 }).toBe('false')
     }
