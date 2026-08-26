@@ -6,6 +6,8 @@ const INTERNAL_BASE = 'http://dsh.internal/'
  * Convert a logical root path such as `/api/session.list` into the physical
  * browser URL for this document. Reverse-proxy mounts are represented only by
  * document.baseURI; callers never concatenate the deployment prefix.
+ * @param path - Logical Host route, with or without a leading slash.
+ * @returns The absolute browser URL below the active document base.
  */
 export function resolveWebUrl(path: string): URL {
   const documentBase = typeof document === 'undefined' ? undefined : document.baseURI

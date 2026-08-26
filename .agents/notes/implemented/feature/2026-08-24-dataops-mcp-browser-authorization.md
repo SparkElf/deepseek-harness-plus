@@ -24,6 +24,12 @@ A writable stored grant refreshes before MCP mount and during the DataOps browse
 
 Credential mutation and integration routes require loopback ingress and a same-origin DSH browser request. Local Web derives its callback only from a loopback origin; externally published Web declares one explicit HTTP or HTTPS `callbackOrigin`, and DataOps registers it. Trusted-LAN HTTP is explicit and never an HTTPS fallback.
 
+## Alternatives considered
+
+- Release or rotate the target on Disconnect so another account can bind. Rejected because the retained `DSH_HOME` would then mix principals across session history, credentials, and plugin state.
+- Mount standalone browser authorization in DataOps-managed containers. Rejected because the managed gateway and broker already own identity and must not add a second account channel.
+- Move DataOps OAuth into DSH core or the generic MCP client. Rejected because provider login, MFA, scope, target binding, and revocation are integration-owned behavior.
+
 ## Consequences
 
 - One standalone `DSH_HOME` acquires one DataOps principal for its lifetime.

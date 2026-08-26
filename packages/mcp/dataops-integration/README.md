@@ -48,14 +48,26 @@ DataOps browser cookies, passwords, and MFA secrets never leave the DataOps orig
 
 Authentication state remains outside the agent loop. This package contains no DataOps SQL, catalog, permission, connector, or result logic.
 
-## Model Experience
-
-This package adds no prompt text and no model-visible authentication tool. Once the MCP child is active, the model sees exactly the server-qualified tools registered by `@deepseek-ai/dsh-mcp-client`. Authorization state, target identity, PKCE material, OIDC identity, and credential references add no model tokens or KV-cache entries.
-
 ## Compatibility
 
 This package is optional and remains outside shipped default profiles. Existing direct `@deepseek-ai/dsh-mcp-client` configurations, including generic anonymous or manually managed bearer configurations, remain owned by that package and are unchanged.
 
+## Model Experience
+
+### Authorized DataOps MCP tools
+
+#### What the model sees
+
+After authorization mounts the MCP child, the model sees exactly the server-qualified tools discovered and registered by `@deepseek-ai/dsh-mcp-client`. Authorization state, target identity, PKCE material, OIDC identity, and credential references are not model-visible.
+
+#### Token effect
+
+This package adds no prompt or authentication tool tokens. The discovered DataOps tool names, descriptions, and schemas have the data-dependent token cost documented by `@deepseek-ai/dsh-mcp-client`.
+
+#### KV Cache effect
+
+Same-owner refresh and reauthorization leave the mounted child unchanged and preserve the request prefix. Initial authorization or disconnect adds or removes the DataOps tool definitions and may invalidate reuse from the first changed definition token.
+
 ## Known Limitations and Deferred Work
 
-The delegated grant cannot outlive the selected DataOps `AuthSession`. When that session expires, is revoked, or its account is disabled, refresh stops and the user must authorize the same DataOps owner again. The integration adds no second login session, retry queue, account-switch path, or target-unbind operation.
+- The delegated grant cannot outlive the selected DataOps `AuthSession`. When that session expires, is revoked, or its account is disabled, refresh stops and the user must authorize the same DataOps owner again. The integration adds no second login session, retry queue, account-switch path, or target-unbind operation.

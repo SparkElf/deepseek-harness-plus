@@ -48,14 +48,26 @@ DataOps 浏览器 cookie、密码和 MFA 密钥不会离开 DataOps origin。委
 
 认证状态完全位于 agent loop 之外。这个包不包含 DataOps SQL、目录、权限、connector 或结果逻辑。
 
-## 模型体验
-
-这个包不增加 prompt，也不提供模型可见的认证工具。MCP child 激活后，模型只看到 `@deepseek-ai/dsh-mcp-client` 注册的 server-qualified 工具。授权状态、target identity、PKCE、OIDC identity 和 credential reference 不增加模型 token 或 KV-cache entry。
-
 ## 兼容性
 
 这个包是可选插件，不进入发行版默认 profile。现有直接 `@deepseek-ai/dsh-mcp-client` 配置保持不变；通用匿名配置和人工管理 bearer credential 的方式仍由该 package 自己拥有。
 
+## 模型体验
+
+### 已授权的 DataOps MCP 工具
+
+#### 模型看到的内容
+
+授权挂载 MCP child 后，模型只看到 `@deepseek-ai/dsh-mcp-client` 发现并注册的 server-qualified 工具。授权状态、target identity、PKCE、OIDC identity 和 credential reference 对模型不可见。
+
+#### Token 影响
+
+这个包不增加 prompt 或认证工具 token。已发现 DataOps 工具的名称、描述和 schema 承担 `@deepseek-ai/dsh-mcp-client` 记录的 data-dependent token 成本。
+
+#### KV Cache 影响
+
+同一 owner 的 refresh 与重新授权不改变已挂载 child，并保留 request prefix。首次授权或 Disconnect 会增加或移除 DataOps 工具定义，可能从第一个变化的 definition token 起使复用失效。
+
 ## 已知限制与后续工作
 
-委托 grant 不能超过所选 DataOps `AuthSession` 的生命周期。该 session 过期、被撤销或账号停用后，refresh 会停止，用户必须为同一 DataOps owner 重新授权。集成不增加第二套登录 session、retry queue、账号切换路径或 target unbind 操作。
+- 委托 grant 不能超过所选 DataOps `AuthSession` 的生命周期。该 session 过期、被撤销或账号停用后，refresh 会停止，用户必须为同一 DataOps owner 重新授权。集成不增加第二套登录 session、retry queue、账号切换路径或 target unbind 操作。

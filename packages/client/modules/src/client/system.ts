@@ -10,7 +10,10 @@ import type {
   ClientModuleSystemOptions,
 } from './manifest.ts'
 
-/** Resolve Host graph URLs below the runtime-injected document base. */
+/** Resolve a Host graph URL below the runtime-injected document base.
+ * @param url - Logical bundle URL from the Host graph.
+ * @returns The absolute browser URL, or the input when no document exists.
+ */
 export function resolveDocumentBundleUrl(url: string): string {
   if (typeof document === 'undefined') return url
   return new URL(url.replace(/^\//u, ''), document.baseURI).href

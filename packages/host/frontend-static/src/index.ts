@@ -15,7 +15,9 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 export const name = 'frontend-static'
 export const inject = ['webServer']
 
+/** Static frontend directory and fallback behavior. */
 export interface Config {
+  /** Absolute path to the built frontend index document. */
   distIndex: string
 }
 
@@ -33,7 +35,11 @@ const MIME: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
 }
 
-/** Inject one canonical document base before runtime boot scripts execute. */
+/** Inject one canonical document base before runtime boot scripts execute.
+ * @param html - HTML document source.
+ * @param basePath - Normalized external Web mount path.
+ * @returns HTML with one canonical base element.
+ */
 export function injectDocumentBase(html: string, basePath: string): string {
   const href = `${basePath}/`
   const tag = `<base href="${href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">`
@@ -41,11 +47,22 @@ export function injectDocumentBase(html: string, basePath: string): string {
   return head === -1 ? `${tag}${html}` : `${html.slice(0, head + 6)}${tag}${html.slice(head + 6)}`
 }
 
-/** Parser-blocking plugin preloads are injected as root URLs by the Host graph and become document-relative here. */
+/** Make parser-blocking plugin preload URLs document-relative.
+ * @param html - HTML document source.
+ * @returns HTML whose plugin preload links resolve below the document base.
+ */
 export function relativizePluginPreloads(html: string): string {
   return html.replaceAll('src="/plugins/', 'src="plugins/')
 }
 
+/** Serve one frontend asset or the transformed index fallback.
+ * @param pathname - Logical request path after Web mount stripping.
+ * @param res - HTTP response receiving the file or fallback document.
+ * @param distRoot - Absolute static asset directory.
+ * @param distIndex - Absolute fallback index path.
+ * @param renderIndex - Build the transformed index document.
+ * @returns A promise settled after the response completes.
+ */
 export async function serveStatic(
   pathname: string, res: ServerResponse, distRoot: string, distIndex: string,
   renderIndex: () => Promise<string>,

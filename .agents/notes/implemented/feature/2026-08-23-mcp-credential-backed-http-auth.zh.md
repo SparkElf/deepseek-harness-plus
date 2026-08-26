@@ -22,6 +22,12 @@ DataOps MCP 集成需要 bearer 认证，同时 OAuth 获取和刷新仍应位�
 
 通用 package 不实现 Authorization Code、PKCE、MFA、refresh-token exchange、revocation、浏览器跳转或 Provider 专用 scope policy。外部 integration plugin 负责这些操作，并通过 credential service 写入最终 access credential。
 
+## 考虑过的替代方案
+
+- 保留字面量 `headers.Authorization` 值。不采用，因为这会把轮换 secret 放入配置，并且没有 provider-owned 更新路径。
+- 在通用 MCP client 中实现 OAuth 和 refresh。不采用，因为 provider identity、浏览器授权、scope 与 revocation 属于 integration plugin。
+- token 变化时 remount MCP child。不采用，因为 SDK fetch 扩展可以逐请求解析当前 credential，无需增加 connection lifecycle 状态。
+
 ## 结果
 
 - 使用 credential-reference 路径时，secret 不进入 `cordis.yml`、工具参数或模型可见的 MCP schema。

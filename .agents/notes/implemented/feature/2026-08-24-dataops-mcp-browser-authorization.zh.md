@@ -24,6 +24,12 @@ DataOps 在首次明确授权时把未绑定 target 原子绑定到所选 OIDC `
 
 credential mutation和integration route要求loopback ingress与same-origin DSH browser request。本机Web只从loopback origin派生callback；对外发布的Web显式声明HTTP或HTTPS `callbackOrigin`并由DataOps登记。可信内网HTTP是明确合同，绝不是HTTPS fallback。
 
+## 考虑过的替代方案
+
+- Disconnect 时释放或轮换 target，让其他账号重新绑定。不采用，因为保留的 `DSH_HOME` 会在 session history、credential 和 plugin state 中混合 principal。
+- 在 DataOps 托管容器中挂载 standalone 浏览器授权。不采用，因为托管 gateway 与 broker 已经拥有 identity，不能增加第二条账号 channel。
+- 把 DataOps OAuth 移入 DSH core 或通用 MCP client。不采用，因为 provider login、MFA、scope、target binding 与 revocation 属于 integration 行为。
+
 ## 结果
 
 - 一个独立 `DSH_HOME` 在整个生命周期中只获取一个 DataOps principal。

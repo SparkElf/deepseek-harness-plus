@@ -22,6 +22,12 @@ Static HTTP headers remain supported. `headers.Authorization` and `bearerTokenRe
 
 The generic package does not implement Authorization Code, PKCE, MFA, refresh-token exchange, revocation, browser redirects, or provider-specific scope policy. An external integration plugin owns those operations and writes the resulting access credential through the credential service.
 
+## Alternatives considered
+
+- Keep a literal `headers.Authorization` value. Rejected because it places a rotating secret in configuration and gives no provider-owned update path.
+- Implement OAuth and refresh inside the generic MCP client. Rejected because provider identity, browser authorization, scopes, and revocation belong to integration plugins.
+- Remount the MCP child whenever a token changes. Rejected because the SDK fetch extension can resolve the current credential per request without adding connection lifecycle state.
+
 ## Consequences
 
 - Secrets stay out of `cordis.yml`, tool arguments, and model-visible MCP schemas when the credential-reference path is used.

@@ -54,6 +54,8 @@ export interface Config {
 /**
  * Validate and canonicalize the external mount prefix. Internally all route
  * owners continue to register logical root paths such as `/api` and `/plugins`.
+ * @param value - User-configured external mount prefix.
+ * @returns An empty root prefix or a canonical absolute path without a trailing slash.
  */
 export function normalizeWebBasePath(value: string | undefined): string {
   const candidate = value?.trim() ?? ''
@@ -115,6 +117,8 @@ export class WebServer extends Service {
   /**
    * Register a named route. Duplicate (kind, path) throws — route patterns are
    * a composition-level contract, so a collision is a misconfiguration.
+   * @param route - Kind, path, and the owning handler.
+   * @returns The disposer removing the route.
    */
   register(route: WebRoute): () => void {
     const table = route.kind === 'exact' ? this.exact : this.prefixes
@@ -125,7 +129,12 @@ export class WebServer extends Service {
     return () => { table.delete(route.path) }
   }
 
-  /** Register an exact-path HTTP upgrade route. */
+  /**
+   * Register an exact-path HTTP upgrade route. Duplicate paths throw because
+   * one socket can have only one protocol owner.
+   * @param route - Pathname and handler owning negotiation plus socket use.
+   * @returns The disposer removing the route.
+   */
   registerUpgrade(route: WebUpgradeRoute): () => void {
     if (this.upgrades.has(route.path)) {
       throw new Error(`webserver: duplicate upgrade route "${route.path}"`)
@@ -134,7 +143,13 @@ export class WebServer extends Service {
     return () => { this.upgrades.delete(route.path) }
   }
 
-  /** Claim the fallback seat. */
+  /**
+   * Claim the fallback seat: the handler answering every request no named
+   * route matches. One owner only; a second registration throws because two
+   * fallbacks cannot compose.
+   * @param handler - Owns the full response lifecycle of unmatched requests.
+   * @returns The disposer releasing the seat.
+   */
   registerFallback(handler: WebRoute['handler']): () => void {
     if (this.fallback !== undefined) {
       throw new Error('webserver: fallback already registered')
@@ -143,7 +158,12 @@ export class WebServer extends Service {
     return () => { this.fallback = undefined }
   }
 
-  /** Register an index.html transform. */
+  /**
+   * Register an index.html transform, applied by the fallback owner to every
+   * index response in registration order.
+   * @param transform - Pure HTML-to-HTML function.
+   * @returns The disposer removing the transform.
+   */
   tapIndex(transform: (html: string) => string): () => void {
     this.indexTaps.push(transform)
     return () => {
@@ -283,7 +303,12 @@ export class WebServer extends Service {
     return best
   }
 
-  /** Run an index.html body through registered taps. */
+  /**
+   * Run an index.html body through the registered taps in registration order.
+   * The fallback owner calls this for every index response it renders.
+   * @param html - The raw index.html body.
+   * @returns The transformed body.
+   */
   applyIndexTaps(html: string): string {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)

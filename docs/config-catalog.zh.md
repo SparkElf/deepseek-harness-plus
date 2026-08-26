@@ -884,26 +884,28 @@ export interface Config {
 需要：`webServer`
 
 ```ts config-catalog
-/** Plugin config: the dist anchor. */
+/** Static frontend directory and fallback behavior. */
 export interface Config {
-  /** Absolute path of index.html inside the dist root. */
+  /** Absolute path to the built frontend index document. */
   distIndex: string
 }
 ```
 
-来源：[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
+来源：[`packages/host/frontend-static/src/index.ts:19`](../packages/host/frontend-static/src/index.ts)
 
 <a id="deepseek-aidsh-host-webserver"></a>
 
 ## `@deepseek-ai/dsh-host-webserver`
 
 ```ts config-catalog
-/** Gateway config: the listen address. */
+/** Gateway config: the listen address and optional reverse-proxy mount path. */
 export interface Config {
   /** Listen host; the two supported values are loopback and all-interfaces. */
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /** External URL prefix. Empty means site root; otherwise `/segment[/segment]` without a trailing slash. */
+  basePath?: string
 }
 ```
 
@@ -1432,8 +1434,13 @@ export interface StreamableHttpConfig {
   serverName: string
   /** MCP endpoint URL. */
   url: string
-  /** Additional headers attached to MCP requests. */
+  /** Additional non-credential headers attached to MCP requests. */
   headers: Record<string, string>
+  /**
+   * DSH credential reference whose current value is sent as the HTTP bearer
+   * token. The MCP SDK resolves it before every request through `ctx.credentials`.
+   */
+  bearerTokenRef?: string
   /** Per-tool-call timeout in milliseconds. */
   toolCallTimeoutMs: number
   /** Fail plugin activation when the initial connection or tool synchronization fails. */
@@ -1455,7 +1462,37 @@ export interface ReconnectConfig {
 }
 ```
 
-来源：[`packages/mcp/mcp-client/src/index.ts:98`](../packages/mcp/mcp-client/src/index.ts)
+来源：[`packages/mcp/mcp-client/src/index.ts:104`](../packages/mcp/mcp-client/src/index.ts)
+
+<a id="deepseek-aidsh-mcp-dataops"></a>
+
+## `@deepseek-ai/dsh-mcp-dataops`
+
+需要：`credentials` · `webServer` · `tools`
+
+```ts config-catalog
+/** Configuration for one standalone DataOps target and delegated MCP connection. */
+export interface Config {
+  /** DataOps origin, for example `https://dataops.example.com`. */
+  baseUrl: string
+  /** Local MCP tool namespace. */
+  serverName: string
+  /** Access-token credential reference for the standalone DataOps grant. */
+  credentialRef: string
+  /** Refresh-token credential reference for the same grant. */
+  refreshCredentialRef: string
+  /** Persistent DSH target identity credential; generated once and never cleared by disconnect. */
+  targetCredentialRef: string
+  /** Explicit HTTP or HTTPS DSH browser origin for non-loopback Web deployments. */
+  callbackOrigin?: string
+  /** Per-MCP-tool timeout forwarded to the generic mcp-client. */
+  toolCallTimeoutMs: number
+  /** Whether an immediately attempted MCP connection failure rejects this plugin. */
+  failOnStartupError: boolean
+}
+```
+
+来源：[`packages/mcp/dataops-integration/src/index.ts:35`](../packages/mcp/dataops-integration/src/index.ts)
 
 <a id="deepseek-aidsh-message-feedback"></a>
 
