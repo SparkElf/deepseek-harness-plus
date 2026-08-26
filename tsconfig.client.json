@@ -60,6 +60,7 @@
     { "path": "./packages/api/remotes/tsconfig.client.json" },
     { "path": "./packages/client/runtime" },
     { "path": "./packages/extensions/cordis-client-runner" },
+    { "path": "./packages/mcp/dataops-integration" },
     { "path": "./packages/extensions/ui-cordis" },
     { "path": "./packages/test-support/client-runtime" },
     { "path": "./packages/client/ui-layout" },
