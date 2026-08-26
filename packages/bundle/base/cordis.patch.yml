@@ -316,14 +316,16 @@
       config:
         settingsNamespace: subagent
         provider: spawn
-        maxDepth: 3
+        enabled: false
+        maxDepth: 0
 
     - id: subagent-fork-settings
       name: '@deepseek-ai/dsh-tool-subagent/startup'
       config:
         settingsNamespace: subagent-fork
         provider: fork
-        maxDepth: 3
+        enabled: false
+        maxDepth: 0
 
     # Optional direct-child return channel; absent from roots and one-shot agents.
     - id: tool-subagent-report

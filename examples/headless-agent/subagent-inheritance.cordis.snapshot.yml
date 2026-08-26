@@ -61,7 +61,7 @@
   config:
     provider: spawn
     toolName: subagent
-    maxDepth: 1
+    maxDepth: 0
 
 # Await the persisted resume before the headless driver inspects root agents.
 - id: resumed-agent

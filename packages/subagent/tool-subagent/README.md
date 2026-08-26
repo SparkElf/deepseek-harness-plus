@@ -6,7 +6,7 @@ The model-facing delegation tool over one configured `ctx.subagents` provider. C
 
 ## Provider selection and lifecycle
 
-Each plugin instance binds one `provider` to one `toolName`; the model receives no provider selector. Load another distinctly named instance to expose another transport. The tool registers only while its provider exists, avoiding sibling load-order and provider-reload dependencies. Its description follows `provider.inheritsParentContext`: fresh children require standalone prompts, while forked children already see completed parent turns.
+Each plugin instance binds one `provider` to one `toolName`; the model receives no provider selector. Load another distinctly named instance to expose another transport. The tool registers only while its provider exists and its resolved `enabled` setting is true, avoiding sibling load-order and provider-reload dependencies. A settings commit adds or removes the model-facing tool immediately. Its description follows `provider.inheritsParentContext`: fresh children require standalone prompts, while forked children already see completed parent turns.
 
 Settings lifetime is independent from Agent lifetime. A Host composition mounts `@deepseek-ai/dsh-tool-subagent/startup` once per namespace; any number of Agent-preset tool instances consume that registered section through `settingsNamespace`. Without a Settings service the tool uses its own composition defaults. When a Settings service exists, naming an unregistered namespace fails the tool mount instead of creating an Agent-lifetime registration.
 
@@ -21,14 +21,15 @@ A foreground call passes the execution signal through startup and execution, awa
 | Key | Meaning |
 |---|---|
 | `provider` (required) | Provider name (`spawn`, `fork`, `acp`, ...). |
+| `enabled` | Registers the model-facing delegation entry, default `true` for a directly composed tool and default `false` in the Host-owned settings schema. |
 | `toolName` | Model-facing name, default `subagent`; distinct for every loaded instance. |
 | `enableRunInBackground` | Exposes background mode, default `true`; disabling also rejects forced background calls. |
 | `backgroundMode` | Background lifecycle policy, default `one-shot`. `one-shot` defaults calls to foreground; `continuable` defaults them to background, requires the provider's `prepareContinuable` capability, and returns a durable child id without requiring the follow-up tool. |
-| `settingsNamespace` | Optional Host-registered namespace for live user-owned child defaults. Each later child start reads its resolved `agentOptions`, `persona`, `toolFilter`, and `maxDepth`; mount the `/startup` subpath once at Host lifetime to own it. |
+| `settingsNamespace` | Optional Host-registered namespace for live user-owned child defaults. The tool follows its resolved `enabled` value, and each later child start reads `agentOptions`, `persona`, `toolFilter`, and `maxDepth`; mount the `/startup` subpath once at Host lifetime to own it. |
 | `agentOptions` | Provider-specific child `provider`, `model`, and positive `maxTokens`; the in-process provider treats explicit values as overrides of inherited parent options. |
 | `persona` | Per-child persona; requires provider `persona` capability. |
 | `toolFilter` | Per-child global-tool restriction; requires `toolFilter` capability. |
-| `maxDepth` | Absolute delegation-depth cap, default `3` (`0` forbids delegation); a numeric cap requires the `depthLimit` capability and fails the mount without it. `'provider-managed'` sends no cap for an out-of-process provider whose budget belongs to the child harness. The tool stays visible at the cap; each attempted start checks the calling agent's current depth and returns an errored tool result when rejected. |
+| `maxDepth` | Additional delegation generations below the direct child, default `0` (`0` permits the child but forbids grandchildren); the tool converts this to the provider's absolute child-depth cap. A numeric value requires the `depthLimit` capability and fails the mount without it. `'provider-managed'` sends no cap for an out-of-process provider whose budget belongs to the child harness. The tool stays visible at the cap; each attempted start checks the calling agent's current depth and returns an errored tool result when rejected. |
 
 ## Concurrency
 
@@ -40,7 +41,7 @@ Foreground and background calls are concurrency-safe: sibling delegations in one
 
 #### What the model sees
 
-The generated default [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent) under this instance's configured name while its provider exists. Provider context inheritance changes the tool and prompt descriptions. Enabled background mode adds `run_in_background`: continuable mode documents its `true` default, runtime settlement notice, and explicit foreground override, while one-shot mode documents its `false` default and the job id collected with `job_output` or stopped with `job_kill`. While the tool is visible in an assembly's scope, a `tool:<toolName>` system-prompt section tells the model to start independent continuable delegations together, keep working while they run, and choose foreground only when its next action depends on the result; a tool restriction removes both its schema and this guidance.
+The generated default [`subagent` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tool-subagent) under this instance's configured name while its provider exists and the entry is enabled. Provider context inheritance changes the tool and prompt descriptions. Enabled background mode adds `run_in_background`: continuable mode documents its `true` default, runtime settlement notice, and explicit foreground override, while one-shot mode documents its `false` default and the job id collected with `job_output` or stopped with `job_kill`. While the tool is visible in an assembly's scope, a `tool:<toolName>` system-prompt section tells the model to start independent continuable delegations together, keep working while they run, and choose foreground only when its next action depends on the result; a tool restriction removes both its schema and this guidance.
 
 #### Token effect
 
@@ -82,4 +83,4 @@ Append-only; newly visible content follows the reusable request prefix and does 
 
 - **Background runs expose no result through this tool** — a one-shot task's final output is collected through the generic task surface, and a continuable child's output stays in its own session, read by its subagent id. The settlement notice states how that child ended and carries any final assistant message, but it is not this call's return value and cannot be awaited here.
 - **Duplicate names across waiting one-shot instances are detected late** (`TODO(subagent-dup-toolname)`) — continuable instances reserve their prompt-section name during plugin application, but preventing provider-registration rollback for waiting one-shot instances requires a registry of intended names.
-- **Entry identity is fixed per instance** — changing `provider`, `toolName`, `enableRunInBackground`, or `backgroundMode` requires a composition change. A configured, Host-registered `settingsNamespace` changes only the child defaults used for future runs; it does not alter an existing child or create another context-history policy.
+- **Entry identity is fixed per instance** — changing `provider`, `toolName`, `enableRunInBackground`, or `backgroundMode` requires a composition change. A configured, Host-registered `settingsNamespace` can enable or disable the entry and changes child defaults for future runs; it does not alter an existing child or create another context-history policy.

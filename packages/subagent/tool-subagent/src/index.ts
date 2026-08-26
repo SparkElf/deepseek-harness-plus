@@ -32,6 +32,8 @@ export interface Config {
   provider: string
   /** Optional Host-registered settings namespace for live child-default overrides. */
   settingsNamespace?: string
+  /** Whether this model-facing delegation entry is registered (default true). */
+  enabled?: boolean
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.
@@ -70,8 +72,9 @@ export interface Config {
     deny?: string[]
   }
   /**
-   * Maximum child depth: a non-negative safe integer (default `3`; `0` forbids
-   * delegation entirely), or `'provider-managed'` to send no cap. A numeric cap
+   * Additional delegation generations below a direct child: a non-negative safe
+   * integer (default `0`; `0` permits a child but forbids grandchildren), or
+   * `'provider-managed'` to send no cap. A numeric cap
    * requires the provider's `depthLimit` capability (mount fails loud
    * otherwise). The provider checks the calling agent's current depth at every
    * start; the tool remains model-visible so runtime policy owns rejection.
@@ -92,6 +95,7 @@ function toolFilterSchema() {
 export const Config: z<Config> = z.object({
   provider: z.string().required(),
   settingsNamespace: z.string(),
+  enabled: z.boolean().default(true),
   toolName: z.string().default('subagent'),
   enableRunInBackground: z.boolean().default(true),
   backgroundMode: z.union(['one-shot', 'continuable'] as const).default('one-shot'),
@@ -104,23 +108,26 @@ export const Config: z<Config> = z.object({
   persona: z.string(),
   // Preserve omission; Schemastery's `{ allow: [] }` default would deny every tool.
   toolFilter: toolFilterSchema().default(undefined as unknown as { allow: string[]; deny: string[] }),
-  maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(3),
+  maxDepth: z.union([z.natural().max(Number.MAX_SAFE_INTEGER), z.const('provider-managed' as const)]).default(0),
 })
 
-/** User-owned child defaults that can change without rebuilding the model-facing tool. */
+/** User-owned entry state and child defaults that can change without rebuilding the Host. */
 export interface SubagentSettings {
+  /** Whether the Host exposes this delegation mode to agents. */
+  enabled?: boolean
   /** Provider and model overrides; omission follows the parent agent. */
   agentOptions?: Partial<Pick<AgentOptions, 'provider' | 'model' | 'maxTokens'>>
   /** Child persona that shadows the deployment persona when set. */
   persona?: string
   /** Global tool names the child keeps or removes. */
   toolFilter?: Config['toolFilter']
-  /** Maximum child depth, or provider-owned recursion management. */
+  /** Delegation generations below a direct child, or provider-owned depth management. */
   maxDepth?: Config['maxDepth']
 }
 
 /** Schema for the live user-owned child defaults. */
 export const SUBAGENT_SETTINGS_SCHEMA = z.object({
+  enabled: z.boolean().default(false),
   agentOptions: z.object({
     provider: z.string().default(undefined as unknown as string),
     model: z.string().default(undefined as unknown as string),
@@ -131,7 +138,7 @@ export const SUBAGENT_SETTINGS_SCHEMA = z.object({
   maxDepth: z.union([
     z.natural().max(Number.MAX_SAFE_INTEGER),
     z.const('provider-managed' as const),
-  ]).default(undefined as unknown as number | 'provider-managed'),
+  ]).default(0),
 }) as z<SubagentSettings>
 
 /** Render text blocks from the canonical JSON block array without trusting arbitrary values. */
@@ -316,6 +323,7 @@ function resolveDelegationRun(
 export function settingsFromConfig(config: SubagentSettings): SubagentSettings {
   const agentOptions = config.agentOptions
   return {
+    ...config.enabled === undefined ? {} : { enabled: config.enabled },
     ...agentOptions === undefined ? {} : {
       agentOptions: {
         ...agentOptions.provider === undefined ? {} : { provider: agentOptions.provider },
@@ -327,6 +335,14 @@ export function settingsFromConfig(config: SubagentSettings): SubagentSettings {
     ...config.toolFilter === undefined ? {} : { toolFilter: config.toolFilter },
     ...config.maxDepth === undefined ? {} : { maxDepth: config.maxDepth },
   }
+}
+
+/** Convert configured nesting generations to the provider's absolute child-depth cap.
+ * @param nestingDepth - generations allowed below the first child.
+ * @returns the absolute cap enforced by SubagentRuntime.
+ */
+function absoluteChildDepthCap(nestingDepth: number): number {
+  return Math.min(nestingDepth + 1, Number.MAX_SAFE_INTEGER)
 }
 
 /** Validate live defaults at the earliest point the provider can enforce them.
@@ -462,7 +478,7 @@ export function apply(ctx: Context, config: Config): void {
         }
 
         const settings = settingsSource()
-        const maxDepth = typeof settings.maxDepth === 'number' ? settings.maxDepth : undefined
+        const maxDepth = typeof settings.maxDepth === 'number' ? absoluteChildDepthCap(settings.maxDepth) : undefined
         const request = {
           label: args.description,
           prompt: [{ type: 'text', text: args.prompt }] as ContentBlock[],
@@ -520,6 +536,16 @@ export function apply(ctx: Context, config: Config): void {
     }))
   }
 
+  const reconcile = (provider: SubagentProvider | undefined): void => {
+    const enabled = settingsSource().enabled !== false
+    if (!enabled || provider === undefined) {
+      disposeTool?.()
+      disposeTool = undefined
+      return
+    }
+    if (disposeTool === undefined) mount(provider)
+  }
+
   // Register listeners before checking presence so no synchronous change is missed.
   // TODO(subagent-dup-toolname): two waiting one-shot fibers configured with the
   // same toolName collide when their provider appears, and the duplicate-name
@@ -527,17 +553,19 @@ export function apply(ctx: Context, config: Config): void {
   // their prompt-section name during apply() and fail earlier. Add an intent
   // registry if the late one-shot collision occurs in a shipped composition.
   ctx.on('subagent/provider-added', (provider) => {
-    if (provider.name === config.provider && disposeTool === undefined) mount(provider)
+    if (provider.name === config.provider) reconcile(provider)
   })
   ctx.on('subagent/provider-removed', (name) => {
-    if (name !== config.provider || disposeTool === undefined) return
-    disposeTool()
-    disposeTool = undefined
+    if (name === config.provider) reconcile(undefined)
   })
+  if (namespace !== undefined) {
+    ctx.on('settings/updated', (changedNamespace) => {
+      if (changedNamespace === namespace) reconcile(ctx.subagents.getProvider(config.provider))
+    })
+  }
   const present = ctx.subagents.getProvider(config.provider)
-  if (present !== undefined) {
-    mount(present)
-  } else {
+  reconcile(present)
+  if (present === undefined && settingsSource().enabled !== false) {
     // A backend fiber may activate later; a misspelled provider remains visible in this log.
     ctx.logger.info(`subagent provider "${config.provider}" not registered yet; the "${config.toolName ?? 'subagent'}" tool will register when it appears`)
   }

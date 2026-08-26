@@ -2771,6 +2771,8 @@ export interface Config {
   provider: string
   /** Optional Host-registered settings namespace for live child-default overrides. */
   settingsNamespace?: string
+  /** Whether this model-facing delegation entry is registered (default true). */
+  enabled?: boolean
   /**
    * Model-facing tool name (default `subagent`). Each loaded instance must use
    * a distinct name.
@@ -2809,8 +2811,9 @@ export interface Config {
     deny?: string[]
   }
   /**
-   * Maximum child depth: a non-negative safe integer (default `3`; `0` forbids
-   * delegation entirely), or `'provider-managed'` to send no cap. A numeric cap
+   * Additional delegation generations below a direct child: a non-negative safe
+   * integer (default `0`; `0` permits a child but forbids grandchildren), or
+   * `'provider-managed'` to send no cap. A numeric cap
    * requires the provider's `depthLimit` capability (mount fails loud
    * otherwise). The provider checks the calling agent's current depth at every
    * start; the tool remains model-visible so runtime policy owns rejection.
