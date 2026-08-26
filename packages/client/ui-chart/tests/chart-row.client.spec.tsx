@@ -28,7 +28,7 @@ const copy = {
   'chart.aria': 'Interactive data chart',
 } as const
 
-function props(meta: Record<string, unknown>): ChartRowProps {
+function props(meta: Record<string, unknown>, content: unknown[] = []): ChartRowProps {
   return {
     callId: 'chart-1',
     toolName: 'render_chart',
@@ -40,7 +40,7 @@ function props(meta: Record<string, unknown>): ChartRowProps {
       step: 1,
       callId: 'chart-1',
       call: { name: 'render_chart', argsRaw: '{}' },
-      content: [],
+      content,
       isError: false,
       meta,
       callView: null,
@@ -48,7 +48,7 @@ function props(meta: Record<string, unknown>): ChartRowProps {
       subCalls: [],
     },
     openFile: () => {},
-    t: key => copy[key],
+    t: (key: keyof typeof copy) => copy[key],
   } as unknown as ChartRowProps
 }
 
@@ -81,6 +81,17 @@ describe('ChartRow', () => {
 
     view.unmount()
     expect(mocks.dispose).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders nested Code Mode chart content through the same validated projection', () => {
+    const option = { series: [{ type: 'pie', data: [{ name: 'A', value: 1 }] }] }
+    render(<ChartRow {...props({}, [{
+      type: 'dsh/chart',
+      meta: { version: 1, sourceResultRef: 'qr1_nested', title: 'Nested chart', option },
+    }])} />)
+
+    expect(screen.getByText('Nested chart')).toBeTruthy()
+    expect(mocks.setOption).toHaveBeenCalledWith(option, { notMerge: true, lazyUpdate: false })
   })
 
   it('fails soft when replay metadata is missing instead of trying to initialize ECharts', () => {

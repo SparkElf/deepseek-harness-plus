@@ -31,7 +31,7 @@ describe('ui-chart client apply', () => {
     const entries = b.slots.entries('tool.call.toolview')
     expect(entries).toHaveLength(1)
     expect(entries[0]!.component).toBe(ChartRow)
-    expect(entries[0]!.options).toMatchObject({ key: 'render_chart', locale: 'chart' })
+    expect(entries[0]!.options).toMatchObject({ key: 'render_chart' })
 
     await fiber.dispose()
     expect(b.slots.entries('tool.call.toolview')).toHaveLength(0)

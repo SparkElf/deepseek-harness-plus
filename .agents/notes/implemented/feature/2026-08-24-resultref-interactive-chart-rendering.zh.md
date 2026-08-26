@@ -4,20 +4,20 @@ Status: implemented
 
 [English](2026-08-24-resultref-interactive-chart-rendering.md) | 中文
 
-## 问题
+## Problem
 
 Harness 已经具备可编程的工具组合层：模型可以直接调用有类型的工具，Code Mode 也能针对 canonical 工具结果临时编写短程序。DataOps 还会把完整 SQL 结果物化到不透明的 `resultRef` 后，因此图表功能不需要再建立一套固定编排 pipeline，重复生成 SQL、抽样、选图并调用另一层图表 LLM。
 
 产品真正需要的是准确的交互式渲染面，同时保留 Harness 程序生成能力，把数据库规模的数据整形留给产生结果的查询，并在源结果过期后仍然可以回放。
 
-## 实现
+## Decision
 
 交互式图表按照 Web 产品已经存在的两种生命周期拆成两个包：
 
 - `@deepseek-ai/dsh-tool-chart` 属于 agent plane，在 shipped agent preset 中注册面向模型的 `render_chart` 工具。
 - `@deepseek-ai/dsh-client-ui-chart` 属于 browser plane，注册 keyed `render_chart` 工具视图，并负责 ECharts 初始化、尺寸／主题变化、失败展示和释放。
 
-两个包在 runtime 不互相依赖。它们的共享边界只是普通、持久化的 `tool/result.meta`：Host 工具产生，conversation model 回放，Browser 读取。
+两个包在runtime不互相依赖。它们共享同一个durable chart projection：直接调用把它写入`tool/result.meta`，Code Mode nested dispatch把它写入`dsh/chart`结果content block。conversation model回放两个位置，browser通过一个validator读取任一路径。
 
 shipped `standard`、`code` 与 `cordis` preset 都挂载 `dsh-tool-chart`；Web browser roster 挂载 `dsh-client-ui-chart`。`minimal` preset 继续保持真正的 minimal，不增加图表能力。
 
@@ -27,11 +27,11 @@ shipped `standard`、`code` 与 `cordis` preset 都挂载 `dsh-tool-chart`；Web
 
 ```text
 DataOps execute_sql
-  -> 一个 chart-ready resultRef
-  -> 可选 Code Mode 读取该结果并生成 ECharts option
-  -> 顶层 render_chart(sourceResultRef, option)
-  -> option 持久化到 tool/result.meta
-  -> Browser 用 ECharts 渲染／回放
+  -> one chart-ready resultRef
+  -> optional Code Mode reads that result and synthesizes an ECharts option
+  -> direct or nested render_chart(sourceResultRef, option)
+  -> option persisted in direct metadata or nested dispatch content
+  -> browser renders/replays the option with ECharts
 ```
 
 源结果应该已经在合适的展示粒度上包含图表所需的业务行与字段。如果正确可视化仍然需要数据库规模的 join 或大量业务聚合，Agent 应重新发起更合适的 DataOps 查询，产生新的结果，而不是在可视化代码里重新实现查询引擎。
@@ -43,6 +43,8 @@ DataOps execute_sql
 `render_chart` 接受一个源结果引用、一个 ECharts option 和可选标题：
 
 ```ts
+import type { JsonValue } from '@deepseek-ai/dsh-tools'
+
 interface RenderChartArgs {
   sourceResultRef: string
   option: JsonValue
@@ -53,6 +55,8 @@ interface RenderChartArgs {
 参数 schema 要求 `option` 根节点是 JSON object。工具只返回一个紧凑 canonical 成功值，包含归一化后的源引用和可选标题。完整 option 不进入 Native prose，而由 `output.presentationMeta()` 写成 versioned durable metadata：
 
 ```ts
+import type { JsonValue } from '@deepseek-ai/dsh-tools'
+
 interface ChartPresentationMeta {
   version: 1
   sourceResultRef: string
@@ -67,17 +71,13 @@ interface ChartPresentationMeta {
 
 ## Code Mode 展示边界
 
-当前 Code Mode 的 nested dispatch 没有独立结果卡片，也会跳过 nested tool 自己的 `presentationMeta`。因此首版可见路径是：
+Code Mode只把`run_code`暴露为顶层工具，因此`render_chart`通过nested SDK dispatch执行。nested dispatch会跳过工具自己的`presentationMeta`；`finalizeContent`因此把同一个validated projection作为`dsh/chart` block追加到nested结果。browser通过一个validator识别direct metadata和nested content。
 
-```text
-run_code -> JSON ECharts option -> 顶层 render_chart
-```
-
-实现没有为了省掉这一步就修改 `agent-loop`，也没有建立 chart-only 的 nested presentation protocol。`code` preset 仍然把 `render_chart` 放进生成 SDK，这样 Harness 在 Code Mode 中准备 option 时可以看到最终工具约定。
+实现不修改`agent-loop`或session格式。`code` preset把`render_chart`放进生成SDK；chart自有content block只是durable log-only展示数据，不进入model input。
 
 ## 浏览器展示与回放
 
-`dsh-client-ui-chart` 以 `render_chart` 为 key 注册 `tool.call.toolview`。完成后的结果会收窄 version-1 metadata，从保存的 option 初始化 ECharts，监听容器尺寸，在初始化／重初始化时跟随 Harness body 的 dark-theme attribute，并随 React 工具行卸载释放 ECharts instance。
+`dsh-client-ui-chart`以`render_chart`为key注册`tool.call.toolview`。完成后的结果从direct `tool/result.meta`或nested `dsh/chart` content收窄version-one metadata，从保存的option初始化ECharts，监听容器尺寸，在初始化或重初始化时跟随Harness body的dark-theme attribute，并随React工具行卸载释放ECharts instance。
 
 pending、failed 与无效 replay metadata 都有紧凑的本地化状态，同时保留普通 tool inspection。成功状态下，图表本身是主要工具展示，而不是 raw JSON card。
 
@@ -103,7 +103,7 @@ Web bundle 依赖并挂载 `dsh-client-ui-chart`；CLI package 依赖 `dsh-tool-
 
 Host 与 Client TypeScript aggregate 分别引用自己的 chart package。Web bundle roster 持有 browser package，因此历史回放不依赖当前 session 选择了哪个 agent preset。
 
-## 不采用的替代方案
+## Alternatives considered
 
 **WrenAI 式固定 chart pipeline。** Harness 已经有通用程序生成和 typed tool composition；再增加“抽样数据并调用另一层 chart LLM”的服务会重复编排，也降低 Agent 自适应能力。
 
@@ -117,7 +117,7 @@ Host 与 Client TypeScript aggregate 分别引用自己的 chart package。Web b
 
 **首版就增加 ChartArtifact store 或 prepared-chart handle。** JSON option 本身已经是完整 durable replay payload；只有真实图表尺寸证明现有工具参数／metadata 路径不够时，独立存储才有依据。
 
-## Known Limitations and Deferred Work
+## Consequences
 
 - 很大的交互数据集可能让 Code Mode 到工具的 JSON 往返和 durable option 变贵。当前实现先测量真实使用，再决定是否增加 opaque prepared-chart handle 或独立存储。
 - JSON 结构合法但 ECharts 语义无效的 option 仍可能在浏览器渲染时报错；产品展示失败和 inspection，不增加推测性 repair pipeline。

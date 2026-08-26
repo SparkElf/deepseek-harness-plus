@@ -2,19 +2,31 @@
 
 [English](README.md) | 中文
 
-仅浏览器使用的 `render_chart` 结果展示插件。Host 工具位于 [`@deepseek-ai/dsh-tool-chart`](../../chart/tool-chart/README.zh.md)；本包只负责 Web keyed tool view 与 ECharts 生命周期，与 browser boot plane 保持一致。
+仅浏览器使用的`render_chart`结果展示插件。Host工具位于[`@deepseek-ai/dsh-tool-chart`](../../chart/tool-chart/README.md)；本包只负责Web keyed tool view与ECharts生命周期，与browser boot plane保持一致。
 
 ## API 与扩展点
 
-`./client` 入口在现有 keyed `tool.call.toolview` slot 下以 `render_chart` 作为 key 注册本地化组件。它读取 version 1 的持久 `tool/result.meta`，并从其中保存的 JSON option 初始化 ECharts。
+`./client`入口在现有keyed `tool.call.toolview` slot下以`render_chart`作为key注册本地化组件。它从direct `tool/result.meta`或nested `dsh/chart`结果content验证version-one chart数据，并从保存的JSON option初始化ECharts。
 
-renderer 监听容器尺寸，在初始化 ECharts 时跟随 Harness 亮／暗外观，并在组件卸载时释放 chart instance。完成后的图表数据完全来自 durable presentation metadata，因此历史回放不要求原 DataOps resultRef 仍然存活。
+renderer监听容器尺寸，在初始化ECharts时跟随Harness亮色或暗色外观，并在组件卸载时释放chart instance。完成后的图表数据完全来自durable direct metadata或nested result content，因此历史回放不要求原DataOps resultRef仍然存活。
 
 包仍然导出 no-op Host entry 与 `./invariant`，因为 browser-only package 也参与普通 Loader／package ownership 检查。
 
 ## Model Experience
 
-本包自身不面向模型。它与 `dsh-tool-chart` 组合后，让模型顶层调用 `render_chart` 时直接显示成交互式图表，而不是通用 raw tool JSON。Harness 可以直接准备 option，也可以通过 Code Mode 生成；浏览器包不会限制这些可视化导向计算是如何产生的。
+### Interactive chart presentation
+
+#### What the model sees
+
+本包通过`@deepseek-ai/dsh-tool-chart`间接生效；这个browser-only package不增加model-visible文本或数据。它把成功的direct和nested `render_chart`结果显示成交互式图表，而不是generic raw tool JSON。
+
+#### Token effect
+
+没有直接token影响。browser renderer不改变model request或tool result。
+
+#### KV Cache effect
+
+本包不改变model-request prefix，也不追加model context，因此不会使原本可复用的provider cache prefix失效。
 
 ## Known Limitations and Deferred Work
 

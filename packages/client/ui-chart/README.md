@@ -6,15 +6,27 @@ Browser-only presentation plugin for `render_chart` results. The Host tool lives
 
 ## API and extension point
 
-The `./client` entry registers a localized component under the existing keyed `tool.call.toolview` slot with key `render_chart`. It consumes durable `tool/result.meta` shaped as version 1 chart metadata and initializes ECharts from the stored JSON option.
+The `./client` entry registers a localized component under the existing keyed `tool.call.toolview` slot with key `render_chart`. It validates version-one chart data from direct `tool/result.meta` or nested `dsh/chart` result content and initializes ECharts from the stored JSON option.
 
-The renderer observes its container size, follows the Harness light/dark appearance when ECharts is initialized, and disposes the chart instance on unmount. Completed chart data is read entirely from durable presentation metadata, so replay does not require the original DataOps resultRef to remain live.
+The renderer observes its container size, follows the Harness light or dark appearance when ECharts is initialized, and disposes the chart instance on unmount. Completed chart data is read entirely from durable direct metadata or nested result content, so replay does not require the original DataOps resultRef to remain live.
 
 The package exports a no-op Host entry and `./invariant` because browser-only packages still participate in normal Loader/package ownership checks.
 
 ## Model Experience
 
-This package is not model-facing by itself. Together with `dsh-tool-chart`, it makes the model's top-level `render_chart` call appear as the interactive chart rather than generic raw tool JSON. Harness may prepare that option directly or through Code Mode; this browser package does not constrain how visualization-oriented calculations were produced.
+### Interactive chart presentation
+
+#### What the model sees
+
+The model is affected only through `@deepseek-ai/dsh-tool-chart`; this browser-only package adds no model-visible text or data. It presents successful direct and nested `render_chart` results as an interactive chart instead of generic raw tool JSON.
+
+#### Token effect
+
+Zero direct token effect. The browser renderer does not change model requests or tool results.
+
+#### KV Cache effect
+
+The package does not alter model-request prefixes or append model context, so it does not invalidate an otherwise reusable provider cache prefix.
 
 ## Known Limitations and Deferred Work
 

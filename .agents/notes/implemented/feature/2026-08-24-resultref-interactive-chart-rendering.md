@@ -10,14 +10,14 @@ Harness already has a programmable tool-composition layer: models can call typed
 
 The product instead needs an accurate interactive rendering surface that preserves Harness program synthesis, keeps database-scale shaping in the query that created the result, and remains replayable after the source result expires.
 
-## Implementation
+## Decision
 
 Interactive charting is split across the two lifecycles that already exist in the Web product:
 
 - `@deepseek-ai/dsh-tool-chart` is the agent-plane package. It registers the model-facing `render_chart` tool in shipped agent presets.
 - `@deepseek-ai/dsh-client-ui-chart` is the browser-plane package. It registers the keyed `render_chart` tool view and owns ECharts initialization, resize/theme handling, failure presentation, and disposal.
 
-The packages do not depend on each other at runtime. Their shared boundary is the ordinary durable `tool/result.meta` produced by the tool and replayed by the conversation model.
+The packages do not depend on each other at runtime. Their shared data is the same durable chart projection: direct calls store it in `tool/result.meta`, while nested Code Mode dispatch stores it in a `dsh/chart` result content block. The conversation model replays both locations and the browser consumes either through one validator.
 
 The shipped `standard`, `code`, and `cordis` presets mount `dsh-tool-chart`; the Web browser roster mounts `dsh-client-ui-chart`. The `minimal` preset remains intentionally minimal and does not gain charting.
 
@@ -29,8 +29,8 @@ One chart is associated with exactly one chart-ready DataOps `resultRef`:
 DataOps execute_sql
   -> one chart-ready resultRef
   -> optional Code Mode reads that result and synthesizes an ECharts option
-  -> top-level render_chart(sourceResultRef, option)
-  -> option persisted in tool/result.meta
+  -> direct or nested render_chart(sourceResultRef, option)
+  -> option persisted in direct metadata or nested dispatch content
   -> browser renders/replays the option with ECharts
 ```
 
@@ -43,6 +43,8 @@ This is agent guidance, not runtime policing. Code Mode remains free to use ordi
 `render_chart` accepts a single source reference, an ECharts option, and an optional title:
 
 ```ts
+import type { JsonValue } from '@deepseek-ai/dsh-tools'
+
 interface RenderChartArgs {
   sourceResultRef: string
   option: JsonValue
@@ -53,6 +55,8 @@ interface RenderChartArgs {
 The parameter schema requires `option` to be a JSON object. The tool returns only a compact canonical success value containing the normalized source reference and optional title. The complete option is kept out of Native prose and written by `output.presentationMeta()` as versioned durable metadata:
 
 ```ts
+import type { JsonValue } from '@deepseek-ai/dsh-tools'
+
 interface ChartPresentationMeta {
   version: 1
   sourceResultRef: string
@@ -67,17 +71,13 @@ Because canonical tool values and durable metadata are lossless JSON, function-v
 
 ## Code Mode presentation boundary
 
-Current Code Mode nested dispatch has no independent result card and skips nested tool-owned `presentationMeta`. The visible version-one path is therefore:
+Code Mode exposes only `run_code` as a top-level tool, so `render_chart` executes through nested SDK dispatch. Nested dispatch skips the tool's own `presentationMeta`; `finalizeContent` therefore appends the same validated projection as a `dsh/chart` block to the nested result. The browser recognizes direct metadata and nested content through one validator.
 
-```text
-run_code -> JSON ECharts option -> top-level render_chart
-```
-
-The implementation does not change `agent-loop` or create a chart-only nested presentation protocol merely to collapse these two calls. The code preset still includes `render_chart` in its generated SDK so Harness can reason about the final tool contract while using Code Mode for preparation.
+The implementation does not modify `agent-loop` or the session format. The `code` preset includes `render_chart` in the generated SDK, and the chart-owned content block remains durable log-only presentation data rather than model input.
 
 ## Browser presentation and replay
 
-`dsh-client-ui-chart` registers `tool.call.toolview` with key `render_chart`. A completed result narrows version-1 metadata, initializes ECharts from the stored option, observes container resizing, follows the Harness body dark-theme attribute when initializing/reinitializing, and disposes the ECharts instance with the React row.
+`dsh-client-ui-chart` registers `tool.call.toolview` with key `render_chart`. A completed result narrows version-one metadata from direct `tool/result.meta` or nested `dsh/chart` content, initializes ECharts from the stored option, observes container resizing, follows the Harness body dark-theme attribute when initializing or reinitializing, and disposes the ECharts instance with the React row.
 
 Pending, failed, and malformed replay metadata have compact localized states and retain normal tool inspection. The completed chart is the primary tool presentation rather than a raw JSON card.
 
@@ -103,7 +103,7 @@ Focused coverage includes:
 
 The Host and Client TypeScript aggregate projects reference their respective chart packages. The Web bundle roster carries the browser package so replay is independent of the current agent preset.
 
-## Alternatives rejected
+## Alternatives considered
 
 **A WrenAI-style fixed chart pipeline.** Harness already has general program synthesis and typed tool composition. A second service that samples data and invokes another chart-generation LLM would duplicate orchestration and reduce adaptability.
 
@@ -117,7 +117,7 @@ The Host and Client TypeScript aggregate projects reference their respective cha
 
 **Add a ChartArtifact store or prepared-chart handle immediately.** The JSON option already supplies a durable replay payload. Separate storage is deferred until measured chart sizes show the existing tool argument/metadata path is insufficient.
 
-## Known Limitations and Deferred Work
+## Consequences
 
 - Very large interactive datasets can make the Code Mode-to-tool JSON round trip and durable option expensive. This implementation measures real use before adding opaque prepared-chart handles or separate storage.
 - Invalid but JSON-shaped ECharts options can still fail at browser render time; the product exposes the failure and inspection rather than adding a speculative repair pipeline.

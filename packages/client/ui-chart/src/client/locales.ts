@@ -2,6 +2,7 @@
 
 export const NS = 'chart'
 
+/** Simplified Chinese chart UI copy. */
 export const zh = {
   'row.title': '交互式图表',
   'state.rendering': '正在生成图表…',
@@ -11,6 +12,7 @@ export const zh = {
   'chart.aria': '交互式数据图表',
 } satisfies Record<string, string>
 
+/** Translation keys owned by the chart UI namespace. */
 export type ChartKey = keyof typeof zh
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -19,6 +21,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   }
 }
 
+/** English chart UI copy. */
 export const en = {
   'row.title': 'Interactive chart',
   'state.rendering': 'Rendering chart…',

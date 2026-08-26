@@ -6,7 +6,7 @@
 
 | 包 | 职责 | ctx 键 |
 |---|---|---|
-| [`tool-chart/`](tool-chart/README.zh.md) | Agent plane 的 `render_chart` 工具；记录完整、可回放的 JSON option metadata。 | `ctx.tools` |
-| [`../client/ui-chart/`](../client/ui-chart/README.zh.md) | Browser plane 的 keyed ECharts 展示，用于持久 `render_chart` 结果。 | keyed `tool.call.toolview` |
+| [`tool-chart/`](tool-chart/README.md) | Agent plane 的 `render_chart` 工具；记录完整、可回放的 JSON option metadata。 | `ctx.tools` |
+| [`../client/ui-chart/`](../client/ui-chart/README.md) | Browser plane 的 keyed ECharts 展示，用于持久 `render_chart` 结果。 | keyed `tool.call.toolview` |
 
 子包 README 负责工具、回放、Code Mode 与 renderer 约定。

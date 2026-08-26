@@ -20,6 +20,18 @@ export interface ChartPresentationMeta {
   title?: string
 }
 
+/** Durable chart payload used only by a nested Code Mode dispatch result. */
+export interface ChartContentBlock {
+  type: 'dsh/chart'
+  meta: ChartPresentationMeta
+}
+
+declare module '@deepseek-ai/dsh-llm/types' {
+  interface ContentBlockMap {
+    'dsh/chart': ChartContentBlock
+  }
+}
+
 /** Canonical compact result returned to Code/Native callers. */
 export interface RenderChartResult {
   rendered: true

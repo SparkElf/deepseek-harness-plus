@@ -3,7 +3,7 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { JsonValue } from '@deepseek-ai/dsh-tools'
-import type { ChartPresentationMeta, RenderChartArgs, RenderChartResult } from './types.ts'
+import type { ChartContentBlock, ChartPresentationMeta, RenderChartArgs, RenderChartResult } from './types.ts'
 
 export type { ChartPresentationMeta, RenderChartArgs, RenderChartResult } from './types.ts'
 
@@ -24,15 +24,23 @@ function normalizeArgs(args: RenderChartArgs): RenderChartResult {
   }
 }
 
-/** Build the durable replay projection from validated input plus its compact canonical result. */
-export function chartPresentationMeta(args: RenderChartArgs, value: RenderChartResult): JsonValue {
-  const meta: ChartPresentationMeta = {
+function buildChartPresentationMeta(args: RenderChartArgs, value: RenderChartResult): ChartPresentationMeta {
+  return {
     version: 1,
     sourceResultRef: value.sourceResultRef,
     option: args.option,
     ...(value.title === undefined ? {} : { title: value.title }),
   }
-  return meta as unknown as JsonValue
+}
+
+/**
+ * Build the durable replay projection from validated input plus its compact canonical result.
+ * @param args - Validated chart arguments carrying the complete replay option.
+ * @param value - Normalized compact tool result.
+ * @returns JSON presentation metadata for a direct tool call.
+ */
+export function chartPresentationMeta(args: RenderChartArgs, value: RenderChartResult): JsonValue {
+  return buildChartPresentationMeta(args, value) as unknown as JsonValue
 }
 
 /** Register `render_chart`; Web presentation is owned by `dsh-client-ui-chart`. */
@@ -76,6 +84,14 @@ export function apply(ctx: Context): void {
       presentationMeta: (args, value) => chartPresentationMeta(args, value),
     },
     isConcurrencySafe: () => true,
+    finalizeContent(exec, result) {
+      if (exec.parent === undefined || result.isError) return
+      const block: ChartContentBlock = {
+        type: 'dsh/chart',
+        meta: buildChartPresentationMeta(exec.arguments as RenderChartArgs, result.value as unknown as RenderChartResult),
+      }
+      return [...result.content, block]
+    },
     execute(args) {
       return Promise.resolve(normalizeArgs(args))
     },
