@@ -1,5 +1,5 @@
 diff --git a/lib/client.js b/lib/client.js
-index 70226f68ea5fcb478844c8366afe621665eeb907..c7a0f0c4fe2cfa834bb5a82d5c91a47b8531d2cf 100644
+index 70226f68ea5fcb478844c8366afe621665eeb907..2977907d9b105d5cc5972472f62d86ef1cc90c83 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -2253,7 +2253,7 @@ window.__ModuleLoader__.load({
@@ -11,7 +11,35 @@ index 70226f68ea5fcb478844c8366afe621665eeb907..c7a0f0c4fe2cfa834bb5a82d5c91a47b
  		const tagId$3 = "dsh-better-sidebar/sidebar.module.css";
  		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$3) + "]") === null) {
  			const tag = document.createElement("style");
-@@ -8104,7 +8104,7 @@ window.__ModuleLoader__.load({
+@@ -2588,19 +2588,25 @@ window.__ModuleLoader__.load({
+ 				this.code = code;
+ 			}
+ 		};
++		/** The Host-injected document base is the only deployment prefix for the sidebar API. */
+ 		async function call(method, payload, signal) {
++			const url = new URL(`sidebar/api/${method}`, document.baseURI);
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/api/${method}`, {
++				response = await fetch(url, {
+ 					method: "POST",
+ 					headers: { "content-type": "application/json" },
+ 					body: JSON.stringify(payload),
+ 					signal
+ 				});
+ 			} catch (error) {
++				console.error("better-sidebar.api_fetch_failed", error);
+ 				throw new SidebarApiError("network", error instanceof Error ? error.message : String(error));
+ 			}
+-			const parsed = await response.json().catch(() => null);
++			const parsed = await response.json().catch((error) => {
++				console.error("better-sidebar.api_response_parse_failed", error);
++				return null;
++			});
+ 			if (!response.ok || parsed === null || parsed.ok !== true || parsed.value === void 0) throw new SidebarApiError(parsed?.error?.code ?? "http", parsed?.error?.message ?? `HTTP ${response.status}`);
+ 			return parsed.value;
+ 		}
+@@ -8104,7 +8110,7 @@ window.__ModuleLoader__.load({
  						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
  							type: "button",
  							className: sidebar_module_css_default.toggleButton,
@@ -20,7 +48,7 @@ index 70226f68ea5fcb478844c8366afe621665eeb907..c7a0f0c4fe2cfa834bb5a82d5c91a47b
  							"aria-label": t("noSession"),
  							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)(IconPanelBottomOutline16, {})
  						})
-@@ -8115,7 +8115,7 @@ window.__ModuleLoader__.load({
+@@ -8115,7 +8121,7 @@ window.__ModuleLoader__.load({
  						children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
  							type: "button",
  							className: sidebar_module_css_default.toggleButton,
@@ -56,6 +84,39 @@ index 887e3a34c0e38168faae55fdda33014841667e49..546e28275c28bcb201504d1030a06da8
                <IconPanelRightOutline16 />
              </button>
            </Tooltip>
+diff --git a/src/client/api.ts b/src/client/api.ts
+index 216916a5fbc54aac2685f1228583a703f0981b78..d11ab93350e06b3be5b25a12cfb8636d59fc6dbf 100644
+--- a/src/client/api.ts
++++ b/src/client/api.ts
+@@ -94,20 +94,26 @@ export type TerminalDepsStatus =
+     note?: string
+   }
+ 
++/** The Host-injected document base is the only deployment prefix for the sidebar API. */
+ async function call<T>(method: string, payload: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
++  const url = new URL(`sidebar/api/${method}`, document.baseURI)
+   let response: Response
+   try {
+-    response = await fetch(`/sidebar/api/${method}`, {
++    response = await fetch(url, {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+       body: JSON.stringify(payload),
+       signal,
+     })
+   } catch (error) {
++    console.error('better-sidebar.api_fetch_failed', error)
+     throw new SidebarApiError('network', error instanceof Error ? error.message : String(error))
+   }
+   const parsed: { ok?: boolean; value?: unknown; error?: { code?: string; message?: string } } | null
+-    = await response.json().catch(() => null)
++    = await response.json().catch((error: unknown) => {
++      console.error('better-sidebar.api_response_parse_failed', error)
++      return null
++    })
+   if (!response.ok || parsed === null || parsed.ok !== true || parsed.value === undefined) {
+     throw new SidebarApiError(
+       parsed?.error?.code ?? 'http',
 diff --git a/src/client/sidebar.module.css b/src/client/sidebar.module.css
 index e53c10932cf4fd00d0c1c4653171376e60927c0a..70bd9404bb90a7ea147da5ba6cfdd4ef204ab3c2 100644
 --- a/src/client/sidebar.module.css
