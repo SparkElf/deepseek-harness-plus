@@ -1,19 +1,18 @@
 /**
- * Real-composition guard: the optional DataOps integration boots from a
- * test-only cordis.yml through the actual Loader + Include path. With no
- * credentialRef configured it mounts the generic MCP client in anonymous mode,
- * exposes the browser status surface, and sends no Authorization header to the
- * remote MCP endpoint.
+ * Real-composition guard: Loader + Include mount the standalone DataOps plugin
+ * with the writable local credential provider, which creates one target identity
+ * but does not contact MCP until delegated access and refresh credentials exist.
  */
 import { createServer, type Server } from 'node:http'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
+import Loader from '@deepseek-ai/cordis-plugin-loader'
+import CredentialsLocal from '@deepseek-ai/dsh-credentials-local'
 import WebServer from '@deepseek-ai/dsh-host-webserver'
 import * as DataOps from '../src/index.ts'
 
@@ -33,25 +32,12 @@ afterEach(async () => {
   root = undefined
 })
 
-async function startRemote(): Promise<{
-  baseUrl: string
-  authorization: Array<string | undefined>
-}> {
-  const authorization: Array<string | undefined> = []
-  const server = createServer((request, response) => {
-    const url = new URL(request.url ?? '/', 'http://127.0.0.1')
-    if (url.pathname !== '/api/ai/data-query/mcp') {
-      response.writeHead(404)
-      response.end()
-      return
-    }
-    authorization.push(
-      typeof request.headers.authorization === 'string'
-        ? request.headers.authorization
-        : undefined,
-    )
-    response.writeHead(401)
-    response.end('unauthorized')
+async function startRemote(): Promise<{ baseUrl: string; requestCount: () => number }> {
+  let requests = 0
+  const server = createServer((_request, response) => {
+    requests += 1
+    response.writeHead(500)
+    response.end('MCP must not mount before authorization')
   })
   remote = server
   await new Promise<void>((resolve, reject) => {
@@ -65,13 +51,14 @@ async function startRemote(): Promise<{
   if (address === null || typeof address === 'string') throw new Error('fixture did not bind TCP')
   return {
     baseUrl: `http://127.0.0.1:${String(address.port)}`,
-    authorization,
+    requestCount: () => requests,
   }
 }
 
-async function loadComposition(baseUrl: string): Promise<Context> {
+async function loadComposition(baseUrl: string): Promise<{ ctx: Context; credentialsPath: string }> {
   root = await mkdtemp(join(tmpdir(), 'dsh-dataops-composition-'))
   const configPath = join(root, 'cordis.yml')
+  const credentialsPath = join(root, '.credentials.yaml')
   await writeFile(configPath, [
     '- id: webserver',
     "  name: '@deepseek-ai/dsh-host-webserver'",
@@ -80,11 +67,19 @@ async function loadComposition(baseUrl: string): Promise<Context> {
     '    port: 0',
     '- id: tools',
     '  name: test-tools',
+    '- id: credentials',
+    "  name: '@deepseek-ai/dsh-credentials-local'",
+    '  config:',
+    `    path: ${JSON.stringify(credentialsPath)}`,
+    '    watch: false',
     '- id: dataops',
     "  name: '@deepseek-ai/dsh-mcp-dataops'",
     '  config:',
     `    baseUrl: ${JSON.stringify(baseUrl)}`,
     '    serverName: dataops-real-composition',
+    '    credentialRef: DATAOPS_MCP_TOKEN',
+    '    refreshCredentialRef: DATAOPS_MCP_REFRESH_TOKEN',
+    '    targetCredentialRef: DATAOPS_DSH_TARGET',
     '    toolCallTimeoutMs: 1000',
     '    failOnStartupError: false',
     '',
@@ -102,6 +97,7 @@ async function loadComposition(baseUrl: string): Promise<Context> {
     },
   }
   const modules = new Map<string, unknown>([
+    ['@deepseek-ai/dsh-credentials-local', CredentialsLocal],
     ['@deepseek-ai/dsh-host-webserver', WebServer],
     ['@deepseek-ai/dsh-mcp-dataops', DataOps],
     ['test-tools', tools],
@@ -118,28 +114,32 @@ async function loadComposition(baseUrl: string): Promise<Context> {
     config: { path: pathToFileURL(configPath).href },
   })
   await ctx.loader.await()
-  return ctx
+  return { ctx, credentialsPath }
 }
 
 describe('mcp-dataops real composition', () => {
-  it('boots anonymous DataOps MCP from cordis.yml without sending Authorization', async () => {
+  it('creates one target identity and waits for delegated credentials before MCP mount', async () => {
     const fixture = await startRemote()
-    const ctx = await loadComposition(fixture.baseUrl)
+    const { ctx, credentialsPath } = await loadComposition(fixture.baseUrl)
     const webServer = ctx.get('webServer')
     expect(webServer).toBeDefined()
 
     const status = await fetch(
       `http://127.0.0.1:${String(webServer!.port)}/integrations/dataops/status`,
+      { headers: { 'sec-fetch-site': 'same-origin' } },
     )
     expect(status.status).toBe(200)
     expect(await status.json()).toMatchObject({
       baseUrl: fixture.baseUrl,
       serverName: 'dataops-real-composition',
-      mode: 'anonymous',
-      credentialConfigured: null,
-      authorizationAccepted: null,
+      credentialConfigured: false,
+      credentialWritable: true,
+      authorizationAccepted: false,
+      account: null,
     })
-    expect(fixture.authorization.length).toBeGreaterThan(0)
-    expect(fixture.authorization.every(value => value === undefined)).toBe(true)
+    expect(await readFile(credentialsPath, 'utf8')).toMatch(
+      /^DATAOPS_DSH_TARGET: [A-Za-z0-9_-]{43}$/mu,
+    )
+    expect(fixture.requestCount()).toBe(0)
   })
 })

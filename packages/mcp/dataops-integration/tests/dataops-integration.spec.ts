@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage, type Server } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import WebServer from '@deepseek-ai/dsh-host-webserver'
+import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import ToolRuntime from '@deepseek-ai/dsh-tools'
 import { credentialRef, type CredentialInfo, type CredentialRef, type ResolvedCredential } from '@deepseek-ai/dsh-credentials'
 import * as DataOps from '../src/index.ts'
@@ -14,6 +15,7 @@ type Fixture = {
   mcpInitializations: Array<string | undefined>
   userinfoAuthorization: Array<string | undefined>
   tokenRequests: URLSearchParams[]
+  revokedTokens: string[]
 }
 
 const contexts: Context[] = []
@@ -45,7 +47,7 @@ const accessProfiles = new Map<string, Profile>([
 
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
-  await Promise.all(fixtures.splice(0).map(({ server }) => new Promise<void>((resolve) => server.close(() => resolve()))))
+  await Promise.all(fixtures.splice(0).map(({ server }) => new Promise<void>(resolve => server.close(() => resolve()))))
 })
 
 async function requestBody(request: IncomingMessage): Promise<string> {
@@ -72,10 +74,16 @@ async function fixture(): Promise<Fixture> {
   const mcpInitializations: Array<string | undefined> = []
   const userinfoAuthorization: Array<string | undefined> = []
   const tokenRequests: URLSearchParams[] = []
+  const revokedTokens: string[] = []
   const server = createServer((request, response) => {
     void (async () => {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1')
       if (url.pathname === '/api/ai/data-query/mcp') {
+        if (request.method !== 'POST') {
+          response.writeHead(405)
+          response.end()
+          return
+        }
         const authorization = typeof request.headers.authorization === 'string'
           ? request.headers.authorization
           : undefined
@@ -134,6 +142,14 @@ async function fixture(): Promise<Fixture> {
         response.end(JSON.stringify(profile))
         return
       }
+      if (url.pathname === '/api/auth/dsh/revoke' && request.method === 'POST') {
+        const params = new URLSearchParams(await requestBody(request))
+        const token = params.get('token')
+        if (token !== null) revokedTokens.push(token)
+        response.writeHead(200, { 'content-type': 'application/json' })
+        response.end('{"success":true}')
+        return
+      }
       if (url.pathname === '/api/auth/dsh/token' && request.method === 'POST') {
         const params = new URLSearchParams(await requestBody(request))
         tokenRequests.push(params)
@@ -158,6 +174,7 @@ async function fixture(): Promise<Fixture> {
       response.writeHead(404)
       response.end()
     })().catch((error: unknown) => {
+      console.error('mcp-dataops test server request failed', error)
       response.writeHead(500)
       response.end(error instanceof Error ? error.message : String(error))
     })
@@ -178,6 +195,7 @@ async function fixture(): Promise<Fixture> {
     mcpInitializations,
     userinfoAuthorization,
     tokenRequests,
+    revokedTokens,
   }
   fixtures.push(result)
   return result
@@ -186,6 +204,7 @@ async function fixture(): Promise<Fixture> {
 async function baseContext() {
   const ctx = new Context()
   contexts.push(ctx)
+  await ctx.plugin(SystemPrompt)
   await ctx.plugin(ToolRuntime)
   await ctx.plugin(WebServer, { host: '127.0.0.1', port: 0 })
   return ctx
@@ -223,25 +242,40 @@ class MemoryCredentials {
   }
 }
 
+async function provideCredentials(ctx: Context, credentials: MemoryCredentials): Promise<void> {
+  const fiber = ctx.plugin({
+    name: 'test-credentials',
+    apply(credentialsContext: Context) {
+      credentialsContext.provide('credentials', credentials as never)
+    },
+  })
+  await fiber.await()
+}
+
 async function mountAuthorized(ctx: Context, dataops: Fixture, credentials: MemoryCredentials, serverName: string) {
-  ctx.provide('credentials', credentials as never)
+  await provideCredentials(ctx, credentials)
   const accessRef = credentialRef('DATAOPS_MCP_TOKEN')
   const refreshRef = credentialRef('DATAOPS_MCP_REFRESH_TOKEN')
+  const targetRef = credentialRef('DATAOPS_DSH_TARGET')
   const fiber = ctx.plugin(DataOps, {
     baseUrl: dataops.baseUrl,
     serverName,
     credentialRef: accessRef,
     refreshCredentialRef: refreshRef,
+    targetCredentialRef: targetRef,
     toolCallTimeoutMs: 1000,
     failOnStartupError: false,
   })
   await fiber.await()
-  return { accessRef, refreshRef }
+  return { accessRef, refreshRef, targetRef }
 }
 
 async function beginAuthorization(localPort: number) {
   const dshOrigin = `http://127.0.0.1:${String(localPort)}`
-  const connect = await fetch(`${dshOrigin}/integrations/dataops/connect?origin=${encodeURIComponent(dshOrigin)}`, { redirect: 'manual' })
+  const connect = await fetch(`${dshOrigin}/integrations/dataops/connect?origin=${encodeURIComponent(dshOrigin)}`, {
+    redirect: 'manual',
+    headers: { 'sec-fetch-site': 'same-origin' },
+  })
   expect(connect.status).toBe(303)
   return new URL(connect.headers.get('location')!)
 }
@@ -254,39 +288,18 @@ async function completeAuthorization(authorize: URL, code: string) {
 }
 
 describe('mcp-dataops integration', () => {
-  it('omits Authorization and reports anonymous mode when delegated credentials are absent', async () => {
-    const dataops = await fixture()
-    const ctx = await baseContext()
-    const fiber = ctx.plugin(DataOps, {
-      baseUrl: dataops.baseUrl,
-      serverName: 'dataops-anon',
-      toolCallTimeoutMs: 1000,
-      failOnStartupError: false,
-    })
-    await fiber.await()
-
-    expect(dataops.mcpInitializations).toEqual([undefined])
-    const status = await fetch(`http://127.0.0.1:${String(ctx.webServer.port)}/integrations/dataops/status`)
-    expect(await status.json()).toMatchObject({
-      mode: 'anonymous',
-      baseUrl: dataops.baseUrl,
-      credentialConfigured: null,
-      authorizationAccepted: null,
-      account: null,
-    })
-  })
-
   it('uses OIDC Authorization Code + PKCE, stores access and refresh credentials, and disconnects both', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
     const credentials = new MemoryCredentials()
-    const { accessRef, refreshRef } = await mountAuthorized(ctx, dataops, credentials, 'dataops-auth')
+    const { accessRef, refreshRef, targetRef } = await mountAuthorized(ctx, dataops, credentials, 'dataops-auth')
 
     expect(dataops.mcpInitializations).toEqual([])
     const localPort = ctx.webServer.port
-    const initialStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`)
+    const initialStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`, {
+      headers: { 'sec-fetch-site': 'same-origin' },
+    })
     expect(await initialStatus.json()).toMatchObject({
-      mode: 'oidc',
       credentialConfigured: false,
       authorizationAccepted: false,
       account: null,
@@ -296,6 +309,7 @@ describe('mcp-dataops integration', () => {
     expect(authorize.origin).toBe(dataops.baseUrl)
     expect(authorize.pathname).toBe('/api/auth/dsh/authorize')
     expect(authorize.searchParams.get('client_id')).toBe('deepseek-harness-plus')
+    expect(authorize.searchParams.get('target_ref')).toBe(credentials.values.get(targetRef))
     expect(authorize.searchParams.get('response_type')).toBe('code')
     expect(authorize.searchParams.get('scope')).toBe('openid dataops.mcp')
     expect(authorize.searchParams.get('prompt')).toBe('select_account')
@@ -318,14 +332,14 @@ describe('mcp-dataops integration', () => {
     expect(createHash('sha256').update(verifier, 'ascii').digest('base64url')).toBe(challenge)
     expect(dataops.mcpInitializations).toEqual(['Bearer alice-access'])
 
-    const connectedStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`)
+    const connectedStatus = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/status`, {
+      headers: { 'sec-fetch-site': 'same-origin' },
+    })
     expect(await connectedStatus.json()).toMatchObject({
-      mode: 'oidc',
       credentialConfigured: true,
       credentialWritable: true,
       authorizationAccepted: true,
       account: {
-        sub: 'user-alice',
         username: 'alice',
         displayName: 'Alice',
         email: 'alice@example.com',
@@ -333,10 +347,15 @@ describe('mcp-dataops integration', () => {
     })
     expect(dataops.userinfoAuthorization.at(-1)).toBe('Bearer alice-access')
 
-    const disconnected = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/disconnect`, { method: 'POST' })
+    const disconnected = await fetch(`http://127.0.0.1:${String(localPort)}/integrations/dataops/disconnect`, {
+      method: 'POST',
+      headers: { 'sec-fetch-site': 'same-origin' },
+    })
     expect(disconnected.status).toBe(200)
     expect(credentials.values.has(accessRef)).toBe(false)
     expect(credentials.values.has(refreshRef)).toBe(false)
+    expect(credentials.values.get(targetRef)).toMatch(/^[A-Za-z0-9_-]{43}$/u)
+    expect(dataops.revokedTokens).toEqual(['alice-refresh', 'alice-access'])
   })
 
   it('refreshes a stored grant before mounting MCP so stale access is never used', async () => {
@@ -359,7 +378,7 @@ describe('mcp-dataops integration', () => {
     expect(dataops.mcpAuthorization).not.toContain('Bearer stale-access')
   })
 
-  it('keeps the MCP child for the same OIDC sub and remounts it before switching to another sub', async () => {
+  it('keeps the MCP child when the bound owner authorizes again', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
     const credentials = new MemoryCredentials()
@@ -368,27 +387,24 @@ describe('mcp-dataops integration', () => {
 
     const alice = await beginAuthorization(localPort)
     await completeAuthorization(alice, 'alice-code')
-    expect(dataops.mcpInitializations).toEqual(['Bearer alice-access'])
-
     const sameAlice = await beginAuthorization(localPort)
     await completeAuthorization(sameAlice, 'alice-code-2')
-    expect(dataops.mcpInitializations).toEqual(['Bearer alice-access'])
 
-    const bob = await beginAuthorization(localPort)
-    await completeAuthorization(bob, 'bob-code')
-    expect(dataops.mcpInitializations).toEqual(['Bearer alice-access', 'Bearer bob-access'])
+    expect(dataops.mcpInitializations).toEqual(['Bearer alice-access'])
+    expect(credentials.values.get(credentialRef('DATAOPS_MCP_TOKEN'))).toBe('alice-access-2')
   })
 
   it('uses a configured canonical HTTPS callback origin without trusting the request Host as public topology', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
     const credentials = new MemoryCredentials()
-    ctx.provide('credentials', credentials as never)
+    await provideCredentials(ctx, credentials)
     const fiber = ctx.plugin(DataOps, {
       baseUrl: dataops.baseUrl,
       serverName: 'dataops-public-callback',
       credentialRef: 'DATAOPS_MCP_TOKEN',
       refreshCredentialRef: 'DATAOPS_MCP_REFRESH_TOKEN',
+      targetCredentialRef: 'DATAOPS_DSH_TARGET',
       callbackOrigin: 'https://dsh.example.com',
       toolCallTimeoutMs: 1000,
       failOnStartupError: false,
@@ -399,28 +415,25 @@ describe('mcp-dataops integration', () => {
     expect(authorize.searchParams.get('redirect_uri')).toBe('https://dsh.example.com/integrations/dataops/callback')
   })
 
-  it('rejects partial delegated-credential configuration and insecure non-loopback callback origins', async () => {
+  it('accepts an explicitly configured trusted-LAN HTTP callback origin', async () => {
     const dataops = await fixture()
     const ctx = await baseContext()
     const credentials = new MemoryCredentials()
-    ctx.provide('credentials', credentials as never)
+    await provideCredentials(ctx, credentials)
 
-    await expect(ctx.plugin(DataOps, {
-      baseUrl: dataops.baseUrl,
-      serverName: 'dataops-partial',
-      credentialRef: 'DATAOPS_MCP_TOKEN',
-      toolCallTimeoutMs: 1000,
-      failOnStartupError: false,
-    }).await()).rejects.toThrow(/credentialRef and refreshCredentialRef/)
-
-    await expect(ctx.plugin(DataOps, {
+    const fiber = ctx.plugin(DataOps, {
       baseUrl: dataops.baseUrl,
       serverName: 'dataops-callback',
       credentialRef: 'DATAOPS_MCP_TOKEN',
       refreshCredentialRef: 'DATAOPS_MCP_REFRESH_TOKEN',
+      targetCredentialRef: 'DATAOPS_DSH_TARGET',
       callbackOrigin: 'http://dsh.example.com',
       toolCallTimeoutMs: 1000,
       failOnStartupError: false,
-    }).await()).rejects.toThrow(/callbackOrigin must be an HTTPS origin/)
+    })
+    await fiber.await()
+
+    const authorize = await beginAuthorization(ctx.webServer.port)
+    expect(authorize.searchParams.get('redirect_uri')).toBe('http://dsh.example.com/integrations/dataops/callback')
   })
 })

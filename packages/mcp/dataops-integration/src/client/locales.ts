@@ -1,3 +1,4 @@
+/** English DataOps Settings copy. */
 export const en = {
   nav: 'DataOps',
   title: 'DataOps',
@@ -6,7 +7,7 @@ export const en = {
   connectionFailed: 'Connection failed',
   managedByAdministrator: 'Managed by administrator',
   connect: 'Connect DataOps',
-  switchAccount: 'Switch account',
+  reauthorize: 'Authorize again',
   disconnect: 'Disconnect',
   confirmDisconnect: 'Disconnect this DataOps account?',
   confirmDisconnectDetail: 'You’ll need to connect DataOps again before using this account.',
@@ -19,8 +20,10 @@ export const en = {
   disconnectFailed: 'Unable to disconnect DataOps. Try again.',
 } as const
 
+/** Stable key set shared by every DataOps Settings locale. */
 export type DataOpsKey = keyof typeof en
 
+/** Chinese DataOps Settings copy. */
 export const zh: Record<DataOpsKey, string> = {
   nav: 'DataOps',
   title: 'DataOps',
@@ -29,7 +32,7 @@ export const zh: Record<DataOpsKey, string> = {
   connectionFailed: '连接失败',
   managedByAdministrator: '由管理员管理',
   connect: '连接 DataOps',
-  switchAccount: '切换账号',
+  reauthorize: '重新授权',
   disconnect: '断开连接',
   confirmDisconnect: '要断开这个 DataOps 账号吗？',
   confirmDisconnectDetail: '断开后，需要重新连接 DataOps 才能继续使用此账号。',

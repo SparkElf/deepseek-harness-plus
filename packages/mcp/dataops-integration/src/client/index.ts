@@ -13,8 +13,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 const NS = 'settings.dataops'
 
+/** Client services required for the Settings contribution. */
 export const inject = ['slots', 'locale']
 
+/**
+ * Register localized DataOps Settings navigation and content.
+ * @param ctx - DSH client context with locale and settings slots.
+ */
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'mcp-dataops: settings copy')
   const t = ctx.locale.bind(NS) as DataOpsSectionInjected['t']

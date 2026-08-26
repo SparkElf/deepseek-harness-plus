@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Optional DataOps integration over the generic MCP client. It owns DataOps-specific browser authorization, OIDC identity, delegated token refresh, and principal-aware composition only; MCP transport/tool bridging remains in [`@deepseek-ai/dsh-mcp-client`](../mcp-client/README.md), and secret storage remains behind `ctx.credentials`.
+Optional standalone DataOps integration over the generic MCP client. It owns one persistent target identity, DataOps browser authorization, delegated token refresh, and composition only; MCP transport and tool bridging remain in [`@deepseek-ai/dsh-mcp-client`](../mcp-client/README.md), and credential values remain behind `ctx.credentials`.
 
 ## Configuration
 
@@ -13,52 +13,49 @@ Optional DataOps integration over the generic MCP client. It owns DataOps-specif
     serverName: dataops
     credentialRef: DATAOPS_MCP_TOKEN
     refreshCredentialRef: DATAOPS_MCP_REFRESH_TOKEN
+    targetCredentialRef: DATAOPS_DSH_TARGET
     # For an externally published DSH Web origin:
     # callbackOrigin: https://dsh.example.com
 ```
 
-`baseUrl` is the DataOps origin. `serverName` becomes the generic MCP namespace (`mcp__dataops__...`). `credentialRef` and `refreshCredentialRef` are optional as a pair. `callbackOrigin` is optional; local DSH derives the browser origin from the loopback Settings request, while an externally published Web deployment can declare its canonical HTTPS callback origin explicitly.
+`baseUrl` is the DataOps origin. `serverName` becomes the generic MCP namespace (`mcp__dataops__...`). All three credential references are required. The access and refresh references must be writable for browser authorization and disconnect. If the target reference is not configured, its provider must be writable so the plugin can generate the target once. `callbackOrigin` is optional only for loopback DSH, which derives the browser origin from its Settings request. Every non-loopback Web deployment declares an explicit HTTP or HTTPS origin; HTTP is a trusted-LAN contract, not an HTTPS fallback.
 
-### Anonymous mode
+This package is for standalone DSH only. A DataOps-managed container uses the DataOps-owned Unix broker and does not mount this package, so managed Settings has no DataOps Connect, Reauthorize, or Disconnect controls.
 
-Omit both credential refs to mount the DataOps MCP endpoint immediately through the generic MCP client without an `Authorization` header. DSH only attempts the anonymous connection; the remote MCP server decides whether to accept or reject it. The protected DataOps production MCP may therefore answer `401 Unauthorized`, which is a valid server-policy result.
+## Browser authorization
 
-### Browser authorization mode
+The package adds a **DataOps** page to DSH Settings. **Connect DataOps** opens OAuth 2.0 Authorization Code + PKCE with `openid dataops.mcp`. DataOps owns its authorization page, login, MFA, and account confirmation. DSH receives only the authorization code, exchanges it server-side, validates the access token through DataOps `userinfo`, and commits access/refresh credentials together with the generic MCP child. Any failed write or child mount restores the prior grant.
 
-Configure both credential refs to enable OAuth 2.0 Authorization Code + PKCE with OIDC identity. The optional browser half adds a **DataOps** page to the existing DSH Settings UI. That page treats connection status and the currently authorized DataOps account as the primary information; server URL and connection mode are available under **Advanced connection details** instead of leading the user through transport terminology. Choose **Connect DataOps** there.
+The plugin generates a random target reference once and retains it for the life of the current `DSH_HOME`. The first successful DataOps approval permanently binds an unbound target to the selected OIDC `sub`. Later authorization requests show only that owner. **Authorize again** renews the same owner's grant; it cannot select or install another principal.
 
-DSH opens DataOps in a popup with `openid dataops.mcp` and `prompt=select_account`. DataOps renders the authorization experience through its native Vue/Wanxiang design system, reads only its own browser sessions, and requires an explicit account choice. No account is selected by default, even when only one is available, and the authorization action stays disabled until the user chooses one. **Use another account** opens the normal DataOps login/MFA experience; returning to the authorization popup refreshes the available accounts automatically. DSH receives the authorization code only, exchanges it server-side, validates the resulting access token through DataOps `userinfo`, stores the delegated access and refresh tokens through their credential references, and mounts the generic MCP client with the access-token `bearerTokenRef`. The returned ID token is part of the OIDC token response but is not used as the MCP bearer token.
+**Disconnect** unmounts the DataOps MCP child, revokes the refresh and access tokens at DataOps, and removes both local credentials. It does not clear the target reference or release the DataOps owner binding. Reconnecting therefore returns to the same account.
 
-The Settings page shows the authorized account, supports switching accounts through the same DataOps chooser, and can remove writable DSH-managed delegated credentials without logging the user out of DataOps. Both credential references must resolve to writable providers before Settings offers a new authorization or disconnect operation.
+## Refresh lifecycle
 
-### Refresh and account switching
+A writable stored grant is refreshed before the MCP child is mounted. While the selected DataOps `AuthSession` can still issue the normal access-token lifetime, the plugin refreshes the access credential without remounting because the generic MCP client resolves the current credential before each HTTP request. A valid administrator-managed read-only access credential mounts without mutation; its provider owns rotation.
 
-The integration refreshes the delegated access token through the stored refresh credential before mounting a previously authorized MCP connection and while the delegated grant can still issue the normal access-token lifetime. The generic MCP client resolves the current access credential before each HTTP request, so a refresh for the same OIDC `sub` does not require a new MCP connection.
+When DataOps reports a shorter access lifetime, the plugin schedules MCP child removal at that final token's expiry instead of repeatedly refreshing a fixed remaining session lifetime. A failed refresh also unmounts the child and leaves an actionable reauthorization state in Settings.
 
-DataOps HTTP MCP sessions are bound to the DataOps user principal. If a new authorization resolves to a different OIDC `sub`, this plugin disposes the existing DataOps MCP child **before** replacing the active principal and mounts a fresh child afterward. Reauthorizing the same `sub` keeps the existing child.
+## Callback topology
 
-### Callback topology
+Credential mutation and integration management routes require loopback ingress and a same-origin DSH browser request because the host web server has no authenticated remote credential-mutation control plane. Local Web derives the callback only from an actual loopback browser origin.
 
-Credential mutation and the integration management routes remain loopback-ingress operations because the current DSH host web server does not provide a remote control-plane authentication layer. Local Web use derives the callback from the actual loopback DSH browser origin.
-
-For a DSH Web deployment published through a trusted ingress whose hop into DSH is loopback, set `callbackOrigin` to the canonical HTTPS origin and register that same origin in DataOps `AUTH_DSH_REDIRECT_ORIGINS`. DSH never derives an externally trusted callback from `Host` or forwarded headers. Direct unauthenticated LAN control access is not enabled by this plugin.
+For a DSH Web deployment published through a trusted ingress whose hop into DSH is loopback, set `callbackOrigin` to its explicit HTTP or HTTPS origin and register the same origin in DataOps `AUTH_DSH_REDIRECT_ORIGINS`. DSH does not derive a trusted public callback from `Host` or forwarded headers, and HTTPS never falls back to HTTP.
 
 ## Security
 
-DataOps browser cookies, passwords, and MFA secrets never leave the DataOps origin. Delegated access, refresh, and ID tokens never appear in the browser authorization URL, browser JavaScript, tool arguments, model context, or plugin config. The DataOps authorization route carries only a short-lived signed authorization request; the callback page is only a transient popup bridge that notifies the DSH Settings page and closes itself.
+DataOps browser cookies, passwords, and MFA secrets never leave the DataOps origin. Delegated tokens never enter browser authorization URLs, browser JavaScript, tool arguments, model context, session logs, or plugin config. The target reference is an opaque identity, not a credential; it carries no user ID and cannot authorize MCP requests.
 
-Authentication state is outside the agent loop. This package does not implement DataOps SQL or catalog tools; it only composes the existing generic MCP client.
+Authentication state remains outside the agent loop. This package contains no DataOps SQL, catalog, permission, connector, or result logic.
 
 ## Model Experience
 
-This package adds no prompt text and no model-visible authentication tool. Once the child MCP connection is active, the model sees exactly the server-qualified tools registered by `@deepseek-ai/dsh-mcp-client`. Authentication state, browser account choice, PKCE material, OIDC identity, and credential references stay outside model context, so the plugin itself adds no token or KV-cache cost.
+This package adds no prompt text and no model-visible authentication tool. Once the MCP child is active, the model sees exactly the server-qualified tools registered by `@deepseek-ai/dsh-mcp-client`. Authorization state, target identity, PKCE material, OIDC identity, and credential references add no model tokens or KV-cache entries.
 
 ## Compatibility
 
-This package is optional and is not part of the shipped default profile. Existing direct `@deepseek-ai/dsh-mcp-client` configurations continue to work unchanged. Omitting both credential refs preserves anonymous Streamable HTTP behavior; existing manually managed bearer references remain supported by the generic MCP client.
+This package is optional and remains outside shipped default profiles. Existing direct `@deepseek-ai/dsh-mcp-client` configurations, including generic anonymous or manually managed bearer configurations, remain owned by that package and are unchanged.
 
 ## Known Limitations and Deferred Work
 
-The delegated refresh token is bounded by the DataOps `AuthSession` selected during authorization. If that DataOps session expires, is revoked, or the account is disabled, refresh stops, the DataOps MCP child is unmounted, and the user must authorize DataOps again. The integration does not invent a second long-lived DataOps login session or speculative retry/queue layer.
-
-Authorization-code single use and delegated-token revocation are owned by the current DataOps authorization implementation; any future multi-replica persistence change belongs to DataOps rather than this DSH plugin.
+The delegated grant cannot outlive the selected DataOps `AuthSession`. When that session expires, is revoked, or its account is disabled, refresh stops and the user must authorize the same DataOps owner again. The integration adds no second login session, retry queue, account-switch path, or target-unbind operation.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace } from '@deepseek-ai/dsh-client-ui-slots'
 import type { en } from './locales.ts'
@@ -16,20 +16,20 @@ interface Account {
 }
 
 interface Status {
-  mode: 'anonymous' | 'oidc'
-  credentialConfigured: boolean | null
-  credentialWritable: boolean | null
-  authorizationAccepted: boolean | null
+  credentialConfigured: boolean
+  credentialWritable: boolean
+  authorizationAccepted: boolean
   account: Account | null
 }
 
+/** Values injected by the DSH Settings slot. */
 export interface DataOpsSectionInjected {
+  /** Translate one DataOps Settings message key. */
   t: (key: keyof typeof en) => string
 }
 
+/** Props accepted by the injected DataOps Settings section. */
 export type DataOpsSectionProps = Partial<InjectFace<DataOpsSectionInjected>>
-
-const messageOf = (error: unknown) => error instanceof Error ? error.message : String(error)
 
 async function readStatus(): Promise<Status> {
   const response = await fetch(STATUS_PATH, { cache: 'no-store' })
@@ -37,6 +37,11 @@ async function readStatus(): Promise<Status> {
   return response.json() as Promise<Status>
 }
 
+/**
+ * Render the DataOps connection state and authorization controls.
+ * @param props - Settings slot injection values.
+ * @returns The localized Settings section, or nothing before injection.
+ */
 export function DataOpsSection(props: DataOpsSectionProps) {
   const { t } = props
   if (t === undefined) return null
@@ -49,22 +54,27 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
   const [failure, setFailure] = useState<string | undefined>(undefined)
   const [confirmingDisconnect, setConfirmingDisconnect] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const authorizationPopup = useRef<Window | null>(null)
 
   const load = (): void => {
     setLoading(true)
     setFailure(undefined)
     void readStatus()
       .then(setStatus)
-      .catch(() => { setFailure(t('connectionFailed')) })
+      .catch((error: unknown) => {
+        console.error('mcp-dataops: status request failed', error)
+        setFailure(t('connectionFailed'))
+      })
       .finally(() => { setLoading(false) })
   }
 
   useEffect(() => {
     load()
     const onMessage = (event: MessageEvent): void => {
-      if (event.origin !== window.location.origin) return
+      if (event.origin !== window.location.origin || event.source !== authorizationPopup.current) return
       const data = event.data as { type?: unknown; result?: unknown } | null
       if (data?.type !== OAUTH_MESSAGE_TYPE) return
+      authorizationPopup.current = null
       if (data.result === 'connected') {
         load()
         return
@@ -73,7 +83,11 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
       setFailure(t('connectFailed'))
     }
     window.addEventListener('message', onMessage)
-    return () => { window.removeEventListener('message', onMessage) }
+    return () => {
+      window.removeEventListener('message', onMessage)
+      authorizationPopup.current?.close()
+      authorizationPopup.current = null
+    }
   }, [])
 
   const state = useMemo(() => {
@@ -82,7 +96,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
       return { dot: 'warning' as const, label: t('connectionFailed') }
     }
     if (status?.authorizationAccepted === true) return { dot: 'done' as const, label: t('connected') }
-    if (status?.mode === 'anonymous' || status?.credentialWritable === false) {
+    if (status?.credentialWritable === false) {
       return { dot: 'warning' as const, label: t('managedByAdministrator') }
     }
     return { dot: 'warning' as const, label: t('notConnected') }
@@ -93,6 +107,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
     const connectUrl = new URL(CONNECT_PATH, window.location.origin)
     connectUrl.searchParams.set('origin', window.location.origin)
     const popup = window.open(connectUrl.toString(), 'dsh-dataops-authorization', 'popup,width=720,height=760')
+    authorizationPopup.current = popup
     if (popup === null) setFailure(t('popupBlocked'))
   }
 
@@ -102,22 +117,21 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
     void fetch(DISCONNECT_PATH, { method: 'POST' })
       .then(async (response) => {
         if (!response.ok) {
-          const body = await response.json().catch(() => null) as { error?: unknown } | null
-          throw new Error(typeof body?.error === 'string' ? body.error : t('disconnectFailed'))
+          throw new Error(`DataOps disconnect failed with HTTP ${String(response.status)}`)
         }
         setConfirmingDisconnect(false)
         load()
       })
-      .catch((error: unknown) => { setFailure(messageOf(error) || t('disconnectFailed')) })
+      .catch((error: unknown) => {
+        console.error('mcp-dataops: disconnect request failed', error)
+        setFailure(t('disconnectFailed'))
+      })
       .finally(() => { setDisconnecting(false) })
   }
 
-  const connectedAccount = status?.mode === 'oidc' && status.authorizationAccepted === true ? status.account : null
+  const connectedAccount = status?.authorizationAccepted === true ? status.account : null
   const accountIdentity = connectedAccount?.email || connectedAccount?.username
-  const showActions = !confirmingDisconnect && (
-    status?.mode === 'oidc'
-    || (status === undefined && failure !== undefined)
-  )
+  const showActions = !confirmingDisconnect && (status !== undefined || failure !== undefined)
 
   return (
     <section className={styles.section}>
@@ -146,22 +160,18 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
           </div>
         )}
 
-        {status?.authorizationAccepted === true && status.credentialWritable === false && (
-          <p className={styles.detail}>{t('managedByAdministrator')}</p>
-        )}
-
         {failure !== undefined && status !== undefined && (
           <p className={styles.error} role="alert">{failure}</p>
         )}
 
         {showActions && (
           <div className={styles.actions}>
-            {status?.mode === 'oidc' && status.credentialWritable !== false && (
+            {status !== undefined && status.credentialWritable && (
               <Button variant="primary" onClick={openAuthorization}>
-                {status.authorizationAccepted === true ? t('switchAccount') : t('connect')}
+                {status.authorizationAccepted ? t('reauthorize') : t('connect')}
               </Button>
             )}
-            {status?.mode === 'oidc' && status.credentialConfigured === true && status.credentialWritable !== false && (
+            {status?.credentialConfigured === true && status.credentialWritable && (
               <Button variant="outline" onClick={() => { setConfirmingDisconnect(true) }}>
                 {t('disconnect')}
               </Button>

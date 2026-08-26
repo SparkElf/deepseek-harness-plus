@@ -6,44 +6,38 @@ Status: implemented
 
 ## 问题
 
-通用 MCP client 可以通过凭据引用解析 Bearer 凭据，但不应该自己获取 DataOps 身份。DataOps 集成需要一个可选的用户授权入口，同时不能把 DataOps 登录、MFA、SQL、目录或权限逻辑塞进通用 MCP package。
+通用 MCP client 负责解析 bearer credential，但不拥有 DataOps 身份获取。独立 DataOps 集成需要浏览器授权，同时不能把登录、MFA、查询、目录或权限逻辑移入 DSH core。
 
-同一个 DataOps 浏览器里可以同时存在多个有效账号会话，因此授权必须明确选择账号，不能静默继承某个浏览器 cookie。如果 DSH 没有配置 DataOps 授权，也必须保持通用 Streamable HTTP 行为，以不带 `Authorization` 头的方式尝试连接 MCP。
-
-DSH 产品主体是 Web host，并不是传统 desktop-only loopback 应用；但当前 host web server 同样没有经过认证的远程 credential-mutation control plane。因此对外发布的 callback 拓扑不能通过放宽现有 loopback management boundary 来猜测。
+一个 DSH runtime 还会在同一 `DSH_HOME` 中保留 session history、credential 和 plugin state。只替换 DataOps MCP credential 会在持久状态中混合 principal，因此浏览器账号选择不能变成 runtime 账号切换机制。
 
 ## 决策
 
-继续把 `@deepseek-ai/dsh-mcp-dataops` 作为叠加在 `@deepseek-ai/dsh-mcp-client` 上的可选双端插件。
+继续把 `@deepseek-ai/dsh-mcp-dataops` 作为叠加在 `@deepseek-ai/dsh-mcp-client` 上的可选独立双端插件。DataOps 托管容器使用 DataOps-owned Unix broker，不挂载该插件。
 
-Host 端自身不注册 DataOps 取数工具。同时省略两个 credential reference 时，立即以无 Bearer 凭据的方式挂载通用 MCP client。授权模式要求 access-token `credentialRef` 与 `refreshCredentialRef` 成对配置，两者都继续由现有 credentials service 持有；通用 MCP child 只接收 access-token reference 作为 `bearerTokenRef`。
+Host 端要求 access、refresh 和 target 三个 credential reference。target 缺失时只生成一次；断开委托 token 时继续保留。target 是绑定一个 `DSH_HOME` 的 opaque 随机标识，不是 credential，也不包含 DataOps user identity。
 
-浏览器端在 DSH Settings 中贡献 DataOps 页面。点击**连接 DataOps**后，以 `openid dataops.mcp` 和 `prompt=select_account` 发起 OAuth 2.0 Authorization Code + PKCE。授权页面、现有登录/MFA/session 处理以及显式账号选择都由 DataOps 自己负责。DSH 只接收 authorization code，在服务端换取 token，通过 DataOps `userinfo` 确认 access-token identity，再保存委托 access token 与 refresh token；DSH 不读取 DataOps 浏览器 cookie 或密码。ID token 不作为 MCP bearer token 使用。
+DataOps 在首次明确授权时把未绑定 target 原子绑定到所选 OIDC `sub`。后续每次授权都先解析 target owner，再列出浏览器 session，因此只能由该 owner 批准。Disconnect 和 token 过期都不删除绑定；DSH route 和 Settings action 都不能解绑或替换 owner。
 
-Settings 交互沿用 DSH 现有 feature page 设计，而不是把 OAuth 技术细节做成独立控制面：连接状态和当前授权的 DataOps 账号是主信息，服务地址与连接模式收进高级信息。配套 DataOps 授权面是使用 DataOps/万相 design token 的 standalone Vue 页面；任何账号都不会默认选中，用户明确选择前授权按钮保持禁用。点击**使用其他账号**会进入正常 DataOps 登录/MFA 体验，完成登录返回 popup 后账号列表自动刷新。
+浏览器端在 DSH Settings 中贡献 DataOps 页面。点击**连接 DataOps**后，以 `openid dataops.mcp` 发起 Authorization Code + PKCE。授权、登录、MFA 和账号确认都由 DataOps 拥有。DSH在服务端交换code，通过`userinfo`验证access token，并把委托credential与通用MCP child作为一次操作提交。credential写入或child挂载失败会恢复旧grant；只有access credential reference进入child。
 
-已有授权在挂载 MCP child 前先做 refresh。只要 OIDC `sub` 不变，授权有效期内更新 access credential 不需要 remount，因为通用 MCP client 会在每个 HTTP 请求边界解析当前 credential。DataOps HTTP MCP session 的真实绑定字段是 `userId`，而不是浏览器 `AuthSession.id`，因此 remount 的判定依据必须是 `sub`。如果新授权解析出不同 `sub`，集成先 dispose 当前 DataOps MCP child，再写入新 principal 的凭据，最后挂载新的 child。
+可写的已有grant会在MCP挂载前以及DataOps浏览器session的正常access-token生命周期内刷新。通用MCP client在每次HTTP请求前解析access credential，因此刷新不remount child。更短的最终token或刷新失败会卸载child；有效的管理员只读grant不发生写入，轮换由其credential provider拥有。
 
-DataOps 把委托 token 生命周期限制在用户授权时选择的 DataOps `AuthSession` 内。当 refresh response 开始返回比正常 access lifetime 更短的 `expires_in` 时，说明授权已经进入固定 session 剩余生命周期；插件停止继续调度 refresh，让最后一个 access token 与 grant 一起到期，避免对固定剩余时间反复折半刷新。
-
-credential mutation、status、connect、callback handling 与 disconnect 仍只接受 loopback ingress。本机 Web 模式从发起授权的 DSH 浏览器请求得到 callback origin，并要求它与 DSH Host 匹配。对外发布的 Web 部署可以改为显式配置规范 HTTPS `callbackOrigin`，DataOps 必须登记同一个 origin；外部 ingress 到当前无远程认证的 DSH control plane 的最后一跳仍必须是 loopback。DSH 不会根据 `Host` 或 forwarded header 猜测公网 callback origin。
-
-该集成继续不加入默认发行 profile，因此直接配置 `mcp-client` 的现有部署和其他 MCP server 都不受影响。
+credential mutation和integration route要求loopback ingress与same-origin DSH browser request。本机Web只从loopback origin派生callback；对外发布的Web显式声明HTTP或HTTPS `callbackOrigin`并由DataOps登记。可信内网HTTP是明确合同，绝不是HTTPS fallback。
 
 ## 结果
 
-- 同时省略两个集成 credential reference 时，MCP transport 保持匿名；是否允许匿名访问仍由远端 MCP server 决定。
-- DataOps 专属 OAuth/OIDC、账号选择、refresh 与 principal switching 都位于 `dsh-mcp-client` 和 agent loop 之外。
-- DataOps 浏览器 cookie、密码和 MFA 密钥不会进入 DSH；委托 token 只存在于 credential storage 与服务端 exchange 路径，不进入 prompt、tool、浏览器 URL 或浏览器 JavaScript。
-- 用户界面只要求用户理解“连接 DataOps”和“选择账号”，不要求用户理解 OIDC、PKCE、token 类型或 MCP session identity。
-- 同一 `sub` 的 access-token refresh 或重新授权沿用现有 DataOps MCP child；不同 `sub` 的授权会 dispose 并重建 child，让 DataOps 为新用户绑定新的 MCP session。
-- 委托 refresh 最长不超过所选 DataOps `AuthSession`；DSH 不额外发明第二套长期 DataOps 登录，也不增加 speculative retry / queue 层。
-- 该 package 同时包含 Host 与浏览器两端，并遵循仓库现有 dual-half build、Settings slot、lifecycle effect 与 disposal 约定。
+- 一个独立 `DSH_HOME` 在整个生命周期中只获取一个 DataOps principal。
+- 首次授权可以从有效 DataOps session 中选择账号；后续授权只显示已绑定 owner。
+- 重新授权只更新同一owner，断开会撤销并且只清除委托token。
+- Plugin disposal会中止DataOps I/O，等待进行中的授权操作，清除pending state与refresh timing，并移除MCP child。
+- 托管容器不包含独立授权控件，DSH 进程也不持有委托 DataOps token。
+- DataOps cookie、密码、MFA 密钥和委托 token value 不进入 prompt、tool、浏览器 URL、浏览器 JavaScript或 session log。
+- 该 package 不增加 DataOps 查询实现，也不增加账号切换、target unbind、retry queue 或兼容路径。
 
 ## 验证
 
-聚焦 Host 测试覆盖匿名 MCP 组合、OIDC Authorization Code + PKCE、两项委托凭据、`userinfo` identity、启动时 refresh-before-mount、同 principal 复用、不同 principal remount、canonical callback origin 和 disconnect。Loader + Include 真实组合测试通过测试用 `cordis.yml` 启动该可选插件，并验证匿名模式不会发送 `Authorization` 头。Client 注册测试覆盖 Settings 页面贡献及其随 fiber dispose 移除。配套 DataOps system test 会驱动真实原生授权 UI，验证账号默认均未选中、选择前主授权按钮禁用，并通过正常 DataOps 登录体验新增另一个账号，再确认授权 popup 恢复焦点后自动刷新账号列表。
+独立用户路径覆盖首次target创建、首次明确账号绑定、同owner重新授权、可回滚的挂载前刷新、保留target的远程撤销、其他owner拒绝、显式trusted-HTTP callback校验、same-origin管理、最终token到期、Settings恢复和child disposal。托管路径证明只组合 Unix-broker MCP adapter，并且不存在独立 Settings contribution。DataOps 浏览器覆盖通过可见 UI 完成登录/MFA 和原生授权页面。
 
 ## 与取数设计的关系
 
-本记录实现 [MCP Data Query Integration and A/B Query Designs](../../proposed/architecture/2026-08-23-mcp-data-query-architecture.zh.md) 中 DSH integration plugin 的部分。配套 DataOps 委托授权实现在 `SparkElf/dataops#3`；授权页面、显式多账号选择、OIDC/token 签发、MCP audience/scope 校验以及 DataOps 侧 principal enforcement 都由 DataOps owner 负责。
+本记录实现 [MCP Data Query Integration and A/B Query Designs](../../proposed/architecture/2026-08-23-mcp-data-query-architecture.zh.md) 中独立 DSH 授权部分。DataOps 拥有 target binding、授权 UI、OIDC token、MCP audience/scope 校验和 principal enforcement。
