@@ -1,10 +1,11 @@
-/** Shared Settings-scope state for the two shipped subagent configuration cards. */
+/** Shared Settings-scope state for the unified subagent settings section. */
 import type { IApiClient, ModelProviderGroup } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SettingsScope, SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 
 /** One editable value from a tool-subagent settings namespace. */
 export interface SubagentSettingsValue {
+  enabled?: boolean
   agentOptions?: Partial<{ provider: string; model: string; maxTokens: number }>
   persona?: string
   toolFilter?: { allow?: string[]; deny?: string[] }
@@ -33,7 +34,7 @@ export interface SubagentModelChoice {
   modelName: string
 }
 
-/** State rendered by the two namespace-owned plugin cards. */
+/** State rendered by the unified settings section. */
 export interface SubagentSettingsState {
   writable: boolean
   entries: readonly SubagentEntryView[]
@@ -70,9 +71,9 @@ function choicesOf(groups: readonly ModelProviderGroup[]): SubagentModelChoice[]
   })))
 }
 
-/** Settings controller shared by the two namespace-owned plugin cards. */
+/** Settings controller shared by both mode panels. */
 export class SubagentSettingsStore {
-  /** Reactive state shared by both settings cards. */
+  /** Reactive state shared by both mode panels. */
   readonly store: SnapshotStore<SubagentSettingsState> = createSnapshotStore({
     writable: false, entries: [], models: [], drafts: {}, saving: false, saveErrors: {},
   })

@@ -11,4 +11,4 @@
           provider: spawn
           toolName: subagent
           backgroundMode: continuable
-          maxDepth: 2
+          maxDepth: 1
