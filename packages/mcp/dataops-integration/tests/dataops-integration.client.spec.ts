@@ -47,13 +47,17 @@ const accessProfiles = new Map<string, Profile>([
 
 afterEach(async () => {
   await Promise.all(contexts.splice(0).map(ctx => ctx.fiber.dispose()))
-  await Promise.all(fixtures.splice(0).map(({ server }) => new Promise<void>(resolve => server.close(() => resolve()))))
+  await Promise.all(fixtures.splice(0).map(({ server }) => new Promise<void>((resolve) => {
+    server.close(() => {
+      resolve()
+    })
+  })))
 })
 
 async function requestBody(request: IncomingMessage): Promise<string> {
   const chunks: Buffer[] = []
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+  for await (const chunk of request as AsyncIterable<Uint8Array>) {
+    chunks.push(Buffer.from(chunk))
   }
   return Buffer.concat(chunks).toString('utf8')
 }

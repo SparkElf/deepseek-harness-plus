@@ -86,10 +86,11 @@ describe('credential-backed Streamable HTTP auth', () => {
     await ctx.plugin(TestCredentials)
     const originalFetch = globalThis.fetch
     const seenHeaders: Headers[] = []
-    globalThis.fetch = vi.fn(async (_input, init) => {
+    const captureFetch: typeof globalThis.fetch = async (_input, init) => {
       seenHeaders.push(new Headers(init?.headers))
       return new Response(null, { status: 200 })
-    }) as typeof globalThis.fetch
+    }
+    globalThis.fetch = vi.fn(captureFetch)
 
     try {
       createTransport(httpConfig(), ctx)

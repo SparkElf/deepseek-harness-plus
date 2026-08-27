@@ -115,7 +115,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
     setDisconnecting(true)
     setFailure(undefined)
     void fetch(DISCONNECT_PATH, { method: 'POST' })
-      .then(async (response) => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`DataOps disconnect failed with HTTP ${String(response.status)}`)
         }
@@ -148,7 +148,7 @@ function Loaded({ t }: { t: DataOpsSectionInjected['t'] }) {
           </span>
         </div>
 
-        {connectedAccount !== null && connectedAccount !== undefined && (
+        {connectedAccount !== null && (
           <div className={styles.accountRow}>
             <span className={styles.avatar} aria-hidden="true">
               {(connectedAccount.displayName || connectedAccount.username).slice(0, 1).toUpperCase()}

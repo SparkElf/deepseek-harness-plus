@@ -88,8 +88,8 @@ type CredentialState = Readonly<{
   writable: boolean
 }>
 
-function normalizeBaseUrl(value: string): string {
-  if (!URL.canParse(value)) throw new Error('mcp-dataops: baseUrl must be an absolute http(s) origin')
+function normalizeHttpOrigin(value: string, invalidMessage: string, componentMessage: string): string {
+  if (!URL.canParse(value)) throw new Error(invalidMessage)
   const url = new URL(value)
   if (!['http:', 'https:'].includes(url.protocol)
     || url.username !== ''
@@ -97,23 +97,25 @@ function normalizeBaseUrl(value: string): string {
     || url.pathname !== '/'
     || url.search !== ''
     || url.hash !== '') {
-    throw new Error('mcp-dataops: baseUrl must be an http(s) origin without path, query, credentials, or fragment')
+    throw new Error(componentMessage)
   }
   return url.origin
 }
 
+function normalizeBaseUrl(value: string): string {
+  return normalizeHttpOrigin(
+    value,
+    'mcp-dataops: baseUrl must be an absolute http(s) origin',
+    'mcp-dataops: baseUrl must be an http(s) origin without path, query, credentials, or fragment',
+  )
+}
+
 function normalizeCallbackOrigin(value: string): string {
-  if (!URL.canParse(value)) throw new Error('mcp-dataops: callbackOrigin must be an absolute browser origin')
-  const url = new URL(value)
-  if (!['http:', 'https:'].includes(url.protocol)
-    || url.username !== ''
-    || url.password !== ''
-    || url.pathname !== '/'
-    || url.search !== ''
-    || url.hash !== '') {
-    throw new Error('mcp-dataops: callbackOrigin must be an HTTP or HTTPS origin without path, query, credentials, or fragment')
-  }
-  return url.origin
+  return normalizeHttpOrigin(
+    value,
+    'mcp-dataops: callbackOrigin must be an absolute browser origin',
+    'mcp-dataops: callbackOrigin must be an HTTP or HTTPS origin without path, query, credentials, or fragment',
+  )
 }
 
 function isLoopbackRequest(request: IncomingMessage): boolean {

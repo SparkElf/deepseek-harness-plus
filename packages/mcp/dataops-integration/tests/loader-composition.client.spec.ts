@@ -26,7 +26,11 @@ afterEach(async () => {
   if (remote !== undefined) {
     const server = remote
     remote = undefined
-    await new Promise<void>((resolve) => { server.close(() => resolve()) })
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        resolve()
+      })
+    })
   }
   if (root !== undefined) await rm(root, { recursive: true, force: true })
   root = undefined

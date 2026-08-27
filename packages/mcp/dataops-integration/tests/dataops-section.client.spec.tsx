@@ -27,7 +27,7 @@ describe('DataOps settings section', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => connectedStatus,
-    } as Response)
+    })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<DataOpsSection t={t} />)
@@ -49,7 +49,7 @@ describe('DataOps settings section', () => {
         authorizationAccepted: false,
         account: null,
       }),
-    } as Response))
+    }))
 
     render(<DataOpsSection t={t} />)
 
@@ -67,7 +67,7 @@ describe('DataOps settings section', () => {
         authorizationAccepted: false,
         account: null,
       }),
-    } as Response))
+    }))
 
     render(<DataOpsSection t={t} />)
 
@@ -86,7 +86,7 @@ describe('DataOps settings section', () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => notConnected,
-    } as Response)
+    })
     const popup = { close: vi.fn() } as unknown as Window
     vi.stubGlobal('fetch', fetchMock)
     vi.spyOn(window, 'open').mockReturnValue(popup)
@@ -111,11 +111,11 @@ describe('DataOps settings section', () => {
 
   it('keeps a failure state and retry action when the initial status read fails', async () => {
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce({ ok: false } as Response)
+      .mockResolvedValueOnce({ ok: false })
       .mockResolvedValueOnce({
         ok: true,
         json: async () => connectedStatus,
-      } as Response)
+      })
     vi.stubGlobal('fetch', fetchMock)
 
     render(<DataOpsSection t={t} />)

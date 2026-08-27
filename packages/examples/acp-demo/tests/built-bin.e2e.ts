@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process'
+import { createRequire } from 'node:module'
 import { mkdtemp, mkdir, readdir, rm, symlink, writeFile, readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import {
   ClientSideConnection,
   ndJsonStream,
@@ -46,6 +47,7 @@ const vendorPackages = [
 // layout need not hoist them. Symlink those exact paths into the plain-Node consumer.
 const npmDeps = ['@agentclientprotocol/sdk']
 const acpPkgDir = join(repoRoot, 'packages/acp/acp')
+const resolveFromAcp = createRequire(join(acpPkgDir, 'package.json'))
 
 async function pkgName(absDir: string): Promise<string> {
   const json = JSON.parse(await readFile(join(absDir, 'package.json'), 'utf8')) as { name: string }
@@ -71,10 +73,9 @@ async function makeConsumer(): Promise<string> {
     await link(abs, await pkgName(abs), nm)
   }
   for (const dep of npmDeps) {
-    // Resolve from ACP's package.json URL (the package that declares the
+    // Resolve from ACP's package.json path (the package that declares the
     // dep), not this test file's location — `acp-agent` does not depend on these.
-    const fromAcp = pathToFileURL(join(acpPkgDir, 'package.json')).href
-    const resolved = fileURLToPath(import.meta.resolve(`${dep}/package.json`, fromAcp))
+    const resolved = resolveFromAcp.resolve(`${dep}/package.json`)
     await link(dirname(resolved), dep, nm)
   }
   await writeFile(join(dir, 'mock-llm.mjs'), [
