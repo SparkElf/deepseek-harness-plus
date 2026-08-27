@@ -46,7 +46,6 @@
     "lib/index.js",
     "lib/invariant.js",
     "lib/client.js",
-    "lib/**/*.css",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",

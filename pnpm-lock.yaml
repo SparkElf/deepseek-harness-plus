@@ -8869,6 +8869,9 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@deepseek-ai/dsh-llm-deepseek':
+        specifier: workspace:^
+        version: link:../../llm/llm-deepseek
       '@deepseek-ai/dsh-session':
         specifier: workspace:^
         version: link:../../core/session

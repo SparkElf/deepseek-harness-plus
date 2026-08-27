@@ -125,6 +125,18 @@
       "project": [
         "src/**/*.{ts,tsx}",
         "tests/**/*.{ts,tsx}"
+      ],
+      "ignoreDependencies": [
+        "tsx"
+      ]
+    },
+    "packages/mcp/dataops-integration": {
+      "entry": [
+        "tests/**/*.spec.{ts,tsx}"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "tests/**/*.{ts,tsx}"
       ]
     },
     "packages/client/web-ui": {
@@ -565,6 +577,9 @@
       "project": [
         "src/**/*.ts",
         "tests/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "tsx"
       ]
     },
     "packages/web/web-search-deepseek": {
