@@ -54,6 +54,11 @@ function imageEventLine(id: string, mediaType: ImageAttachmentRef['mediaType'] =
   return `{"type":"user/message","seq":1,"time":1000,"data":{"content":[{"type":"image","attachment":{"attachmentId":"${id}","mediaType":"${mediaType}","bytes":4,"width":2,"height":2}}]}}`
 }
 
+/** A user/message event line carrying one text block. */
+function textEventLine(text: string): string {
+  return JSON.stringify({ type: 'user/message', seq: 1, time: 1000, data: { content: [{ type: 'text', text }] } })
+}
+
 async function buildApi(
   artifacts: Record<string, SessionRawArtifact>,
   descendants: SessionLineageNode[] = [],
@@ -192,7 +197,7 @@ describe('session.export download endpoint', () => {
   })
 
   it('uses the resolved compression level for ZIP entries', async () => {
-    const root = artifact('session-root', undefined, 'compressible\n'.repeat(32 * 1024))
+    const root = artifact('session-root', undefined, `${textEventLine('compressible'.repeat(32 * 1024))}\n`)
     const storedApi = await buildApi({ 'session-root': root }, [], { compressionLevel: 0 })
     const compressedApi = await buildApi({ 'session-root': root }, [], { compressionLevel: 9 })
     const stored = await storedApi.downloads.sessionLog(
@@ -233,12 +238,12 @@ describe('session.export download endpoint', () => {
 
   it('flushes each live root and descendant immediately before reading its artifact', async () => {
     const stored: Record<string, SessionRawArtifact> = {
-      'session-root': artifact('session-root', undefined, 'stale root'),
-      'child-a': artifact('child-a', sid('session-root'), 'stale child'),
+      'session-root': artifact('session-root', undefined, `${textEventLine('stale root')}\n`),
+      'child-a': artifact('child-a', sid('session-root'), `${textEventLine('stale child')}\n`),
     }
     const durable: Record<string, SessionRawArtifact> = {
-      'session-root': artifact('session-root', undefined, 'durable root'),
-      'child-a': artifact('child-a', sid('session-root'), 'durable child'),
+      'session-root': artifact('session-root', undefined, `${textEventLine('durable root')}\n`),
+      'child-a': artifact('child-a', sid('session-root'), `${textEventLine('durable child')}\n`),
     }
     const flushed: SessionId[] = []
     const api = await buildApi(stored, [node('child-a')], {
@@ -258,8 +263,8 @@ describe('session.export download endpoint', () => {
     )
     const files = unzipSync(await responseBytes(response))
     expect(flushed).toEqual([sid('session-root'), sid('child-a')])
-    expect(strFromU8(files['session.jsonl'] as Uint8Array)).toBe('durable root')
-    expect(strFromU8(files['subagents/child-a/session.jsonl'] as Uint8Array)).toBe('durable child')
+    expect(strFromU8(files['session.jsonl'] as Uint8Array)).toBe(`${textEventLine('durable root')}\n`)
+    expect(strFromU8(files['subagents/child-a/session.jsonl'] as Uint8Array)).toBe(`${textEventLine('durable child')}\n`)
   })
 
   it('reads a cold artifact without asking the live-session store to flush', async () => {
@@ -339,7 +344,13 @@ describe('session.export download endpoint', () => {
     // The push loop slices by 2^16 code units and must back off one unit when
     // the boundary lands inside a surrogate pair; otherwise the pair re-encodes
     // as U+FFFD and the exported artifact is silently corrupted.
-    const root = { ...artifact('session-root'), content: `${'a'.repeat((1 << 16) - 1)}😀tail` }
+    const marker = '__TEXT__'
+    const textOffset = textEventLine(marker).indexOf(marker)
+    const root = {
+      ...artifact('session-root'),
+      content: `${textEventLine(`${'a'.repeat((1 << 16) - 1 - textOffset)}😀tail`)}\n`,
+    }
+    expect(root.content.indexOf('😀')).toBe((1 << 16) - 1)
     const api = await buildApi({ 'session-root': root })
     const response = await toFetchHandler(api).fetch(
       new Request('http://host/api/session.export?sessionId=session-root'),
@@ -351,7 +362,10 @@ describe('session.export download endpoint', () => {
   it('splits a long artifact on a plain code-unit boundary without backoff', async () => {
     // A boundary that lands on a BMP character needs no surrogate backoff; the
     // round trip must still be byte-identical across the multi-chunk push.
-    const root = { ...artifact('session-root'), content: 'z'.repeat((1 << 16) + 4096) }
+    const root = {
+      ...artifact('session-root'),
+      content: `${textEventLine('z'.repeat((1 << 16) + 4096))}\n`,
+    }
     const api = await buildApi({ 'session-root': root })
     const response = await toFetchHandler(api).fetch(
       new Request('http://host/api/session.export?sessionId=session-root'),
@@ -363,7 +377,7 @@ describe('session.export download endpoint', () => {
   it('waits for response pull capacity before reading the next archive entry', async () => {
     const root = artifact('session-root', undefined, [
       imageEventLine('after-root'),
-      randomBytes(512 * 1024).toString('base64'),
+      textEventLine(randomBytes(512 * 1024).toString('base64')),
     ].join('\n'))
     let imageReads = 0
     const api = await buildApi({ 'session-root': root }, [], {

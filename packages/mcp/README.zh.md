@@ -7,3 +7,4 @@
 | 包 | 职责 |
 |---|---|
 | [`mcp-client/`](mcp-client/README.md) | MCP 客户端桥接，将外部服务器工具注册到 `ctx.tools` |
+| [`dataops-integration/`](dataops-integration/README.md) | 可选 DataOps MCP 组合，提供浏览器 OAuth + PKCE credential 获取 |

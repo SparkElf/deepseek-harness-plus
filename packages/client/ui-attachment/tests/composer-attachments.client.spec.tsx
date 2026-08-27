@@ -66,6 +66,7 @@ function props(overrides: Partial<ComposerAttachmentsOwnerProps> = {}): Composer
     attachments: [],
     documents: [],
     canAcceptDrop: true,
+    documentDropLimits: { count: 10, size: '20MB' },
     onAddImages: () => {},
     onAddDocuments: () => {},
     onRemoveImage: () => {},

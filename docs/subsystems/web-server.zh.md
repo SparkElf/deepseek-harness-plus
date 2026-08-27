@@ -17,7 +17,7 @@ type WebRouteKind = 'exact' | 'prefix'
 /** One named route registration. */
 interface WebRoute {
   kind: WebRouteKind
-  /** Absolute pathname, no trailing slash. */
+  /** Absolute logical pathname, no trailing slash. */
   path: string
   /** Owns the full response lifecycle (may hold the response open, e.g. SSE). */
   handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>
@@ -29,16 +29,18 @@ interface WebRoute {
 ## 配置
 
 ```ts type-equiv
-/** Gateway config: the listen address. */
+/** Gateway config: the listen address and optional reverse-proxy mount path. */
 interface Config {
   /** Listen host; the two supported values are loopback and all-interfaces. */
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /** External URL prefix. Empty means site root; otherwise `/segment[/segment]` without a trailing slash. */
+  basePath?: string
 }
 ```
 
-`host` 只接受 `127.0.0.1`（默认姿态）和 `0.0.0.0`（刻意的网络暴露）；没有 TLS、认证或 origin 策略，因此绑定到非回环地址会把服务器暴露给该网络。dist 位置是认领席位的前端插件的组装事实。
+`host` 只接受 `127.0.0.1`（默认姿态）和 `0.0.0.0`（刻意的网络暴露）；没有 TLS、认证或 origin 策略，因此绑定到非回环地址会把服务器暴露给该网络。`basePath` 接受空的根路径，或不带 trailing slash、query、fragment、empty segment 和 dot segment 的规范绝对路径。server 只接受该前缀下的外部 HTTP 与 upgrade request，剥离一次前缀后，把剩余 logical root path 交给 route owner。dist 位置是认领席位的 frontend plugin assembly 事实。
 
 ## 服务
 
@@ -64,45 +66,44 @@ The browser HTTP carrier service. Activation listens immediately. Route registra
 /**
  * Register a named route. Duplicate (kind, path) throws — route patterns are
  * a composition-level contract, so a collision is a misconfiguration.
- * @param route - kind, path, and the owning handler.
- * @returns the disposer removing the route.
+ * @param route - Kind, path, and the owning handler.
+ * @returns The disposer removing the route.
  */
 register(route: WebRoute): () => void
 
 /**
  * Register an exact-path HTTP upgrade route. Duplicate paths throw because
  * one socket can have only one protocol owner.
- * @param route - pathname and handler owning negotiation plus socket use.
- * @returns the disposer removing the route.
+ * @param route - Pathname and handler owning negotiation plus socket use.
+ * @returns The disposer removing the route.
  */
 registerUpgrade(route: WebUpgradeRoute): () => void
 
 /**
  * Claim the fallback seat: the handler answering every request no named
- * route matches (the SPA dist server in the shipped Web composition). One
- * owner only — a second registration throws, because two fallbacks cannot
- * compose.
- * @param handler - owns the full response lifecycle of unmatched requests.
- * @returns the disposer releasing the seat.
+ * route matches. One owner only; a second registration throws because two
+ * fallbacks cannot compose.
+ * @param handler - Owns the full response lifecycle of unmatched requests.
+ * @returns The disposer releasing the seat.
  */
 registerFallback(handler: WebRoute['handler']): () => void
 
 /**
  * Register an index.html transform, applied by the fallback owner to every
- * index response ({@link applyIndexTaps}) in registration order.
- * @param transform - pure html-to-html function.
- * @returns the disposer removing the transform.
+ * index response in registration order.
+ * @param transform - Pure HTML-to-HTML function.
+ * @returns The disposer removing the transform.
  */
 tapIndex(transform: (html: string) => string): () => void
 
 /**
- * Run an index.html body through the registered taps in registration order
- * — called by the fallback owner on every index response it renders.
- * @param html - the raw index.html body.
- * @returns the transformed body.
+ * Run an index.html body through the registered taps in registration order.
+ * The fallback owner calls this for every index response it renders.
+ * @param html - The raw index.html body.
+ * @returns The transformed body.
  */
 applyIndexTaps(html: string): string
 ```
 
-Source: [`packages/host/webserver/src/index.ts:59`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:80`](../../packages/host/webserver/src/index.ts)
 <!-- END GENERATED cordis-surface -->

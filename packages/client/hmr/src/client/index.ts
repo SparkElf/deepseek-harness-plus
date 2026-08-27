@@ -164,7 +164,9 @@ export function apply(ctx: Context): void {
   }
 
   ctx.effect(() => {
-    const source = new EventSource(EVENTS_ENDPOINT)
+    // The injected document base is the only deployment prefix for HMR SSE.
+    const eventUrl = new URL(EVENTS_ENDPOINT.replace(/^\/+/u, ''), document.baseURI)
+    const source = new EventSource(eventUrl.href)
     let opened = false
     let disconnected = false
     let reloading = false
@@ -189,9 +191,10 @@ export function apply(ctx: Context): void {
       let frame: PluginsEventFrame
       try {
         frame = JSON.parse(event.data) as PluginsEventFrame
-      } catch {
+      } catch (error) {
         // Wire boundary: a malformed dev-channel frame is dropped loudly.
         ctx.logger.warn(`client-hmr: unparseable event frame: ${event.data}`)
+        ctx.logger.warn(error)
         return
       }
       handle(frame)

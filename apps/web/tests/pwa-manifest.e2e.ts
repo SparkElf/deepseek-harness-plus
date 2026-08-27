@@ -7,18 +7,18 @@ const DIST_ROOT = fileURLToPath(new URL('../dist', import.meta.url))
 
 it('ships install metadata with the built web application', async () => {
   const index = await readFile(join(DIST_ROOT, 'index.html'), 'utf8')
-  expect(index).toContain('<link rel="manifest" href="/manifest.webmanifest" />')
+  expect(index).toContain('<link rel="manifest" href="manifest.webmanifest" />')
 
   const manifest: unknown = JSON.parse(await readFile(join(DIST_ROOT, 'manifest.webmanifest'), 'utf8'))
   expect(manifest).toEqual({
-    id: '/',
+    id: '.',
     name: 'DeepSeek Harness',
     short_name: 'DSH',
-    start_url: '/',
-    scope: '/',
+    start_url: '.',
+    scope: '.',
     display: 'fullscreen',
     icons: [{
-      src: '/favicon.svg',
+      src: 'favicon.svg',
       sizes: 'any',
       type: 'image/svg+xml',
       purpose: 'any',

@@ -9,6 +9,8 @@
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js'
+import type { Context } from '@deepseek-ai/cordis'
+import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type { Config } from './index.ts'
 
@@ -23,12 +25,34 @@ function buildChildEnv(extra: Record<string, string>): Record<string, string> {
 }
 
 /**
+ * Wrap the transport's HTTP fetch so every request resolves the current bearer
+ * value from the credential service immediately before network I/O.
+ */
+function credentialFetch(ctx: Context, rawRef: string): typeof globalThis.fetch {
+  const ref = credentialRef(rawRef)
+  return async (input, init) => {
+    const provider = ctx.get('credentials')
+    if (provider === undefined) {
+      throw new Error(`mcp-client: credential service unavailable while resolving "${ref}"`)
+    }
+    const resolved = await provider.resolve(ref)
+    if (resolved === undefined) {
+      throw new Error(`mcp-client: credential "${ref}" is not configured`)
+    }
+    const headers = new Headers(init?.headers)
+    headers.set('Authorization', `Bearer ${resolved.value}`)
+    return globalThis.fetch(input, { ...init, headers })
+  }
+}
+
+/**
  * Create an MCP transport from the resolved plugin config.
  *
  * @param config - Resolved plugin config discriminated on `transport`.
+ * @param ctx - Optional Cordis context required only for credential-backed HTTP auth.
  * @returns A connected-ready MCP Transport (stdio or Streamable HTTP).
  */
-export function createTransport(config: Config): Transport {
+export function createTransport(config: Config, ctx?: Context): Transport {
   switch (config.transport) {
     case 'stdio':
       return new StdioClientTransport({
@@ -37,14 +61,25 @@ export function createTransport(config: Config): Transport {
         env: buildChildEnv(config.env),
         cwd: config.cwd,
       })
-    case 'streamable-http':
+    case 'streamable-http': {
+      let authenticatedFetch: typeof globalThis.fetch | undefined
+      if (config.bearerTokenRef !== undefined) {
+        if (ctx === undefined) {
+          throw new Error('mcp-client: credential-backed Streamable HTTP transport requires a Cordis context')
+        }
+        authenticatedFetch = credentialFetch(ctx, config.bearerTokenRef)
+      }
       // The MCP SDK's StreamableHTTPClientTransport has optional callback
       // properties typed without `| undefined` (exactOptionalPropertyTypes
       // mismatch with the Transport interface); the SDK constructed the
       // object, so the cast records only that widening.
       return new StreamableHTTPClientTransport(
         new URL(config.url),
-        { requestInit: { headers: config.headers } },
+        {
+          requestInit: { headers: config.headers },
+          ...(authenticatedFetch === undefined ? {} : { fetch: authenticatedFetch }),
+        },
       ) as Transport
+    }
   }
 }

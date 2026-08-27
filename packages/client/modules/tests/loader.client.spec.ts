@@ -386,7 +386,7 @@ describe('default transport seam', () => {
       const script = nodes[0]
       if (!(script instanceof HTMLScriptElement)) throw new Error('expected script node')
       expect(script.async).toBe(true)
-      expect(script.getAttribute('src')).toBe('/plugins/dee/client.js?rev=0')
+      expect(script.getAttribute('src')).toBe(new URL('plugins/dee/client.js?rev=0', document.baseURI).href)
       queueMicrotask(() => {
         win.__ModuleLoader__?.load({ id: 'dee', factory: () => ({ marker: 'via-script' }) })
         script.dispatchEvent(new Event('load'))

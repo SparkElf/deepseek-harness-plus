@@ -10,11 +10,20 @@ import type {
   ClientModuleSystemOptions,
 } from './manifest.ts'
 
+/** Resolve a Host graph URL below the runtime-injected document base.
+ * @param url - Logical bundle URL from the Host graph.
+ * @returns The absolute browser URL, or the input when no document exists.
+ */
+export function resolveDocumentBundleUrl(url: string): string {
+  if (typeof document === 'undefined') return url
+  return new URL(url.replace(/^\//u, ''), document.baseURI).href
+}
+
 /** Default bundle-load hook: same-origin external classic script. */
 const defaultLoadBundle = (url: string): Promise<void> => new Promise((resolve, reject) => {
   const el = document.createElement('script')
   el.async = true
-  el.src = url
+  el.src = resolveDocumentBundleUrl(url)
   el.addEventListener('load', () => {
     el.remove()
     resolve()
@@ -93,8 +102,6 @@ export class ClientModuleSystem implements ClientModuleLoader {
       throw new Error('client-modules: window.__ModuleLoader__.create called after module-system boot')
     }
     const pending = target.pendingQueue.splice(0)
-    // Switch first: a bundle that executes while pending registrations drain
-    // must register live rather than append behind the drain.
     target.mode = 'live'
     target.load = (registration) => { this.register(registration) }
     for (const registration of pending) target.load(registration)
@@ -165,12 +172,6 @@ export class ClientModuleSystem implements ClientModuleLoader {
     }
   }
 
-  /**
-   * The synchronous require answered to factories: seed → memoized record →
-   * registered factory. Fetching is async and therefore unreachable
-   * from here; an external dynamic package must have arrived before its
-   * consumer materializes.
-   */
   private makeRequire(edges: Set<string>): (spec: string) => unknown {
     return (spec: string): unknown => {
       edges.add(spec)

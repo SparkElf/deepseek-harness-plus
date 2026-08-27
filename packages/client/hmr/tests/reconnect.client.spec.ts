@@ -14,7 +14,7 @@ class FakeEventSource extends EventTarget {
 type BrowserGlobals = {
   EventSource?: typeof EventSource
   location?: { reload(): void }
-  document?: { querySelectorAll(selector: string): Element[] }
+  document?: { baseURI: string; querySelectorAll(selector: string): Element[] }
 }
 
 const originalEventSource = globalThis.EventSource
@@ -36,7 +36,10 @@ describe('client HMR runtime reconnect', () => {
     const reload = vi.fn()
     ;(globalThis as unknown as BrowserGlobals).EventSource = FakeEventSource as unknown as typeof EventSource
     ;(globalThis as unknown as BrowserGlobals).location = { reload }
-    ;(globalThis as unknown as BrowserGlobals).document = { querySelectorAll: () => [] }
+    ;(globalThis as unknown as BrowserGlobals).document = {
+      baseURI: 'https://example.test/dataops/dsh/',
+      querySelectorAll: () => [],
+    }
     let dispose: (() => void) | undefined
     const ctx = {
       modules: { invalidate: vi.fn(), prefetch: vi.fn() },
@@ -47,7 +50,7 @@ describe('client HMR runtime reconnect', () => {
 
     apply(ctx as never)
     const source = FakeEventSource.instances[0]
-    expect(source?.url).toBe('/plugins/events')
+    expect(source?.url).toBe('https://example.test/dataops/dsh/plugins/events')
     source?.dispatchEvent(new Event('open'))
     expect(reload).not.toHaveBeenCalled()
     source?.dispatchEvent(new Event('message'))

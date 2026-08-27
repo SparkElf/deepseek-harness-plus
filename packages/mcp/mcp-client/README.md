@@ -19,17 +19,20 @@ One plugin instance per MCP server in `cordis.yml`:
     env:
       GITHUB_TOKEN: !!js process.env.GITHUB_TOKEN
 
-- id: mcp-web
+- id: mcp-dataops
   name: '@deepseek-ai/dsh-mcp-client'
   config:
-    serverName: web
+    serverName: dataops
     transport: streamable-http
-    url: http://localhost:3000/mcp
+    url: https://dataops.example/mcp
+    bearerTokenRef: DATAOPS_MCP_TOKEN
     headers:
-      Authorization: !!js '`Bearer ${process.env.MCP_TOKEN}`'
+      X-DataOps-Client: dsh
 ```
 
-The model sees `mcp__github__create_issue`, `mcp__web__search`, … — the same server-qualified shape Claude Code and Codex use. HMR hot-swaps: editing the entry triggers disconnect + reconnect without process restart; an unchanged `serverName` reproduces identical tool names.
+The model sees `mcp__github__create_issue`, `mcp__dataops__search_resources`, … — the same server-qualified shape Claude Code and Codex use. HMR hot-swaps: editing the entry triggers disconnect + reconnect without process restart; an unchanged `serverName` reproduces identical tool names.
+
+`bearerTokenRef` is a DSH credential reference, not a token value. The Streamable HTTP transport wraps its HTTP fetch path so `ctx.credentials` resolves the current value immediately before every request, then sets `Authorization: Bearer ...` on that request. A rotated credential therefore reaches the next request without restarting the plugin. Static `headers.Authorization` remains available for deployments that intentionally manage their own literal header, but it cannot be combined with `bearerTokenRef`.
 
 ## Config
 
@@ -42,7 +45,8 @@ The model sees `mcp__github__create_issue`, `mcp__web__search`, … — the same
 | `env` | stdio | no | Extra env vars merged on top of scrubbed ambient env |
 | `cwd` | stdio | no | Working directory for the child process |
 | `url` | http | yes | MCP server URL |
-| `headers` | http | no | Extra headers (e.g. auth tokens) |
+| `headers` | http | no | Additional non-credential headers, or a literal `Authorization` header when `bearerTokenRef` is absent |
+| `bearerTokenRef` | http | no | Credential reference resolved through `ctx.credentials` immediately before every request and sent as a bearer token |
 | `toolCallTimeoutMs` | both | no | Timeout per `callTool` invocation (default 60000) |
 | `failOnStartupError` | both | no | Reject plugin activation when initial connection or tool synchronization fails (default `false`) |
 | `reconnect.enabled` | both | no | Reconnect automatically after a lost connection (default `true`) |
@@ -62,6 +66,7 @@ Every MCP tool has two names: the raw MCP name (sent on the wire in `tools/call`
 ## Behavior
 
 - On connect: plugin activation awaits `listTools()` and registers each tool via `ctx.tools.register()` under its public name before the composition starts its first turn. Initial connection, discovery, or registration failure is always logged; it rejects activation when `failOnStartupError` is true and otherwise activates with no tools.
+- For credential-backed Streamable HTTP, `bearerTokenRef` is validated as a credential reference at plugin load. The credentials service must be mounted, and the transport's custom fetch resolves the current value immediately before every HTTP request and injects the bearer header. The secret is never copied into Cordis config or model-visible tool arguments.
 - Listens for `notifications/tools/list_changed` → re-syncs; a fetch-phase failure keeps the previous generation registered, while a registration conflict rolls back the attempted generation and leaves no tools from that server.
 - Tool execute: `client.callTool({ name: rawName, arguments }, { signal })` with timeout + abort support—the public name is never sent to the server.
 - Canonical success is `{ content: JsonValue[], structuredContent? }`; complete JSON MCP blocks survive for programmatic callers. A supported advertised `outputSchema` validates `structuredContent`; unsupported schema vocabulary falls back to unconstrained `JsonValue`.
@@ -75,6 +80,7 @@ Every MCP tool has two names: the raw MCP name (sent on the wire in `tools/call`
 | Service | Usage |
 |---|---|
 | `ctx.tools` | Register/unregister MCP tools |
+| `ctx.credentials` | Resolve `bearerTokenRef` for credential-backed Streamable HTTP requests |
 | `ctx.attachments` | Optionally validate and persist image result batches before model projection |
 | `ctx.llm` | Optionally prove the exact calling route explicitly supports image input |
 
@@ -84,7 +90,7 @@ Every MCP tool has two names: the raw MCP name (sent on the wire in `tools/call`
 
 #### What the model sees
 
-After initial discovery succeeds, each advertised MCP tool appears as a native tool named `mcp__<serverName>__<rawName>` (or its deterministic normalized form), with the server-provided description and input schema. A successful re-sync — including the one after an automatic reconnect — replaces the generation; plugin disposal or an exhausted reconnect budget removes it.
+After initial discovery succeeds, each advertised MCP tool appears as a native tool named `mcp__<serverName>__<rawName>` (or its deterministic normalized form), with the server-provided description and input schema. A successful re-sync — including the one after an automatic reconnect — replaces the generation; plugin disposal or an exhausted reconnect budget removes it. Credential references and resolved bearer values are not model-visible fields.
 
 #### Token effect
 
@@ -111,6 +117,7 @@ Append-only; newly visible content follows the reusable request prefix and does 
 ## Known Limitations and Deferred Work
 
 - **Tools are the only bridged MCP capability** — Resources and Prompts have no harness consumer and are deferred.
+- **Full interactive OAuth remains external integration work** — the MCP client consumes a credential reference and supplies its current bearer value; obtaining, refreshing, revoking, and storing user OAuth credentials belongs to the integration plugin that owns that provider-specific flow.
 - **Startup timeout is inherited from the MCP SDK** — DSH does not yet expose a connection/discovery timeout. Each initialize or paginated `tools/list` request uses the SDK's 60-second default, so an unresponsive server or cursor chain can delay both activation and teardown while the initial synchronization settles.
 - **Reconnect triggers on transport close** — a crashed stdio child fires it; Streamable HTTP failures surface per request and through the SDK transport's own SSE-stream recovery, so an unreachable HTTP server is retried per call rather than respawned by the supervisor.
 - **Image is the only durable rich-result bridge** — PNG, JPEG, WebP, and GIF can enter Native context after exact capability proof. Audio and embedded-resource payloads remain execution-local with explicit diagnostics, while resource links preserve only their name and URI as text.

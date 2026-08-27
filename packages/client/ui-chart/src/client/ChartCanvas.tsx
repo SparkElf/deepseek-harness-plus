@@ -40,18 +40,18 @@ export function ChartCanvas({ option, ariaLabel }: { option: Record<string, unkn
     const themeObserver = typeof MutationObserver === 'undefined'
       ? undefined
       : new MutationObserver(() => {
-          const nextDark = isDarkTheme()
-          if (nextDark === dark) return
-          dark = nextDark
-          chart?.dispose()
-          chart = undefined
-          try {
-            setError(null)
-            mount()
-          } catch (cause) {
-            setError(cause instanceof Error ? cause.message : String(cause))
-          }
-        })
+        const nextDark = isDarkTheme()
+        if (nextDark === dark) return
+        dark = nextDark
+        chart?.dispose()
+        chart = undefined
+        try {
+          setError(null)
+          mount()
+        } catch (cause) {
+          setError(cause instanceof Error ? cause.message : String(cause))
+        }
+      })
     themeObserver?.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
 
     return () => {
