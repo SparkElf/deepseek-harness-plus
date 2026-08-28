@@ -73,7 +73,7 @@ type SessionListMutation =
   | { kind: 'remove'; sessionId: SessionId }
   | { kind: 'status'; sessionId: SessionId; running: boolean }
   | { kind: 'activity'; sessionId: SessionId; updatedAt: number }
-  /** Monotonic conversion when a local send or durable command starts Session history. */
+  /** Monotonic conversion when a local send or user-visible command starts Session history. */
   | { kind: 'engaged'; sessionId: SessionId }
 
 /** Stable identity of a frame retained until an uninstantiated Session can consume it. */
@@ -693,7 +693,9 @@ export class SessionManager {
       // repaired older user messages from moving the row backwards.
       this.recordMutation({ kind: 'activity', sessionId: frame.sessionId, updatedAt: frame.event.time })
     }
-    if (frame.type === 'session/event' && frame.event.type === 'command/run') {
+    if (frame.type === 'session/event'
+      && frame.event.type === 'command/run'
+      && frame.event.data.name !== 'permission') {
       this.recordMutation({ kind: 'engaged', sessionId: frame.sessionId })
       this.sessions.get(frame.sessionId)?.handleBlank(false)
     }

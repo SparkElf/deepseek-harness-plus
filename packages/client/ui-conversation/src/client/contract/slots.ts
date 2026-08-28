@@ -204,9 +204,10 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.composer.dock': { kind: 'list'; scope: 'session'; owner: InputZone }
     /**
      * The left end of the tool row INSIDE the composer card, after the
-     * resident chrome (access mode, plan, attach) — the seat for a small
-     * always-visible control. Entries sit beside that chrome, never replace
-     * it. Same {@link InputZone} owner share; use `.right` for a control that
+     * resident command launcher and before the mode controls — the seat for a
+     * small always-visible action such as attachment intake. Entries sit
+     * beside that launcher, never replace it. Same {@link InputZone} owner
+     * share; use `.right` for a control that
      * belongs next to the send button, and the docks for anything taller than
      * one row.
      */

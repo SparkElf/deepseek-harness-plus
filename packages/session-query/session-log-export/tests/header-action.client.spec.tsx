@@ -6,7 +6,7 @@ import type { SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import { SessionLogDownloadController } from '../src/client/controller.ts'
 import { SessionLogDownloadHeaderAction } from '../src/client/HeaderAction.tsx'
 import type { SessionLogDownloadDialogProps } from '../src/client/Dialog.tsx'
-import { en } from '../src/client/locales.ts'
+import { en, zh } from '../src/client/locales.ts'
 
 const SID = 'session-export-header' as SessionId
 
@@ -19,7 +19,7 @@ function bindSessionExport(controller: SessionLogDownloadController) {
   }
 }
 
-function bench() {
+function bench(dictionary: Record<keyof typeof en, string> = en) {
   const controller = new SessionLogDownloadController(async () => new Response('zip'), vi.fn())
   const request = vi.fn((sessionId: SessionId) => controller.download(sessionId))
   const dismiss = vi.fn((sessionId: SessionId) => { controller.dismiss(sessionId) })
@@ -29,7 +29,7 @@ function bench() {
     useSessionLogDownload,
     request,
     dismiss,
-    t: (key: keyof typeof en): string => en[key],
+    t: (key: keyof typeof en): string => dictionary[key],
   } as unknown as SessionLogDownloadDialogProps
   const view = render(<SessionLogDownloadHeaderAction {...props} />)
   return { controller, request, view }
@@ -45,6 +45,11 @@ describe('Session export Header action', () => {
     fireEvent.click(button)
     await waitFor(() => { expect(b.request).toHaveBeenCalledWith(SID) })
     expect(await b.view.findByRole('dialog', { name: 'Session download started' })).toBeTruthy()
+  })
+
+  it('uses the active locale for visible and accessible copy', () => {
+    const b = bench(zh)
+    expect(b.view.getByRole('button', { name: '会话日志' }).textContent).toContain('会话日志')
   })
 
   it('disables the capsule while either entry path downloads this Session', async () => {

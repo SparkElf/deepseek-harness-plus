@@ -548,12 +548,13 @@ function jobViews(snapshots: readonly JobSnapshot[]): JobView[] {
   }))
 }
 
-/** Whether one durable event makes a Session list-visible and ineligible for New Session reuse. */
+/** Whether one durable event creates conversation history and prevents New Session reuse. */
 function startsSessionHistory(event: SessionEvent): boolean {
-  return event.type === 'turn/start' || event.type === 'command/run'
+  if (event.type === 'turn/start') return true
+  return event.type === 'command/run' && event.data.name !== 'permission'
 }
 
-/** Whether the Session has neither a model turn nor durable command history. */
+/** Whether the Session has neither a model turn nor user-visible command history. */
 function sessionBlank(session: Session): boolean {
   return !session.events.some(startsSessionHistory)
 }
@@ -1366,7 +1367,7 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
       init: () => ({ blank: true, lastPromptAt: null }),
       apply: applySessionListMetadata,
       view: state => state,
-      stateVersion: 1,
+      stateVersion: 2,
     })
   })
 

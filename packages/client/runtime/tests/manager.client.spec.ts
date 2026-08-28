@@ -153,7 +153,31 @@ describe('list lifecycle', () => {
     expect(manager.getListSnapshot().items[0]?.updatedAt).toBe(500)
   })
 
-  it('ends blank reuse when a command enters durable history', async () => {
+  it('keeps blank reuse when permission changes durable control state', async () => {
+    const api = new FakeApiClient()
+    api.onList = () => Promise.resolve(ok({ items: [summary(S1, { blank: true })] as never[] }))
+    const manager = new SessionManager(api, fakeRemote())
+    await manager.refreshList()
+    const session = manager.get(S1)
+
+    manager.handleMuxEnvelope({
+      rpcId: 'permission-active-session' as never,
+      payload: {
+        type: 'session/event',
+        sessionId: S1,
+        event: {
+          seq: 0,
+          time: 500,
+          type: 'command/run',
+          data: { commandId: 'cmd-1', name: 'permission', args: ' danger-full-access', source: { kind: 'user' } },
+        } as never,
+      },
+    })
+    expect(manager.getListSnapshot().items[0]?.blank).toBe(true)
+    expect(session.getSnapshot().blank).toBe(true)
+  })
+
+  it('ends blank reuse when a user-visible command enters durable history', async () => {
     const api = new FakeApiClient()
     api.onList = () => Promise.resolve(ok({ items: [summary(S1, { blank: true })] as never[] }))
     const manager = new SessionManager(api, fakeRemote())

@@ -1,7 +1,7 @@
 /**
- * The summary blank bit means no model turn or durable command history.
- * Passive plugin state does not flip it; `command/run` and `turn/start` do,
- * preventing New Session from reusing a Session with durable command history.
+ * The summary blank bit means no model turn or user-visible command history.
+ * Passive plugin state and permission changes do not flip it; other
+ * `command/run` events and `turn/start` prevent New Session reuse.
  * The host/session-added frame shares the same predicate function.
  */
 
@@ -52,9 +52,9 @@ function appendPassiveState(session: Session): void {
 }
 
 /** Append the durable start of one user command. */
-function appendCommandRun(session: Session): void {
+function appendCommandRun(session: Session, name: string): void {
   session.append('command/run', {
-    commandId: CommandId('blank-cmd-1'), name: 'plan', args: '', source: { kind: 'user' },
+    commandId: CommandId('blank-cmd-1'), name, args: '', source: { kind: 'user' },
   })
 }
 
@@ -64,7 +64,7 @@ async function listBlank(api: ApiProxy, id: string): Promise<boolean | undefined
   return response.result.value.items.find(item => item.sessionId === id)?.blank
 }
 
-describe('summary blank = no turn or command history', () => {
+describe('summary blank = no turn or user-visible command history', () => {
   it('passive plugin state keeps the session blank', async () => {
     const { ctx, api, attach } = await harness()
     const session = ctx.sessions.create()
@@ -74,11 +74,19 @@ describe('summary blank = no turn or command history', () => {
     expect(await listBlank(api, session.id)).toBe(true)
   })
 
-  it('the first command clears blank before a model turn', async () => {
+  it('a permission command keeps the reusable session blank', async () => {
     const { ctx, api, attach } = await harness()
     const session = ctx.sessions.create()
     attach(session)
-    appendCommandRun(session)
+    appendCommandRun(session, 'permission')
+    expect(await listBlank(api, session.id)).toBe(true)
+  })
+
+  it('the first user-visible command clears blank before a model turn', async () => {
+    const { ctx, api, attach } = await harness()
+    const session = ctx.sessions.create()
+    attach(session)
+    appendCommandRun(session, 'plan')
     expect(await listBlank(api, session.id)).toBe(false)
   })
 
