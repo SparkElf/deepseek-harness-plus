@@ -263,7 +263,7 @@
   min-height: 52px;
 }
 
-/* Toolbar: attach + Plan + Read-only on the left; model + send on the right
+/* Toolbar: command + attach + permission/plan modes on the left; model + send on the right
    (figma Input_Bottom chrome). */
 .row {
   display: flex;
@@ -291,9 +291,7 @@
   min-width: 0;
 }
 
-/* figma 75:8208 drew 16 between + and the mode chips and 4 between Plan /
-   Read-only; the chip gap widened to 12 so the pill chips read as separate
-   controls. */
+/* Keep command and attachment actions beside each other and separate from modes. */
 .tools {
   gap: 12px;
 }

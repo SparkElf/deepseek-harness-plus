@@ -758,11 +758,11 @@ export function InputBar({
                 <IconPlusOutline16 size={14} />
               </button>
             </Tooltip>
+            {leftItems}
             <div className={css.modes}>
               {accessSelect}
               {renderSlot('conversation.input.plan', { locked })}
             </div>
-            {leftItems}
           </div>
           <div className={css.trailing}>
             {rightItems}

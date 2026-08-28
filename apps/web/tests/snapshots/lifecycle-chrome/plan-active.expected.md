@@ -36,10 +36,10 @@
 - textbox "describe your task to generate plan"
 - button "Commands":
   - img
-- 'button "Access mode, current: Workspace Write"': Workspace Write
-- button "Plan mode on, press to turn off": Plan
 - button "Add attachments":
   - img
+- 'button "Access mode, current: Workspace Write"': Workspace Write
+- button "Plan mode on, press to turn off": Plan
 - button "Select model, current DeepSeek-V4-Flash":
   - text: DeepSeek-V4-Flash
   - img
