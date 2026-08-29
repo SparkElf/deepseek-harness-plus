@@ -190,8 +190,12 @@ const EXACT_EDITS: readonly ExactEdit[] = [
 
     if (!peer) errors.push(\`\${label}: @deepseek-ai/cordis must be a peerDependency\`)
     if (!dev) errors.push(\`\${label}: @deepseek-ai/cordis must also be a devDependency\`)
-    if (peer && dev && peer !== dev) {
-      errors.push(\`\${label}: @deepseek-ai/cordis peer (\${peer}) and dev (\${dev}) ranges must match\`)`,
+    if (peer && dev && (isPlusRuntimePackage
+      ? !/^>=\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$/.test(peer) || dev !== 'workspace:^'
+      : peer !== dev)) {
+      errors.push(isPlusRuntimePackage
+        ? \`\${label}: @deepseek-ai/cordis peer must be a minimum-only range and dev must be workspace:^\`
+        : \`\${label}: @deepseek-ai/cordis peer (\${peer}) and dev (\${dev}) ranges must match\`)`,
     expect: 1,
   },
   {

@@ -28,8 +28,8 @@ const CONFIG = join(ROOT, 'tsconfig.base.json')
 const BEGIN = '      // BEGIN generated package aliases — pnpm run gen-tsconfig-paths'
 const END = '      // END generated package aliases'
 
-/** Package-name prefix the expanded aliases cover. */
-const PREFIX = '@deepseek-ai/dsh-'
+/** Package-name prefixes the expanded aliases cover. */
+const PREFIXES = ['@deepseek-ai/dsh-', '@sparkelf/dsh-plugin-', '@sparkelf/dsh-'] as const
 
 /** One workspace package the generated region maps. */
 interface PackageAlias {
@@ -64,11 +64,12 @@ interface WorkspacePackage {
   readonly directory: string
   readonly packageDir: string
   readonly name: string
+  readonly prefix: typeof PREFIXES[number]
 }
 
 /**
  * Walk `packages/<group>/<directory>` once, in a stable order.
- * @returns Every directory whose manifest names a `@deepseek-ai/dsh-` package and that carries `src`.
+ * @returns Every directory whose manifest uses an admitted official or Plus prefix and carries `src`.
  */
 function workspacePackages(): WorkspacePackage[] {
   const packages = join(ROOT, 'packages')
@@ -79,8 +80,9 @@ function workspacePackages(): WorkspacePackage[] {
     for (const directory of readdirSync(groupDir).sort()) {
       const packageDir = join(groupDir, directory)
       const name = packageName(join(packageDir, 'package.json'))
-      if (name === undefined || !name.startsWith(PREFIX)) continue
-      if (existsSync(join(packageDir, 'src'))) found.push({ group, directory, packageDir, name })
+      const prefix = name === undefined ? undefined : PREFIXES.find(candidate => name.startsWith(candidate))
+      if (name === undefined || prefix === undefined) continue
+      if (existsSync(join(packageDir, 'src'))) found.push({ group, directory, packageDir, name, prefix })
     }
   }
   return found
@@ -100,8 +102,8 @@ function workspacePackages(): WorkspacePackage[] {
  */
 export function collectPackageAliases(): PackageAlias[] {
   const bySpecifier = new Map<string, PackageAlias & { directory: string }>()
-  for (const { group, directory, packageDir, name } of workspacePackages()) {
-    if (name !== `${PREFIX}${directory}`) continue
+  for (const { group, directory, packageDir, name, prefix } of workspacePackages()) {
+    if (name !== `${prefix}${directory}`) continue
     const previous = bySpecifier.get(name)
     if (previous !== undefined) {
       throw new Error(
@@ -129,7 +131,7 @@ export function collectPackageAliases(): PackageAlias[] {
  * alias can — but they still have to be mapped by something, because deleting
  * the group wildcards removed the fallback that used to catch them.
  *
- * @returns Declared names of every `@deepseek-ai/dsh-` package carrying a `src` directory.
+ * @returns Declared names of every admitted official or Plus package carrying a `src` directory.
  */
 export function collectPackageNames(): string[] {
   return workspacePackages()
@@ -144,7 +146,7 @@ export function collectPackageNames(): string[] {
  */
 export function mappedSpecifiers(text: string): Set<string> {
   const keys = new Set<string>()
-  for (const match of text.matchAll(/^\s*"(@deepseek-ai\/dsh-[^"/]+)":/gm)) {
+  for (const match of text.matchAll(/^\s*"((?:@deepseek-ai\/dsh-|@sparkelf\/dsh-plugin-|@sparkelf\/dsh-)[^"/]+)":/gm)) {
     const key = match[1]
     if (key !== undefined) keys.add(key)
   }

@@ -18,6 +18,7 @@ const PARSER_PRELOAD_SOURCE = 'packages/client/modules/src/index.ts'
 const STATIC_PRESET_SOURCE = 'packages/client/tsdown.client.ts'
 const CORDIS = '@deepseek-ai/cordis'
 const DSH_PREFIX = '@deepseek-ai/dsh-'
+const PLUS_PLUGIN_PREFIX = '@sparkelf/dsh-plugin-'
 const CLIENT_WEB = '@deepseek-ai/dsh-client-web'
 
 /** One workspace package's browser-module declaration. */
@@ -475,7 +476,9 @@ function collectDependencyViolations(facts: ClientPackageFacts): string[] {
       if (actual.length === 2
         && actual.includes('peerDependencies')
         && actual.includes('devDependencies')
-        && peerRange === devRange) continue
+        && (pkg.name.startsWith(PLUS_PLUGIN_PREFIX)
+          ? peerRange?.startsWith('>=') === true && devRange === 'workspace:^'
+          : peerRange === devRange)) continue
       violations.push(
         pkg.manifest + ': ' + name + ' (' + describeOrigins(rule.origins) + ')'
         + ' is a peer-installed DSH relationship; declare it in peerDependencies and devDependencies'
@@ -487,7 +490,9 @@ function collectDependencyViolations(facts: ClientPackageFacts): string[] {
     for (const [name, peerRange] of Object.entries(pkg.peerDependencies).sort(([left], [right]) => left.localeCompare(right))) {
       if (expected.has(name)) continue
       const devRange = pkg.devDependencies[name]
-      if (devRange === peerRange) continue
+      if (pkg.name.startsWith(PLUS_PLUGIN_PREFIX)
+        ? peerRange.startsWith('>=') && devRange === 'workspace:^'
+        : devRange === peerRange) continue
       violations.push(
         pkg.manifest + ': peerDependencies.' + name + ' is ' + peerRange + ', so devDependencies.' + name
         + ' must use the same range; found ' + (devRange ?? 'no declaration'),

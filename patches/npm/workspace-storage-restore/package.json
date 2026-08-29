@@ -1,0 +1,39 @@
+{
+  "name": "@sparkelf/dsh-patch-workspace-storage-restore",
+  "description": "Data-only patch adding the Workspace storage restore transaction to the exact official DSH source revision",
+  "version": "0.1.0-rc.8",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/workspace-storage-restore"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/workspace-storage-restore.patch": "./patches/workspace-storage-restore.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "workspace-storage-restore",
+        "dsh": ">=0.1.2-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "paths": [
+            "packages/workspace/workspace/"
+          ]
+        },
+        "file": "./patches/workspace-storage-restore.patch"
+      }
+    ]
+  }
+}

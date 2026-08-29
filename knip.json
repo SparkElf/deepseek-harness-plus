@@ -27,7 +27,8 @@
         "scripts/**/*.mjs",
         "scripts/**/*.cjs",
         "snapshots/**/*.mjs",
-        "scripts/types/client-build-environment/index.d.ts"
+        "scripts/types/client-build-environment/index.d.ts",
+        "tests/plus-web/**/*.mjs"
       ],
       "ignoreUnresolved": [
         "client-build-environment"
@@ -36,7 +37,8 @@
         "scripts/**/*.ts",
         "scripts/**/*.mjs",
         "scripts/**/*.cjs",
-        "snapshots/**/*.mjs"
+        "snapshots/**/*.mjs",
+        "tests/plus-web/**/*.mjs"
       ]
     },
     "packages/host/directory-picker-auto": {
@@ -198,6 +200,58 @@
         "cytoscape-cose-bilkent",
         "dayjs",
         "debug"
+      ]
+    },
+    "packages/bundle/plus": {
+      "entry": [
+        "src/bin.ts"
+      ],
+      "project": [
+        "src/**/*.ts"
+      ],
+      "ignoreDependencies": [
+        "@sparkelf/dsh-mobile-bridge",
+        "@sparkelf/dsh-patch-better-sidebar-app-frame",
+        "@sparkelf/dsh-patch-mobile-bridge-serialized-actions",
+        "dsh-better-sidebar",
+        "dshmarket",
+        "@sparkelf/dsh-plugin-backup",
+        "@sparkelf/dsh-patch-workspace-storage-restore",
+        "@sparkelf/dsh-plugin-subagent-settings",
+        "@sparkelf/dsh-patch-subagent-settings-presets",
+        "@sparkelf/dsh-plugin-document-attachments",
+        "@sparkelf/dsh-plugin-chart",
+        "@sparkelf/dsh-plugin-dataops",
+        "@sparkelf/dsh-plugin-mcp-credentials",
+        "@sparkelf/dsh-patch-mobile-web-layout",
+        "@sparkelf/dsh-patch-web-base-path",
+        "@sparkelf/dsh-patch-document-attachments",
+        "@sparkelf/dsh-patch-responses-reasoning-status"
+      ]
+    },
+    "packages/plus/document-attachments": {
+      "entry": [
+        "src/**/css-modules.d.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}"
+      ],
+      "ignoreDependencies": [
+        "@types/react",
+        "react"
+      ]
+    },
+    "packages/plus/{backup,chart,dataops,subagent-settings}": {
+      "entry": [
+        "src/**/css-modules.d.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}"
+      ]
+    },
+    "packages/plus/*": {
+      "project": [
+        "src/**/*.{ts,tsx}"
       ]
     },
     "packages/*/*": {

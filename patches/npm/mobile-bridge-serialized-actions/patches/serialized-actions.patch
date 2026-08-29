@@ -1,0 +1,218 @@
+diff --git a/lib/client.js b/lib/client.js
+index 0e6c4950f69093145da9ee79e9a4520319150863..0671df4e5ae4baeef045baea306bfdc72225367e 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -2511,7 +2511,9 @@ window.__ModuleLoader__.load({
+ 		function MobileBridgeSection(props) {
+ 			const { connectNow, disconnectDevice, disconnectNow, loadStatus, loadValues, saveValues, subscribeStatus, t } = props;
+ 			const [values, setValues] = (0, react.useState)(DEFAULTS);
++			const draftValues = (0, react.useRef)(DEFAULTS);
+ 			const persistedValues = (0, react.useRef)(DEFAULTS);
++			const saveOperation = (0, react.useRef)(null);
+ 			const [status, setStatus] = (0, react.useState)(null);
+ 			const [loaded, setLoaded] = (0, react.useState)(false);
+ 			const [saving, setSaving] = (0, react.useState)(false);
+@@ -2526,6 +2528,7 @@ window.__ModuleLoader__.load({
+ 				let live = true;
+ 				Promise.all([loadValues(), loadStatus()]).then(([nextValues, nextStatus]) => {
+ 					if (!live) return;
++					draftValues.current = nextValues;
+ 					persistedValues.current = nextValues;
+ 					setValues(nextValues);
+ 					setStatus(nextStatus);
+@@ -2578,46 +2581,58 @@ window.__ModuleLoader__.load({
+ 					live = false;
+ 				};
+ 			}, [status?.qrUrl, t]);
+-			/** Persist one complete draft without coupling completion to relay state. */
+-			const commit = async (nextValues) => {
+-				if (nextValues === persistedValues.current) return;
++			/** Persist the latest draft and absorb edits made while that save is in flight. */
++			const commit = () => {
++				if (saveOperation.current !== null) return saveOperation.current;
++				if (draftValues.current === persistedValues.current) return Promise.resolve(true);
+ 				setSaving(true);
+ 				setMessage(t("saving"));
+ 				setError(null);
+-				try {
+-					const persisted = await saveValues(nextValues);
+-					persistedValues.current = persisted;
+-					setValues(persisted);
+-					setMessage(t("saved"));
+-				} catch (caught) {
+-					console.error("[dsh-mobile-bridge] settings save failed", caught);
+-					setValues(persistedValues.current);
+-					setMessage(null);
+-					setError(t("saveFailed"));
+-				} finally {
+-					setSaving(false);
+-				}
++				const operation = (async () => {
++					try {
++						while (draftValues.current !== persistedValues.current) {
++							const candidate = draftValues.current;
++							const persisted = await saveValues(candidate);
++							persistedValues.current = persisted;
++							if (draftValues.current === candidate) {
++								draftValues.current = persisted;
++								setValues(persisted);
++							}
++						}
++						setMessage(t("saved"));
++						return true;
++					} catch {
++						draftValues.current = persistedValues.current;
++						setValues(persistedValues.current);
++						setMessage(null);
++						setError(t("saveFailed"));
++						return false;
++					} finally {
++						saveOperation.current = null;
++						setSaving(false);
++					}
++				})();
++				saveOperation.current = operation;
++				return operation;
+ 			};
+ 			const set = (key, value) => {
+-				setValues((current) => ({
+-					...current,
+-					[key]: value
+-				}));
+-				setMessage(null);
+-			};
+-			const setAndCommit = (key, value) => {
+ 				const nextValues = {
+-					...values,
++					...draftValues.current,
+ 					[key]: value
+ 				};
++				draftValues.current = nextValues;
+ 				setValues(nextValues);
+ 				setMessage(null);
+-				commit(nextValues);
++			};
++			const setAndCommit = (key, value) => {
++				set(key, value);
++				commit();
+ 			};
+ 			const refreshStatus = async () => {
+ 				setRefreshing(true);
+ 				setError(null);
+ 				try {
++					if (!await commit()) return;
+ 					setStatus(await loadStatus());
+ 				} catch (caught) {
+ 					console.error("[dsh-mobile-bridge] status refresh failed", caught);
+@@ -2633,6 +2648,7 @@ window.__ModuleLoader__.load({
+ 				setMessage(null);
+ 				setError(null);
+ 				try {
++					if (!await commit()) return;
+ 					setStatus(await (action === "connect" ? connectNow() : disconnectNow()));
+ 				} catch (caught) {
+ 					console.error("[dsh-mobile-bridge] connection action failed", caught);
+@@ -2708,9 +2724,10 @@ window.__ModuleLoader__.load({
+ 					}),
+ 					/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("form", {
+ 						className: MobileBridgeSection_module_css_default.form,
++						"aria-busy": saving,
+ 						onSubmit: (event) => {
+ 							event.preventDefault();
+-							commit(values);
++							commit();
+ 						},
+ 						children: [
+ 							/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+@@ -2727,10 +2744,10 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.control,
+ 											type: "url",
+ 											value: values.serverUrl,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => set("serverUrl", event.currentTarget.value),
+ 											onBlur: () => {
+-												commit(values);
++												commit();
+ 											}
+ 										})]
+ 									}),
+@@ -2747,10 +2764,10 @@ window.__ModuleLoader__.load({
+ 											min: 1,
+ 											step: 1,
+ 											value: values.localPort,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => set("localPort", event.currentTarget.valueAsNumber),
+ 											onBlur: () => {
+-												commit(values);
++												commit();
+ 											}
+ 										})]
+ 									}),
+@@ -2768,10 +2785,10 @@ window.__ModuleLoader__.load({
+ 											max: 365,
+ 											step: 1,
+ 											value: values.sessionDays,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => set("sessionDays", event.currentTarget.valueAsNumber),
+ 											onBlur: () => {
+-												commit(values);
++												commit();
+ 											}
+ 										})]
+ 									}),
+@@ -2786,10 +2803,10 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.control,
+ 											type: "password",
+ 											value: values.userKey,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => set("userKey", event.currentTarget.value),
+ 											onBlur: () => {
+-												commit(values);
++												commit();
+ 											}
+ 										})]
+ 									}),
+@@ -2804,10 +2821,10 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.control,
+ 											type: "email",
+ 											value: values.ownerEmail,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => set("ownerEmail", event.currentTarget.value),
+ 											onBlur: () => {
+-												commit(values);
++												commit();
+ 											}
+ 										})]
+ 									})
+@@ -2824,7 +2841,7 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.checkbox,
+ 											type: "checkbox",
+ 											checked: values.emailTwoFactor,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => setAndCommit("emailTwoFactor", event.currentTarget.checked)
+ 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("twoFactor") })]
+ 									}),
+@@ -2836,7 +2853,7 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.checkbox,
+ 											type: "checkbox",
+ 											checked: values.autoConnect,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => setAndCommit("autoConnect", event.currentTarget.checked)
+ 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("autoConnect") })]
+ 									}),
+@@ -2848,7 +2865,7 @@ window.__ModuleLoader__.load({
+ 											className: MobileBridgeSection_module_css_default.checkbox,
+ 											type: "checkbox",
+ 											checked: values.autoReconnect,
+-											disabled: !loaded || saving,
++											disabled: !loaded,
+ 											onChange: (event) => setAndCommit("autoReconnect", event.currentTarget.checked)
+ 										}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", { children: t("autoReconnect") })]
+ 									})

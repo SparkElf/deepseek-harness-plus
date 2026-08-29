@@ -135,6 +135,8 @@
       "@deepseek-ai/dsh-client-*/invariant": ["./packages/client/*/src/invariant.ts"],
       "@deepseek-ai/dsh-headless/startup": ["./packages/bundle/headless/src/startup.ts"],
       "@deepseek-ai/dsh-web-app/startup": ["./packages/bundle/web-app/src/startup.ts"],
+      "@sparkelf/dsh-plugin-document-attachments/mineru": ["./packages/plus/document-attachments/src/mineru.ts"],
+      "@sparkelf/dsh-plugin-subagent-settings/startup": ["./packages/plus/subagent-settings/src/startup.ts"],
       "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client"],
       // One wildcard maps every @deepseek-ai/dsh-<name> to its source. Package
       // dir names are unique across groups, so first-on-disk-wins resolution is
@@ -564,7 +566,21 @@
       "@deepseek-ai/dsh-workflow-worker-thread": ["./packages/workflow/workflow-worker-thread/src"],
       "@deepseek-ai/dsh-workflow-worker-thread/invariant": ["./packages/workflow/workflow-worker-thread/src/invariant.ts"],
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
-      "@deepseek-ai/dsh-workspace/invariant": ["./packages/workspace/workspace/src/invariant.ts"]
+      "@deepseek-ai/dsh-workspace/invariant": ["./packages/workspace/workspace/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-backup": ["./packages/plus/backup/src"],
+      "@sparkelf/dsh-plugin-backup/invariant": ["./packages/plus/backup/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-chart": ["./packages/plus/chart/src"],
+      "@sparkelf/dsh-plugin-chart/invariant": ["./packages/plus/chart/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
+      "@sparkelf/dsh-plugin-dataops/invariant": ["./packages/plus/dataops/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-document-attachments": ["./packages/plus/document-attachments/src"],
+      "@sparkelf/dsh-plugin-document-attachments/invariant": ["./packages/plus/document-attachments/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-mcp-credentials": ["./packages/plus/mcp-credentials/src"],
+      "@sparkelf/dsh-plugin-mcp-credentials/invariant": ["./packages/plus/mcp-credentials/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-subagent-settings": ["./packages/plus/subagent-settings/src"],
+      "@sparkelf/dsh-plugin-subagent-settings/invariant": ["./packages/plus/subagent-settings/src/invariant.ts"],
+      "@sparkelf/dsh-plus": ["./packages/bundle/plus/src"],
+      "@sparkelf/dsh-plus/invariant": ["./packages/bundle/plus/src/invariant.ts"]
       // END generated package aliases
     }
   }

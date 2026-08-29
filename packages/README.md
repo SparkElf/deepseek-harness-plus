@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The harness is assembled from npm packages under `packages/`, grouped by capability family: sessions and the agent loop, model-facing tools, shell and filesystem execution, web access, subagents, and the rest. Use this page as the top-level map: find the owning group, then open its README for the package list. Every package is scoped `@deepseek-ai/dsh-*` and lives in exactly one group; each group README is the authoritative package map for its family.
+The harness is assembled from npm packages under `packages/`, grouped by capability family: sessions and the agent loop, model-facing tools, shell and filesystem execution, web access, subagents, and the rest. Use this page as the top-level map: find the owning group, then open its README for the package list. Official packages are scoped `@deepseek-ai/dsh-*`; the Plus candidate's external capability plugins are scoped `@sparkelf/dsh-plugin-*`. Every package lives in exactly one group, whose README is the authoritative package map for its family.
 
 ## Table of Contents
 
@@ -57,6 +57,7 @@ Every package lives in exactly one group; new packages join existing groups, and
 | [`spill/`](spill/README.md) | Spill capability family: storage seam, local impl, tool-result spill policy |
 | [`todo/`](todo/README.md) | The model-facing `todo_write` tool |
 | [`plan/`](plan/README.md) | Plan collaboration state with a direct entry command and reviewed exit |
+| [`plus/`](plus/README.md) | SparkElf Plus capability plugins that consume official DSH extension points |
 | [`preset/`](preset/README.md) | Per-session agent composition from preset `cordis.yml` files |
 | [`guard/`](guard/README.md) | Loop-hygiene guards: advisory repeat-call reminders + the `tools/execute` deadline enforcer |
 | [`bundle/`](bundle/README.md) | Installable `dsh --profile` patch layers |

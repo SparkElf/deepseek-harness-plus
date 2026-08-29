@@ -48,12 +48,19 @@ const repositoryUrl = 'git+https://github.com/deepseek-harness/deepseek-harness.
  * their trusted publishing against the repository that runs the workflow.
  */
 const publishedRepositoryUrl = 'git+https://github.com/deepseek-ai/deepseek-harness.git'
+const plusRepositoryUrl = 'git+https://github.com/SparkElf/deepseek-harness-plus.git'
 /** Private packages that participate in workspace checks but not releases. */
 const experimentalPackageDirectory = /^packages\/experimental\/[^/]+$/
 /** npm namespace reserved for private experimental packages. */
 const experimentalPackageNamePrefix = '@deepseek-ai/dsh-experimental-'
+const plusPackageDirectory = /^packages\/plus\/[^/]+$/
+const plusDistributionDirectory = 'packages/bundle/plus'
+const plusPatchDirectory = /^patches\/npm\/[^/]+$/
+const plusPackageNamePrefix = '@sparkelf/dsh-plugin-'
+const plusDistributionName = '@sparkelf/dsh-plus'
+const plusPatchNamePrefix = '@sparkelf/dsh-patch-'
 /** Directories whose packages this repository publishes: one release member each. */
-const releaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[^/]+|apps\/[^/]+|vendor\/[^/]+)$/
+const releaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[^/]+|patches\/npm\/[^/]+|apps\/[^/]+|vendor\/[^/]+)$/
 const localArtifactDirs = new Set(['node_modules'])
 const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   '@deepseek-ai/dsh': ['lib/*.js'],
@@ -141,6 +148,8 @@ function workspaceManifests(): WorkspaceManifest[] {
 }
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
+  '@sparkelf/dsh-plus': ['lib/apply.js'],
+  '@sparkelf/dsh-plugin-document-attachments': ['lib/mineru.js', 'lib/types-*.js'],
   // Statically linked client libraries keep their stylesheets next to the emitted
   // JavaScript, which imports them by relative path: the compile shell runs
   // them through its own CSS pipeline, so the sheets are published artifacts.
@@ -280,6 +289,21 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
   const isPublicLandlockPackage = isLandlockPackageDir
     && manifest.name !== undefined
     && publicLandlockPackages.has(manifest.name)
+  const isPlusPackageDir = plusPackageDirectory.test(dir)
+  const isPlusPackage = isPlusPackageDir && manifest.name?.startsWith(plusPackageNamePrefix) === true
+  const isPlusDistribution = dir === plusDistributionDirectory && manifest.name === plusDistributionName
+  const isPlusRuntimePackage = isPlusPackage || isPlusDistribution
+  const isPlusPatchDir = plusPatchDirectory.test(dir)
+  const isPlusPatch = isPlusPatchDir && manifest.name?.startsWith(plusPatchNamePrefix) === true
+  if (isPlusPackageDir && !isPlusPackage) {
+    errors.push(`${label}: Plus package name must start with ${JSON.stringify(plusPackageNamePrefix)}`)
+  }
+  if (dir === plusDistributionDirectory && !isPlusDistribution) {
+    errors.push(`${label}: Plus distribution package must be ${JSON.stringify(plusDistributionName)}`)
+  }
+  if (isPlusPatchDir && !isPlusPatch) {
+    errors.push(`${label}: Plus patch package name must start with ${JSON.stringify(plusPatchNamePrefix)}`)
+  }
 
   if (isPublicLandlockPackage) {
     if (manifest.private === true) {
@@ -311,10 +335,11 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     if (manifest.publishConfig?.access !== 'public') {
       errors.push(`${label}: release member must set publishConfig.access to "public"`)
     }
+    const expectedRepositoryUrl = isPlusRuntimePackage || isPlusPatch ? plusRepositoryUrl : publishedRepositoryUrl
     if (manifest.repository?.type !== 'git'
-      || manifest.repository.url !== publishedRepositoryUrl
+      || manifest.repository.url !== expectedRepositoryUrl
       || manifest.repository.directory !== dir) {
-      errors.push(`${label}: release member repository must use ${publishedRepositoryUrl} with directory ${dir}`)
+      errors.push(`${label}: release member repository must use ${expectedRepositoryUrl} with directory ${dir}`)
     }
   } else if (!experimentalPackageDirectory.test(dir) && manifest.private !== true) {
     errors.push(`${label}: package.json must set "private": true`)
@@ -324,8 +349,8 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     return errors
   }
 
-  if (manifest.name?.startsWith('@deepseek-ai/')) {
-    const allowedSources = publicationSourceAllowlist[manifest.name] ?? []
+  if (manifest.name?.startsWith('@deepseek-ai/') === true || isPlusRuntimePackage) {
+    const allowedSources = publicationSourceAllowlist[manifest.name ?? ''] ?? []
     for (const file of manifest.files ?? []) {
       if (isForbiddenPublicationFile(file) && !allowedSources.includes(file)) {
         errors.push(`${label}: package.json files must not publish ${JSON.stringify(file)}`)
@@ -351,16 +376,26 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     }
   }
 
-  if (dir.startsWith('packages/') && manifest.name?.startsWith('@deepseek-ai/dsh-')) {
+  if (isPlusPatch && !sameStringList(manifest.files, ['patches/*.patch'])) {
+    errors.push(`${label}: data-only patch package files must be ["patches/*.patch"]`)
+  }
+
+  const isOfficialDshPackage = dir.startsWith('packages/') && manifest.name?.startsWith('@deepseek-ai/dsh-') === true
+  // Plus插件沿用official Cordis artifact规则，但版本由独立Plus release family拥有。
+  if (isOfficialDshPackage || isPlusRuntimePackage) {
     const peer = manifest.peerDependencies?.['@deepseek-ai/cordis']
     const dev = manifest.devDependencies?.['@deepseek-ai/cordis']
 
     if (!peer) errors.push(`${label}: @deepseek-ai/cordis must be a peerDependency`)
     if (!dev) errors.push(`${label}: @deepseek-ai/cordis must also be a devDependency`)
-    if (peer && dev && peer !== dev) {
-      errors.push(`${label}: @deepseek-ai/cordis peer (${peer}) and dev (${dev}) ranges must match`)
+    if (peer && dev && (isPlusRuntimePackage
+      ? !/^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(peer) || dev !== 'workspace:^'
+      : peer !== dev)) {
+      errors.push(isPlusRuntimePackage
+        ? `${label}: @deepseek-ai/cordis peer must be a minimum-only range and dev must be workspace:^`
+        : `${label}: @deepseek-ai/cordis peer (${peer}) and dev (${dev}) ranges must match`)
     }
-    if (manifest.version !== repositoryVersion) {
+    if (isOfficialDshPackage && manifest.version !== repositoryVersion) {
       errors.push(`${label}: package.json version must match root version ${repositoryVersion ?? '(missing)'}`)
     }
     if (manifest.type !== 'module') {
@@ -478,6 +513,11 @@ function checkWorkspaceProtocol(manifests: readonly WorkspaceManifest[]): string
     for (const section of dependencySections) {
       for (const [name, range] of Object.entries(manifest[section] ?? {})) {
         if (!members.has(name) || range.startsWith('workspace:')) continue
+        const plusRuntimeRange = (manifest.name?.startsWith(plusPackageNamePrefix) === true
+          || manifest.name === plusDistributionName)
+          && section !== 'devDependencies'
+          && /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)
+        if (plusRuntimeRange) continue
         errors.push(`${manifest.name ?? dir}: ${section}.${name} must use the workspace: protocol, got ${range}`)
       }
     }

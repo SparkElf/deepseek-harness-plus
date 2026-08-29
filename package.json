@@ -152,7 +152,9 @@
     "demo:inspector": "node --import tsx/esm apps/cli/src/bin.ts web --patch ./packages/experimental/inspector/cordis.source.patch.yml",
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
-    "postinstall": "node scripts/install-lefthook.mjs"
+    "postinstall": "node scripts/install-lefthook.mjs",
+    "verify:plus-governance": "tsx scripts/verify-plus-governance.ts",
+    "test:plus-web": "pnpm run build && playwright test --config tests/plus-web/playwright.config.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-tool-session-query": "workspace:^",
@@ -190,6 +192,11 @@
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.8"
+    "vitest": "^4.1.8",
+    "playwright": "1.62.1",
+    "fflate": "^0.8.2",
+    "semver": "^7.7.3",
+    "yaml": "^2.9.0",
+    "@types/semver": "^7.7.1"
   }
 }

@@ -1,0 +1,54 @@
+- id: subagent-model-selection-settings
+  disabled: true
+
+- insert:
+    - id: plus-backup
+      name: '@sparkelf/dsh-plugin-backup'
+
+    - id: plus-chart
+      name: '@sparkelf/dsh-plugin-chart'
+
+    - id: plus-dataops
+      name: '@sparkelf/dsh-plugin-dataops'
+      disabled: !!js "!process.env.DSH_DATAOPS_BASE_URL"
+      config:
+        baseUrl: !!js process.env.DSH_DATAOPS_BASE_URL
+        serverName: dataops
+        credentialRef: dataops_access_token
+        refreshCredentialRef: dataops_refresh_token
+        targetCredentialRef: dataops_target_ref
+        callbackOrigin: !!js process.env.DSH_DATAOPS_CALLBACK_ORIGIN
+        toolCallTimeoutMs: 60000
+        failOnStartupError: false
+
+    - id: plus-document-parser
+      name: '@sparkelf/dsh-plugin-document-attachments'
+      disabled: !!js "!process.env.DSH_MINERU_ENDPOINT"
+      config:
+        provider: mineru
+        maxDirectMarkdownBytes: 1048576
+        maxRequestBytes: 402653184
+
+    - id: plus-document-parser-mineru
+      name: '@sparkelf/dsh-plugin-document-attachments/mineru'
+      disabled: !!js "!process.env.DSH_MINERU_ENDPOINT"
+      config:
+        endpoint: !!js process.env.DSH_MINERU_ENDPOINT
+        timeoutMs: 120000
+        maxResponseBytes: 67108864
+
+    - id: plus-subagent-settings
+      name: '@sparkelf/dsh-plugin-subagent-settings/startup'
+      config:
+        settingsNamespace: subagent
+        provider: spawn
+        enabled: false
+        maxDepth: 0
+
+    - id: plus-subagent-fork-settings
+      name: '@sparkelf/dsh-plugin-subagent-settings/startup'
+      config:
+        settingsNamespace: subagent-fork
+        provider: fork
+        enabled: false
+        maxDepth: 0

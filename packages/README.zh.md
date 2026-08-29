@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## 概述
 
-harness 由 `packages/` 下的 npm 包组装而成，按能力系列分组：会话与 agent 循环、面向模型的工具、shell 与文件系统执行、Web 访问、subagent 等等。把本页当作顶层地图使用：先找到拥有某能力的组，再打开其 README 查看包列表。每个包都以 `@deepseek-ai/dsh-*` 为作用域、只属于一个组；每个组的 README 都是该能力系列的权威包映射。
+harness 由 `packages/` 下的 npm 包组装而成，按能力系列分组：会话与 agent 循环、面向模型的工具、shell 与文件系统执行、Web 访问、subagent 等等。把本页当作顶层地图使用：先找到拥有某能力的组，再打开其 README 查看包列表。official packages使用`@deepseek-ai/dsh-*` scope；Plus candidate的external capability plugins使用`@sparkelf/dsh-plugin-*` scope。每个package只属于一个group，其README是该capability family的authoritative package map。
 
 ## 目录
 
@@ -57,6 +57,7 @@ harness 由 `packages/` 下的 npm 包组装而成，按能力系列分组：会
 | [`spill/`](spill/README.zh.md) | spill 能力系列：存储 seam、本地实现、工具结果 spill 策略 |
 | [`todo/`](todo/README.zh.md) | 面向模型的 `todo_write` 工具 |
 | [`plan/`](plan/README.zh.md) | Plan 协作状态，提供直接进入命令与经评审的退出 |
+| [`plus/`](plus/README.zh.md) | 消费official DSH extension points的SparkElf Plus capability plugins |
 | [`preset/`](preset/README.zh.md) | 由 preset `cordis.yml` 按会话组装 agent |
 | [`guard/`](guard/README.zh.md) | 循环卫生守卫：建议性重复调用提醒 + `tools/execute` 截止时间强制执行器 |
 | [`bundle/`](bundle/README.zh.md) | 可安装的 `dsh --profile` 补丁层 |

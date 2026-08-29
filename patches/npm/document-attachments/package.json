@@ -1,0 +1,46 @@
+{
+  "name": "@sparkelf/dsh-patch-document-attachments",
+  "version": "0.1.0-rc.8",
+  "description": "Data-only exact official-source patch adding generic durable Document integration points consumed by the Plus Document capability",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/document-attachments"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "document-attachment-generic-integration",
+        "dsh": ">=0.1.2-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "paths": [
+            "packages/api/session-controller/src/",
+            "packages/attachment/attachment/src/",
+            "packages/attachment/attachment-local/src/",
+            "packages/client/ui-attachment/src/",
+            "packages/client/ui-attachment/tests/",
+            "packages/client/ui-chat/src/",
+            "packages/client/ui-conversation/src/",
+            "packages/client/ui-conversation/tests/",
+            "packages/client/ui-trajectory/src/",
+            "packages/llm/llm/src/",
+            "packages/llm/llm-deepseek/src/",
+            "packages/llm/llm-pi-ai/src/"
+          ]
+        },
+        "file": "./patches/document-attachments.patch"
+      }
+    ]
+  }
+}

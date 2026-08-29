@@ -1,0 +1,65 @@
+# Curated external and official gaps tracked by DeepSeek Harness Plus.
+entries:
+  - name: dsh-better-sidebar
+    source: { kind: npm, spec: dsh-better-sidebar }
+    pinned: 0.16.1
+    interest: VSCode-like right sidebar with third-party tab registration
+    owner: omdsh-dev
+    localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }]
+    plusBundle: true
+  - name: '@sparkelf/dsh-mobile-bridge'
+    source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
+    pinned: 0.2.8
+    interest: End-to-end encrypted mobile access with a Host tunnel and Settings section
+    owner: SparkElf
+    localPatches: [{ package: '@sparkelf/dsh-patch-mobile-bridge-serialized-actions', upstreamUrl: https://github.com/SparkElf/dsh-plugins-plus/pull/30, retireWhen: A released @sparkelf/dsh-mobile-bridge version includes equivalent serialized autosave and action-ordering behavior }]
+    plusBundle: true
+  - name: dshmarket
+    source: { kind: npm, spec: dshmarket }
+    pinned: 1.29.2
+    interest: Web marketplace for community dsh plugins
+    owner: dsh-market
+    localPatches: []
+    plusBundle: true
+  - name: '@deepseek-ai/dsh-agent-presets'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Deployment replacement of the two built-in delegation rows in shipped Agent presets
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-subagent-settings-presets', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official shipped Agent presets expose a deployment overlay or equivalent settings-backed rows }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-client-ui-layout'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Phone AppFrame navigation that preserves repeated Session and Workspace actions
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-mobile-web-layout', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official AppFrame keeps manually expanded phone navigation at half the measured frame width }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-web-base-path'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Complete reverse-proxy Web mount prefix across Host transport browser assets and downloads
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-web-base-path', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH ships equivalent end-to-end reverse-proxy base-path behavior }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-workspace'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Public durable-storage restore operation consumed by the Plus Backup plugin
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-workspace-storage-restore', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: An official DSH release exposes an equivalent Workspace storage restore operation }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-document-integration'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Generic durable file objects Document content projection prepared prompts and nested Client attachment slots
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-document-attachments', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH supplies equivalent generic file-object storage Document content projection prepared prompt settlement mixed draft integration and nested Document slots }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-llm-pi-ai-responses-compatibility'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Explicit OpenAI Responses replay compatibility for gateways that reject reasoning input status metadata
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-responses-reasoning-status', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH ships equivalent pi-ai Responses payload adjustment and Models editor behavior }]
+    plusBundle: false

@@ -1,0 +1,339 @@
+diff --git a/apps/web/index.html b/apps/web/index.html
+index 75c4e5bac6..27024bbef4 100644
+--- a/apps/web/index.html
++++ b/apps/web/index.html
+@@ -3,12 +3,12 @@
+   <head>
+     <meta charset="utf-8" />
+     <meta name="viewport" content="width=device-width, initial-scale=1" />
+-    <link rel="manifest" href="/manifest.webmanifest" />
+-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
++    <link rel="manifest" href="./manifest.webmanifest" />
++    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+     <title>DSH Local Build</title>
+   </head>
+   <body>
+     <div id="root"></div>
+-    <script type="module" src="/src/main.ts"></script>
++    <script type="module" src="./src/main.ts"></script>
+   </body>
+ </html>
+diff --git a/apps/web/public/manifest.webmanifest b/apps/web/public/manifest.webmanifest
+index 20a428fee6..a7cc973d9e 100644
+--- a/apps/web/public/manifest.webmanifest
++++ b/apps/web/public/manifest.webmanifest
+@@ -1,13 +1,13 @@
+ {
+-  "id": "/",
++  "id": ".",
+   "name": "DeepSeek Harness",
+   "short_name": "DSH",
+-  "start_url": "/",
+-  "scope": "/",
++  "start_url": ".",
++  "scope": ".",
+   "display": "fullscreen",
+   "icons": [
+     {
+-      "src": "/favicon.svg",
++      "src": "./favicon.svg",
+       "sizes": "any",
+       "type": "image/svg+xml",
+       "purpose": "any"
+diff --git a/packages/bundle/web-app/cordis.patch.yml b/packages/bundle/web-app/cordis.patch.yml
+index 9ee698044e..57757915ba 100644
+--- a/packages/bundle/web-app/cordis.patch.yml
++++ b/packages/bundle/web-app/cordis.patch.yml
+@@ -114,6 +114,7 @@
+       config:
+         host: !!js ctx.webStartup.host ?? '127.0.0.1'
+         port: !!js ctx.webStartup.port ?? 3080
++        basePath: !!js ctx.webStartup.basePath ?? process.env.DSH_WEB_BASE_PATH ?? ''
+         compression: gzip
+         compressionLevel: 1
+         compressionThresholdBytes: 1024
+diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
+index d0b2635f8e..669dc756ea 100644
+--- a/packages/bundle/web-app/src/index.ts
++++ b/packages/bundle/web-app/src/index.ts
+@@ -157,9 +157,9 @@ function webSurfacePrompt(webUrl: string): string {
+ 
+ /** Resolve the canonical loopback URL from the active Web server. */
+ function localWebUrl(ctx: Context): string {
+-  const port = ctx.get('webServer')?.port
+-  if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
+-  return `http://${LOOPBACK_HOST}:${String(port)}`
++  const webServer = ctx.get('webServer')
++  if (webServer === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
++  return `http://${LOOPBACK_HOST}:${String(webServer.port)}${webServer.basePath}`
+ }
+ 
+ /**
+@@ -275,7 +275,7 @@ export function apply(ctx: Context, config: Config): void {
+         const port = connectionCtx.webServer.port
+         const lanUrl = lanCandidate === undefined
+           ? undefined
+-          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}`)
++          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}${connectionCtx.webServer.basePath}`)
+         ANNOUNCED_ROOTS.add(connectionCtx.root)
+         if (config.printUrl) {
+           console.log(`dsh web: ${authenticatedUrl}${lanUrl === undefined ? '' : ` (LAN: ${lanUrl})`}`)
+diff --git a/packages/bundle/web-app/src/startup.ts b/packages/bundle/web-app/src/startup.ts
+index 9faad244dd..e203b432a7 100644
+--- a/packages/bundle/web-app/src/startup.ts
++++ b/packages/bundle/web-app/src/startup.ts
+@@ -1,6 +1,6 @@
+ /**
+  * The web app's command-line provider: it parses the `dsh --profile web` flag
+- * family (`--host`, `--port`, `--trusted-host`, `--no-open`) and its `--help`
++ * family (`--host`, `--port`, `--base-path`, `--trusted-host`, `--no-open`) and its `--help`
+  * text, then provides the immutable values as {@link WEB_STARTUP_SERVICE}.
+  * Ordinary rows inject that service before reading it from lazy config.
+  * @module @deepseek-ai/dsh-web-app/startup
+@@ -27,12 +27,15 @@ export interface WebStartupValues {
+   host?: string
+   /** `--port`, absent when the invocation did not name one. */
+   port?: number
++  /** `--base-path`, absent when the invocation did not name one. */
++  basePath?: string
+   /** Explicit `--trusted-host` authorities, in argument order. */
+   trustedHosts: string[]
+ }
+ 
+ /** The web flag family, as commander parsed it. */
+ interface WebOptions {
++  basePath?: string
+   host?: string
+   open: boolean
+   port?: string
+@@ -49,12 +52,14 @@ function webCommand(): Command {
+     .description('Serve the DeepSeek Harness browser UI.')
+     .helpOption('-h, --help', 'show this help')
+     .option('--host <host>', 'bind host')
++    .option('--base-path <path>', 'mount the Web UI below a reverse-proxy path prefix (for example /dsh)')
+     .option('--no-open', 'do not open the Web UI in the default browser')
+     .option('--port <port>', 'listen port; pass 0 to let the OS pick a free one')
+     .option('--trusted-host <authority...>', 'extra authority the /api browser-trust fence accepts (host or host:port; repeatable)')
+     .addHelpText('after', `
+ Examples:
+   dsh --profile web                          serve on the composed host and port
++  dsh --profile web --base-path /dsh         serve below a reverse-proxy prefix
+   dsh --profile web --no-open                serve without opening a browser
+   dsh --profile web --port 8080              serve on another port
+ `)
+@@ -79,6 +84,7 @@ export function apply(ctx: Context): void {
+     }
+     ctx.provide(WEB_STARTUP_SERVICE, {
+       openBrowser: options.open,
++      ...options.basePath !== undefined && { basePath: options.basePath },
+       ...options.host !== undefined && { host: options.host },
+       ...options.port !== undefined && { port: Number(options.port) },
+       trustedHosts: options.trustedHost ?? [],
+diff --git a/packages/client/connection/src/client/rpc.ts b/packages/client/connection/src/client/rpc.ts
+index 2c3f7d3e28..1c32c56d9e 100644
+--- a/packages/client/connection/src/client/rpc.ts
++++ b/packages/client/connection/src/client/rpc.ts
+@@ -7,8 +7,7 @@ import {
+ } from '../rpc.ts'
+ import type { ClientConnectionRpc, ConnectionRpcResult } from '../rpc.ts'
+ import { randomUuid } from './random-uuid.ts'
+-
+-const INTERNAL_BASE = 'http://dsh.internal'
++const INTERNAL_BASE = 'http://dsh.internal/'
+ const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
+ const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
+ 
+@@ -22,6 +21,15 @@ export type RpcStreamOpen = (
+   signal: AbortSignal,
+ ) => AsyncIterable<unknown>
+ 
++/** Resolve one logical route below the runtime-injected document base. */
++function resolveWebUrl(path: string): URL {
++  const documentBase = typeof document === 'undefined' ? undefined : document.baseURI
++  if (documentBase !== undefined) return new URL(path.replace(/^\/+/, ''), documentBase)
++  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
++  const base = origin !== undefined && origin !== 'null' ? `${origin}/` : INTERNAL_BASE
++  return new URL(path.replace(/^\/+/, ''), base)
++}
++
+ /**
+  * Create the browser-backed generic RPC caller.
+  * @param doFetch - transport override; defaults to the page's global fetch.
+@@ -41,7 +49,7 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
+         payload,
+       }
+       const response = await send(
+-        new URL(`${channel}/${endpoint}`, resolveBase()),
++        resolveWebUrl(`${channel}/${endpoint}`),
+         {
+           method: 'POST',
+           headers: { 'content-type': 'application/json' },
+@@ -105,11 +113,6 @@ function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
+   return typeof value === 'object' && value !== null && !Array.isArray(value)
+ }
+ 
+-function resolveBase(): string {
+-  const location = (globalThis as { location?: { origin?: string } }).location
+-  return location?.origin !== undefined && location.origin !== 'null' ? location.origin : INTERNAL_BASE
+-}
+-
+ function assertTarget(channel: string, endpoint: string): void {
+   const segments = endpoint.split('/')
+   if (!CHANNEL_PATTERN.test(channel)
+diff --git a/packages/host/frontend-static/src/index.ts b/packages/host/frontend-static/src/index.ts
+index 3d218f31e6..4f717338a7 100644
+--- a/packages/host/frontend-static/src/index.ts
++++ b/packages/host/frontend-static/src/index.ts
+@@ -119,7 +119,10 @@ export function apply(ctx: Context, config: Config): void {
+   // served form anchors them at the site root ahead of every URL-bearing tag.
+   const renderIndex = async (): Promise<string> => {
+     const body = ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'))
+-    return body.replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="/">`)
++    const href = `${ctx.webServer.basePath}/`
++    return body
++      .replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="${href}">`)
++      .replaceAll('src="/plugins/', 'src="plugins/')
+   }
+   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
+     // Non-GET/HEAD without a matching named route is 405 (fallback-only
+diff --git a/packages/host/webserver/src/index.ts b/packages/host/webserver/src/index.ts
+index bc41100de9..205f170baa 100644
+--- a/packages/host/webserver/src/index.ts
++++ b/packages/host/webserver/src/index.ts
+@@ -61,6 +61,8 @@ export interface Config {
+   host: '127.0.0.1' | '0.0.0.0'
+   /** Listen port; zero requests an OS-assigned port. */
+   port: number
++  /** External URL prefix; empty means site root, otherwise an absolute path without a trailing slash. */
++  basePath?: string
+   /** Response compression for socket-backed HTTP requests. @default 'none' */
+   compression?: 'none' | 'gzip'
+   /** Gzip DEFLATE level from 0 through 9. @default 1 */
+@@ -69,6 +71,20 @@ export interface Config {
+   compressionThresholdBytes?: number
+ }
+ 
++/** Validate and canonicalize the external reverse-proxy mount prefix. */
++export function normalizeWebBasePath(value: string | undefined): string {
++  const candidate = value?.trim() ?? ''
++  if (candidate === '' || candidate === '/') return ''
++  if (!candidate.startsWith('/') || candidate.endsWith('/') || candidate.includes('?') || candidate.includes('#')) {
++    throw new Error('webserver: basePath must be empty or an absolute path without query, fragment, or trailing slash')
++  }
++  const segments = candidate.slice(1).split('/')
++  if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
++    throw new Error('webserver: basePath must contain only non-empty path segments and no dot segments')
++  }
++  return candidate
++}
++
+ const DEFAULT_COMPRESSION = 'none' as const
+ const DEFAULT_COMPRESSION_LEVEL = 1
+ const DEFAULT_COMPRESSION_THRESHOLD_BYTES = 1024
+@@ -125,6 +141,7 @@ export class WebServer extends Service {
+   static Config: z<Config> = z.object({
+     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
+     port: z.natural().max(65535).required(),
++    basePath: z.string().default(''),
+     compression: z.union([z.const('none'), z.const('gzip')]).default(DEFAULT_COMPRESSION),
+     compressionLevel: z.number().step(1).min(0).max(9).default(DEFAULT_COMPRESSION_LEVEL),
+     compressionThresholdBytes: z.natural().default(DEFAULT_COMPRESSION_THRESHOLD_BYTES),
+@@ -138,11 +155,13 @@ export class WebServer extends Service {
+   private fallback: WebRoute['handler'] | undefined
+   private server!: Server
+   private listenedPort!: number
++  private readonly mountedBasePath: string
+   private readonly gzip: NodeMiddleware | undefined
+ 
+   constructor(ctx: Context, private config: Config) {
+     super(ctx, 'webServer')
+     const resolved = config as ResolvedConfig
++    this.mountedBasePath = normalizeWebBasePath(config.basePath)
+     this.gzip = resolved.compression === 'gzip' ? createGzipMiddleware(resolved) : undefined
+   }
+ 
+@@ -156,6 +175,11 @@ export class WebServer extends Service {
+     return this.config.host
+   }
+ 
++  /** External reverse-proxy mount prefix; empty means the site root. */
++  get basePath(): string {
++    return this.mountedBasePath
++  }
++
+   /**
+    * Register a named route. Duplicate (kind, path) throws — route patterns are
+    * a composition-level contract, so a collision is a misconfiguration.
+@@ -240,6 +264,13 @@ export class WebServer extends Service {
+     // client dropping mid-body). Per-request failures log and answer 400 —
+     // never a process exit.
+     this.server = createServer((req, res) => {
++      const logicalUrl = this.logicalUrl(req.url ?? '/')
++      if (logicalUrl === null) {
++        res.writeHead(404)
++        res.end()
++        return
++      }
++      req.url = logicalUrl
+       const next = (): void => {
+         void handle(req, res).catch((err: unknown) => {
+           this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
+@@ -266,8 +297,13 @@ export class WebServer extends Service {
+       })
+       let route: WebUpgradeRoute | undefined
+       try {
+-        /* v8 ignore next -- node:http always sets url on server requests. */
+-        route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
++        const logicalUrl = this.logicalUrl(req.url ?? '/')
++        if (logicalUrl === null) {
++          socket.destroy()
++          return
++        }
++        req.url = logicalUrl
++        route = this.upgrades.get(new URL(logicalUrl, 'http://x').pathname)
+       } catch (error) {
+         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
+         socket.destroy()
+@@ -314,6 +350,16 @@ export class WebServer extends Service {
+     }, 'webServer.listen')
+   }
+ 
++  /** Strip the external mount prefix while retaining query text. */
++  private logicalUrl(rawUrl: string): string | null {
++    const parsed = new URL(rawUrl, 'http://x')
++    const basePath = this.mountedBasePath
++    if (basePath === '') return `${parsed.pathname}${parsed.search}`
++    if (parsed.pathname === basePath) return `/${parsed.search}`
++    if (!parsed.pathname.startsWith(`${basePath}/`)) return null
++    return `${parsed.pathname.slice(basePath.length)}${parsed.search}`
++  }
++
+   /** Longest-prefix-wins over the prefix table after an exact-table miss. */
+   private match(pathname: string): WebRoute | undefined {
+     const exact = this.exact.get(pathname)
+diff --git a/packages/session-query/session-log-export/src/client/controller.ts b/packages/session-query/session-log-export/src/client/controller.ts
+index f7f01cceb9..f69be84de1 100644
+--- a/packages/session-query/session-log-export/src/client/controller.ts
++++ b/packages/session-query/session-log-export/src/client/controller.ts
+@@ -44,10 +44,9 @@ export function downloadUrl(url: string, filename: string): void {
+   anchor.click()
+ }
+ 
+-/** Resolve the browser's Host base with the connection carrier's null-origin fallback. */
++/** Resolve the browser document base. */
+ function hostBase(): string {
+-  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
+-  return origin !== undefined && origin !== 'null' ? origin : 'http://dsh.internal'
++  return document.baseURI
+ }
+ 
+ function messageOf(error: unknown): string {
+@@ -112,7 +111,7 @@ export class SessionLogDownloadController {
+   private async run(sessionId: SessionId, signal: AbortSignal): Promise<void> {
+     this.publish(sessionId, { open: true, status: 'downloading', error: null })
+     try {
+-      const url = new URL('/api/session.export', hostBase())
++      const url = new URL('api/session.export', hostBase())
+       url.searchParams.set('sessionId', sessionId)
+       url.searchParams.set('includeDescendants', 'true')
+       const response = await this.fetcher(url, { method: 'HEAD', signal })
