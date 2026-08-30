@@ -1,0 +1,119 @@
+# Promote one verified Plus release artifact to an explicit npm dist-tag.
+name: Promote Plus npm dist-tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Release publish workflow run ID
+        required: true
+        type: string
+      version:
+        description: Exact shared Plus version
+        required: true
+        type: string
+      dist_tag:
+        description: npm dist-tag to move
+        required: true
+        default: latest
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+
+jobs:
+  promote:
+    name: Verify artifact and promote npm dist-tag
+    runs-on: ubuntu-24.04
+    environment: npm-publish
+    concurrency:
+      group: Release-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Verify source release run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ inputs.run_id }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RELEASE_RUN_ID")
+          test "$(jq -r '.name' <<<"$run")" = 'Release publish (Plus)'
+          test "$(jq -r '.event' <<<"$run")" = 'workflow_dispatch'
+          test "$(jq -r '.conclusion' <<<"$run")" = 'success'
+          test "$(jq -r '.head_branch' <<<"$run")" = "plus-npm-v$EXPECTED_VERSION"
+
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+          name: plus-npm-tarballs
+          path: release
+
+      - name: Verify public packages against release artifact
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+          DIST_TAG: ${{ inputs.dist_tag }}
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          [[ "$DIST_TAG" =~ ^[a-z][a-z0-9._-]*$ ]]
+          mkdir registry local registry-expanded
+          count=0
+          while IFS= read -r filename; do
+            count=$((count + 1))
+            tarball="release/$filename"
+            manifest=$(tar -xOf "$tarball" package/package.json)
+            name=$(jq -r '.name' <<<"$manifest")
+            version=$(jq -r '.version' <<<"$manifest")
+            test "$version" = "$EXPECTED_VERSION"
+            status=$(npm access get status "$name" --json | jq -r --arg name "$name" '.[$name]')
+            test "$status" = 'public'
+            registry_filename=$(npm pack "$name@$version" --pack-destination registry --silent)
+            mkdir "local/$count" "registry-expanded/$count"
+            tar -xzf "$tarball" -C "local/$count"
+            tar -xzf "registry/$registry_filename" -C "registry-expanded/$count"
+            jq -S . "local/$count/package/package.json" > "local/$count/package/package.json.sorted"
+            mv "local/$count/package/package.json.sorted" "local/$count/package/package.json"
+            jq -S . "registry-expanded/$count/package/package.json" > "registry-expanded/$count/package/package.json.sorted"
+            mv "registry-expanded/$count/package/package.json.sorted" "registry-expanded/$count/package/package.json"
+            diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"
+            echo "[$count] $name@$version is public and content-identical"
+          done < release/publish-order.txt
+          test "$count" -eq 15
+
+      - name: Move and verify npm dist-tag
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+          DIST_TAG: ${{ inputs.dist_tag }}
+        run: |
+          set -euo pipefail
+          count=0
+          while IFS= read -r filename; do
+            count=$((count + 1))
+            manifest=$(tar -xOf "release/$filename" package/package.json)
+            name=$(jq -r '.name' <<<"$manifest")
+            npm dist-tag add "$name@$EXPECTED_VERSION" "$DIST_TAG"
+          done < release/publish-order.txt
+          test "$count" -eq 15
+          while IFS= read -r filename; do
+            manifest=$(tar -xOf "release/$filename" package/package.json)
+            name=$(jq -r '.name' <<<"$manifest")
+            resolved=$(npm view "$name" "dist-tags.$DIST_TAG" --json | jq -r 'if type == "array" then .[0] else . end')
+            test "$resolved" = "$EXPECTED_VERSION"
+            echo "$name $DIST_TAG -> $resolved"
+          done < release/publish-order.txt
