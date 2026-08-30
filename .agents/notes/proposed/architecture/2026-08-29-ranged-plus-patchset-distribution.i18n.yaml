@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md
-2026-08-29-ranged-plus-patchset-distribution.md: 53113882575d01d0eb4deabcdd096b054c56b38b
-2026-08-29-ranged-plus-patchset-distribution.zh.md: 623157f8f44492be2f574b5856e89a059c703d41
+2026-08-29-ranged-plus-patchset-distribution.md: bbf09d6e586525ed331e4fc9e5a29cc2840db137
+2026-08-29-ranged-plus-patchset-distribution.zh.md: 115c1dc0d3fa6b02ca400e2ba7e06841930cad30
