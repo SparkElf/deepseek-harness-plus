@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.md
-2026-08-30-plus-backup-plugin.md: 9f591fad7951a816fda0684d133888682b8c02a4
-2026-08-30-plus-backup-plugin.zh.md: 204381f1c35b641b5c1d87a454ec251c0f403d44
+2026-08-30-plus-backup-plugin.md: 85be1d050b6751e171706a1e7ab3a41c005a3983
+2026-08-30-plus-backup-plugin.zh.md: ed20313fde1785a31097239de90881acb2262b6e

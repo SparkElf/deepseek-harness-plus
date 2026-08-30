@@ -814,6 +814,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'documentParser',
+    summary: 'Provider-neutral parser registry and direct-context policy owner.',
+    description: 'Provider-neutral parser registry and direct-context policy owner.',
+    methods: [
+      {
+        signature: 'readonly maxDirectMarkdownBytes: number',
+        description: 'Maximum aggregate rendered-document bytes Host admission may attach in one submitted message.',
+        parameters: [],
+      },
+      {
+        signature: 'registerProvider(provider: DocumentParserProvider): () => void',
+        description: 'Register one parser provider until the owning Cordis fiber disposes.',
+        parameters: [{ name: 'provider', description: 'provider implementation keyed by its non-empty id.' }],
+        returns: 'disposer that withdraws exactly this registration.',
+      },
+      {
+        signature: 'isSelectionResolvable(): boolean',
+        description: 'Report whether current registry state resolves the configured provider selection. This does not probe provider health or external endpoint availability.',
+        parameters: [],
+        returns: 'true only when a parse call can select exactly one registered provider.',
+      },
+      {
+        signature: 'async parse( request: DocumentParseRequest, signal?: AbortSignal, ): Promise<{ parser: string; result: DocumentParseResult }>',
+        description: 'Parse one already-persisted document through the deployment-selected provider.',
+        parameters: [{ name: 'request', description: 'verified original bytes and their durable metadata.' }, { name: 'signal', description: 'optional cancellation forwarded to the provider.' }],
+        returns: 'provider id together with the complete transient parse bundle.',
+      },
+    ],
+  },
+  {
     key: 'e2b',
     summary: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal.',
     description: 'Creates one lazily consumable E2B SDK handle and deletes the sandbox at timeout or disposal. Creation begins at plugin construction; adapters await getSandbox before their first operation.',
@@ -3928,6 +3958,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface DirectoryRegistrationHandle {\n    (): void;\n    replace(entries: readonly LlmConfigurableProvider[]): void;\n}',
   },
   {
+    name: 'DocumentAttachmentRef',
+    declaration: 'export interface DocumentAttachmentRef {\n    attachmentId: AttachmentId;\n    mediaType: DocumentMediaType;\n    bytes: number;\n    name: string;\n}',
+  },
+  {
+    name: 'DocumentMediaType',
+    declaration: 'export type DocumentMediaType = \'application/pdf\' | \'application/vnd.openxmlformats-officedocument.wordprocessingml.document\' | \'application/vnd.openxmlformats-officedocument.presentationml.presentation\' | \'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\';',
+  },
+  {
+    name: 'DocumentParseRequest',
+    declaration: 'export interface DocumentParseRequest {\n    attachment: DocumentAttachmentRef;\n    data: Uint8Array;\n}',
+  },
+  {
+    name: 'DocumentParseResult',
+    declaration: 'export interface DocumentParseResult {\n    markdown: Uint8Array;\n    contentList: Uint8Array;\n    images: readonly ParsedDocumentImage[];\n}',
+  },
+  {
+    name: 'DocumentParserProvider',
+    declaration: 'export interface DocumentParserProvider {\n    readonly id: string;\n    parse(request: DocumentParseRequest, signal?: AbortSignal): Promise<DocumentParseResult>;\n}',
+  },
+  {
     name: 'Domain',
     declaration: 'export interface Domain<S extends DomainSpec> {\n    readonly name: string;\n    readonly global: DomainGlobalHandleOf<S>;\n    table<N extends keyof S[\'tables\'] & string>(name: N): KvTable<TableKeyOf<S, N>, TableValueOf<S, N>>;\n    close(): Promise<void>;\n}',
   },
@@ -4526,6 +4576,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'OneShotSubagentDescriptorData',
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
+  },
+  {
+    name: 'ParsedDocumentImage',
+    declaration: 'export interface ParsedDocumentImage {\n    name: string;\n    mediaType: ImageMediaType;\n    data: Uint8Array;\n}',
   },
   {
     name: 'PermissionSelect',

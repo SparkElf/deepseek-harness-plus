@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-30-plus-browser-auth-mode.md
-2026-08-30-plus-browser-auth-mode.md: 642b66e3efe7d9abf54ba16ecd92ed1ea92453cb
-2026-08-30-plus-browser-auth-mode.zh.md: 05224c7ff3369e645729ba6c95944d8aca4feb29
+2026-08-30-plus-browser-auth-mode.md: c06151b37c3c504e2106df98b9b9075181409da7
+2026-08-30-plus-browser-auth-mode.zh.md: ad2d77d8a6b35c8fcb6369cff25960b1e200cada

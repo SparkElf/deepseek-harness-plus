@@ -1,5 +1,9 @@
 /** Host progress and terminal records for Plus user-data Backup routes. */
 
+import type { BackupScope } from './types.ts'
+
+export type { BackupScope } from './types.ts'
+
 /** Progress without a stable byte total while scanning, validating, or reloading. */
 type BackupOpenProgress = {
   phase: 'scan' | 'validate' | 'reload'
@@ -25,9 +29,12 @@ export type BackupProgressLine = {
 } | {
   type: 'export-ready'
   downloadUrl: string
+  filename: string
+  scope: BackupScope
   entries: number
 } | {
   type: 'import-complete'
+  scope: BackupScope
   entries: number
 } | {
   type: 'error'

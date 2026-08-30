@@ -34,4 +34,4 @@ The Settings Backup client remains a first-party package because its archive beh
 - External capabilities remain complete install and removal units; Host-specific wrapper packages are not an accepted integration path.
 - First-party packages may publish to npm without moving repositories, preserving lockstep development where it is required. Missing owner credentials block publication rather than authorizing a scope or version-contract change.
 - Plus may curate or default-mount an external package while the external project retains release and security responsibility.
-- The [external plugin maintenance scheme](../../../notes/proposed/architecture/2026-08-19-external-plugin-maintenance.md) continues to own curation pins, drift, local patches, and the separate plugin repository; this decision owns the earlier placement classification.
+- The [curation manifest](../../../plugins/curated.yaml) records pins, drift targets, local patches, and retirement conditions; this decision owns the earlier placement classification.

@@ -33,6 +33,7 @@ interface RuntimePackage {
   version: string
 }
 
+/** One official workspace package available as a profile peer dependency. */
 export interface OfficialWorkspacePackage {
   name: string
   directory: string
@@ -565,7 +566,12 @@ function officialPackageRoot(dshRoot: string): string {
   return resolve(dshRoot, 'apps', 'cli')
 }
 
-/** Parse pnpm's workspace roster into exact official package directories. */
+/**
+ * Parse pnpm's workspace roster into exact official package directories.
+ * @param dshRoot - exact official DSH checkout root.
+ * @param stdout - JSON emitted by `pnpm -r list --json --depth -1`.
+ * @returns sorted official package names and directories inside the checkout.
+ */
 export function parseOfficialWorkspacePackages(dshRoot: string, stdout: string): OfficialWorkspacePackage[] {
   const parsed: unknown = JSON.parse(stdout)
   if (!Array.isArray(parsed)) throw new Error('pnpm workspace package list must be an array')
@@ -611,7 +617,12 @@ function listOfficialWorkspacePackages(dshRoot: string): OfficialWorkspacePackag
   return parseOfficialWorkspacePackages(dshRoot, result.stdout)
 }
 
-/** Build the profile's official scope from the CLI closure plus source workspaces. */
+/**
+ * Build the profile's official scope from the CLI closure plus source workspaces.
+ * @param profileDirectory - materialized Plus profile root.
+ * @param cliScope - official packages already installed under the DSH CLI.
+ * @param workspacePackages - additional official source workspaces required by external peers.
+ */
 export function materializeOfficialPackageScope(
   profileDirectory: string,
   cliScope: string,

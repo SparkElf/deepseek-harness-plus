@@ -1,3 +1,5 @@
+import type { BackupScope } from '../types.ts'
+
 /** Browser presentation progress after parsing Host lines or upload events. */
 export type BackupSectionProgress = {
   /** Phase without a measurable byte total. */
@@ -17,16 +19,20 @@ export type BackupOperation = {
   progress: BackupSectionProgress
 }
 
-/** Successful operation copy selected by the current locale. */
-export type BackupStatusKey = 'exported' | 'imported'
+/** Successful operation and the archive subset it affected. */
+export type BackupResult = {
+  kind: 'exported' | 'imported'
+  scope: BackupScope
+}
 
 /** Failed operation copy selected by the current locale. */
 export type BackupErrorKey = 'notBackup' | 'unsafe' | 'exportFailed' | 'importFailed'
 
 /** Remount-surviving presentation state owned by the Backup slot registration. */
 export type BackupSectionState = {
+  scope: BackupScope
   operation: BackupOperation | null
-  status: BackupStatusKey | null
+  result: BackupResult | null
   error: BackupErrorKey | null
   cancelling: boolean
 }

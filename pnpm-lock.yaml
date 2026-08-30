@@ -1402,6 +1402,9 @@ importers:
       '@sparkelf/dsh-patch-document-attachments':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/document-attachments
+      '@sparkelf/dsh-patch-genui-skill-chart-contract':
+        specifier: '>=0.1.0-rc.12'
+        version: link:../../../patches/npm/genui-skill-chart-contract
       '@sparkelf/dsh-patch-genui-streaming-echart':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/genui-streaming-echart
@@ -1417,6 +1420,9 @@ importers:
       '@sparkelf/dsh-patch-session-export-chinese':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/session-export-chinese
+      '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
+        specifier: '>=0.1.0-rc.12'
+        version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-subagent-settings-presets':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/subagent-settings-presets
@@ -10804,6 +10810,8 @@ importers:
 
   patches/npm/document-attachments: {}
 
+  patches/npm/genui-skill-chart-contract: {}
+
   patches/npm/genui-streaming-echart: {}
 
   patches/npm/legacy-code-preset: {}
@@ -10813,6 +10821,8 @@ importers:
   patches/npm/responses-reasoning-status: {}
 
   patches/npm/session-export-chinese: {}
+
+  patches/npm/session-log-trajectory-toolbar: {}
 
   patches/npm/subagent-settings-presets: {}
 

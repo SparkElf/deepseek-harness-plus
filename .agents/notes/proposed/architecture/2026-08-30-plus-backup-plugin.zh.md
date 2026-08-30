@@ -10,21 +10,21 @@ Status: proposed
 
 ## Proposal
 
-只在official tag的隔离worktree中开发Backup。由`packages/plus/backup`发布单个`@sparkelf/dsh-plugin-backup` package；其Host与Client entries共同形成一个capability，npm closure包含全部runtime dependencies。只添加最小temporary DSH source patch：public `WorkspaceRegistry.withStorageRestore(restore)` operation；它与现有Workspace mutations串行，关闭storage domain，执行传入的restore，再通过正常initialization路径重开domain。distribution引用plugin与独立patch package；精确选择版本只属于deployment lock。
+只在official tag的隔离worktree中开发Backup。由`packages/plus/backup`发布单个`@sparkelf/dsh-plugin-backup` package；其Host与Client entries共同形成一个capability，npm closure包含全部runtime dependencies。Archive operation选择`all | configuration | sessions`：all为另两者并集；configuration拥有active Settings document、credentials、可选home `.env`及anonymous identity；sessions共同拥有`sessions`、`attachments`与`storages`。只添加最小temporary DSH source patch：public `WorkspaceRegistry.withStorageRestore(restore)` operation；Session-bearing restore与现有Workspace mutations串行，关闭storage domain，执行传入的restore，再通过正常initialization路径重开domain；configuration-only restore不进入该无关transaction。distribution引用plugin与独立patch package；精确选择版本只属于deployment lock。
 
 package name从第一次commit起即为最终名称。Plus candidate只增加识别`@sparkelf/*` artifacts所需的source与release governance；不会先以`@deepseek-ai`名称发布后再rename。core installation path基于npm/profile：先执行`dsh plugin --profile plus add @sparkelf/dsh-plus`，再执行distribution的显式`dsh-plus apply --dsh-root <official-root>` command，最后执行`dsh --profile plus`。apply command只materialize data-only patch metadata并写exact lock；它没有install lifecycle script，也不包含capability implementation。
 
 ## Package and runtime ownership
 
-Host entry拥有archive planning、64 KiB compression/restore chunks、manifest marker、generated-directory exclusion、mutation前validation、same-name replacement、作为package config公开且默认2 GiB的upload policy、one-use temp-file tokens、cleanup、progress framing以及四条exact routes。它通过`ctx.webServer.register`注册routes；每个handler在读取body或mutation前先调用`ctx.connection.requestRejection`。Upload把Node request流式写入Host temp file，绝不进入Connection JSON buffer。Export preparation和import在response backpressure下写有序NDJSON progress；GET/HEAD download流式传输暂存ZIP，只有GET消费token。
+Host entry拥有explicit source allowlists、64 KiB compression/restore chunks、带scope与Settings filename的version-2 manifest、mutation前validation、same-name replacement、作为package config公开且默认2 GiB的upload policy、one-use temp-file tokens、cleanup、progress framing以及四条exact routes。Generated profiles、releases、logs、Supervisor files、cached packages及runtime output不进入任何scope。它通过`ctx.webServer.register`注册routes；每个handler在读取body或mutation前先调用`ctx.connection.requestRejection`。Upload把Node request流式写入Host temp file，绝不进入Connection JSON buffer。Export preparation和import在response backpressure下写有序NDJSON progress；GET/HEAD download流式传输暂存ZIP，只有GET消费token。
 
-Client entry拥有Settings section、local operation state、upload progress、Host progress parsing、completion可见前的stream-reader release、cancellation、browser download、retry、import completion和reload action。所有product copy都在package自有typed中文与英文dictionaries中。UI保持已验收layout并继续消费现有semantic tokens；本次迁移不进行visual redesign，不新增shared store、polling或background recovery。
+Client entry拥有三段scope control、Settings section、local operation state、upload progress、Host progress parsing、completion可见前的stream-reader release、cancellation、scope-specific browser filename/result、retry、import completion和reload action。所有product copy都在package自有typed中文与英文dictionaries中。UI保持已验收layout并继续消费现有semantic tokens；不新增shared store、polling或background recovery。
 
 Workspace package拥有durable-domain transaction与live cache rebuild。Backup只提供file replacement callback。Connection拥有Host/Origin/browser authentication。WebServer拥有route dispatch。Settings File继续通过`settings.documentPath`提供DSH home path；没有file-backed settings provider的deployment在package activation时失败，不选择其他path。
 
 ## Data and error flow
 
-Export从Settings button流向POST `/api/backup.export.prepare`、Host file planning与ZIP output、有序progress lines、one-use GET URL及browser download。Import从file picker流向POST `/api/backup.upload`、one-use token、POST `/api/backup.import`、archive validation、`withStorageRestore`、progress lines及可见reload action。四个route parsers是唯一untrusted HTTP ingress owners；archive validation是唯一ZIP entry/path owner。下游只消费已校验token、progress records与archive entries，不重复normalize，也不保留fallback fields。
+Export从selected scope流向POST `/api/backup.export.prepare?scope=...`、Host allowlist planning与ZIP output、有序progress lines、one-use GET URL及scope-specific browser download。Import从file picker流向POST `/api/backup.upload`、one-use token、POST `/api/backup.import`、version/scope/path validation、scope-selected restore transaction、progress lines及可见reload action。四个route parsers是唯一untrusted HTTP ingress owners；archive validation是唯一manifest与ZIP entry owner。下游只消费已校验token、progress records、scope与archive entries，不重复normalize，也不保留fallback fields。
 
 预期user errors返回明确HTTP status或一个terminal progress error，并恢复Settings actions供retry。非预期Host exceptions保留原始stack，以稳定`[plus-backup]` console error记录route与phase，但不记录archive content、settings values、credentials或filesystem paths。不添加automatic retry、fallback transport、compatibility protocol、queue、worker、polling loop或额外lock。
 
@@ -38,7 +38,7 @@ official tag的active Agent Notes没有覆盖user-data Backup，因此本proposa
 
 这是一个capability大阶段：namespace governance、Workspace operation、full-stack package、profile composition、独立patch payload、exact lock integration、旧路径删除、docs、locales与现有Electron system case全部完成后才进入code review与verification。由于Workspace method与package Host entry共享同一runtime contract，工作串行执行；并行修改文件不能缩短critical path。
 
-functional acceptance从official DSH installation开始，通过DSH profile command安装`@sparkelf/dsh-plus`及其npm closure。随后只通过Playwright UI操作生成的Plus Web profile：导出真实archive并看到scan/compress progress，导入并看到upload/validate/restore/reload progress，reload后观察恢复的Session与Workspace state。同一case选择invalid ZIP，看到可操作error并可retry。browser diagnostics收集console warnings/errors、page errors、failed requests、unexpected HTTP failures、CORS failures与stalled requests。Desktop与tray applications可以调用该public profile workflow，但不是prerequisites或acceptance owners。official tag没有Playwright runner，因此Plus distribution拥有Web Playwright harness；不新增Vitest或direct HTTP替代测试。
+functional acceptance从official DSH installation开始，通过DSH profile command安装`@sparkelf/dsh-plus`及其npm closure。随后用一个Playwright UI workflow操作生成的Plus Web profile：configuration restore回退Settings change但保留稍后新增的Workspace；sessions restore回退该Workspace但保留稍后Settings change；all restore同时回退两者。每个arm均完成export、download、upload、validate、restore、reload并显示scope-specific result；同一case选择invalid ZIP、看到可操作error并retry。browser diagnostics收集console warnings/errors、page errors、failed requests、unexpected HTTP failures、CORS failures与stalled requests。Desktop与tray applications可以调用该public profile workflow，但不是prerequisites或acceptance owners。official tag没有Playwright runner，因此Plus distribution拥有Web Playwright harness；不新增direct HTTP替代测试。
 
 ## Alternatives considered
 
@@ -57,7 +57,7 @@ functional acceptance从official DSH installation开始，通过DSH profile comm
 - `@sparkelf/dsh-plugin-backup`是包含Host、Client、profile、locale与dependency closure的单个public npm package。
 - official DSH是唯一source base；plugin不import旧ApiProxy或旧Connection API，也没有compatibility branch。
 - temporary DSH patch只包含public Workspace restore transaction，可独立ownership、version、lock与retire。
-- Export、upload、import、progress、cancellation、download、retry、reload及恢复后Session/Workspace visibility通过现有Electron Playwright path与accepted production等价。
+- All、configuration与sessions scopes共用一条archive/validation/restore chain，并通过Plus Playwright证明各自独立的visible state result。
 - Invalid archive在mutation前失败，UI显示可恢复error，Host原始stack诊断得到保留且不含敏感内容。
 - distribution切换composition时删除全部旧Backup owners；任一runtime都不存在两个route或locale owners。
 

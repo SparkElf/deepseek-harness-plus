@@ -1,0 +1,305 @@
+diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
+index aa386504113dbb6db3afd3d3eb72d51b4a8ad71f..6f6c5343b115bb39845bbf774ad52a871922922e 100644
+--- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
++++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
+@@ -164,13 +164,19 @@
+   font: 14px/14px var(--ds-font-family-code);
+ }
+ 
++.utilities {
++  display: flex;
++  flex: none;
++  align-items: center;
++  margin-left: auto;
++}
++
+ .search {
+   display: flex;
+   flex: 0 1 164px;
+   align-items: center;
+   min-width: 84px;
+   height: 22px;
+-  margin-left: auto;
+   padding: 0 6px;
+   gap: 4px;
+   border: 1px solid var(--dsw-alias-border-l2);
+diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
+index 92d7ce9ab07211d6a58c24e20a428381b7c4b61d..dfbc88f1e3aeb0e1e08fed4c7947150693dbcde5 100644
+--- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
++++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
+@@ -1,5 +1,6 @@
+ /** Trajectory toolbar: timeline and ledger fold controls. */
+ 
++import type { ReactNode } from 'react'
+ import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+ import { IconSearchOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { NS } from './locales.ts'
+@@ -26,6 +27,8 @@ export interface TrajectoryToolbarProps {
+   searchQuery: string
+   /** Update the live ledger search query. */
+   onSearchQueryChange: (query: string) => void
++  /** Session utilities contributed immediately before search. */
++  utilities: ReactNode
+   /** Translate a toolbar dictionary key. */
+   t: TranslateNS<typeof NS>
+ }
+@@ -46,6 +49,7 @@ export function TrajectoryToolbar({
+   onToggleAllAssistants,
+   searchQuery,
+   onSearchQueryChange,
++  utilities,
+   t,
+ }: TrajectoryToolbarProps) {
+   return (
+@@ -111,7 +115,8 @@ export function TrajectoryToolbar({
+             {t('toolbar.calls')}
+           </button>
+         </div>
+-        <div className={css.search}>
++        <div className={css.utilities} data-trajectory-toolbar-utilities="">{utilities}</div>
++        <div className={css.search} data-trajectory-search="">
+           <IconSearchOutline16 size={11} className={css.searchIcon} />
+           <input
+             type="search"
+diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
+index 2ac0d5ddf124714e459c72a99d7eb699fa62d3bd..ace4e584fb8b3922378c9e297ec58c64561e7c55 100644
+--- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
++++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
+@@ -121,7 +121,9 @@ export function TrajectoryView({
+   useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
+   viewRequest, completeViewRequest, renderSlot, t,
+ }: ConvViewProps
+-  & PropsRenderSlots<'conversation.trajectory.images'>
++  & PropsRenderSlots<
++    'conversation.trajectory.images' | 'conversation.trajectory.toolbar.utilities'
++  >
+   & InjectFace<TrajectoryViewInjected>
+   & PropsLocale<'trajectory'>) {
+   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
+@@ -471,6 +473,7 @@ export function TrajectoryView({
+         onToggleAllAssistants={toggleAllAssistants}
+         searchQuery={searchQuery}
+         onSearchQueryChange={setSearchQuery}
++        utilities={renderSlot('conversation.trajectory.toolbar.utilities', {})}
+         t={t}
+       />
+       <TrajectoryTimeline
+diff --git a/packages/client/ui-trajectory/src/client/index.ts b/packages/client/ui-trajectory/src/client/index.ts
+index 118f3b2c288730018fba6b97add0bf078b64062f..a8c71cf9ee2662870567355b4f44738fe7c1e3bd 100644
+--- a/packages/client/ui-trajectory/src/client/index.ts
++++ b/packages/client/ui-trajectory/src/client/index.ts
+@@ -36,6 +36,13 @@ export type {
+   UseTrajectory,
+ } from './trajectory-contract.ts'
+ 
++declare module '@deepseek-ai/dsh-client-ui-slots' {
++  interface SlotMap {
++    /** Compact Session utilities immediately before the Trajectory search field. */
++    'conversation.trajectory.toolbar.utilities': { kind: 'list'; scope: 'session' }
++  }
++}
++
+ /** Required services: the conversation slot, registries, ordinary Session paging, and the locale service. */
+ export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'locale']
+ 
+@@ -82,6 +89,7 @@ export function apply(ctx: Context): void {
+     label: () => t('view.trajectory'),
+     children: {
+       'conversation.trajectory.images': { kind: 'single', scope: 'session' },
++      'conversation.trajectory.toolbar.utilities': { kind: 'list', scope: 'session' },
+     },
+     inject: (sessionId: SessionId): TrajectoryViewInjected => {
+       const session = ctx.sessions.binding(sessionId)?.session
+diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
+index 60cba7ebdd3fbff86223db0f482380f198ff83e1..a717c25ae3af88e2286afe7d58f43d4ff71bcdc5 100644
+--- a/packages/session-query/session-log-export/package.json
++++ b/packages/session-query/session-log-export/package.json
+@@ -60,6 +60,7 @@
+     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-session": "workspace:^",
++    "@deepseek-ai/dsh-client-ui-trajectory": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
+     "@deepseek-ai/dsh-commands": "workspace:^",
+@@ -77,7 +78,8 @@
+         "@deepseek-ai/dsh-client-ui-commands",
+         "@deepseek-ai/dsh-client-ui-conversation",
+         "@deepseek-ai/dsh-client-ui-renderer",
+-        "@deepseek-ai/dsh-client-ui-session"
++        "@deepseek-ai/dsh-client-ui-session",
++        "@deepseek-ai/dsh-client-ui-trajectory"
+       ],
+       "platform": "web"
+     }
+diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
+index 288e7f9bae4b7b103c5ce52dfbc4292437fa7d83..8007563465a27cfd556f185a5042aa8878cc92d1 100644
+--- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
++++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
+@@ -34,3 +34,52 @@
+ .sessionLogButton span {
+   white-space: nowrap;
+ }
++
++.trajectoryButton {
++  display: none;
++  flex: none;
++  align-items: center;
++  height: 22px;
++  padding: 0 6px;
++  gap: 4px;
++  border: 0;
++  border-radius: 3px;
++  color: var(--dsw-alias-label-tertiary);
++  background: transparent;
++  cursor: pointer;
++  font: var(--dsw-font-xxs-12);
++}
++
++.trajectoryButton:hover:not(:disabled) {
++  color: var(--dsw-alias-label-primary);
++  background: var(--dsw-alias-interactive-bg-hover);
++}
++
++.trajectoryButton:focus-visible {
++  outline: 1px solid var(--dsw-alias-state-business-primary);
++  outline-offset: 1px;
++}
++
++.trajectoryButton:disabled {
++  color: var(--dsw-alias-label-dimmed);
++  cursor: wait;
++}
++
++.trajectoryButton span,
++.trajectoryButton svg {
++  flex: none;
++}
++
++.trajectoryButton span {
++  white-space: nowrap;
++}
++
++@media (min-width: 768px) {
++  .sessionLogButton {
++    display: none;
++  }
++
++  .trajectoryButton {
++    display: inline-flex;
++  }
++}
+diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
+index 7adc40aa5cde8d3b25e2168ea49b630e2fe6af83..3a6dd6fa9bcd82418184dda0938f377bd7347789 100644
+--- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
++++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
+@@ -1,8 +1,16 @@
+ import type { ReactNode } from 'react'
+ import { IconDownloadOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+ import { SessionLogDownloadDialog, type SessionLogDownloadDialogProps } from './Dialog.tsx'
++import type { SessionLogDownloadDialogInjected } from './Dialog.tsx'
++import { NS } from './locales.ts'
+ import css from './HeaderAction.module.css'
+ 
++type SessionLogDownloadToolbarActionProps =
++  PropsRuntime<'conversation.trajectory.toolbar.utilities'>
++  & PropsLocale<typeof NS>
++  & InjectFace<SessionLogDownloadDialogInjected>
++
+ /**
+  * Render the Session Header export capsule and its shared result dialog.
+  * @param props - Session runtime, download controller, and localized dialog copy.
+@@ -29,3 +37,30 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+     </>
+   )
+ }
++
++/**
++ * Render the desktop Session export action in the Trajectory toolbar.
++ * @param props - Session runtime, shared download controller, and localized copy.
++ * @returns the compact toolbar action.
++ */
++export function SessionLogDownloadToolbarAction(
++  props: SessionLogDownloadToolbarActionProps,
++): ReactNode {
++  const { sessionId, useSessionLogDownload, request, t } = props
++  const entry = useSessionLogDownload(state => state.bySession[String(sessionId)])
++  const busy = entry?.status === 'downloading'
++
++  return (
++    <button
++      type="button"
++      className={css.trajectoryButton}
++      disabled={busy}
++      aria-busy={busy}
++      title={t('header.action')}
++      onClick={() => { void request(sessionId) }}
++    >
++      <IconDownloadOutline16 size={11} />
++      <span>{t('header.action')}</span>
++    </button>
++  )
++}
+diff --git a/packages/session-query/session-log-export/src/client/index.ts b/packages/session-query/session-log-export/src/client/index.ts
+index 97187311fad4ab6f021fc298b8205dd529b9af37..a6ca23e3b3ec1ded2a21d3428990261f7d7da0c4 100644
+--- a/packages/session-query/session-log-export/src/client/index.ts
++++ b/packages/session-query/session-log-export/src/client/index.ts
+@@ -7,9 +7,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-commands/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
++import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
+ import { SessionLogDownloadController } from './controller.ts'
+ import type { SessionLogDownloadDialogInjected } from './Dialog.tsx'
+-import { SessionLogDownloadHeaderAction } from './HeaderAction.tsx'
++import {
++  SessionLogDownloadHeaderAction, SessionLogDownloadToolbarAction,
++} from './HeaderAction.tsx'
+ import { en, NS, zh, type SessionLogDownloadKey } from './locales.ts'
+ 
+ declare module '@deepseek-ai/cordis' {
+@@ -34,6 +37,11 @@ export const inject = ['slots', 'locale']
+  */
+ export function apply(ctx: ClientContext): void {
+   const controller = new SessionLogDownloadController()
++  const injectAction = (): SessionLogDownloadDialogInjected => ({
++    hooks: { sessionLogDownload: controller.store },
++    request: (sessionId: SessionId) => controller.download(sessionId),
++    dismiss: (sessionId: SessionId) => { controller.dismiss(sessionId) },
++  })
+   ctx.provide('sessionLogDownload', controller)
+   ctx.effect(() => async () => { await controller.dispose() }, 'session-log-download: browser download lifecycle')
+   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'session-log-download: browser dictionaries')
+@@ -44,12 +52,14 @@ export function apply(ctx: ClientContext): void {
+     name: 'conversation.session.header.utilities',
+     id: 'session-log-download',
+     locale: NS,
+-    inject: (): SessionLogDownloadDialogInjected => ({
+-      hooks: { sessionLogDownload: controller.store },
+-      request: (sessionId: SessionId) => controller.download(sessionId),
+-      dismiss: (sessionId: SessionId) => { controller.dismiss(sessionId) },
+-    }),
++    inject: injectAction,
+   }, SessionLogDownloadHeaderAction))
++  ctx.slots.inject('conversation.trajectory.toolbar.utilities', () => ctx.slots.register({
++    name: 'conversation.trajectory.toolbar.utilities',
++    id: 'session-log-download',
++    locale: NS,
++    inject: injectAction,
++  }, SessionLogDownloadToolbarAction))
+ }
+ 
+ export type { SessionLogDownloadDialogInjected, SessionLogDownloadDialogProps } from './Dialog.tsx'
+diff --git a/packages/session-query/session-log-export/tsconfig.client.json b/packages/session-query/session-log-export/tsconfig.client.json
+index 6e3e746c4c58753b3023f94ed4c872e5f1ac1d51..c5e2c7b69c41289d2db3be1753c5bb3030be87d8 100644
+--- a/packages/session-query/session-log-export/tsconfig.client.json
++++ b/packages/session-query/session-log-export/tsconfig.client.json
+@@ -23,6 +23,7 @@
+     { "path": "../../client/ui-renderer" },
+     { "path": "../../client/ui-session" },
+     { "path": "../../client/ui-slots" },
++    { "path": "../../client/ui-trajectory" },
+     { "path": "../../core/session" }
+   ]
+ }

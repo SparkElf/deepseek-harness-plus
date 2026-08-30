@@ -69,12 +69,14 @@
       "@sparkelf/dsh-patch-better-sidebar-app-frame",
       "@sparkelf/dsh-patch-better-sidebar-alpha2-settings",
       "@sparkelf/dsh-patch-genui-streaming-echart",
+      "@sparkelf/dsh-patch-genui-skill-chart-contract",
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-workspace-storage-restore",
       "@sparkelf/dsh-patch-subagent-settings-presets",
       "@sparkelf/dsh-patch-document-attachments",
       "@sparkelf/dsh-patch-legacy-code-preset",
       "@sparkelf/dsh-patch-session-export-chinese",
+      "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
       "@sparkelf/dsh-patch-responses-reasoning-status",
       "@sparkelf/dsh-patch-mobile-web-layout",
       "@sparkelf/dsh-patch-web-base-path"
@@ -88,6 +90,7 @@
     "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-better-sidebar-alpha2-settings": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-patch-genui-skill-chart-contract": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-browser-auth-mode": ">=0.1.0-rc.12",
     "dshmarket": ">=1.38.1",
     "@changfenhuang/dsh-genui": ">=0.9.6",
@@ -105,6 +108,7 @@
     "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-legacy-code-preset": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-session-export-chinese": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.12"
   },
   "peerDependencies": {

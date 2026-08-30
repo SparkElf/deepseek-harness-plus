@@ -10,7 +10,8 @@
     "src/index.ts",
     "src/invariant.ts",
     "src/protocol.ts",
-    "src/routes.ts"
+    "src/routes.ts",
+    "src/types.ts"
   ],
   "references": [
     { "path": "../../../vendor/cordis" },

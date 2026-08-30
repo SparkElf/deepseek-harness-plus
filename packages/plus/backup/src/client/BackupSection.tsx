@@ -10,8 +10,9 @@ import type {
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { BackupSectionStore } from './store.ts'
 import type {
-  BackupErrorKey, BackupOperation, BackupSectionProgress,
+  BackupErrorKey, BackupOperation, BackupResult, BackupSectionProgress,
 } from './types.ts'
+import type { BackupScope } from '../types.ts'
 import css from './BackupSection.module.css'
 
 /** Registration-side business face for the two streamed backup operations. */
@@ -22,8 +23,9 @@ export interface BackupSectionInjected {
    * @returns the single-use browser download URL and entry count.
    */
   exportArchive(
+    scope: BackupScope,
     report: (progress: BackupSectionProgress) => void,
-  ): Promise<{ downloadUrl: string; entries: number }>
+  ): Promise<{ downloadUrl: string; filename: string; scope: BackupScope; entries: number }>
 
   /**
    * Upload and restore one picked archive while reporting transport and Host progress.
@@ -34,7 +36,7 @@ export interface BackupSectionInjected {
   importArchive(
     file: File,
     report: (progress: BackupSectionProgress) => void,
-  ): Promise<{ entries: number }>
+  ): Promise<{ entries: number; scope: BackupScope }>
 
   /** Cancel the active operation while its current phase still permits cancellation. */
   cancelOperation(): void
@@ -110,9 +112,20 @@ function isCancellation(caught: unknown): boolean {
 /** Map one transport or archive rejection to product copy. */
 function localize(caught: unknown, kind: BackupOperation['kind']): BackupErrorKey {
   const message = caught instanceof Error ? caught.message : String(caught)
-  if (message.includes('missing backup-manifest.json')) return 'notBackup'
+  if (message.includes('backup-manifest.json')) return 'notBackup'
   if (message.includes('unsafe path')) return 'unsafe'
   return kind === 'export' ? 'exportFailed' : 'importFailed'
+}
+
+function resultTextKey(result: BackupResult):
+  | 'exportedAll' | 'exportedConfiguration' | 'exportedSessions'
+  | 'importedAll' | 'importedConfiguration' | 'importedSessions' {
+  if (result.kind === 'exported') {
+    if (result.scope === 'all') return 'exportedAll'
+    return result.scope === 'configuration' ? 'exportedConfiguration' : 'exportedSessions'
+  }
+  if (result.scope === 'all') return 'importedAll'
+  return result.scope === 'configuration' ? 'importedConfiguration' : 'importedSessions'
 }
 
 /**
@@ -122,24 +135,25 @@ function localize(caught: unknown, kind: BackupOperation['kind']): BackupErrorKe
  */
 export function BackupSection(props: BackupSectionProps): ReactNode {
   const { t, actions } = props
+  const scope = props.useStore(state => state.scope)
   const operation = props.useStore(state => state.operation)
-  const status = props.useStore(state => state.status)
+  const result = props.useStore(state => state.result)
   const error = props.useStore(state => state.error)
   const cancelling = props.useStore(state => state.cancelling)
-  const reloadRequired = status === 'imported'
+  const reloadRequired = result?.kind === 'imported'
   const fileRef = useRef<HTMLInputElement>(null)
 
   const runExport = async (): Promise<void> => {
     actions.begin({ kind: 'export', progress: { phase: 'scan' } })
     try {
-      const { downloadUrl } = await props.exportArchive((progress) => {
+      const exported = await props.exportArchive(scope, (progress) => {
         actions.progress({ kind: 'export', progress })
       })
       const anchor = document.createElement('a')
-      anchor.href = downloadUrl
-      anchor.download = 'deepseek-harness-backup.zip'
+      anchor.href = exported.downloadUrl
+      anchor.download = exported.filename
       anchor.click()
-      actions.complete('exported')
+      actions.complete({ kind: 'exported', scope: exported.scope })
     } catch (caught) {
       if (isCancellation(caught)) {
         actions.cancelled()
@@ -159,10 +173,10 @@ export function BackupSection(props: BackupSectionProps): ReactNode {
     })
     void (async () => {
       try {
-        await props.importArchive(file, (progress) => {
+        const imported = await props.importArchive(file, (progress) => {
           actions.progress({ kind: 'import', progress })
         })
-        actions.complete('imported')
+        actions.complete({ kind: 'imported', scope: imported.scope })
       } catch (caught) {
         if (isCancellation(caught)) {
           actions.cancelled()
@@ -182,6 +196,21 @@ export function BackupSection(props: BackupSectionProps): ReactNode {
     <section className={css.section}>
       <h2 className={css.title}>{t('title')}</h2>
       <p className={css.desc}>{t('desc')}</p>
+      <div className={css.scopeGroup} role="radiogroup" aria-label={t('scopeLabel')}>
+        {(['all', 'configuration', 'sessions'] as const).map(value => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={scope === value}
+            className={css.scopeButton}
+            disabled={operation !== null || reloadRequired}
+            onClick={() => { actions.selectScope(value) }}
+          >
+            {t(value === 'all' ? 'scopeAll' : value === 'configuration' ? 'scopeConfiguration' : 'scopeSessions')}
+          </button>
+        ))}
+      </div>
       <div className={css.actions}>
         <button
           type="button"
@@ -241,7 +270,11 @@ export function BackupSection(props: BackupSectionProps): ReactNode {
           <p className={css.progressDetail}>{t('progressDetail')}</p>
         </div>
       ) : null}
-      {status !== null ? <p className={css.status} role="status">{t(status)}</p> : null}
+      {result !== null ? (
+        <p className={css.status} role="status">
+          {t(resultTextKey(result))}
+        </p>
+      ) : null}
       {reloadRequired ? (
         <button type="button" className={css.button} onClick={() => { props.reloadPage() }}>
           {t('reloadButton')}

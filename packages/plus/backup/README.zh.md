@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-该完整Host及Client plugin把file-backed DSH home导出为ZIP archive，验证并恢复uploaded archive，重新打开Workspace storage，并贡献localized Backup Settings section。Export、upload和import通过Host temporary files stream并提供bounded NDJSON progress；import会在Workspace mutation前验证manifest、paths及expanded byte total。
+该完整Host及Client plugin导出并恢复三种明确的user-data subset：全部、仅配置或仅会话。配置包含active Settings document、credentials、可选`.env`及anonymous identity；会话包含Session logs、attachments及storage-backed Workspace/projection state。Export、upload和import通过Host temporary files stream并提供bounded NDJSON progress；import会在mutation前验证versioned manifest、scope、paths及expanded byte total。
 
 ## 目录
 
@@ -25,7 +25,9 @@ kind: "package-reference"
 
 Host entry需mount在`connection`、`webServer`、`settings`及`workspaceRegistry`之后，Client entry需mount在locale及Settings之后。file-backed Settings provider提供`settings.documentPath`；`maxUploadBytes`默认为2147483648 bytes。
 
-authenticated routes为POST `/api/backup.export.prepare`、GET/HEAD `/api/backup.export`、POST `/api/backup.upload`及POST `/api/backup.import`。每条route会在读取request data前应用Connection Host、Origin及browser-authentication policy。Browser cancellation只结算当前route，绝不会终止Harness Host。Token在十分钟后过期并且single-use，HEAD metadata inspection除外。
+Settings section使用三段segmented control。**全部**是配置与会话的并集；它不归档generated profiles、releases、logs、Supervisor files、cached packages或其他runtime output。**配置**只恢复配置文件，不关闭Session/Workspace storage。**会话**把`sessions`、`attachments`及`storages`一起放进Workspace storage-restore transaction恢复。Archive manifest记录scope与active Settings filename；含配置的archive在import时要求相同Settings filename。
+
+authenticated routes为POST `/api/backup.export.prepare?scope=all|configuration|sessions`、GET/HEAD `/api/backup.export`、POST `/api/backup.upload`及POST `/api/backup.import`。每条route会在读取request data前应用Connection Host、Origin及browser-authentication policy。Browser cancellation只结算当前route，绝不会终止Harness Host。Token在十分钟后过期并且single-use，HEAD metadata inspection除外。
 
 一旦restore开始写入，关闭page不会中断replacement。Workspace storage会在file replacement期间关闭并在completion前重新打开；Client会先释放completed progress stream reader，再由UI提供一次explicit reload。Client failure保留在Backup section可见状态，不产生browser console error。
 
@@ -52,7 +54,8 @@ authenticated routes为POST `/api/backup.export.prepare`、GET/HEAD `/api/backup
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- **Overwrite without rollback**：restore会替换same-name files，保留archive中不存在的files，并且在mutation开始后disk write失败时不创建rollback copy。
+- **Overwrite without rollback**：restore会替换declared scope内的same-name files，保留archive中不存在的files，并且在mutation开始后disk write失败时不创建rollback copy。
+- **只接受当前archive format**：scoped archive使用manifest version 2；pre-release version 1 archive会被拒绝，不猜测其scope。
 
 <a id="dev-note"></a>
 ### 开发备注

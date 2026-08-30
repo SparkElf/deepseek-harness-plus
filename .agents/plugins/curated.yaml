@@ -19,7 +19,7 @@ entries:
     pinned: 0.9.6
     interest: Model-taught dsh-ui rendering across inline DOM/registry surfaces and interactive panels
     owner: omdsh-dev
-    localPatches: [{ package: '@sparkelf/dsh-patch-genui-streaming-echart', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/87, retireWhen: A released @changfenhuang/dsh-genui version includes complete top-level component streaming and the real DataOps inline/native/panel chart path passes without browser diagnostics }]
+    localPatches: [{ package: '@sparkelf/dsh-patch-genui-streaming-echart', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/87, retireWhen: A released @changfenhuang/dsh-genui version includes complete top-level component streaming and the real DataOps inline/native/panel chart path passes without browser diagnostics }, { package: '@sparkelf/dsh-patch-genui-skill-chart-contract', upstreamUrl: https://github.com/omdsh-dev/dsh-genui, retireWhen: A released @changfenhuang/dsh-genui version registers its bundled skill, exposes the compact chart signature, rejects invalid chart semantics, and passes the real DataOps chart path }]
     plusBundle: true
   - name: dshmarket
     source: { kind: npm, spec: dshmarket }
@@ -76,6 +76,13 @@ entries:
     interest: Consistent Simplified-Chinese wording across the Session export action and status dialog
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-session-export-chinese', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official Session export Simplified-Chinese copy consistently uses the Chinese term for Session }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-session-log-trajectory-toolbar'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: Desktop Session-log export placement and styling within the Trajectory toolbar while phones retain the Header action
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-session-log-trajectory-toolbar', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH exposes an equivalent Trajectory toolbar utility slot and places Session export before search on desktop while retaining the Header action on phones }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-legacy-code-preset'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }

@@ -17,6 +17,47 @@
   font-size: 13px;
 }
 
+.scopeGroup {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.scopeButton {
+  min-width: 72px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.scopeButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+}
+
+.scopeButton[aria-checked='true'] {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.scopeButton:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.scopeButton:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: default;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

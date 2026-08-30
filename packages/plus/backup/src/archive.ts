@@ -8,18 +8,22 @@
 import { strToU8, Zip, ZipDeflate, ZipPassThrough } from 'fflate'
 import { once } from 'node:events'
 import { createReadStream, createWriteStream } from 'node:fs'
-import { mkdir, readdir, rm, stat } from 'node:fs/promises'
+import { mkdir, readFile, readdir, rm, stat } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { Transform } from 'node:stream'
 import { finished, pipeline } from 'node:stream/promises'
 import { open as openZipFile, type Entry, type ZipFile } from 'yauzl'
 import type { BackupProgressReporter } from './protocol.ts'
+import type { BackupScope } from './types.ts'
 
 /** Manifest entry at the archive root; import validation uses it as the marker. */
 const BACKUP_MANIFEST_ENTRY = 'backup-manifest.json'
 
-/** Runtime-generated harness-home directories that are not user configuration or data. */
-const GENERATED_DIRECTORIES = new Set(['profiles', 'supervisor'])
+/** Optional configuration files stored beside the active Settings document. */
+const CONFIGURATION_FILES = ['.credentials.yaml', '.env', '.anonymous-user-id'] as const
+
+/** Durable Session data that must move together to preserve history and grouping. */
+const SESSION_DIRECTORIES = ['sessions', 'attachments', 'storages'] as const
 
 /** File read and restore write size. */
 const BACKUP_CHUNK_BYTES = 64 * 1024
@@ -43,6 +47,15 @@ interface BackupPlan {
   totalBytes: number
 }
 
+interface BackupManifest {
+  app: 'deepseek-harness'
+  kind: 'user-data-backup'
+  version: 2
+  scope: BackupScope
+  settingsFile: string
+  exportedAt: string
+}
+
 /**
  * Add one directory's portable entries to a stable export plan.
  * @param rootPath - backup root directory.
@@ -63,9 +76,6 @@ async function planDirectory(
   for (const child of children) {
     signal.throwIfAborted()
     const entryRelative = relativePath === '' ? child.name : relativePath + '/' + child.name
-    if (relativePath === '' && (GENERATED_DIRECTORIES.has(child.name) || child.name === BACKUP_MANIFEST_ENTRY)) {
-      continue
-    }
     if (child.isDirectory()) {
       entries.push({ kind: 'directory', relativePath: entryRelative })
       bytes += await planDirectory(rootPath, entryRelative, entries, signal)
@@ -81,18 +91,49 @@ async function planDirectory(
 /**
  * Build the stable file list and source-byte total used by one export.
  * @param dshHome - harness user data directory.
+ * @param scope - selected user-data subset.
+ * @param settingsFile - active Settings document basename.
  * @param signal - caller or response cancellation.
  * @returns the planned entries, manifest bytes, and measurable byte total.
  */
-async function planUserBackup(dshHome: string, signal: AbortSignal): Promise<BackupPlan> {
-  const manifest = strToU8(JSON.stringify({
+async function planUserBackup(
+  dshHome: string,
+  scope: BackupScope,
+  settingsFile: string,
+  signal: AbortSignal,
+): Promise<BackupPlan> {
+  const manifestRecord: BackupManifest = {
     app: 'deepseek-harness',
     kind: 'user-data-backup',
-    version: 1,
+    version: 2,
+    scope,
+    settingsFile,
     exportedAt: new Date().toISOString(),
-  }, null, 2) + String.fromCharCode(10))
+  }
+  const manifest = strToU8(JSON.stringify(manifestRecord, null, 2) + String.fromCharCode(10))
   const entries: PlannedBackupEntry[] = []
-  const fileBytes = await planDirectory(dshHome, '', entries, signal)
+  const topLevel = new Map(
+    (await readdir(dshHome, { withFileTypes: true })).map(entry => [entry.name, entry]),
+  )
+  const names = [
+    ...(scope === 'all' || scope === 'configuration'
+      ? [settingsFile, ...CONFIGURATION_FILES]
+      : []),
+    ...(scope === 'all' || scope === 'sessions' ? SESSION_DIRECTORIES : []),
+  ]
+  let fileBytes = 0
+  for (const name of new Set(names)) {
+    signal.throwIfAborted()
+    const entry = topLevel.get(name)
+    if (entry?.isDirectory()) {
+      entries.push({ kind: 'directory', relativePath: name })
+      fileBytes += await planDirectory(dshHome, name, entries, signal)
+    } else if (entry?.isFile()) {
+      const { size } = await stat(join(dshHome, name))
+      entries.push({ kind: 'file', relativePath: name, size })
+      fileBytes += size
+    }
+  }
   return { entries, manifest, totalBytes: fileBytes + manifest.length }
 }
 
@@ -145,6 +186,8 @@ async function addFileToZip(
  * its partial archive.
  * @param dshHome - harness user data directory (settings.yaml parent).
  * @param targetPath - absolute file path the archive is written to.
+ * @param scope - selected user-data subset.
+ * @param settingsFile - active Settings document basename.
  * @param signal - caller or response cancellation.
  * @param report - ordered progress writer.
  * @returns the number of zip entries including the manifest marker.
@@ -152,11 +195,13 @@ async function addFileToZip(
 export async function writeUserBackup(
   dshHome: string,
   targetPath: string,
+  scope: BackupScope,
+  settingsFile: string,
   signal: AbortSignal,
   report: BackupProgressReporter,
 ): Promise<{ entries: number }> {
   await report({ phase: 'scan' })
-  const plan = await planUserBackup(dshHome, signal)
+  const plan = await planUserBackup(dshHome, scope, settingsFile, signal)
   let completedBytes = 0
   let lastPercent = -1
   const reportCompression = async (): Promise<void> => {
@@ -249,6 +294,40 @@ export interface ValidatedUserBackup {
   count: number
   /** Total regular-file bytes restored into the harness home. */
   totalBytes: number
+  /** User-data subset declared by the validated manifest. */
+  scope: BackupScope
+}
+
+function isBackupScope(value: unknown): value is BackupScope {
+  return value === 'all' || value === 'configuration' || value === 'sessions'
+}
+
+function requireBackupManifest(value: unknown, settingsFile: string): BackupManifest {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Backup archive has an invalid backup-manifest.json')
+  }
+  const manifest = value as Record<string, unknown>
+  if (manifest.app !== 'deepseek-harness'
+    || manifest.kind !== 'user-data-backup'
+    || manifest.version !== 2
+    || !isBackupScope(manifest.scope)
+    || typeof manifest.settingsFile !== 'string'
+    || typeof manifest.exportedAt !== 'string') {
+    throw new Error('Backup archive has an unsupported backup-manifest.json')
+  }
+  if ((manifest.scope === 'all' || manifest.scope === 'configuration')
+    && manifest.settingsFile !== settingsFile) {
+    throw new Error('Backup archive backup-manifest.json Settings filename does not match this DSH profile')
+  }
+  return manifest as unknown as BackupManifest
+}
+
+function scopeAllowsPath(scope: BackupScope, settingsFile: string, relativePath: string): boolean {
+  const top = relativePath.split('/', 1)[0] as string
+  const configuration = relativePath === settingsFile
+    || CONFIGURATION_FILES.includes(relativePath as typeof CONFIGURATION_FILES[number])
+  const sessions = SESSION_DIRECTORIES.includes(top as typeof SESSION_DIRECTORIES[number])
+  return scope === 'all' ? configuration || sessions : scope === 'configuration' ? configuration : sessions
 }
 
 function openArchive(path: string): Promise<ZipFile> {
@@ -311,6 +390,7 @@ function requireSafeArchivePath(name: string): void {
  * @param archivePath - disk-staged raw upload.
  * @param stagingRoot - temporary extraction root outside the harness home.
  * @param maxExpandedBytes - aggregate expanded-byte limit shared with upload admission.
+ * @param settingsFile - active Settings document basename used to validate configuration archives.
  * @param signal - response cancellation honored until DSH-home mutation begins.
  * @returns the validated staged entry plan.
  */
@@ -318,6 +398,7 @@ export async function validateUserBackup(
   archivePath: string,
   stagingRoot: string,
   maxExpandedBytes: number,
+  settingsFile: string,
   signal: AbortSignal,
 ): Promise<ValidatedUserBackup> {
   const zip = await openArchive(archivePath)
@@ -368,7 +449,17 @@ export async function validateUserBackup(
   if (!manifestSeen) {
     throw new Error('Not a DeepSeek Harness user data backup: missing ' + BACKUP_MANIFEST_ENTRY)
   }
-  return { stagingRoot, entries, count: entries.length, totalBytes }
+  const manifest = requireBackupManifest(
+    JSON.parse(await readFile(join(stagingRoot, BACKUP_MANIFEST_ENTRY), 'utf8')) as unknown,
+    settingsFile,
+  )
+  for (const entry of entries) {
+    if (entry.relativePath === BACKUP_MANIFEST_ENTRY) continue
+    if (!scopeAllowsPath(manifest.scope, settingsFile, entry.relativePath)) {
+      throw new Error(`Backup archive contains an unsafe path for its ${manifest.scope} scope: ${entry.relativePath}`)
+    }
+  }
+  return { stagingRoot, entries, count: entries.length, totalBytes, scope: manifest.scope }
 }
 
 /**

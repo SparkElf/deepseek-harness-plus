@@ -13,6 +13,7 @@ import { BackupSection, type BackupSectionInjected } from './BackupSection.tsx'
 import { createBackupSectionStore } from './store.ts'
 import type { BackupSectionProgress } from './types.ts'
 import { en, zh, type SettingsBackupKey } from './locales.ts'
+import type { BackupScope } from '../types.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -30,9 +31,12 @@ type BackupProgressStreamLine = {
 } | {
   type: 'export-ready'
   downloadUrl: string
+  filename: string
+  scope: BackupScope
   entries: number
 } | {
   type: 'import-complete'
+  scope: BackupScope
   entries: number
 } | {
   type: 'error'
@@ -62,6 +66,11 @@ function parseCount(value: unknown): number {
   return value
 }
 
+function parseScope(value: unknown): BackupScope {
+  if (value === 'all' || value === 'configuration' || value === 'sessions') return value
+  throw new Error('invalid backup scope')
+}
+
 /** Parse one Host-authored phase update from the exact-route stream. */
 function parseHostProgress(value: unknown): Exclude<BackupSectionProgress, { phase: 'upload' }> {
   const record = parseRecord(value)
@@ -85,10 +94,23 @@ function parseProgressLine(line: string): BackupProgressStreamLine {
     if (typeof record.downloadUrl !== 'string' || record.downloadUrl === '') {
       throw new Error('invalid backup export download URL')
     }
-    return { type: 'export-ready', downloadUrl: record.downloadUrl, entries: parseCount(record.entries) }
+    if (typeof record.filename !== 'string' || record.filename === '') {
+      throw new Error('invalid backup export filename')
+    }
+    return {
+      type: 'export-ready',
+      downloadUrl: record.downloadUrl,
+      filename: record.filename,
+      scope: parseScope(record.scope),
+      entries: parseCount(record.entries),
+    }
   }
   if (record.type === 'import-complete') {
-    return { type: 'import-complete', entries: parseCount(record.entries) }
+    return {
+      type: 'import-complete',
+      scope: parseScope(record.scope),
+      entries: parseCount(record.entries),
+    }
   }
   if (record.type === 'error' && typeof record.message === 'string') {
     return { type: 'error', message: record.message }
@@ -195,14 +217,18 @@ export function apply(ctx: Context): void {
   }
 
   const injected = (): BackupSectionInjected => ({
-    exportArchive: report => runAbortable(async (signal) => {
-      const terminal = await readProgressResponse(await fetch(browserHostUrl('/api/backup.export.prepare'), {
+    exportArchive: (scope, report) => runAbortable(async (signal) => {
+      const terminal = await readProgressResponse(await fetch(browserHostUrl(
+        '/api/backup.export.prepare?scope=' + encodeURIComponent(scope),
+      ), {
         method: 'POST',
         signal,
       }), report)
       if (terminal.type !== 'export-ready') throw new Error('backup export returned an import result')
       return {
         downloadUrl: browserHostUrl(terminal.downloadUrl),
+        filename: terminal.filename,
+        scope: terminal.scope,
         entries: terminal.entries,
       }
     }),
@@ -212,7 +238,7 @@ export function apply(ctx: Context): void {
         '/api/backup.import?token=' + encodeURIComponent(token),
       ), { method: 'POST', signal }), report)
       if (terminal.type !== 'import-complete') throw new Error('backup import returned an export result')
-      return { entries: terminal.entries }
+      return { entries: terminal.entries, scope: terminal.scope }
     }),
     cancelOperation: () => { activeController?.abort() },
     reloadPage: () => { window.location.reload() },

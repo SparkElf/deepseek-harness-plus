@@ -64,14 +64,19 @@ function formatBytes(bytes: number): string {
 
 /** Localized Document intake and authenticated prompt transport consumed by Conversation. */
 export interface DocumentPromptClient {
-  /** @returns localized rejection text for slash-command submissions. */
+  /**
+   * Return the localized rejection for slash-command submissions carrying Documents.
+   * @returns localized rejection text for slash-command submissions.
+   */
   commandUnsupported(): string
   /**
+   * Format the browser drop target from the Host-projected limits.
    * @param limits - actual Host Document limits.
    * @returns localized mixed file drop invitation.
    */
   dropLabels(limits: DocumentLimits): { readonly title: string; readonly desc: string }
   /**
+   * Validate a proposed browser Document intake before upload.
    * @param files - newly selected browser Documents.
    * @param existing - live Document drafts already registered.
    * @param limits - actual Host attachment-provider limits.
@@ -83,6 +88,7 @@ export interface DocumentPromptClient {
     limits: DocumentLimits,
   ): string | null
   /**
+   * Submit one prepared mixed prompt through the authenticated Host route.
    * @param request - prepared mixed browser prompt.
    * @returns Session-compatible prompt admission result.
    */

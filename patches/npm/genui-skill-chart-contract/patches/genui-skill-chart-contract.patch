@@ -1,0 +1,617 @@
+diff --git a/SKILL.md b/SKILL.md
+index b7dcfbebf1b9fcb0ea9df033794febd1d2696aaf..c4ef9fa57c751cd521c3bdd22aa821ca5094f5d8 100644
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -15,7 +15,7 @@ description: "Render structured interactive UI inline in your reply via the dsh-
+ 
+ 布局：`text` `row` `col` `grid` `card` `divider` `spacer`
+ 展示：`stat` `badge` `progress` `list` `table` `keyvalue` `avatar` `audio` `video` `timeline` `file-tree` `breadcrumb` `diff` `json` `code` `callout` `steps`
+-图表：`chart`（bars/line/donut，可多序列）`plot`（数学函数图）`echart`（ECharts 全功能图表）交互：`button` `input` `select` `checkbox` `radio` `switch` `textarea` `tabs` `accordion` `copy`
++图表：`chart`（bars/line/donut，可多序列）`plot`（数学函数图）`echart`（ECharts 全功能图表）
+ 交互：`button` `input` `select` `checkbox` `radio` `switch` `textarea` `tabs` `accordion` `copy`
+ 
+ ### 布局
+diff --git a/lib/index.js b/lib/index.js
+index d50febe164d7c1a9181da763bb4e42ebc50df43a..13905b32de38eab48817e6a0b5e97ce9a7e63820 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -1,5 +1,6 @@
++import { readFileSync } from "node:fs";
+ import { readFile } from "node:fs/promises";
+-import { join } from "node:path";
++import { basename, dirname, join, resolve } from "node:path";
+ import { fileURLToPath } from "node:url";
+ //#region src/client/spec.ts
+ /**
+@@ -1327,47 +1328,108 @@ const GENUI_NODE_TYPES = /* @__PURE__ */ new Set([
+ 	"diagram"
+ ]);
+ /**
+-* Count DECLARED nodes in a raw spec tree: objects whose `type` is a
++* Visit and count declared nodes in a raw spec tree: objects whose `type` is a
+ * white-listed string, descending the same containers `countGenuiNodes`
+-* walks. `validate_dsh_ui` compares this with the repaired count to surface
+-* children the repair silently dropped (blank-render class of bugs, issue
+-* #42) instead of reporting a green check on a half-empty tree.
++* walks. Callers can inspect field semantics or compare the count with the
++* repaired tree without maintaining another traversal.
+ */
+-function countDeclaredGenuiNodes(value, cap = Number.POSITIVE_INFINITY) {
++function visitDeclaredGenuiNodes(value, cap, visit) {
+ 	let count = 0;
+ 	const declared = (candidate) => {
+ 		const o = obj(candidate);
+ 		return o !== void 0 && typeof o.type === "string" && GENUI_NODE_TYPES.has(o.type);
+ 	};
+-	const walk = (list) => {
++	function walk(list, path) {
+ 		if (!Array.isArray(list)) return;
+-		for (const item of list) {
++		for (let index = 0; index < list.length; index++) {
++			walkNode(list[index], `${path}[${index}]`);
+ 			if (count >= cap) return;
+-			if (!declared(item)) continue;
+-			count += 1;
+-			const v = obj(item);
+-			if (v === void 0) continue;
+-			if (v.type === "tabs" && Array.isArray(v.tabs)) for (const t of v.tabs) walkItemsOf(t);
+-			else if (v.type === "accordion" && Array.isArray(v.items)) for (const it of v.items) walkItemsOf(it);
+-			else if ((v.type === "row" || v.type === "col" || v.type === "grid" || v.type === "card") && Array.isArray(v.items)) walk(v.items);
+-			else if (v.type === "list" && Array.isArray(v.items)) {
+-				for (const li of v.items) if (declared(li)) walk([li]);
+-			}
+ 		}
+-	};
+-	const walkItemsOf = (holder) => {
++	}
++	function walkNode(item, at) {
++		if (count >= cap || !declared(item)) return;
++		const v = obj(item);
++		if (v === void 0) return;
++		count += 1;
++		visit(v, at);
++		if (v.type === "tabs" && Array.isArray(v.tabs)) for (let tab = 0; tab < v.tabs.length; tab++) walkItemsOf(v.tabs[tab], `${at}.tabs[${tab}]`);
++		else if (v.type === "accordion" && Array.isArray(v.items)) for (let row = 0; row < v.items.length; row++) walkItemsOf(v.items[row], `${at}.items[${row}]`);
++		else if ((v.type === "row" || v.type === "col" || v.type === "grid" || v.type === "card") && Array.isArray(v.items)) walk(v.items, `${at}.items`);
++		else if (v.type === "list" && Array.isArray(v.items)) for (let row = 0; row < v.items.length; row++) walkNode(v.items[row], `${at}.items[${row}]`);
++	}
++	function walkItemsOf(holder, path) {
+ 		const o = obj(holder);
+ 		if (o === void 0) return;
+ 		const items = o.items !== void 0 ? o.items : o.content;
+-		if (Array.isArray(items)) walk(items);
+-		else if (declared(items)) walk([items]);
+-	};
++		if (Array.isArray(items)) walk(items, `${path}.items`);
++		else walkNode(items, `${path}.items`);
++	}
+ 	const root = obj(value);
+ 	if (root === void 0) return count;
+-	if (!Array.isArray(root.items) && declared(value)) walk([value]);
+-	else walk(root.items);
++	if (!Array.isArray(root.items) && declared(value)) walkNode(value, "spec");
++	else walk(root.items, "items");
+ 	return count;
+ }
++/**
++* Count white-listed nodes declared by a raw spec before repair drops invalid entries.
++* @param value - raw GenUI spec.
++* @param cap - traversal ceiling.
++* @returns declared node count up to the ceiling.
++*/
++function countDeclaredGenuiNodes(value, cap = Number.POSITIVE_INFINITY) {
++	return visitDeclaredGenuiNodes(value, cap, () => {});
++}
++/**
++* Return field-level chart errors without changing other repairable component families.
++* @param value - raw GenUI spec.
++* @returns chart semantic errors in tree order.
++*/
++function validateGenuiChartSemantics(value) {
++	const errors = [];
++	visitDeclaredGenuiNodes(value, GENUI_LIMITS.maxNodes + 1, (node, at) => {
++		if (node.type !== "chart") return;
++		validateChartNode(node, at, errors);
++	});
++	return errors;
++}
++function validateChartData(value, at, errors) {
++	if (!Array.isArray(value)) return;
++	for (let index = 0; index < value.length; index++) {
++		const datum = obj(value[index]);
++		const path = `${at}[${index}]`;
++		if (datum === void 0) {
++			errors.push(`${path} must be an object`);
++			continue;
++		}
++		if (typeof datum.label !== "string") errors.push(`${path}.label must be a string`);
++		if (typeof datum.value !== "number" || !Number.isFinite(datum.value)) errors.push(`${path}.value must be a finite number`);
++		if (datum.color !== void 0 && typeof datum.color !== "string") errors.push(`${path}.color must be a string`);
++	}
++}
++function validateChartSeries(value, at, errors) {
++	if (!Array.isArray(value)) return;
++	for (let index = 0; index < value.length; index++) {
++		const series = obj(value[index]);
++		const path = `${at}[${index}]`;
++		if (series === void 0) {
++			errors.push(`${path} must be an object`);
++			continue;
++		}
++		if (typeof series.label !== "string") errors.push(`${path}.label must be a string`);
++		if (series.color !== void 0 && typeof series.color !== "string") errors.push(`${path}.color must be a string`);
++		if (!Array.isArray(series.data)) errors.push(`${path}.data must be an array`);
++		validateChartData(series.data, `${path}.data`, errors);
++	}
++}
++function validateChartNode(v, at, errors) {
++	if (!Array.isArray(v.data) && !Array.isArray(v.series)) errors.push(`${at}: type 'chart' requires data or series (array)`);
++	if (v.variant !== void 0) errors.push(`${at}.variant is unsupported; use kind`);
++	if (v.data !== void 0 && !Array.isArray(v.data)) errors.push(`${at}.data must be an array`);
++	if (v.series !== void 0 && !Array.isArray(v.series)) errors.push(`${at}.series must be an array`);
++	if (v.kind !== void 0 && (typeof v.kind !== "string" || !CHART_KINDS.includes(v.kind))) errors.push(`${at}.kind must be bars, line, or donut`);
++	validateChartData(v.data, `${at}.data`, errors);
++	validateChartSeries(v.series, `${at}.series`, errors);
++}
+ //#endregion
+ //#region src/shared/fence-repair.ts
+ /**
+@@ -1616,7 +1678,10 @@ function createRenderUiTool() {
+ 			}
+ 		},
+ 		async execute(args) {
+-			const spec = repairGenuiSpec(specOf(args));
++			const input = specOf(args);
++			const chartErrors = validateGenuiChartSemantics(input);
++			if (chartErrors.length > 0) throw new Error("render_ui spec invalid: " + chartErrors.join("; "));
++			const spec = repairGenuiSpec(input);
+ 			if (spec === null) return "render_ui：spec 无效 —— 根对象需要 \"items\" 数组（组件树白名单见系统提示词），请修正后重试。";
+ 			return `已渲染 UI「${spec.title ?? "未命名"}」（${countNodes(spec)} 个组件）。用户现在可以看到这张卡片；组件带 action 时，用户交互会以 [genui-action] 消息发回给你，届时请重新渲染更新后的界面。`;
+ 		},
+@@ -1719,6 +1784,11 @@ function bracketDiagnostic(raw) {
+ 	return diffs.length === 0 ? "" : `  括号计数：${diffs.join("；")}（长表格最易在收尾处错位，如把 ]]}]} 写成 ]}]}]}）\n`;
+ }
+ const COMMON_CAUSES = "常见原因：① 收尾括号错位/缺失（{ 与 }、[ 与 ] 数量不相等）② 字符串值内用了半角引号 \"（中文引语请用 “” 或 「」）③ 尾随逗号 ④ 字符串未闭合";
++/** Return the model-facing chart field failure for one parsed fence body. */
++function chartValidationFailure(value) {
++	const errors = validateGenuiChartSemantics(value);
++	return errors.length === 0 ? void 0 : `❌ chart 字段验证失败：\n- ${errors.join("\n- ")}`;
++}
+ /** Build the validate_dsh_ui tool definition (registered alongside render_ui). */
+ function createValidateDshUiTool() {
+ 	return {
+@@ -1746,9 +1816,16 @@ function createValidateDshUiTool() {
+ 			} catch (error) {
+ 				const detail = error instanceof Error ? error.message : String(error);
+ 				const repaired = completeFenceJson(raw);
+-				if (repaired !== null && repairGenuiSpec(JSON.parse(repaired.text)) !== null) return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  已自动修复 ${repaired.repairs} 处，下面是修复后的 JSON，直接作为围栏正文发出即可（无需再验证）：\n\`\`\`\n${repaired.text}\n\`\`\``;
++				if (repaired !== null) {
++					const repairedValue = JSON.parse(repaired.text);
++					const chartFailure = chartValidationFailure(repairedValue);
++					if (chartFailure !== void 0) return chartFailure;
++					if (repairGenuiSpec(repairedValue) !== null) return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  已自动修复 ${repaired.repairs} 处，下面是修复后的 JSON，直接作为围栏正文发出即可（无需再验证）：\n\`\`\`\n${repaired.text}\n\`\`\``;
++				}
+ 				return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  自动修复未能恢复（结构损坏），请按错误信息修正后重新调用本工具验证，通过后再发出围栏。\n${COMMON_CAUSES}`;
+ 			}
++			const chartFailure = chartValidationFailure(parsed);
++			if (chartFailure !== void 0) return chartFailure;
+ 			const spec = repairGenuiSpec(parsed);
+ 			if (spec === null) return "❌ 不是合法 GenUI spec：根对象需要 \"items\" 数组，且每个节点 type 必须在白名单内（见系统提示词）。请修正后重新验证。";
+ 			const validCount = countNodes(spec);
+@@ -1843,7 +1920,7 @@ The spec is a white-listed component tree rendered inline where the fence sits.
+ 
+ - 布局: text · row · col · grid · card · divider · spacer
+ - 展示: badge · stat · progress · list · table · keyvalue · avatar · audio · video · timeline · file-tree · breadcrumb · callout · steps · diff · json · code · copy
+-- 图表: chart (bars|line|donut) · echart (preset|option) · plot (函数图)
++- 图表: chart {"type":"chart","kind":"bars|line|donut","data":[{"label":"...","value":n,"color":"#hex?"}],"series":[...]?} · echart (preset|option) · plot (函数图)
+ - 交互: button · input · textarea · select · checkbox · switch · slider · radio · submit · quiz · link · tabs · accordion
+ - 高级: mermaid (flowchart/sequence/class/gantt/pie/er/state/journey) · diagram (编辑级架构/流程图，27 种 kind) · scene3d (3D WebGL)
+ 
+@@ -1862,6 +1939,26 @@ Rules:
+ * @param ctx - cordis context.
+ */
+ const inject = ["systemPrompt"];
++/** Load the packaged skill from both source and built module locations. */
++function bundledSkill() {
++	const moduleDirectory = dirname(fileURLToPath(new URL(import.meta.url)));
++	const path = basename(moduleDirectory) === "plugin" ? resolve(moduleDirectory, "../../SKILL.md") : resolve(moduleDirectory, "../SKILL.md");
++	const raw = readFileSync(path, "utf8");
++	const end = raw.indexOf("\n---\n", 4);
++	if (!raw.startsWith("---\n") || end < 0) throw new Error("genui SKILL.md has invalid frontmatter");
++	return {
++		name: "genui",
++		description: "GenUI 完整组件与字段规范，用于生成 dsh-ui 结构化交互界面。",
++		source: "bundled",
++		provider: "@changfenhuang/dsh-genui",
++		path,
++		resourceBase: {
++			kind: "directory",
++			path: dirname(path)
++		},
++		content: raw.slice(end + 5)
++	};
++}
+ function apply(ctx) {
+ 	ctx.systemPrompt.section({
+ 		name: "genui:fence",
+@@ -1881,6 +1978,9 @@ function apply(ctx) {
+ 	ctx.on("internal/service", (name, value) => {
+ 		if (name === "tools") tryRegister(value);
+ 	});
++	ctx.inject(["skills"], (skillCtx) => {
++		skillCtx.skills.register(bundledSkill());
++	});
+ 	let assetsRegistered = false;
+ 	const tryRegisterAssets = (value) => {
+ 		if (assetsRegistered) return;
+diff --git a/lib/types/client/guard.d.ts b/lib/types/client/guard.d.ts
+index 9e5e31eb8bd8af6ed9b0f4e355fc0cbc8332e136..4d5337c5528f397cb8275c49d2a36107401eae0e 100644
+--- a/lib/types/client/guard.d.ts
++++ b/lib/types/client/guard.d.ts
+@@ -109,13 +109,18 @@ export declare function countGenuiNodes(value: unknown, cap?: number): number;
+  * `"type"` strings (e.g. file-tree's `{type:'file'}` children). */
+ export declare const GENUI_NODE_TYPES: ReadonlySet<string>;
+ /**
+- * Count DECLARED nodes in a raw spec tree: objects whose `type` is a
+- * white-listed string, descending the same containers `countGenuiNodes`
+- * walks. `validate_dsh_ui` compares this with the repaired count to surface
+- * children the repair silently dropped (blank-render class of bugs, issue
+- * #42) instead of reporting a green check on a half-empty tree.
++ * Count white-listed nodes declared by a raw spec before repair drops invalid entries.
++ * @param value - raw GenUI spec.
++ * @param cap - traversal ceiling.
++ * @returns declared node count up to the ceiling.
+  */
+ export declare function countDeclaredGenuiNodes(value: unknown, cap?: number): number;
++/**
++ * Return field-level chart errors without changing other repairable component families.
++ * @param value - raw GenUI spec.
++ * @returns chart semantic errors in tree order.
++ */
++export declare function validateGenuiChartSemantics(value: unknown): string[];
+ /**
+  * Validate a raw spec value against the white list and limits, collecting
+  * human-readable problems. Unlike repair this never mutates: it is a
+diff --git a/lib/types/plugin/index.d.ts b/lib/types/plugin/index.d.ts
+index aaf2346a52a0436f5b1d411482a95a6c1e2cc1fa..420b75bc4e16117651a939dce3cd397c12e01dff 100644
+--- a/lib/types/plugin/index.d.ts
++++ b/lib/types/plugin/index.d.ts
+@@ -16,7 +16,7 @@ export declare const GENUI_SECTION_ORDER = 105;
+  *  Deliberately slim: the `genui` skill carries the full component→field
+  *  mapping; this section keeps only the contract that must always be
+  *  present (fence syntax, type whitelist, and critical behavioral rules). */
+-export declare const GENUI_SECTION_TEXT = "You can render interactive UI components INSIDE your reply \u2014 between paragraphs \u2014 by emitting a fenced block with the language tag `dsh-ui` containing a JSON spec:\n\n```dsh-ui\n{\"title\":\"\u53EF\u9009\u6807\u9898\",\"gap\":14,\"items\":[...]}\n```\n\nThe spec is a white-listed component tree rendered inline where the fence sits. Only these `type` values; the `genui` skill, when available, carries the full content\u2192component mapping and per-component field details:\n\n- \u5E03\u5C40: text \u00B7 row \u00B7 col \u00B7 grid \u00B7 card \u00B7 divider \u00B7 spacer\n- \u5C55\u793A: badge \u00B7 stat \u00B7 progress \u00B7 list \u00B7 table \u00B7 keyvalue \u00B7 avatar \u00B7 audio \u00B7 video \u00B7 timeline \u00B7 file-tree \u00B7 breadcrumb \u00B7 callout \u00B7 steps \u00B7 diff \u00B7 json \u00B7 code \u00B7 copy\n- \u56FE\u8868: chart (bars|line|donut) \u00B7 echart (preset|option) \u00B7 plot (\u51FD\u6570\u56FE)\n- \u4EA4\u4E92: button \u00B7 input \u00B7 textarea \u00B7 select \u00B7 checkbox \u00B7 switch \u00B7 slider \u00B7 radio \u00B7 submit \u00B7 quiz \u00B7 link \u00B7 tabs \u00B7 accordion\n- \u9AD8\u7EA7: mermaid (flowchart/sequence/class/gantt/pie/er/state/journey) \u00B7 diagram (\u7F16\u8F91\u7EA7\u67B6\u6784/\u6D41\u7A0B\u56FE\uFF0C27 \u79CD kind) \u00B7 scene3d (3D WebGL)\n\nRules:\n- \u89E6\u53D1: \u7ED3\u6784\u5316\u8868\u8FBE\u4F18\u4E8E\u7EAF\u6587\u672C\u65F6\u4E3B\u52A8\u7528\uFF08\u8981\u70B9\u3001\u5F3A\u8C03\u3001\u5BF9\u6BD4\u3001\u6D41\u7A0B\u3001\u6B65\u9AA4\u3001\u72B6\u6001\u3001\u6570\u636E\u3001\u6F14\u793A\uFF09\uFF0C\u7EAF\u95EE\u7B54\u4E0E\u4E00\u53E5\u8BDD\u4E0D\u5957 UI\uFF1B\u4E00\u4E2A\u4E3B\u9898\u4E00\u4E2A\u4E3B\u7EC4\u4EF6\uFF0C\u6BCF\u6B21 3\u20138 \u4E2A\u7EC4\u4EF6\uFF0C\u540C\u4E00\u6570\u636E\u4E0D\u91CD\u590D\u51FA\u73B0\u3002\n- JSON \u4E25\u683C: \u574F\u56F4\u680F\u964D\u7EA7\u4E3A\u4EE3\u7801\u5757\uFF1B\u22653 \u8282\u70B9\u6216\u542B table \u7684\u56F4\u680F\u53D1\u51FA\u524D\u8C03\u7528 validate_dsh_ui\uFF0C\u274C \u4FEE\u597D\u518D\u53D1\uFF08\u82E5\u9644\u300C\u5DF2\u81EA\u52A8\u4FEE\u590D\u300DJSON \u7167\u6284\u5373\u53EF\uFF09\u3002\n- \u89C4\u6A21: \u2264200 \u8282\u70B9\u3001\u5D4C\u5957\u22648 \u5C42\uFF08\u8D85\u51FA\u88AB\u622A\u65AD\uFF09\uFF1B3D mesh 1\u20135\uFF1Bplot \u7ED9\u5408\u7406 xMin/xMax\u3002\n- LOCAL-FIRST + actions: UI \u80FD\u81EA\u5DF1\u505A\u7684\u72B6\u6001\u53D8\u5316\uFF08\u5224\u5377\u3001\u5224\u9898\u3001\u91CD\u7F6E\u3001\u5C55\u5F00\u3001\u9009\u4E2D\uFF09\u5C31\u5730\u5B8C\u6210\uFF0C\u96F6\u5F80\u8FD4\uFF1Baction \u53EA\u7528\u4E8E\u5FC5\u987B\u6A21\u578B\u53C2\u4E0E\u7684\u4E8B\u3002\u4EA4\u4E92\u7EC4\u4EF6\u5E26 \"action\":\"name\"\uFF0C\u4EA4\u4E92\u4EE5 [genui-action] name + \u7EC4\u4EF6\u6570\u636E\u56DE\u4F20\uFF0C\u5C4A\u65F6\u91CD\u6E32\u67D3\u66F4\u65B0 UI\uFF1B\u65E0 action \u7684\u6309\u94AE\u7981\u7528\u3002\n- Durable state: \u4EA4\u4E92\u72B6\u6001\u6309\u300C\u4F1A\u8BDD+\u5185\u5BB9\u6307\u7EB9\u300D\u6301\u4E45\u5316\u2014\u2014\u5237\u65B0/\u91CD\u653E\u6062\u590D\uFF1B\u91CD\u6E32\u67D3\u76F8\u540C\u5185\u5BB9\u4FDD\u7559\uFF0C\u65B0\u5185\u5BB9\u91CD\u7F6E\u3002\n- \u5377\u5B50\u6A21\u5F0F: \u6BCF\u9898\u4E00\u4E2A radio\uFF08group+answer+explanation\uFF09+ \u4E00\u4E2A submit\uFF08groups \u5168\u5217\uFF09\uFF0C\u672C\u5730\u5224\u5206\u3002\n- Secrets ban: \u4E0D\u7D22\u53D6\u5BC6\u7801\u3001API Key\u3001Token\u3001\u6062\u590D\u7801\uFF1B\u9700\u8981\u65F6\u62D2\u7EDD\u5E76\u89E3\u91CA\u3002\n- Tool channel: render_ui \u5DE5\u5177\u628A\u540C\u4E00 spec \u6E32\u67D3\u4E3A\u5DE5\u5177\u884C\u5361\u7247\uFF08\u4EA4\u4ED8\u7269\u578B\u754C\u9762\u7528\uFF09\uFF1B\u56F4\u680F\u7528\u4E8E\u56DE\u7B54\u5185\u8054 UI\u3002\n- Panel: \"panel\":true \u53EA\u6E32\u67D3\u8FDB\u4F1A\u8BDD\u9762\u677F dock \u5E76\u539F\u5730\u66F4\u65B0\uFF1B\"append\":true \u8FFD\u52A0\u5408\u5E76\uFF08\u540C\u6807\u7B7E tabs \u8FFD\u52A0/\u65B0\u6807\u7B7E\u52A0\u5165/\u5C3E\u90E8\u8FFD\u52A0\uFF09\uFF1B\u4E0A\u9650 200 \u8282\u70B9/200 \u6B21\u8FFD\u52A0\uFF0C\u6EE1\u4E86\u53D1 replace \u91CD\u5EFA\u3002\u9762\u677F\u7EC4\u4EF6\u6765\u7684 [genui-action] \u53EA\u56DE\u4E00\u4E2A panel:true \u56F4\u680F + \u81F3\u591A\u4E00\u884C 10 \u5B57\u5185\u786E\u8BA4\uFF0C\u4E0D\u89E3\u91CA\u3001\u4E0D\u7528\u666E\u901A\u56F4\u680F\u3002";
++export declare const GENUI_SECTION_TEXT = "You can render interactive UI components INSIDE your reply \u2014 between paragraphs \u2014 by emitting a fenced block with the language tag `dsh-ui` containing a JSON spec:\n\n```dsh-ui\n{\"title\":\"\u53EF\u9009\u6807\u9898\",\"gap\":14,\"items\":[...]}\n```\n\nThe spec is a white-listed component tree rendered inline where the fence sits. Only these `type` values; the `genui` skill, when available, carries the full content\u2192component mapping and per-component field details:\n\n- \u5E03\u5C40: text \u00B7 row \u00B7 col \u00B7 grid \u00B7 card \u00B7 divider \u00B7 spacer\n- \u5C55\u793A: badge \u00B7 stat \u00B7 progress \u00B7 list \u00B7 table \u00B7 keyvalue \u00B7 avatar \u00B7 audio \u00B7 video \u00B7 timeline \u00B7 file-tree \u00B7 breadcrumb \u00B7 callout \u00B7 steps \u00B7 diff \u00B7 json \u00B7 code \u00B7 copy\n- \u56FE\u8868: chart {\"type\":\"chart\",\"kind\":\"bars|line|donut\",\"data\":[{\"label\":\"...\",\"value\":n,\"color\":\"#hex?\"}],\"series\":[...]?} \u00B7 echart (preset|option) \u00B7 plot (\u51FD\u6570\u56FE)\n- \u4EA4\u4E92: button \u00B7 input \u00B7 textarea \u00B7 select \u00B7 checkbox \u00B7 switch \u00B7 slider \u00B7 radio \u00B7 submit \u00B7 quiz \u00B7 link \u00B7 tabs \u00B7 accordion\n- \u9AD8\u7EA7: mermaid (flowchart/sequence/class/gantt/pie/er/state/journey) \u00B7 diagram (\u7F16\u8F91\u7EA7\u67B6\u6784/\u6D41\u7A0B\u56FE\uFF0C27 \u79CD kind) \u00B7 scene3d (3D WebGL)\n\nRules:\n- \u89E6\u53D1: \u7ED3\u6784\u5316\u8868\u8FBE\u4F18\u4E8E\u7EAF\u6587\u672C\u65F6\u4E3B\u52A8\u7528\uFF08\u8981\u70B9\u3001\u5F3A\u8C03\u3001\u5BF9\u6BD4\u3001\u6D41\u7A0B\u3001\u6B65\u9AA4\u3001\u72B6\u6001\u3001\u6570\u636E\u3001\u6F14\u793A\uFF09\uFF0C\u7EAF\u95EE\u7B54\u4E0E\u4E00\u53E5\u8BDD\u4E0D\u5957 UI\uFF1B\u4E00\u4E2A\u4E3B\u9898\u4E00\u4E2A\u4E3B\u7EC4\u4EF6\uFF0C\u6BCF\u6B21 3\u20138 \u4E2A\u7EC4\u4EF6\uFF0C\u540C\u4E00\u6570\u636E\u4E0D\u91CD\u590D\u51FA\u73B0\u3002\n- JSON \u4E25\u683C: \u574F\u56F4\u680F\u964D\u7EA7\u4E3A\u4EE3\u7801\u5757\uFF1B\u22653 \u8282\u70B9\u6216\u542B table \u7684\u56F4\u680F\u53D1\u51FA\u524D\u8C03\u7528 validate_dsh_ui\uFF0C\u274C \u4FEE\u597D\u518D\u53D1\uFF08\u82E5\u9644\u300C\u5DF2\u81EA\u52A8\u4FEE\u590D\u300DJSON \u7167\u6284\u5373\u53EF\uFF09\u3002\n- \u89C4\u6A21: \u2264200 \u8282\u70B9\u3001\u5D4C\u5957\u22648 \u5C42\uFF08\u8D85\u51FA\u88AB\u622A\u65AD\uFF09\uFF1B3D mesh 1\u20135\uFF1Bplot \u7ED9\u5408\u7406 xMin/xMax\u3002\n- LOCAL-FIRST + actions: UI \u80FD\u81EA\u5DF1\u505A\u7684\u72B6\u6001\u53D8\u5316\uFF08\u5224\u5377\u3001\u5224\u9898\u3001\u91CD\u7F6E\u3001\u5C55\u5F00\u3001\u9009\u4E2D\uFF09\u5C31\u5730\u5B8C\u6210\uFF0C\u96F6\u5F80\u8FD4\uFF1Baction \u53EA\u7528\u4E8E\u5FC5\u987B\u6A21\u578B\u53C2\u4E0E\u7684\u4E8B\u3002\u4EA4\u4E92\u7EC4\u4EF6\u5E26 \"action\":\"name\"\uFF0C\u4EA4\u4E92\u4EE5 [genui-action] name + \u7EC4\u4EF6\u6570\u636E\u56DE\u4F20\uFF0C\u5C4A\u65F6\u91CD\u6E32\u67D3\u66F4\u65B0 UI\uFF1B\u65E0 action \u7684\u6309\u94AE\u7981\u7528\u3002\n- Durable state: \u4EA4\u4E92\u72B6\u6001\u6309\u300C\u4F1A\u8BDD+\u5185\u5BB9\u6307\u7EB9\u300D\u6301\u4E45\u5316\u2014\u2014\u5237\u65B0/\u91CD\u653E\u6062\u590D\uFF1B\u91CD\u6E32\u67D3\u76F8\u540C\u5185\u5BB9\u4FDD\u7559\uFF0C\u65B0\u5185\u5BB9\u91CD\u7F6E\u3002\n- \u5377\u5B50\u6A21\u5F0F: \u6BCF\u9898\u4E00\u4E2A radio\uFF08group+answer+explanation\uFF09+ \u4E00\u4E2A submit\uFF08groups \u5168\u5217\uFF09\uFF0C\u672C\u5730\u5224\u5206\u3002\n- Secrets ban: \u4E0D\u7D22\u53D6\u5BC6\u7801\u3001API Key\u3001Token\u3001\u6062\u590D\u7801\uFF1B\u9700\u8981\u65F6\u62D2\u7EDD\u5E76\u89E3\u91CA\u3002\n- Tool channel: render_ui \u5DE5\u5177\u628A\u540C\u4E00 spec \u6E32\u67D3\u4E3A\u5DE5\u5177\u884C\u5361\u7247\uFF08\u4EA4\u4ED8\u7269\u578B\u754C\u9762\u7528\uFF09\uFF1B\u56F4\u680F\u7528\u4E8E\u56DE\u7B54\u5185\u8054 UI\u3002\n- Panel: \"panel\":true \u53EA\u6E32\u67D3\u8FDB\u4F1A\u8BDD\u9762\u677F dock \u5E76\u539F\u5730\u66F4\u65B0\uFF1B\"append\":true \u8FFD\u52A0\u5408\u5E76\uFF08\u540C\u6807\u7B7E tabs \u8FFD\u52A0/\u65B0\u6807\u7B7E\u52A0\u5165/\u5C3E\u90E8\u8FFD\u52A0\uFF09\uFF1B\u4E0A\u9650 200 \u8282\u70B9/200 \u6B21\u8FFD\u52A0\uFF0C\u6EE1\u4E86\u53D1 replace \u91CD\u5EFA\u3002\u9762\u677F\u7EC4\u4EF6\u6765\u7684 [genui-action] \u53EA\u56DE\u4E00\u4E2A panel:true \u56F4\u680F + \u81F3\u591A\u4E00\u884C 10 \u5B57\u5185\u786E\u8BA4\uFF0C\u4E0D\u89E3\u91CA\u3001\u4E0D\u7528\u666E\u901A\u56F4\u680F\u3002";
+ /**
+  * Register the GenUI output-language section and the render_ui tool.
+  * @param ctx - cordis context.
+diff --git a/src/client/guard.ts b/src/client/guard.ts
+index d591f4961b0e1515e11b75b2c9dc6421263ccee5..bb0e085903f7d8c10a2e540163e1a2f28f82cc1a 100644
+--- a/src/client/guard.ts
++++ b/src/client/guard.ts
+@@ -1186,54 +1186,89 @@ export const GENUI_NODE_TYPES: ReadonlySet<string> = new Set([
+ ])
+ 
+ /**
+- * Count DECLARED nodes in a raw spec tree: objects whose `type` is a
++ * Visit and count declared nodes in a raw spec tree: objects whose `type` is a
+  * white-listed string, descending the same containers `countGenuiNodes`
+- * walks. `validate_dsh_ui` compares this with the repaired count to surface
+- * children the repair silently dropped (blank-render class of bugs, issue
+- * #42) instead of reporting a green check on a half-empty tree.
++ * walks. Callers can inspect field semantics or compare the count with the
++ * repaired tree without maintaining another traversal.
+  */
+-export function countDeclaredGenuiNodes(value: unknown, cap = Number.POSITIVE_INFINITY): number {
++function visitDeclaredGenuiNodes(
++  value: unknown,
++  cap: number,
++  visit: (node: Record<string, unknown>, at: string) => void,
++): number {
+   let count = 0
+   const declared = (candidate: unknown): boolean => {
+     const o = obj(candidate)
+     return o !== undefined && typeof o.type === 'string' && GENUI_NODE_TYPES.has(o.type)
+   }
+-  const walk = (list: unknown): void => {
++  function walk(list: unknown, path: string): void {
+     if (!Array.isArray(list)) return
+-    for (const item of list) {
++    for (let index = 0; index < list.length; index++) {
++      walkNode(list[index], `${path}[${index}]`)
+       if (count >= cap) return
+-      if (!declared(item)) continue
+-      count += 1
+-      const v = obj(item)
+-      if (v === undefined) continue
+-      if (v.type === 'tabs' && Array.isArray(v.tabs)) {
+-        for (const t of v.tabs) walkItemsOf(t)
+-      } else if (v.type === 'accordion' && Array.isArray(v.items)) {
+-        for (const it of v.items) walkItemsOf(it)
+-      } else if ((v.type === 'row' || v.type === 'col' || v.type === 'grid' || v.type === 'card') && Array.isArray(v.items)) {
+-        walk(v.items)
+-      } else if (v.type === 'list' && Array.isArray(v.items)) {
+-        for (const li of v.items) {
+-          if (declared(li)) walk([li])
+-        }
++    }
++  }
++  function walkNode(item: unknown, at: string): void {
++    if (count >= cap || !declared(item)) return
++    const v = obj(item)
++    if (v === undefined) return
++    count += 1
++    visit(v, at)
++    if (v.type === 'tabs' && Array.isArray(v.tabs)) {
++      for (let tab = 0; tab < v.tabs.length; tab++) {
++        walkItemsOf(v.tabs[tab], `${at}.tabs[${tab}]`)
++      }
++    } else if (v.type === 'accordion' && Array.isArray(v.items)) {
++      for (let row = 0; row < v.items.length; row++) {
++        walkItemsOf(v.items[row], `${at}.items[${row}]`)
++      }
++    } else if ((v.type === 'row' || v.type === 'col' || v.type === 'grid' || v.type === 'card') && Array.isArray(v.items)) {
++      walk(v.items, `${at}.items`)
++    } else if (v.type === 'list' && Array.isArray(v.items)) {
++      for (let row = 0; row < v.items.length; row++) {
++        walkNode(v.items[row], `${at}.items[${row}]`)
+       }
+     }
+   }
+-  const walkItemsOf = (holder: unknown): void => {
++  function walkItemsOf(holder: unknown, path: string): void {
+     const o = obj(holder)
+     if (o === undefined) return
+     const items = o.items !== undefined ? o.items : o.content
+-    if (Array.isArray(items)) walk(items)
+-    else if (declared(items)) walk([items])
++    if (Array.isArray(items)) walk(items, `${path}.items`)
++    else walkNode(items, `${path}.items`)
+   }
+   const root = obj(value)
+   if (root === undefined) return count
+   // Single-component root (no items array): the root itself is the declared node.
+-  if (!Array.isArray(root.items) && declared(value)) walk([value])
+-  else walk(root.items)
++  if (!Array.isArray(root.items) && declared(value)) walkNode(value, 'spec')
++  else walk(root.items, 'items')
+   return count
+ }
+ 
++/**
++ * Count white-listed nodes declared by a raw spec before repair drops invalid entries.
++ * @param value - raw GenUI spec.
++ * @param cap - traversal ceiling.
++ * @returns declared node count up to the ceiling.
++ */
++export function countDeclaredGenuiNodes(value: unknown, cap = Number.POSITIVE_INFINITY): number {
++  return visitDeclaredGenuiNodes(value, cap, () => {})
++}
++
++/**
++ * Return field-level chart errors without changing other repairable component families.
++ * @param value - raw GenUI spec.
++ * @returns chart semantic errors in tree order.
++ */
++export function validateGenuiChartSemantics(value: unknown): string[] {
++  const errors: string[] = []
++  visitDeclaredGenuiNodes(value, GENUI_LIMITS.maxNodes + 1, (node, at) => {
++    if (node.type !== 'chart') return
++    validateChartNode(node, at, errors)
++  })
++  return errors
++}
++
+ /**
+  * Validate a raw spec value against the white list and limits, collecting
+  * human-readable problems. Unlike repair this never mutates: it is a
+@@ -1281,6 +1316,59 @@ export function validateGenuiSpec(value: unknown): GenuiValidation {
+ 
+ type Walker = (list: unknown, depth: number, path: string) => void
+ 
++function validateChartData(value: unknown, at: string, errors: string[]): void {
++  if (!Array.isArray(value)) return
++  for (let index = 0; index < value.length; index++) {
++    const datum = obj(value[index])
++    const path = `${at}[${index}]`
++    if (datum === undefined) {
++      errors.push(`${path} must be an object`)
++      continue
++    }
++    if (typeof datum.label !== 'string') errors.push(`${path}.label must be a string`)
++    if (typeof datum.value !== 'number' || !Number.isFinite(datum.value)) {
++      errors.push(`${path}.value must be a finite number`)
++    }
++    if (datum.color !== undefined && typeof datum.color !== 'string') {
++      errors.push(`${path}.color must be a string`)
++    }
++  }
++}
++
++function validateChartSeries(value: unknown, at: string, errors: string[]): void {
++  if (!Array.isArray(value)) return
++  for (let index = 0; index < value.length; index++) {
++    const series = obj(value[index])
++    const path = `${at}[${index}]`
++    if (series === undefined) {
++      errors.push(`${path} must be an object`)
++      continue
++    }
++    if (typeof series.label !== 'string') errors.push(`${path}.label must be a string`)
++    if (series.color !== undefined && typeof series.color !== 'string') {
++      errors.push(`${path}.color must be a string`)
++    }
++    if (!Array.isArray(series.data)) errors.push(`${path}.data must be an array`)
++    validateChartData(series.data, `${path}.data`, errors)
++  }
++}
++
++function validateChartNode(v: Record<string, unknown>, at: string, errors: string[]): void {
++  if (!Array.isArray(v.data) && !Array.isArray(v.series)) {
++    errors.push(`${at}: type 'chart' requires data or series (array)`)
++  }
++  if (v.variant !== undefined) errors.push(`${at}.variant is unsupported; use kind`)
++  if (v.data !== undefined && !Array.isArray(v.data)) errors.push(`${at}.data must be an array`)
++  if (v.series !== undefined && !Array.isArray(v.series)) errors.push(`${at}.series must be an array`)
++  if (v.kind !== undefined
++    && (typeof v.kind !== 'string'
++      || !CHART_KINDS.includes(v.kind as typeof CHART_KINDS[number]))) {
++    errors.push(`${at}.kind must be bars, line, or donut`)
++  }
++  validateChartData(v.data, `${at}.data`, errors)
++  validateChartSeries(v.series, `${at}.series`, errors)
++}
++
+ function validateNode(value: unknown, depth: number, at: string, errors: string[], walk: Walker): void {
+   if (depth > GENUI_LIMITS.maxDepth) {
+     errors.push(`${at}: exceeds max depth ${GENUI_LIMITS.maxDepth}`)
+@@ -1378,7 +1466,7 @@ function validateNode(value: unknown, depth: number, at: string, errors: string[
+       if (!Array.isArray(v.rows)) errors.push(`${at}: type 'table' requires rows (array)`)
+       break
+     case 'chart':
+-      if (!Array.isArray(v.data) && !Array.isArray(v.series)) errors.push(`${at}: type 'chart' requires data or series (array)`)
++      validateChartNode(v, at, errors)
+       break
+     case 'tabs': {
+       if (!Array.isArray(v.tabs)) errors.push(`${at}: type 'tabs' requires tabs (array)`)
+diff --git a/src/plugin/index.ts b/src/plugin/index.ts
+index 0612e4643f1bb99c617c8a8d58d8b416e913d128..6dd94d248b0d2e84a4eb06d39967439b355a6ca5 100644
+--- a/src/plugin/index.ts
++++ b/src/plugin/index.ts
+@@ -14,8 +14,9 @@ import { Context } from '@deepseek-ai/cordis'
+ import type {} from '@deepseek-ai/dsh-system-prompt'
+ import type {} from '@deepseek-ai/dsh-tools'
+ import type { IncomingMessage, ServerResponse } from 'node:http'
++import { readFileSync } from 'node:fs'
+ import { readFile } from 'node:fs/promises'
+-import { join } from 'node:path'
++import { basename, dirname, join, resolve } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import { createRenderUiTool, createValidateDshUiTool } from './tool.ts'
+ 
+@@ -98,7 +99,7 @@ The spec is a white-listed component tree rendered inline where the fence sits.
+ 
+ - 布局: text · row · col · grid · card · divider · spacer
+ - 展示: badge · stat · progress · list · table · keyvalue · avatar · audio · video · timeline · file-tree · breadcrumb · callout · steps · diff · json · code · copy
+-- 图表: chart (bars|line|donut) · echart (preset|option) · plot (函数图)
++- 图表: chart {"type":"chart","kind":"bars|line|donut","data":[{"label":"...","value":n,"color":"#hex?"}],"series":[...]?} · echart (preset|option) · plot (函数图)
+ - 交互: button · input · textarea · select · checkbox · switch · slider · radio · submit · quiz · link · tabs · accordion
+ - 高级: mermaid (flowchart/sequence/class/gantt/pie/er/state/journey) · diagram (编辑级架构/流程图，27 种 kind) · scene3d (3D WebGL)
+ 
+@@ -123,6 +124,40 @@ Rules:
+ // instead (see apply).
+ export const inject = ['systemPrompt']
+ 
++type BundledSkill = {
++  name: string
++  description: string
++  source: 'bundled'
++  provider: string
++  path: string
++  resourceBase: { kind: 'directory'; path: string }
++  content: string
++}
++
++type SkillRegistry = {
++  register(skill: BundledSkill): () => void
++}
++
++/** Load the packaged skill from both source and built module locations. */
++function bundledSkill(): BundledSkill {
++  const moduleDirectory = dirname(fileURLToPath(new URL(import.meta.url)))
++  const path = basename(moduleDirectory) === 'plugin'
++    ? resolve(moduleDirectory, '../../SKILL.md')
++    : resolve(moduleDirectory, '../SKILL.md')
++  const raw = readFileSync(path, 'utf8')
++  const end = raw.indexOf('\n---\n', 4)
++  if (!raw.startsWith('---\n') || end < 0) throw new Error('genui SKILL.md has invalid frontmatter')
++  return {
++    name: 'genui',
++    description: 'GenUI 完整组件与字段规范，用于生成 dsh-ui 结构化交互界面。',
++    source: 'bundled',
++    provider: '@changfenhuang/dsh-genui',
++    path,
++    resourceBase: { kind: 'directory', path: dirname(path) },
++    content: raw.slice(end + 5),
++  }
++}
++
+ export function apply(ctx: Context): void {
+   ctx.systemPrompt.section({
+     name: 'genui:fence',
+@@ -156,6 +191,11 @@ export function apply(ctx: Context): void {
+     if (name === 'tools') tryRegister(value as { register(tool: unknown): unknown })
+   })
+ 
++  ctx.inject(['skills'], (skillCtx) => {
++    const skills = (skillCtx as Context & { skills: SkillRegistry }).skills
++    skills.register(bundledSkill())
++  })
++
+   // Lazy-engine asset route: same optional-probe pattern as the tools
+   // registry — the webserver service may bind after this plugin starts.
+   let assetsRegistered = false
+diff --git a/src/plugin/tool.ts b/src/plugin/tool.ts
+index 4cbbdb25afa3009f38b18ac4cedb3979a1ea4512..839d808788d28ce1ba30e8dc81b49e782e71b85b 100644
+--- a/src/plugin/tool.ts
++++ b/src/plugin/tool.ts
+@@ -22,7 +22,10 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
+ import type { JsonValue } from '@deepseek-ai/dsh-session'
+ import type { GenericCallView, GenericResultView, JsonSchemaNode, ToolDefinition } from '@deepseek-ai/dsh-tools'
+ import type { GenuiSpec } from '../client/spec.ts'
+-import { GENUI_LIMITS, countDeclaredGenuiNodes, countGenuiNodes, repairGenuiSpec } from '../client/guard.ts'
++import {
++  GENUI_LIMITS, countDeclaredGenuiNodes, countGenuiNodes, repairGenuiSpec,
++  validateGenuiChartSemantics,
++} from '../client/guard.ts'
+ import { completeFenceJson } from '../shared/fence-repair.ts'
+ 
+ /**
+@@ -172,7 +175,12 @@ export function createRenderUiTool(): ToolDefinition {
+       },
+     },
+     async execute(args: unknown): Promise<JsonValue> {
+-      const spec = repairGenuiSpec(specOf(args))
++      const input = specOf(args)
++      const chartErrors = validateGenuiChartSemantics(input)
++      if (chartErrors.length > 0) {
++        throw new Error('render_ui spec invalid: ' + chartErrors.join('; '))
++      }
++      const spec = repairGenuiSpec(input)
+       if (spec === null) {
+         return 'render_ui：spec 无效 —— 根对象需要 "items" 数组（组件树白名单见系统提示词），请修正后重试。'
+       }
+@@ -277,6 +285,12 @@ function bracketDiagnostic(raw: string): string {
+ const COMMON_CAUSES =
+   '常见原因：① 收尾括号错位/缺失（{ 与 }、[ 与 ] 数量不相等）② 字符串值内用了半角引号 "（中文引语请用 “” 或 「」）③ 尾随逗号 ④ 字符串未闭合'
+ 
++/** Return the model-facing chart field failure for one parsed fence body. */
++function chartValidationFailure(value: unknown): string | undefined {
++  const errors = validateGenuiChartSemantics(value)
++  return errors.length === 0 ? undefined : `❌ chart 字段验证失败：\n- ${errors.join('\n- ')}`
++}
++
+ /** Build the validate_dsh_ui tool definition (registered alongside render_ui). */
+ export function createValidateDshUiTool(): ToolDefinition {
+   return {
+@@ -304,11 +318,18 @@ export function createValidateDshUiTool(): ToolDefinition {
+         // FIXED JSON instead of asking it to re-author the fix — re-writing
+         // the whole fence by hand is where the next typo comes from.
+         const repaired = completeFenceJson(raw)
+-        if (repaired !== null && repairGenuiSpec(JSON.parse(repaired.text) as unknown) !== null) {
+-          return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  已自动修复 ${repaired.repairs} 处，下面是修复后的 JSON，直接作为围栏正文发出即可（无需再验证）：\n\`\`\`\n${repaired.text}\n\`\`\``
++        if (repaired !== null) {
++          const repairedValue = JSON.parse(repaired.text) as unknown
++          const chartFailure = chartValidationFailure(repairedValue)
++          if (chartFailure !== undefined) return chartFailure
++          if (repairGenuiSpec(repairedValue) !== null) {
++            return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  已自动修复 ${repaired.repairs} 处，下面是修复后的 JSON，直接作为围栏正文发出即可（无需再验证）：\n\`\`\`\n${repaired.text}\n\`\`\``
++          }
+         }
+         return `❌ dsh-ui 围栏 JSON 解析失败：${detail}。\n${bracketDiagnostic(raw)}  自动修复未能恢复（结构损坏），请按错误信息修正后重新调用本工具验证，通过后再发出围栏。\n${COMMON_CAUSES}`
+       }
++      const chartFailure = chartValidationFailure(parsed)
++      if (chartFailure !== undefined) return chartFailure
+       const spec = repairGenuiSpec(parsed)
+       if (spec === null) {
+         return '❌ 不是合法 GenUI spec：根对象需要 "items" 数组，且每个节点 type 必须在白名单内（见系统提示词）。请修正后重新验证。'
