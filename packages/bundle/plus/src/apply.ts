@@ -1,7 +1,17 @@
 /** Materialize the Plus distribution's independent patch packages without Desktop. */
 
 import { spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { satisfies, valid, validRange } from 'semver'
@@ -19,6 +29,11 @@ interface InstalledPackage {
 interface RuntimePackage {
   name: string
   version: string
+}
+
+export interface OfficialWorkspacePackage {
+  name: string
+  directory: string
 }
 
 interface NpmTarget {
@@ -489,13 +504,78 @@ function officialPackageRoot(dshRoot: string): string {
   return resolve(dshRoot, 'apps', 'cli')
 }
 
-// Profile plugins通过exact source checkout解析official peers；npm profile不复制该scope。
-function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
-  const source = resolve(officialPackageRoot(dshRoot), 'node_modules', '@deepseek-ai')
-  if (!existsSync(source)) throw new Error('official DSH dependencies are missing under ' + source)
+/** Parse pnpm's workspace roster into exact official package directories. */
+export function parseOfficialWorkspacePackages(dshRoot: string, stdout: string): OfficialWorkspacePackage[] {
+  const parsed: unknown = JSON.parse(stdout)
+  if (!Array.isArray(parsed)) throw new Error('pnpm workspace package list must be an array')
+  const packages = new Map<string, string>()
+  for (const [index, value] of parsed.entries()) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('pnpm workspace package list[' + String(index) + '] must be an object')
+    }
+    const entry = value as Record<string, unknown>
+    if (typeof entry.name !== 'string' || !entry.name.startsWith('@deepseek-ai/')) continue
+    const localName = entry.name.slice('@deepseek-ai/'.length)
+    if (localName === '' || localName.includes('/')) {
+      throw new Error('unsupported official workspace package name: ' + entry.name)
+    }
+    if (typeof entry.path !== 'string' || entry.path === '') {
+      throw new Error('pnpm workspace package ' + entry.name + ' has no path')
+    }
+    const directory = resolve(dshRoot, entry.path)
+    const local = relative(dshRoot, directory)
+    if (isAbsolute(local) || local === '..' || local.startsWith('../')) {
+      throw new Error('official workspace package escapes DSH root: ' + entry.name)
+    }
+    const previous = packages.get(entry.name)
+    if (previous !== undefined && previous !== directory) {
+      throw new Error('duplicate official workspace package: ' + entry.name)
+    }
+    packages.set(entry.name, directory)
+  }
+  return [...packages].sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, directory]) => ({ name, directory }))
+}
+
+function listOfficialWorkspacePackages(dshRoot: string): OfficialWorkspacePackage[] {
+  const result = spawnSync('pnpm', ['-r', 'list', '--json', '--depth', '-1'], {
+    cwd: dshRoot,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  })
+  if (result.error !== undefined) throw result.error
+  if (result.status !== 0) {
+    throw new Error('pnpm list official DSH workspace packages failed with exit code ' + String(result.status))
+  }
+  return parseOfficialWorkspacePackages(dshRoot, result.stdout)
+}
+
+/** Build the profile's official scope from the CLI closure plus source workspaces. */
+export function materializeOfficialPackageScope(
+  profileDirectory: string,
+  cliScope: string,
+  workspacePackages: readonly OfficialWorkspacePackage[],
+): void {
+  if (!existsSync(cliScope)) throw new Error('official DSH dependencies are missing under ' + cliScope)
   const destination = resolve(profileDirectory, 'node_modules', '@deepseek-ai')
   rmSync(destination, { recursive: true, force: true })
-  symlinkSync(source, destination, process.platform === 'win32' ? 'junction' : 'dir')
+  mkdirSync(destination, { recursive: true })
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir'
+  for (const name of readdirSync(cliScope).sort()) {
+    symlinkSync(resolve(cliScope, name), resolve(destination, name), linkType)
+  }
+  for (const entry of workspacePackages) {
+    const name = entry.name.slice('@deepseek-ai/'.length)
+    const target = resolve(destination, name)
+    if (existsSync(target)) continue
+    symlinkSync(entry.directory, target, linkType)
+  }
+}
+
+// Profile plugins resolve official peers from the exact source checkout, including peers outside the CLI closure.
+function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
+  const cliScope = resolve(officialPackageRoot(dshRoot), 'node_modules', '@deepseek-ai')
+  materializeOfficialPackageScope(profileDirectory, cliScope, listOfficialWorkspacePackages(dshRoot))
 }
 
 function writeLock(profileDirectory: string, lock: Record<string, unknown>): string {
