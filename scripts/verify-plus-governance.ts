@@ -1,16 +1,18 @@
 /** Verify Plus npm composition, independent patch packages, and curation ownership. */
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { isAbsolute, relative, resolve } from 'node:path'
+import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { valid, validRange } from 'semver'
+import { createRequire } from 'node:module'
+import { satisfies, valid, validRange } from 'semver'
 import { parse } from 'yaml'
 import { loadCordisYaml } from './cordis-yaml.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const distributionPath = 'packages/bundle/plus/package.json'
 const patchRoot = 'patches/npm'
+const requireFromDistribution = createRequire(resolve(root, distributionPath))
 
 function object(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -83,6 +85,20 @@ function verifySourcePatchApplies(path: string): void {
   if (result.status !== 0) throw new Error('source patch does not apply to the official base: ' + path + ': ' + result.stderr.trim())
 }
 
+/** npm payload必须能应用到distribution当前解析的exact target，不能把失败推迟到部署。 */
+function verifyNpmPatchApplies(name: string, range: string, path: string): void {
+  const manifestPath = requireFromDistribution.resolve(name + '/package.json')
+  const manifest = json(manifestPath)
+  const version = string(manifest.version, name + ' installed version')
+  if (!satisfies(version, range, { includePrerelease: true })) {
+    throw new Error(name + ' installed version ' + version + ' does not satisfy patch target ' + range)
+  }
+  const result = spawnSync('git', ['apply', '--check', path], { cwd: dirname(manifestPath), encoding: 'utf8' })
+  if (result.status !== 0) {
+    throw new Error('npm patch does not apply to ' + name + '@' + version + ': ' + path + ': ' + result.stderr.trim())
+  }
+}
+
 function patchPackages(sourceBaseRevision: string): PatchRecord[] {
   const records: PatchRecord[] = []
   for (const entry of readdirSync(resolve(root, patchRoot), { withFileTypes: true })) {
@@ -116,7 +132,10 @@ function patchPackages(sourceBaseRevision: string): PatchRecord[] {
       const target = object(variant.target, name + ' variant target')
       const kind = string(target.kind, name + ' variant target kind')
       if (kind === 'npm') {
-        targets.push({ kind, name: string(target.name, name + ' target name'), range: patchTargetRange(target.range, name + ' target range') })
+        const targetName = string(target.name, name + ' target name')
+        const targetRange = patchTargetRange(target.range, name + ' target range')
+        verifyNpmPatchApplies(targetName, targetRange, payload)
+        targets.push({ kind, name: targetName, range: targetRange })
       } else if (kind === 'dsh-source') {
         const baseRevision = string(target.baseRevision, name + ' target baseRevision')
         if (baseRevision !== sourceBaseRevision) throw new Error(name + ' source target must match dshPlus.sourceBase.revision')
