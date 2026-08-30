@@ -42,6 +42,21 @@ afterEach(() => {
 })
 
 describe('release families', () => {
+  it('discovers the complete Plus npm closure without official or experimental packages', () => {
+    const members = releaseFamily('plus').members(resolve(import.meta.dirname, '../..'))
+    const names = members.map(member => member.name)
+
+    expect(names).toHaveLength(15)
+    expect(names).toContain('@sparkelf/dsh-plus')
+    expect(names).toContain('@sparkelf/dsh-plugin-backup')
+    expect(names).toContain('@sparkelf/dsh-plugin-dataops')
+    expect(names).toContain('@sparkelf/dsh-plugin-document-attachments')
+    expect(names).toContain('@sparkelf/dsh-plugin-mcp-credentials')
+    expect(names).toContain('@sparkelf/dsh-plugin-subagent-settings')
+    expect(names).toContain('@sparkelf/dsh-patch-genui-streaming-echart')
+    expect(names.every(name => name.startsWith('@sparkelf/'))).toBe(true)
+  })
+
   it('excludes private experimental packages from the dsh release', () => {
     const members = releaseFamily('dsh').members(resolve(import.meta.dirname, '../..'))
 
@@ -67,13 +82,16 @@ describe('release families', () => {
     ])
   })
 
-  it('names one tag for the whole dsh family and one per vendored package', () => {
+  it('names shared tags for dsh and Plus and one tag per vendored package', () => {
     const dsh = releaseFamily('dsh')
+    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const cli = member('apps/cli', '@deepseek-ai/dsh')
+    const profile = member('packages/bundle/plus', '@sparkelf/dsh-plus')
     const cordis = { ...member('vendor/cordis', '@deepseek-ai/cordis'), version: '4.0.1' }
 
     expect(dsh.tagFor(cli)).toBe('dsh-v0.0.1')
+    expect(plus.tagFor(profile)).toBe('plus-npm-v0.0.1')
     expect(vendor.tagFor(cordis)).toBe('vendor-cordis-v4.0.1')
     // The prefix is constructed, not recovered from a tag: a version with a
     // hyphen would defeat any suffix-stripping.
@@ -102,6 +120,7 @@ describe('release families', () => {
 
   it('requires a current official client build only for dsh artifacts', () => {
     const dsh = releaseFamily('dsh')
+    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
     vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
@@ -113,6 +132,7 @@ describe('release families', () => {
     expect(() => { dsh.verifyBuildArtifacts(official) }).not.toThrow()
     expect(() => { dsh.verifyBuildArtifacts(defaultBuild) }).toThrow(/DSH_CLIENT_TITLE/)
     expect(() => { dsh.verifyBuildArtifacts(missing) }).toThrow(/record.*missing/)
+    expect(() => { plus.verifyBuildArtifacts(missing) }).not.toThrow()
     expect(() => { vendor.verifyBuildArtifacts(missing) }).not.toThrow()
 
     write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')

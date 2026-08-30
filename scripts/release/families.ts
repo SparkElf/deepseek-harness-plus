@@ -1,7 +1,8 @@
 /**
- * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
- * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
+ * The four independent publish sequences this repository releases from
+ * (official `packages/` + `apps/`, Plus packages and patches, `vendor/`, and
+ * `native/`) and the three this module owns: `dsh`, `plus`, and `vendor`.
+ * Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -336,7 +337,7 @@ class DshFamily extends ReleaseFamily {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
       const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
-      throw new Error(`dsh release members must share one version:\n${detail}`)
+      throw new Error(`${this.id} release members must share one version:\n${detail}`)
     }
   }
 
@@ -369,6 +370,9 @@ class PlusFamily extends DshFamily {
   protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
 
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
+  override verifyBuildArtifacts(): void {}
 
   override readonly installedEntry = undefined
 }

@@ -20,7 +20,7 @@ dsh plugin --profile plus exec dsh-plus apply --dsh-root <official-dsh-root>
 dsh --profile plus
 ```
 
-`dsh-plus apply`解析installed patch-package manifests，要求official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，把selected payloads复制进profile，配置exact npm patches，应用exact source patches，并写credential-free `.dsh-plus/patchset.lock.json`。Desktop与tray application可以调用同一public workflow，但不是prerequisite、manifest owner或acceptance path。
+`dsh-plus apply`解析installed patch-package manifests，要求official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，把selected payloads复制进profile，配置exact npm patches，应用exact source patches，并写credential-free `.dsh-plus/patchset.lock.json`。`plus` release family发现完整`@sparkelf` closure，分配一个`plus-npm-v*` tag，并通过manual npm workflow发布credential-free pack job生成的exact tarballs。Desktop与tray application可以调用同一public workflow，但不是prerequisite、manifest owner、release owner或acceptance path。
 
 ## 最终inventory
 
