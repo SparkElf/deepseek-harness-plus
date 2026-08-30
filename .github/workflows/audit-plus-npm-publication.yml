@@ -60,6 +60,10 @@ jobs:
             mkdir "local/$count" "registry-expanded/$count"
             tar -xzf "$tarball" -C "local/$count"
             tar -xzf "registry/$registry_filename" -C "registry-expanded/$count"
+            jq -S . "local/$count/package/package.json" > "local/$count/package/package.json.sorted"
+            mv "local/$count/package/package.json.sorted" "local/$count/package/package.json"
+            jq -S . "registry-expanded/$count/package/package.json" > "registry-expanded/$count/package/package.json.sorted"
+            mv "registry-expanded/$count/package/package.json.sorted" "registry-expanded/$count/package/package.json"
             if ! diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"; then
               diff -u "local/$count/package/package.json" "registry-expanded/$count/package/package.json" || true
               exit 1
