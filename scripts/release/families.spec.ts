@@ -46,7 +46,7 @@ describe('release families', () => {
     const members = releaseFamily('plus').members(resolve(import.meta.dirname, '../..'))
     const names = members.map(member => member.name)
 
-    expect(names).toHaveLength(16)
+    expect(names).toHaveLength(18)
     expect(names).toContain('@sparkelf/dsh-plus')
     expect(names).toContain('@sparkelf/dsh-plugin-backup')
     expect(names).toContain('@sparkelf/dsh-plugin-dataops')
@@ -55,6 +55,8 @@ describe('release families', () => {
     expect(names).toContain('@sparkelf/dsh-plugin-subagent-settings')
     expect(names).toContain('@sparkelf/dsh-patch-browser-auth-mode')
     expect(names).toContain('@sparkelf/dsh-patch-genui-streaming-echart')
+    expect(names).toContain('@sparkelf/dsh-patch-legacy-code-preset')
+    expect(names).toContain('@sparkelf/dsh-patch-session-export-chinese')
     expect(names.every(name => name.startsWith('@sparkelf/'))).toBe(true)
   })
 
@@ -83,6 +85,22 @@ describe('release families', () => {
     ])
   })
 
+  it.each(['0.0.2-alpha.1', '0.0.2-canary.1', '0.0.2-rc.1'])(
+    'accepts the explicit dsh prerelease version %s',
+    (version) => {
+      const root = mkdtempSync(join(tmpdir(), 'dsh-release-prerelease-'))
+      roots.push(root)
+      write(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+
+      const dsh = releaseFamily('dsh')
+      const published = member('packages/core/published', '@deepseek-ai/dsh-published')
+      const plan = planShared(dsh, root, [published], version)
+
+      expect(plan.version).toBe(version)
+      expect(plan.planned[1]?.tag).toBe(`dsh-v${version}`)
+    },
+  )
+
   it('names shared tags for dsh and Plus and one tag per vendored package', () => {
     const dsh = releaseFamily('dsh')
     const plus = releaseFamily('plus')
@@ -98,6 +116,18 @@ describe('release families', () => {
     // hyphen would defeat any suffix-stripping.
     expect(vendor.tagPrefixFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v')
     expect(vendor.tagFor({ ...cordis, version: '4.0.0-rc.7' })).toBe('vendor-cordis-v4.0.0-rc.7')
+  })
+
+  it('assigns alpha and canary dist-tags only to dsh releases', () => {
+    const dsh = releaseFamily('dsh')
+    const vendor = releaseFamily('vendor')
+
+    expect(dsh.distTagForVersion('0.0.2-alpha.1')).toBe('alpha')
+    expect(dsh.distTagForVersion('0.0.2-canary.1')).toBe('canary')
+    expect(dsh.distTagForVersion('0.0.2-rc.1')).toBe('next')
+    expect(dsh.distTagForVersion('0.0.2')).toBeUndefined()
+    expect(vendor.distTagForVersion('4.0.1-alpha.1')).toBe('next')
+    expect(vendor.distTagForVersion('4.0.1-canary.1')).toBe('next')
   })
 
   it('rejects a family whose members disagree on the shared version', () => {
@@ -298,6 +328,12 @@ describe('vendored version baseline', () => {
 })
 
 describe('version precedence', () => {
+  it('orders alpha, canary, and release-candidate versions by semver precedence', () => {
+    expect(compareVersions('4.0.1-alpha.1', '4.0.1-canary.1')).toBeLessThan(0)
+    expect(compareVersions('4.0.1-canary.1', '4.0.1-rc.1')).toBeLessThan(0)
+    expect(compareVersions('4.0.1-rc.1', '4.0.1')).toBeLessThan(0)
+  })
+
   it('ranks a release above the prerelease it follows', () => {
     // git --sort=v:refname disagrees, placing 4.0.1-rc.1 above 4.0.1, which is
     // why the newest published version is chosen here rather than by git.

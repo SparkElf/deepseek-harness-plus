@@ -1,17 +1,17 @@
 diff --git a/packages/client/ui-settings-models/README.i18n.yaml b/packages/client/ui-settings-models/README.i18n.yaml
-index 8b69e152a0..2f8226726f 100644
+index 1977fc9620..0822ab8417 100644
 --- a/packages/client/ui-settings-models/README.i18n.yaml
 +++ b/packages/client/ui-settings-models/README.i18n.yaml
 @@ -2,5 +2,5 @@
  # side as of the last confirmed-consistent state. Both languages carry equal authority;
  # after editing either side, bring the other along and re-record with:
  #   pnpm run verify-translation-pairing --write packages/client/ui-settings-models/README.md
--README.md: 75efb18daf3e4a96fea637f36633f216046ebccd
--README.zh.md: f3c7099e242e379be5143352d4045208a8209dc6
-+README.md: 18be58b5a85cb1fcf10710c57d7aea8211c104d8
-+README.zh.md: 073b581bf425bea07bbc52b5e35207c2a4a34514
+-README.md: 920780b2193d6165a10967cc49afcb5b7e193105
+-README.zh.md: 4ec9ae43eef9a13ffde22e2a3de0e44d3b6cb51d
++README.md: c68a0defc3ad882f66f81afbe61cfad4c912a4fa
++README.zh.md: e161a26112080d24455c5c541e501fe1fd0b7cf1
 diff --git a/packages/client/ui-settings-models/README.md b/packages/client/ui-settings-models/README.md
-index 75efb18daf..18be58b5a8 100644
+index 920780b219..c68a0defc3 100644
 --- a/packages/client/ui-settings-models/README.md
 +++ b/packages/client/ui-settings-models/README.md
 @@ -33,7 +33,7 @@ The primary field on an editor card is a single **API key** input — the page n
@@ -24,7 +24,7 @@ index 75efb18daf..18be58b5a8 100644
  ### Adding and deleting providers
  
 diff --git a/packages/client/ui-settings-models/README.zh.md b/packages/client/ui-settings-models/README.zh.md
-index f3c7099e24..073b581bf4 100644
+index 4ec9ae43ee..e161a26112 100644
 --- a/packages/client/ui-settings-models/README.zh.md
 +++ b/packages/client/ui-settings-models/README.zh.md
 @@ -33,7 +33,7 @@ kind: "package-reference"
@@ -73,10 +73,10 @@ index fe2fe87d3a..a0e3103270 100644
     written once above the rows, so a row is one line of fields plus its
     delete control; each field still carries the indexed `aria-label` that
 diff --git a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-index 675c852125..cb16012c56 100644
+index ffa8c2e1fe..3c3e7729b4 100644
 --- a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 +++ b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-@@ -44,6 +44,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
+@@ -45,6 +45,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
  /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
  const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
  
@@ -86,7 +86,7 @@ index 675c852125..cb16012c56 100644
  /** Props of {@link ProviderEditor}. */
  export interface ProviderEditorProps {
    /** Provider route id. */
-@@ -171,6 +174,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -172,6 +175,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    const root = useMemo(() => schema.rehydrate(namespace.schema), [namespace.schema, schema])
    const node = useMemo(() => schema.nodeAtPath(root, settingsPath), [root, schema, settingsPath])
    const fallback = schema.getPath(namespace.value, settingsPath)
@@ -97,7 +97,7 @@ index 675c852125..cb16012c56 100644
    const disabled = props.readOnly || busy
    const layout = layoutOf(namespace.ns)
    const keyRef = refFor(schema, namespace, settingsPath, props.provider)
-@@ -204,6 +211,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -200,6 +207,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
      const value = schema.getPath(source, [key])
      return typeof value === 'string' && value.trim().length > 0 ? value : undefined
    }
@@ -109,7 +109,7 @@ index 675c852125..cb16012c56 100644
    const setField = (key: string, next: string | undefined): void => {
      // A value of nothing but whitespace is cleared, not stored: `stringAt`
      // already reports it as absent, so the field would otherwise render empty
-@@ -232,6 +244,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -228,6 +240,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    // What the form currently shows, which is what an interrogation must ask:
    // an edited-but-unsaved endpoint, and a key typed but not yet stored.
    const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
@@ -119,7 +119,7 @@ index 675c852125..cb16012c56 100644
    const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
    const probe = {
      settingsNs: namespace.ns,
-@@ -447,7 +462,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -434,7 +449,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                      value={probeApi ?? ''}
                      aria-label={t('customApi')}
                      disabled={disabled}
@@ -136,7 +136,7 @@ index 675c852125..cb16012c56 100644
                    >
                      {/* A profile naming no protocol — hand-written into
                          settings.yaml with no model to need one — selects
-@@ -461,6 +484,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -448,6 +471,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                  </div>
                )
                : null}
@@ -236,10 +236,22 @@ index a7292638b8..319059c939 100644
  ### 运行时更改配置
  
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index e20b8e0072..d392ab7c72 100644
+index e20b8e0072..058e8f2824 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
-@@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
+@@ -40,9 +40,11 @@ import type {
+ } from '@earendil-works/pi-ai'
+ import {
+   attributionHeaders,
++  contentHasDocument,
+   contentHasImage,
+   LlmAdapter,
+   LlmError,
++  projectRequestDocumentsWithAttachments,
+   ReasoningEffortId,
+ } from '@deepseek-ai/dsh-llm'
+ import type {
+@@ -111,6 +113,24 @@ export interface PiAiAuthInjection {
    authContext: AuthContext
  }
  
@@ -264,7 +276,7 @@ index e20b8e0072..d392ab7c72 100644
  /** Copy profile stream knobs into pi-ai's common option vocabulary. */
  function profileOptions(
    profile: ResolvedPiAiProviderProfile,
-@@ -126,6 +144,7 @@ function profileOptions(
+@@ -126,6 +146,7 @@ function profileOptions(
      ...profile.transport === undefined ? {} : { transport: profile.transport },
      ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
      ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
@@ -272,6 +284,36 @@ index e20b8e0072..d392ab7c72 100644
      // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
      maxRetries: 0,
    }
+@@ -350,20 +371,24 @@ export class PiAiAdapter extends LlmAdapter {
+     using watchdog = idleWatchdog(upstream, streamIdleTimeoutMs, 'LLM_STREAM_IDLE_TIMEOUT')
+ 
+     try {
++      const containsDocument = options.messages.some(message => contentHasDocument(message.content))
+       const containsImage = options.messages.some(message => contentHasImage(message.content))
+       if (containsImage && !model.input.includes('image')) {
+         throw new LlmError(`pi-ai model "${model.id}" does not support image input`, 'UNSUPPORTED_CONTENT')
+       }
+-      const attachments = containsImage ? this.config.resolveAttachments?.() : undefined
+-      if (containsImage && attachments === undefined) {
+-        throw new LlmError('pi-ai image input requires the durable attachment service', 'UNSUPPORTED_CONTENT')
++      const attachments = containsDocument || containsImage ? this.config.resolveAttachments?.() : undefined
++      if ((containsDocument || containsImage) && attachments === undefined) {
++        throw new LlmError('pi-ai document and image input requires the durable attachment service', 'UNSUPPORTED_CONTENT')
+       }
++      const requestOptions = containsDocument
++        ? { ...options, messages: await projectRequestDocumentsWithAttachments(options.messages, attachments as AttachmentStore, watchdog.signal) }
++        : options
+       const onReplayDegrade = (reason: string): void => {
+         this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
+       }
+       const context = attachments === undefined
+-        ? toPiContext(options, undefined, onReplayDegrade)
+-        : await toPiContext({ ...options, signal: watchdog.signal }, {
++        ? toPiContext(requestOptions, undefined, onReplayDegrade)
++        : await toPiContext({ ...requestOptions, signal: watchdog.signal }, {
+           attachments,
+           resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
+           maxRequestImageBytes: profile.maxRequestImageBytes,
 diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
 index e5a7e608b9..ce8192bf28 100644
 --- a/packages/llm/llm-pi-ai/src/config.ts

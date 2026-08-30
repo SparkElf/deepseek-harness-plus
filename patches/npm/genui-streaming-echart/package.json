@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "genui-streaming-echart-components",
-        "dsh": ">=0.1.2-alpha.1",
+        "dsh": ">=0.1.2-alpha.2",
         "target": {
           "kind": "npm",
           "name": "@changfenhuang/dsh-genui",

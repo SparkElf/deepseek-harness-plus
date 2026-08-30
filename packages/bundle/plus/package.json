@@ -46,7 +46,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.1.2-alpha.1"
+      "dsh": ">=0.1.2-alpha.2"
     },
     "profile": {
       "bundles": [
@@ -73,13 +73,14 @@
       "@sparkelf/dsh-patch-workspace-storage-restore",
       "@sparkelf/dsh-patch-subagent-settings-presets",
       "@sparkelf/dsh-patch-document-attachments",
+      "@sparkelf/dsh-patch-legacy-code-preset",
       "@sparkelf/dsh-patch-session-export-chinese",
       "@sparkelf/dsh-patch-responses-reasoning-status",
       "@sparkelf/dsh-patch-mobile-web-layout",
       "@sparkelf/dsh-patch-web-base-path"
     ],
     "sourceBase": {
-      "revision": "cd5ef8148158c3a752a658978873241fdf8e2bbc"
+      "revision": "0a53fb55bea101816fa226bb964ae2bed71c343b"
     }
   },
   "dependencies": {
@@ -102,12 +103,13 @@
     "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-patch-legacy-code-preset": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-session-export-chinese": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.12"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
-    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.1"
+    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

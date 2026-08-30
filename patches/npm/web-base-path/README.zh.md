@@ -6,4 +6,4 @@
 
 payload有意跨越WebServer、frontend static owner、Web app startup/shell、Connection browser transport、Session export与Web source assets。拆分这些files会允许partial mounted deployments，因此它们共享一个patch lifecycle。empty-prefix default behavior从用户视角保持root-relative不变。
 
-target是official source base `cd5ef8148158c3a752a658978873241fdf8e2bbc`；package没有JavaScript entry、lifecycle script、compatibility fallback或credential data。official DSH发布等价end-to-end base-path behavior后retire。
+target是official source base `0a53fb55bea101816fa226bb964ae2bed71c343b`；package没有JavaScript entry、lifecycle script、compatibility fallback或credential data。official DSH发布等价end-to-end base-path behavior后retire。

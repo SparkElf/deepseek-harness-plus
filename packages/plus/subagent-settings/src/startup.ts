@@ -1,6 +1,6 @@
 /** Host-lifetime Settings section owner for one Subagent tool configuration. */
 import type { Context } from '@deepseek-ai/cordis'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import type { SubagentSettings } from './index.ts'
 import { SUBAGENT_SETTINGS_SCHEMA, settingsFromConfig, validateSettings } from './index.ts'
@@ -29,7 +29,7 @@ export const Config = z.intersect([
  * @param config - namespace, provider, and composition defaults.
  */
 export function apply(ctx: Context, config: Config): void {
-  const namespace = settingsNamespace(config.settingsNamespace)
+  const namespace = config.settingsNamespace
   const base = settingsFromConfig(config)
   ctx.inject(['settings'], (sctx) => {
     sctx.settings.register(namespace, SUBAGENT_SETTINGS_SCHEMA, {

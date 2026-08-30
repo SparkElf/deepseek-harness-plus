@@ -9,12 +9,12 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { settingsNamespace } from '@deepseek-ai/dsh-settings'
+import type {} from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type { AgentOptions } from '@deepseek-ai/dsh-agent'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import type { JsonValue } from '@deepseek-ai/dsh-session'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { assertSubagentMaxDepth, settleRun } from '@deepseek-ai/dsh-subagent'
 import type { SubagentProvider, SubagentResult, SubagentRun } from '@deepseek-ai/dsh-subagent'
 import type { JobOutcome } from '@deepseek-ai/dsh-jobs'
@@ -370,7 +370,7 @@ export function validateSettings(value: SubagentSettings, provider: SubagentProv
 
 export function apply(ctx: Context, config: Config): void {
   const configuredSettings = settingsFromConfig(config)
-  const namespace = config.settingsNamespace === undefined ? undefined : settingsNamespace(config.settingsNamespace)
+  const namespace = config.settingsNamespace
   const settingsSource = (): SubagentSettings => {
     if (namespace === undefined) return configuredSettings
     const settings = ctx.get('settings')

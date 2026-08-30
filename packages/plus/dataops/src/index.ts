@@ -13,7 +13,20 @@ import z from '@deepseek-ai/schemastery'
 import { credentialRef, type CredentialRef, type ResolvedCredential } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
-import * as McpClient from '@sparkelf/dsh-plugin-mcp-credentials'
+import {
+  Config as McpClientConfig,
+  apply as applyMcpClient,
+  inject as mcpClientInject,
+  name as mcpClientName,
+  type StreamableHttpConfig,
+} from '@sparkelf/dsh-plugin-mcp-credentials'
+
+const McpClient = {
+  name: mcpClientName,
+  inject: mcpClientInject,
+  Config: McpClientConfig,
+  apply: applyMcpClient,
+}
 
 /** Cordis plugin name for the standalone DataOps integration. */
 export const name = 'mcp-dataops'
@@ -311,7 +324,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     handler: (request: IncomingMessage, response: ServerResponse) => Promise<void>,
   ) => (request: IncomingMessage, response: ServerResponse): Promise<void> => trackOperation(handler(request, response))
 
-  const mcpConfig = (): McpClient.StreamableHttpConfig => ({
+  const mcpConfig = (): StreamableHttpConfig => ({
     transport: 'streamable-http',
     serverName: config.serverName,
     url: `${baseUrl}/api/ai/data-query/mcp`,
