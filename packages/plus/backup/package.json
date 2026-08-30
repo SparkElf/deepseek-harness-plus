@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-backup",
   "description": "Full-stack Plus user-data Backup plugin with streamed Host archive routes and Settings UI",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.0-rc.9",
   "publishConfig": {
     "access": "public"
   },
