@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -225,6 +225,9 @@ export default async function globalSetup() {
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
+  const profileOfficialScope = realpathSync(join(profileRoot, 'node_modules', '@deepseek-ai'))
+  const cliOfficialScope = realpathSync(join(sourceRoot, 'apps', 'cli', 'node_modules', '@deepseek-ai'))
+  if (profileOfficialScope !== cliOfficialScope) throw new Error('Plus profile official scope must resolve from the dsh CLI dependency tree')
   writePdf(join(fixturesDir, 'acceptance.pdf'))
   writeFileSync(join(fixturesDir, 'not-a-backup.zip'), zipSync({ 'ordinary.txt': strToU8('Not a DeepSeek Harness backup.\n') }))
   const log = openSync(logPath, 'w')

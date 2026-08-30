@@ -484,9 +484,14 @@ function applySelectedPatches(
   }
 }
 
+// Official bundles由dsh CLI dependency tree拥有，private workspace root不承担package resolution。
+function officialPackageRoot(dshRoot: string): string {
+  return resolve(dshRoot, 'apps', 'cli')
+}
+
 // Profile plugins通过exact source checkout解析official peers；npm profile不复制该scope。
 function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
-  const source = resolve(dshRoot, 'node_modules', '@deepseek-ai')
+  const source = resolve(officialPackageRoot(dshRoot), 'node_modules', '@deepseek-ai')
   if (!existsSync(source)) throw new Error('official DSH dependencies are missing under ' + source)
   const destination = resolve(profileDirectory, 'node_modules', '@deepseek-ai')
   rmSync(destination, { recursive: true, force: true })
@@ -543,7 +548,7 @@ export function runApply(argv: readonly string[]): void {
   selection.lock.profile = {
     bundles: selection.bundles.map((name) => {
       const installed = installedProfileDependencies[name] === undefined
-        ? resolveInstalledPackage(dshRoot, name)
+        ? resolveInstalledPackage(officialPackageRoot(dshRoot), name)
         : resolveInstalledPackage(profileDirectory, name)
       return { name, version: installed.version }
     }),
