@@ -1,0 +1,20 @@
+diff --git a/lib/index.js b/lib/index.js
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -8,7 +8,7 @@ import { chmodSync, createWriteStream, existsSync, readFileSync, realpathSync }
+ import { fileURLToPath } from "node:url";
+ import { spawn } from "node:child_process";
+-import { SettingsConflictError, settingsNamespace } from "@deepseek-ai/dsh-settings";
++import { SettingsConflictError } from "@deepseek-ai/dsh-settings";
+ import { homedir, userInfo } from "node:os";
+ import { defineTool } from "@deepseek-ai/dsh-tools";
+ import { createUserMessage } from "@deepseek-ai/dsh-llm";
+@@ -4130,7 +4130,7 @@ function apply(ctx) {
+ 		}
+ 	};
+ 	ctx.inject(["settings"], (sctx) => {
+-		const ns = settingsNamespace(SIDEBAR_PREFS_NS);
++		const ns = SIDEBAR_PREFS_NS;
+ 		const scope = sctx.settings.register(ns, PrefsSchema);
+ 		const viewOf = () => {
+ 			const descriptor = sctx.settings.describe({ redactSecrets: true }).find((candidate) => candidate.ns === ns);

@@ -2,17 +2,17 @@
 entries:
   - name: dsh-better-sidebar
     source: { kind: npm, spec: dsh-better-sidebar }
-    pinned: 0.16.1
+    pinned: 0.17.1
     interest: VSCode-like right sidebar with third-party tab registration
     owner: omdsh-dev
-    localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }]
+    localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }, { package: '@sparkelf/dsh-patch-better-sidebar-alpha2-settings', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/releases/tag/v0.18.0-alpha.0, retireWhen: A stable dsh-better-sidebar release uses the alpha.2 Settings namespace contract without importing settingsNamespace at runtime }]
     plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
     source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
-    pinned: 0.2.8
+    pinned: 0.2.9
     interest: End-to-end encrypted mobile access with a Host tunnel and Settings section
     owner: SparkElf
-    localPatches: [{ package: '@sparkelf/dsh-patch-mobile-bridge-serialized-actions', upstreamUrl: https://github.com/SparkElf/dsh-plugins-plus/pull/30, retireWhen: A released @sparkelf/dsh-mobile-bridge version includes equivalent serialized autosave and action-ordering behavior }]
+    localPatches: []
     plusBundle: true
   - name: '@changfenhuang/dsh-genui'
     source: { kind: npm, spec: '@changfenhuang/dsh-genui' }
@@ -23,7 +23,7 @@ entries:
     plusBundle: true
   - name: dshmarket
     source: { kind: npm, spec: dshmarket }
-    pinned: 1.29.2
+    pinned: 1.38.1
     interest: Web marketplace for community dsh plugins
     owner: dsh-market
     localPatches: []

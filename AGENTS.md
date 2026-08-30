@@ -154,3 +154,5 @@ Docs accompany every code change: update affected README and JSDoc contracts tog
 ## Vendoring policy
 
 `vendor/` packages are pinned source copies (manifest with upstream SHAs in [vendor/README.md](vendor/README.md)). Update via the sync procedure there; re-apply or retire the logged local modifications; rerun `pnpm run test && pnpm run build`.
+
+See [.agents/working-style.md](.agents/working-style.md): no sycophancy; report before implementing; decide plugin ownership before implementation.

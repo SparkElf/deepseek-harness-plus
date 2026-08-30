@@ -1388,8 +1388,11 @@ importers:
         specifier: '>=0.9.6'
         version: 0.9.6(d896daac5432ae3780d4dd6a1ddff721)
       '@sparkelf/dsh-mobile-bridge':
-        specifier: '>=0.2.8'
-        version: 0.2.8(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
+        specifier: '>=0.2.9'
+        version: 0.2.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
+      '@sparkelf/dsh-patch-better-sidebar-alpha2-settings':
+        specifier: '>=0.1.0-rc.12'
+        version: link:../../../patches/npm/better-sidebar-alpha2-settings
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/better-sidebar-app-frame
@@ -1405,9 +1408,6 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/legacy-code-preset
-      '@sparkelf/dsh-patch-mobile-bridge-serialized-actions':
-        specifier: '>=0.1.0-rc.12'
-        version: link:../../../patches/npm/mobile-bridge-serialized-actions
       '@sparkelf/dsh-patch-mobile-web-layout':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/mobile-web-layout
@@ -1442,8 +1442,8 @@ importers:
         specifier: '>=0.1.0-rc.12'
         version: link:../../plus/subagent-settings
       dshmarket:
-        specifier: '>=1.29.2'
-        version: 1.35.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)
+        specifier: '>=1.38.1'
+        version: 1.38.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)
       semver:
         specifier: '>=7.7.3'
         version: 7.8.5
@@ -10796,6 +10796,8 @@ importers:
         specifier: workspace:^
         version: link:../../typert/protocol
 
+  patches/npm/better-sidebar-alpha2-settings: {}
+
   patches/npm/better-sidebar-app-frame: {}
 
   patches/npm/browser-auth-mode: {}
@@ -10805,8 +10807,6 @@ importers:
   patches/npm/genui-streaming-echart: {}
 
   patches/npm/legacy-code-preset: {}
-
-  patches/npm/mobile-bridge-serialized-actions: {}
 
   patches/npm/mobile-web-layout: {}
 
@@ -14108,14 +14108,14 @@ packages:
     resolution: {integrity: sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==}
     engines: {node: '>=14.0.0'}
 
-  '@sparkelf/dsh-mobile-bridge@0.2.8':
-    resolution: {integrity: sha512-H3t0b1bzRV61UvS7U1EvtDHgm/BbeJgFRyjaKcQnP5UcOwQNVYCwNUTYS1C+yHnsyCVtFF55RADsqmm+A1OeUg==}
+  '@sparkelf/dsh-mobile-bridge@0.2.9':
+    resolution: {integrity: sha512-od9WJV3ziBQMcaa5zCumPmUDvsObBcD2SeAJsiqw5xshjbxgZJWeNNZ07Q/lM+SttaFmXAAuh2Hd/3UmVj5fPw==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.1
-      '@deepseek-ai/dsh-client-ui-primitives': '>=0.0.1-rc.1 <1'
-      '@deepseek-ai/dsh-client-ui-slots': '>=0.0.1-rc.1 <1'
-      '@deepseek-ai/dsh-settings': '>=0.0.1-rc.1 <1'
+      '@deepseek-ai/dsh-client-ui-primitives': '>=0.1.1-rc.2 <1'
+      '@deepseek-ai/dsh-client-ui-slots': '>=0.1.1-rc.2 <1'
+      '@deepseek-ai/dsh-settings': '>=0.1.1-rc.2 <1'
       react: '>=18.2.0 <20'
 
   '@standard-schema/spec@1.1.0':
@@ -15221,8 +15221,8 @@ packages:
       '@huanlin/dsh-plugin-better-locale':
         optional: true
 
-  dshmarket@1.35.0:
-    resolution: {integrity: sha512-iNlYQmdT2lPlhy6K/2nXc9nfwQbT++j/8iacJ7l7h9NjLs4NsakGs0Wxyqh7KOBjcAloXnqLTRyTZ6JezVjyZQ==}
+  dshmarket@1.38.1:
+    resolution: {integrity: sha512-Z9VleLtCXwk5OlbSJKayWtbMaKACL8JUMyb/JHpErS4N3q//GJS+cgOhhxNkZYmXxB8/lv9IbhX1CBzlMhJeJg==}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.1
       '@deepseek-ai/dsh-settings': ^0.1.0-rc.7 || ^0.1.1-rc.2
@@ -20187,7 +20187,7 @@ snapshots:
       '@smithy/util-buffer-from': 2.2.0
       tslib: 2.8.1
 
-  '@sparkelf/dsh-mobile-bridge@0.2.8(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
+  '@sparkelf/dsh-mobile-bridge@0.2.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-client-ui-primitives': link:packages/client/ui-primitives
@@ -21393,7 +21393,7 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  dshmarket@1.35.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery):
+  dshmarket@1.38.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery):
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       js-yaml: 4.3.1

@@ -74,6 +74,15 @@ interface SelectedSourcePatch {
 
 type SelectedPatch = SelectedNpmPatch | SelectedSourcePatch
 
+function isSelectedNpmPatch(patch: SelectedPatch): patch is SelectedNpmPatch {
+  return patch.target.kind === 'npm'
+}
+
+interface MaterializedPatches {
+  patches: readonly SelectedPatch[]
+  npmPatchFiles: ReadonlyMap<string, string>
+}
+
 function readJsonObject(path: string, label: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'))
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -345,26 +354,55 @@ function prepareSelection(
   }
 }
 
-function materializePatchFiles(profileDirectory: string, patches: readonly SelectedPatch[]): SelectedPatch[] {
+/** 保留每个独立payload，并为同一npm目标生成pnpm可消费的唯一组合patch。 */
+function materializePatchFiles(profileDirectory: string, patches: readonly SelectedPatch[]): MaterializedPatches {
   const root = resolve(profileDirectory, '.dsh-plus', 'patches')
   rmSync(root, { recursive: true, force: true })
-  return patches.map((patch) => {
+  const stablePatches = patches.map((patch) => {
     const destination = resolve(root, patch.patchPackage.name, patch.patchPackage.version, patch.file)
     mkdirSync(dirname(destination), { recursive: true })
     copyFileSync(patch.absoluteFile, destination)
     return { ...patch, absoluteFile: destination }
   })
+  const npmGroups = new Map<string, [SelectedNpmPatch, ...SelectedNpmPatch[]]>()
+  for (const patch of stablePatches) {
+    if (!isSelectedNpmPatch(patch)) continue
+    const key = patch.target.name + '@' + patch.target.version
+    const group = npmGroups.get(key)
+    if (group === undefined) npmGroups.set(key, [patch])
+    else group.push(patch)
+  }
+  const npmPatchFiles = new Map<string, string>()
+  for (const [key, group] of npmGroups) {
+    const first = group[0]
+    if (group.length === 1) {
+      npmPatchFiles.set(key, first.absoluteFile)
+      continue
+    }
+    // 成员或版本变化必须改变workspace路径，使pnpm重新应用新的组合payload。
+    const members = group.map(patch => encodeURIComponent(patch.id + '@' + patch.patchPackage.version)).join('+')
+    const destination = resolve(root, 'combined', encodeURIComponent(key), members + '.patch')
+    mkdirSync(dirname(destination), { recursive: true })
+    const contents = group.map((patch) => {
+      const content = readFileSync(patch.absoluteFile, 'utf8')
+      return content.endsWith('\n') ? content : content + '\n'
+    }).join('')
+    writeFileSync(destination, contents)
+    npmPatchFiles.set(key, destination)
+  }
+  return { patches: stablePatches, npmPatchFiles }
 }
 
-function profilePatchConfiguration(profileDirectory: string, patches: readonly SelectedPatch[]): { text: string; changed: boolean } {
+function profilePatchConfiguration(
+  profileDirectory: string,
+  npmPatchFiles: ReadonlyMap<string, string>,
+): { text: string; changed: boolean } {
   const path = resolve(profileDirectory, 'pnpm-workspace.yaml')
   const document = parseDocument(readFileSync(path, 'utf8'))
   const [documentError] = document.errors
   if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
   let changed = false
-  const desiredKeys = new Set(patches.flatMap(patch => patch.target.kind === 'npm'
-    ? [patch.target.name + '@' + patch.target.version]
-    : []))
+  const desiredKeys = new Set(npmPatchFiles.keys())
   const workspace = requireObject(document.toJS() as unknown, 'Plus profile workspace')
   const configured = workspace.patchedDependencies === undefined
     ? {}
@@ -375,10 +413,8 @@ function profilePatchConfiguration(profileDirectory: string, patches: readonly S
       changed = true
     }
   }
-  for (const patch of patches) {
-    if (patch.target.kind !== 'npm') continue
-    const key = patch.target.name + '@' + patch.target.version
-    const value = relative(profileDirectory, patch.absoluteFile).replaceAll('\\', '/')
+  for (const [key, file] of npmPatchFiles) {
+    const value = relative(profileDirectory, file).replaceAll('\\', '/')
     const current = document.getIn(['patchedDependencies', key])
     if (current !== undefined && current !== value
       && (typeof current !== 'string' || !current.startsWith('.dsh-plus/patches/'))) {
@@ -485,16 +521,16 @@ function applySelectedPatches(
   patches: readonly SelectedPatch[],
   profileChanged: boolean,
 ): void {
-  const stablePatches = materializePatchFiles(profileDirectory, patches)
+  const materialized = materializePatchFiles(profileDirectory, patches)
   const workspacePath = resolve(profileDirectory, 'pnpm-workspace.yaml')
-  const workspace = profilePatchConfiguration(profileDirectory, stablePatches)
+  const workspace = profilePatchConfiguration(profileDirectory, materialized.npmPatchFiles)
   if (workspace.changed) writeFileSync(workspacePath, workspace.text)
   if (profileChanged || workspace.changed) {
     runPnpm(profileDirectory, ['install'], 'pnpm install in Plus profile')
   }
-  const sourceFiles = pendingSourcePatchFiles(stablePatches)
+  const sourceFiles = pendingSourcePatchFiles(materialized.patches)
   if (sourceFiles.length > 0) git(dshRoot, ['apply', ...sourceFiles])
-  if (stablePatches.some(patch => patch.target.kind === 'dsh-source')) {
+  if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
     runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
   }
 }

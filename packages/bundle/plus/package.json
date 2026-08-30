@@ -67,8 +67,8 @@
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-better-sidebar-app-frame",
+      "@sparkelf/dsh-patch-better-sidebar-alpha2-settings",
       "@sparkelf/dsh-patch-genui-streaming-echart",
-      "@sparkelf/dsh-patch-mobile-bridge-serialized-actions",
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-workspace-storage-restore",
       "@sparkelf/dsh-patch-subagent-settings-presets",
@@ -84,12 +84,12 @@
     }
   },
   "dependencies": {
-    "@sparkelf/dsh-mobile-bridge": ">=0.2.8",
+    "@sparkelf/dsh-mobile-bridge": ">=0.2.9",
     "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-patch-better-sidebar-alpha2-settings": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.12",
-    "@sparkelf/dsh-patch-mobile-bridge-serialized-actions": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-browser-auth-mode": ">=0.1.0-rc.12",
-    "dshmarket": ">=1.29.2",
+    "dshmarket": ">=1.38.1",
     "@changfenhuang/dsh-genui": ">=0.9.6",
     "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-workspace-storage-restore": ">=0.1.0-rc.12",
