@@ -16,13 +16,13 @@
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../credentials/credentials"
-    },
-    {
       "path": "../../llm/llm"
     },
     {
       "path": "../../core/tools"
+    },
+    {
+      "path": "../../core/scope"
     },
     {
       "path": "../../subprocess/subprocess"

@@ -34,6 +34,16 @@ const COLLAPSE_SETTLE_MS = 150
  */
 const SCROLLBAR_LINGER_MS = 2000
 
+/** Format complete-build metadata for the local brand badge. */
+function localBuildVersion(): string | undefined {
+  const version = process.env.DSH_CLIENT_VERSION
+  if (version === undefined) return undefined
+  const commit = process.env.DSH_CLIENT_COMMIT_HASH
+  return version
+    + (commit === undefined ? '' : `-${commit}`)
+    + (process.env.DSH_CLIENT_GIT_DIRTY === 'true' ? '-dirty' : '')
+}
+
 /**
  * Render the sidebar column shell.
  * @param props - composed slot props (runtime share + injected callbacks, contract/slots.ts).
@@ -87,11 +97,10 @@ export function SidebarRoot({
     lingerTimer.current = undefined
   }
   // Leaving is decided by the column's BOX, not by DOM containment, and only
-  // while the bars are drawn. ui-settings portals its full-viewport panel to
-  // body but remains a React descendant of this column, so synthetic leave
-  // follows the component tree: moving onto that panel — or onto the
-  // conversation once it closes — does not reliably fire `pointerleave` here,
-  // and the bars would stay drawn over a column nobody is pointing at.
+  // while the bars are drawn. ui-settings renders its full-viewport panel as a
+  // fixed-position DESCENDANT of this column, so a pointer moved onto that
+  // panel — or onto the conversation once it closes — fires no `pointerleave`
+  // here, and the bars would stay drawn over a column nobody is pointing at.
   // The element's own leave stays as the one signal geometry cannot give: a
   // pointer that leaves the window emits no further moves.
   useEffect(() => {
@@ -111,6 +120,8 @@ export function SidebarRoot({
       cancelLinger()
     }
   }, [pointerInside])
+
+  const buildVersion = localBuildVersion()
 
   return (
     <div
@@ -142,14 +153,14 @@ export function SidebarRoot({
               </span>
               <span className={css.brandName}>
                 {renderSlot('sidebar.brand.name', {}, {
-                  fallback: (
-                    <>
-                      <span className={css.fallbackBrandName}>DSH Local Build</span>
-                      {process.env.DSH_CLIENT_COMMIT_HASH
-                        ? <span className={css.buildRevision}>{process.env.DSH_CLIENT_COMMIT_HASH}</span>
-                        : null}
-                    </>
-                  ),
+                  fallback: buildVersion === undefined
+                    ? <span className={css.fallbackBrandName}>{t('brand.localBuild')}</span>
+                    : (
+                      <span className={css.localBuildBrand}>
+                        <span className={css.localBuildTitle}>{t('brand.localBuild')}</span>
+                        <span className={css.buildVersion}>{buildVersion}</span>
+                      </span>
+                    ),
                 })}
               </span>
             </span>

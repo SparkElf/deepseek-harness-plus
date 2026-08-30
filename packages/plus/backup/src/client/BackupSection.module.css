@@ -1,0 +1,110 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.desc {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.button {
+  padding: 8px 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.fileInput {
+  display: none;
+}
+
+.progress {
+  display: flex;
+  width: min(100%, 480px);
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressLabel,
+.progressDetail {
+  margin: 0;
+  font-size: 13px;
+}
+
+.progressLabel {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 500;
+}
+
+.progressDetail {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.progressTrack {
+  width: 100%;
+  height: 8px;
+  border: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.progressTrack::-webkit-progress-bar {
+  border-radius: 4px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.progressTrack::-webkit-progress-value {
+  border-radius: 4px;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.progressTrack::-moz-progress-bar {
+  border-radius: 4px;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.status {
+  margin: 0;
+  color: var(--dsw-alias-state-success-primary);
+  font-size: 13px;
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 13px;
+}
+
+.warning {
+  margin: 0;
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 12px;
+}

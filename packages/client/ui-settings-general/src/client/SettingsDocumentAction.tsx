@@ -41,8 +41,7 @@ export function SettingsDocumentAction({ controller, useSnapshot, t }: SettingsD
       <Button
         variant="outline"
         size="sm"
-        disabled={state.opening || !state.canOpen}
-        title={state.canOpen ? undefined : t('openDocument.unavailable')}
+        disabled={state.opening}
         onClick={() => { void controller.open() }}
       >
         {t('openDocument')}

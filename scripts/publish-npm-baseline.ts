@@ -18,7 +18,6 @@ import { basename, dirname, isAbsolute, join, normalize, relative, resolve, sep 
 import { createInterface } from 'node:readline/promises'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
-import { isFirstPartyPackageName } from './first-party-packages.ts'
 import { validateTarballPayload } from './publication-payload.ts'
 
 const DEFAULT_REGISTRY = 'https://registry.npm.harnessment.com'
@@ -26,8 +25,8 @@ const DEFAULT_OUTPUT_DIRECTORY = '.artifacts/npm-baseline'
 const PACKAGE_PATTERNS = [
   'vendor/*/package.json',
   'packages/!(experimental)/*/package.json',
-  'apps/cli/package.json',
-  'apps/web/package.json',
+  'patches/npm/*/package.json',
+  'apps/*/package.json',
 ] as const
 const DEPENDENCY_SECTIONS = [
   'dependencies',
@@ -262,8 +261,8 @@ class WorkspacePackageSet {
       const isVendored = manifestPath.startsWith('vendor/')
       // Vendored packages are rescoped too (vendor/README.md), so publication
       // never carries an upstream name that would squat it on the registry.
-      if (!isFirstPartyPackageName(name)) {
-        throw new Error(`${manifestPath} must name a first-party package`)
+      if (!name.startsWith('@deepseek-ai/')) {
+        throw new Error(`${manifestPath} must name an @deepseek-ai package`)
       }
       if (name === '@deepseek-ai/dsh-root') {
         throw new Error(`${manifestPath} unexpectedly selected the workspace root`)
@@ -807,7 +806,7 @@ function parsePackedPackage(value: unknown, index: number): PackedPackage {
   if (origin !== 'harness' && origin !== 'vendor') {
     throw new Error(`invalid package origin in release manifest: ${JSON.stringify(origin)}`)
   }
-  if (origin === 'harness' && (!isFirstPartyPackageName(name) || name === '@deepseek-ai/dsh-root')) {
+  if (origin === 'harness' && (!name.startsWith('@deepseek-ai/') || name === '@deepseek-ai/dsh-root')) {
     throw new Error(`invalid package name in release manifest: ${name}`)
   }
   return {

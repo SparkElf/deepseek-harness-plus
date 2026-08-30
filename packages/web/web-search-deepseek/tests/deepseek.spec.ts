@@ -8,7 +8,6 @@ import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
 import WebRuntime from '@deepseek-ai/dsh-web'
 import {
-  CurrentModelSearchProvider,
   DeepSeekSearchProvider,
   DEEPSEEK_PROVIDER_ID,
 } from '@deepseek-ai/dsh-web-search-deepseek'
@@ -29,7 +28,6 @@ const options = {
   apiVersion: '2023-06-01',
   maxTokens: 4096,
   maxUses: 5,
-  timeoutMs: 120000,
 }
 
 function jsonResponse(body: unknown, init: ResponseInit = {}): Response {
@@ -203,9 +201,7 @@ describe('DeepSeekSearchProvider request mapping', () => {
     const controller = new AbortController()
     await searchProvider(options).search({ query: 'q' }, controller.signal)
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
-    expect(init.signal?.aborted).toBe(false)
-    controller.abort()
-    expect(init.signal?.aborted).toBe(true)
+    expect(init.signal).toBe(controller.signal)
   })
 })
 
@@ -401,16 +397,6 @@ describe('DeepSeekSearchProvider error handling', () => {
     await expect(searchProvider(options).search({ query: 'q' }))
       .rejects.toThrow(expect.objectContaining({ code: 'WEB_PROVIDER_ERROR' }))
   })
-
-  it('fails loud with WEB_PROVIDER_TIMEOUT when the DeepSeek endpoint exceeds its bound', async () => {
-    vi.stubGlobal('fetch', vi.fn((_url: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
-      init?.signal?.addEventListener('abort', () => { reject(new DOMException('aborted', 'AbortError')) }, { once: true })
-    })))
-    const provider = searchProvider({ ...options, timeoutMs: 20 })
-
-    await expect(provider.search({ query: 'stall' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_TIMEOUT' })
-  })
-
 })
 
 describe('web-search-deepseek plugin registration', () => {
@@ -544,180 +530,5 @@ describe('web-search-deepseek plugin registration', () => {
     } finally {
       if (prev !== undefined) process.env.DEEPSEEK_API_KEY = prev
     }
-  })
-})
-
-describe('current-model search provider', () => {
-  function currentContext(
-    profile: unknown,
-    options: { selection?: { provider?: string; model?: string } | null; settings?: false; credential?: string | false } = {},
-  ): Context {
-    const ctx = new Context()
-    if (options.selection !== null) {
-      const selection = options.selection ?? { provider: 'link_api', model: 'gpt-5.6-sol' }
-      ctx.provide('agents', { currentInitiator: () => ({ options: selection }) } as never)
-    }
-    if (options.settings !== false) {
-      ctx.provide('settings', {
-        describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: profile } } }],
-      } as never)
-    }
-    if (options.credential !== false) {
-      ctx.provide('credentials', {
-        resolve: async () => options.credential === ''
-          ? undefined
-          : { value: options.credential ?? 'openai-key', source: 'test' },
-      } as never)
-    }
-    return ctx
-  }
-
-  it('uses the current provider, model, credential, and Responses web-search tool', async () => {
-    const ctx = new Context()
-    ctx.provide('agents', { currentInitiator: () => ({ options: { provider: 'link_api', model: 'gpt-5.6-sol' } }) } as never)
-    ctx.provide('settings', {
-      describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
-    } as never)
-    ctx.provide('credentials', {
-      resolve: async () => ({ value: 'openai-key', source: 'test' }),
-    } as never)
-    const fetchMock = vi.fn(async (url: string, init: RequestInit) => {
-      expect(url).toBe('https://gateway.test/v1/responses')
-      expect(init.redirect).toBe('error')
-      expect(init.headers).toMatchObject({ authorization: 'Bearer openai-key' })
-      expect(JSON.parse(init.body as string)).toMatchObject({
-        model: 'gpt-5.6-sol',
-        input: 'latest Harness release',
-        tools: [{ type: 'web_search' }],
-      })
-      return jsonResponse({
-        output: [{
-          type: 'message',
-          content: [{
-            type: 'output_text',
-            text: 'A current answer.',
-            annotations: [{ type: 'url_citation', url: 'https://example.test', title: 'Example' }],
-          }],
-        }],
-      })
-    })
-    vi.stubGlobal('fetch', fetchMock)
-    const result = await new CurrentModelSearchProvider(ctx).search({ query: 'latest Harness release' })
-    expect(result).toEqual({
-      content: 'A current answer.',
-      sources: [{ url: 'https://example.test', title: 'Example' }],
-      truncated: false,
-    })
-    expect(fetchMock).toHaveBeenCalledOnce()
-  })
-
-  it('reports unavailable, unsupported, and missing-credential routes before fetch', async () => {
-    const absent = new CurrentModelSearchProvider(new Context())
-    expect(absent.available()).toBe(false)
-    await expect(absent.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-
-    const partial = new CurrentModelSearchProvider(currentContext({}, { selection: { provider: 'link_api' } }))
-    await expect(partial.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-    const noSettings = new CurrentModelSearchProvider(currentContext({}, { settings: false }))
-    await expect(noSettings.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-    const noProfile = new CurrentModelSearchProvider(currentContext(undefined))
-    await expect(noProfile.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-    const nullProfile = new CurrentModelSearchProvider(currentContext(null))
-    await expect(nullProfile.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-    const malformedProfile = new CurrentModelSearchProvider(currentContext([]))
-    await expect(malformedProfile.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNAVAILABLE' })
-
-    const unsupported = new CurrentModelSearchProvider(currentContext({ api: 1, baseURL: 2, apiKeyEnv: 3 }))
-    expect(unsupported.available()).toBe(false)
-    await expect(unsupported.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_UNSUPPORTED' })
-    const noReference = new CurrentModelSearchProvider(currentContext({ api: 'openai-responses', baseURL: 'https://gateway.test/v1' }))
-    await expect(noReference.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_CREDENTIAL_MISSING' })
-    const noCredentialService = new CurrentModelSearchProvider(currentContext({
-      api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY',
-    }, { credential: false }))
-    await expect(noCredentialService.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_CREDENTIAL_MISSING' })
-    const unresolvedCredential = new CurrentModelSearchProvider(currentContext({
-      api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY',
-    }, { credential: '' }))
-    await expect(unresolvedCredential.search({ query: 'q' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_CREDENTIAL_MISSING' })
-  })
-
-  it('maps Responses messages, citations, duplicates, and absent optional values', async () => {
-    const ctx = currentContext({
-      api: 'openai-responses', baseURL: 'https://gateway.test/v1/', apiKeyEnv: 'OPENAI_API_KEY',
-    })
-    const provider = new CurrentModelSearchProvider(ctx)
-    expect(provider.available()).toBe(true)
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({
-      output: [
-        { type: 'web_search_call' },
-        { type: 'message', content: 'not-an-array' },
-        {
-          type: 'message',
-          content: [
-            { type: 'other' },
-            { type: 'output_text', text: '', annotations: 'not-an-array' },
-            {
-              type: 'output_text',
-              text: 'First answer',
-              annotations: [
-                { type: 'other', url: 'https://ignored.test' },
-                { type: 'url_citation', url: '' },
-                { type: 'url_citation', url: 'https://a.test' },
-                { type: 'url_citation', url: 'https://a.test', title: 'Duplicate' },
-                { type: 'url_citation', url: 'https://b.test', title: 'B' },
-              ],
-            },
-            { type: 'output_text', text: 'Second answer', annotations: [] },
-          ],
-        },
-      ],
-    })))
-
-    await expect(provider.search({ query: 'q' })).resolves.toEqual({
-      content: 'First answer\nSecond answer',
-      sources: [{ url: 'https://a.test' }, { url: 'https://b.test', title: 'B' }],
-      truncated: false,
-    })
-  })
-
-  it('uses output_text only as a fallback and preserves transport failures', async () => {
-    const ctx = currentContext({
-      api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY',
-    })
-    const provider = new CurrentModelSearchProvider(ctx)
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse({ output: {}, output_text: 'Fallback answer' }))
-      .mockResolvedValueOnce(jsonResponse({ output: [], output_text: '' }))
-      .mockResolvedValueOnce(new Response('bad gateway', { status: 502 }))
-      .mockRejectedValueOnce(new Error('connection reset'))
-    vi.stubGlobal('fetch', fetchMock)
-
-    await expect(provider.search({ query: 'fallback' })).resolves.toEqual({
-      content: 'Fallback answer', sources: [], truncated: false,
-    })
-    await expect(provider.search({ query: 'empty' })).resolves.toEqual({ sources: [], truncated: false })
-    await expect(provider.search({ query: 'http' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_ERROR' })
-    await expect(provider.search({ query: 'network' })).rejects.toThrow('connection reset')
-
-    const controller = new AbortController()
-    controller.abort()
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new DOMException('aborted', 'AbortError') }))
-    await expect(provider.search({ query: 'cancelled' }, controller.signal)).rejects.toMatchObject({ name: 'AbortError' })
-  })
-
-  it('fails loud with WEB_PROVIDER_TIMEOUT when the upstream stalls past the configured bound', async () => {
-    const ctx = new Context()
-    ctx.provide('agents', { currentInitiator: () => ({ options: { provider: 'link_api', model: 'gpt-5.6-sol' } }) } as never)
-    ctx.provide('settings', {
-      describe: () => [{ ns: 'llm-pi-ai', value: { providers: { link_api: { api: 'openai-responses', baseURL: 'https://gateway.test/v1', apiKeyEnv: 'OPENAI_API_KEY' } } } }],
-    } as never)
-    ctx.provide('credentials', { resolve: async () => ({ value: 'openai-key', source: 'test' }) } as never)
-    vi.stubGlobal('fetch', vi.fn((_url: unknown, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
-      init?.signal?.addEventListener('abort', () => { reject(new DOMException('aborted', 'AbortError')) }, { once: true })
-    })))
-    const provider = new CurrentModelSearchProvider(ctx, () => 50)
-    await expect(provider.search({ query: 'stall' })).rejects.toMatchObject({ code: 'WEB_PROVIDER_TIMEOUT' })
-    vi.unstubAllGlobals()
   })
 })

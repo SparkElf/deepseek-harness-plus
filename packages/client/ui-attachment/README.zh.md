@@ -1,37 +1,104 @@
+---
+description: "对话 UI 的附件呈现：草稿图片栏、文档拖放目标、历史图片画廊与原图灯箱；供 Web 附件体验的用户与维护者阅读。"
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-client-ui-attachment
 
 [English](README.md) | 中文
 
-对话 UI 的动态附件呈现插件。它通过 `ctx.slots.inject` 等待 conversation 包声明 `conversation.input.attachments` 与 `conversation.message.images`，随后注册混合输入区附件栏、整页文件拖放呈现、持久历史图片画廊和原图灯箱。conversation 持有方提供浏览器草稿记录、回调、图片加载能力以及命名空间翻译器；呈现组件保持纯 props，且不从包入口导出。
+## 概述
 
-## 附件栏
+本包渲染对话 UI 中与附件相关的一切：composer 下的待发送草稿图片、全视口拖放邀请层、Chat 与 Trajectory 中的持久图片，以及查看原图的灯箱。它是纯呈现层——附件数据、图片加载与回调都经声明槽位来自 conversation 包。需要 DeepSeek Chat 风格的图片体验时选择它；非图片文件在此没有任何表面。
 
-`AttachmentRail` 是一条可横向滚动的混合附件栏。待发送图片继续使用已有的固定 64px 缩略图卡片，并支持单击查看原图。待发送文档使用更宽的紧凑卡片，显示文件名、文件类型标签和人类可读大小；文档卡片不会假装能够预览或解析正文。两类条目共用相同的删除控制与溢出行为。
+## 目录
 
-滚动条始终隐藏，溢出由两端圆形箭头提示。每个箭头按一个视口减去一张上下文卡片的距离翻页（下限 200px），除非用户请求减少动画，否则使用平滑滚动。箭头显隐会在滚动、条目数量变化和 rail ResizeObserver 变化时重算。带纵向分量的滚轮事件会被消费并转成有界横向移动，因此不会同时滚动输入区背后的会话；纯横向平移保持原生行为。新增条目会展示栏尾，删除则保持当前位置。
+- [使用本包](#use-this-package)
+- [理解实现](#understand-the-implementation)
+- [进一步探索](#further-exploration)
+- [模型体验](#model-experience)
+- [已知限制与延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
-## 输入区拖放呈现
+-----
 
-`ComposerAttachments` 监听本 slot entry 持有的 document 级文件拖拽。文件会按类型分流：栅格图片转给已有图片准入回调；只有 Host 投影了解析器支撑的 `documentLimits` 时才提供文档文件，然后转给文档准入回调，由持有方执行 PDF/DOCX/PPTX/XLSX 预检。输入区被锁定时显示通用附件禁用遮罩，并且不会转发任何文件。遮罩只负责呈现；数量、字节和媒体类型准入仍由 conversation 持有方和 Host 负责。
+<a id="use-this-package"></a>
+## 使用本包
 
-混合草稿不会改变图片行为。图片卡片仍会打开 `ImageLightbox`；文档卡片没有灯箱。删除文档调用文档专用回调，而删除图片还会让 conversation runtime 回收其浏览器对象 URL。
+与 [`ui-conversation`](../ui-conversation/README.zh.md) 一起挂载本插件；它等待 conversation 包的槽位声明，并把自身表面注册进这些槽位。用户随即看到：带逐图删除与点击打开的草稿图片栏、带上限说明的拖放遮罩、按数量定尺寸的消息图片，以及支持 Escape／遮罩／关闭按钮的灯箱。
 
-## 消息图片与灯箱
+### 草稿图片
 
-`MessageImage` 通过持有方的 `ImageLoader` 加载会话授权 URL 来渲染一张持久历史图片；失败时提供重试控制，成功后可打开 `ImageLightbox`。单图最长边最多 240px，展示宽高比钳制在 [0.25, 4]；多图 tile 仍是固定 64px 方块。`ImageGallery` 负责换行与消息侧对齐。`ImageLightbox` 是 document 级模态框，可通过 Escape、遮罩按下或关闭按钮关闭，并在关闭后把焦点还给打开者。
+草稿图片以固定 64px 缩略图呈现在一行横向滚动条中；溢出隐藏时由边缘箭头翻页，滚动条保持隐藏。新增条目滚动到栏尾展示，删除保持原位，单击经持有方的 `onOpen` 打开原图。
 
-持久文档历史卡片由 conversation 包根据 `DocumentBlock` 元数据渲染，而不是由这个图片呈现插件负责。本包之所以渲染输入区文档卡，是因为 composer attachment slot 属于它的呈现表面；它不持有会话内容语义。
+### 消息图片与灯箱
 
+一条消息仅有的一张图按长边 240px 渲染（宽高比钳制在 [0.25, 4]，从不放大）；多图中的一张渲染为固定 64px 方块。加载完成的图片单击打开文档级灯箱；加载失败则显示重试控件。灯箱按 Escape、按下遮罩或点关闭按钮关闭，并把焦点还给打开者。
+
+### 拖放遮罩
+
+文件拖拽悬停页面时，全视口遮罩宣布可拖放：插画、标题，接受拖放时再加一行上限说明。遮罩只呈现状态——接受或拒绝由持有方的 document 级监听器决定。
+
+-----
+
+<a id="understand-the-implementation"></a>
+## 理解实现
+
+<details>
+<summary>实现细节——点击展开</summary>
+
+插件通过 `ctx.slots.inject` 等待 `conversation.input.attachments`、`conversation.message.images` 与 `conversation.trajectory.images`。随后它注册 composer rail、文档拖放目标、供 Chat 和 Trajectory 共用的历史图片 gallery，以及原图灯箱。呈现组件保持纯 props：conversation 槽位持有方提供附件数据、图片加载、回调与语言包翻译器；包入口不导出任何组件。
+
+| 文件 | 职责 |
+|---|---|
+| [`src/client/ComposerAttachments.tsx`](src/client/ComposerAttachments.tsx) | 草稿图片栏＋拖放遮罩的组装 |
+| [`src/AttachmentRail.tsx`](src/AttachmentRail.tsx) | 滚动缩略图栏、滚轮转换、边缘箭头 |
+| [`src/client/MessageImages.tsx`](src/client/MessageImages.tsx) | 每消息画廊＋灯箱的组装 |
+| [`src/MessageImage.tsx`](src/MessageImage.tsx) | 单图尺寸、加载／重试、点击打开；本地提交回显预览直接显示其 object URL |
+| [`src/ImageLightbox.tsx`](src/ImageLightbox.tsx) | 铺在共享遮罩上的文档级模态预览 |
+| [`src/DropOverlay.tsx`](src/DropOverlay.tsx) | 不接收指针事件的拖拽邀请 portal |
+
+</details>
+
+-----
+
+<a id="further-exploration"></a>
+## 进一步探索
+
+当附件面不够用时阅读以下页面。它们从本包填充的槽位进入拥有输入流程的会话外壳。
+
+- [ui-conversation](../ui-conversation/README.zh.md)——声明附件槽位并拥有 composer 与图片摄入。
+- [Web 客户端架构](../../../.agents/notes/implemented/architecture/2026-07-19-gui-web-client-architecture.zh.md)——浏览器插件行如何加载并注册槽位。
+- [客户端包映射](../README.zh.md)——相邻的浏览器 UI 包。
+
+-----
+
+<a id="model-experience"></a>
 ## 模型体验
 
-无，因为该包只渲染附件状态并调用持有方回调。
+无，因为该插件只渲染由对话 UI 提供的附件状态，不贡献模型可见输入。
 
 #### KV Cache 影响
 
-无；该包不会发起模型调用。
+无；该包既不组装也不发送提供方请求。
 
-## 已知限制与待完成工作
+## 已知限制与延期工作
 
-- 输入区文档卡支持通用 PDF/DOCX/PPTX/XLSX 草稿路径，但没有内嵌 PDF/Office 预览，也没有上传进度百分比。
-- 历史文档卡按设计只显示元数据；解析后的 Markdown 经 LLM 适配器进入模型，解析器内部细节不属于本包。
-- 图片灯箱没有缩放或下载控制，也不锁定焦点，不过它会设置 `aria-modal` 并在关闭时恢复焦点。
+<a id="known-limitations-and-deferred-work"></a>
+
+
+这些限制界定了当前附件表面。它们是包约束，不是通用图片查看器对比或任务积压。
+
+- **仅支持图片**——非图片文件尚无附件栏卡片与历史渲染；DeepSeek Chat 风格的文件卡片和上传进度等输入框接受非图片附件后再做。
+- **灯箱无缩放与下载**——预览仅以适配视口的尺寸渲染原图。
+- **灯箱不锁定焦点**——它设置 `aria-modal` 并在关闭时归还焦点，但 Tab 仍可移动到背后的页面。
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者的工作上下文——点击展开</summary>
+
+无。
+
+</details>

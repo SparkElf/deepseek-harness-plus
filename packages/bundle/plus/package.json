@@ -1,0 +1,111 @@
+{
+  "name": "@sparkelf/dsh-plus",
+  "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
+  "version": "0.1.0-rc.8",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "packages/bundle/plus"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./invariant": {
+      "types": "./lib/types/invariant.d.ts",
+      "default": "./lib/invariant.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./apply": {
+      "types": "./lib/types/apply.d.ts",
+      "default": "./lib/apply.js"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/bin.js",
+    "cordis.patch.yml",
+    "lib/apply.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "license": "MIT",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "dshPlus": {
+    "formatVersion": 1,
+    "compatibility": {
+      "dsh": ">=0.1.2-alpha.1"
+    },
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-better-sidebar",
+        "@sparkelf/dsh-mobile-bridge",
+        "dshmarket",
+        "@changfenhuang/dsh-genui",
+        "@sparkelf/dsh-plus"
+      ]
+    },
+    "patchPackages": [
+      "@sparkelf/dsh-patch-better-sidebar-app-frame",
+      "@sparkelf/dsh-patch-genui-streaming-echart",
+      "@sparkelf/dsh-patch-mobile-bridge-serialized-actions",
+      "@sparkelf/dsh-patch-workspace-storage-restore",
+      "@sparkelf/dsh-patch-subagent-settings-presets",
+      "@sparkelf/dsh-patch-document-attachments",
+      "@sparkelf/dsh-patch-responses-reasoning-status",
+      "@sparkelf/dsh-patch-mobile-web-layout",
+      "@sparkelf/dsh-patch-web-base-path"
+    ],
+    "sourceBase": {
+      "revision": "cd5ef8148158c3a752a658978873241fdf8e2bbc"
+    }
+  },
+  "dependencies": {
+    "@sparkelf/dsh-mobile-bridge": ">=0.2.8",
+    "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-mobile-bridge-serialized-actions": ">=0.1.0-rc.8",
+    "dsh-better-sidebar": ">=0.16.1",
+    "dshmarket": ">=1.29.2",
+    "@changfenhuang/dsh-genui": ">=0.9.6",
+    "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-workspace-storage-restore": ">=0.1.0-rc.8",
+    "semver": ">=7.7.3",
+    "yaml": ">=2.9.0",
+    "@sparkelf/dsh-plugin-subagent-settings": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-subagent-settings-presets": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.8"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1",
+    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@types/semver": ">=7.7.1"
+  },
+  "bin": {
+    "dsh-plus": "lib/bin.js"
+  }
+}

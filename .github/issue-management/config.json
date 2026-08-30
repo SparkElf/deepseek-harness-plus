@@ -1,6 +1,6 @@
 {
-  "organization": "SparkElf",
-  "repository": "deepseek-harness-plus",
+  "organization": "deepseek-harness",
+  "repository": "deepseek-harness",
   "projectNumber": 1,
   "projectTitle": "DSH Issue Management",
   "lifecycleActor": "dsh-issue-management",

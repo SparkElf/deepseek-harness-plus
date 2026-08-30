@@ -1,0 +1,331 @@
+diff --git a/packages/client/ui-settings-models/README.i18n.yaml b/packages/client/ui-settings-models/README.i18n.yaml
+index 8b69e152a0..2f8226726f 100644
+--- a/packages/client/ui-settings-models/README.i18n.yaml
++++ b/packages/client/ui-settings-models/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-settings-models/README.md
+-README.md: 75efb18daf3e4a96fea637f36633f216046ebccd
+-README.zh.md: f3c7099e242e379be5143352d4045208a8209dc6
++README.md: 18be58b5a85cb1fcf10710c57d7aea8211c104d8
++README.zh.md: 073b581bf425bea07bbc52b5e35207c2a4a34514
+diff --git a/packages/client/ui-settings-models/README.md b/packages/client/ui-settings-models/README.md
+index 75efb18daf..18be58b5a8 100644
+--- a/packages/client/ui-settings-models/README.md
++++ b/packages/client/ui-settings-models/README.md
+@@ -33,7 +33,7 @@ The primary field on an editor card is a single **API key** input — the page n
+ 
+ ### Editing a provider
+ 
+-The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
++The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. A pi-ai route whose effective protocol is `openai-responses` also shows **Gateway compatibility mode**, which writes `responsesCompatibility.omitReasoningInputStatus`; disabling it deletes the user leaf unless an inherited true requires an explicit false, and changing protocol removes or masks the incompatible setting while preserving sibling fields. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
+ 
+ ### Adding and deleting providers
+ 
+diff --git a/packages/client/ui-settings-models/README.zh.md b/packages/client/ui-settings-models/README.zh.md
+index f3c7099e24..073b581bf4 100644
+--- a/packages/client/ui-settings-models/README.zh.md
++++ b/packages/client/ui-settings-models/README.zh.md
+@@ -33,7 +33,7 @@ kind: "package-reference"
+ 
+ ### 编辑提供方
+ 
+-收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
++收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。effective protocol为 `openai-responses` 的pi-ai路由还会显示**中转站兼容模式**，写入 `responsesCompatibility.omitReasoningInputStatus`；关闭时，若没有继承的true则删除user leaf，否则写入显式false，切换协议也会删除或遮蔽不兼容设置，并保留sibling fields。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
+ 
+ ### 新增与删除提供方
+ 
+diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
+index fe2fe87d3a..a0e3103270 100644
+--- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
++++ b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
+@@ -396,6 +396,31 @@
+   padding-top: 12px;
+ }
+ 
++.settingToggle {
++  display: flex;
++  align-items: center;
++  gap: 8px;
++  min-height: 32px;
++  width: fit-content;
++  color: var(--dsw-alias-label-primary);
++  font-size: 12px;
++  line-height: 18px;
++  cursor: pointer;
++}
++
++.settingCheckbox {
++  flex: none;
++  width: 16px;
++  height: 16px;
++  margin: 0;
++  accent-color: var(--dsw-alias-state-business-primary);
++  cursor: pointer;
++}
++
++.settingCheckbox:disabled {
++  cursor: not-allowed;
++}
++
+ /* Model catalog: a table, not a stack of cards. The column captions are
+    written once above the rows, so a row is one line of fields plus its
+    delete control; each field still carries the indexed `aria-label` that
+diff --git a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
+index 675c852125..cb16012c56 100644
+--- a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
++++ b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
+@@ -44,6 +44,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
+ /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
+ const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
+ 
++/** Leaf path of the curated OpenAI Responses compatibility setting. */
++const OMIT_REASONING_INPUT_STATUS_PATH = ['responsesCompatibility', 'omitReasoningInputStatus'] as const
++
+ /** Props of {@link ProviderEditor}. */
+ export interface ProviderEditorProps {
+   /** Provider route id. */
+@@ -171,6 +174,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+   const root = useMemo(() => schema.rehydrate(namespace.schema), [namespace.schema, schema])
+   const node = useMemo(() => schema.nodeAtPath(root, settingsPath), [root, schema, settingsPath])
+   const fallback = schema.getPath(namespace.value, settingsPath)
++  const inheritedOmitReasoningInputStatus = schema.getPath(
++    namespace.base,
++    [...settingsPath, ...OMIT_REASONING_INPUT_STATUS_PATH],
++  ) === true
+   const disabled = props.readOnly || busy
+   const layout = layoutOf(namespace.ns)
+   const keyRef = refFor(schema, namespace, settingsPath, props.provider)
+@@ -204,6 +211,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+     const value = schema.getPath(source, [key])
+     return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+   }
++  const disableOmitReasoningInputStatus = (current: Record<string, unknown>): Record<string, unknown> => {
++    return inheritedOmitReasoningInputStatus
++      ? schema.setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, false)
++      : schema.deletePath(current, OMIT_REASONING_INPUT_STATUS_PATH)
++  }
+   const setField = (key: string, next: string | undefined): void => {
+     // A value of nothing but whitespace is cleared, not stored: `stringAt`
+     // already reports it as absent, so the field would otherwise render empty
+@@ -232,6 +244,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+   // What the form currently shows, which is what an interrogation must ask:
+   // an edited-but-unsaved endpoint, and a key typed but not yet stored.
+   const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
++  const omitReasoningInputStatus = schema.hasPath(draft, OMIT_REASONING_INPUT_STATUS_PATH)
++    ? schema.getPath(draft, OMIT_REASONING_INPUT_STATUS_PATH) === true
++    : schema.getPath(fallback, OMIT_REASONING_INPUT_STATUS_PATH) === true
+   const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
+   const probe = {
+     settingsNs: namespace.ns,
+@@ -447,7 +462,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+                     value={probeApi ?? ''}
+                     aria-label={t('customApi')}
+                     disabled={disabled}
+-                    onChange={(event) => { setField('api', event.target.value) }}
++                    onChange={(event) => {
++                      const selectedApi = event.target.value
++                      setDraft((current) => {
++                        const next = schema.setPath(current, ['api'], selectedApi)
++                        return selectedApi === 'openai-responses'
++                          ? next
++                          : disableOmitReasoningInputStatus(next)
++                      })
++                    }}
+                   >
+                     {/* A profile naming no protocol — hand-written into
+                         settings.yaml with no model to need one — selects
+@@ -461,6 +484,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+                 </div>
+               )
+               : null}
++            {family === 'pi-ai' && probeApi === 'openai-responses'
++              ? (
++                <label className={styles['settingToggle']}>
++                  <input
++                    className={styles['settingCheckbox']}
++                    type="checkbox"
++                    checked={omitReasoningInputStatus}
++                    disabled={disabled}
++                    onChange={(event) => {
++                      setDraft(current => event.target.checked
++                        ? schema.setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, true)
++                        : disableOmitReasoningInputStatus(current))
++                    }}
++                  />
++                  <span>{t('omitReasoningInputStatus')}</span>
++                </label>
++              )
++              : null}
+             {/* Both families edit the same rows through the same contract; only
+                 the extras differ — DeepSeek's inherited capacities, pi-ai's
+                 endpoint interrogation. */}
+diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
+index f1b0718ba5..7d664492a5 100644
+--- a/packages/client/ui-settings-models/src/client/locales.ts
++++ b/packages/client/ui-settings-models/src/client/locales.ts
+@@ -83,6 +83,7 @@ export const en = {
+   customDisplayName: 'Display name',
+   customApi: 'API protocol',
+   customApiUnset: 'Not selected',
++  omitReasoningInputStatus: 'Gateway compatibility mode',
+   customNeedsBaseUrl: 'A custom provider needs a base URL.',
+   customNeedsModels: 'A custom provider needs at least one model.',
+   customBaseUrlPlaceholder: 'https://gateway.example/v1',
+@@ -187,6 +188,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
+   customDisplayName: '显示名称',
+   customApi: 'API 协议',
+   customApiUnset: '未选择',
++  omitReasoningInputStatus: '中转站兼容模式',
+   customNeedsBaseUrl: '自定义提供方需要填写 API 地址。',
+   customNeedsModels: '自定义提供方至少需要一个模型。',
+   customBaseUrlPlaceholder: 'https://gateway.example/v1',
+diff --git a/packages/llm/llm-pi-ai/README.i18n.yaml b/packages/llm/llm-pi-ai/README.i18n.yaml
+index 38b01bcd52..43d8e199ba 100644
+--- a/packages/llm/llm-pi-ai/README.i18n.yaml
++++ b/packages/llm/llm-pi-ai/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/llm/llm-pi-ai/README.md
+-README.md: dcafde78e176bd0acd142145d651d6d5b5539626
+-README.zh.md: a7292638b8449d7192d3e003f0377967d11ef94d
++README.md: 5db7b2fecd77bcdc27f55851fcbaa32401326adf
++README.zh.md: 319059c93916e87f127bf56ba5d1b9c6f81c006c
+diff --git a/packages/llm/llm-pi-ai/README.md b/packages/llm/llm-pi-ai/README.md
+index dcafde78e1..5db7b2fecd 100644
+--- a/packages/llm/llm-pi-ai/README.md
++++ b/packages/llm/llm-pi-ai/README.md
+@@ -79,6 +79,7 @@ Each profile may set a `retryPolicy`; omission uses normal mode with five retrie
+ | `models` | installed catalog | Replaces the route's catalog wholesale; each entry defaults from the installed model |
+ | `modelOverrides` | none | Reshapes individual installed-catalog models without replacing the rest |
+ | `compat` | catalog detection | Wire-compatibility switches for unrecognized endpoints |
++| `responsesCompatibility` | absent | OpenAI Responses input-item adjustments for compatible gateways |
+ | `defaultContextWindow` | `262,144` | Capacity fallback for undescribed models |
+ | `defaultMaxTokens` | `32,768` | Output-cap fallback for undescribed models |
+ | `requestImagePixelBudget` | `4,194,304` | Total-pixel budget for each deterministic request image |
+@@ -98,7 +99,7 @@ A profile's `models` list replaces the route's installed catalog rather than ext
+ 
+ ### Run with reasoning and wire compatibility
+ 
+-`reasoningEfforts` declares a model's selectable thinking levels: each key is a level selectors offer, its value the spelling dispatch sends on the wire, so `max: ultra` renames a level for a gateway with its own vocabulary. Omitting the field keeps the installed catalog entry's capability; `false` declares a non-reasoning model. `compat` switches reshape the request for endpoints pi-ai cannot recognize — which role carries the system prompt, which field caps output, how a thinking level travels — configurable per route and per model. A model neither the entry nor the installed catalog sizes takes the route's `defaultContextWindow` and `defaultMaxTokens` fallbacks.
++`reasoningEfforts` declares a model's selectable thinking levels: each key is a level selectors offer, its value the spelling dispatch sends on the wire, so `max: ultra` renames a level for a gateway with its own vocabulary. Omitting the field keeps the installed catalog entry's capability; `false` declares a non-reasoning model. `compat` switches reshape the request for endpoints pi-ai cannot recognize — which role carries the system prompt, which field caps output, how a thinking level travels — configurable per route and per model. An explicit `openai-responses` route may set `responsesCompatibility.omitReasoningInputStatus: true` when its gateway accepts replayed reasoning items but rejects their response-only `status` field; the adapter removes only that field from top-level reasoning input items after pi-ai serializes the request, and every other protocol refuses the option. A model neither the entry nor the installed catalog sizes takes the route's `defaultContextWindow` and `defaultMaxTokens` fallbacks.
+ 
+ ### Change configuration at runtime
+ 
+diff --git a/packages/llm/llm-pi-ai/README.zh.md b/packages/llm/llm-pi-ai/README.zh.md
+index a7292638b8..319059c939 100644
+--- a/packages/llm/llm-pi-ai/README.zh.md
++++ b/packages/llm/llm-pi-ai/README.zh.md
+@@ -79,6 +79,7 @@ kind: "package-reference"
+ | `models` | 已安装目录 | 整体替换路由目录；每个条目从已安装模型取默认值 |
+ | `modelOverrides` | 无 | 重塑个别已安装目录模型，而不替换其余模型 |
+ | `compat` | 目录检测 | 无法识别端点的协议兼容开关 |
++| `responsesCompatibility` | 无 | 兼容网关的 OpenAI Responses 输入项调整 |
+ | `defaultContextWindow` | `262,144` | 未描述模型的容量回退 |
+ | `defaultMaxTokens` | `32,768` | 未描述模型的输出上限回退 |
+ | `requestImagePixelBudget` | `4,194,304` | 每张确定性请求图片的总像素预算 |
+@@ -98,7 +99,7 @@ profile 的 `models` 列表会替换而非扩展路由的已安装目录；每
+ 
+ ### 带推理与协议兼容运行
+ 
+-`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。
++`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。显式使用 `openai-responses` 的路由可在网关接受历史 reasoning 项、但拒绝其中响应侧专用 `status` 字段时设置 `responsesCompatibility.omitReasoningInputStatus: true`；适配器在 pi-ai 序列化请求后，仅从顶层 reasoning 输入项删除该字段，其他协议会拒绝此选项。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。
+ 
+ ### 运行时更改配置
+ 
+diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
+index e20b8e0072..d392ab7c72 100644
+--- a/packages/llm/llm-pi-ai/src/adapter.ts
++++ b/packages/llm/llm-pi-ai/src/adapter.ts
+@@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
+   authContext: AuthContext
+ }
+ 
++/** Whether one Responses input item is replayed reasoning with response status metadata. */
++function hasReasoningInputStatus(item: unknown): boolean {
++  const inputItem = item as Record<string, unknown>
++  return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
++}
++
++/** Remove response-only status metadata from replayed reasoning input items. */
++function omitReasoningInputStatus(payload: unknown): unknown {
++  const request = payload as Record<string, unknown> & { input: unknown[] }
++  if (!request.input.some(hasReasoningInputStatus)) return undefined
++  const input = request.input.map((item) => {
++    if (!hasReasoningInputStatus(item)) return item
++    const { status: _status, ...withoutStatus } = item as Record<string, unknown>
++    return withoutStatus
++  })
++  return { ...request, input }
++}
++
+ /** Copy profile stream knobs into pi-ai's common option vocabulary. */
+ function profileOptions(
+   profile: ResolvedPiAiProviderProfile,
+@@ -126,6 +144,7 @@ function profileOptions(
+     ...profile.transport === undefined ? {} : { transport: profile.transport },
+     ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
+     ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
++    ...profile.responsesCompatibility?.omitReasoningInputStatus === true ? { onPayload: omitReasoningInputStatus } : {},
+     // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
+     maxRetries: 0,
+   }
+diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
+index e5a7e608b9..ce8192bf28 100644
+--- a/packages/llm/llm-pi-ai/src/config.ts
++++ b/packages/llm/llm-pi-ai/src/config.ts
+@@ -84,6 +84,12 @@ export type {
+   PiAiThinkingFormat,
+ } from './catalog.ts'
+ 
++/** OpenAI Responses input-item adjustments for compatible gateways. */
++export interface PiAiResponsesCompatibility {
++  /** Omit response-only status metadata from replayed reasoning input items. */
++  omitReasoningInputStatus?: boolean
++}
++
+ /** Configuration for one pi-ai provider route; the `providers` dict key IS the route. */
+ export interface PiAiProviderProfile {
+   /** Credential reference (environment-variable name) resolved per request through `ctx.credentials`. */
+@@ -121,6 +127,8 @@ export interface PiAiProviderProfile {
+    * refused rather than left looking applied.
+    */
+   compat?: PiAiCompatProfile
++  /** OpenAI Responses input-item adjustments for compatible gateways. */
++  responsesCompatibility?: PiAiResponsesCompatibility
+   /**
+    * Context capacity for a model this route lists that neither the entry nor
+    * the installed catalog sizes (default 262,144). A guess by construction, so
+@@ -311,6 +319,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
+ /** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
+ const modelOverride: z<PiAiModelOverride> = z.object(modelFields)
+ 
++const responsesCompatibility: z<PiAiResponsesCompatibility> = z.object({
++  omitReasoningInputStatus: z.boolean(),
++})
++
+ const profile = z.object({
+   apiKeyEnv: z.string().role('credential-ref'),
+   displayName: z.string(),
+@@ -319,6 +331,7 @@ const profile = z.object({
+   models: z.array(modelProfile),
+   modelOverrides: z.dict(modelOverride),
+   compat: compatProfile,
++  responsesCompatibility,
+   defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
+   defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
+   defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
+@@ -400,6 +413,11 @@ export function resolveProfiles(
+     if (source.displayName !== undefined && source.displayName.length === 0) {
+       throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
+     }
++    if (source.responsesCompatibility?.omitReasoningInputStatus === true && source.api !== 'openai-responses') {
++      throw new Error(
++        `llm-pi-ai: provider "${provider}" responsesCompatibility.omitReasoningInputStatus requires api "openai-responses"`,
++      )
++    }
+     const streamIdleTimeoutMs = source.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS
+     if (!Number.isFinite(streamIdleTimeoutMs)
+       || streamIdleTimeoutMs <= 0

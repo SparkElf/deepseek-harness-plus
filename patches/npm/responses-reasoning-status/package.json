@@ -1,0 +1,36 @@
+{
+  "name": "@sparkelf/dsh-patch-responses-reasoning-status",
+  "version": "0.1.0-rc.8",
+  "description": "Data-only exact official-source patch for OpenAI Responses gateways that reject replayed reasoning status metadata",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/responses-reasoning-status"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "responses-omit-reasoning-input-status",
+        "dsh": ">=0.1.2-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "paths": [
+            "packages/llm/llm-pi-ai/",
+            "packages/client/ui-settings-models/"
+          ]
+        },
+        "file": "./patches/responses-reasoning-status.patch"
+      }
+    ]
+  }
+}

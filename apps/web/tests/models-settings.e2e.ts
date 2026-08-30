@@ -5,9 +5,9 @@
 // while the settings document records only that reference. Each saved row
 // appears after route topology invalidation without presenting liveness as
 // provider status. The customized-settings fold writes its curated fields —
-// the endpoint, a declared route's own name and protocol, and the Responses
-// compatibility leaf — as merge patches against the stored profile. Zero model
-// calls: configuration is pure settings/credentials/llm-domain traffic, so there is no fixture and a
+// the endpoint, and a declared route's own name and protocol — as merge
+// patches against the stored profile. Zero model calls: configuration is pure
+// settings/credentials/llm-domain traffic, so there is no fixture and a
 // stray stream would fail loud because the adapter registry is empty. The provider under test is
 // minimax-cn so a developer's real ANTHROPIC/OPENAI environment keys can
 // never shadow the derived reference. The deletion dialog distinguishes a
@@ -25,7 +25,7 @@ import {
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/models-settings', import.meta.url))
+const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/models-settings', import.meta.url))
 const EMPTY_EXPECTED = join(SNAPSHOT_DIR, 'empty.expected.md')
 const CONFIGURED_EXPECTED = join(SNAPSHOT_DIR, 'configured.expected.md')
 const DECLARED_EXPECTED = join(SNAPSHOT_DIR, 'declared.expected.md')
@@ -47,7 +47,7 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     // The scenario asserts the shipped Chinese copy, so the browser asks for it.
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
-    await page.goto(scaffold.baseUrl, { waitUntil: 'load' })
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
   }, 120_000)
 
@@ -224,15 +224,12 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     await dialog.getByLabel('Provider ID').fill('acme-gateway')
     await dialog.getByLabel('显示名称').fill('Acme Gateway')
     await dialog.getByLabel('API 地址').fill('https://gateway.acme.example/v1')
-    await dialog.getByLabel('API 协议').selectOption('openai-responses')
     // No reasoning effort on a provider card at all: effort is a per-model
     // capability, the models under one provider disagree about it, and a
     // switch in the composer already records provider+model+effort together.
     expect(await dialog.getByLabel('推理强度').count()).toBe(0)
     await dialog.getByRole('button', { name: '添加模型' }).click()
     await dialog.getByLabel('模型 ID 1').fill('acme-large')
-    await dialog.getByRole('button', { name: '模型能力 1' }).click()
-    await dialog.getByLabel('支持图片输入 1').check()
     await dialog.getByRole('button', { name: '创建提供方', exact: true }).click()
 
     const row = dialog.getByText('Acme Gateway', { exact: true }).first()
@@ -261,19 +258,13 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     // than sending the user to settings.yaml for what only this route names.
     const protocol = dialog.getByLabel('API 协议')
     await protocol.waitFor({ timeout: 10_000 })
-    expect(await protocol.inputValue()).toBe('openai-responses')
-    const compatibility = dialog.getByLabel('中转站兼容模式')
-    await compatibility.waitFor({ timeout: 10_000 })
-    expect(await compatibility.isChecked()).toBe(false)
-    await dialog.getByRole('button', { name: '模型能力 1' }).click()
-    const imageInput = dialog.getByLabel('支持图片输入 1')
-    expect(await imageInput.isChecked()).toBe(true)
+    expect(await protocol.inputValue()).toBe('openai-completions')
     const name = dialog.getByLabel('显示名称', { exact: true })
     expect(await name.inputValue()).toBe('Acme Gateway')
     const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
     await compareOrRefreshGolden(DECLARED_EDIT_EXPECTED, snapshot, MODE)
 
-    await compatibility.check()
+    await protocol.selectOption('anthropic-messages')
     await name.fill('Acme 网关')
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await expect.poll(async () => dialog.getByLabel('API 协议').count(), { timeout: 10_000 }).toBe(0)
@@ -286,31 +277,8 @@ describe('web e2e: Models settings page configures a dormant provider', () => {
     // the target captured when the card opened still carries the old name.
     await dialog.getByText('已保存 Acme 网关 (acme-gateway)。', { exact: true }).waitFor({ timeout: 10_000 })
     const document = await readFile(join(scaffold.harnessHome, 'settings.yaml'), 'utf8')
-    expect(document).toContain('api: openai-responses')
+    expect(document).toContain('api: anthropic-messages')
     expect(document).toContain('displayName: Acme 网关')
-
-    await dialog.getByRole('button', { name: '编辑 Acme 网关 (acme-gateway)' }).click()
-    await dialog.getByText('自定义设置').click()
-    const restored = dialog.getByLabel('中转站兼容模式')
-    await restored.waitFor({ timeout: 10_000 })
-    expect(await restored.isChecked()).toBe(true)
-    await dialog.getByRole('button', { name: '模型能力 1' }).click()
-    const restoredImageInput = dialog.getByLabel('支持图片输入 1')
-    expect(await restoredImageInput.isChecked()).toBe(true)
-
-    await restoredImageInput.uncheck()
-    await dialog.getByLabel('API 协议').selectOption('anthropic-messages')
-    expect(await dialog.getByLabel('中转站兼容模式').count()).toBe(0)
-    await dialog.getByRole('button', { name: '保存', exact: true }).click()
-    await expect.poll(async () => dialog.getByLabel('API 协议').count(), { timeout: 10_000 }).toBe(0)
-
-    await dialog.getByRole('button', { name: '编辑 Acme 网关 (acme-gateway)' }).click()
-    await dialog.getByText('自定义设置').click()
-    expect(await dialog.getByLabel('API 协议').inputValue()).toBe('anthropic-messages')
-    expect(await dialog.getByLabel('中转站兼容模式').count()).toBe(0)
-    await dialog.getByRole('button', { name: '模型能力 1' }).click()
-    expect(await dialog.getByLabel('支持图片输入 1').isChecked()).toBe(false)
-    await dialog.getByRole('button', { name: '取消', exact: true }).click()
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 

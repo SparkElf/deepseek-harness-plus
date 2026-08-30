@@ -11,11 +11,10 @@
  * to the step, so a mounted-but-deciding step paints nothing here.
  */
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import {
-  IconAgentPresetOutline16, IconBranchOutline16, IconChevronLeftOutline14, IconCloseOutline16,
-  IconDataOutline16, IconPersonalizationOutline16, IconSettingsOutline16,
+  IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,
+  IconPersonalizationOutline16, IconSettingsOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SettingsRootComponentProps, SettingsSectionRow } from './shell-contract.ts'
 import css from './SettingsRoot.module.css'
@@ -24,7 +23,6 @@ import css from './SettingsRoot.module.css'
 function navIcon(id: string) {
   if (id === 'models') return <IconDataOutline16 className={css.navIcon} size={16} />
   if (id === 'agent-presets') return <IconAgentPresetOutline16 className={css.navIcon} size={16} />
-  if (id === 'subagents') return <IconBranchOutline16 className={css.navIcon} size={16} />
   if (id === 'plugins') return <IconPersonalizationOutline16 className={css.navIcon} size={16} />
   return <IconSettingsOutline16 className={css.navIcon} size={16} />
 }
@@ -33,7 +31,7 @@ type PanelProps = {
   rows: readonly SettingsSectionRow[]
   renderSlot: SettingsRootComponentProps['renderSlot']
   activeId: string | undefined
-  onSelect: (id: string | undefined) => void
+  onSelect: (id: string) => void
   onClose: () => void
 }
 
@@ -45,9 +43,7 @@ type PanelProps = {
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
-  const activeRow = rows.find(row => row.id === activeId) ?? rows[0]
-  const active = activeRow?.id
-  const detailOpen = activeId !== undefined && activeId === active
+  const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
   const titleId = useId()
 
   useEffect(() => {
@@ -62,14 +58,10 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
   const closeButton = useRef<HTMLButtonElement | null>(null)
   useEffect(() => { closeButton.current?.focus() }, [])
 
-  return createPortal((
+  return (
     <div className={css.overlay} role="presentation">
       <div className={css.mask} aria-hidden="true" onClick={onClose} />
-      <div className={clsx(css.panel, detailOpen && css.detailOpen)} role="dialog" aria-modal="true" aria-labelledby={titleId}>
-        <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
-          <IconCloseOutline16 size={16} />
-          <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
-        </button>
+      <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <nav className={css.nav}>
           <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
           <div className={css.navList}>
@@ -89,11 +81,11 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         </nav>
         <div className={css.content}>
           <div className={css.header}>
-            <button type="button" className={css.mobileBack} aria-labelledby={titleId} onClick={() => { onSelect(undefined) }}>
-              <IconChevronLeftOutline14 size={18} />
-            </button>
-            <div className={css.mobileSectionTitle}>{activeRow?.label}</div>
             <div className={css.actions}>{renderSlot('settings.action', {})}</div>
+            <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
+              <IconCloseOutline16 size={14} />
+              <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
+            </button>
           </div>
           <div className={css.options}>
             {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
@@ -101,7 +93,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         </div>
       </div>
     </div>
-  ), document.body)
+  )
 }
 
 /**

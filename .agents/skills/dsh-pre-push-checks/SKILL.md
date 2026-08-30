@@ -16,7 +16,7 @@ git status --short --branch
 git rev-parse --show-toplevel
 ```
 
-2. Verify the live PR base or stack parent, fetch that ref, and inspect the complete scope against it. Before changing PR branches or topology, apply [the existing-PR synchronization rule](../pr-authoring/SKILL.md#synchronize-existing-prs-before-changing-pr-topology): a newer aggregate branch must update the user-selected original PRs it belongs to, not silently replace them.
+2. Verify the live PR base or stack parent, fetch that ref, and inspect the complete scope against it.
 
 ```sh
 pnpm --silent run change-scope --base <verified-base-ref>
@@ -31,6 +31,8 @@ There is no universal local baseline beyond the hooks. Every behavior change nee
 - **Package or script behavior:** run the owning Vitest file or focused test name. Add adjacent package tests when a shared contract changes; leave repository-wide coverage to CI unless the change is genuinely cross-cutting or the user requests it.
 - **Documentation, Agent Notes, catalogs, or doc-linked comments:** run `pnpm run doc-sync`; run full lint when the documentation workflow requires it.
 - **Model-, editor-, CLI-, or terminal-visible output:** run the focused keyless snapshot or real runnable-example scenario that owns the output.
+- **Expected-output placement:** a test whose recorded `session.jsonl` is replay input and expected persisted output belongs under top-level `snapshots/`, with `snapshot.yml` naming its shipped `dsh` profile and composition/header pin. ARIA, geometry, generator, CLI, and unit expectations without that session round trip stay beside their owning test under `tests/expected/`; do not place them in `snapshots/` or give them a `*.snapshot.ts` owner. Use the owning `test:expected`, `test:web`, or `test` lane.
+- **Profile and configuration placement:** cross-package behavior of a shipped `dsh` profile belongs under `apps/cli/tests/profiles/`; a package-specific Loader composition belongs under that package's `tests/fixtures/`. User-facing optional overlays live under `apps/cli/config/examples/` and pair with a guide under `docs/user/`.
 - **Package manifests, public exports, build configuration, worker/bin entries, or built runtime paths:** run `pnpm run build`, the relevant hygiene checks, and the owning built-artifact smoke.
 - **Real provider or agent behavior:** run the relevant `pnpm run test:e2e` target when credentials are available; never print secrets.
 

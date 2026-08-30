@@ -96,11 +96,12 @@ function checkManifest(
     addViolation(violations, owner.manifestPath, 'files must publish lib/invariant.js')
   }
   if (owner.packageName === '@deepseek-ai/dsh-invariants') return
-  if (manifest.peerDependencies?.['@deepseek-ai/dsh-invariants'] !== 'workspace:^') {
+  const expectedPeer = owner.packageName.startsWith('@sparkelf/') ? '>=0.1.2-alpha.1' : 'workspace:^'
+  if (manifest.peerDependencies?.['@deepseek-ai/dsh-invariants'] !== expectedPeer) {
     addViolation(
       violations,
       owner.manifestPath,
-      '@deepseek-ai/dsh-invariants must be a workspace:^ peerDependency',
+      '@deepseek-ai/dsh-invariants must be a ' + expectedPeer + ' peerDependency',
     )
   }
   if (manifest.devDependencies?.['@deepseek-ai/dsh-invariants'] !== 'workspace:^') {

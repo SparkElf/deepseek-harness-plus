@@ -26,13 +26,11 @@ tmp/
 .idea
 mise.toml
 dist-exe/
-python/sdk-runtime/src/deepseek_harness_runtime/runtime/dsh-jsonrpc-agent-*
+python/sdk-runtime/src/deepseek_harness_runtime/runtime/deepseek-harness-sdk-runtime-*
 python/sdk-runtime/src/deepseek_harness_runtime/runtime/node/
 python/**/__pycache__/
 python/**/.pytest_cache/
 apps/web/dist/
-apps/plus-desktop/dist/
-apps/plus-desktop/src/release-source.mjs
 .artifacts/
 .dsh-build/
 .playwright-mcp/
@@ -41,6 +39,3 @@ apps/plus-desktop/src/release-source.mjs
 worktrees/
 .agents/worktrees/
 .typert-*/
-
-# Local GitHub App private keys
-*.private-key.pem

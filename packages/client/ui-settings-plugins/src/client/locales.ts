@@ -11,14 +11,12 @@ export type PluginsSettingsLocaleKey =
   | 'webSearchTitle' | 'webSearchDescription'
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
   | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
-  | 'subagentNav' | 'subagentTitle' | 'subagentIntro' | 'subagentModes'
-  | 'subagentContinuous' | 'subagentOneShot'
-  | 'subagentContinuousDescription' | 'subagentOneShotDescription'
-  | 'subagentEnableContinuous' | 'subagentEnableOneShot'
-  | 'subagentModel' | 'subagentFollowParent' | 'subagentFixedModel' | 'subagentProvider' | 'subagentModelId' | 'subagentMaxTokens'
-  | 'subagentPersona' | 'subagentInheritPersona' | 'subagentOverridePersona' | 'subagentPersonaPlaceholder'
-  | 'subagentTools' | 'subagentAllTools' | 'subagentAllowTools' | 'subagentDenyTools' | 'subagentToolNamesPlaceholder'
-  | 'subagentDepth' | 'subagentProviderManaged'
+  | 'subagentModelSelectionTitle' | 'subagentModelSelectionDescription'
+  | 'subagentModelSelectionToggle' | 'subagentModelSelectionChoose' | 'subagentModelSelectionAllowed'
+  | 'subagentModelSelectionLoading' | 'subagentModelSelectionLoadFailed' | 'subagentModelSelectionRetry'
+  | 'subagentModelSelectionPartial' | 'subagentModelSelectionUnavailable'
+  | 'subagentModelSelectionUnavailableGroup' | 'subagentModelSelectionEmpty'
+  | 'subagentModelSelectionRequired' | 'subagentModelSelectionConflict' | 'subagentModelSelectionOff'
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
@@ -59,33 +57,21 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
-  subagentNav: 'Subagents',
-  subagentTitle: 'Subagents',
-  subagentIntro: 'Choose which delegation modes agents may use and configure each mode’s child defaults.',
-  subagentModes: 'Subagent modes',
-  subagentContinuous: 'Continuous subagent',
-  subagentOneShot: 'One-shot subagent',
-  subagentContinuousDescription: 'Starts a fresh child conversation that can receive follow-up messages.',
-  subagentOneShotDescription: 'Forks completed context for one task and returns its result.',
-  subagentEnableContinuous: 'Enable continuous mode',
-  subagentEnableOneShot: 'Enable one-shot mode',
-  subagentModel: 'Model',
-  subagentFollowParent: 'Follow the current agent',
-  subagentFixedModel: 'Use a fixed model',
-  subagentProvider: 'Provider',
-  subagentModelId: 'Model ID',
-  subagentMaxTokens: 'Maximum output tokens',
-  subagentPersona: 'Role prompt',
-  subagentInheritPersona: 'Use the parent role',
-  subagentOverridePersona: 'Override the role for every child',
-  subagentPersonaPlaceholder: 'Describe the child agent’s role and output contract.',
-  subagentTools: 'Tool visibility',
-  subagentAllTools: 'Use the parent tool set',
-  subagentAllowTools: 'Allow only these tools',
-  subagentDenyTools: 'Hide these tools',
-  subagentToolNamesPlaceholder: 'Tool names separated by commas',
-  subagentDepth: 'Maximum child depth',
-  subagentProviderManaged: 'Provider managed',
+  subagentModelSelectionTitle: 'Subagent',
+  subagentModelSelectionDescription: 'Control which models agents may choose for subagents.',
+  subagentModelSelectionToggle: 'Allow agents to choose models for subagents',
+  subagentModelSelectionChoose: 'When enabled, agents can choose a provider, model, and reasoning effort for each subagent from the authorized models below. Applies only to new sessions.',
+  subagentModelSelectionAllowed: 'Models agents may choose',
+  subagentModelSelectionLoading: 'Loading models…',
+  subagentModelSelectionLoadFailed: 'Models could not be loaded.',
+  subagentModelSelectionRetry: 'Retry',
+  subagentModelSelectionPartial: 'Some model providers could not be loaded; saved choices remain removable.',
+  subagentModelSelectionUnavailable: 'Currently unavailable',
+  subagentModelSelectionUnavailableGroup: 'Saved but currently unavailable',
+  subagentModelSelectionEmpty: 'No model provider currently advertises a model.',
+  subagentModelSelectionRequired: 'Select at least one model before saving.',
+  subagentModelSelectionConflict: 'Settings changed elsewhere. Discard your draft and try again.',
+  subagentModelSelectionOff: 'Subagents use configured defaults or inherit the parent agent\'s model. Saved model choices are retained.',
 }
 
 /** Simplified Chinese copy. */
@@ -127,31 +113,19 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchBaseUrlHint: '留空则使用提供方默认地址。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
-  subagentNav: '子代理',
-  subagentTitle: '子代理',
-  subagentIntro: '选择智能体可使用的委派方式，并分别配置子代理默认值。',
-  subagentModes: '子代理模式',
-  subagentContinuous: '连续子代理',
-  subagentOneShot: '一次性子代理',
-  subagentContinuousDescription: '创建全新子会话，之后可以继续发送消息。',
-  subagentOneShotDescription: '继承已完成的对话内容，执行一次任务后返回结果。',
-  subagentEnableContinuous: '启用连续模式',
-  subagentEnableOneShot: '启用一次性模式',
-  subagentModel: '模型',
-  subagentFollowParent: '跟随当前智能体',
-  subagentFixedModel: '固定模型',
-  subagentProvider: '提供方',
-  subagentModelId: '模型 ID',
-  subagentMaxTokens: '最大输出 token',
-  subagentPersona: '角色提示词',
-  subagentInheritPersona: '沿用父智能体角色',
-  subagentOverridePersona: '为每个子代理覆盖角色',
-  subagentPersonaPlaceholder: '描述子代理的角色和输出要求。',
-  subagentTools: '工具可见范围',
-  subagentAllTools: '沿用父智能体工具集',
-  subagentAllowTools: '仅允许这些工具',
-  subagentDenyTools: '隐藏这些工具',
-  subagentToolNamesPlaceholder: '用逗号分隔工具名称',
-  subagentDepth: '最大子代理嵌套层数',
-  subagentProviderManaged: '由提供方管理',
+  subagentModelSelectionTitle: 'Subagent',
+  subagentModelSelectionDescription: '控制 Agent 为 Subagent 选择模型的权限。',
+  subagentModelSelectionToggle: '允许 Agent 为 Subagent 选择模型',
+  subagentModelSelectionChoose: '开启后，Agent 可以从下方授权模型中，为每个 Subagent 选择提供方、模型和推理强度。仅影响新会话。',
+  subagentModelSelectionAllowed: 'Agent 可选择的模型',
+  subagentModelSelectionLoading: '正在加载模型…',
+  subagentModelSelectionLoadFailed: '无法加载模型。',
+  subagentModelSelectionRetry: '重试',
+  subagentModelSelectionPartial: '部分模型提供方暂时无法加载；已保存的选择仍可移除。',
+  subagentModelSelectionUnavailable: '当前不可用',
+  subagentModelSelectionUnavailableGroup: '已保存但当前不可用',
+  subagentModelSelectionEmpty: '当前没有模型提供方公布模型。',
+  subagentModelSelectionRequired: '保存前请至少选择一个模型。',
+  subagentModelSelectionConflict: '设置已在其他位置更新。请放弃修改后重试。',
+  subagentModelSelectionOff: '关闭后，Subagent 使用配置的默认模型或继承父 Agent 的模型；已选模型会保留。',
 }

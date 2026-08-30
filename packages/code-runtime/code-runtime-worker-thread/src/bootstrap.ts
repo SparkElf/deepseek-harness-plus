@@ -303,8 +303,7 @@ export function wireReplies(port: BootstrapPort, pending: Map<number, PendingCal
  * namespace, each declared name an own enumerable async function that bridges over the port
  * (`__proto__`/`constructor`/`toString` are ordinary keys, never prototype collisions).
  * Lossy arguments reject before posting; clone failures and host failure
- * replies reject only the corresponding call. Omitted arguments normalize to
- * an empty object so zero-argument bindings call naturally.
+ * replies reject only the corresponding call.
  *
  * @param data - the boot payload's namespace declarations (globals + names).
  * @param port - the port binding calls are posted to.
@@ -329,7 +328,7 @@ export function makeNamespaces(
         value: (args: unknown): Promise<unknown> => {
           let detached: ReturnType<typeof snapshotCodeJsonValue>
           try {
-            detached = snapshotCodeJsonValue(args === undefined ? {} : args)
+            detached = snapshotCodeJsonValue(args)
           } catch {
             detached = undefined
           }

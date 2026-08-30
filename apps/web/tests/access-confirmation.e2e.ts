@@ -1,4 +1,4 @@
-// Web e2e scenario: every visible permission picker gates 完全访问 behind
+// Web e2e scenario: every visible permission picker gates Full access behind
 // the same locale-aware, in-page risk confirmation. Zero model calls: the
 // scenario boots the shipped Web composition and exercises the real
 // permission projection, client command path, HTTP RPC, and pushed update.
@@ -13,11 +13,11 @@ import {
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, connectFreshWorkspaceZh, saveFailureShot } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/access-confirmation', import.meta.url))
+const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/access-confirmation', import.meta.url))
 const UI_EXPECTED = join(SNAPSHOT_DIR, 'ui.expected.md')
 const MODE = webSnapshotMode()
 
-describe('web e2e: 完全访问 confirmation', () => {
+describe('web e2e: Full access confirmation', () => {
   let scaffold: WebScaffold
   let browser: Browser
   let page: Page
@@ -35,7 +35,7 @@ describe('web e2e: 完全访问 confirmation', () => {
     // callback.
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
-    await page.goto(scaffold.baseUrl, { waitUntil: 'load' })
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
     await connectFreshWorkspaceZh(page, scaffold.workspaceCwd)
   }, 120_000)
@@ -45,18 +45,18 @@ describe('web e2e: 完全访问 confirmation', () => {
     await scaffold?.close()
   })
 
-  it('localizes full access and keeps a permission-only Session on the Hero', async () => {
+  it('requires acknowledgement before the composer picker can enable Full access', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-full-access-confirmation'))
     const access = page.locator('button[aria-label^="访问模式"]').first()
     await access.waitFor({ timeout: 10_000 })
 
-    expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区写入')
+    expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：Workspace Write')
 
     await access.click()
-    await page.getByRole('menuitem', { name: '完全访问' }).click()
-    const dialog = page.getByRole('dialog', { name: '确认启用完全访问？' })
+    await page.getByRole('menuitem', { name: 'Full access' }).click()
+    const dialog = page.getByRole('dialog', { name: '确认启用 Full access？' })
     await dialog.waitFor({ timeout: 10_000 })
-    const enable = dialog.getByRole('button', { name: '启用完全访问' })
+    const enable = dialog.getByRole('button', { name: '启用 Full access' })
     expect(await enable.isDisabled()).toBe(true)
 
     // The modal is in this page's body (not a native/new window) and escapes
@@ -69,19 +69,8 @@ describe('web e2e: 完全访问 confirmation', () => {
     expect(await enable.isEnabled()).toBe(true)
     await enable.click()
     await expect.poll(() => access.getAttribute('aria-label'), { timeout: 10_000 })
-      .toBe('访问模式，当前：完全访问')
+      .toBe('访问模式，当前：Full access')
     expect(await dialog.count()).toBe(0)
-    await page.getByText('探索未至之境', { exact: true }).waitFor({ timeout: 10_000 })
-    expect(await page.getByRole('tab', { name: '对话', exact: true }).count()).toBe(0)
-    expect(await page.getByRole('tab', { name: '轨迹', exact: true }).count()).toBe(0)
-    expect(await page.getByText('permission · preset danger-full-access', { exact: true }).count()).toBe(0)
-
-    await page.reload({ waitUntil: 'load' })
-    await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
-    await page.getByText('探索未至之境', { exact: true }).waitFor({ timeout: 10_000 })
-    await page.locator('button[aria-label="访问模式，当前：完全访问"]').waitFor({ timeout: 10_000 })
-    expect(await page.getByRole('tab', { name: '对话', exact: true }).count()).toBe(0)
-    expect(await page.getByRole('tab', { name: '轨迹', exact: true }).count()).toBe(0)
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 

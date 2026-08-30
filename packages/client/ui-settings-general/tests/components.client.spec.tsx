@@ -25,7 +25,10 @@ const t: TriggerContentProps['t'] = key => (en as Record<string, string>)[key] ?
 
 // Global standard kit stubs: none of these components consume the hooks.
 const unusedHook = (() => { throw new Error('unused by settings-general components') }) as never
-const kit = { useSessions: unusedHook, useWorkspaces: unusedHook }
+type AttentionSnapshot = Parameters<Parameters<TriggerContentProps['useSessionPendingInteraction']>[0]>[0]
+const noAttention: AttentionSnapshot = new Map()
+const useSessionPendingInteraction: TriggerContentProps['useSessionPendingInteraction'] = selector => selector(noAttention)
+const kit = { useSessions: unusedHook, useSessionPendingInteraction, useWorkspaces: unusedHook }
 
 describe('chrome content', () => {
   it('TriggerContent renders the icon with the label in the wide column', () => {
@@ -68,19 +71,15 @@ describe('GeneralSection', () => {
 describe('SettingsDocumentAction', () => {
   it('appears only for a file-backed provider and requests its Host-owned document', async () => {
     const openDocument = vi.fn(() => Promise.resolve({
-      rpcId: 'document-open' as never,
-      result: { ok: true as const, value: { opened: true as const } },
+      ok: true as const, value: { opened: true as const },
     }))
     const controller = derivedDocumentStore({
       settings: {
         describe: vi.fn(() => Promise.resolve({
-          rpcId: 'document-action' as never,
-          result: {
-            ok: true as const,
-            value: { writable: true, hasDocument: true, namespaces: [] },
-          },
+          ok: true as const,
+          value: { writable: true, hasDocument: true, namespaces: [] },
         })),
-        openDocument,
+        openSettingsDocument: openDocument,
       },
     })
     render(<SettingsDocumentAction
@@ -91,20 +90,14 @@ describe('SettingsDocumentAction', () => {
     />)
     const action = await screen.findByRole('button', { name: 'Open configuration file' })
     fireEvent.click(action)
-    await waitFor(() => { expect(openDocument).toHaveBeenCalledWith({}) })
+    await waitFor(() => { expect(openDocument).toHaveBeenCalledWith() })
   })
 
   it('stays absent without a document and follows a mirror refresh to available', async () => {
     const describe = vi.fn()
-      .mockResolvedValueOnce({
-        rpcId: 'document-action-absent' as never,
-        result: { ok: true as const, value: { writable: true, hasDocument: false, namespaces: [] } },
-      })
-      .mockResolvedValueOnce({
-        rpcId: 'document-action-ready' as never,
-        result: { ok: true as const, value: { writable: true, hasDocument: true, namespaces: [] } },
-      })
-    const wire = { settings: { describe, openDocument: vi.fn() } } as never
+      .mockResolvedValueOnce({ ok: true as const, value: { writable: true, hasDocument: false, namespaces: [] } })
+      .mockResolvedValueOnce({ ok: true as const, value: { writable: true, hasDocument: true, namespaces: [] } })
+    const wire = { settings: { describe, openSettingsDocument: vi.fn() } } as never
     const mirror = new SettingsDescribeMirror(wire)
     const controller = new SettingsDocumentStore(wire, mirror)
     const first = render(<SettingsDocumentAction
@@ -131,46 +124,16 @@ describe('SettingsDocumentAction', () => {
     expect(describe).toHaveBeenCalledTimes(2)
   })
 
-  it('keeps a disabled action visible when the Host has no desktop opener', async () => {
-    const openDocument = vi.fn()
-    const controller = derivedDocumentStore({
-      settings: {
-        describe: vi.fn(() => Promise.resolve({
-          rpcId: 'document-action-no-desktop' as never,
-          result: {
-            ok: true as const,
-            value: { writable: true, hasDocument: true, canOpenDocument: false, namespaces: [] },
-          },
-        })),
-        openDocument,
-      },
-    })
-    render(<SettingsDocumentAction
-      {...kit}
-      t={t}
-      controller={controller}
-      useSnapshot={bindSnapshotSelector(controller.store)}
-    />)
-    const action = await screen.findByRole('button', { name: 'Open configuration file' })
-    expect((action as HTMLButtonElement).disabled).toBe(true)
-    expect(action.getAttribute('title')).toBe('This runtime cannot open a desktop application')
-    fireEvent.click(action)
-    expect(openDocument).not.toHaveBeenCalled()
-  })
-
   it('keeps the action available and reports a native-open failure', async () => {
     const controller = derivedDocumentStore({
       settings: {
         describe: vi.fn(() => Promise.resolve({
-          rpcId: 'document-action' as never,
-          result: {
-            ok: true as const,
-            value: { writable: true, hasDocument: true, namespaces: [] },
-          },
+          ok: true as const,
+          value: { writable: true, hasDocument: true, namespaces: [] },
         })),
-        openDocument: vi.fn(() => Promise.resolve({
-          rpcId: 'document-open-failed' as never,
-          result: { ok: false as const, error: { code: 'internal' as const, message: 'xdg-open missing', details: {} } },
+        openSettingsDocument: vi.fn(() => Promise.resolve({
+          ok: false as const,
+          error: { code: 'internal' as const, message: 'xdg-open missing', details: {} },
         })),
       },
     })

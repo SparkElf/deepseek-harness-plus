@@ -35,27 +35,16 @@ describe('reasoning schema boundary', () => {
   it('rejects a thinking format outside the offered set', () => {
     expect(configWith({ compat: { thinkingFormat: 'quantum' } })).toThrow(/expected/)
   })
-})
 
-describe('OpenAI Responses compatibility schema boundary', () => {
-  it('accepts reasoning-status omission only on an explicit Responses route', () => {
-    const enabled = routeWith({
-      api: 'openai-responses',
-      responsesCompatibility: { omitReasoningInputStatus: true },
-    })() as { providers: Record<string, { responsesCompatibility?: unknown }> }
-    expect(enabled.providers['acme-gateway']?.responsesCompatibility).toEqual({ omitReasoningInputStatus: true })
-    expect(() => { assertServiceable(enabled as Config) }).not.toThrow()
-
-    expect(() => {
-      assertServiceable(routeWith({
-        responsesCompatibility: { omitReasoningInputStatus: true },
-      })() as Config)
-    }).toThrow(/requires api "openai-responses"/)
-    expect(() => {
-      assertServiceable(routeWith({
-        responsesCompatibility: { omitReasoningInputStatus: false },
-      })() as Config)
-    }).not.toThrow()
+  it('accepts Baseten template arguments and completion controls', () => {
+    expect(configWith({
+      compat: {
+        supportsFinishReason: false,
+        thinkingFormat: 'baseten',
+        chatTemplateArgs: { enable_thinking: { $var: 'thinking.enabled' } },
+        supportsThinkingTokenBudget: true,
+      },
+    })).not.toThrow()
   })
 })
 
@@ -84,5 +73,28 @@ describe('modality schema boundary', () => {
     const absent = configWith({})() as Materialized
     expect(absent.providers['acme-gateway']?.models?.[0]?.input).toEqual([])
     expect(absent.providers['acme-gateway']?.defaultInput).toEqual(['text'])
+  })
+})
+
+describe('request image policy bounds', () => {
+  it.each([
+    ['requestImagePixelBudget', 0, /requestImagePixelBudget must be a positive safe integer/],
+    ['requestImagePixelBudget', Number.MAX_SAFE_INTEGER + 1, /requestImagePixelBudget must be a positive safe integer/],
+    ['requestImageMaxBytes', 0, /requestImageMaxBytes must be a positive safe integer/],
+    ['requestImageMaxBytes', 1.5, /requestImageMaxBytes must be a positive safe integer/],
+  ] as const)('rejects %s=%s at service resolution', (field, value, message) => {
+    const programmatic = {
+      providers: {
+        'acme-gateway': {
+          api: 'openai-completions',
+          baseURL: 'https://acme.test',
+          models: [{ id: 'm' }],
+          [field]: value,
+        },
+      },
+    } as unknown as Config
+    expect(() => {
+      assertServiceable(programmatic)
+    }).toThrow(message)
   })
 })

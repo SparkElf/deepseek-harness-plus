@@ -46,20 +46,22 @@ function permissionGlyph(value: string): ReactNode | undefined {
 }
 
 /**
- * Display transform: built-in permission names use product locale copy;
- * kebab-case host-configured names render as title case, and other custom
- * names pass through.
+ * Display transform: kebab-case machine names render as title-case labels
+ * (`workspace-write` → `Workspace Write`); non-kebab host-configured names
+ * pass through. Full access intentionally overrides the machine-name
+ * transform so both permission surfaces use the product label `Full access`;
+ * the warning body remains locale-aware.
  */
 function displayName(name: string): string {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name)) return name
   return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
 
-function optionLabel(option: PermissionSelectValue['options'][number], t: ComposerBarProps['t']): string {
-  if (option.value === 'read-only') return t('access.preset.readOnly')
-  if (option.value === 'workspace-write') return t('access.preset.workspaceWrite')
-  if (option.value === FULL_ACCESS) return t('access.preset.fullAccess')
-  return displayName(option.name)
+function optionLabel(
+  option: PermissionSelectValue['options'][number],
+  t: ComposerBarProps['t'],
+): string {
+  return option.value === FULL_ACCESS ? t('access.fullLabel') : displayName(option.name)
 }
 
 export interface PermissionSelectProps {
@@ -148,7 +150,6 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
               <span className={css.triggerIcon} aria-hidden>{permissionGlyph(currentValue)}</span>
             )}
             <span className={css.triggerLabel}>{current === undefined ? displayName(currentValue) : optionLabel(current, t)}</span>
-            {/* Same glyph + open rotation as the sibling ModelSelect trigger. */}
             <span className={clsx(css.chevron, open && css.chevronOpen)} aria-hidden>
               <IconChevronDownOutline14 />
             </span>
@@ -161,6 +162,7 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
         description={t('access.confirm.description')}
         acknowledgeLabel={t('access.confirm.acknowledge')}
         cancelLabel={t('access.confirm.cancel')}
+        closeLabel={t('close')}
         confirmLabel={t('access.confirm.enable')}
         acknowledged={acknowledged}
         disabled={locked}

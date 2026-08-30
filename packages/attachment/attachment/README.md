@@ -1,28 +1,134 @@
+---
+description: "Durable image attachments for users and maintainers attaching, reusing, or debugging images in prompts and commands."
+kind: "package-reference"
+---
+
 # @deepseek-ai/dsh-attachment
 
 English | [中文](README.zh.md)
 
-The durable attachment seam. `ctx.attachments` owns one content-addressed immutable-object namespace for raster images, supported human documents, and parser artifacts. Consumers persist opaque references in session events rather than browser paths, object URLs, provider URLs, or base64 payloads.
+## Summary
 
-Images keep their format-specific path. `validateImage` applies the deployment policy without writing, `saveImages` validates a complete ordered batch before publishing any member, `saveImage` commits one accepted raster, and `readImage` verifies digest plus recorded image metadata. `admitEncodedImages(attachments, images)` is the canonical browser-wire entry and rejects non-canonical base64 before delegating count, aggregate-byte, media-type, decode, dimension, and pixel limits to the store.
+You can attach images to prompts and commands, and the harness keeps provider-independent normalized versions durably: each source image is admitted and normalized before your message is processed, reappears in conversation history, and is projected to the selected model route in later turns of the same session. The shipped `dsh` composition enables this with no setup. Attached images survive restarts, while browser paths, provider URLs, local storage paths, and base64 never enter durable session events. Only raster formats (PNG, JPEG, WebP, GIF) are accepted, and unsent composer drafts stay in the browser until you submit. Stored images are never deleted automatically, and non-image files, audio, and video are not supported yet.
 
-Generic documents are additive. Version one admits PDF, DOCX, PPTX, and XLSX through `admitEncodedDocuments(documents, attachments)`. It validates the whole decoded batch before persistence, enforces deployment `DocumentAttachmentLimits`, normalizes the display filename, checks filename extension against the declared media type, and performs a minimal container-signature check (PDF header or OOXML ZIP container). It then stores the original bytes through `saveFile`, producing a durable `DocumentAttachmentRef`. `readFile` verifies the content-addressed digest and recorded byte length. These generic file primitives also provide the storage surface for later parser outputs without introducing a parser-specific object store. Image-only attachment providers declare an empty `documentLimits.mediaTypes`; the Host then does not advertise document intake, and direct generic-file calls fail explicitly.
+## Table of Contents
 
-The service intentionally does not parse document bodies. Provider projection, parser orchestration, browser presentation, and session authorization belong to their consumers. The Host admission consumer persists each original first, then requires parser success and durable Markdown, content-list, and extracted-image references before it may append a `DocumentBlock`; a deployment without a parser does not advertise or accept document input.
+- [Use this package](#use-this-package)
+- [Understand the implementation](#understand-the-implementation)
+- [Further Exploration](#further-exploration)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
-`AttachmentError.code` remains the stable failure vocabulary. `ImageAdmissionErrorCode` / `isImageAdmissionError` and `DocumentAdmissionErrorCode` / `isDocumentAdmissionError` distinguish caller-correctable admission failures from storage faults so each protocol boundary can map them into its own wire errors.
+-----
 
+<a id="use-this-package"></a>
+## Use this package
+
+Image attachments work end to end: attach an image to a prompt or a command, and it is saved, shown in history, and sent to the model without any further action from you. In the default `dsh` composition everything is already wired; when you compose your own setup, one plugin enables the capability.
+
+### Attach images to a prompt
+
+Attach one or more images to a user prompt in the client UI. Each source is checked, normalized to a provider-independent 8-bit sRGB/sRGBA raster, and saved before your message is processed; if any image is refused, the whole message fails and nothing is published. Supported source formats are PNG, JPEG, WebP, and GIF; a deployment controls source limits separately from normalized-storage and route-specific request limits. The one plugin below enables durable image attachments (the shipped base composition already mounts it):
+
+```yaml
+- name: '@deepseek-ai/dsh-attachment-local'
+```
+
+### Pass images to commands
+
+Commands that accept image input receive attached images the same way. If a command does not accept images, the harness refuses with an error message instead of silently dropping them.
+
+### Reuse images across the session
+
+Saved normalized images stay in conversation history and are projected into deterministic, route-sized request versions in later turns; after a restart, a resumed session shows and reuses the same images. When the current execution filesystem maps the stored host object, the request descriptor also carries a read-only process path that the model can inspect. When history or a request version is read back, the stored bytes are checked against what was recorded, so a missing, corrupted, or swapped image surfaces as an error rather than wrong bytes.
+
+### What can go wrong
+
+An image can be refused when you attach it — unsupported format, over the size, pixel, or dimension limits, or bytes that do not match their declared type — and the message then fails as a whole. Later, a history read can fail if the stored image was deleted or corrupted on disk. Failures carry stable codes so the client and protocol adapters can explain them in their own words.
+
+-----
+
+<a id="understand-the-implementation"></a>
+## Understand the implementation
+
+<details>
+<summary>Implementation internals — click to expand</summary>
+
+This section explains the design decisions behind the seam and the service operations that realize the user-visible behavior; observable behavior is fully covered in [Use this package](#use-this-package).
+
+### Design decisions
+
+- **Normalize and persist before event.** Every source is prepared and verified before the batch publishes in order, so the session log never references a partial or failed normalization.
+- **Immutable and retention-neutral.** Objects are immutable once published; resumed and forked sessions may share them, so reference-aware garbage collection is deferred rather than tied to any one session's deletion.
+- **Verify on read.** Reads check bytes and metadata against the logged reference before returning them, and request projections fully decode cached bytes, so a missing, corrupted, or swapped object fails closed.
+- **Role-neutral image blocks.** The `ImageBlock` content block in `dsh-llm` carries an `ImageAttachmentRef`; provider adapters resolve it into deterministic request versions with explicit pixel and byte budgets, while execution filesystems may map the immutable host object to a model-readable process path.
+- **Error routing by code.** `AttachmentError` re-implements the `HarnessError` shape instead of extending it because the base lives in `dsh-llm`, which depends on this package; consumers route on `code`, never on the prototype chain.
+
+### Service operations
+
+The service family runs one admission-and-storage flow: every entry point enforces source batch limits and canonical base64, prepares provider-independent normalized attachments before publishing any member, and commits them durably in input order without partial results. `readImageRequest` derives deterministic route-sized variants whose identity includes the attachment id, transform version, pixel and byte budgets, and encoder settings. The pure `requestImageDimensions` export computes each projection's aspect-preserving dimensions from a total-pixel budget, so providers and request pricing share one geometry. `imageHostPath` exposes an implementation-owned host location only to trusted same-process consumers that need execution-world mapping. Callers compose ordered batches while the implementation owns compression concurrency, caching, and singleflight. Reads and projections preserve caller cancellation. Failures carry stable machine-readable codes, and the caller-correctable admission subset is recognizable at runtime so each protocol adapter maps its own vocabulary; the exact per-operation contracts live in [`src/index.ts`](src/index.ts) and [`src/error.ts`](src/error.ts).
+
+### Source map
+
+| File | Role |
+|---|---|
+| [`src/index.ts`](src/index.ts) | Plugin entry: abstract `AttachmentStore` service and re-exports |
+| [`src/types.ts`](src/types.ts) | Durable vocabulary: references, limits, upload and store payloads |
+| [`src/admission.ts`](src/admission.ts) | `admitEncodedImages`: canonical-base64 enforcement, then `saveImages` delegation |
+| [`src/error.ts`](src/error.ts) | `AttachmentError` class and the `isImageAdmissionError` runtime subset |
+| [`src/brand.ts`](src/brand.ts) | `AttachmentId` branded opaque identifier |
+| [`src/invariant.ts`](src/invariant.ts) | Invariant companion (no runtime invariant; implementations enforce immutable-store checks) |
+
+</details>
+
+-----
+
+<a id="further-exploration"></a>
+## Further Exploration
+
+For the full service contract and payload types, read the subsystem reference; for the storage that backs this capability, read the local backend.
+
+- [Attachment subsystem reference](../../../docs/subsystems/attachment.md) — service contract, payload types, and the `ctx.attachments` cordis surface.
+- [Local filesystem backend](../attachment-local/README.md) — where your attached images are stored on this machine.
+- [Capability seams](../../../docs/capability-seams.md) — how this capability family is split into roles.
+
+-----
+
+<a id="model-experience"></a>
 ## Model Experience
 
-Indirectly, through role-neutral `ImageBlock` and `DocumentBlock` content. This package stores and verifies bytes; model-facing projection is owned by the LLM/provider consumer. A durable `DocumentBlock` always carries separate original and parsed references. Complete Markdown enters every provider request; extracted images remain durable for later selective document tooling and are not automatically injected in version one.
+Indirectly, through the provider adapter, which resolves each durable reference into an exact request version and sends its stable attachment id and actual dimensions beside the image. When the execution filesystem maps the stored object, the descriptor also includes a read-only process path and a matching extension for a writable copy.
 
 #### KV Cache effect
 
-Adding an image or document changes the provider request suffix and therefore invalidates that affected suffix. The attachment store itself performs no model call and consumes no tokens.
+Adding an image changes the provider request and therefore invalidates the affected request suffix.
 
 ## Known Limitations and Deferred Work
 
-- Raster image intake accepts PNG, JPEG, WebP, and GIF; generic document intake accepts PDF, DOCX, PPTX, and XLSX only.
-- OOXML admission verifies the ZIP container and filename/media-type agreement, not the complete internal Office package structure. A document parser remains the authority for extracting usable body content.
-- Retention and garbage collection are deferred because resumed and forked sessions may share immutable objects.
-- Long-document retrieval/search, audio, video, arbitrary binaries, and persistent unsent drafts require separate capabilities or lifecycle contracts.
+<a id="known-limitations-and-deferred-work"></a>
+
+
+These limits describe what image attachments can and cannot do; they are current package constraints, not a task backlog.
+
+- **Raster images only** — PNG, JPEG, WebP, and GIF are accepted; generic files, audio, and video are not supported yet.
+- **Images are never deleted** — stored images are retained indefinitely; nothing removes them automatically.
+- **Unsent drafts are not saved** — a composer draft stays in the browser until you submit the message.
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Working context for maintainers — click to expand</summary>
+
+This Dev Note is working context for maintainers: undecided directions and open questions. It is explicitly non-authoritative — shipped behavior and limits live in the sections above and the package code.
+
+#### Future: reference-aware garbage collection
+
+Resumed and forked sessions may share immutable objects, so any retention policy needs a reference model that accounts for session lineage before objects can be collected. No decision is recorded yet; the local backend currently retains everything.
+
+#### Future: non-image attachments and assistant-side output
+
+Generic files, audio, and video would need separate lifecycle and provider contracts, and the role-neutral `ImageBlock` leaves assistant-side image output as forward compatibility — current production adapters declare text-only output, so only user content carries images. Both directions are undecided.
+
+</details>

@@ -4,7 +4,7 @@ Status: implemented
 
 [English](2026-07-25-web-client-session-scope-and-provide-channel.md) | 中文
 
-> 范围：client Agent scope（actx）与定向事件、client/host 实体化对等模型、空会话 blank 位与复用（`connectWorkspace`）、逐会话供数通道（`sessions.provide`），以及承载这些能力的 host wire 小件（summary `blank` 列、`host/session-added` 帧字段、`host/commands-changed` 帧）。输入状态机与 slash 管线见[输入状态机 note](2026-07-25-web-input-machine-and-slash-pipeline.md)；命令业务面见[命令业务面 note](2026-07-25-web-command-surfaces-and-assembly.md)。
+> 范围：client Agent scope（actx）与定向事件、client/host 实体化对等模型、空会话 blank 位与复用（`connectWorkspace`）、逐会话供数通道（`sessions.provide`），以及承载这些能力的 host wire 小件（summary `blank` 列、`host/session-added` 帧字段、`host/commands-changed` 帧）。输入状态机与 slash 管线见[输入状态机 note](2026-07-25-web-input-machine-and-slash-pipeline.zh.md)；命令业务面见[命令业务面 note](2026-07-25-web-command-surfaces-and-assembly.zh.md)。
 
 ## 问题
 
@@ -59,23 +59,22 @@ Session 实例与 scope 同生命周期，存活资格 = host listed（一个判
 
 ### blank 位：空会话的可见投影、转正与复用
 
-一个已实体化但没有 model turn 或 command history 的 Session 经 summary 派生位 `blank` 治理（派生列而非 header 字段，SessionHeader 保持不可变）。[可见命令历史决策](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md)拥有当前 predicate：
+「实体化但无首条提示词」的会话经 summary 派生位 `blank` 治理（派生列而非 header 字段，SessionHeader 保持不可变）：
 
-- Host 判据是同时不存在 `turn/start` 与 `command/run`。live Session 从内存读取 `summarize()`；cold Session 使用 [cold blank 决策](../bug-fix/2026-08-13-bounded-cold-blank-verification.md)定义的有界 `sessionListMetadata` 验证。
-- Wire 通过 `SessionSummary.blank` 必填列与 `host/session-added` 的 `blank` 必填字段承载该 bit；创建时该值为 true。
-- Client mirror 只降不升，并复用既有 signal：
-  - 发送方首次 `prompt()` 成功响应会调用 `onEngaged`，原地转换当前 `New Session` row。首条 prompt 被拒时，Session 保持 blank，并在仍为 Workspace member 时保持复用资格。
-  - 每个收到 `session/event(command/run)` 的 tab 都会先对 list mirror 与 resident Session 应用同一个 engaged conversion，再路由该事件。
-  - `host/session-status (running:true)` 会转换 blank Session，因为运行中的 model loop 意味着存在 `turn/start`。
-  - `session.list` 在重连时仍是权威；陈旧的 `blank: true` 不会把已转换的本地 row 重新升回 blank。
-- 列表纪律：store 保留全部 row；Workspace browser 的 grouping、flat view、search 与 count 共用同一个 visible projection——所有 non-blank Session 都显示，blank Session 只显示 `session.id === sessions.current` 的一条，并强制 title 为 `New Session`。切换 Workspace 后，旧 blank entity 留在 mirror 中但从列表隐藏，目标 Workspace 的 current blank 显示；用户可见面因此全局至多一条 blank row。
-- 复用不需要 GC：经过验证的 blank Workspace member 会带着该 bit 返回，并在下一次连接同一个 Workspace 时复用。Never-appended blank 不留下 disk artifact；只含被动 plugin state 的小型持久 artifact 仍可验证为 blank。多 tab 创建的额外 empty shell 会成为 non-current hidden row，并由后续复用消化，无需协调。
+- host 判据：`session.events.length === 0`（零日志事件 = 尚无用户消息）。live 会话 `summarize()` 内存直读；cold 会话恒 `false`——lazy-create 约定保证 never-appended 会话根本不进 `persistence.list()`（JSONL/SQLite 两后端均已实证真 lazy），blank 从不落盘。
+- wire 承载两处：`SessionSummary.blank` 必填列；`host/session-added` 帧必填 `blank` 字段（创建时恒 true，供别的 tab 按同一空会话状态入镜像）。
+- client 镜像只降不升（单调），三来源翻转，全部复用既有 wire 信号：
+  - 发送方本地：首次 `prompt()` 的**成功响应**翻 false（受理即证明用户消息已入 host 日志——此点翻转是确证而非乐观；`onEngaged` 同步更新列表镜像，当前 `New Session` 行原地转为普通标题，不新增列表行）。首条提示词被拒则会话保持 blank：与 host 权威对齐、继续显示为 `New Session`、在仍为该工作区成员时保持 connectWorkspace 复用资格。
+  - 其他端：`host/session-status (running:true)` 帧翻转——blank 会话从不 running，首次 running 必然已非 blank；
+  - 重连对齐：`session.list` 的 summary.blank 是权威，错过帧的端下次拉取自然对齐；陈旧的 blank:true 不能把已转正的会话重新标回 blank。
+- 列表纪律：store 保留全部行；Workspace browser 的分组、平铺、搜索和计数共用同一可见投影——所有非 blank 会话都显示，blank 会话只显示 `session.id === sessions.current` 的一条，并强制标题为 `New Session`。切换 Workspace 后，旧 blank 实体仍在镜像中但从列表隐藏，目标 Workspace 的 current blank 显示；因此用户可见面全局至多一条 blank 行。
+- 残留账零 GC：刷新后 blank 会话带位回来，下次同 workspace 且仍为成员时复用，普通单端路径使每个 workspace 至多保留一个；host 重启后 blank 无盘痕自然蒸发；多 tab 竞态多出的空壳只会成为非 current 隐藏行，后续复用消化，不做协调。
 
 ### connectWorkspace：New Session 的唯一入口
 
 `workspaces.connectWorkspace(workspaceId): Promise<SessionId>`（归属 WorkspaceRuntime——它同时持有 workspace 规范 path 与 sessions 引用）：
 
-- 复用臂：list mirror 中找 `blank && cwd == workspace.path && sessionIds.includes(id)`——host 自己的成员规则，绝不只按 cwd。没有账户槽位的 cwd 匹配（CLI（命令行界面）/TUI 在 host cwd 创建的会话，或已删除/重建的注册）会打开一个任何分组表面都无法显示在该工作区下的会话，因此落到新建臂（见[成员复用修复](../bug-fix/2026-08-05-workspace-blank-session-reuse-membership.md)）；命中直接返回该 id，不新建。
+- 复用臂：list mirror 中找 `blank && cwd == workspace.path && sessionIds.includes(id)`——host 自己的成员规则，绝不只按 cwd。没有账户槽位的 cwd 匹配（CLI（命令行界面）/TUI 在 host cwd 创建的会话，或已删除/重建的注册）会打开一个任何分组表面都无法显示在该工作区下的会话，因此落到新建臂（见[成员复用修复](../bug-fix/2026-08-05-workspace-blank-session-reuse-membership.zh.md)）；命中直接返回该 id，不新建。
 - 新建臂：未命中则 `session.create({workspaceId})`，返回新 id。
 - 未知 workspaceId fail loud（不静默创建到别处）。
 - 解析保证（两臂同约定）：promise resolve 时返回的 id 已在 list store 且 `sessions.binding(id)` 同步可解析——`SessionRuntime.create` 在 RPC 成功后同步投影列表再 resolve，使 draft 搬运方可以在 open 之前往新 scope 的 machine 写文本，不等 notifier flush。
@@ -107,8 +106,8 @@ slot scope 是闭集 `root | session-maybe | session`：
 ### host wire 小件
 
 - summary `blank` 列与 `host/session-added` 帧 `blank` 字段（见上文 blank 位）。
-- SSE（Server-Sent Events）帧 `host/commands-changed`（纯失效信号）；client 路由为类型事件 `commands/changed` 与 `connection/reset`（连接代建立后广播，wire 派生缓存一律视旧态为陈旧）。 该 commands 帧及其类型化 client 事件后来被「`commands/change` 经 `ctx.remote.$on` 原样转发」取代（[转发的 Remote 事件](2026-08-10-remote-event-delivery.md)）；`connection/reset` 不变；本条陈述的「失效而非差分」契约依然成立。
-- `command.list/execute`、`skill.list` 一律 `sessionId` 单址（会话恒有 Agent，`agentFor` 的恢复语义现成）；命令面叙述见[命令业务面 note](2026-07-25-web-command-surfaces-and-assembly.md)。
+- SSE（Server-Sent Events）帧 `host/commands-changed`（纯失效信号）；client 路由为类型事件 `commands/changed` 与 `connection/reset`（连接代建立后广播，wire 派生缓存一律视旧态为陈旧）。 该 commands 帧及其类型化 client 事件后来被「`commands/change` 经 `ctx.remote.$on` 原样转发」取代（[转发的 Remote 事件](2026-08-10-remote-event-delivery.zh.md)）；`connection/reset` 不变；本条陈述的「失效而非差分」契约依然成立。
+- `command.list/execute`、`skills/list` 一律 `sessionId` 单址（会话恒有 Agent，`agentFor` 的恢复语义现成）；命令面叙述见[命令业务面 note](2026-07-25-web-command-surfaces-and-assembly.zh.md)。
 - `session.create` 请求形状：workspaceId/cwd 二选一 + 可选调用方预分配 sessionId（同 id 同 cwd 重试幂等，异 cwd 报 `session-conflict`）。
 
 ## 考虑过的替代方案
@@ -133,5 +132,5 @@ slot scope 是闭集 `root | session-maybe | session`：
 - 插件获得与 host 同构的会话上下文：逐会话状态挂 actx、随 scope fiber 一次拆装，泄漏结构性不可能；双会话隔离由 scope filter 结构性保证。
 - client 对象层收敛为 wire 镜像：会话身份、生命周期、能力判别全部以 host 实体为准——输入体系（下一层）面对的永远是「有真 Agent 的会话」，slash/skill 等提供方一律以 sessionId 直接寻址。
 - 空会话治理零专用机制：状态靠一个派生位，可见性靠统一列表投影（仅 current blank 以 `New Session` 展示），回收靠 lazy persistence 的既有约定（重启蒸发），常规上限靠同 Workspace 复用。
-- 代价：id→ctx 换乘纪律、provide 的 Concurrent 纪律都是约定而非类型强制，靠 review 与测试钉住。单一状态轴仍会在 Session 存在前隐藏 machine face；这段时间内，常驻卡片会把激活操作转到 Workspace picker（[决策](../feature/2026-08-07-workspace-picker-composer-entry.md)）。
+- 代价：id→ctx 换乘纪律、provide 的 Concurrent 纪律都是约定而非类型强制，靠 review 与测试钉住。单一状态轴仍会在 Session 存在前隐藏 machine face；这段时间内，[常驻会话壳](../../../../packages/client/ui-conversation/README.zh.md)会把激活操作转到 Workspace picker。
 - 已知欠账：approval/question 跨 prune 恢复（TODO）；模型选择以 live-mutation 形状回归（host `selectModel` 三件套现成，其 client 消费方尚未构建）。

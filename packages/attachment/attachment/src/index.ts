@@ -3,35 +3,28 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentError } from './error.ts'
 import type {
-  DocumentAttachmentLimits,
-  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
-  SaveFileAttachment,
+  ImageRequestPolicy,
+  RequestImageAttachment,
   SaveImageAttachment,
-  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
-export { AttachmentId } from './brand.ts'
-export { AttachmentError, isDocumentAdmissionError, isImageAdmissionError } from './error.ts'
-export type { AttachmentErrorCode, DocumentAdmissionErrorCode, ImageAdmissionErrorCode } from './error.ts'
-export { admitEncodedDocuments, admitEncodedImages } from './admission.ts'
+export { AttachmentId, ImageVariantId } from './brand.ts'
+export { AttachmentError, isImageAdmissionError } from './error.ts'
+export type { AttachmentErrorCode, ImageAdmissionErrorCode } from './error.ts'
+export { admitEncodedImages } from './admission.ts'
+export { requestImageDimensions } from './request-projection.ts'
 export type {
   AttachmentId as AttachmentIdType,
-  DocumentAttachmentLimits,
-  DocumentAttachmentRef,
-  DocumentMediaType,
-  EncodedDocumentAttachment,
   EncodedImageAttachment,
-  FileAttachmentRef,
   ImageAttachmentLimits,
   ImageAttachmentRef,
+  ImageRequestPolicy,
   ImageMediaType,
-  ParsedDocumentRef,
-  SaveFileAttachment,
+  RequestImageAttachment,
   SaveImageAttachment,
-  StoredFileAttachment,
   StoredImageAttachment,
 } from './types.ts'
 
@@ -41,15 +34,7 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/** Explicit absence of generic-document support for image-only attachment providers. */
-const NO_DOCUMENT_CAPABILITY: DocumentAttachmentLimits = Object.freeze({
-  maxDocumentBytes: 1,
-  maxDocumentsPerMessage: 1,
-  maxMessageDocumentBytes: 1,
-  mediaTypes: Object.freeze([]),
-})
-
-/** Immutable binary attachment service. Implementations validate format-specific bytes before publishing references. */
+/** Immutable binary attachment service. Implementations validate bytes before publishing a reference. */
 export abstract class AttachmentStore extends Service {
   constructor(ctx: Context) {
     super(ctx, 'attachments')
@@ -57,38 +42,6 @@ export abstract class AttachmentStore extends Service {
 
   /** Deployment-resolved image policy used by authoritative and fast-path validation. */
   abstract readonly imageLimits: ImageAttachmentLimits
-
-  /** Deployment-resolved document policy; an empty media-type set declares an image-only provider. */
-  readonly documentLimits: DocumentAttachmentLimits = NO_DOCUMENT_CAPABILITY
-
-  /**
-   * Persist one format-agnostic immutable object after its caller has completed domain-specific admission.
-   * @param input - immutable bytes plus caller-owned media/display metadata.
-   * @returns a durable content-addressed reference.
-   */
-  saveFile(input: SaveFileAttachment): Promise<FileAttachmentRef> {
-    void input
-    return Promise.reject(
-      new AttachmentError('This attachment provider does not support generic files.', 'ATTACHMENT_WRITE_FAILED'),
-    )
-  }
-
-  /**
-   * Read one generic file object and verify that its bytes still match the content-addressed reference.
-   * @param ref - durable generic-file reference to resolve.
-   * @param signal - optional cancellation for backend read and verification work.
-   * @returns the verified file bytes.
-   */
-  readFile(ref: FileAttachmentRef, signal?: AbortSignal): Promise<StoredFileAttachment> {
-    if (signal?.aborted === true) {
-      const reason = signal.reason instanceof Error ? signal.reason : new Error('attachment read aborted')
-      return Promise.reject(reason)
-    }
-    void ref
-    return Promise.reject(
-      new AttachmentError('This attachment provider does not support generic files.', 'ATTACHMENT_READ_FAILED'),
-    )
-  }
 
   /**
    * Validate one image without persisting it.
@@ -106,7 +59,7 @@ export abstract class AttachmentStore extends Service {
    * @param inputs - encoded images in their owning message order.
    * @returns durable references in the exact input order.
    */
-  async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]> {
+  protected validateImageBatch(inputs: readonly SaveImageAttachment[]): void {
     const { maxImagesPerMessage, maxMessageImageBytes, mediaTypes } = this.imageLimits
     if (inputs.length > maxImagesPerMessage) {
       throw new AttachmentError('Image batch exceeds the configured image-count limit.', 'TOO_MANY_IMAGES')
@@ -120,6 +73,15 @@ export abstract class AttachmentStore extends Service {
         throw new AttachmentError(`Image type ${input.mediaType} is not accepted by this deployment.`, 'UNSUPPORTED_IMAGE_TYPE')
       }
     }
+  }
+
+  /**
+   * Validate and durably commit one ordered image batch.
+   * @param inputs - encoded images in owning-message order.
+   * @returns durable normalized attachment references in the same order after every member succeeds.
+   */
+  async saveImages(inputs: readonly SaveImageAttachment[]): Promise<readonly ImageAttachmentRef[]> {
+    this.validateImageBatch(inputs)
     for (const input of inputs) await this.validateImage(input)
 
     const refs: ImageAttachmentRef[] = []
@@ -129,8 +91,11 @@ export abstract class AttachmentStore extends Service {
 
   /**
    * Validate and durably commit one image before its owning session event is appended.
+   * The returned reference describes the persisted normalized image. When
+   * normalization reduces the raster, its `originalDimensions` records the
+   * orientation-applied input dimensions.
    * @param input - encoded bytes, declared media type, and optional display name.
-   * @returns a durable content-addressed reference.
+   * @returns the durable content-addressed normalized image reference.
    */
   abstract saveImage(input: SaveImageAttachment): Promise<ImageAttachmentRef>
 
@@ -138,10 +103,43 @@ export abstract class AttachmentStore extends Service {
    * Read one image and verify that bytes still match the recorded reference.
    * @param ref - durable reference from the session log.
    * @param signal - optional cancellation for backend read and verification work.
-   * @returns the verified bytes and canonical reference.
+   * @returns the verified bytes and normalized attachment reference.
    * @throws the signal reason when aborted, or a storage error when verification fails.
    */
   abstract readImage(ref: ImageAttachmentRef, signal?: AbortSignal): Promise<StoredImageAttachment>
+
+  /**
+   * Locate the provider-owned normalized object in the harness host filesystem.
+   * @param ref - durable normalized attachment reference.
+   * @returns an absolute host path, or undefined when this backend is not host-file-backed.
+   * @throws an AttachmentError when the durable reference is invalid.
+   */
+  imageHostPath(ref: ImageAttachmentRef): string | undefined {
+    void ref
+    return undefined
+  }
+
+  /**
+   * Generate or read one deterministic model-request version from the stored normalized image.
+   * @param ref - durable provider-independent normalized attachment reference.
+   * @param policy - exact route pixel budget and encoded-byte target; a target no ladder quality meets yields the smallest ladder output.
+   * @param signal - optional cancellation.
+   * @returns request bytes and the cache/upload identity covering every transform input.
+   */
+  readImageRequest(
+    ref: ImageAttachmentRef,
+    policy: ImageRequestPolicy,
+    signal?: AbortSignal,
+  ): Promise<RequestImageAttachment> {
+    signal?.throwIfAborted()
+    void ref
+    void policy
+    return Promise.reject(new AttachmentError(
+      'The mounted attachment provider cannot derive model-request images.',
+      'ATTACHMENT_PROJECTION_UNSUPPORTED',
+    ))
+  }
+
 }
 
 export default AttachmentStore

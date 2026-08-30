@@ -1,23 +1,20 @@
 /** Browser download state shared by the Session Header button and `/export`. */
 
-import { createSnapshotStore, type SessionId, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
+import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
-/** Lifecycle status of one session log download. */
+/** Download phases presented by the shared modal. */
 export type SessionLogDownloadStatus = 'downloading' | 'success' | 'error'
 
-/** Visible state for one session export request. */
+/** One Session's current download-dialog state. */
 export interface SessionLogDownloadEntry {
-  /** Whether the download result notice is visible. */
   readonly open: boolean
-  /** Current export request status. */
   readonly status: SessionLogDownloadStatus
-  /** User-visible failure detail, or null outside the error state. */
   readonly error: string | null
 }
 
-/** Session-keyed export notice state. */
+/** Download states keyed by the Session whose Header owns the dialog. */
 export interface SessionLogDownloadState {
-  /** Current export notice for each session with download activity. */
   bySession: Record<string, SessionLogDownloadEntry | undefined>
 }
 
@@ -26,17 +23,19 @@ type Save = (url: string, filename: string) => void
 
 const INITIAL: SessionLogDownloadState = { bySession: {} }
 
-/** Build the exported ZIP filename for one session.
- * @param sessionId - Session being exported.
- * @returns A filesystem-safe ZIP filename.
+/**
+ * Collapse an untrusted Session id into the filename convention owned by the host endpoint.
+ * @param sessionId - Session whose archive is downloaded.
+ * @returns one safe browser download filename.
  */
 export function sessionLogZipFilename(sessionId: SessionId): string {
   return `dsh-session-${String(sessionId).replace(/[^A-Za-z0-9_-]/g, '_')}.zip`
 }
 
-/** Trigger a browser download for one URL.
- * @param url - Export URL to download.
- * @param filename - Suggested browser download filename.
+/**
+ * Hand a Host download URL to the browser download manager.
+ * @param url - same-origin Host download URL.
+ * @param filename - browser download filename.
  */
 export function downloadUrl(url: string, filename: string): void {
   const anchor = document.createElement('a')
@@ -45,37 +44,37 @@ export function downloadUrl(url: string, filename: string): void {
   anchor.click()
 }
 
-/** Resolve logical Host routes below the runtime-injected document base. */
+/** Resolve the browser's Host base with the connection carrier's null-origin fallback. */
 function hostBase(): string {
-  if (typeof document !== 'undefined') return document.baseURI
   const origin = (globalThis as { location?: { origin?: string } }).location?.origin
-  return origin !== undefined && origin !== 'null' ? `${origin}/` : 'http://dsh.internal/'
+  return origin !== undefined && origin !== 'null' ? origin : 'http://dsh.internal'
 }
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** Coordinates one export request per session and publishes notice state. */
+/** Owns one in-flight browser download per Session and publishes modal state. */
 export class SessionLogDownloadController {
-  /** Observable export notice state. */
+  /** uSES-safe state source shared by every Session-scoped modal contribution. */
   readonly store: SnapshotStore<SessionLogDownloadState> = createSnapshotStore(INITIAL)
 
   private readonly active = new Map<SessionId, { readonly abort: AbortController; readonly done: Promise<void> }>()
   private disposed = false
 
-  /** Create a download controller.
-   * @param fetcher - HTTP carrier used to retrieve export archives.
-   * @param save - Browser download trigger.
+  /**
+   * @param fetcher - HTTP carrier used to read the host-streamed ZIP.
+   * @param save - browser save operation.
    */
   constructor(
     private readonly fetcher: Fetch = (input, init) => fetch(input, init),
     private readonly save: Save = downloadUrl,
   ) {}
 
-  /** Start or join one session export request.
-   * @param sessionId - Session whose log and descendants are exported.
-   * @returns The active export operation.
+  /**
+   * Download one Session tree; concurrent gestures for the same Session share one operation.
+   * @param sessionId - root Session whose ZIP includes descendants and attachments.
+   * @returns after the browser save starts, an error state is published, or a late post-disposal request is ignored.
    */
   download(sessionId: SessionId): Promise<void> {
     const existing = this.active.get(sessionId)
@@ -89,8 +88,9 @@ export class SessionLogDownloadController {
     return done
   }
 
-  /** Hide one session export notice without cancelling its request.
-   * @param sessionId - Session notice to hide.
+  /**
+   * Close one Session's dialog without cancelling an in-flight browser download.
+   * @param sessionId - Session whose modal closes.
    */
   dismiss(sessionId: SessionId): void {
     const current = this.store.getSnapshot().bySession[String(sessionId)]
@@ -98,8 +98,9 @@ export class SessionLogDownloadController {
     this.publish(sessionId, { ...current, open: false })
   }
 
-  /** Abort active requests and wait for their settlement.
-   * @returns A promise settled after every active request stops.
+  /**
+   * Abort active fetches and reach quiescence.
+   * @returns after every active operation settles.
    */
   async dispose(): Promise<void> {
     this.disposed = true
@@ -111,7 +112,7 @@ export class SessionLogDownloadController {
   private async run(sessionId: SessionId, signal: AbortSignal): Promise<void> {
     this.publish(sessionId, { open: true, status: 'downloading', error: null })
     try {
-      const url = new URL('api/session.export', hostBase())
+      const url = new URL('/api/session.export', hostBase())
       url.searchParams.set('sessionId', sessionId)
       url.searchParams.set('includeDescendants', 'true')
       const response = await this.fetcher(url, { method: 'HEAD', signal })

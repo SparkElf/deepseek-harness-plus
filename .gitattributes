@@ -8,8 +8,8 @@
 
 *.pdf binary
 
-# Unified diff context markers may precede tabs or represent blank source lines.
-*.patch whitespace=-trailing-space,-space-before-tab
+# Data-only patch packages preserve exact upstream diff bytes, including source whitespace.
+patches/npm/**/*.patch -whitespace
 
 # Pairing records are generated from the three confirmed owner-blob pairs.
 # The worktree-local installer registers the fail-closed driver command.

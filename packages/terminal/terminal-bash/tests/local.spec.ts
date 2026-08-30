@@ -118,6 +118,17 @@ function processIsRunning(pid: number): boolean {
   }
 }
 
+function canReadLinuxProcessSyscall(pid: number): boolean {
+  try {
+    readFileSync(`/proc/${pid}/task/${pid}/syscall`, 'utf8')
+    return true
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (code === 'EACCES' || code === 'EPERM') return false
+    throw error
+  }
+}
+
 // The real-shell suite drives a POSIX bash over the actual node-pty terminal;
 // Windows has no bash, and its pwsh counterpart lives in the describe below.
 describe.skipIf(process.platform === 'win32')('terminal-bash real shell', () => {
@@ -160,6 +171,31 @@ describe.skipIf(process.platform === 'win32')('terminal-bash real shell', () => 
     const result = await after.done
     expect(result.waitReason).toBe('stdin_read')
     expect(result.viewport).toContain('healed=[dsh> ]')
+    await ctx.terminals.kill(agent, created.sessionId)
+  }, 20_000)
+
+  it.skipIf(process.platform !== 'linux')('recognizes a foreground read opened through /dev/tty', async () => {
+    const { ctx, root, agent } = await harness('danger-full-access', {
+      idleSilenceMs: 5_000,
+      timeoutMs: 8_000,
+    })
+    const created = await ctx.terminals.spawn(agent, { type: 'shell' })
+    const readerPidFile = join(root, 'tty-reader.pid')
+
+    const waiting = ctx.terminals.startSend(agent, created.sessionId, {
+      text: `bash -c 'exec </dev/tty; printf "%s" "$BASHPID" > "$1"; printf "WAITING\\n"; read -r answer; printf "ANSWER=%s\\n" "$answer"' dsh "${readerPidFile}"`,
+      submit: true,
+    })
+    await waitForOutput(waiting, 'WAITING')
+    const result = await waiting.done
+    const readerPid = Number(readFileSync(readerPidFile, 'utf8'))
+    expect(readerPid).toBeGreaterThan(0)
+    expect(result.waitReason).toBe(canReadLinuxProcessSyscall(readerPid) ? 'stdin_read' : 'inferred_idle')
+
+    const answer = ctx.terminals.startSend(agent, created.sessionId, { text: 'accepted', submit: true })
+    const answered = await answer.done
+    expect(answered.waitReason).toBe('stdin_read')
+    expect(answered.viewport).toContain('ANSWER=accepted')
     await ctx.terminals.kill(agent, created.sessionId)
   }, 20_000)
 
@@ -285,8 +321,8 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
     process.env.DSH_TEST_SECRET = 'must-not-leak'
     try {
       const { ctx, root, agent } = await harness('danger-full-access', {
-        idleSilenceMs: 3_000,
-        handoffGraceMs: 500,
+        idleSilenceMs: 300,
+        handoffGraceMs: 300,
         timeoutMs: 8_000,
       }, 'pwsh')
       const created = await ctx.terminals.spawn(agent, { type: 'shell', name: 'main', cwd: root })
@@ -317,8 +353,8 @@ describe.skipIf(!hasPwsh)('terminal-bash pwsh real shell', () => {
 
   it('pins UTF-8 output encoding so non-ASCII output survives the byte decode', async () => {
     const { ctx, root, agent } = await harness('danger-full-access', {
-      idleSilenceMs: 3_000,
-      handoffGraceMs: 500,
+      idleSilenceMs: 300,
+      handoffGraceMs: 300,
       timeoutMs: 8_000,
     }, 'pwsh')
     const created = await ctx.terminals.spawn(agent, { type: 'shell', name: 'main', cwd: root })

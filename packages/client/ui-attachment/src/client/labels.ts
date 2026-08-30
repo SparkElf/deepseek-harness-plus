@@ -30,34 +30,34 @@ export function messageImageLabels(t: TranslateNS<'conversation'>): MessageImage
 }
 
 /**
- * Resolve the generic file-drop invitation shared by image and document intake.
+ * Resolve the document-level drop invitation and its optional limits line.
  * @param t - conversation namespace translator.
- * @param accepting - whether the current composer may accept another file drop.
- * @param documents - whether parser-backed document intake is available.
- * @returns translated drop-overlay labels for the current acceptance state.
+ * @param accepting - whether the composer can accept dropped files.
+ * @param limits - optional translated count and size values.
+ * @returns translated drop-overlay labels.
  */
 export function dropOverlayLabels(
   t: TranslateNS<'conversation'>,
   accepting: boolean,
-  documents: boolean,
+  limits?: { readonly count: number; readonly size: string },
 ): DropOverlayLabels {
+  if (!accepting) return { title: t('image.dropBlocked') }
   return {
-    title: accepting
-      ? t(documents ? 'attachment.dropTitle' : 'attachment.dropImageTitle')
-      : t('attachment.dropBlocked'),
+    title: t('image.dropTitle'),
+    desc: limits === undefined ? undefined : t('image.dropDesc', limits),
   }
 }
 
 /**
- * Resolve mixed draft-attachment rail strings from the conversation namespace.
+ * Resolve draft-image rail strings from the conversation namespace.
  * @param t - conversation namespace translator.
- * @returns translated group/open/paging labels for the mixed attachment rail.
+ * @returns translated attachment-rail labels.
  */
 export function attachmentRailLabels(t: TranslateNS<'conversation'>): AttachmentRailLabels {
   return {
-    group: t('attachment.pending'),
+    group: t('image.pending'),
     open: t('image.openOriginal'),
-    scrollLeft: t('attachment.scrollLeft'),
-    scrollRight: t('attachment.scrollRight'),
+    scrollLeft: t('image.scrollLeft'),
+    scrollRight: t('image.scrollRight'),
   }
 }

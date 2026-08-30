@@ -2,7 +2,7 @@
 
 Status: implemented
 
-> Path update (2026-07-22, plugin-system refactor): the three-tier philosophy and golden-path method here remain current; homes moved — object-layer specs now live in `packages/client/runtime/tests/` (was web-runtime), wire specs in `packages/client/connection/tests/`, and the `web-ui` coverage exclusion is gone with the package (component specs are per-plugin jsdom suites under each `packages/client/*/tests/`). Component-spec shape follows the [slot system standard](../architecture/2026-07-22-slot-type-chain-implementation.md): feed props directly — the store share comes from `createXXXStore().create()` (the real engine, the sanctioned zero-machinery path), framework hooks are plain stubs; no render machinery, no provider mounting. Slot ownership/registry semantics are tier-2 territory (`runtime` + `ui-slots` suites), not component specs.
+> Path update (2026-08-23, Controller split): the three-tier philosophy and golden-path method here remain current; object-layer specs now live across `packages/api/session-controller/tests/` and `packages/test-support/client-runtime/tests/`, while wire specs remain in `packages/client/connection/tests/`. Component specs are per-plugin jsdom suites under each `packages/client/*/tests/`. Component-spec shape follows the [slot system standard](../architecture/2026-07-22-slot-type-chain-implementation.md): feed props directly — the store share comes from `createXXXStore().create()` (the real engine, the sanctioned zero-machinery path), framework hooks are plain stubs; no render machinery, no provider mounting. Slot ownership and registry semantics are tier-2 territory (`ui-renderer` + `ui-slots` suites), not component specs.
 
 English | [中文](2026-07-20-gui-testing-system.zh.md)
 
@@ -18,14 +18,14 @@ Cut along the architecture's natural test hooks into three tiers, bottom-up:
 
 | Tier | Under test | Key technique | File location |
 |---|---|---|---|
-| 1 Protocol isomorphism | `AbstractApiClient` + `toFetchHandler` (bidirectional data / rpcId / zod types / SSE streams / batching / timeouts) | **The full chain at the isomorphic point**: `InProcessApiClient(toFetchHandler(脚本化 impl))` skips the network but genuinely runs the wire serialization — zero browser, pure node env | `packages/host/apiproxy/tests/client-handler.spec.ts` |
+| 1 Protocol isomorphism | `AbstractApiClient` + `toFetchHandler` (bidirectional data / rpcId / zod types / SSE streams / batching / timeouts) | **The full chain at the isomorphic point**: `InProcessApiClient(toFetchHandler(脚本化 impl))` skips the network but genuinely runs the wire serialization — zero browser, pure node env | `packages/client/connection/tests/` |
 | 2 Object-layer orchestration | `Session`/`SessionManager`/`ConnectionController` (state machines and timing: stitching / dedup / paging / optimistic draft clearing / pendingBuffers / reconnect / backoff) | **The "event sequence in → snapshot out" golden path**: programmable fakes + deferreds controlling timing + fake timers controlling backoff | `packages/client/{runtime,connection}/tests/` |
 | 3 Assembled presentation | Built artifacts × the real client loader and plugin composition | App-owned semantic snapshots boot all eight built client plugins under jsdom for deterministic cross-plugin state changes; bare Playwright smoke separately proves the real browser/carrier boundary, with real-host cases self-skipping without a key; the keyless browser e2e lane disables the shipped model-adapter row and replays recorded session fixtures through `dsh-llm-replay` in the real in-process web assembly against conversation aria goldens ([web e2e lane](../testing/2026-07-24-web-gui-browser-e2e-lane.md), [required CI gate](../testing/2026-07-30-web-browser-snapshot-ci-gate.md)) | `apps/web/tests/*.snapshot.ts`, `apps/web/tests/smoke-{fixture,real}.e2e.ts`, `apps/web/tests/{replay-round-trip,seeded-history}.e2e.ts` |
 
 Inter-tier discipline: **each tier tests its own layer, upper tiers never re-test lower ones** — an app semantic snapshot pins only user-visible projection across the assembled plugin boundary, while Playwright smoke proves browser and carrier liveness; wire semantics belong to tier 1 and data semantics to tier 2. Pure-function layers (lineage/partial/notifier/transcript-adapter) are tested directly with zero fakes in the same package's tests/ alongside tier 2.
 
 - **Host and client source** are under the repo-wide per-file 100% coverage gate except the narrow browser-grade exclusions annotated in `vitest.config.ts`; component suites use per-file jsdom pragmas and Testing Library without changing Node suites.
-- **App-owned semantic snapshots** read built client bundles, execute them through the real loader, and drive only deterministic fixture hooks. They own stable visible state such as sidebar labels, breadcrumbs, and `document.title`, not CSS pixels or lower-layer state-machine details. Browser scenarios assert operable interactions and visible state changes, not spacing, alignment, pixel geometry, computed CSS, or screenshot differences. Human review at target viewports owns visual styling; failure screenshots are evidence for that review, never pass criteria.
+- **App-owned semantic snapshots** read built client bundles, execute them through the real loader, and drive only deterministic fixture hooks. They own stable visible state such as sidebar labels, breadcrumbs, and `document.title`, not CSS pixels or lower-layer state-machine details.
 
 ## Lane map
 
@@ -41,13 +41,13 @@ Inter-tier discipline: **each tier tests its own layer, upper tiers never re-tes
 
 ## Anti-regression discipline
 
-- **Every behavior bug pins an assertion**: a browser interaction or visible-state bug is pinned into its owning browser scenario; a data-layer bug is pinned into the matching spec. Visual-only corrections rely on human viewport review and do not add geometry, computed-CSS, or screenshot assertions.
+- **Every bug fix pins an assertion**: a browser-visible bug is pinned into its owning browser spec (smoke or e2e scenario); a data-layer bug is pinned into the matching spec (precedent: the res-close misjudgment pinned in the webserver bridge suite — pure Node, reproduces in seconds, no longer needs the 12s browser sentinel as the only defense).
 - **All-green on fixture is not done, the real wire must pass too**: what the fixture short-circuits is exactly the wire carriage chain (node:http bridge close semantics, real network timing); both empirically confirmed bugs hid there. Changes touching connection/bridge/handler/SSE must run the browser lane (`pnpm run test:web`) — its keyless e2e scenarios drive the real HTTP/SSE carriage, and the with-key real-host smoke remains the live-model complement.
 - The code-on-disk-is-the-answer reconciliation workflow: when a behavior change lands and turns existing cases red, reconcile on the spot (fix the test or fix the code, with the RFC/contract as arbiter); no red left hanging.
 
 ## Consequences
 
-Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gui` feedback, wire/object-layer semantics assert in milliseconds in Node, built-composition snapshots pin deterministic user-visible projection, and the browser carries wiring and carrier acceptance. Inter-tier discipline remains review-owned, while Linux CI mechanically enforces browser-golden freshness. Automated GUI evidence stays semantic and behavioral; visual styling remains human-reviewed.
+Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gui` feedback, wire/object-layer semantics assert in milliseconds in Node, built-composition snapshots pin deterministic user-visible projection, and the browser carries wiring and carrier acceptance. Inter-tier discipline remains review-owned, while Linux CI mechanically enforces browser-golden freshness. Every new app snapshot must avoid unstable layout or clock output.
 
 ## Alternatives considered
 
@@ -58,10 +58,3 @@ Each lane tests its own tier: touching any GUI source gets seconds-fast `test:gu
 | Reusing FixtureApiClient in tests | The demo script runs on a real clock, tests need deferred hand-controlled timing — orthogonal purposes; forced reuse chains the tests to the demo's rhythm |
 | A standalone vitest config for GUI packages (once designed as vitest.gui.config.ts) | Package-level tests/ are already scanned by the root include; `vitest run packages/client packages/host` path filtering is the tight loop — zero new config |
 | Deferring hooks/component-layer unit tests | jsdom remains the coverage mainline because it gives fast per-file component behavior; the required browser replay gate complements it at the assembled tier rather than replacing it ([CI gate decision](../testing/2026-07-30-web-browser-snapshot-ci-gate.md)) |
-
-## Host-plane e2e lane mechanics
-
-- A web e2e spec that imports `apps/web/tests/scaffold.ts` is Host-plane: exclude it from `apps/web/tsconfig.json` and list it in the root `tsconfig.host.json`; one program cannot see both Context planes.
-- The lane runs with `vitest run --config vitest.web.config.ts` (the root config only collects `*.spec.ts`) and needs the full lib build plus the web dist in place; `pnpm run test:web` performs both.
-- The scaffold merges its onboarding acknowledgement into the settings document at boot. A scenario that pre-seeds user data under $DSH_HOME must create the home first and pass it as `harnessHome` to `launchWebScaffold`; seeding after boot overwrites the acknowledgement and the first-run notice blocks every gesture.
-- `scaffold.harnessHome` is the isolated $DSH_HOME for seeding settings/credentials/storages; `scaffold.workspaceCwd` is the temp project directory. credentials-local refuses a credentials document readable beyond its owner, so a seeded `.credentials.yaml` needs mode 0600 before boot.

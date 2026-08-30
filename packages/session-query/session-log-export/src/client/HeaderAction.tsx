@@ -4,8 +4,8 @@ import { SessionLogDownloadDialog, type SessionLogDownloadDialogProps } from './
 import css from './HeaderAction.module.css'
 
 /**
- * Render the responsive Session Header export action and its shared result dialog.
- * @param props - Session runtime, download controller, and localized action and dialog copy.
+ * Render the Session Header export capsule and its shared result dialog.
+ * @param props - Session runtime, download controller, and localized dialog copy.
  * @returns the persistent Header action and Session-scoped dialog.
  */
 export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogProps): ReactNode {
@@ -20,10 +20,9 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
         className={css.sessionLogButton}
         disabled={busy}
         aria-busy={busy}
-        aria-label={t('header.label')}
         onClick={() => { void request(sessionId) }}
       >
-        <span>{t('header.label')}</span>
+        <span>{t('header.action')}</span>
         <IconDownloadOutline16 size={12} />
       </button>
       <SessionLogDownloadDialog {...props} />

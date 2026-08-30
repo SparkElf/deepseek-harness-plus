@@ -15,7 +15,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
-import { credentialRef } from '@deepseek-ai/dsh-credentials'
+import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { RECONNECT_DEFAULTS, resolveReconnectPolicy, startConnection } from './connection.ts'
 import type { ReconnectConfig } from './connection.ts'
@@ -38,12 +38,11 @@ const DEFAULT_TOOL_CALL_TIMEOUT_MS = 60_000
 const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 
 /**
- * Live `serverName` reservations per app, keyed off `ctx.root` (multiple apps
- * in one process — tests — must not see each other's names). A duplicate
- * namespace is a configuration error surfaced at plugin load, never silent
- * shadowing.
+ * Live `serverName` reservations per registration scope. Agent-scoped MCP
+ * servers may reuse a namespace in another Agent, while global instances and
+ * duplicates inside one Agent remain mutually exclusive.
  */
-const activeServerNames = new WeakMap<Context, Set<string>>()
+const activeServerNames = new WeakMap<object, Set<string>>()
 
 // ---- Config ----
 
@@ -85,13 +84,8 @@ export interface StreamableHttpConfig {
   serverName: string
   /** MCP endpoint URL. */
   url: string
-  /** Additional non-credential headers attached to MCP requests. */
+  /** Additional headers attached to MCP requests. */
   headers: Record<string, string>
-  /**
-   * DSH credential reference whose current value is sent as the HTTP bearer
-   * token. The MCP SDK resolves it before every request through `ctx.credentials`.
-   */
-  bearerTokenRef?: string
   /** Per-tool-call timeout in milliseconds. */
   toolCallTimeoutMs: number
   /** Fail plugin activation when the initial connection or tool synchronization fails. */
@@ -102,6 +96,12 @@ export interface StreamableHttpConfig {
 
 /** Configuration for one stdio or Streamable HTTP MCP server. */
 export type Config = StdioConfig | StreamableHttpConfig
+
+type StdioConfigInput = Omit<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'failOnStartupError'>
+  & Partial<Pick<StdioConfig, 'args' | 'env' | 'cwd' | 'toolCallTimeoutMs' | 'failOnStartupError'>>
+type StreamableHttpConfigInput = Omit<StreamableHttpConfig, 'headers' | 'toolCallTimeoutMs' | 'failOnStartupError'>
+  & Partial<Pick<StreamableHttpConfig, 'headers' | 'toolCallTimeoutMs' | 'failOnStartupError'>>
+type ConfigInput = StdioConfigInput | StreamableHttpConfigInput
 
 const Reconnect: z<ReconnectConfig> = z.object({
   enabled: z.boolean().default(RECONNECT_DEFAULTS.enabled),
@@ -127,25 +127,11 @@ export const Config = z.union([
     serverName: z.string().required().pattern(SERVER_NAME_PATTERN),
     url: z.string().required(),
     headers: z.dict(String).default({}),
-    bearerTokenRef: z.string().role('credential-ref'),
     toolCallTimeoutMs: z.number().default(DEFAULT_TOOL_CALL_TIMEOUT_MS),
     failOnStartupError: z.boolean().default(false),
     reconnect: Reconnect,
   }),
-]) as unknown as z<Config>
-
-function validateCredentialAuth(ctx: Context, config: Config): void {
-  if (config.transport !== 'streamable-http' || config.bearerTokenRef === undefined) return
-  const ref = credentialRef(config.bearerTokenRef)
-  if (Object.keys(config.headers).some(header => header.toLowerCase() === 'authorization')) {
-    throw new Error(
-      `mcp-client(${config.serverName}): bearerTokenRef and headers.Authorization cannot be configured together`,
-    )
-  }
-  if (ctx.get('credentials') === undefined) {
-    throw new Error(`mcp-client(${config.serverName}): bearerTokenRef "${ref}" requires the credentials service`)
-  }
-}
+]) as unknown as z<ConfigInput, Config>
 
 // ---- Plugin apply ----
 
@@ -158,8 +144,6 @@ function validateCredentialAuth(ctx: Context, config: Config): void {
  * @returns startup readiness after connection and initial tool discovery settle.
  */
 export async function apply(ctx: Context, config: Config): Promise<void> {
-  validateCredentialAuth(ctx, config)
-
   // Fail loud at load: reconnect misconfiguration (including programmatic
   // construction that bypassed Schemastery) rejects THIS instance before any
   // effect registers.
@@ -168,10 +152,11 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // Reserve the namespace next: a duplicate `serverName` fails THIS instance
   // at load with an actionable error and leaves the earlier instance intact.
   ctx.effect(() => {
-    let names = activeServerNames.get(ctx.root)
+    const owner = scopeOf(ctx) ?? ctx.root
+    let names = activeServerNames.get(owner)
     if (!names) {
       names = new Set()
-      activeServerNames.set(ctx.root, names)
+      activeServerNames.set(owner, names)
     }
     if (names.has(config.serverName)) {
       throw new Error(

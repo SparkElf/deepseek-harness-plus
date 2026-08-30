@@ -4,7 +4,7 @@ Status: implemented
 
 [English](2026-07-25-web-command-surfaces-and-assembly.md) | 中文
 
-> 范围：命令目录缓存与三型派发（ui-commands）、popup 选择流、skill（技能） / subagent 两个引用源、fixture（测试前置数据）命令路由与装配验收（slash-flow 快照）。承载 wire 见[会话作用域 note](2026-07-25-web-client-session-scope-and-provide-channel.md)；触发、菜单和输入机器见[输入状态机 note](2026-07-25-web-input-machine-and-slash-pipeline.md)。
+> 范围：命令目录缓存与三型派发（ui-commands）、popup 选择流、skill（技能） / subagent 两个引用源、fixture（测试前置数据）命令路由与装配验收（slash-flow 快照）。承载 wire 见[会话作用域 note](2026-07-25-web-client-session-scope-and-provide-channel.zh.md)；触发、菜单和输入机器见[输入状态机 note](2026-07-25-web-input-machine-and-slash-pipeline.zh.md)。
 
 ## 问题
 
@@ -28,7 +28,7 @@ Status: implemented
 
 ### 引用源（只见投影 + 自家 apply 闭包的 root ctx）
 
-- **ui-skill**：`skill.list({sessionId})` 按会话寻址（host 从会话 header 解析项目根）；目录缓存按 sessionId 键控 single-flight，`warm` 钩子出生预热、`connection/reset` 全清。pick 产出 text outcome（`/name ` 原文，纯文本引用决策）；`lexicon` 从 CatalogFetch 的 settled 快照给名录（未热 `undefined`），`subscribeLexicon` 在 settle 与失效时按会话通知监听者。无 match 钩子（引用不进命令裁决）。skill 引用以原文随普通提示词走（命令平面之外；tool-skill 不变，会话前缀目录提供协作关联）。
+- **ui-skill**：`skills/list({sessionId})` 按会话寻址（host 从会话 header 解析项目根）；目录缓存按 sessionId 键控 single-flight，`warm` 钩子出生预热、`connection/reset` 全清。pick 产出 text outcome（`/name ` 原文，纯文本引用决策）；`lexicon` 从 CatalogFetch 的 settled 快照给名录（未热 `undefined`），`subscribeLexicon` 在 settle 与失效时按会话通知监听者。无 match 钩子（引用不进命令裁决）。skill 引用以原文随普通提示词走（命令平面之外；tool-skill 不变，会话前缀目录提供协作关联）。
 - **ui-subagent**：候选零 RPC（sessions.list 快照按 parentId/running 过滤）；pick 产出 text outcome（`@name ` 原文）；`lexicon` 同快照派生，`subscribeLexicon` 转发 list store 的变更通道（模型侧表示待业务立项）。
 
 ### fixture 命令路由与装配
@@ -36,9 +36,9 @@ Status: implemented
 - connection fixture 补命令路由（fixture + fake-api）：keyless 台架可跑完整命令流（目录、执行、popup 选择）。
 - apps/cli 装配挂全部新包；tsconfig path map / reference 集补齐；catalog/docs 随 wire 与事件再生成。
 
-### 装配级验收
+### 装配级验收：slash-flow 快照
 
-`apps/web/tests/goal-command-presentation.e2e.ts` 通过真实无密钥 Host 与浏览器固定用户可见命令链：新 Workspace Session 执行 `/goal clear`，在没有 model adapter 时渲染输入与无 Goal 结果，在 `command/run` 时把 Session 从 blank 转换，在 reload 之前经 New Session 新建干净欢迎会话，并确认欢迎页没有命令历史且 composer 为空。转换与复用语义由[可见命令历史决策](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md)拥有。
+`apps/web/tests/slash-flow.snapshot.ts` 钉住用户可见主链（assembled keyless，包 mock 不替代装配后的 transcript（文本记录））：无会话时 composer 禁用 → 创建 Workspace 并进入已实体化的 blank 会话 → `/` 菜单选 `/echo` leadingInput → 命令执行但 blank 位不翻转、列表仍显示 `New Session` → 首条普通提示词成功受理后同一行转正；同一个会话绑定的 textarea 在 blank → active 转换期间保持不变。`workspace-flow.snapshot.ts` 另钉住 blank 行创建/复用、首条提示词遭拒后的回填，以及在发出首条提示词前切换 Workspace 时 draft 跨 input machine 搬运且旧 blank 行隐藏。
 
 ## 曾考虑的替代方案
 

@@ -6,9 +6,9 @@ Status: implemented
 
 ## 问题
 
-Web agent（智能体）既无法识别承载当前会话的 GUI，也不知道用户正在查看哪个 URL。[运行时上下文决策](2026-07-28-web-agent-runtime-context.md)提供前一项事实，但 GUI 编辑仍然没有可执行的验收目标：源码编辑、产物构建、监听中的进程与用户已打开的页面只是互不关联的观察结果。仓库提供的入口让错误的替代方案显得合理，因为 `apps/web/package.json` 将 `vite` 暴露为 `dev` 脚本，而裸 Vite 即使无法注入 `window.__DSH_BOOT__`，仍会返回 HTTP 200。
+Web agent（智能体）既无法识别承载当前会话的 GUI，也不知道用户正在查看哪个 URL。[运行时上下文决策](2026-07-28-web-agent-runtime-context.zh.md)提供前一项事实，但 GUI 编辑仍然没有可执行的验收目标：源码编辑、产物构建、监听中的进程与用户已打开的页面只是互不关联的观察结果。仓库提供的入口让错误的替代方案显得合理，因为 `apps/web/package.json` 将 `vite` 暴露为 `dev` 脚本，而裸 Vite 即使无法注入 `window.__DSH_BOOT__`，仍会返回 HTTP 200。
 
-[事故复盘](../../../../docs/postmortem/0003-web-agent-gui-feedback-loop.md)集中记录事件日志时间线，并解释原有检查为何会接受错误的页面、进程和端口。
+[事故复盘](../../../../docs/postmortem/0003-web-agent-gui-feedback-loop.zh.md)集中记录事件日志时间线，并解释原有检查为何会接受错误的页面、进程和端口。
 
 ## 决策
 
@@ -18,7 +18,7 @@ Web agent（智能体）既无法识别承载当前会话的 GUI，也不知道�
 
 `apps/web` 开发脚本和 Vite 配置都会在打开端口前拒绝服务模式。诊断信息会指出 `apps/web` 只是一个仅供构建的外壳，说明只有 `dsh web` 才会注入 `window.__DSH_BOOT__`，并给出生产入口与 HMR 入口路径。Vite 构建模式保持不变。
 
-静态产物发生变化时，不需要仅为此重启或替换服务器。宿主会在每次请求时读取 `index.html` 和静态资源，客户端 bundle 也会从当前文件提供，并设置 `no-cache`；因此，重新构建相关外壳与插件 bundle 后，刷新现有 URL 就是验收路径。启动另一个服务器只能证明另一个服务器可用。如果用户明确要求再启动一个长期运行的服务器，则现有受管后台任务约定负责其生命周期和完成通知；shell `&` 不能替代这套生命周期机制。[Supervisor 重启与中断会话恢复提案](../../proposed/feature/2026-08-14-supervisor-restart-and-interrupted-session-recovery.md)只为明确的 Supervisor runtime 重启扩展该规则，不会在普通编辑后重启 Web。
+静态产物发生变化时，不需要仅为此重启或替换服务器。宿主会在每次请求时读取 `index.html` 和静态资源，客户端 bundle 也会从当前文件提供，并设置 `no-cache`；因此，重新构建相关外壳与插件 bundle 后，刷新现有 URL 就是验收路径。启动另一个服务器只能证明另一个服务器可用。如果用户明确要求再启动一个长期运行的服务器，则现有受管后台任务约定负责其生命周期和完成通知；shell `&` 不能替代这套生命周期机制。
 
 ## 验证
 

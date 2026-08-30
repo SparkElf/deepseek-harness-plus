@@ -1,11 +1,9 @@
 /**
- * @deepseek-ai/dsh-host-webserver — Web route-registration plugin: a node:http
- * server plus the `webServer` service (HTTP and upgrade route registries,
- * index transform taps, and the single fallback seat for everything no route
- * claims). Knows no harness concepts and serves no files; the composing
- * application's frontend plugin owns dist serving through the fallback hook.
- * Web shape only — Electron loads dist over file:// and carries fetch over an
- * IPC bridge. This package never prints: the URL line belongs to the shell.
+ * @deepseek-ai/dsh-host-webserver — node:http route registration with optional
+ * gzip, index injection, and one fallback seat. It knows no harness concepts
+ * and serves no files; the composing application owns dist serving. Electron
+ * uses file:// plus IPC instead, and this package never prints the URL.
+ * Route handlers retain direct response ownership.
  */
 
 import { createServer } from 'node:http'
@@ -14,10 +12,26 @@ import type { AddressInfo } from 'node:net'
 import type { Duplex } from 'node:stream'
 import { Context, Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
+import compressionMiddleware from 'compression'
+import Negotiator from 'negotiator'
+import { renderIndexInjections, type IndexInjection } from './injections.ts'
+
+export { renderIndexInjections } from './injections.ts'
+export type { IndexInjection, IndexInjectionPlacement } from './injections.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     webServer: WebServer
+  }
+  interface Events {
+    /**
+     * Collect the structured index injection table. Emitted on every index
+     * render and every worker boot-payload request; listeners push their
+     * current rows, so a row's data is read fresh at emit time.
+     * @param table - Mutable row table; listeners append in activation order.
+     * @mode emit
+     */
+    'webserver/index-inject'(table: IndexInjection[]): void
   }
 }
 
@@ -27,7 +41,7 @@ export type WebRouteKind = 'exact' | 'prefix'
 /** One named route registration. */
 export interface WebRoute {
   kind: WebRouteKind
-  /** Absolute logical pathname, no trailing slash. */
+  /** Absolute pathname, no trailing slash. */
   path: string
   /** Owns the full response lifecycle (may hold the response open, e.g. SSE). */
   handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>
@@ -35,39 +49,69 @@ export interface WebRoute {
 
 /** One exact-path HTTP upgrade registration. */
 export interface WebUpgradeRoute {
-  /** Absolute logical pathname, no trailing slash. */
+  /** Absolute pathname, no trailing slash. */
   path: string
   /** Owns protocol negotiation and the upgraded socket after dispatch. */
   handler: (req: IncomingMessage, socket: Duplex, head: Buffer) => void | Promise<void>
 }
 
-/** Gateway config: the listen address and optional reverse-proxy mount path. */
+/** Web server listen and response-compression config. */
 export interface Config {
   /** Listen host; the two supported values are loopback and all-interfaces. */
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
-  /** External URL prefix. Empty means site root; otherwise `/segment[/segment]` without a trailing slash. */
-  basePath?: string
+  /** Response compression for socket-backed HTTP requests. @default 'none' */
+  compression?: 'none' | 'gzip'
+  /** Gzip DEFLATE level from 0 through 9. @default 1 */
+  compressionLevel?: number
+  /** Minimum known response length eligible for gzip; unknown-length streams are eligible. @default 1024 */
+  compressionThresholdBytes?: number
 }
 
-/**
- * Validate and canonicalize the external mount prefix. Internally all route
- * owners continue to register logical root paths such as `/api` and `/plugins`.
- * @param value - User-configured external mount prefix.
- * @returns An empty root prefix or a canonical absolute path without a trailing slash.
- */
-export function normalizeWebBasePath(value: string | undefined): string {
-  const candidate = value?.trim() ?? ''
-  if (candidate === '' || candidate === '/') return ''
-  if (!candidate.startsWith('/') || candidate.endsWith('/') || candidate.includes('?') || candidate.includes('#')) {
-    throw new Error('webserver: basePath must be empty or an absolute path without query, fragment, or trailing slash')
+const DEFAULT_COMPRESSION = 'none' as const
+const DEFAULT_COMPRESSION_LEVEL = 1
+const DEFAULT_COMPRESSION_THRESHOLD_BYTES = 1024
+
+interface ResolvedConfig extends Config {
+  compression: 'none' | 'gzip'
+  compressionLevel: number
+  compressionThresholdBytes: number
+}
+
+type NodeMiddleware = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  next: () => void,
+) => void
+
+function createGzipMiddleware(config: ResolvedConfig): NodeMiddleware {
+  // `compression` is typed for Express, but its runtime uses only the
+  // node:http request and response members supplied here.
+  const middleware = compressionMiddleware({
+    level: config.compressionLevel,
+    threshold: config.compressionThresholdBytes,
+    filter(request, response) {
+      if (response.getHeader('content-range') !== undefined) return false
+      const contentType = response.getHeader('content-type')
+      if (typeof contentType === 'string' && contentType.toLowerCase().startsWith('text/event-stream')) return false
+      return compressionMiddleware.filter(request, response)
+    },
+  }) as unknown as NodeMiddleware
+
+  return (req, res, next) => {
+    // The Web Worker tunnel has no socket and transfers identity bytes.
+    if ((res as { socket?: unknown }).socket === undefined) {
+      next()
+      return
+    }
+    const encoding = new Negotiator(req).encoding(['gzip', 'identity'])
+    const gzipRequest = Object.create(req) as IncomingMessage
+    Object.defineProperty(gzipRequest, 'headers', {
+      value: { ...req.headers, 'accept-encoding': encoding === 'gzip' ? 'gzip' : 'identity' },
+    })
+    middleware(gzipRequest, res, next)
   }
-  const segments = candidate.slice(1).split('/')
-  if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
-    throw new Error('webserver: basePath must contain only non-empty path segments and no dot segments')
-  }
-  return candidate
 }
 
 /**
@@ -81,7 +125,9 @@ export class WebServer extends Service {
   static Config: z<Config> = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
     port: z.natural().max(65535).required(),
-    basePath: z.string().default(''),
+    compression: z.union([z.const('none'), z.const('gzip')]).default(DEFAULT_COMPRESSION),
+    compressionLevel: z.number().step(1).min(0).max(9).default(DEFAULT_COMPRESSION_LEVEL),
+    compressionThresholdBytes: z.natural().default(DEFAULT_COMPRESSION_THRESHOLD_BYTES),
   })
 
   private readonly exact = new Map<string, WebRoute>()
@@ -92,11 +138,12 @@ export class WebServer extends Service {
   private fallback: WebRoute['handler'] | undefined
   private server!: Server
   private listenedPort!: number
-  private readonly mountedBasePath: string
+  private readonly gzip: NodeMiddleware | undefined
 
   constructor(ctx: Context, private config: Config) {
     super(ctx, 'webServer')
-    this.mountedBasePath = normalizeWebBasePath(config.basePath)
+    const resolved = config as ResolvedConfig
+    this.gzip = resolved.compression === 'gzip' ? createGzipMiddleware(resolved) : undefined
   }
 
   /** The listening port (the OS-assigned value when config.port is 0). */
@@ -109,16 +156,11 @@ export class WebServer extends Service {
     return this.config.host
   }
 
-  /** External reverse-proxy mount prefix; empty means the site root. */
-  get basePath(): string {
-    return this.mountedBasePath
-  }
-
   /**
    * Register a named route. Duplicate (kind, path) throws — route patterns are
    * a composition-level contract, so a collision is a misconfiguration.
-   * @param route - Kind, path, and the owning handler.
-   * @returns The disposer removing the route.
+   * @param route - kind, path, and the owning handler.
+   * @returns the disposer removing the route.
    */
   register(route: WebRoute): () => void {
     const table = route.kind === 'exact' ? this.exact : this.prefixes
@@ -132,8 +174,8 @@ export class WebServer extends Service {
   /**
    * Register an exact-path HTTP upgrade route. Duplicate paths throw because
    * one socket can have only one protocol owner.
-   * @param route - Pathname and handler owning negotiation plus socket use.
-   * @returns The disposer removing the route.
+   * @param route - pathname and handler owning negotiation plus socket use.
+   * @returns the disposer removing the route.
    */
   registerUpgrade(route: WebUpgradeRoute): () => void {
     if (this.upgrades.has(route.path)) {
@@ -145,10 +187,11 @@ export class WebServer extends Service {
 
   /**
    * Claim the fallback seat: the handler answering every request no named
-   * route matches. One owner only; a second registration throws because two
-   * fallbacks cannot compose.
-   * @param handler - Owns the full response lifecycle of unmatched requests.
-   * @returns The disposer releasing the seat.
+   * route matches (the SPA dist server in the shipped Web composition). One
+   * owner only — a second registration throws, because two fallbacks cannot
+   * compose.
+   * @param handler - owns the full response lifecycle of unmatched requests.
+   * @returns the disposer releasing the seat.
    */
   registerFallback(handler: WebRoute['handler']): () => void {
     if (this.fallback !== undefined) {
@@ -159,10 +202,11 @@ export class WebServer extends Service {
   }
 
   /**
-   * Register an index.html transform, applied by the fallback owner to every
-   * index response in registration order.
-   * @param transform - Pure HTML-to-HTML function.
-   * @returns The disposer removing the transform.
+   * Register a raw-HTML index transform, the escape hatch for markup no
+   * {@link IndexInjection} row expresses: {@link renderIndex} applies taps in
+   * registration order after rendering the structured rows.
+   * @param transform - pure html-to-html function.
+   * @returns the disposer removing the transform.
    */
   tapIndex(transform: (html: string) => string): () => void {
     this.indexTaps.push(transform)
@@ -175,38 +219,40 @@ export class WebServer extends Service {
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init](): Promise<void> {
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
-      const logicalUrl = this.logicalUrl(req.url ?? '/')
-      if (logicalUrl === null) {
+      /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
+      requests; the field is only optional on the client-side IncomingMessage type */
+      const rawPath = new URL(req.url ?? '/', 'http://x').pathname
+      const route = this.match(rawPath)
+      if (route !== undefined) {
+        await route.handler(req, res)
+        return
+      }
+      const fallback = this.fallback
+      if (fallback === undefined) {
         res.writeHead(404)
         res.end()
         return
       }
-      await this.withLogicalUrl(req, logicalUrl, async () => {
-        const rawPath = new URL(req.url ?? '/', 'http://x').pathname
-        const route = this.match(rawPath)
-        if (route !== undefined) {
-          await route.handler(req, res)
-          return
-        }
-        const fallback = this.fallback
-        if (fallback === undefined) {
-          res.writeHead(404)
-          res.end()
-          return
-        }
-        await fallback(req, res)
-      })
+      await fallback(req, res)
     }
+    // Last-resort guard: handle() rejecting would otherwise be an unhandled
+    // rejection killing the process on one malformed request (bad %-escape,
+    // client dropping mid-body). Per-request failures log and answer 400 —
+    // never a process exit.
     this.server = createServer((req, res) => {
-      handle(req, res).catch((err: unknown) => {
-        this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
-        if (res.headersSent) {
-          res.destroy()
-          return
-        }
-        res.writeHead(400)
-        res.end()
-      })
+      const next = (): void => {
+        void handle(req, res).catch((err: unknown) => {
+          this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
+          if (res.headersSent) {
+            res.destroy()
+            return
+          }
+          res.writeHead(400)
+          res.end()
+        })
+      }
+      if (this.gzip === undefined) next()
+      else this.gzip(req, res, next)
     })
     this.server.on('upgrade', (req, socket, head) => {
       const onError = (error: Error): void => {
@@ -218,14 +264,10 @@ export class WebServer extends Service {
         socket.off('error', onError)
         this.upgradedSockets.delete(socket)
       })
-      const logicalUrl = this.logicalUrl(req.url ?? '/')
-      if (logicalUrl === null) {
-        socket.destroy()
-        return
-      }
       let route: WebUpgradeRoute | undefined
       try {
-        route = this.upgrades.get(new URL(logicalUrl, 'http://x').pathname)
+        /* v8 ignore next -- node:http always sets url on server requests. */
+        route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
       } catch (error) {
         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
         socket.destroy()
@@ -237,7 +279,7 @@ export class WebServer extends Service {
       }
       this.upgradedSockets.add(socket)
       try {
-        Promise.resolve(this.withLogicalUrl(req, logicalUrl, () => route.handler(req, socket, head))).catch((error: unknown) => {
+        Promise.resolve(route.handler(req, socket, head)).catch((error: unknown) => {
           this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
           socket.destroy()
         })
@@ -257,6 +299,8 @@ export class WebServer extends Service {
       })
     })
 
+    // Node does not include upgraded sockets in closeAllConnections(). The service
+    // owns them with the other connections, so it tracks and destroys them explicitly.
     this.ctx.effect(() => async () => {
       const serverClosed = new Promise<void>((resolve) => {
         this.server.close(() => { resolve() })
@@ -268,27 +312,6 @@ export class WebServer extends Service {
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
     }, 'webServer.listen')
-  }
-
-  /** Strip the externally visible mount prefix while retaining query text. */
-  private logicalUrl(rawUrl: string): string | null {
-    const parsed = new URL(rawUrl, 'http://x')
-    const basePath = this.mountedBasePath
-    if (basePath === '') return `${parsed.pathname}${parsed.search}`
-    if (parsed.pathname === basePath) return `/${parsed.search}`
-    if (!parsed.pathname.startsWith(`${basePath}/`)) return null
-    return `${parsed.pathname.slice(basePath.length)}${parsed.search}`
-  }
-
-  /** Present one logical URL to existing route owners without leaking the external prefix. */
-  private async withLogicalUrl<T>(req: IncomingMessage, logicalUrl: string, run: () => T | Promise<T>): Promise<T> {
-    const original = req.url
-    req.url = logicalUrl
-    try {
-      return await run()
-    } finally {
-      req.url = original
-    }
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */
@@ -304,15 +327,37 @@ export class WebServer extends Service {
   }
 
   /**
-   * Run an index.html body through the registered taps in registration order.
-   * The fallback owner calls this for every index response it renders.
-   * @param html - The raw index.html body.
-   * @returns The transformed body.
+   * Run an index.html body through the registered taps in registration order
+   * — called by the fallback owner on every index response it renders.
+   * @param html - the raw index.html body.
+   * @returns the transformed body.
    */
   applyIndexTaps(html: string): string {
     let out = html
     for (const transform of this.indexTaps) out = transform(out)
     return out
+  }
+
+  /**
+   * Gather the structured injection table: one `webserver/index-inject` emit,
+   * every subscriber pushes its current rows. Fresh per call, so subscribers
+   * read live state (module graph, theme preference) at emit time.
+   * @returns rows in subscriber activation order.
+   */
+  collectIndexInjections(): IndexInjection[] {
+    const table: IndexInjection[] = []
+    this.ctx.emit('webserver/index-inject', table)
+    return table
+  }
+
+  /**
+   * Render one index.html body: the structured injection table first, then
+   * the raw `tapIndex` transforms over the result.
+   * @param html - the raw index.html body.
+   * @returns the transformed body.
+   */
+  renderIndex(html: string): string {
+    return this.applyIndexTaps(renderIndexInjections(html, this.collectIndexInjections()))
   }
 }
 

@@ -10,11 +10,11 @@ The sidebar's session list overflows after a handful of sessions, and from that 
 
 ## Decision
 
-`SidebarRoot` tracks the pointer over the whole column and carries a `quietBars` class whenever it is outside. The rule that class selects rebinds ui-theme's indirection pair — `--dsh-scrollbar-thumb` and `--dsh-scrollbar-thumb-hover` — to `transparent`, so every scroll region nested under the column draws no thumb. The session list is the only one today; a future one inherits the behavior rather than opting into it.
+`SidebarRoot` tracks the pointer over the whole column and carries a `quietBars` class whenever it is outside. The rule that class selects rebinds ui-theme's indirection pair — `--dsh-scrollbar-thumb` and `--dsh-scrollbar-thumb-hover` — to `transparent`, so every scroll region nested under the column draws no thumb. The session list is the only occupant; a future one inherits the behavior rather than opting into it.
 
 The tail is `SCROLLBAR_LINGER_MS = 2000`: leaving arms a timer, entering cancels a pending one, and only the timer firing puts the class back. A pointer that crosses the column's edge and returns — travelling around a portalled menu, or overshooting on the way to a row — never sees the thumb blink.
 
-Entering is the column's own `pointerenter`; leaving is decided against the column's box, from a `pointermove` listener that exists only while the bars are drawn. DOM containment cannot decide the leave, because ui-settings portals its full-viewport panel to `document.body` while React event propagation still follows the component tree: moving onto that panel — or onto the conversation after it closes — does not reliably fire `pointerleave` here, and the bars would stay drawn over a column nobody is pointing at. The element's own leave is kept for the one case geometry cannot see, a pointer that leaves the window and emits no further moves.
+Entering is the column's own `pointerenter`; leaving is decided against the column's box, from a `pointermove` listener that exists only while the bars are drawn. DOM containment cannot decide the leave, because ui-settings renders its full-viewport settings panel as a fixed-position *descendant* of this column: a pointer moved onto that panel — or onto the conversation after it closes — never fires `pointerleave` here, and the bars would stay drawn over a column nobody is pointing at. The element's own leave is kept for the one case geometry cannot see, a pointer that leaves the window and emits no further moves.
 
 The pointer surface is the column, not the list. A pointer heading for the bar crosses the logo row, the New Session capsule, and the search field first, so revealing on the list alone would surface the bar only once the pointer was already among the rows.
 
@@ -45,7 +45,7 @@ Hiding no longer counts as elevating: only an l2 rebind exempts a sheet from "ev
 - A list scrolled by keyboard or by a touch drag shows no thumb once the linger passes, since neither leaves a pointer over the column. The e2e pins this rather than only describing it.
 - Dragging the thumb itself out of the column does not hide it mid-drag: the scrollbar takes the pointer capture, so the page receives no `pointermove` while the button is held. Measured in Chromium — the bar stays drawn and keeps scrolling with the pointer 900px to its right, past the linger window.
 - The column starts quiet on a cold load and stays so until the pointer first moves over it. A pointer already parked there when the page loads fires nothing until it moves, which is the browser's rule rather than this shell's.
-- An elevated surface nested in the column that rebinds the pair to l2 for its own elevation overrides the quiet state and keeps its bar drawn. Nothing in the sidebar does this today.
+- An elevated surface nested in the column that rebinds the pair to l2 for its own elevation overrides the quiet state and keeps its bar drawn. No sidebar surface does this.
 - The shell's DOM now carries a state class, so ui-sidebar's shell snapshots pin `quietBars` and a regression in the default state is a snapshot diff rather than something someone has to notice in a screenshot.
 
 ## Testing

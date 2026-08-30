@@ -14,8 +14,6 @@ export interface SanitizedChunk {
   prompt: boolean
   /** Printable text after the latest owned marker in this chunk. */
   promptTail?: string
-  /** Number of standard cursor-position queries removed from this chunk. */
-  cursorPositionQueries?: number
 }
 
 /**
@@ -35,13 +33,12 @@ export class TerminalSanitizer {
   /**
    * Consume one decoded `node-pty` data chunk.
    * @param chunk - decoded terminal data.
-   * @returns Printable text plus owned prompt and cursor-position-query events.
+   * @returns Printable text and whether the private prompt marker completed.
    */
   push(chunk: string): SanitizedChunk {
     this.pending += this.discardPrefix(chunk)
     let text = ''
     let prompt = false
-    let cursorPositionQueries = 0
     let includePromptTail = this.trackingPromptTail
     let promptTail = ''
     let index = 0
@@ -95,7 +92,6 @@ export class TerminalSanitizer {
           index = escape
           break
         }
-        if (this.pending.slice(escape + 2, end + 1) === '6n') cursorPositionQueries += 1
         index = end + 1
         continue
       }
@@ -108,7 +104,6 @@ export class TerminalSanitizer {
       text: this.normalizeText(text),
       prompt,
       ...includePromptTail ? { promptTail } : {},
-      ...cursorPositionQueries > 0 ? { cursorPositionQueries } : {},
     }
   }
 

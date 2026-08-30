@@ -7,7 +7,6 @@
  */
 
 import { WebError } from '@deepseek-ai/dsh-web'
-import { combineWithTimeout } from './current.ts'
 import type {
   WebSearchProvider,
   WebSearchRequest,
@@ -103,8 +102,6 @@ export interface DeepSeekSearchProviderOptions {
   maxTokens: number
   /** Maximum `web_search` server-tool uses per request. */
   maxUses: number
-  /** Upper bound for one search request, in milliseconds. */
-  timeoutMs: number
   /**
    * Record the exact secret-free request immediately before dispatch. A throw
    * prevents dispatch so model-visible auxiliary input cannot escape logging.
@@ -220,7 +217,6 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
       body,
     })
     throwIfSearchAborted(signal)
-    const { combined, timer } = combineWithTimeout(signal, options.timeoutMs)
     let response: Response
     try {
       response = await fetch(endpoint, {
@@ -237,12 +233,9 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
           'user-agent': USER_AGENT,
         },
         body: JSON.stringify(body),
-        signal: combined,
+        ...signal !== undefined ? { signal } : {},
       })
     } catch (error: unknown) {
-      if (isAbortError(error) && timer.aborted && signal?.aborted !== true) {
-        throw new WebError(`DeepSeek search timed out after ${options.timeoutMs}ms`, 'WEB_PROVIDER_TIMEOUT')
-      }
       if (signal?.aborted === true || isAbortError(error)) throw searchAborted(signal, error)
       throw new WebError(`DeepSeek search request failed: ${String(error)}`, 'WEB_PROVIDER_ERROR', { cause: error })
     }

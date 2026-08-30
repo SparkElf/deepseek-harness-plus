@@ -1,7 +1,8 @@
 /**
  * The four independent publish sequences this repository releases from
- * (`@deepseek-ai/*`, `@sparkelf/*`, `vendor/`, and `native/`) and the three this
- * module owns: `dsh`, `plus`, and `vendor`. Each family carries its own version baseline, tag
+ * (official `packages/` + `apps/`, Plus packages and patches, `vendor/`, and
+ * `native/`) and the three this module owns: `dsh`, `plus`, and `vendor`.
+ * Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -15,7 +16,6 @@ import {
   officialClientBuildEnvironment,
   readClientBuildRecord,
 } from '../client-build-environment.ts'
-import { isFirstPartyPackageName } from '../first-party-packages.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
 /**
@@ -39,7 +39,6 @@ const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
 
 /** One peer declaration the publish order leaves unordered. */
 interface DroppedPeerEdge {
-  /** Package declaring the peer. */
   readonly consumer: string
   /** The declared peer, which publishes after `consumer` or alongside it in a cycle. */
   readonly peer: string
@@ -53,7 +52,6 @@ interface DroppedPeerEdge {
  * log is the only one who can judge whether a newly dropped edge is expected.
  */
 export interface PublishPlan {
-  /** Members in publish order. */
   readonly order: readonly ReleaseMember[]
   /** Peer declarations left unordered, in the order the traversal reached them. */
   readonly droppedPeerEdges: readonly DroppedPeerEdge[]
@@ -61,13 +59,9 @@ export interface PublishPlan {
 
 /** One publishable package of a release family. */
 export interface ReleaseMember {
-  /** Repository-relative package directory, for example `packages/core/session`. */
   readonly directory: string
-  /** Package name from its manifest. */
   readonly name: string
-  /** Package version from its manifest. */
   readonly version: string
-  /** The parsed manifest, for payload policy and publication checks. */
   readonly manifest: Readonly<Record<string, unknown>>
 }
 
@@ -99,18 +93,16 @@ function requireString(manifest: Record<string, unknown>, field: string, context
 
 /** The executable a family's installed artifacts are driven through. */
 export interface InstalledEntry {
-  /** Package that carries the executable. */
   readonly packageName: string
-  /** Path to the executable inside that package. */
   readonly binPath: string
 }
 
 /** A release sequence: its members, its version baseline, and its tag naming. */
 export abstract class ReleaseFamily {
-  /** Workflow-facing identifier, also the `--family` argument. */
+  /** Workflow-facing `--family` identifier. */
   abstract readonly id: string
 
-  /** Glob patterns, relative to the repository root, that select this family's manifests. */
+  /** Repository-relative glob patterns selecting this family's manifests. */
   abstract readonly patterns: readonly string[]
 
   /** Git tag prefix this family publishes from. */
@@ -126,12 +118,8 @@ export abstract class ReleaseFamily {
   /** Whether this family owns a package selected by its path patterns. */
   protected ownsPackage(_name: string): boolean { return true }
 
-  /**
-   * Whether an owned manifest name is allowed in this family.
-   * @param name - manifest package name.
-   * @returns Whether the family accepts the name.
-   */
-  protected acceptsPackageName(name: string): boolean { return isFirstPartyPackageName(name) }
+  /** Whether an owned manifest name belongs to this release authority. */
+  protected acceptsPackageName(name: string): boolean { return name.startsWith('@deepseek-ai/') }
 
   /**
    * Discover this family's members.
@@ -151,7 +139,7 @@ export abstract class ReleaseFamily {
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
       if (!this.ownsPackage(name)) continue
-      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} must name a first-party package`)
+      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} names a package outside release family ${this.id}`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -328,14 +316,10 @@ export abstract class ReleaseFamily {
   abstract readonly installedEntry: InstalledEntry | undefined
 }
 
-/** Release packages, CLI, and Web share one version; Plus Desktop releases independently. */
+/** Release packages and apps: one shared version across the whole family. */
 class DshFamily extends ReleaseFamily {
   readonly id: string = 'dsh'
-  readonly patterns: readonly string[] = [
-    'packages/!(experimental)/*/package.json',
-    'apps/cli/package.json',
-    'apps/web/package.json',
-  ]
+  readonly patterns: readonly string[] = ['packages/!(experimental)/*/package.json', 'apps/*/package.json']
   readonly tagPrefix: string = 'dsh-v'
 
   protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
@@ -377,15 +361,18 @@ class DshFamily extends ReleaseFamily {
   readonly installedEntry: InstalledEntry | undefined = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
 }
 
-/** Plus-owned public npm packages use their own scope, version tag, and workflow. */
+/** Plus-owned npm artifacts share an independent version and tag. */
 class PlusFamily extends DshFamily {
   override readonly id = 'plus'
-  override readonly patterns = ['packages/!(experimental)/*/package.json'] as const
+  override readonly patterns = ['packages/!(experimental)/*/package.json', 'patches/npm/*/package.json'] as const
   override readonly tagPrefix = 'plus-npm-v'
 
   protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
 
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
+  override verifyBuildArtifacts(): void {}
 
   override readonly installedEntry = undefined
 }

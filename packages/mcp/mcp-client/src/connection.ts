@@ -169,11 +169,6 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
     return run
   }
 
-  /** Start SDK close without using its Promise as the quiescence signal; `onclose` and its timeout own settlement. */
-  function requestClose(generation: Client): void {
-    void generation.close().catch(() => { /* transport close signal and timeout own teardown */ })
-  }
-
   /** One disconnect decision per generation: the isCurrent guard makes racing close/error signals idempotent. */
   function generationDown(generation: Client): void {
     if (!isCurrent(generation)) return
@@ -274,7 +269,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       },
     )
     try {
-      await generation.connect(createTransport(config, ctx))
+      await generation.connect(createTransport(config))
       if (hasClosed()) {
         attemptSettled = true
         generationDown(generation)
@@ -286,7 +281,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       // Disposal clears current ownership before it closes the generation, so
       // only a live supervisor reports an attempt failure.
       if (isCurrent(generation)) ctx.logger.warn(`${label}: connection attempt failed: ${String(error)}`)
-      requestClose(generation)
+      try { await generation.close() } catch { /* transport already gone */ }
       const quiesced = hasClosed() || await waitForClose(closed.promise)
       attemptSettled = true
       if (!isCurrent(generation)) return
@@ -340,7 +335,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       client = undefined
       clientClosed = undefined
       if (current !== undefined) {
-        requestClose(current)
+        try { await current.close() } catch { /* transport already gone */ }
         if (currentClosed !== undefined && !await waitForClose(currentClosed)) {
           ctx.logger.error(`${label}: generation did not close within ${GENERATION_CLOSE_TIMEOUT_MS}ms during disposal — server shutdown may be incomplete`)
         }

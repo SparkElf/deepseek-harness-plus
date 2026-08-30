@@ -1,32 +1,13 @@
 /** Durable attachment vocabulary. @module @deepseek-ai/dsh-attachment/types */
 
-import type { AttachmentId } from './brand.ts'
+import type { AttachmentId, ImageVariantId } from './brand.ts'
 
 export type { AttachmentId } from './brand.ts'
 
-/** Raster image formats accepted by the version-one image attachment path. */
+/** Raster image formats accepted by the version-one attachment path. */
 export type ImageMediaType = 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'
 
-/** Human-document formats accepted by the first durable document path. */
-export type DocumentMediaType =
-  | 'application/pdf'
-  | 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-  | 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-  | 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-
-/** Generic immutable file-object metadata for document/parser artifacts. */
-export interface FileAttachmentRef {
-  /** Opaque storage identifier; never a filesystem path or bearer URL. */
-  attachmentId: AttachmentId
-  /** Caller-owned media type for this generic file object. */
-  mediaType: string
-  /** Exact encoded byte length. */
-  bytes: number
-  /** Optional display name stripped of local path information. */
-  name?: string
-}
-
-/** Durable, serializable metadata for one immutable image object. */
+/** Durable, serializable reference to one immutable normalized image. */
 export interface ImageAttachmentRef {
   /** Opaque storage identifier; never a filesystem path or bearer URL. */
   attachmentId: AttachmentId
@@ -40,33 +21,17 @@ export interface ImageAttachmentRef {
   height: number
   /** Optional display name stripped of local path information. */
   name?: string
+  /**
+   * Input dimensions after applying EXIF orientation and before normalization
+   * scaling. Present only when normalization reduced the image.
+   */
+  originalDimensions?: {
+    width: number
+    height: number
+  }
 }
 
-/**
- * Durable parser outputs associated with one original document. The session
- * records only immutable attachment references; parser response paths and
- * transient extracted bytes never become session state.
- */
-export interface ParsedDocumentRef {
-  /** Provider id that produced this immutable parse bundle. */
-  parser: string
-  /** Complete parsed Markdown used for direct model projection. */
-  markdown: FileAttachmentRef
-  /** Complete parser structural block list retained for future document tools. */
-  contentList: FileAttachmentRef
-  /** Extracted raster images in parser output order. */
-  images: ImageAttachmentRef[]
-}
-
-/** Durable metadata for one supported user-authored document. */
-export interface DocumentAttachmentRef extends Omit<FileAttachmentRef, 'mediaType' | 'name'> {
-  /** Exact supported document media type admitted with the original bytes. */
-  mediaType: DocumentMediaType
-  /** Browser/provider display name after path stripping and control-character cleanup. */
-  name: string
-}
-
-/** Deployment-resolved limits used by image upload admission and request buffering. */
+/** Deployment-resolved limits used by upload admission and request buffering. */
 export interface ImageAttachmentLimits {
   maxImageBytes: number
   maxImagesPerMessage: number
@@ -75,18 +40,6 @@ export interface ImageAttachmentLimits {
   /** Maximum intrinsic width and maximum intrinsic height in pixels for one image. */
   maxImageDimension: number
   mediaTypes: readonly ImageMediaType[]
-}
-
-/** Deployment-resolved limits used by document upload admission and request buffering. */
-export interface DocumentAttachmentLimits {
-  /** Maximum encoded bytes admitted for one supported document. */
-  maxDocumentBytes: number
-  /** Maximum number of supported documents admitted in one submitted message. */
-  maxDocumentsPerMessage: number
-  /** Maximum aggregate encoded document bytes admitted in one submitted message. */
-  maxMessageDocumentBytes: number
-  /** Exact document media types accepted by this deployment. */
-  mediaTypes: readonly DocumentMediaType[]
 }
 
 /** Base64-encoded image upload accompanying one wire request. */
@@ -99,26 +52,6 @@ export interface EncodedImageAttachment {
   name?: string
 }
 
-/** Base64-encoded supported document accompanying one wire request. */
-export interface EncodedDocumentAttachment {
-  /** Declared document media type admitted before persistence. */
-  mediaType: DocumentMediaType
-  /** Canonical base64 encoding of the document bytes. */
-  data: string
-  /** Required display name; it is never interpreted as a storage path. */
-  name: string
-}
-
-/** Generic immutable bytes to commit to the shared content-addressed object store. */
-export interface SaveFileAttachment {
-  /** Already-admitted immutable bytes to persist. */
-  data: Uint8Array
-  /** Caller-owned media type recorded beside the immutable object reference. */
-  mediaType: string
-  /** Optional display name; storage providers must never treat it as a path. */
-  name?: string
-}
-
 /** Request to validate and durably commit one image. */
 export interface SaveImageAttachment {
   data: Uint8Array
@@ -128,16 +61,36 @@ export interface SaveImageAttachment {
   name?: string
 }
 
-/** Stored generic file bytes returned after reference and digest verification. */
-export interface StoredFileAttachment {
-  /** Canonical durable reference verified against the returned bytes. */
-  ref: FileAttachmentRef
-  /** Immutable stored bytes after digest and byte-length verification. */
-  data: Uint8Array
-}
-
 /** Stored image bytes returned after reference and digest verification. */
 export interface StoredImageAttachment {
   ref: ImageAttachmentRef
   data: Uint8Array
+}
+
+/** Deterministic request-image policy selected by one exact model route. */
+export interface ImageRequestPolicy {
+  /** Maximum width multiplied by height after aspect-preserving projection. */
+  maxPixels: number
+  /** Encoded-byte target before base64 expansion or Files API upload; the smallest quality-ladder output is kept when no quality fits. */
+  maxBytes: number
+}
+
+/** Cached request version derived from one provider-independent normalized attachment. */
+export interface RequestImageAttachment {
+  /** Cache and upload-index key over the attachment id, policy, and fixed encoder parameters. */
+  variantId: ImageVariantId
+  /** Durable normalized attachment from which this request version was derived. */
+  attachment: ImageAttachmentRef
+  /** Encoded request bytes. */
+  data: Uint8Array
+  mediaType: ImageMediaType
+  bytes: number
+  width: number
+  height: number
+  /** Provider-compatible sample depth proven after request encoding. */
+  depth: 'uchar'
+  /** Provider-compatible color space proven after request encoding. */
+  space: 'srgb'
+  /** Whether the encoded request version retains an alpha channel. */
+  hasAlpha: boolean
 }

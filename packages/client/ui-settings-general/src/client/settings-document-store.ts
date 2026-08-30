@@ -1,15 +1,13 @@
 /** State owner for the optional local settings-document action. */
 
-import type { IApiClient } from '@deepseek-ai/dsh-api-remotes/client'
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientRemote } from '@deepseek-ai/dsh-api-remotes/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { SettingsDescribeFace } from '@deepseek-ai/dsh-client-ui-settings/client'
 
 /** Browser state of the Host-owned settings document. */
 export interface SettingsDocumentState {
   /** Metadata-loading phase; unavailable means the provider has no local document or the read failed. */
   status: 'idle' | 'loading' | 'ready' | 'unavailable'
-  /** Whether the Host can hand the document to a native desktop application. */
-  canOpen: boolean
   /** Whether one native-open request is in flight. */
   opening: boolean
   /** Last metadata/native-open diagnostic; UI exposes only localized copy. */
@@ -24,17 +22,17 @@ function messageOf(error: unknown): string {
 export class SettingsDocumentStore {
   /** uSES-safe state source shared by the registered header action. */
   readonly store: SnapshotStore<SettingsDocumentState> = createSnapshotStore({
-    status: 'idle', canOpen: false, opening: false, error: null,
+    status: 'idle', opening: false, error: null,
   })
 
   private following: (() => void) | undefined
 
   /**
    * @param api - loopback settings wire face that opens the provider document.
-   * @param describeFace - the shared mirror's document and native-open capability source.
+   * @param describeFace - the shared mirror's describe face (`hasDocument` source).
    */
   constructor(
-    private readonly api: Pick<IApiClient, 'settings'>,
+    private readonly remote: Pick<ClientRemote, 'settings'>,
     private readonly describeFace: SettingsDescribeFace,
   ) {}
 
@@ -47,7 +45,6 @@ export class SettingsDocumentStore {
     this.following ??= this.describeFace.subscribe(() => { this.derive() })
     this.store.update((state) => {
       state.status = 'loading'
-      state.canOpen = false
       state.error = null
     })
     await this.describeFace.ensure()
@@ -60,14 +57,14 @@ export class SettingsDocumentStore {
    */
   async open(): Promise<void> {
     const current = this.store.getSnapshot()
-    if (current.status !== 'ready' || !current.canOpen || current.opening) return
+    if (current.status !== 'ready' || current.opening) return
     this.store.update((state) => {
       state.opening = true
       state.error = null
     })
     try {
-      const response = await this.api.settings.openDocument({})
-      if (!response.result.ok) throw new Error(response.result.error.message)
+      const result = await this.remote.settings.openSettingsDocument()
+      if (!result.ok) throw new Error(result.error.message)
     } catch (error) {
       this.store.update((state) => { state.error = messageOf(error) })
     } finally {
@@ -89,16 +86,14 @@ export class SettingsDocumentStore {
       if (mirrored.error !== null) {
         this.store.update((state) => {
           state.status = 'unavailable'
-          state.canOpen = false
           state.error = mirrored.error
         })
       }
       return
     }
-    const { canOpenDocument, hasDocument } = mirrored.view
+    const { hasDocument } = mirrored.view
     this.store.update((state) => {
       state.status = hasDocument ? 'ready' : 'unavailable'
-      state.canOpen = hasDocument && canOpenDocument !== false
       state.error = null
     })
   }

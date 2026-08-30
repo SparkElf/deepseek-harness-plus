@@ -3,7 +3,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { describe, expect, it, vi } from 'vitest'
 import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
-import { SlotRegistry } from '@deepseek-ai/dsh-client-runtime/client'
+import { SlotRegistry } from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
 import { apply as settingsApply, inject as settingsInject } from '@deepseek-ai/dsh-client-ui-settings/client'
@@ -11,8 +11,7 @@ import { apply, inject } from '@deepseek-ai/dsh-client-ui-settings-plugins/clien
 import type {
   ConfigurablePluginsTabFace, PluginsSettingsSectionInjected,
 } from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
-import type { SubagentSettingsSectionInjected } from '../src/client/SubagentCard.tsx'
-import type { SubagentEntryView } from '../src/client/subagent-store.ts'
+import { SubagentModelSelectionCardController } from '../src/client/subagent-model-selection-card-controller.ts'
 
 // These specs assert the shipped Chinese copy. The lane has no jsdom `window`,
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
@@ -28,39 +27,34 @@ async function bench(served?: string[]) {
   const locale = new LocaleRuntime(ctx)
   locale.setLocale('zh')
   ctx.provide('locale', locale)
-  const describeCredentials = vi.fn(() => Promise.resolve({ rpcId: 'c', result: { ok: false, error: {} } }))
-  const listModels = vi.fn(() => Promise.resolve({
-    rpcId: 'm', result: { ok: true, value: { current: undefined, routable: false, groups: [], failures: [] } },
+  const describeCredentials = vi.fn(() => Promise.resolve({ ok: false, error: { code: 'internal', message: 'no provider', details: {} } }))
+  const models = vi.fn(() => Promise.resolve({
+    ok: true as const, value: { groups: [], failures: [] },
   }))
   const describeSettings = vi.fn(() => Promise.resolve(served === undefined
-    ? { rpcId: 's', result: { ok: false, error: {} } }
+    ? { ok: false, error: { code: 'internal', message: 'no provider', details: {} } }
     : {
-      rpcId: 's',
-      result: {
-        ok: true,
-        value: {
-          writable: true,
-          hasDocument: true,
-          namespaces: served.map(ns => ({
-            ns, schema: {}, value: {}, applies: 'live', secrets: [], revision: 0,
-          })),
-        },
+      ok: true,
+      value: {
+        writable: true,
+        hasDocument: true,
+        namespaces: served.map(ns => ({
+          ns, schema: {}, value: {}, applies: 'live', secrets: [], revision: 0,
+        })),
       },
     }))
-  // The section binds its scopes through the Settings surface's service, and
-  // forwarded Host events reach it through the same `$dispatch` handoff the
-  // connection sink makes.
-  new TestRemote(ctx)
+  const remote = new TestRemote(ctx, {
+    credentials: { describe: describeCredentials, set: vi.fn() },
+    session: { modelCatalog: models },
+    settings: { describe: describeSettings },
+  })
   ctx.provide('connection', {
     isLoopback: true,
-    api: {
-      settings: { describe: describeSettings },
-      credentials: { describe: describeCredentials },
-      llm: { models: listModels },
-    },
   } as never)
   await ctx.plugin({ inject: [...settingsInject], apply: settingsApply }).await()
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, describeCredentials, describeSettings, listModels }
+  return {
+    ctx, slots: ctx.get('slots') as SlotRegistry, describeCredentials, describeSettings, models, remote,
+  }
 }
 
 function declareRoot(slots: SlotRegistry): () => void {
@@ -72,22 +66,21 @@ function declareRoot(slots: SlotRegistry): () => void {
 
 describe('ui-settings-plugins apply', () => {
   it('declares the services it uses', () => {
-    expect(inject).toEqual(['slots', 'locale', 'connection', 'remote', 'settingsScope'])
+    expect(inject).toEqual([
+      'slots', 'locale', 'connection', 'remote', 'remote.credentials', 'remote.session', 'settingsScope',
+    ])
   })
 
-  it('registers Subagents and Plugins sections and declares the plugin tab and card slots', async () => {
+  it('registers one Plugins section and declares the tab and card slots', async () => {
     const { ctx, slots } = await bench()
     declareRoot(slots)
 
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    const sections = slots.entries('settings.section')
-    expect(sections.map(section => ({ id: section.options.id, order: section.options.order }))).toEqual([
-      { id: 'subagents', order: 15 },
-      { id: 'plugins', order: 16 },
-    ])
-    // Nav labels are locale-following thunks; owners resolve them at read time.
-    expect(sections.map(section => resolveSlotLabel(section.options.label))).toEqual(['子代理', '插件'])
+    const section = slots.entries('settings.section')[0]!
+    expect(section.options).toMatchObject({ id: 'plugins', order: 15 })
+    // The nav label is a locale-following thunk; owners resolve it at read time.
+    expect(resolveSlotLabel(section.options.label)).toBe('插件')
     expect(slots.spec('settings.plugins.tab')).toMatchObject({ kind: 'list', scope: 'root' })
     const tab = slots.entries('settings.plugins.tab')[0]!
     expect(tab.options).toMatchObject({ id: 'configurable', order: 0 })
@@ -97,13 +90,12 @@ describe('ui-settings-plugins apply', () => {
 
 
   it('injects a live tab projection, the card directory, and one business face per card', async () => {
-    const { ctx, slots, listModels } = await bench()
+    const { ctx, slots } = await bench()
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
 
-    const sections = slots.entries('settings.section')
-    const pluginsSection = sections.find(entry => entry.options.id === 'plugins')!
-    const sectionFace = (pluginsSection.inject as unknown as () => PluginsSettingsSectionInjected)()
+    const section = slots.entries('settings.section')[0]!
+    const sectionFace = (section.inject as unknown as () => PluginsSettingsSectionInjected)()
     const initialTabs = sectionFace.hooks.tabs.getSnapshot()
     expect(initialTabs).toEqual([
       { id: 'configurable', order: 0, label: '插件配置' },
@@ -127,20 +119,6 @@ describe('ui-settings-plugins apply', () => {
       // Each card injects exactly one snapshot store plus its own actions.
       expect(Object.keys(face.hooks)).toHaveLength(1)
     }
-    const subagentsSection = sections.find(entry => entry.options.id === 'subagents')!
-    const subagentFace = (subagentsSection.inject as unknown as () => SubagentSettingsSectionInjected)()
-    const item: SubagentEntryView = {
-      ns: 'subagent', kind: 'spawn', label: 'subagentContinuous',
-      context: 'fresh', background: 'continuable', value: {},
-    }
-    subagentFace.ensure()
-    await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(1) })
-    ctx.remote.$dispatch('llm/adapters-updated', [])
-    await vi.waitFor(() => { expect(listModels).toHaveBeenCalledTimes(2) })
-    subagentFace.stage(item, { enabled: true, persona: 'reviewer' })
-    await subagentFace.save(item)
-    subagentFace.reset(item)
-    subagentFace.discard(item)
   })
 
   it('keys each card it ships on the settings namespace that card edits', async () => {
@@ -150,7 +128,7 @@ describe('ui-settings-plugins apply', () => {
     await ctx.plugin({ inject: [...inject], apply }).await()
 
     expect(slots.entries('settings.plugin.item').map(entry => entry.options.key))
-      .toEqual(['shell', 'agent-loop', 'web-search-deepseek'])
+      .toEqual(['shell', 'agent-loop', 'subagent-model-selection', 'web-search-deepseek'])
   })
 
   it('dispatches the served namespaces its cards claim, and no others', async () => {
@@ -172,13 +150,13 @@ describe('ui-settings-plugins apply', () => {
     // Which namespaces the Host serves is a registration fact the wire never
     // announces on its own, so the tab rides the invalidation that can
     // accompany a changed composition.
-    const { ctx, slots, describeSettings } = await bench(['bash'])
+    const { ctx, slots, describeSettings, remote } = await bench(['bash'])
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(describeSettings).toHaveBeenCalled() })
     describeSettings.mockClear()
 
-    ctx.remote.$dispatch('settings/document-updated', ['bash', 1])
+    remote.emit('settings/document-updated', ['bash', 1])
 
     await vi.waitFor(() => { expect(describeSettings).toHaveBeenCalled() })
   })
@@ -196,7 +174,7 @@ describe('ui-settings-plugins apply', () => {
   })
 
   it('re-reads the credential when the Host reports the watched reference changed', async () => {
-    const { ctx, slots, describeCredentials } = await bench()
+    const { ctx, slots, describeCredentials, remote } = await bench()
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(describeCredentials).toHaveBeenCalled() })
@@ -204,19 +182,36 @@ describe('ui-settings-plugins apply', () => {
 
     // A key written on another surface changes no settings section, so this
     // event is the only thing that reaches the card.
-    ctx.remote.$dispatch('credentials/updated', ['DEEPSEEK_API_KEY'])
+    remote.emit('credentials/reference-updated', ['DEEPSEEK_API_KEY'])
 
     await vi.waitFor(() => { expect(describeCredentials).toHaveBeenCalledTimes(1) })
   })
 
+  it('refreshes the subagent catalog after model inputs change or the connection resets', async () => {
+    const refresh = vi.spyOn(SubagentModelSelectionCardController.prototype, 'refreshCatalog')
+    const reset = vi.spyOn(SubagentModelSelectionCardController.prototype, 'resetConnection')
+    const { ctx, slots, remote } = await bench(['subagent-model-selection'])
+    declareRoot(slots)
+    await ctx.plugin({ inject: [...inject], apply }).await()
+    refresh.mockClear()
+    reset.mockClear()
+
+    remote.emit('llm/adapters-updated', [])
+    expect(refresh).toHaveBeenCalledTimes(1)
+    remote.emit('settings/document-updated', ['llm-deepseek', 1])
+    expect(refresh).toHaveBeenCalledTimes(2)
+    ctx.emit('connection/reset')
+    expect(reset).toHaveBeenCalledTimes(1)
+  })
+
   it('ignores a credential change for a reference no card watches', async () => {
-    const { ctx, slots, describeCredentials } = await bench()
+    const { ctx, slots, describeCredentials, remote } = await bench()
     declareRoot(slots)
     await ctx.plugin({ inject: [...inject], apply }).await()
     await vi.waitFor(() => { expect(describeCredentials).toHaveBeenCalled() })
     describeCredentials.mockClear()
 
-    ctx.remote.$dispatch('credentials/updated', ['SOME_OTHER_KEY'])
+    remote.emit('credentials/reference-updated', ['SOME_OTHER_KEY'])
     await Promise.resolve()
 
     expect(describeCredentials).not.toHaveBeenCalled()
@@ -228,7 +223,7 @@ describe('ui-settings-plugins apply', () => {
 
     declareRoot(slots)
 
-    await vi.waitFor(() => { expect(slots.entries('settings.section')).toHaveLength(2) })
+    await vi.waitFor(() => { expect(slots.entries('settings.section')).toHaveLength(1) })
   })
 
   it('collapses every contribution on teardown', async () => {
@@ -236,7 +231,7 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(slots.entries('settings.plugin.item')).toHaveLength(3)
+    expect(slots.entries('settings.plugin.item')).toHaveLength(4)
 
     await fiber.dispose()
 

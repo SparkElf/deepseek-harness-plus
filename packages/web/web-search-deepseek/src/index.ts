@@ -22,7 +22,6 @@ import {
   DEEPSEEK_DEFAULT_MODEL,
 } from './provider.ts'
 import type { DeepSeekSearchProviderOptions } from './provider.ts'
-import { CurrentModelSearchProvider } from './current.ts'
 
 export {
   DeepSeekSearchProvider,
@@ -34,7 +33,6 @@ export {
   DEEPSEEK_PROVIDER_ID,
 } from './provider.ts'
 export type { DeepSeekSearchLlmRequest, DeepSeekSearchProviderOptions } from './provider.ts'
-export { CurrentModelSearchProvider, CURRENT_MODEL_PROVIDER_ID } from './current.ts'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-search-deepseek'
@@ -46,8 +44,6 @@ const DEFAULT_API_KEY_ENV = 'DEEPSEEK_API_KEY'
 
 /** Plugin config (all optional — `apply` fills env-var and constant defaults). */
 export interface Config {
-  /** Search route selected by the composition. */
-  selection?: 'deepseek' | 'current-model'
   /** Literal DeepSeek API key; prefer {@link apiKeyEnv} so no secret enters configuration files. */
   apiKey?: string
   /** Credential reference resolved for each search; defaults to `DEEPSEEK_API_KEY`. */
@@ -62,13 +58,9 @@ export interface Config {
   maxTokens?: number
   /** Maximum `web_search` server-tool uses per request. Defaults to 5. */
   maxUses?: number
-  /** Upper bound for one search request; defaults to 120000 (two minutes). */
-  timeoutMs?: number
 }
 
-type DeepSeekSettingsConfig = Omit<Config, 'selection'>
-
-const settingsSchemaFields = {
+export const Config: z<Config> = z.object({
   apiKey: z.string().role('secret'),
   apiKeyEnv: z.string().role('credential-ref').default(DEFAULT_API_KEY_ENV),
   // Declared here rather than only at the use site: a configuration surface
@@ -79,21 +71,6 @@ const settingsSchemaFields = {
   apiVersion: z.string().default(DEEPSEEK_DEFAULT_API_VERSION),
   maxTokens: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_TOKENS),
   maxUses: z.number().step(1).min(1).default(DEEPSEEK_DEFAULT_MAX_USES),
-  timeoutMs: z.number().step(1).min(1000).default(120000),
-}
-
-const DeepSeekSettingsConfig: z<DeepSeekSettingsConfig> = z.object(settingsSchemaFields)
-
-export const Config: z<Config> = z.object({
-  selection: z.union(['deepseek', 'current-model'] as const).default('deepseek'),
-  apiKey: settingsSchemaFields.apiKey,
-  apiKeyEnv: settingsSchemaFields.apiKeyEnv,
-  baseURL: settingsSchemaFields.baseURL,
-  model: settingsSchemaFields.model,
-  apiVersion: settingsSchemaFields.apiVersion,
-  maxTokens: settingsSchemaFields.maxTokens,
-  maxUses: settingsSchemaFields.maxUses,
-  timeoutMs: settingsSchemaFields.timeoutMs,
 })
 
 /**
@@ -115,7 +92,7 @@ export const WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE = settingsNamespace('web-sea
  * @param config - the currently authoritative section.
  * @returns options for one search.
  */
-function resolveOptions(ctx: Context, config: DeepSeekSettingsConfig): DeepSeekSearchProviderOptions {
+function resolveOptions(ctx: Context, config: Config): DeepSeekSearchProviderOptions {
   const apiKeyEnv = credentialRef(config.apiKeyEnv ?? DEFAULT_API_KEY_ENV)
   const literalApiKey = config.apiKey !== undefined && config.apiKey.length > 0
     ? config.apiKey
@@ -137,7 +114,6 @@ function resolveOptions(ctx: Context, config: DeepSeekSettingsConfig): DeepSeekS
     apiVersion: config.apiVersion ?? DEEPSEEK_DEFAULT_API_VERSION,
     maxTokens: config.maxTokens ?? DEEPSEEK_DEFAULT_MAX_TOKENS,
     maxUses: config.maxUses ?? DEEPSEEK_DEFAULT_MAX_USES,
-    timeoutMs: config.timeoutMs ?? 120000,
     recordRequest: (request) => {
       ctx.get('agents')?.currentInitiator()?.session.append(
         'web/deepseek-search-llm-request',
@@ -147,16 +123,10 @@ function resolveOptions(ctx: Context, config: DeepSeekSettingsConfig): DeepSeekS
   }
 }
 
-/** Register the composition-selected search provider with `ctx.web`. */
+/** Register the DeepSeek search provider with `ctx.web`. */
 export function apply(ctx: Context, config: Config): void {
-  if (config.selection === 'current-model') {
-    ctx.web.registerSearchProvider(new CurrentModelSearchProvider(ctx, () => config.timeoutMs ?? 120000))
-    return
-  }
-
-  const { selection: _selection, ...sectionConfig } = config
-  let current: () => DeepSeekSettingsConfig = () => sectionConfig
-  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, DeepSeekSettingsConfig, sectionConfig, {
+  let current: () => Config = () => config
+  installSettingsSection(ctx, WEB_SEARCH_DEEPSEEK_SETTINGS_NAMESPACE, Config, config, {
     setSource: (source) => {
       current = source
     },

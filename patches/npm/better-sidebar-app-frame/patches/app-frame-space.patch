@@ -1,0 +1,597 @@
+diff --git a/lib/client-editor.js b/lib/client-editor.js
+index 87b3e8785626ab8bf400b7a6d64d698c43f482d0..f7ba248d449aa049cb34453576d4944e1b335e29 100644
+--- a/lib/client-editor.js
++++ b/lib/client-editor.js
+@@ -17935,6 +17935,16 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		return `${HTML_ROUTE_PREFIX}${encodeURIComponent(sessionId)}/${unc ? "/" : ""}${segments.map(encodeURIComponent).join("/")}`;
+ 	}
+ 	//#endregion
++	//#region src/client/host-route-url.ts
++	/** Resolve one Host-owned client route against the injected document base.
++	* @param path - Root-style or relative Host route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute route URL.
++	*/
++	function hostRouteUrl(path, baseUrl = document.baseURI) {
++		return new URL(path.replace(/^\/+/, ""), baseUrl);
++	}
++	//#endregion
+ 	//#region src/client/api.ts
+ 	/**
+ 	* Typed fetch wrapper over the /sidebar JSON API. Every call posts to
+@@ -17955,7 +17965,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 	async function call$1(method, payload, signal) {
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/api/${method}`, {
++			response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/json" },
+ 				body: JSON.stringify(payload),
+@@ -17984,7 +17994,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/upload?${params.toString()}`, {
++			response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/octet-stream" },
+ 				body,
+@@ -18126,7 +18136,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 	* client-side platform signal is needed.
+ 	*/
+ 	function htmlUrl(scope, path) {
+-		return encodeHtmlUrl(scope.sessionId, path);
++		return hostRouteUrl(encodeHtmlUrl(scope.sessionId, path)).href;
+ 	}
+ 	//#endregion
+ 	//#region src/client/paths.ts
+@@ -18249,7 +18259,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 			path: normalizeLocalPath(candidate)
+ 		});
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+-		return `${origin}/sidebar/file?${params.toString()}`;
++		return hostRouteUrl(`sidebar/file?${params.toString()}`, origin).href;
+ 	}
+ 	function rewriteLocalImageUrls(text, scope, filePath, origin) {
+ 		const resolve = (dest) => resolveLocalMediaDest(dest, scope, filePath, origin);
+@@ -44527,7 +44537,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		"@deepseek-ai/dsh-client-runtime/client"
+ 	];
+ 	/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-	const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++	const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 	/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 	*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 	*  chunk loads behind the revalidation barrier. */
+@@ -48049,7 +48059,7 @@ globalThis.__dshChunks__["editor"] = (require) => {
+ 		*  absolute media URLs (see {@link rewriteLocalImageUrls}); the raw
+ 		*  `mdText` stays untouched for selection/line lookup and for mermaid-block
+ 		*  detection, which are unaffected by image syntax. */
+-		const previewText = markdown ? rewriteLocalImageUrls(mdText, scope, path, window.location.origin) : mdText;
++		const previewText = markdown ? rewriteLocalImageUrls(mdText, scope, path, document.baseURI) : mdText;
+ 		/** md/mermaid block split for the preview (mermaid fences lift out). Split
+ 		*  only in preview mode: edit-mode keystrokes must not re-scan the source. */
+ 		const mdBlocks = (0, react.useMemo)(() => markdown && mode === "preview" ? splitMermaidBlocks(mdText) : [], [
+diff --git a/lib/client-registry.js b/lib/client-registry.js
+index b1630afa375df6b3ec03ceca5178bce14d7d67a9..76557b9229b610bab2711342073da5f638e3880e 100644
+--- a/lib/client-registry.js
++++ b/lib/client-registry.js
+@@ -1785,6 +1785,26 @@ window.__ModuleLoader__.load({
+ 			return state.activePane ?? "";
+ 		}
+ 		//#endregion
++		//#region src/client/host-route-url.ts
++		/** Resolve one Host-owned client route against the injected document base.
++		* @param path - Root-style or relative Host route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute route URL.
++		*/
++		function hostRouteUrl(path, baseUrl = document.baseURI) {
++			return new URL(path.replace(/^\/+/, ""), baseUrl);
++		}
++		/** Resolve one Host-owned WebSocket route against the injected document base.
++		* @param path - Root-style or relative Host WebSocket route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute ws: or wss: route URL.
++		*/
++		function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++			const url = hostRouteUrl(path, baseUrl);
++			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++			return url;
++		}
++		//#endregion
+ 		//#region src/client/chunk-loader.ts
+ 		/**
+ 		* The platform externals a chunk bundle may require (mirror of
+@@ -1815,7 +1835,7 @@ window.__ModuleLoader__.load({
+ 			"@deepseek-ai/dsh-client-runtime/client"
+ 		];
+ 		/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-		const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++		const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 		/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 		*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 		*  chunk loads behind the revalidation barrier. */
+@@ -10505,7 +10525,7 @@ window.__ModuleLoader__.load({
+ 		async function call(method, payload, signal) {
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/api/${method}`, {
++				response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/json" },
+ 					body: JSON.stringify(payload),
+@@ -10534,7 +10554,7 @@ window.__ModuleLoader__.load({
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/upload?${params.toString()}`, {
++				response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/octet-stream" },
+ 					body,
+@@ -10684,7 +10704,7 @@ window.__ModuleLoader__.load({
+ 			});
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			if (download) params.set("download", "1");
+-			return `/sidebar/file?${params.toString()}`;
++			return hostRouteUrl(`sidebar/file?${params.toString()}`).href;
+ 		}
+ 		//#endregion
+ 		//#region src/client/binary-download.tsx
+@@ -19418,8 +19438,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-terminals", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-terminals");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -19472,8 +19491,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-opens", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-opens");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -22117,7 +22135,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 		}
+ 		//#endregion
+ 		//#region \0dsh-css:/home/runner/work/DSH-better-sidebar/DSH-better-sidebar/src/client/layout.css.mjs
+-		const css = "/**\n * Layout push: when a panel is open it OCCUPIES the layout instead of\n * floating over it — the app shell (#root, the AppFrame three-column grid)\n * gives up space. Only the center column is flexible (1fr), so the right\n * panel's width squeeze (margin-right on #root) lands exactly on the\n * conversation output and the input bar, like a VSCode sidebar.\n *\n * The width rides `calc(100% - var(...))` instead of a bare margin on a\n * full-width box: some desktop shells (DSH Desktop, #208) set #root to\n * width:100%, where a margin would overflow the viewport additively —\n * the calc keeps the box at exactly 100% minus the push in every shell.\n * Width and margin transition in lockstep (same variable, same duration\n * and easing), so expand/collapse animates the content width exactly as\n * the bare-margin version did.\n *\n * The bottom panel squeezes ONLY the center column — it must not cover the\n * app's own left sidebar or the right panel. The anchor is the frame's\n * center grid item via its stable data attribute ([data-pane=\"conversation\"]\n * on the centerCol inside [data-dsh-frame]), not a positional path: the\n * frame's child order also contains an overlay layer and drag handles\n * (verified against a live DSH 0.1.x page), so nth-child is brittle. A\n * stretched grid item shrinks by its margins, so the conversation content\n * (output + input bar) lifts without touching the sidebars.\n *\n * The sizes ride CSS variables updated by the Sidebar shell (0 while\n * collapsed); expand/collapse animates both the margins and the panel\n * slides on the same theme duration. Drags disable the transition so the\n * layout tracks the pointer.\n */\n#root {\n  margin-right: var(--dsh-sidebar-width, 0px);\n  width: calc(100% - var(--dsh-sidebar-width, 0px));\n  transition:\n    margin-right var(--ds-transition-duration-slow) var(--ds-ease-in-out),\n    width var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* The AppFrame's center column, anchored by data attributes (see above).\n   Composite selector: DSH 0.1.x versions name the center grid item\n   `[data-pane=\"conversation\"]`, while rc.8-era shells put a\n   `[data-slot=\"conversation\"]` child inside it — both selectors resolve to\n   the SAME element on live pages (verified), and keeping both future-proofs\n   the rule against a host rename without touching shell-specific markup. */\n#root [data-dsh-frame] > [data-pane=\"conversation\"],\n#root :has(> [data-slot=\"conversation\"]) {\n  margin-bottom: var(--dsh-sidebar-height, 0px);\n  /* Grid/flex items default to min-height:auto. A long unbreakable token\n     (OAuth URL) then grows this column past the viewport and clips the\n     composer + left-rail Settings row. min-height:0 lets the cell shrink;\n     overflow-wrap lets the token wrap instead of forcing its intrinsic\n     size. The host's own descendants remain responsible for scrolling. */\n  min-height: 0;\n  overflow-wrap: anywhere;\n  transition: margin-bottom var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* When the sidebar is collapsed, the toggle cluster reclaims the top-right\n   corner. Push the DSH session header's right padding out so its right-aligned\n   utilities (the \"Session log\" download capsule) yield the corner instead of\n   hiding under the cluster. The header default right-pads 28px; the 2-button\n   cluster spans right 10→70px, so 78px clears it with an 8px gap. Anchor on\n   the header's slot host wrapper ([data-slot=\"conversation.session.header\"])\n   rather than a positional path: DSH 0.1.x nests the header several levels\n   under the center column. The Sidebar shell toggles the body attribute with\n   the panel open state. */\nbody[data-dsh-sidebar-collapsed] [data-slot=\"conversation.session.header\"] > header {\n  padding-right: 78px;\n}\n\nbody[data-dsh-sidebar-dragging] #root,\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-pane=\"conversation\"],\nbody[data-dsh-sidebar-dragging] #root :has(> [data-slot=\"conversation\"]) {\n  transition: none;\n}\n\n/* DSH 0.1.x gives external settings sections a generic gear and exposes no\n   icon field in the settings.section contract. settings-nav-icon.ts marks\n   only this plugin's localized row; render the requested Lucide\n   gallery-horizontal-end SVG as a currentColor mask so it follows the native\n   nav hover/active colors without changing the shell's 16px icon rhythm. */\n[data-dsh-better-sidebar-settings-nav] > svg:first-child {\n  display: none;\n}\n\n[data-dsh-better-sidebar-settings-nav]::before {\n  content: '';\n  flex: none;\n  width: 16px;\n  height: 16px;\n  background: currentColor;\n  -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n  mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #root,\n  #root [data-dsh-frame] > [data-pane=\"conversation\"],\n  #root :has(> [data-slot=\"conversation\"]) {\n    transition: none;\n  }\n}\n";
++		const css = "/**\n * Layout push: an open panel occupies layout instead of floating over it.\n * The right panel reserves padding inside the AppFrame three-column grid,\n * so the app sidebar, conversation, and details column all remain to its\n * left while the frame's border-box stays viewport-wide. Harness measures\n * that border-box to choose desktop versus narrow presentation; preserving\n * it prevents a desktop window from entering narrow mode merely because the\n * plugin panel opened.\n *\n * AppFrame positions its details drag handle from the measured border-box.\n * Move that handle left by the same reserved width so it stays on the details\n * column edge. The ordinary sidebar handle remains at its native coordinate.\n *\n * The bottom panel squeezes only the conversation column. The anchor is the\n * frame's center grid item via stable data attributes, not a positional path:\n * the frame also contains an overlay layer and drag handles. A stretched grid\n * item shrinks by its bottom margin, so the conversation output and composer\n * lift without touching either sidebar.\n *\n * Sizes ride CSS variables updated by the Sidebar shell (0 while collapsed).\n * Expand/collapse uses the host theme duration; drags disable transitions so\n * every reserved edge tracks the pointer.\n */\n/* Current shells expose [data-dsh-frame]; rc.8-era shells expose the same\n   AppFrame only as the root slot's direct child. */\n#root [data-dsh-frame],\n#root > [data-slot=\"root\"] > div {\n  box-sizing: border-box;\n  padding-right: var(--dsh-sidebar-width, 0px);\n  transition: padding-right var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n#root [data-dsh-frame] > [data-side=\"details\"],\n#root > [data-slot=\"root\"] > div > [data-side=\"details\"] {\n  transform: translateX(calc(0px - var(--dsh-sidebar-width, 0px)));\n  transition:\n    left var(--ds-transition-duration-slow) var(--ds-ease-in-out),\n    transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* The AppFrame's center column, anchored by data attributes (see above).\n   Composite selector: DSH 0.1.x versions name the center grid item\n   `[data-pane=\"conversation\"]`, while rc.8-era shells put a\n   `[data-slot=\"conversation\"]` child inside it — both selectors resolve to\n   the SAME element on live pages (verified), and keeping both future-proofs\n   the rule against a host rename without touching shell-specific markup. */\n#root [data-dsh-frame] > [data-pane=\"conversation\"],\n#root :has(> [data-slot=\"conversation\"]) {\n  margin-bottom: var(--dsh-sidebar-height, 0px);\n  /* Grid/flex items default to min-height:auto. A long unbreakable token\n     (OAuth URL) then grows this column past the viewport and clips the\n     composer + left-rail Settings row. min-height:0 lets the cell shrink;\n     overflow-wrap lets the token wrap instead of forcing its intrinsic\n     size. The host's own descendants remain responsible for scrolling. */\n  min-height: 0;\n  overflow-wrap: anywhere;\n  transition: margin-bottom var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* When the sidebar is collapsed, the toggle cluster reclaims the top-right\n   corner. Push the DSH session header's right padding out so its right-aligned\n   utilities (the \"Session log\" download capsule) yield the corner instead of\n   hiding under the cluster. The header default right-pads 28px; the 2-button\n   cluster spans right 10→70px, so 78px clears it with an 8px gap. Anchor on\n   the header's slot host wrapper ([data-slot=\"conversation.session.header\"])\n   rather than a positional path: DSH 0.1.x nests the header several levels\n   under the center column. The Sidebar shell toggles the body attribute with\n   the panel open state. */\nbody[data-dsh-sidebar-collapsed] [data-slot=\"conversation.session.header\"] > header {\n  padding-right: 78px;\n}\n\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame],\nbody[data-dsh-sidebar-dragging] #root > [data-slot=\"root\"] > div,\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-side=\"details\"],\nbody[data-dsh-sidebar-dragging] #root > [data-slot=\"root\"] > div > [data-side=\"details\"],\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-pane=\"conversation\"],\nbody[data-dsh-sidebar-dragging] #root :has(> [data-slot=\"conversation\"]),\n#root [data-dsh-frame][data-dragging] > [data-side=\"details\"],\n#root > [data-slot=\"root\"] > div[data-dragging] > [data-side=\"details\"] {\n  transition: none;\n}\n\n/* DSH 0.1.x gives external settings sections a generic gear and exposes no\n   icon field in the settings.section contract. settings-nav-icon.ts marks\n   only this plugin's localized row; render the requested Lucide\n   gallery-horizontal-end SVG as a currentColor mask so it follows the native\n   nav hover/active colors without changing the shell's 16px icon rhythm. */\n[data-dsh-better-sidebar-settings-nav] > svg:first-child {\n  display: none;\n}\n\n[data-dsh-better-sidebar-settings-nav]::before {\n  content: '';\n  flex: none;\n  width: 16px;\n  height: 16px;\n  background: currentColor;\n  -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n  mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #root [data-dsh-frame],\n  #root > [data-slot=\"root\"] > div,\n  #root [data-dsh-frame] > [data-side=\"details\"],\n  #root > [data-slot=\"root\"] > div > [data-side=\"details\"],\n  #root [data-dsh-frame] > [data-pane=\"conversation\"],\n  #root :has(> [data-slot=\"conversation\"]) {\n    transition: none;\n  }\n}\n";
+ 		const tagId = "dsh-external/dsh-better-sidebar/layout.css";
+ 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
+ 			const tag = document.createElement("style");
+diff --git a/lib/client-terminal.js b/lib/client-terminal.js
+index 3ac3cf5a7decf123a3a6d602fd6206da4702ee74..457ccc9f0e3f60a94d3ce03b6a7fcf3c6f2a2622 100644
+--- a/lib/client-terminal.js
++++ b/lib/client-terminal.js
+@@ -8055,6 +8055,26 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 		};
+ 	}
+ 	//#endregion
++	//#region src/client/host-route-url.ts
++	/** Resolve one Host-owned client route against the injected document base.
++	* @param path - Root-style or relative Host route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute route URL.
++	*/
++	function hostRouteUrl(path, baseUrl = document.baseURI) {
++		return new URL(path.replace(/^\/+/, ""), baseUrl);
++	}
++	/** Resolve one Host-owned WebSocket route against the injected document base.
++	* @param path - Root-style or relative Host WebSocket route path.
++	* @param baseUrl - Browser document base or an explicit test base.
++	* @returns The absolute ws: or wss: route URL.
++	*/
++	function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++		const url = hostRouteUrl(path, baseUrl);
++		url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++		return url;
++	}
++	//#endregion
+ 	//#region src/client/api.ts
+ 	/** One wire failure. */
+ 	var SidebarApiError = class extends Error {
+@@ -8067,7 +8087,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 	async function call(method, payload, signal) {
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/api/${method}`, {
++			response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/json" },
+ 				body: JSON.stringify(payload),
+@@ -8096,7 +8116,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 		if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 		let response;
+ 		try {
+-			response = await fetch(`/sidebar/upload?${params.toString()}`, {
++			response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 				method: "POST",
+ 				headers: { "content-type": "application/octet-stream" },
+ 				body,
+@@ -9146,8 +9166,7 @@ globalThis.__dshChunks__["terminal"] = (require) => {
+ 			let retry;
+ 			let failures = 0;
+ 			const wsUrl = () => {
+-				const url = new URL("/sidebar/ws/terminal", location.origin);
+-				url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++				const url = hostWebSocketUrl("sidebar/ws/terminal");
+ 				if (isAgentTabId(tabId)) url.search = new URLSearchParams({ uuid: agentUuidOf(tabId) }).toString();
+ 				else {
+ 					const params = new URLSearchParams({
+diff --git a/lib/client.js b/lib/client.js
+index 4f339ef28ed7eebd08cf7195b145924ca383b6be..55b791a4fd4f305a0394d61c3f1d298e2cfe7e13 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -1785,6 +1785,26 @@ window.__ModuleLoader__.load({
+ 			return state.activePane ?? "";
+ 		}
+ 		//#endregion
++		//#region src/client/host-route-url.ts
++		/** Resolve one Host-owned client route against the injected document base.
++		* @param path - Root-style or relative Host route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute route URL.
++		*/
++		function hostRouteUrl(path, baseUrl = document.baseURI) {
++			return new URL(path.replace(/^\/+/, ""), baseUrl);
++		}
++		/** Resolve one Host-owned WebSocket route against the injected document base.
++		* @param path - Root-style or relative Host WebSocket route path.
++		* @param baseUrl - Browser document base or an explicit test base.
++		* @returns The absolute ws: or wss: route URL.
++		*/
++		function hostWebSocketUrl(path, baseUrl = document.baseURI) {
++			const url = hostRouteUrl(path, baseUrl);
++			url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++			return url;
++		}
++		//#endregion
+ 		//#region src/client/chunk-loader.ts
+ 		/**
+ 		* The platform externals a chunk bundle may require (mirror of
+@@ -1815,7 +1835,7 @@ window.__ModuleLoader__.load({
+ 			"@deepseek-ai/dsh-client-runtime/client"
+ 		];
+ 		/** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-		const CHUNK_URL = (name) => `/sidebar/bundle/${name}.js`;
++		const CHUNK_URL = (name) => hostRouteUrl(`sidebar/bundle/${name}.js`).href;
+ 		/** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+ 		*  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+ 		*  chunk loads behind the revalidation barrier. */
+@@ -10505,7 +10525,7 @@ window.__ModuleLoader__.load({
+ 		async function call(method, payload, signal) {
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/api/${method}`, {
++				response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/json" },
+ 					body: JSON.stringify(payload),
+@@ -10534,7 +10554,7 @@ window.__ModuleLoader__.load({
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			let response;
+ 			try {
+-				response = await fetch(`/sidebar/upload?${params.toString()}`, {
++				response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+ 					method: "POST",
+ 					headers: { "content-type": "application/octet-stream" },
+ 					body,
+@@ -10684,7 +10704,7 @@ window.__ModuleLoader__.load({
+ 			});
+ 			if (scope.cwd !== void 0 && scope.cwd !== "") params.set("cwd", scope.cwd);
+ 			if (download) params.set("download", "1");
+-			return `/sidebar/file?${params.toString()}`;
++			return hostRouteUrl(`sidebar/file?${params.toString()}`).href;
+ 		}
+ 		//#endregion
+ 		//#region src/client/binary-download.tsx
+@@ -19418,8 +19438,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-terminals", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-terminals");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -19472,8 +19491,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 				let failures = 0;
+ 				const connect = () => {
+ 					if (closed) return;
+-					const url = new URL("/sidebar/ws/agent-opens", location.origin);
+-					url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
++					const url = hostWebSocketUrl("sidebar/ws/agent-opens");
+ 					url.search = new URLSearchParams({ sessionId }).toString();
+ 					socket = new WebSocket(url.toString());
+ 					socket.onmessage = (event) => {
+@@ -22117,7 +22135,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 		}
+ 		//#endregion
+ 		//#region \0dsh-css:/home/runner/work/DSH-better-sidebar/DSH-better-sidebar/src/client/layout.css.mjs
+-		const css = "/**\n * Layout push: when a panel is open it OCCUPIES the layout instead of\n * floating over it — the app shell (#root, the AppFrame three-column grid)\n * gives up space. Only the center column is flexible (1fr), so the right\n * panel's width squeeze (margin-right on #root) lands exactly on the\n * conversation output and the input bar, like a VSCode sidebar.\n *\n * The width rides `calc(100% - var(...))` instead of a bare margin on a\n * full-width box: some desktop shells (DSH Desktop, #208) set #root to\n * width:100%, where a margin would overflow the viewport additively —\n * the calc keeps the box at exactly 100% minus the push in every shell.\n * Width and margin transition in lockstep (same variable, same duration\n * and easing), so expand/collapse animates the content width exactly as\n * the bare-margin version did.\n *\n * The bottom panel squeezes ONLY the center column — it must not cover the\n * app's own left sidebar or the right panel. The anchor is the frame's\n * center grid item via its stable data attribute ([data-pane=\"conversation\"]\n * on the centerCol inside [data-dsh-frame]), not a positional path: the\n * frame's child order also contains an overlay layer and drag handles\n * (verified against a live DSH 0.1.x page), so nth-child is brittle. A\n * stretched grid item shrinks by its margins, so the conversation content\n * (output + input bar) lifts without touching the sidebars.\n *\n * The sizes ride CSS variables updated by the Sidebar shell (0 while\n * collapsed); expand/collapse animates both the margins and the panel\n * slides on the same theme duration. Drags disable the transition so the\n * layout tracks the pointer.\n */\n#root {\n  margin-right: var(--dsh-sidebar-width, 0px);\n  width: calc(100% - var(--dsh-sidebar-width, 0px));\n  transition:\n    margin-right var(--ds-transition-duration-slow) var(--ds-ease-in-out),\n    width var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* The AppFrame's center column, anchored by data attributes (see above).\n   Composite selector: DSH 0.1.x versions name the center grid item\n   `[data-pane=\"conversation\"]`, while rc.8-era shells put a\n   `[data-slot=\"conversation\"]` child inside it — both selectors resolve to\n   the SAME element on live pages (verified), and keeping both future-proofs\n   the rule against a host rename without touching shell-specific markup. */\n#root [data-dsh-frame] > [data-pane=\"conversation\"],\n#root :has(> [data-slot=\"conversation\"]) {\n  margin-bottom: var(--dsh-sidebar-height, 0px);\n  /* Grid/flex items default to min-height:auto. A long unbreakable token\n     (OAuth URL) then grows this column past the viewport and clips the\n     composer + left-rail Settings row. min-height:0 lets the cell shrink;\n     overflow-wrap lets the token wrap instead of forcing its intrinsic\n     size. The host's own descendants remain responsible for scrolling. */\n  min-height: 0;\n  overflow-wrap: anywhere;\n  transition: margin-bottom var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* When the sidebar is collapsed, the toggle cluster reclaims the top-right\n   corner. Push the DSH session header's right padding out so its right-aligned\n   utilities (the \"Session log\" download capsule) yield the corner instead of\n   hiding under the cluster. The header default right-pads 28px; the 2-button\n   cluster spans right 10→70px, so 78px clears it with an 8px gap. Anchor on\n   the header's slot host wrapper ([data-slot=\"conversation.session.header\"])\n   rather than a positional path: DSH 0.1.x nests the header several levels\n   under the center column. The Sidebar shell toggles the body attribute with\n   the panel open state. */\nbody[data-dsh-sidebar-collapsed] [data-slot=\"conversation.session.header\"] > header {\n  padding-right: 78px;\n}\n\nbody[data-dsh-sidebar-dragging] #root,\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-pane=\"conversation\"],\nbody[data-dsh-sidebar-dragging] #root :has(> [data-slot=\"conversation\"]) {\n  transition: none;\n}\n\n/* DSH 0.1.x gives external settings sections a generic gear and exposes no\n   icon field in the settings.section contract. settings-nav-icon.ts marks\n   only this plugin's localized row; render the requested Lucide\n   gallery-horizontal-end SVG as a currentColor mask so it follows the native\n   nav hover/active colors without changing the shell's 16px icon rhythm. */\n[data-dsh-better-sidebar-settings-nav] > svg:first-child {\n  display: none;\n}\n\n[data-dsh-better-sidebar-settings-nav]::before {\n  content: '';\n  flex: none;\n  width: 16px;\n  height: 16px;\n  background: currentColor;\n  -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n  mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #root,\n  #root [data-dsh-frame] > [data-pane=\"conversation\"],\n  #root :has(> [data-slot=\"conversation\"]) {\n    transition: none;\n  }\n}\n";
++		const css = "/**\n * Layout push: an open panel occupies layout instead of floating over it.\n * The right panel reserves padding inside the AppFrame three-column grid,\n * so the app sidebar, conversation, and details column all remain to its\n * left while the frame's border-box stays viewport-wide. Harness measures\n * that border-box to choose desktop versus narrow presentation; preserving\n * it prevents a desktop window from entering narrow mode merely because the\n * plugin panel opened.\n *\n * AppFrame positions its details drag handle from the measured border-box.\n * Move that handle left by the same reserved width so it stays on the details\n * column edge. The ordinary sidebar handle remains at its native coordinate.\n *\n * The bottom panel squeezes only the conversation column. The anchor is the\n * frame's center grid item via stable data attributes, not a positional path:\n * the frame also contains an overlay layer and drag handles. A stretched grid\n * item shrinks by its bottom margin, so the conversation output and composer\n * lift without touching either sidebar.\n *\n * Sizes ride CSS variables updated by the Sidebar shell (0 while collapsed).\n * Expand/collapse uses the host theme duration; drags disable transitions so\n * every reserved edge tracks the pointer.\n */\n/* Current shells expose [data-dsh-frame]; rc.8-era shells expose the same\n   AppFrame only as the root slot's direct child. */\n#root [data-dsh-frame],\n#root > [data-slot=\"root\"] > div {\n  box-sizing: border-box;\n  padding-right: var(--dsh-sidebar-width, 0px);\n  transition: padding-right var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n#root [data-dsh-frame] > [data-side=\"details\"],\n#root > [data-slot=\"root\"] > div > [data-side=\"details\"] {\n  transform: translateX(calc(0px - var(--dsh-sidebar-width, 0px)));\n  transition:\n    left var(--ds-transition-duration-slow) var(--ds-ease-in-out),\n    transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* The AppFrame's center column, anchored by data attributes (see above).\n   Composite selector: DSH 0.1.x versions name the center grid item\n   `[data-pane=\"conversation\"]`, while rc.8-era shells put a\n   `[data-slot=\"conversation\"]` child inside it — both selectors resolve to\n   the SAME element on live pages (verified), and keeping both future-proofs\n   the rule against a host rename without touching shell-specific markup. */\n#root [data-dsh-frame] > [data-pane=\"conversation\"],\n#root :has(> [data-slot=\"conversation\"]) {\n  margin-bottom: var(--dsh-sidebar-height, 0px);\n  /* Grid/flex items default to min-height:auto. A long unbreakable token\n     (OAuth URL) then grows this column past the viewport and clips the\n     composer + left-rail Settings row. min-height:0 lets the cell shrink;\n     overflow-wrap lets the token wrap instead of forcing its intrinsic\n     size. The host's own descendants remain responsible for scrolling. */\n  min-height: 0;\n  overflow-wrap: anywhere;\n  transition: margin-bottom var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n/* When the sidebar is collapsed, the toggle cluster reclaims the top-right\n   corner. Push the DSH session header's right padding out so its right-aligned\n   utilities (the \"Session log\" download capsule) yield the corner instead of\n   hiding under the cluster. The header default right-pads 28px; the 2-button\n   cluster spans right 10→70px, so 78px clears it with an 8px gap. Anchor on\n   the header's slot host wrapper ([data-slot=\"conversation.session.header\"])\n   rather than a positional path: DSH 0.1.x nests the header several levels\n   under the center column. The Sidebar shell toggles the body attribute with\n   the panel open state. */\nbody[data-dsh-sidebar-collapsed] [data-slot=\"conversation.session.header\"] > header {\n  padding-right: 78px;\n}\n\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame],\nbody[data-dsh-sidebar-dragging] #root > [data-slot=\"root\"] > div,\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-side=\"details\"],\nbody[data-dsh-sidebar-dragging] #root > [data-slot=\"root\"] > div > [data-side=\"details\"],\nbody[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-pane=\"conversation\"],\nbody[data-dsh-sidebar-dragging] #root :has(> [data-slot=\"conversation\"]),\n#root [data-dsh-frame][data-dragging] > [data-side=\"details\"],\n#root > [data-slot=\"root\"] > div[data-dragging] > [data-side=\"details\"] {\n  transition: none;\n}\n\n/* DSH 0.1.x gives external settings sections a generic gear and exposes no\n   icon field in the settings.section contract. settings-nav-icon.ts marks\n   only this plugin's localized row; render the requested Lucide\n   gallery-horizontal-end SVG as a currentColor mask so it follows the native\n   nav hover/active colors without changing the shell's 16px icon rhythm. */\n[data-dsh-better-sidebar-settings-nav] > svg:first-child {\n  display: none;\n}\n\n[data-dsh-better-sidebar-settings-nav]::before {\n  content: '';\n  flex: none;\n  width: 16px;\n  height: 16px;\n  background: currentColor;\n  -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n  mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 7v10'/%3E%3Cpath d='M6 5v14'/%3E%3Crect width='12' height='18' x='10' y='3' rx='2'/%3E%3C/svg%3E\") center / contain no-repeat;\n}\n\n@media (prefers-reduced-motion: reduce) {\n  #root [data-dsh-frame],\n  #root > [data-slot=\"root\"] > div,\n  #root [data-dsh-frame] > [data-side=\"details\"],\n  #root > [data-slot=\"root\"] > div > [data-side=\"details\"],\n  #root [data-dsh-frame] > [data-pane=\"conversation\"],\n  #root :has(> [data-slot=\"conversation\"]) {\n    transition: none;\n  }\n}\n";
+ 		const tagId = "dsh-better-sidebar/layout.css";
+ 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId) + "]") === null) {
+ 			const tag = document.createElement("style");
+diff --git a/src/client/Sidebar.tsx b/src/client/Sidebar.tsx
+index 8897571263a83c8caa1992059ad99e2bce140b28..ffb1aede7b2ebdbd8fcdf3c1e5d575966f0a3230 100644
+--- a/src/client/Sidebar.tsx
++++ b/src/client/Sidebar.tsx
+@@ -50,6 +50,7 @@ import { layoutPushSize } from './layout-push.ts'
+ import { parseDesktopEnv } from './desktop-env.ts'
+ import { getWcoSnapshot, subscribeWco } from './wco.ts'
+ import { getShellPreset } from './shell-presets.ts'
++import { hostWebSocketUrl } from './host-route-url.ts'
+ import { computeTitleBarStrip } from './titlebar-strip.ts'
+ import type { NewTabOption } from './TabBar.tsx'
+ import { TAB_DRAG_TYPE, parseDrag, type TabDragPayload } from './TabBar.tsx'
+@@ -428,8 +429,7 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
+     let failures = 0
+     const connect = (): void => {
+       if (closed) return
+-      const url = new URL('/sidebar/ws/agent-terminals', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/agent-terminals')
+       url.search = new URLSearchParams({ sessionId }).toString()
+       socket = new WebSocket(url.toString())
+       socket.onmessage = (event) => {
+@@ -485,8 +485,7 @@ export function Sidebar(props: { ctx: Context; store: SidebarStore }) {
+     let failures = 0
+     const connect = (): void => {
+       if (closed) return
+-      const url = new URL('/sidebar/ws/agent-opens', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/agent-opens')
+       url.search = new URLSearchParams({ sessionId }).toString()
+       socket = new WebSocket(url.toString())
+       socket.onmessage = (event) => {
+diff --git a/src/client/TerminalView.tsx b/src/client/TerminalView.tsx
+index eba3d93c17747a28537a45c2bdd023991d25f086..f9f075a5202873b1896c4fa08cc7bc9bd5f5d35e 100644
+--- a/src/client/TerminalView.tsx
++++ b/src/client/TerminalView.tsx
+@@ -47,6 +47,7 @@ import {
+   shouldActivateTerminalLink,
+   openTerminalUrl,
+ } from './terminal-links.ts'
++import { hostWebSocketUrl } from './host-route-url.ts'
+ import css from './sidebar.module.css'
+ 
+ /** How many consecutive unreasoned failures before showing the error banner. */
+@@ -182,8 +183,7 @@ export function TerminalView(props: { scope: SessionScope; tabId: string; store:
+     let failures = 0
+ 
+     const wsUrl = (): string => {
+-      const url = new URL('/sidebar/ws/terminal', location.origin)
+-      url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
++      const url = hostWebSocketUrl('sidebar/ws/terminal')
+       // Agent terminals attach by uuid (the host looks them up in the agent
+       // pty registry); UI-tab terminals attach by sessionId+tab (the host
+       // uses the UI-tab pty manager). Same upgrade endpoint, different query.
+@@ -194,9 +194,7 @@ export function TerminalView(props: { scope: SessionScope; tabId: string; store:
+         if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+         url.search = params.toString()
+       }
+-      // Same construction the app's own downlink WebSockets use (new URL
+-      // over location.origin + protocol swap): whatever the environment
+-      // does to the app's websockets applies identically here.
++      // The injected document base keeps the socket under the same reverse-proxy prefix as the page.
+       return url.toString()
+     }
+ 
+diff --git a/src/client/TextEditor.tsx b/src/client/TextEditor.tsx
+index 25114c907091233c03cd0b74447c3f39f3479636..3bf06a443d1445d17cbd5e69030a9f3c8de27ad1 100644
+--- a/src/client/TextEditor.tsx
++++ b/src/client/TextEditor.tsx
+@@ -251,7 +251,7 @@ export function TextEditor(props: FileViewerProps) {
+    *  `mdText` stays untouched for selection/line lookup and for mermaid-block
+    *  detection, which are unaffected by image syntax. */
+   const previewText = markdown
+-    ? rewriteLocalImageUrls(mdText, scope, path, window.location.origin)
++    ? rewriteLocalImageUrls(mdText, scope, path, document.baseURI)
+     : mdText
+   /** md/mermaid block split for the preview (mermaid fences lift out). Split
+    *  only in preview mode: edit-mode keystrokes must not re-scan the source. */
+diff --git a/src/client/api.ts b/src/client/api.ts
+index 8173cd90cb4917dbae044d286236a109c2f3ae40..19c2501427caa467c19ca65f711ee977d383d860 100644
+--- a/src/client/api.ts
++++ b/src/client/api.ts
+@@ -7,6 +7,7 @@
+  * request). Failures surface as {@link SidebarApiError} with the wire code.
+  */
+ import { encodeHtmlUrl } from '../html-route.ts'
++import { hostRouteUrl } from './host-route-url.ts'
+ import type { LastActivity } from '../subagent-activity.ts'
+ import type { SidechatThreadInfo } from '../sidechat-core.ts'
+ import type { BrowserProbeResult } from './browser.ts'
+@@ -115,7 +116,7 @@ export type TerminalDepsStatus =
+ async function call<T>(method: string, payload: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+   let response: Response
+   try {
+-    response = await fetch(`/sidebar/api/${method}`, {
++    response = await fetch(hostRouteUrl(`sidebar/api/${method}`), {
+       method: 'POST',
+       headers: { 'content-type': 'application/json' },
+       body: JSON.stringify(payload),
+@@ -153,7 +154,7 @@ async function fetchUpload<T>(
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+   let response: Response
+   try {
+-    response = await fetch(`/sidebar/upload?${params.toString()}`, {
++    response = await fetch(hostRouteUrl(`sidebar/upload?${params.toString()}`), {
+       method: 'POST',
+       headers: { 'content-type': 'application/octet-stream' },
+       body,
+@@ -341,7 +342,7 @@ function fileUrl(scope: SessionScope, path: string, download: boolean): string {
+   const params = new URLSearchParams({ sessionId: scope.sessionId, path })
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+   if (download) params.set('download', '1')
+-  return `/sidebar/file?${params.toString()}`
++  return hostRouteUrl(`sidebar/file?${params.toString()}`).href
+ }
+ 
+ /**
+@@ -353,5 +354,5 @@ function fileUrl(scope: SessionScope, path: string, download: boolean): string {
+  * client-side platform signal is needed.
+  */
+ export function htmlUrl(scope: SessionScope, path: string): string {
+-  return encodeHtmlUrl(scope.sessionId, path)
++  return hostRouteUrl(encodeHtmlUrl(scope.sessionId, path)).href
+ }
+diff --git a/src/client/chunk-loader.ts b/src/client/chunk-loader.ts
+index 5f7f64fe3b412054feb1f4a3985a88639550e2b1..441b80c3d54d17e65a047b9062bb13ab24a45558 100644
+--- a/src/client/chunk-loader.ts
++++ b/src/client/chunk-loader.ts
+@@ -49,6 +49,8 @@
+  * client.js); an edit that does land while a core HMR happens is caught by
+  * the ETag comparison on the next activation.
+  */
++import { hostRouteUrl } from './host-route-url.ts'
++
+ export type ChunkName = 'terminal' | 'editor' | 'mermaid'
+ 
+ /** The module exports a chunk factory provides (namespace-ish record). */
+@@ -87,7 +89,7 @@ export const CHUNK_EXTERNALS: readonly string[] = [
+ ]
+ 
+ /** Chunk script endpoint served by the plugin host half (src/bundle-route.ts). */
+-const CHUNK_URL = (name: ChunkName): string => `/sidebar/bundle/${name}.js`
++const CHUNK_URL = (name: ChunkName): string => hostRouteUrl(`sidebar/bundle/${name}.js`).href
+ 
+ /** Bound on the revalidation HEAD round-trip. A timeout fails open (drop +
+  *  re-fetch on the next open) so a stuck bundle route can never wedge lazy
+diff --git a/src/client/layout.css b/src/client/layout.css
+index 17075c6188972f69e141ad798425da7e37a51e24..2d378f076d6fbeca8d86438e6b249f1e6e18b046 100644
+--- a/src/client/layout.css
++++ b/src/client/layout.css
+@@ -1,38 +1,41 @@
+ /**
+- * Layout push: when a panel is open it OCCUPIES the layout instead of
+- * floating over it — the app shell (#root, the AppFrame three-column grid)
+- * gives up space. Only the center column is flexible (1fr), so the right
+- * panel's width squeeze (margin-right on #root) lands exactly on the
+- * conversation output and the input bar, like a VSCode sidebar.
++ * Layout push: an open panel occupies layout instead of floating over it.
++ * The right panel reserves padding inside the AppFrame three-column grid,
++ * so the app sidebar, conversation, and details column all remain to its
++ * left while the frame's border-box stays viewport-wide. Harness measures
++ * that border-box to choose desktop versus narrow presentation; preserving
++ * it prevents a desktop window from entering narrow mode merely because the
++ * plugin panel opened.
+  *
+- * The width rides `calc(100% - var(...))` instead of a bare margin on a
+- * full-width box: some desktop shells (DSH Desktop, #208) set #root to
+- * width:100%, where a margin would overflow the viewport additively —
+- * the calc keeps the box at exactly 100% minus the push in every shell.
+- * Width and margin transition in lockstep (same variable, same duration
+- * and easing), so expand/collapse animates the content width exactly as
+- * the bare-margin version did.
++ * AppFrame positions its details drag handle from the measured border-box.
++ * Move that handle left by the same reserved width so it stays on the details
++ * column edge. The ordinary sidebar handle remains at its native coordinate.
+  *
+- * The bottom panel squeezes ONLY the center column — it must not cover the
+- * app's own left sidebar or the right panel. The anchor is the frame's
+- * center grid item via its stable data attribute ([data-pane="conversation"]
+- * on the centerCol inside [data-dsh-frame]), not a positional path: the
+- * frame's child order also contains an overlay layer and drag handles
+- * (verified against a live DSH 0.1.x page), so nth-child is brittle. A
+- * stretched grid item shrinks by its margins, so the conversation content
+- * (output + input bar) lifts without touching the sidebars.
++ * The bottom panel squeezes only the conversation column. The anchor is the
++ * frame's center grid item via stable data attributes, not a positional path:
++ * the frame also contains an overlay layer and drag handles. A stretched grid
++ * item shrinks by its bottom margin, so the conversation output and composer
++ * lift without touching either sidebar.
+  *
+- * The sizes ride CSS variables updated by the Sidebar shell (0 while
+- * collapsed); expand/collapse animates both the margins and the panel
+- * slides on the same theme duration. Drags disable the transition so the
+- * layout tracks the pointer.
++ * Sizes ride CSS variables updated by the Sidebar shell (0 while collapsed).
++ * Expand/collapse uses the host theme duration; drags disable transitions so
++ * every reserved edge tracks the pointer.
+  */
+-#root {
+-  margin-right: var(--dsh-sidebar-width, 0px);
+-  width: calc(100% - var(--dsh-sidebar-width, 0px));
++/* Current shells expose [data-dsh-frame]; rc.8-era shells expose the same
++   AppFrame only as the root slot's direct child. */
++#root [data-dsh-frame],
++#root > [data-slot="root"] > div {
++  box-sizing: border-box;
++  padding-right: var(--dsh-sidebar-width, 0px);
++  transition: padding-right var(--ds-transition-duration-slow) var(--ds-ease-in-out);
++}
++
++#root [data-dsh-frame] > [data-side="details"],
++#root > [data-slot="root"] > div > [data-side="details"] {
++  transform: translateX(calc(0px - var(--dsh-sidebar-width, 0px)));
+   transition:
+-    margin-right var(--ds-transition-duration-slow) var(--ds-ease-in-out),
+-    width var(--ds-transition-duration-slow) var(--ds-ease-in-out);
++    left var(--ds-transition-duration-slow) var(--ds-ease-in-out),
++    transform var(--ds-transition-duration-slow) var(--ds-ease-in-out);
+ }
+ 
+ /* The AppFrame's center column, anchored by data attributes (see above).
+@@ -67,9 +70,14 @@ body[data-dsh-sidebar-collapsed] [data-slot="conversation.session.header"] > hea
+   padding-right: 78px;
+ }
+ 
+-body[data-dsh-sidebar-dragging] #root,
++body[data-dsh-sidebar-dragging] #root [data-dsh-frame],
++body[data-dsh-sidebar-dragging] #root > [data-slot="root"] > div,
++body[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-side="details"],
++body[data-dsh-sidebar-dragging] #root > [data-slot="root"] > div > [data-side="details"],
+ body[data-dsh-sidebar-dragging] #root [data-dsh-frame] > [data-pane="conversation"],
+-body[data-dsh-sidebar-dragging] #root :has(> [data-slot="conversation"]) {
++body[data-dsh-sidebar-dragging] #root :has(> [data-slot="conversation"]),
++#root [data-dsh-frame][data-dragging] > [data-side="details"],
++#root > [data-slot="root"] > div[data-dragging] > [data-side="details"] {
+   transition: none;
+ }
+ 
+@@ -93,7 +101,10 @@ body[data-dsh-sidebar-dragging] #root :has(> [data-slot="conversation"]) {
+ }
+ 
+ @media (prefers-reduced-motion: reduce) {
+-  #root,
++  #root [data-dsh-frame],
++  #root > [data-slot="root"] > div,
++  #root [data-dsh-frame] > [data-side="details"],
++  #root > [data-slot="root"] > div > [data-side="details"],
+   #root [data-dsh-frame] > [data-pane="conversation"],
+   #root :has(> [data-slot="conversation"]) {
+     transition: none;
+diff --git a/src/client/markdown-images.ts b/src/client/markdown-images.ts
+index cb223c9fb87a74dcac732131811f67cf226b011d..5aab4a6fc2b09c1cc50f5978fa091d8fb4ca0551 100644
+--- a/src/client/markdown-images.ts
++++ b/src/client/markdown-images.ts
+@@ -11,6 +11,7 @@
+  */
+ 
+ import type { SessionScope } from './api.ts'
++import { hostRouteUrl } from './host-route-url.ts'
+ import { isAbsolutePath } from './paths.ts'
+ 
+ /**
+@@ -90,7 +91,7 @@ export function resolveLocalMediaDest(
+   // absolute so the shared MarkdownText http(s) allowlist accepts it.
+   const params = new URLSearchParams({ sessionId: scope.sessionId, path: normalizeLocalPath(candidate) })
+   if (scope.cwd !== undefined && scope.cwd !== '') params.set('cwd', scope.cwd)
+-  return `${origin}/sidebar/file?${params.toString()}`
++  return hostRouteUrl(`sidebar/file?${params.toString()}`, origin).href
+ }
+ 
+ export function rewriteLocalImageUrls(

@@ -1,0 +1,112 @@
+diff --git a/packages/workspace/workspace/README.i18n.yaml b/packages/workspace/workspace/README.i18n.yaml
+index 70a99f420d..1a1479948e 100644
+--- a/packages/workspace/workspace/README.i18n.yaml
++++ b/packages/workspace/workspace/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/workspace/workspace/README.md
+-README.md: 49ca861742fe9ea5f36edbaeb8d9700c475b1d50
+-README.zh.md: 707044970b716577d2f1f95e558c341e217985c4
++README.md: daa779bee34760eacc222341bfcc09fb1052cb00
++README.zh.md: 989f81fc6bedcc5e2616e8ea90452c40ee63ea85
+diff --git a/packages/workspace/workspace/README.md b/packages/workspace/workspace/README.md
+index 49ca861742..daa779bee3 100644
+--- a/packages/workspace/workspace/README.md
++++ b/packages/workspace/workspace/README.md
+@@ -89,6 +89,8 @@ This section explains the design decisions behind the feature and points at the
+ 
+ The API is one small family with two owners: `WorkspaceRegistry` creates, orders, and deletes projects and manages their session accounting; the `Workspace` entity exposes the display title, directory status, and the session projection. Per-method contracts live in the code, not this README — see [src/index.ts](src/index.ts) and [src/entity.ts](src/entity.ts).
+ 
++`WorkspaceRegistry.withStorageRestore` waits for current registry mutations, closes the durable domain while its caller replaces external files, and always reopens through the startup initialization path before resolving so records, archive state, and Session indexes share the restored baseline.
++
+ ### Source map
+ 
+ | File | Role |
+diff --git a/packages/workspace/workspace/README.zh.md b/packages/workspace/workspace/README.zh.md
+index 707044970b..989f81fc6b 100644
+--- a/packages/workspace/workspace/README.zh.md
++++ b/packages/workspace/workspace/README.zh.md
+@@ -89,6 +89,8 @@ ctx.workspaceRegistry.list() // shows the project, newest first
+ 
+ 该 API 是一个由两个所有者构成的小家族：`WorkspaceRegistry` 负责创建、排序与删除项目并管理其会话记账；`Workspace` 实体暴露显示标题、目录状态与会话投影。各方法的精确约定在代码中，而非本 README——参见 [src/index.ts](src/index.ts) 与 [src/entity.ts](src/entity.ts)。
+ 
++`WorkspaceRegistry.withStorageRestore` 会等待当前 registry mutations，在caller替换external files期间关闭durable domain，并始终在resolve前通过startup initialization path重开，使records、archive state与Session indexes共享恢复后的baseline。
++
+ ### 源码地图
+ 
+ | 文件 | 职责 |
+diff --git a/packages/workspace/workspace/src/index.ts b/packages/workspace/workspace/src/index.ts
+index 87edb28cad..2f6d57b8ab 100644
+--- a/packages/workspace/workspace/src/index.ts
++++ b/packages/workspace/workspace/src/index.ts
+@@ -11,7 +11,7 @@ import { basename } from 'node:path'
+ import { Context, Service } from '@deepseek-ai/cordis'
+ import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
+ import type {} from '@deepseek-ai/dsh-session-persistence'
+-import type { DomainGlobal, KvTable } from '@deepseek-ai/dsh-storage-domain'
++import type { Domain, DomainGlobal, KvTable } from '@deepseek-ai/dsh-storage-domain'
+ import { WorkspaceEntity } from './entity.ts'
+ import type { WorkspaceEntityHost } from './entity.ts'
+ 
+@@ -92,6 +92,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
+ export class WorkspaceRegistry extends Service {
+   static inject = ['storageDomain', 'sessionPersistence']
+ 
++  private domain?: Domain<typeof workspaceDomainSpec>
+   private table?: KvTable<WorkspaceId, WorkspaceRecord>
+   private global?: DomainGlobal<WorkspaceDomainState>
+   private state?: WorkspaceDomainState
+@@ -117,8 +118,51 @@ export class WorkspaceRegistry extends Service {
+ 
+   /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */
+   protected async [Service.init](): Promise<void> {
++    this.ctx.effect(() => () => this.domain?.close(), 'workspace.domainClose')
++    await this.openDomain()
++  }
++
++  /**
++   * Replace external durable files while no Workspace storage handle is open.
++   * Existing mutations settle first; the domain always reopens through startup
++   * initialization so records, archive state, and Session indexes share one new
++   * baseline.
++   * @param restore - File replacement operation run while Workspace storage is closed.
++   * @returns the operation result after the new durable baseline is available.
++   */
++  async withStorageRestore<T>(restore: () => Promise<T>): Promise<T> {
++    // restore替换durable files前必须先退出domain；finally复用startup路径重建全部index。
++    return await this.enqueueOperation(async () => {
++      const domain = this.domain
++      if (domain === undefined) throw new Error('workspace registry is not started yet')
++      const previousArchivedSessions = this.requireState().archivedSessionIds.length
++      await domain.close()
++      delete this.domain
++      delete this.table
++      delete this.global
++      delete this.state
++      this.entities.clear()
++      this.headers.clear()
++      this.sessionPaths.clear()
++      this.invalidSessionPaths.clear()
++      try {
++        return await restore()
++      } finally {
++        await this.openDomain()
++        console.info('[workspace] storage restore baseline loaded', {
++          previousArchivedSessions,
++          restoredArchivedSessions: this.requireState().archivedSessionIds.length,
++          workspaces: this.entities.size,
++          indexedSessionHeaders: this.headers.size,
++        })
++      }
++    })
++  }
++
++  /** Open the durable domain and rebuild every registry cache from its contents. */
++  private async openDomain(): Promise<void> {
+     const domain = await this.ctx.storageDomain.open(workspaceDomainSpec)
+-    this.ctx.effect(() => () => domain.close(), 'workspace.domainClose')
++    this.domain = domain
+     this.table = domain.table('workspaces')
+     this.global = domain.global
+     this.state = domain.global.get()

@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-patch-mobile-web-layout",
+  "version": "0.1.0-rc.8",
+  "description": "Data-only exact official-source patch keeping user-expanded phone navigation at half the AppFrame width",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/mobile-web-layout"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "mobile-web-half-width-navigation",
+        "dsh": ">=0.1.2-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "paths": [
+            "packages/client/ui-layout/"
+          ]
+        },
+        "file": "./patches/mobile-web-layout.patch"
+      }
+    ]
+  }
+}

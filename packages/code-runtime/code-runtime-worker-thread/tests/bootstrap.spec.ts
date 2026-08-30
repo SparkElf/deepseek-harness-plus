@@ -62,7 +62,7 @@ async function rejectionOf(promise: Promise<unknown>): Promise<unknown> {
 const BOOT = { maxOutputBytes: 65_536 }
 const TOOL_ERROR_CLASS = { name: 'ToolCallError', memberNameProperty: 'toolName' } as const
 
-/** One worker declaration for the Code Mode tools namespace. */
+/** One worker declaration for the PTC mode tools namespace. */
 function toolNamespace(names: string[]) {
   return { global: 'tools', names, errorClass: TOOL_ERROR_CLASS }
 }
@@ -284,21 +284,6 @@ describe('makeNamespaces', () => {
     expect(posts).toBe(0)
     expect(pending.size).toBe(0)
     expect(nextId.value).toBe(1)
-  })
-
-  it('normalizes omitted arguments to an empty object', async () => {
-    const port = new FakePort()
-    const posted: unknown[] = []
-    port.respond = (message) => {
-      if (message.type !== 'call') return undefined
-      posted.push(decodeWorkerJson(message.args))
-      return { type: 'reply', id: message.id, ok: true, value: encodeWorkerJson({ done: true }) }
-    }
-    const pending = new Map<number, PendingCall>()
-    wireReplies(port, pending)
-    const [toolsNs] = makeNamespaces({ namespaces: [{ global: 'tools', names: ['x'] }] }, port, pending, { value: 1 }) as [Record<string, (args?: unknown) => Promise<unknown>>]
-    await expect(toolsNs.x?.()).resolves.toEqual({ done: true })
-    expect(posted).toEqual([{}])
   })
 
   it('uses ordinary Error for non-tools namespace failures', async () => {

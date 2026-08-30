@@ -1,7 +1,7 @@
 /**
  * One provider's editor card, hand-written per adapter family: the primary
  * field is a single write-only **API key** input (the page never asks for an
- * environment-variable name — a typed key stores through `credentials.set`
+ * environment-variable name — a typed key stores through `credentials/set`
  * under the profile's reference, deriving `<ROUTE>_API_KEY` when the profile
  * has none. The pi-ai profile records that derivation as `apiKeyEnv` only when
  * a key is entered; a blank key materializes a reference-free profile for
@@ -10,8 +10,7 @@
  * both families, DeepSeek's id/name/context-window model catalog, and the
  * display name and wire protocol of a pi-ai route the adapter does not ship —
  * the two fields the create card asked that route for, editable here for the
- * same reason). An effective `openai-responses` route also exposes the one
- * gateway-compatibility leaf this page owns without replacing sibling fields.
+ * same reason).
  * Reasoning effort is deliberately absent: it is a per-MODEL capability, and
  * the models under one provider disagree about it, so a provider-scoped
  * control can only be set to a value some of them reject. The composer's
@@ -24,7 +23,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import type { CredentialView, IApiClient, SettingsNamespaceView, SettingsPathOpView } from '@deepseek-ai/dsh-api-remotes/client'
+import type {
+  CredentialInfo, JsonValue, SettingsNamespaceView, SettingsPathOpView,
+} from '@deepseek-ai/dsh-api-remotes/client'
 import {
   DeepSeekModelsEditor, modelDrafts, validateDeepSeekModels,
 } from './DeepSeekModelsEditor.tsx'
@@ -32,6 +33,7 @@ import { apiKeyFailure } from './apiKey.ts'
 import { EditorFooter } from './EditorFooter.tsx'
 import { ModelListEditor } from './ModelListEditor.tsx'
 import { deriveKeyRef, messageOf, protocolChoices } from './store.ts'
+import type { ModelsWire } from './store.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
 import type { en } from './locales.ts'
 import styles from './ModelsSection.module.css'
@@ -41,9 +43,6 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
 
 /** The public DeepSeek endpoint shown as the deepseek base-URL placeholder. */
 const DEEPSEEK_PUBLIC_BASE_URL = 'https://api.deepseek.com'
-
-/** Leaf path of the curated OpenAI Responses compatibility setting. */
-const OMIT_REASONING_INPUT_STATUS_PATH = ['responsesCompatibility', 'omitReasoningInputStatus'] as const
 
 /** Props of {@link ProviderEditor}. */
 export interface ProviderEditorProps {
@@ -68,7 +67,7 @@ export interface ProviderEditorProps {
   /** Path from the section root to this provider's profile. */
   settingsPath: readonly string[]
   /** Wire faces for writes and for interrogating a provider endpoint. */
-  api: Pick<IApiClient, 'settings' | 'credentials' | 'llm'>
+  api: ModelsWire
   /** Section copy. */
   t: (key: keyof typeof en) => string
   /** Disable writes (read-only settings provider). */
@@ -80,11 +79,11 @@ export interface ProviderEditorProps {
   /** Give the credential field initial focus when this editor mounts. */
   autoFocusCredential?: boolean
   /** Override the dismiss action copy. */
-  cancelLabel?: keyof typeof en
+  cancelLabelKey?: keyof typeof en
   /** Override the idle commit action copy. */
-  submitLabel?: keyof typeof en
+  submitLabelKey?: keyof typeof en
   /** Override the in-flight commit action copy. */
-  submitBusyLabel?: keyof typeof en
+  submitBusyLabelKey?: keyof typeof en
   /** Close the editor; `changed` reports whether an Apply committed. */
   onClose: (changed: boolean) => void
 }
@@ -121,35 +120,11 @@ export function pathOps(
   const ops: SettingsPathOpView[] = []
   for (const [key, value] of Object.entries(after)) {
     if (JSON.stringify(previous[key]) === JSON.stringify(value)) continue
-    ops.push({ op: 'set', path: [...base, key], value })
+    ops.push({ op: 'set', path: [...base, key], value: value as JsonValue })
   }
   for (const key of Object.keys(previous)) {
     if (!(key in after)) ops.push({ op: 'unset', path: [...base, key] })
   }
-  return ops
-}
-
-/** Preserve compatibility siblings while emitting the one leaf this card owns. */
-function providerPathOps(
-  schema: SettingsSchemaOperations,
-  base: readonly string[],
-  before: unknown,
-  after: Record<string, unknown>,
-): SettingsPathOpView[] {
-  const previous = typeof before === 'object' && before !== null && !Array.isArray(before)
-    ? before as Record<string, unknown>
-    : {}
-  const ops = pathOps(
-    base,
-    schema.deletePath(previous, ['responsesCompatibility']),
-    schema.deletePath(after, ['responsesCompatibility']),
-  )
-  const previousValue = schema.getPath(previous, OMIT_REASONING_INPUT_STATUS_PATH)
-  const nextValue = schema.getPath(after, OMIT_REASONING_INPUT_STATUS_PATH)
-  if (previousValue === nextValue) return ops
-  ops.push(nextValue === undefined
-    ? { op: 'unset', path: [...base, ...OMIT_REASONING_INPUT_STATUS_PATH] }
-    : { op: 'set', path: [...base, ...OMIT_REASONING_INPUT_STATUS_PATH], value: nextValue })
   return ops
 }
 
@@ -183,7 +158,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   const { namespace, schema, settingsPath, api, t } = props
   const [draft, setDraft] = useState<Record<string, unknown>>(() => draftAt(schema, namespace, settingsPath))
   const [keyDraft, setKeyDraft] = useState('')
-  const [keyState, setKeyState] = useState<CredentialView | undefined>(undefined)
+  const [keyState, setKeyState] = useState<CredentialInfo | undefined>(undefined)
   const [busy, setBusy] = useState(false)
   const [failure, setFailure] = useState<string | undefined>(undefined)
   // A settings success advances both retry baselines immediately. Keeping the
@@ -196,10 +171,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   const root = useMemo(() => schema.rehydrate(namespace.schema), [namespace.schema, schema])
   const node = useMemo(() => schema.nodeAtPath(root, settingsPath), [root, schema, settingsPath])
   const fallback = schema.getPath(namespace.value, settingsPath)
-  const inheritedOmitReasoningInputStatus = schema.getPath(
-    namespace.base,
-    [...settingsPath, ...OMIT_REASONING_INPUT_STATUS_PATH],
-  ) === true
   const disabled = props.readOnly || busy
   const layout = layoutOf(namespace.ns)
   const keyRef = refFor(schema, namespace, settingsPath, props.provider)
@@ -219,10 +190,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
     // neither a business rejection nor a transport failure may reach the
     // browser as an unhandled rejection, so the card simply renders without
     // the "already configured" hint.
-    void api.credentials.describe({ refs: [keyRef] }).then(
+    void api.credentials.describe([keyRef]).then(
       (response) => {
-        if (stale || !response.result.ok) return
-        setKeyState(response.result.value.credentials[keyRef])
+        if (stale || !response.ok) return
+        setKeyState(response.value[keyRef])
       },
       () => undefined,
     )
@@ -232,11 +203,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   const stringAt = (source: unknown, key: string): string | undefined => {
     const value = schema.getPath(source, [key])
     return typeof value === 'string' && value.trim().length > 0 ? value : undefined
-  }
-  const disableOmitReasoningInputStatus = (current: Record<string, unknown>): Record<string, unknown> => {
-    return inheritedOmitReasoningInputStatus
-      ? schema.setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, false)
-      : schema.deletePath(current, OMIT_REASONING_INPUT_STATUS_PATH)
   }
   const setField = (key: string, next: string | undefined): void => {
     // A value of nothing but whitespace is cleared, not stored: `stringAt`
@@ -266,9 +232,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   // What the form currently shows, which is what an interrogation must ask:
   // an edited-but-unsaved endpoint, and a key typed but not yet stored.
   const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
-  const omitReasoningInputStatus = schema.hasPath(draft, OMIT_REASONING_INPUT_STATUS_PATH)
-    ? schema.getPath(draft, OMIT_REASONING_INPUT_STATUS_PATH) === true
-    : schema.getPath(fallback, OMIT_REASONING_INPUT_STATUS_PATH) === true
   const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
   const probe = {
     settingsNs: namespace.ns,
@@ -317,21 +280,21 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
       ? []
       : materializesNativeProfile
         ? [{ op: 'set', path: [...settingsPath], value: {} }]
-        : providerPathOps(schema, settingsPath, committedOriginal, next)
+        : pathOps(settingsPath, committedOriginal, next)
     if (ops.length > 0) {
-      const response = await api.settings.mutate({ ns, ops, expectedRevision })
-      if (!response.result.ok) {
-        return response.result.error.code === 'settings-conflict'
+      const response = await api.settings.mutate(ns, ops, expectedRevision)
+      if (!response.ok) {
+        return response.error.code === 'settings-conflict'
           ? t('conflict')
-          : response.result.error.message
+          : response.error.message
       }
-      setCommittedOriginal(schema.getPath(response.result.value.user, settingsPath))
-      setExpectedRevision(response.result.value.revision)
+      setCommittedOriginal(schema.getPath(response.value.user, settingsPath))
+      setExpectedRevision(response.value.revision)
       setDraft(next)
     }
     if (keyValue.length > 0) {
-      const stored = await api.credentials.set({ ref: keyRef, value: keyValue })
-      if (!stored.result.ok) return stored.result.error.message
+      const stored = await api.credentials.set(keyRef, keyValue)
+      if (!stored.ok) return stored.error.message
     }
     setKeyDraft('')
     return undefined
@@ -360,7 +323,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
   if (node === undefined) {
     // A directory entry addressing a position its schema cannot resolve is a
     // host-side inconsistency; showing it beats a blank card.
-    return <p className={styles['error']}>{`${props.provider}: unresolvable settings path`}</p>
+    return <p className={styles['error']}>{props.provider}: {props.t('settingsPathUnresolvable')}</p>
   }
 
   const keyLocked = keyState?.writable === false
@@ -484,15 +447,7 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     value={probeApi ?? ''}
                     aria-label={t('customApi')}
                     disabled={disabled}
-                    onChange={(event) => {
-                      const selectedApi = event.target.value
-                      setDraft((current) => {
-                        const next = schema.setPath(current, ['api'], selectedApi)
-                        return selectedApi === 'openai-responses'
-                          ? next
-                          : disableOmitReasoningInputStatus(next)
-                      })
-                    }}
+                    onChange={(event) => { setField('api', event.target.value) }}
                   >
                     {/* A profile naming no protocol — hand-written into
                         settings.yaml with no model to need one — selects
@@ -504,24 +459,6 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                     {protocols.map(choice => <option key={choice} value={choice}>{choice}</option>)}
                   </select>
                 </div>
-              )
-              : null}
-            {family === 'pi-ai' && probeApi === 'openai-responses'
-              ? (
-                <label className={styles['settingToggle']}>
-                  <input
-                    className={styles['settingCheckbox']}
-                    type="checkbox"
-                    checked={omitReasoningInputStatus}
-                    disabled={disabled}
-                    onChange={(event) => {
-                      setDraft(current => event.target.checked
-                        ? schema.setPath(current, OMIT_REASONING_INPUT_STATUS_PATH, true)
-                        : disableOmitReasoningInputStatus(current))
-                    }}
-                  />
-                  <span>{t('omitReasoningInputStatus')}</span>
-                </label>
               )
               : null}
             {/* Both families edit the same rows through the same contract; only
@@ -574,9 +511,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
           || (props.credentialOnly !== true && modelFailure !== undefined)
           || shownKeyFailure !== undefined
           || (props.credentialRequired === true && keyValue.length === 0)}
-        submitLabel={props.submitLabel ?? 'apply'}
-        submitBusyLabel={props.submitBusyLabel ?? 'applying'}
-        {...props.cancelLabel === undefined ? {} : { cancelLabel: props.cancelLabel }}
+        submitLabelKey={props.submitLabelKey ?? 'apply'}
+        submitBusyLabelKey={props.submitBusyLabelKey ?? 'applying'}
+        {...props.cancelLabelKey === undefined ? {} : { cancelLabelKey: props.cancelLabelKey }}
         onCancel={() => { props.onClose(false) }}
         onSubmit={() => { void apply() }}
       />

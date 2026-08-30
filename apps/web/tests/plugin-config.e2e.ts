@@ -16,7 +16,7 @@ import {
 } from './scaffold.ts'
 import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
-const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/plugin-config', import.meta.url))
+const SNAPSHOT_DIR = fileURLToPath(new URL('./expected/plugin-config', import.meta.url))
 const SECTION_EXPECTED = join(SNAPSHOT_DIR, 'section.expected.md')
 const MODE = webSnapshotMode()
 
@@ -33,7 +33,7 @@ describe('web e2e: plugin configuration section', () => {
     // derives from it, as the rest of the settings surface does.
     page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: ZH_BROWSER_LOCALE })
     tripwire = watchConsole(page)
-    await page.goto(scaffold.baseUrl, { waitUntil: 'load' })
+    await page.goto(scaffold.authenticatedUrl, { waitUntil: 'load' })
     await page.waitForSelector('[class*="frame"]', { timeout: 30_000 })
   }, 120_000)
 
@@ -42,8 +42,13 @@ describe('web e2e: plugin configuration section', () => {
     await scaffold?.close()
   })
 
-  /** Open one settings section after closing any dialog left by a prior scenario. */
-  async function openSection(section: '插件' | '子代理') {
+  /**
+   * Open the settings dialog on the Plugins section. The scenarios share one
+   * page so the settings document accumulates across them, so this leaves any
+   * dialog a previous scenario opened closed first — its mask would otherwise
+   * swallow the trigger click.
+   */
+  async function openPlugins() {
     if (await page.getByRole('dialog', { name: '设置' }).count() > 0) {
       await page.keyboard.press('Escape')
       await expect.poll(() => page.getByRole('dialog', { name: '设置' }).count(), { timeout: 5_000 }).toBe(0)
@@ -51,15 +56,10 @@ describe('web e2e: plugin configuration section', () => {
     await page.getByRole('button', { name: '设置', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: '设置' })
     await dialog.waitFor({ timeout: 10_000 })
-    await dialog.getByRole('button', { name: section, exact: true }).click()
+    await dialog.getByRole('button', { name: '插件', exact: true }).click()
     await expect
-      .poll(() => dialog.getByRole('button', { name: section, exact: true }).getAttribute('aria-current'), { timeout: 5_000 })
+      .poll(() => dialog.getByRole('button', { name: '插件', exact: true }).getAttribute('aria-current'), { timeout: 5_000 })
       .toBe('true')
-    return dialog
-  }
-
-  async function openPlugins() {
-    const dialog = await openSection('插件')
     await expect
       .poll(() => dialog.getByRole('tab', { name: '插件配置', exact: true }).getAttribute('aria-selected'), { timeout: 5_000 })
       .toBe('true')
@@ -75,13 +75,13 @@ describe('web e2e: plugin configuration section', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-config-cards'))
     const dialog = await openPlugins()
 
-    // Current-model Web Search follows the Models page, while subagent modes
-    // have their own Settings section. Neither appears as a plugin card here.
+    // Every card the shipped web composition exposes: the shell executor, the
+    // agent loop, subagent selection, and the DeepSeek search provider.
+    await dialog.getByText('Subagent', { exact: true }).waitFor({ timeout: 10_000 })
+    expect(await dialog.getByRole('button', { name: '展开设置: Subagent' }).count()).toBe(1)
     await dialog.getByText('终端', { exact: true }).waitFor({ timeout: 10_000 })
     expect(await dialog.getByText('Agent 循环', { exact: true }).count()).toBe(1)
-    expect(await dialog.getByText('网页搜索', { exact: true }).count()).toBe(0)
-    expect(await dialog.getByText('连续子代理', { exact: true }).count()).toBe(0)
-    expect(await dialog.getByText('一次性子代理', { exact: true }).count()).toBe(0)
+    expect(await dialog.getByText('网页搜索', { exact: true }).count()).toBe(1)
     // Collapsed: a card's fields appear only once it is expanded.
     expect(await dialog.getByLabel('命令超时（毫秒）').count()).toBe(0)
 
@@ -90,33 +90,42 @@ describe('web e2e: plugin configuration section', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
-  it('groups both delegation modes with disabled and zero-depth defaults', async () => {
-    onTestFailed(() => saveFailureShot(page, 'web-e2e-subagent-settings'))
-    let dialog = await openSection('子代理')
-    const continuous = dialog.getByRole('tab', { name: '连续子代理', exact: true })
-    const oneShot = dialog.getByRole('tab', { name: '一次性子代理', exact: true })
-    await continuous.waitFor({ timeout: 10_000 })
-    expect(await continuous.getAttribute('aria-selected')).toBe('true')
-    expect(await dialog.getByRole('switch', { name: '启用连续模式' }).isChecked()).toBe(false)
-    expect(await dialog.getByRole('button', { name: '最大子代理嵌套层数' }).textContent()).toBe('0')
+  it('persists selected adapter routes as the subagent model allowlist', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-config-subagent-model-selection'))
+    const dialog = await openPlugins()
+    await dialog.getByText('Subagent', { exact: true }).click()
+    const toggle = dialog.getByRole('switch', { name: '允许 Agent 为 Subagent 选择模型' })
 
-    await oneShot.click()
-    expect(await dialog.getByRole('switch', { name: '启用一次性模式' }).isChecked()).toBe(false)
-    expect(await dialog.getByRole('button', { name: '最大子代理嵌套层数' }).textContent()).toBe('0')
-    await dialog.getByRole('switch', { name: '启用一次性模式' }).click()
-    await continuous.click()
-    expect(await dialog.getByRole('switch', { name: '启用连续模式' }).isChecked()).toBe(false)
-    await oneShot.click()
-    expect(await dialog.getByRole('switch', { name: '启用一次性模式' }).isChecked()).toBe(true)
+    await toggle.click()
+    const models = dialog.getByRole('group', { name: 'Agent 可选择的模型' })
+    await models.waitFor({ timeout: 10_000 })
+    const firstModel = models.getByRole('checkbox').first()
+    await firstModel.check()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
-    await expect.poll(() => dialog.getByRole('button', { name: '保存', exact: true }).isDisabled(), { timeout: 10_000 }).toBe(true)
 
-    dialog = await openSection('子代理')
-    await dialog.getByRole('tab', { name: '一次性子代理', exact: true }).click()
-    await expect.poll(() => dialog.getByRole('switch', { name: '启用一次性模式' }).isChecked(), { timeout: 5_000 }).toBe(true)
-    await dialog.getByRole('button', { name: '恢复默认', exact: true }).click()
+    const expandSubagent = dialog.getByRole('button', { name: '展开设置: Subagent' })
+    await expandSubagent.waitFor({ timeout: 5_000 })
+    await expect.poll(async () => (await settingsDocument()).includes('subagent-model-selection:'), { timeout: 10_000 })
+      .toBe(true)
+    expect(await settingsDocument()).toContain('enabled: true')
+    expect(await settingsDocument()).toContain('allowedModels:')
+    expect(await settingsDocument()).toContain('provider:')
+    expect(await settingsDocument()).toContain('model:')
+    await expandSubagent.click()
+    await expect.poll(() => toggle.getAttribute('aria-checked'), { timeout: 5_000 }).toBe('true')
+    await expect.poll(() => dialog.getByRole('button', { name: '保存', exact: true }).isDisabled()).toBe(true)
+    expect(await dialog.getByText('未保存', { exact: true }).count()).toBe(0)
+
+    await toggle.click()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
-    await expect.poll(() => dialog.getByRole('switch', { name: '启用一次性模式' }).isChecked(), { timeout: 5_000 }).toBe(false)
+    await expandSubagent.waitFor({ timeout: 5_000 })
+    await expect.poll(async () => (await settingsDocument()).includes('enabled: false'), { timeout: 10_000 })
+      .toBe(true)
+    expect(await settingsDocument()).toContain('allowedModels:')
+    expect(await settingsDocument()).toContain('provider:')
+    expect(await settingsDocument()).toContain('model:')
+    await expandSubagent.click()
+    await expect.poll(() => toggle.getAttribute('aria-checked'), { timeout: 5_000 }).toBe('false')
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
@@ -141,6 +150,9 @@ describe('web e2e: plugin configuration section', () => {
 
     await expect.poll(async () => (await settingsDocument()).includes('timeoutMs: 12000'), { timeout: 10_000 })
       .toBe(true)
+    const expandTerminal = dialog.getByRole('button', { name: '展开设置: 终端' })
+    await expandTerminal.waitFor({ timeout: 5_000 })
+    await expandTerminal.click()
     // Presence in the user layer is what the badge reports, and the reset is
     // offered only for a field that has one.
     await expect.poll(() => dialog.getByText('已覆盖').count(), { timeout: 5_000 }).toBe(1)
@@ -199,6 +211,9 @@ describe('web e2e: plugin configuration section', () => {
 
     await expect.poll(async () => (await settingsDocument()).includes('timeoutMs'), { timeout: 10_000 })
       .toBe(false)
+    const expandTerminal = dialog.getByRole('button', { name: '展开设置: 终端' })
+    await expandTerminal.waitFor({ timeout: 5_000 })
+    await expandTerminal.click()
     expect(await timeout.inputValue()).toBe('60000')
     expect(await dialog.getByText('已覆盖').count()).toBe(0)
     expect(tripwire.pageErrors).toEqual([])

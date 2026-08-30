@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-better-sidebar-app-frame",
+  "description": "Compatibility patch for Better Sidebar app-frame spacing in DeepSeek Harness Plus",
+  "version": "0.1.0-rc.8",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/better-sidebar-app-frame"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/app-frame-space.patch": "./patches/app-frame-space.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "better-sidebar-app-frame-space",
+        "dsh": ">=0.1.0-rc.8",
+        "target": {
+          "kind": "npm",
+          "name": "dsh-better-sidebar",
+          "range": "0.17.1"
+        },
+        "file": "./patches/app-frame-space.patch"
+      }
+    ]
+  }
+}

@@ -28,7 +28,7 @@ The pipeline was ready but command knowledge had no landing spot: host-side `ctx
 
 ### Reference sources (seeing only projections plus their own apply closures, on the root ctx)
 
-- **ui-skill**: `skill.list({sessionId})` addresses by session (the host resolves the project root from the session header); the directory cache is single-flight keyed by sessionId, prewarmed at birth by the `warm` hook and fully cleared by `connection/reset`. A pick produces a text outcome (the literal `/name ` text, the plain-text-reference decision); `lexicon` supplies the roster from CatalogFetch's settled snapshot (`undefined` while not warm), and `subscribeLexicon` notifies per-session listeners on settle and on invalidation. No match hook (references never enter command adjudication). Skill references ride ordinary prompts as literal text (outside the command plane; tool-skill unchanged, with the session-prefix directory providing the cooperative association).
+- **ui-skill**: `skills/list({sessionId})` addresses by session (the host resolves the project root from the session header); the directory cache is single-flight keyed by sessionId, prewarmed at birth by the `warm` hook and fully cleared by `connection/reset`. A pick produces a text outcome (the literal `/name ` text, the plain-text-reference decision); `lexicon` supplies the roster from CatalogFetch's settled snapshot (`undefined` while not warm), and `subscribeLexicon` notifies per-session listeners on settle and on invalidation. No match hook (references never enter command adjudication). Skill references ride ordinary prompts as literal text (outside the command plane; tool-skill unchanged, with the session-prefix directory providing the cooperative association).
 - **ui-subagent**: candidates are zero-RPC (the sessions.list snapshot filtered by parentId/running); a pick produces a text outcome (the literal `@name ` text); `lexicon` derives from the same snapshot and `subscribeLexicon` forwards the list store's change feed (the model-side representation awaits its business workstream).
 
 ### Fixture command routing and assembly
@@ -36,9 +36,9 @@ The pipeline was ready but command knowledge had no landing spot: host-side `ctx
 - The connection fixture adds command routing (fixture + fake-api): the keyless rig can run the complete command flow (directory, execution, popup selection).
 - The apps/cli assembly mounts all the new packages; the tsconfig path map / reference sets are filled in; catalogs/docs are regenerated with the wire and events.
 
-### Assembly-level acceptance
+### Assembly-level acceptance: the slash-flow snapshot
 
-`apps/web/tests/goal-command-presentation.e2e.ts` pins the user-visible command chain through the real keyless Host and browser: a fresh Workspace Session executes `/goal clear`, renders its input and no-goal result with no model adapter, converts the Session from blank on `command/run`, starts a clean welcome Session through New Session before reload, with no command history in the welcome view and an empty composer. The conversion and reuse semantics are owned by the [visible command history decision](../bug-fix/2026-08-22-visible-command-history-ends-new-session-reuse.md).
+`apps/web/tests/slash-flow.snapshot.ts` pins the user-visible main chain (assembled keyless; package mocks are no substitute for the assembled transcript): the composer disabled with no session → creating a Workspace and entering an already-materialized blank session → picking the `/echo` leadingInput from the `/` menu → the command executes but the blank bit does not flip and the list still shows `New Session` → the first ordinary prompt's successful acceptance converts that same row; the same session-bound textarea holds across blank → active. `workspace-flow.snapshot.ts` separately pins blank-row creation/reuse, first-prompt rejection backfill, and — on a Workspace switch before the first prompt — the draft moving across input machines with the old blank row hidden.
 
 ## Alternatives considered
 

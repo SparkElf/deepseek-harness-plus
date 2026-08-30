@@ -40,13 +40,9 @@ const ROOT_MANIFEST = 'package.json'
 
 /** One manifest the bump rewrites, and the tag its new version will carry. */
 interface PlannedVersion {
-  /** Repository-relative manifest path. */
   readonly manifestPath: string
-  /** Label for the log line. */
   readonly label: string
-  /** The version the manifest currently carries. */
   readonly from: string
-  /** The version to write. */
   readonly to: string
   /** The tag this version publishes from, or undefined for a non-published manifest. */
   readonly tag: string | undefined
@@ -275,33 +271,6 @@ function privateDshVersions(root: string): PrivateDshVersion[] {
 }
 
 /**
- * Plan one shared version across only the packages owned by a release family.
- * @param family - release family that supplies tag naming.
- * @param members - package manifests owned by the family.
- * @param request - major, minor, patch, or an explicit version.
- * @returns The target version and package-only rewrite plan.
- */
-export function planScopedShared(
-  family: ReleaseFamily,
-  members: readonly ReleaseMember[],
-  request: string,
-): { planned: PlannedVersion[]; version: string } {
-  const [first] = members
-  if (first === undefined) throw new Error(`release family ${family.id} has no members`)
-  const version = nextSharedVersion(first.version, request)
-  return {
-    version,
-    planned: members.map(member => ({
-      manifestPath: `${member.directory}/package.json`,
-      label: member.directory,
-      from: member.version,
-      to: version,
-      tag: family.tagFor({ ...member, version }),
-    })),
-  }
-}
-
-/**
  * Plan the dsh family's rewrite: one version for every publishable member,
  * private package, and the root.
  * @param family - the dsh family.
@@ -316,14 +285,23 @@ export function planShared(
   members: readonly ReleaseMember[],
   request: string,
 ): { planned: PlannedVersion[]; version: string } {
-  const scoped = planScopedShared(family, members, request)
-  const { version } = scoped
+  const [first] = members
+  if (first === undefined) throw new Error(`release family ${family.id} has no members`)
+  const version = nextSharedVersion(first.version, request)
   // The workspace root carries the family version too: the workspace constraint
-  // requires every dsh member's version to equal the root's.
+  // requires every member's version to equal the root's.
   const planned: PlannedVersion[] = [
     { manifestPath: ROOT_MANIFEST, label: ROOT_MANIFEST, from: rootVersion(root), to: version, tag: undefined },
-    ...scoped.planned,
   ]
+  for (const member of members) {
+    planned.push({
+      manifestPath: `${member.directory}/package.json`,
+      label: member.directory,
+      from: member.version,
+      to: version,
+      tag: family.tagFor({ ...member, version }),
+    })
+  }
   const publishableManifests = new Set(members.map(member => `${member.directory}/package.json`))
   for (const entry of privateDshVersions(root)) {
     if (publishableManifests.has(entry.manifestPath)) continue
@@ -380,7 +358,7 @@ function main(): void {
     },
     allowPositionals: true,
   })
-  if (values.family === undefined) throw new Error('usage: bump.ts --family <dsh|plus|vendor> [version]')
+  if (values.family === undefined) throw new Error('usage: bump.ts --family <dsh|vendor> [version]')
 
   const family = releaseFamily(values.family)
   const root = process.cwd()
@@ -389,15 +367,13 @@ function main(): void {
 
   let planned: PlannedVersion[]
   let sharedVersion: string | undefined
-  if (family.id === 'dsh' || family.id === 'plus') {
+  if (family.id === 'dsh') {
     const request = positionals[0]
-    if (request === undefined) throw new Error(`usage: release:${family.id} <major|minor|patch|x.y.z>`)
+    if (request === undefined) throw new Error('usage: release:dsh <major|minor|patch|x.y.z>')
     if (values.prerelease !== undefined) {
-      throw new Error(`release:${family.id} takes the prerelease in its version argument, as in 0.0.1-rc.1`)
+      throw new Error('release:dsh takes the prerelease in its version argument, as in 0.0.1-rc.1')
     }
-    const shared = family.id === 'dsh'
-      ? planShared(family, root, members, request)
-      : planScopedShared(family, members, request)
+    const shared = planShared(family, root, members, request)
     planned = shared.planned
     sharedVersion = shared.version
   } else {

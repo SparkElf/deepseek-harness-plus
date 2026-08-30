@@ -1,0 +1,63 @@
+/** Settings Backup section dictionaries (zh product copy, en twin). */
+
+export const zh = {
+  nav: '备份',
+  title: '备份与恢复',
+  desc: '把用户设置和数据导出为一个 zip 压缩包，或从备份压缩包恢复。',
+  exportButton: '导出备份压缩包',
+  importButton: '选择压缩包并导入',
+  busyExport: '正在生成备份…',
+  busyImport: '正在导入备份…',
+  cancelButton: '取消',
+  cancellingButton: '正在取消…',
+  exportScan: '正在计算备份数据量…',
+  exportCompress: '正在生成备份',
+  exportProgressLabel: '备份生成进度',
+  importUpload: '正在上传备份',
+  importValidate: '正在校验备份完整性…',
+  importRestore: '正在恢复备份',
+  importReload: '正在加载会话与工作区…',
+  importProgressLabel: '备份恢复进度',
+  progressDetail: '数据较多时可能需要几分钟，请保持此页面打开。',
+  exported: '备份已生成，浏览器已开始下载。',
+  imported: '备份已导入。重新加载页面后，会话和工作区将使用恢复后的数据。',
+  reloadButton: '重新加载页面',
+  notBackup: '所选压缩包不是 DeepSeek Harness 备份文件。',
+  unsafe: '备份压缩包包含不安全的条目路径。',
+  exportFailed: '备份导出失败，请重试；若持续失败，请检查可用磁盘空间。',
+  importFailed: '备份导入失败，请检查所选压缩包后重试。',
+  warning: '备份压缩包包含 API 密钥等敏感信息，请妥善保管。',
+} as const
+
+/** English twin of the `zh` dictionary. */
+export const en: Record<SettingsBackupKey, string> = {
+  nav: 'Backup',
+  title: 'Backup and restore',
+  desc: 'Export user settings and data as one zip archive, or restore them from a backup archive.',
+  exportButton: 'Export backup archive',
+  importButton: 'Choose archive and import',
+  busyExport: 'Generating backup…',
+  busyImport: 'Importing backup…',
+  cancelButton: 'Cancel',
+  cancellingButton: 'Cancelling…',
+  exportScan: 'Calculating backup size…',
+  exportCompress: 'Generating backup',
+  exportProgressLabel: 'Backup generation progress',
+  importUpload: 'Uploading backup',
+  importValidate: 'Validating backup integrity…',
+  importRestore: 'Restoring backup',
+  importReload: 'Loading sessions and workspaces…',
+  importProgressLabel: 'Backup restore progress',
+  progressDetail: 'Large data sets may take several minutes; keep this page open.',
+  exported: 'Backup generated; the browser download has started.',
+  imported: 'Backup imported. Reload to apply the restored session and workspace data.',
+  reloadButton: 'Reload page',
+  notBackup: 'The selected archive is not a DeepSeek Harness backup file.',
+  unsafe: 'The backup archive contains unsafe entry paths.',
+  exportFailed: 'Backup export failed. Retry; if it keeps failing, check available disk space.',
+  importFailed: 'Backup import failed. Check the selected archive and retry.',
+  warning: 'The backup archive contains sensitive data such as API keys; store it carefully.',
+}
+
+/** Dictionary keys of the `settingsBackup` locale namespace. */
+export type SettingsBackupKey = keyof typeof zh

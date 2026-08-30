@@ -14,6 +14,7 @@ import { internals, provideCmdline } from '@deepseek-ai/dsh-cmdline'
 import { afterEach, describe, expect, it } from 'vitest'
 import { apply, WEB_STARTUP_SERVICE, type WebStartupValues } from '../src/startup.ts'
 
+/** What one fixture boot observed. */
 interface Observed {
   exits: number[]
   out: string
@@ -28,6 +29,11 @@ afterEach(async () => {
   internals.stderr = process.stderr
 })
 
+/**
+ * Mount the real provider and a consumer using injection-ordered config.
+ * @param args - the invocation's inner arguments.
+ * @returns the service value and observed consumer/process effects.
+ */
 async function bootProvider(args: string[]): Promise<{
   values: WebStartupValues | undefined
   observed: Observed
@@ -37,6 +43,8 @@ async function bootProvider(args: string[]): Promise<{
   writeFileSync(join(dir, 'reader.mjs'), `
 export function apply(_ctx, config) { globalThis.__webStartupObserved.readerConfig = config }
 `)
+  // Node imports the fixture row outside Vite's source resolver, so delegate
+  // to the source-plane plugin already imported by this test.
   writeFileSync(join(dir, 'provider.mjs'), `
 export const name = 'web-startup'
 export const inject = ['cmdlineArgs']
@@ -50,7 +58,6 @@ export const apply = ctx => globalThis.__webStartupApply(ctx)
     "    host: !!js ctx.webStartup.host ?? '127.0.0.1'",
     '    openBrowser: !!js ctx.webStartup.openBrowser',
     '    port: !!js ctx.webStartup.port ?? 3080',
-    '    basePath: !!js ctx.webStartup.basePath',
     '    trustedHosts: !!js ctx.webStartup.trustedHosts',
     '- id: provider',
     `  name: ${pathToFileURL(join(dir, 'provider.mjs')).href}`,
@@ -85,7 +92,6 @@ describe('web command-line provider', () => {
       '--host', '127.0.0.1',
       '--no-open',
       '--port', '8080',
-      '--base-path', '/api/ai/workbench/dsh/web',
       '--trusted-host', 'lab.internal', 'lab-2.internal',
       '--trusted-host', '10.0.0.9',
     ])
@@ -93,7 +99,6 @@ describe('web command-line provider', () => {
       host: '127.0.0.1',
       openBrowser: false,
       port: 8080,
-      basePath: '/api/ai/workbench/dsh/web',
       trustedHosts: ['lab.internal', 'lab-2.internal', '10.0.0.9'],
     })
     expect(observed.readerConfig).toEqual(values)
@@ -102,27 +107,19 @@ describe('web command-line provider', () => {
 
   it('leaves deployment values to each consumer when flags omit them', async () => {
     const { values, observed } = await bootProvider([])
-    expect(values).toEqual({ openBrowser: true, basePath: '', trustedHosts: [] })
+    expect(values).toEqual({ openBrowser: true, trustedHosts: [] })
     expect(observed.readerConfig).toEqual({
       host: '127.0.0.1',
       openBrowser: true,
       port: 3080,
-      basePath: '',
       trustedHosts: [],
     })
-  })
-
-  it('normalizes a root base path to the root deployment', async () => {
-    const { values, observed } = await bootProvider(['--base-path', '/'])
-    expect(values?.basePath).toBe('')
-    expect(observed.readerConfig).toMatchObject({ basePath: '' })
   })
 
   it('prints its own help and leaves the consumer pending', async () => {
     const { values, observed } = await bootProvider(['--help'])
     expect(observed.out).toContain('dsh --profile web')
     expect(observed.out).toContain('--no-open')
-    expect(observed.out).toContain('--base-path')
     expect(observed.out).toContain('--trusted-host')
     expect(values).toBeUndefined()
     expect(observed.readerConfig).toBeUndefined()
