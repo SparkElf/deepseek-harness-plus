@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-mobile-bridge-serialized-actions",
   "description": "Compatibility patch for serialized Mobile Bridge actions in DeepSeek Harness Plus",
-  "version": "0.1.0-rc.8",
+  "version": "0.1.0-rc.9",
   "publishConfig": {
     "access": "public"
   },
