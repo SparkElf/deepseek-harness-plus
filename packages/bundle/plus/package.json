@@ -84,7 +84,7 @@
     }
   },
   "dependencies": {
-    "@sparkelf/dsh-mobile-bridge": ">=0.2.9",
+    "@sparkelf/dsh-mobile-bridge": ">=0.2.10",
     "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-better-sidebar-alpha2-settings": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.12",

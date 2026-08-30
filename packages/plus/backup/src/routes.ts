@@ -157,7 +157,17 @@ function registerProtectedRoute(
         response.end(rejection === 401 ? 'unauthorized' : 'forbidden')
         return
       }
-      await handler(request, response)
+      try {
+        await handler(request, response)
+      } catch (error: unknown) {
+        if (request.destroyed || response.destroyed) {
+          console.info('[plus-backup] request cancelled', { path }, error)
+          return
+        }
+        console.error('[plus-backup] route failed', { path }, error)
+        if (!response.headersSent) response.writeHead(500)
+        if (!response.writableEnded) response.end('backup request failed')
+      }
     },
   }
   ctx.effect(() => ctx.webServer.register(route), `plus-backup: ${path} route`)

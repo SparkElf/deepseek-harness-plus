@@ -214,7 +214,7 @@ export default async function globalSetup() {
       return [manifest.name, `file:${archives.get(directory)}`]
     })),
     'dsh-better-sidebar': '0.17.1',
-    '@sparkelf/dsh-mobile-bridge': '0.2.9',
+    '@sparkelf/dsh-mobile-bridge': '0.2.10',
   }
   writeFileSync(
     join(profileRoot, 'pnpm-workspace.yaml'),

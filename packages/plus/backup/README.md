@@ -25,7 +25,7 @@ This complete Host and Client plugin exports a file-backed DSH home as a ZIP arc
 
 Mount the Host entry after `connection`, `webServer`, `settings`, and `workspaceRegistry`, and mount the Client entry after locale and Settings. The file-backed Settings provider supplies `settings.documentPath`; `maxUploadBytes` defaults to 2147483648 bytes.
 
-The authenticated routes are POST `/api/backup.export.prepare`, GET/HEAD `/api/backup.export`, POST `/api/backup.upload`, and POST `/api/backup.import`. Every route applies Connection Host, Origin, and browser-authentication policy before request data. Tokens expire after ten minutes and are single-use, except HEAD metadata inspection.
+The authenticated routes are POST `/api/backup.export.prepare`, GET/HEAD `/api/backup.export`, POST `/api/backup.upload`, and POST `/api/backup.import`. Every route applies Connection Host, Origin, and browser-authentication policy before request data. Browser cancellation settles only the active route and never terminates the Harness Host. Tokens expire after ten minutes and are single-use, except HEAD metadata inspection.
 
 Once restore writes begin, closing the page does not interrupt replacement. Workspace storage closes around file replacement and reopens before completion; the Client releases the completed progress stream reader before the UI offers one explicit reload. Client failures remain visible in the Backup section without browser console errors.
 

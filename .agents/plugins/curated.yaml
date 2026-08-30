@@ -9,7 +9,7 @@ entries:
     plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
     source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
-    pinned: 0.2.9
+    pinned: 0.2.10
     interest: End-to-end encrypted mobile access with a Host tunnel and Settings section
     owner: SparkElf
     localPatches: []

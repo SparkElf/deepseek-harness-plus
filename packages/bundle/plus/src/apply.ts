@@ -6,6 +6,7 @@ import {
   copyFileSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   rmSync,
@@ -14,6 +15,7 @@ import {
 } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { satisfies, valid, validRange } from 'semver'
 import { parseDocument } from 'yaml'
 
@@ -192,6 +194,26 @@ function sourcePatchState(root: string, file: string): 'pending' | 'applied' {
   throw new Error('unreachable')
 }
 
+/** 在隔离index中按真实顺序预演source patches，避免失败后污染official worktree。 */
+function preflightSourcePatches(root: string, files: readonly string[]): void {
+  if (files.length === 0) return
+  const directory = mkdtempSync(resolve(tmpdir(), 'dsh-plus-source-patches-'))
+  const index = resolve(directory, 'index')
+  const env = { ...process.env, GIT_INDEX_FILE: index }
+  const run = (args: readonly string[]): void => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', env })
+    if (result.status === 0) return
+    const detail = result.stderr.trim()
+    throw new Error('git ' + args.join(' ') + ' failed' + (detail === '' ? '' : ': ' + detail))
+  }
+  try {
+    run(['read-tree', 'HEAD'])
+    for (const file of files) run(['apply', '--cached', '--3way', file])
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
 function requireSourceBase(root: string, baseRevision: string): string {
   const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
   if (checkoutRevision !== baseRevision) {
@@ -271,15 +293,18 @@ function prepareSelection(
   }
 
   const sourceStates = new Map<string, ReturnType<typeof sourcePatchState>>()
-  for (const variant of [...groups.values()].flat()) {
-    if (variant.target.kind !== 'dsh-source'
-      || variant.target.baseRevision !== baseRevision
-      || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
-    const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
-    sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+  const orderedGroups = [...groups].sort(([left], [right]) => left.localeCompare(right))
+  for (const [, variants] of orderedGroups) {
+    for (const variant of variants) {
+      if (variant.target.kind !== 'dsh-source'
+        || variant.target.baseRevision !== baseRevision
+        || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
+      const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
+      sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+    }
   }
   const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
-  if (pendingSourceFiles.length > 0) git(dshRoot, ['apply', '--check', ...pendingSourceFiles])
+  preflightSourcePatches(dshRoot, pendingSourceFiles)
 
   if (writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)) {
     runPnpm(profileDirectory, ['install'], 'pnpm install Plus profile dependencies')
@@ -298,8 +323,8 @@ function prepareSelection(
 
   const selected: SelectedPatch[] = []
   // 每个patch id必须在当前DSH、official base与installed npm graph上唯一命中，不能fallback到第二variant。
-  for (const id of [...groups.keys()].sort()) {
-    const candidates = (groups.get(id) ?? []).flatMap((variant): SelectedPatch[] => {
+  for (const [id, variants] of orderedGroups) {
+    const candidates = variants.flatMap((variant): SelectedPatch[] => {
       if (!satisfies(dshVersion, variant.dsh, { includePrerelease: true })) return []
       const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
       if (variant.target.kind === 'dsh-source') {
@@ -529,7 +554,7 @@ function applySelectedPatches(
     runPnpm(profileDirectory, ['install'], 'pnpm install in Plus profile')
   }
   const sourceFiles = pendingSourcePatchFiles(materialized.patches)
-  if (sourceFiles.length > 0) git(dshRoot, ['apply', ...sourceFiles])
+  for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
   if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
     runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
   }

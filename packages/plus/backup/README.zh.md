@@ -25,7 +25,7 @@ kind: "package-reference"
 
 Host entry需mount在`connection`、`webServer`、`settings`及`workspaceRegistry`之后，Client entry需mount在locale及Settings之后。file-backed Settings provider提供`settings.documentPath`；`maxUploadBytes`默认为2147483648 bytes。
 
-authenticated routes为POST `/api/backup.export.prepare`、GET/HEAD `/api/backup.export`、POST `/api/backup.upload`及POST `/api/backup.import`。每条route会在读取request data前应用Connection Host、Origin及browser-authentication policy。Token在十分钟后过期并且single-use，HEAD metadata inspection除外。
+authenticated routes为POST `/api/backup.export.prepare`、GET/HEAD `/api/backup.export`、POST `/api/backup.upload`及POST `/api/backup.import`。每条route会在读取request data前应用Connection Host、Origin及browser-authentication policy。Browser cancellation只结算当前route，绝不会终止Harness Host。Token在十分钟后过期并且single-use，HEAD metadata inspection除外。
 
 一旦restore开始写入，关闭page不会中断replacement。Workspace storage会在file replacement期间关闭并在completion前重新打开；Client会先释放completed progress stream reader，再由UI提供一次explicit reload。Client failure保留在Backup section可见状态，不产生browser console error。
 
