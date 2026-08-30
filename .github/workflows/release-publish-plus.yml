@@ -48,6 +48,12 @@ jobs:
       - name: Pack Plus release tarballs
         run: pnpm run release:pack --family plus --out dist/npm-plus --concurrency 4
 
+      - name: Verify Plus tarball reproducibility
+        run: |
+          pnpm run release:pack --family plus --out dist/npm-plus-repeat --concurrency 4
+          diff -qr dist/npm-plus dist/npm-plus-repeat
+          rm -rf dist/npm-plus-repeat
+
       - uses: actions/upload-artifact@v4
         with:
           name: plus-npm-tarballs

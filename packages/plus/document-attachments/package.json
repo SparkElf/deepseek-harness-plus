@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-document-attachments",
   "description": "Provider-neutral parser and MinerU provider for durable PDF and Office document attachments",
-  "version": "0.1.0-rc.9",
+  "version": "0.1.0-rc.10",
   "publishConfig": {
     "access": "public"
   },

@@ -7,7 +7,8 @@
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  */
 
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { releaseFamily, tarballName, type ReleaseFamily, type ReleaseMember } from './families.ts'
@@ -16,6 +17,31 @@ import { PUBLISH_ORDER_FILE, tarballFiles } from './tarball.ts'
 
 /** Where pack output lands when `--out` is omitted. */
 const DEFAULT_OUTPUT = 'dist/npm'
+
+// Plus npm manifest是JSON object；稳定key order保证同一tag在clean runners上产生相同bytes。
+function sortJsonObjectKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortJsonObjectKeys)
+  if (value === null || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => [key, sortJsonObjectKeys(entry)]))
+}
+
+// 只重封装pnpm导出的manifest，不执行package lifecycle scripts。
+async function canonicalizePlusTarball(tarball: string, destination: string): Promise<void> {
+  const temporary = mkdtempSync(join(tmpdir(), 'dsh-release-pack-'))
+  try {
+    await runConcurrent('tar', ['-xzf', tarball, '-C', temporary])
+    const packageDirectory = join(temporary, 'package')
+    const manifestPath = join(packageDirectory, 'package.json')
+    const manifest: unknown = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    writeFileSync(manifestPath, JSON.stringify(sortJsonObjectKeys(manifest), undefined, 2) + '\n')
+    rmSync(tarball)
+    await runConcurrent('npm', ['pack', packageDirectory, '--pack-destination', destination, '--ignore-scripts'])
+  } finally {
+    rmSync(temporary, { recursive: true, force: true })
+  }
+}
 
 /**
  * Pack one member and check what its tarball carries.
@@ -30,6 +56,10 @@ async function packMember(family: ReleaseFamily, member: ReleaseMember, destinat
   const filename = tarballName(member)
   const tarball = join(destination, filename)
   if (!existsSync(tarball)) throw new Error(`${member.name} produced no tarball at ${tarball}`)
+  if (family.id === 'plus') {
+    await canonicalizePlusTarball(tarball, destination)
+    if (!existsSync(tarball)) throw new Error(`${member.name} produced no canonical tarball at ${tarball}`)
+  }
   family.validatePayload(member, tarballFiles(tarball))
   return filename
 }
@@ -53,7 +83,7 @@ async function main(): Promise<void> {
     options: { family: { type: 'string' }, out: { type: 'string' }, concurrency: { type: 'string' } },
     allowPositionals: false,
   })
-  if (values.family === undefined) throw new Error('usage: pack.ts --family <dsh|vendor> [--out dist/npm] [--concurrency 1]')
+  if (values.family === undefined) throw new Error('usage: pack.ts --family <dsh|plus|vendor> [--out dist/npm] [--concurrency 1]')
   const concurrency = parseConcurrency(values.concurrency)
 
   const family = releaseFamily(values.family)

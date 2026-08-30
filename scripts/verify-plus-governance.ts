@@ -161,9 +161,23 @@ function main(): void {
   const bundles = array(profile.bundles, 'dshPlus.profile.bundles').map((value, index) =>
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
+  const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
+  if (JSON.stringify(profileDependencies) !== JSON.stringify({ 'dsh-better-sidebar': '0.17.1' })) {
+    throw new Error('dshPlus.profile.dependencies must own only dsh-better-sidebar@0.17.1')
+  }
+  const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
+  if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true })) {
+    throw new Error('dshPlus.profile.allowBuilds must allow only node-pty')
+  }
+  // External runtime packages由transitive dependency或apply-owned profile dependency恰好一个owner提供。
+  for (const name of Object.keys(profileDependencies)) {
+    if (dependencies[name] !== undefined) throw new Error(name + ' must not have two dependency owners')
+  }
+  const ownsRuntimePackage = (name: string): boolean =>
+    dependencies[name] !== undefined || profileDependencies[name] !== undefined
   for (const bundle of bundles) {
     if (bundle.startsWith('@deepseek-ai/') || bundle === distribution.name) continue
-    if (dependencies[bundle] === undefined) throw new Error('distribution must depend on external profile bundle ' + bundle)
+    if (!ownsRuntimePackage(bundle)) throw new Error('distribution must own external profile bundle ' + bundle)
   }
   const declaredPatchPackages = array(plus.patchPackages, 'dshPlus.patchPackages').map((value, index) =>
     string(value, 'dshPlus.patchPackages[' + String(index) + ']')).sort()
@@ -175,8 +189,8 @@ function main(): void {
   for (const record of records) {
     if (dependencies[record.name] === undefined) throw new Error('distribution must depend on ' + record.name)
     for (const target of record.targets) {
-      if (target.kind === 'npm' && dependencies[target.name] === undefined) {
-        throw new Error('distribution must depend on patched npm target ' + target.name)
+      if (target.kind === 'npm' && !ownsRuntimePackage(target.name)) {
+        throw new Error('distribution must own patched npm target ' + target.name)
       }
     }
   }
@@ -189,7 +203,7 @@ function main(): void {
     const row = object(raw, 'Plus Cordis row')
     const name = string(row.name, 'Plus Cordis row name')
     const packageName = packageNameFromSpecifier(name)
-    if (dependencies[packageName] === undefined) throw new Error('distribution must depend on Cordis row package ' + packageName)
+    if (!ownsRuntimePackage(packageName)) throw new Error('distribution must own Cordis row package ' + packageName)
   }
   const curation = object(parse(readFileSync(resolve(root, '.agents/plugins/curated.yaml'), 'utf8')) as unknown, 'curation')
   const curatedPackages = array(curation.entries, 'curation entries').flatMap(raw =>

@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.1.0-rc.9",
+  "version": "0.1.0-rc.10",
   "publishConfig": {
     "access": "public"
   },
@@ -57,7 +57,13 @@
         "dshmarket",
         "@changfenhuang/dsh-genui",
         "@sparkelf/dsh-plus"
-      ]
+      ],
+      "dependencies": {
+        "dsh-better-sidebar": "0.17.1"
+      },
+      "allowBuilds": {
+        "node-pty": true
+      }
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-better-sidebar-app-frame",
@@ -76,25 +82,24 @@
   },
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.8",
-    "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-mobile-bridge-serialized-actions": ">=0.1.0-rc.9",
-    "dsh-better-sidebar": ">=0.16.1",
+    "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-mobile-bridge-serialized-actions": ">=0.1.0-rc.10",
     "dshmarket": ">=1.29.2",
     "@changfenhuang/dsh-genui": ">=0.9.6",
-    "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-workspace-storage-restore": ">=0.1.0-rc.9",
+    "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-workspace-storage-restore": ">=0.1.0-rc.10",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-plugin-subagent-settings": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-subagent-settings-presets": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.9",
-    "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.9"
+    "@sparkelf/dsh-plugin-subagent-settings": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-subagent-settings-presets": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.10",
+    "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.10"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
@@ -103,7 +108,8 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@types/semver": ">=7.7.1"
+    "@types/semver": ">=7.7.1",
+    "dsh-better-sidebar": "0.17.1"
   },
   "bin": {
     "dsh-plus": "lib/bin.js"

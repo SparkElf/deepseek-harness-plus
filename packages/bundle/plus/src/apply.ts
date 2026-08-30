@@ -1,7 +1,7 @@
 /** Materialize the Plus distribution's independent patch packages without Desktop. */
 
 import { spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { satisfies, valid, validRange } from 'semver'
@@ -194,10 +194,19 @@ function patchPackageVariants(distributionDirectory: string, names: readonly str
   return variants
 }
 
-function selectPatches(
+// 先验证official source，再物化Plus声明的profile依赖，避免source不匹配时改动用户profile。
+function prepareSelection(
   distributionDirectory: string,
+  profileDirectory: string,
   dshRoot: string,
-): { lock: Record<string, unknown>; patches: SelectedPatch[]; bundles: string[]; runtimePackages: RuntimePackage[] } {
+): {
+  lock: Record<string, unknown>
+  patches: SelectedPatch[]
+  bundles: string[]
+  runtimePackages: RuntimePackage[]
+  profileDependencies: RuntimePackage[]
+  allowBuilds: Record<string, boolean>
+} {
   const distributionManifest = readJsonObject(resolve(distributionDirectory, 'package.json'), 'Plus distribution manifest')
   const distributionName = requireString(distributionManifest.name, 'Plus distribution name')
   const distributionVersion = requireVersion(distributionManifest.version, 'Plus distribution version')
@@ -211,25 +220,57 @@ function selectPatches(
   const baseRevision = requireString(sourceBase.revision, 'dshPlus.sourceBase.revision')
   const profile = requireObject(plus.profile, 'dshPlus.profile')
   const bundles = requireStringArray(profile.bundles, 'dshPlus.profile.bundles')
+  const rawProfileDependencySpecs = requireObject(profile.dependencies, 'dshPlus.profile.dependencies')
+  const profileDependencySpecs: Record<string, string> = {}
+  for (const [name, spec] of Object.entries(rawProfileDependencySpecs)) {
+    profileDependencySpecs[name] = requireString(spec, 'dshPlus.profile.dependencies.' + name)
+  }
+  const rawAllowBuilds = requireObject(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
+  const allowBuilds: Record<string, boolean> = {}
+  for (const [name, allowed] of Object.entries(rawAllowBuilds)) {
+    if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
+    allowBuilds[name] = allowed
+  }
   const patchPackageNames = requireStringArray(plus.patchPackages, 'dshPlus.patchPackages')
   const dependencies = requireObject(distributionManifest.dependencies, 'Plus distribution dependencies')
-  const runtimePackages = Object.keys(dependencies).filter(name => !patchPackageNames.includes(name)).sort().map((name) => {
-    const installed = resolveInstalledPackage(distributionDirectory, name)
-    return { name, version: installed.version }
-  })
   const dshManifest = readJsonObject(resolve(dshRoot, 'package.json'), 'DSH source manifest')
   const dshVersion = requireVersion(dshManifest.version, 'DSH source version')
   if (!satisfies(dshVersion, dshRange, { includePrerelease: true })) {
     throw new Error(distributionName + '@' + distributionVersion + ' requires DSH ' + dshRange + ', found ' + dshVersion)
   }
   const checkoutRevision = requireSourceBase(dshRoot, baseRevision)
-
   const groups = new Map<string, ParsedVariant[]>()
   for (const variant of patchPackageVariants(distributionDirectory, patchPackageNames)) {
     const entries = groups.get(variant.id) ?? []
     entries.push(variant)
     groups.set(variant.id, entries)
   }
+
+  const sourceStates = new Map<string, ReturnType<typeof sourcePatchState>>()
+  for (const variant of [...groups.values()].flat()) {
+    if (variant.target.kind !== 'dsh-source'
+      || variant.target.baseRevision !== baseRevision
+      || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
+    const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
+    sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+  }
+  const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
+  if (pendingSourceFiles.length > 0) git(dshRoot, ['apply', '--check', ...pendingSourceFiles])
+
+  if (writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)) {
+    runPnpm(profileDirectory, ['install'], 'pnpm install Plus profile dependencies')
+  }
+  const profileDependencies = Object.keys(profileDependencySpecs).sort().map((name) => {
+    const installed = resolveInstalledPackage(profileDirectory, name)
+    return { name, version: installed.version }
+  })
+  const runtimePackages = [
+    ...Object.keys(dependencies).filter(name => !patchPackageNames.includes(name)).sort().map((name) => {
+      const installed = resolveInstalledPackage(distributionDirectory, name)
+      return { name, version: installed.version }
+    }),
+    ...profileDependencies,
+  ].sort((left, right) => left.name.localeCompare(right.name))
 
   const selected: SelectedPatch[] = []
   // 每个patch id必须在当前DSH、official base与installed npm graph上唯一命中，不能fallback到第二variant。
@@ -245,10 +286,11 @@ function selectPatches(
           file: file.relativeFile,
           absoluteFile: file.absoluteFile,
           target: { kind: 'dsh-source', baseRevision },
-          alreadyApplied: sourcePatchState(dshRoot, file.absoluteFile) === 'applied',
+          alreadyApplied: sourceStates.get(file.absoluteFile) === 'applied',
         }]
       }
-      const targetVersion = resolveInstalledPackage(distributionDirectory, variant.target.name).version
+      const targetDirectory = variant.target.name in profileDependencySpecs ? profileDirectory : distributionDirectory
+      const targetVersion = resolveInstalledPackage(targetDirectory, variant.target.name).version
       if (!satisfies(targetVersion, variant.target.range, { includePrerelease: true })) return []
       return [{
         id,
@@ -276,11 +318,12 @@ function selectPatches(
     patches: selected,
     bundles,
     runtimePackages,
+    profileDependencies,
+    allowBuilds,
     lock: {
       formatVersion: FORMAT_VERSION,
       distribution: { name: distributionName, version: distributionVersion },
       dsh: { version: dshVersion, baseRevision, checkoutRevision },
-      profile: { bundles },
       runtimePackages,
       patches: lockPatches,
     },
@@ -331,6 +374,49 @@ function profilePatchConfiguration(profileDirectory: string, patches: readonly S
     changed = true
   }
   return { text: String(document), changed }
+}
+
+// 用户显式执行apply后，这里一次性写入profile root依赖与唯一native build许可；冲突直接失败。
+function writeProfileRequirements(
+  profileDirectory: string,
+  dependencySpecs: Readonly<Record<string, string>>,
+  allowBuilds: Readonly<Record<string, boolean>>,
+): boolean {
+  const manifestPath = resolve(profileDirectory, 'package.json')
+  const manifest = readJsonObject(manifestPath, 'DSH profile manifest')
+  const dependencies = requireObject(manifest.dependencies, 'DSH profile dependencies')
+  let manifestChanged = false
+  for (const [name, spec] of Object.entries(dependencySpecs)) {
+    const current = dependencies[name]
+    if (current !== undefined && current !== spec) {
+      throw new Error('profile dependency ' + name + ' is configured as ' + JSON.stringify(current) + ', expected ' + spec)
+    }
+    if (current === undefined) {
+      dependencies[name] = spec
+      manifestChanged = true
+    }
+  }
+  const workspacePath = resolve(profileDirectory, 'pnpm-workspace.yaml')
+  const document = parseDocument(readFileSync(workspacePath, 'utf8'))
+  const [documentError] = document.errors
+  if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
+  let workspaceChanged = false
+  for (const [name, allowed] of Object.entries(allowBuilds)) {
+    const current = document.getIn(['allowBuilds', name])
+    if (current !== undefined && current !== allowed) {
+      throw new Error('profile allowBuilds.' + name + ' is configured as ' + JSON.stringify(current) + ', expected ' + String(allowed))
+    }
+    if (current === undefined) {
+      document.setIn(['allowBuilds', name], allowed)
+      workspaceChanged = true
+    }
+  }
+  if (manifestChanged) {
+    manifest.dependencies = dependencies
+    writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
+  }
+  if (workspaceChanged) writeFileSync(workspacePath, String(document))
+  return manifestChanged || workspaceChanged
 }
 
 function writeProfileComposition(
@@ -398,6 +484,15 @@ function applySelectedPatches(
   }
 }
 
+// Profile plugins通过exact source checkout解析official peers；npm profile不复制该scope。
+function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
+  const source = resolve(dshRoot, 'node_modules', '@deepseek-ai')
+  if (!existsSync(source)) throw new Error('official DSH dependencies are missing under ' + source)
+  const destination = resolve(profileDirectory, 'node_modules', '@deepseek-ai')
+  rmSync(destination, { recursive: true, force: true })
+  symlinkSync(source, destination, process.platform === 'win32' ? 'junction' : 'dir')
+}
+
 function writeLock(profileDirectory: string, lock: Record<string, unknown>): string {
   const directory = resolve(profileDirectory, '.dsh-plus')
   mkdirSync(directory, { recursive: true })
@@ -433,22 +528,27 @@ export function runApply(argv: readonly string[]): void {
   }
   const distributionDirectory = dirname(createRequire(resolve(profileDirectory, 'package.json'))
     .resolve('@sparkelf/dsh-plus/package.json'))
-  const selection = selectPatches(distributionDirectory, dshRoot)
-  const sourceFiles = pendingSourcePatchFiles(selection.patches)
-  if (sourceFiles.length > 0) git(dshRoot, ['apply', '--check', ...sourceFiles])
+  const selection = prepareSelection(distributionDirectory, profileDirectory, dshRoot)
   const profileChanged = writeProfileComposition(
     profileDirectory,
     selection.bundles,
     selection.runtimePackages,
   )
   applySelectedPatches(profileDirectory, dshRoot, selection.patches, profileChanged)
+  linkOfficialPackages(profileDirectory, dshRoot)
+  const installedProfileDependencies = requireObject(
+    readJsonObject(resolve(profileDirectory, 'package.json'), 'DSH profile manifest').dependencies,
+    'DSH profile dependencies',
+  )
   selection.lock.profile = {
     bundles: selection.bundles.map((name) => {
-      const installed = dependencies[name] === undefined
+      const installed = installedProfileDependencies[name] === undefined
         ? resolveInstalledPackage(dshRoot, name)
         : resolveInstalledPackage(profileDirectory, name)
       return { name, version: installed.version }
     }),
+    dependencies: selection.profileDependencies,
+    allowBuilds: selection.allowBuilds,
   }
   const lock = writeLock(profileDirectory, selection.lock)
   process.stdout.write('[dsh-plus] applied ' + String(selection.patches.length) + ' patches; lock ' + lock + '\n')

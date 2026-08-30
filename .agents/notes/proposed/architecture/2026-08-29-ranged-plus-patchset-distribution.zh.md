@@ -20,7 +20,7 @@ dsh plugin --profile plus exec dsh-plus apply --dsh-root <official-dsh-root>
 dsh --profile plus
 ```
 
-`dsh-plus apply`解析installed patch-package manifests，要求official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，把selected payloads复制进profile，配置exact npm patches，应用exact source patches，并写credential-free `.dsh-plus/patchset.lock.json`。`plus` release family发现完整`@sparkelf` closure，分配一个`plus-npm-v*` tag，并通过manual npm workflow发布credential-free pack job生成的exact tarballs。随后manual publication audit要求15个registry entries全部public，并逐文件比较registry解包内容与该release artifact。Desktop与tray application可以调用同一public workflow，但不是prerequisite、manifest owner、release owner或acceptance path。
+`dsh-plus apply`解析installed patch-package manifests，要求official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，以显式`node-pty` build permission安装profile-owned `dsh-better-sidebar@0.17.1` dependency，把profile的official package scope链接到exact source checkout，把selected payloads复制进profile，配置exact npm patches，应用exact source patches，并写credential-free `.dsh-plus/patchset.lock.json`。`plus` release family发现完整`@sparkelf` closure，分配一个`plus-npm-v*` tag，canonicalize packed manifest object keys，并通过manual npm workflow发布credential-free pack job两次生成且逐字比较的exact tarballs。随后manual publication audit要求15个registry entries全部public，并逐文件比较registry解包内容与该release artifact。Desktop与tray application可以调用同一public workflow，但不是prerequisite、manifest owner、release owner或acceptance path。
 
 ## 最终inventory
 
@@ -34,7 +34,7 @@ Welcome onboarding、home-path display、code-dispatch spill、ask-user card col
 
 ## Package与copy ownership
 
-Runtime与peer manifests使用minimum-only ranges；exact DSH、distribution、plugin、patch-package、target、variant及payload facts只属于deployment lock。Credential values、settings、Session data、prompts及model output不进入该lock。Product copy归实现behavior的capability或targeted patch所有；不存在generic Plus locale plugin。
+Runtime与peer manifests使用minimum-only ranges；唯一例外是profile-owned Better Sidebar dependency及其native build permission，它们是materialization的exact security inputs。Deployment lock记录resolved DSH、distribution、plugin、patch-package、target、variant、payload、profile dependency及build-permission facts。Credential values、settings、Session data、prompts及model output不进入该lock。Product copy归实现behavior的capability或targeted patch所有；不存在generic Plus locale plugin。
 
 Backup-specific note `2026-08-30-plus-backup-plugin.md`继续拥有archive、route、restore及progress details。本note只拥有complete distribution forms、final inventory、materialization path和deletion rule。
 
