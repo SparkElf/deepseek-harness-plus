@@ -60,7 +60,10 @@ jobs:
             mkdir "local/$count" "registry-expanded/$count"
             tar -xzf "$tarball" -C "local/$count"
             tar -xzf "registry/$registry_filename" -C "registry-expanded/$count"
-            diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"
+            if ! diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"; then
+              diff -u "local/$count/package/package.json" "registry-expanded/$count/package/package.json" || true
+              exit 1
+            fi
             echo "[$count] $name@$version public and content-identical"
           done < release/publish-order.txt
           test "$count" -eq 15
