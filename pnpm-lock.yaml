@@ -1352,49 +1352,52 @@ importers:
         specifier: '>=0.2.8'
         version: 0.2.8(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/better-sidebar-app-frame
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-document-attachments':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/document-attachments
       '@sparkelf/dsh-patch-genui-streaming-echart':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/genui-streaming-echart
       '@sparkelf/dsh-patch-mobile-bridge-serialized-actions':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/mobile-bridge-serialized-actions
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/responses-reasoning-status
+      '@sparkelf/dsh-patch-session-export-chinese':
+        specifier: '>=0.1.0-rc.12'
+        version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-document-attachments':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../plus/document-attachments
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: '>=0.1.0-rc.11'
+        specifier: '>=0.1.0-rc.12'
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.29.2'
@@ -10285,6 +10288,8 @@ importers:
   patches/npm/mobile-web-layout: {}
 
   patches/npm/responses-reasoning-status: {}
+
+  patches/npm/session-export-chinese: {}
 
   patches/npm/subagent-settings-presets: {}
 

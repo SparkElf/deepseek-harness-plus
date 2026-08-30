@@ -70,6 +70,13 @@ entries:
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-document-attachments', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH supplies equivalent generic file-object storage Document content projection prepared prompt settlement mixed draft integration and nested Document slots }]
     plusBundle: false
+  - name: '@deepseek-ai/dsh-session-export-chinese-copy'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Consistent Simplified-Chinese wording across the Session export action and status dialog
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-session-export-chinese', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official Session export Simplified-Chinese copy consistently uses the Chinese term for Session }]
+    plusBundle: false
   - name: '@deepseek-ai/dsh-llm-pi-ai-responses-compatibility'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
     pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc

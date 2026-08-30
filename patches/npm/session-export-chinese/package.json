@@ -1,14 +1,14 @@
 {
-  "name": "@sparkelf/dsh-patch-responses-reasoning-status",
+  "name": "@sparkelf/dsh-patch-session-export-chinese",
   "version": "0.1.0-rc.12",
-  "description": "Data-only exact official-source patch for OpenAI Responses gateways that reject replayed reasoning status metadata",
+  "description": "Data-only exact official-source patch using consistent Simplified-Chinese Session export wording",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/responses-reasoning-status"
+    "directory": "patches/npm/session-export-chinese"
   },
   "type": "module",
   "files": [
@@ -19,17 +19,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "responses-omit-reasoning-input-status",
+        "id": "session-export-simplified-chinese-copy",
         "dsh": ">=0.1.2-alpha.1",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
           "paths": [
-            "packages/llm/llm-pi-ai/",
-            "packages/client/ui-settings-models/"
+            "packages/session-query/session-log-export/src/client/"
           ]
         },
-        "file": "./patches/responses-reasoning-status.patch"
+        "file": "./patches/session-export-chinese.patch"
       }
     ]
   }

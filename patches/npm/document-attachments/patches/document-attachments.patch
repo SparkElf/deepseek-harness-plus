@@ -840,23 +840,20 @@ index 046444cd76551380a8d1d924f27db9a002d8a93f..146fe3d501b038c8affc61a59c16d727
  /** Stored image bytes returned after reference and digest verification. */
  export interface StoredImageAttachment {
    ref: ImageAttachmentRef
-diff --git a/packages/client/ui-attachment/src/client/ComposerAttachments.module.css b/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-index 770a64cef5dba2baded4adb7afe63ae88c7fcffc..1cdfd8c3f5b1138b76ce294db6e0198c2226353d 100644
---- a/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-+++ b/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-@@ -1,3 +1,34 @@
-+.picker {
-+  display: flex;
-+  padding: 4px 12px 0;
-+}
-+
+diff --git a/packages/client/ui-attachment/src/client/AttachmentPicker.module.css b/packages/client/ui-attachment/src/client/AttachmentPicker.module.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..da3ae830f932d0a59d0b17b612736395d6f90bb3
+--- /dev/null
++++ b/packages/client/ui-attachment/src/client/AttachmentPicker.module.css
+@@ -0,0 +1,26 @@
 +.fileInput {
 +  display: none;
 +}
 +
-+.add {
++.trigger {
 +  display: grid;
 +  place-items: center;
++  flex: none;
 +  width: 28px;
 +  height: 28px;
 +  padding: 0;
@@ -867,34 +864,75 @@ index 770a64cef5dba2baded4adb7afe63ae88c7fcffc..1cdfd8c3f5b1138b76ce294db6e0198c
 +  cursor: pointer;
 +}
 +
-+.add:hover:not(:disabled) {
++.trigger:hover:not(:disabled) {
 +  background: var(--dsw-alias-interactive-bg-hover-solid);
 +}
 +
-+.add:disabled {
++.trigger:disabled {
 +  opacity: 0.5;
 +  cursor: default;
 +}
+diff --git a/packages/client/ui-attachment/src/client/AttachmentPicker.tsx b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
+new file mode 100644
+index 0000000000000000000000000000000000000000..6e22cb26bca78a0ed3d46fa8325f4f13265faf09
+--- /dev/null
++++ b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
+@@ -0,0 +1,42 @@
++import { useCallback, useRef } from 'react'
++import type { ChangeEvent } from 'react'
++import { IconPaperclipOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { ComposerAttachmentPickerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import css from './AttachmentPicker.module.css'
 +
- .rail {
-   min-width: 0;
-   padding: 4px 12px 0;
++/** 在输入框指令按钮右侧提供图片和文档的统一文件选择入口。 */
++export function AttachmentPicker({ canAcceptFiles, onAddFiles, t }: ComposerAttachmentPickerProps) {
++  const fileInput = useRef<HTMLInputElement>(null)
++  const chooseFiles = useCallback(() => { fileInput.current?.click() }, [])
++  const onFilesChosen = useCallback((event: ChangeEvent<HTMLInputElement>) => {
++    const files = event.currentTarget.files
++    if (files !== null && files.length > 0) onAddFiles([...files])
++    event.currentTarget.value = ''
++  }, [onAddFiles])
++
++  return (
++    <>
++      <input
++        ref={fileInput}
++        className={css.fileInput}
++        type="file"
++        multiple
++        accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.pptx,.xlsx"
++        disabled={!canAcceptFiles}
++        onChange={onFilesChosen}
++      />
++      <Tooltip label={t('attachment.add')} side="top" delayMs={500}>
++        <button
++          type="button"
++          className={css.trigger}
++          aria-label={t('attachment.add')}
++          disabled={!canAcceptFiles}
++          onMouseDown={(event) => { event.preventDefault() }}
++          onClick={chooseFiles}
++        >
++          <IconPaperclipOutline16 />
++        </button>
++      </Tooltip>
++    </>
++  )
++}
 diff --git a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
-index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f0824469e376 100644
+index 1e45dc6230ac024154822ddca86509bf2850d791..79db6a90b3143c535a16d268704ca8f19252620e 100644
 --- a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
 +++ b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
-@@ -1,7 +1,10 @@
- import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-+import type { ChangeEvent } from 'react'
+@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
  import type {
    ComposerAttachment, ComposerAttachmentsProps,
  } from '@deepseek-ai/dsh-client-ui-conversation/client'
 +import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
-+import { IconPaperclipOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
  import { AttachmentRail } from '../AttachmentRail.tsx'
  import type { AttachmentRailItem } from '../AttachmentRail.tsx'
  import { DropOverlay } from '../DropOverlay.tsx'
-@@ -15,12 +18,16 @@ interface ComposerRailItem extends AttachmentRailItem {
+@@ -15,9 +16,12 @@ interface ComposerRailItem extends AttachmentRailItem {
  }
  
  /** Draft-image rail, document drop target, and original-image preview slot entry. */
@@ -909,11 +947,7 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
    const [preview, setPreview] = useState<ComposerAttachment | null>(null)
    const [dragActive, setDragActive] = useState(false)
    const dragDepth = useRef(0)
-+  const fileInput = useRef<HTMLInputElement>(null)
-   const closePreview = useCallback(() => { setPreview(null) }, [])
- 
-   useEffect(() => {
-@@ -62,7 +69,7 @@ export function ComposerAttachments({
+@@ -62,7 +66,7 @@ export function ComposerAttachments({
        if (dataTransfer === null) return
        event.preventDefault()
        reset()
@@ -922,23 +956,16 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
      }
      document.addEventListener('dragenter', onDragEnter)
      document.addEventListener('dragover', onDragOver)
-@@ -76,7 +83,14 @@ export function ComposerAttachments({
+@@ -76,7 +80,7 @@ export function ComposerAttachments({
        document.removeEventListener('drop', onDrop)
        window.removeEventListener('dragend', reset)
      }
 -  }, [canAcceptDrop, onAddImages])
 +  }, [canAcceptDrop, onAddFiles])
-+
-+  const chooseFiles = useCallback(() => { fileInput.current?.click() }, [])
-+  const onFilesChosen = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-+    const files = event.currentTarget.files
-+    if (files !== null && files.length > 0) onAddFiles([...files])
-+    event.currentTarget.value = ''
-+  }, [onAddFiles])
  
    const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
      id: attachment.id,
-@@ -91,9 +105,28 @@ export function ComposerAttachments({
+@@ -91,9 +95,12 @@ export function ComposerAttachments({
        {dragActive && (
          <DropOverlay
            disabled={!canAcceptDrop}
@@ -948,22 +975,6 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
 +          : dropOverlayLabels(t, canAcceptDrop, dropLimits)}
          />
        )}
-+      <div className={css.picker}>
-+        <input
-+          ref={fileInput}
-+          className={css.fileInput}
-+          type="file"
-+          multiple
-+          accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.pptx,.xlsx"
-+          disabled={!canAcceptDrop}
-+          onChange={onFilesChosen}
-+        />
-+        <Tooltip label={t('attachment.add')} side="top">
-+          <button type="button" className={css.add} aria-label={t('attachment.add')} disabled={!canAcceptDrop} onClick={chooseFiles}>
-+            <IconPaperclipOutline16 />
-+          </button>
-+        </Tooltip>
-+      </div>
 +      {renderSlot('conversation.input.attachments.documents', { documents, onRemoveDocument })}
        {railItems.length > 0 && (
          <div className={css.rail}>
@@ -1007,19 +1018,27 @@ index c84914db543de23165732809bbe9c723b34dfa90..70b28eb66089203432df9efed6368923
 +  return <AttachmentGallery images={images} loadImage={loadImage} align={align} t={t} documentCards={renderSlot('conversation.trajectory.images.documents', { documents })} />
  }
 diff --git a/packages/client/ui-attachment/src/client/index.ts b/packages/client/ui-attachment/src/client/index.ts
-index 8fe94f64ee171798431716e3765e446ca95c935f..a045a3433ef7984df767ce00000ef52deaa9a5d6 100644
+index 8fe94f64ee171798431716e3765e446ca95c935f..0654b882f43258a90a6b1df8a4eb2bbfb0025dd0 100644
 --- a/packages/client/ui-attachment/src/client/index.ts
 +++ b/packages/client/ui-attachment/src/client/index.ts
-@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -4,24 +4,38 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
  import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
  import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
++import { AttachmentPicker } from './AttachmentPicker.tsx'
  import { ComposerAttachments } from './ComposerAttachments.tsx'
 -import { MessageImages } from './MessageImages.tsx'
 +import { MessageImages, TrajectoryImages } from './MessageImages.tsx'
  
  /** Slot registry required by this presentation plugin. */
  export const inject = ['slots']
-@@ -15,13 +15,22 @@ export function apply(ctx: ClientContext): void {
+ 
+ /** Register attachment presentation without exporting React components as package values. */
+ export function apply(ctx: ClientContext): void {
++  ctx.slots.inject('conversation.input.attachment-picker', () => ctx.slots.register({
++    name: 'conversation.input.attachment-picker',
++    locale: 'conversation',
++  }, AttachmentPicker))
    ctx.slots.inject('conversation.input.attachments', () => ctx.slots.register({
      name: 'conversation.input.attachments',
      locale: 'conversation',
@@ -1174,10 +1193,18 @@ index 307d8f703b013962d19212618c522ef35feec0d2..0183aede0996a91d4de2f17bdf54e0b3
       * Command row keyed by the command name. The component receives the folded
       * command lifecycle and linked compaction when present. Reusing a key
 diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
-index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065589d19dc 100644
+index b154e73f4abc7034d93cac9b4634c65483731a08..480e242a30ad9dca487d2d01f6066074c258775f 100644
 --- a/packages/client/ui-conversation/src/client/apply.ts
 +++ b/packages/client/ui-conversation/src/client/apply.ts
-@@ -254,6 +254,10 @@ export function apply(ctx: Context): void {
+@@ -244,6 +244,7 @@ export function apply(ctx: Context): void {
+     locale: NS,
+     children: {
+       'conversation.input.attachments': { kind: 'single', scope: 'session-maybe' },
++      'conversation.input.attachment-picker': { kind: 'single', scope: 'session-maybe' },
+       'conversation.input.plan': { kind: 'single', scope: 'session' },
+       'conversation.input.model': { kind: 'single', scope: 'session' },
+     },
+@@ -254,6 +255,10 @@ export function apply(ctx: Context): void {
            addImages: undefined,
            removeImage: undefined,
            draftImages: undefined,
@@ -1188,7 +1215,7 @@ index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065
            resolveSubmitMode: (running, gesture, steeringAvailable) =>
              submissionPolicy.resolve(running, gesture, steeringAvailable),
            toggleCommandMenu: undefined,
-@@ -269,25 +273,51 @@ export function apply(ctx: Context): void {
+@@ -269,25 +274,51 @@ export function apply(ctx: Context): void {
        const conversation = concreteConversation(ctx)
        const shell = inputHub.shell(sessionId)
        const inputTriggers = inputHub.inputTriggers(sessionId)
@@ -1253,10 +1280,10 @@ index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065
            submissionPolicy.resolve(running, gesture, steeringAvailable),
          toggleCommandMenu: inputTriggers === undefined
 diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
-index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b829f9968f8 100644
+index 377a75ee0019ac0b791bf659ac390df1bd46d81a..4be7200ae2167532ab06ffca748c4aadc902dc92 100644
 --- a/packages/client/ui-conversation/src/client/contract/slots.ts
 +++ b/packages/client/ui-conversation/src/client/contract/slots.ts
-@@ -34,17 +34,45 @@ export interface ComposerAttachment {
+@@ -34,17 +34,53 @@ export interface ComposerAttachment {
    height?: number
  }
  
@@ -1279,6 +1306,14 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
 +export interface ComposerDocumentsOwnerProps {
 +  documents: readonly ComposerDocumentAttachment[]
 +  onRemoveDocument: (id: DraftAttachmentId) => void
++}
++
++/** Mixed file chooser state handed to the optional attachment UI plugin. */
++export interface ComposerAttachmentPickerOwnerProps {
++  /** Whether this composer can accept another browser file batch. */
++  canAcceptFiles: boolean
++  /** Add one selected file batch through the composer's validation path. */
++  onAddFiles: (files: readonly File[]) => void
 +}
 +
  export interface ComposerAttachmentsOwnerProps {
@@ -1304,7 +1339,7 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    dropLimits?: { readonly count: number; readonly size: string } | undefined
  }
  
-@@ -71,10 +99,19 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
+@@ -71,10 +107,19 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
    peek?: (attachment: ImageAttachmentRef) => string | undefined
  }
  
@@ -1325,10 +1360,16 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    /** Session-authorized image URL loader for the durable arm. */
    loadImage: MessageImageLoader
    /** Horizontal placement inside the owning record. */
-@@ -141,6 +178,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -141,6 +186,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
        scope: 'session-maybe'
        owner: ComposerAttachmentsOwnerProps
      }
++    /** Optional mixed file chooser placed immediately after the command button. */
++    'conversation.input.attachment-picker': {
++      kind: 'single'
++      scope: 'session-maybe'
++      owner: ComposerAttachmentPickerOwnerProps
++    }
 +    /** Document cards rendered inside the shared attachment rail. */
 +    'conversation.input.attachments.documents': {
 +      kind: 'single'
@@ -1338,7 +1379,7 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
      /** Plan control inside the composer tool row. */
      'conversation.input.plan': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
      /** Model selector inside the composer tool row. */
-@@ -267,6 +310,14 @@ export interface ComposerBarInjected {
+@@ -267,6 +324,14 @@ export interface ComposerBarInjected {
    addImages: ((files: readonly File[]) => string | null) | undefined
    removeImage: ((id: DraftAttachmentId) => void) | undefined
    draftImages: ((ids: readonly DraftAttachmentId[]) => readonly ComposerAttachment[]) | undefined
@@ -1353,16 +1394,36 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    resolveSubmitMode: (
      running: boolean,
      gesture: ComposerSubmitGesture,
+@@ -292,7 +357,8 @@ export interface InputControlOwnerProps {
+ export type ComposerBarProps =
+   PropsRuntime<'conversation.composer.bar'>
+   & PropsRenderSlots<
+-    'conversation.input.attachments' | 'conversation.input.plan' | 'conversation.input.model'
++    | 'conversation.input.attachments' | 'conversation.input.attachment-picker'
++    | 'conversation.input.plan' | 'conversation.input.model'
+   >
+   & InjectFace<ComposerBarInjected>
+   & PropsLocale<'conversation'>
+@@ -356,6 +422,8 @@ export type ConversationSessionHeaderSlotProps =
+ /** Full props of the draft-image attachment renderer. */
+ export type ComposerAttachmentsProps =
+   PropsRuntime<'conversation.input.attachments'> & PropsLocale<'conversation'>
++export type ComposerAttachmentPickerProps =
++  PropsRuntime<'conversation.input.attachment-picker'> & PropsLocale<'conversation'>
+ 
+ /** Owner share common to blank-session Workspace pickers. */
+ export interface EmptyWorkspaceOwnerProps {
 diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
-index 102b385e8cfedd49b769c45446b31e0b96dd1782..1b08839b96a6a937b3216da2092ca6f2d4981c29 100644
+index 102b385e8cfedd49b769c45446b31e0b96dd1782..a278db278080b5dcc559bb13d1343a7b10349dab 100644
 --- a/packages/client/ui-conversation/src/client/index.ts
 +++ b/packages/client/ui-conversation/src/client/index.ts
-@@ -46,14 +46,14 @@ export { ConversationViewRegistry } from './conversation/view-registry.ts'
+@@ -46,14 +46,15 @@ export { ConversationViewRegistry } from './conversation/view-registry.ts'
  
  export type { ConversationKey } from './locales.ts'
  export type {
 -  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
-+  ComposerAttachment, ComposerDocumentAttachment, ComposerDocumentLimits, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
++  ComposerAttachment, ComposerAttachmentPickerOwnerProps, ComposerAttachmentPickerProps,
++  ComposerDocumentAttachment, ComposerDocumentLimits, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
    ComposerBarInjected, ComposerBarOwnerProps, ComposerBarProps, ComposerChainProps,
    ConversationHeaderActionOwnerProps, ConversationHeaderLineageOwnerProps,
    ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionHeaderSlotProps,
@@ -1796,7 +1857,7 @@ index 2fb0c99b51092091815af04a172699de24cd867d..0321824f6ada49487995ec01f4487e2b
    if (url.startsWith('blob:')) URL.revokeObjectURL(url)
  }
 diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c040761ff5e 100644
+index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..777a2a77cedf23697fb5f5a6efd16cc0f11de225 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
 +++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
 @@ -40,7 +40,8 @@ import css from './InputBar.module.css'
@@ -1959,6 +2020,17 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
            dropLimits: imageLimits === undefined ? undefined : {
              count: imageLimits.maxImagesPerMessage,
              size: imageSizeText(imageLimits.maxImageBytes),
+@@ -448,6 +470,10 @@ export function InputBar({
+                 <IconPlusOutline16 size={14} />
+               </button>
+             </Tooltip>
++            {renderSlot('conversation.input.attachment-picker', {
++              canAcceptFiles: canAcceptDrop,
++              onAddFiles: intakeFiles,
++            })}
+             <div className={css.modes}>
+               {accessSelect}
+               {sessionId === undefined ? null : renderSlot('conversation.input.plan', { locked })}
 diff --git a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
 index 9becd7f1095f135ecd3d24b6a06f52b956fe4834..b00b618d0bd1288a552cc4dcb46760c9e2198129 100644
 --- a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx

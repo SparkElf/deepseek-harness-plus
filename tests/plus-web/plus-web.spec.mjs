@@ -113,6 +113,42 @@ test.afterEach(async ({ page }, testInfo) => {
 })
 
 test.describe('Plus npm profile user workflows', () => {
+  test('uses the official client brand instead of the local-build fallback', async ({ page }) => {
+    await enterApp(page)
+    await expect(page).toHaveTitle('DeepSeek Harness')
+    await expect(page.getByText('DSH 本地构建', { exact: true })).toHaveCount(0)
+  })
+
+  test('uses complete Simplified-Chinese copy for Session export', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    const action = page.getByRole('button', { name: '会话日志', exact: true })
+    await expect(action).toBeVisible()
+    await expect(page.getByText('Session 日志', { exact: true })).toHaveCount(0)
+
+    const downloadPromise = page.waitForEvent('download')
+    await action.click()
+    await downloadPromise
+    const dialog = page.getByRole('dialog', { name: '会话导出已开始下载' })
+    await expect(dialog).toContainText('浏览器正在下载会话 ZIP 文件。')
+    await dialog.getByRole('button', { name: '关闭', exact: true }).click()
+    await expect(dialog).toBeHidden()
+  })
+
+  test('places the attachment picker directly beside the command button', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    const command = page.getByRole('button', { name: '指令', exact: true })
+    const picker = page.getByRole('button', { name: '添加文件', exact: true })
+    const [commandBox, pickerBox] = await Promise.all([command.boundingBox(), picker.boundingBox()])
+    if (commandBox === null || pickerBox === null) throw new Error('Composer controls must be visible for layout acceptance')
+    const commandCenterY = commandBox.y + commandBox.height / 2
+    const pickerCenterY = pickerBox.y + pickerBox.height / 2
+    expect(Math.abs(commandCenterY - pickerCenterY)).toBeLessThanOrEqual(1)
+    expect(pickerBox.x).toBeGreaterThan(commandBox.x + commandBox.width)
+    expect(pickerBox.x - (commandBox.x + commandBox.width)).toBeLessThanOrEqual(20)
+  })
+
   test('persists the explicit OpenAI Responses gateway compatibility setting', async ({ page }) => {
     await enterApp(page)
     const dialog = await openSettings(page, '模型')
@@ -190,8 +226,9 @@ test.describe('Plus npm profile user workflows', () => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     await selectAcceptanceModel(page)
+    const picker = page.getByRole('button', { name: '添加文件', exact: true })
     const chooserPromise = page.waitForEvent('filechooser')
-    await page.getByRole('button', { name: '添加文件', exact: true }).click()
+    await picker.click()
     await (await chooserPromise).setFiles(pdfFixture)
     const drafts = page.getByLabel('待发送文档')
     await expect(drafts.getByText('acceptance.pdf', { exact: true })).toBeVisible()

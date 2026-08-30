@@ -480,7 +480,7 @@ function applySelectedPatches(
   const sourceFiles = pendingSourcePatchFiles(stablePatches)
   if (sourceFiles.length > 0) git(dshRoot, ['apply', ...sourceFiles])
   if (stablePatches.some(patch => patch.target.kind === 'dsh-source')) {
-    runPnpm(dshRoot, ['run', 'build'], 'official DSH build after source patches')
+    runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
   }
 }
 
