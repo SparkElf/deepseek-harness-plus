@@ -27,7 +27,7 @@ Mount the Host entry after `connection`, `webServer`, `settings`, and `workspace
 
 The authenticated routes are POST `/api/backup.export.prepare`, GET/HEAD `/api/backup.export`, POST `/api/backup.upload`, and POST `/api/backup.import`. Every route applies Connection Host, Origin, and browser-authentication policy before request data. Tokens expire after ten minutes and are single-use, except HEAD metadata inspection.
 
-Once restore writes begin, closing the page does not interrupt replacement. Workspace storage closes around file replacement and reopens before completion; the UI then offers one explicit reload. Client failures remain visible in the Backup section without browser console errors.
+Once restore writes begin, closing the page does not interrupt replacement. Workspace storage closes around file replacement and reopens before completion; the Client releases the completed progress stream reader before the UI offers one explicit reload. Client failures remain visible in the Backup section without browser console errors.
 
 -----
 

@@ -18,7 +18,7 @@ package name从第一次commit起即为最终名称。Plus candidate只增加识
 
 Host entry拥有archive planning、64 KiB compression/restore chunks、manifest marker、generated-directory exclusion、mutation前validation、same-name replacement、作为package config公开且默认2 GiB的upload policy、one-use temp-file tokens、cleanup、progress framing以及四条exact routes。它通过`ctx.webServer.register`注册routes；每个handler在读取body或mutation前先调用`ctx.connection.requestRejection`。Upload把Node request流式写入Host temp file，绝不进入Connection JSON buffer。Export preparation和import在response backpressure下写有序NDJSON progress；GET/HEAD download流式传输暂存ZIP，只有GET消费token。
 
-Client entry拥有Settings section、local operation state、upload progress、Host progress parsing、cancellation、browser download、retry、import completion和reload action。所有product copy都在package自有typed中文与英文dictionaries中。UI保持已验收layout并继续消费现有semantic tokens；本次迁移不进行visual redesign，不新增shared store、polling或background recovery。
+Client entry拥有Settings section、local operation state、upload progress、Host progress parsing、completion可见前的stream-reader release、cancellation、browser download、retry、import completion和reload action。所有product copy都在package自有typed中文与英文dictionaries中。UI保持已验收layout并继续消费现有semantic tokens；本次迁移不进行visual redesign，不新增shared store、polling或background recovery。
 
 Workspace package拥有durable-domain transaction与live cache rebuild。Backup只提供file replacement callback。Connection拥有Host/Origin/browser authentication。WebServer拥有route dispatch。Settings File继续通过`settings.documentPath`提供DSH home path；没有file-backed settings provider的deployment在package activation时失败，不选择其他path。
 

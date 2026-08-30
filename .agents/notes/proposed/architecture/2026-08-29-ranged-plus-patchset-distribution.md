@@ -20,7 +20,7 @@ dsh plugin --profile plus exec dsh-plus apply --dsh-root <official-dsh-root>
 dsh --profile plus
 ```
 
-`dsh-plus apply` resolves installed patch-package manifests, requires official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`, copies selected payloads into the profile, configures exact npm patches, applies exact source patches, and writes the credential-free `.dsh-plus/patchset.lock.json`. The `plus` release family discovers the complete `@sparkelf` closure, assigns one `plus-npm-v*` tag, and publishes the exact tarballs produced by the credential-free pack job through the manual npm workflow. The manual publication audit then requires all 15 registry entries to be public and compares every extracted registry file with that release artifact. Desktop and tray applications may call the same public workflow but are not prerequisites, manifest owners, release owners, or acceptance paths.
+`dsh-plus apply` resolves installed patch-package manifests, requires official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`, installs the profile-owned `dsh-better-sidebar@0.17.1` dependency with the explicit `node-pty` build permission, links the profile's official package scope to the exact source checkout, copies selected payloads into the profile, configures exact npm patches, applies exact source patches, and writes the credential-free `.dsh-plus/patchset.lock.json`. The `plus` release family discovers the complete `@sparkelf` closure, assigns one `plus-npm-v*` tag, canonicalizes packed manifest object keys, and publishes the exact tarballs produced twice and byte-compared by the credential-free pack job through the manual npm workflow. The manual publication audit then requires all 15 registry entries to be public and compares every extracted registry file with that release artifact. Desktop and tray applications may call the same public workflow but are not prerequisites, manifest owners, release owners, or acceptance paths.
 
 ## Final inventory
 
@@ -34,7 +34,7 @@ Official DSH is inherited without a Plus package or patch for Welcome onboarding
 
 ## Package and copy ownership
 
-Runtime and peer manifests use minimum-only ranges; exact DSH, distribution, plugin, patch-package, target, variant, and payload facts belong only to the deployment lock. Credential values, settings, Session data, prompts, and model output never enter that lock. Product copy stays with the capability or targeted patch that implements the behavior; there is no generic Plus locale plugin.
+Runtime and peer manifests use minimum-only ranges except that the profile-owned Better Sidebar dependency and its native build permission are exact security inputs to materialization; the deployment lock records the resolved DSH, distribution, plugin, patch-package, target, variant, payload, profile dependency, and build-permission facts. Credential values, settings, Session data, prompts, and model output never enter that lock. Product copy stays with the capability or targeted patch that implements the behavior; there is no generic Plus locale plugin.
 
 The Backup-specific note `2026-08-30-plus-backup-plugin.md` remains active for archive, route, restore, and progress details. This note owns only the complete distribution forms, final inventory, materialization path, and deletion rule.
 

@@ -1,5 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -209,7 +209,6 @@ export default async function globalSetup() {
   }
   const profileRoot = join(home, 'profiles', 'plus')
   mkdirSync(profileRoot, { recursive: true })
-  const officialWorkspace = parse(readFileSync(join(sourceRoot, 'pnpm-workspace.yaml'), 'utf8'))
   const overrides = {
     ...Object.fromEntries(directories.map((directory) => {
       const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
@@ -220,16 +219,12 @@ export default async function globalSetup() {
   }
   writeFileSync(
     join(profileRoot, 'pnpm-workspace.yaml'),
-    stringify({ packages: ['.'], overrides, autoInstallPeers: false, allowBuilds: officialWorkspace.allowBuilds }),
+    stringify({ packages: ['.'], overrides, autoInstallPeers: false }),
   )
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', mcpArchive], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
-  const officialScope = join(profileRoot, 'node_modules', '@deepseek-ai')
-  rmSync(officialScope, { recursive: true, force: true })
-  symlinkSync(join(sourceRoot, 'node_modules', '@deepseek-ai'), officialScope, 'dir')
-
   writePdf(join(fixturesDir, 'acceptance.pdf'))
   writeFileSync(join(fixturesDir, 'not-a-backup.zip'), zipSync({ 'ordinary.txt': strToU8('Not a DeepSeek Harness backup.\n') }))
   const log = openSync(logPath, 'w')

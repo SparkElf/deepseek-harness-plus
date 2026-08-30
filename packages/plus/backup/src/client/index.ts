@@ -108,20 +108,25 @@ async function readProgressResponse(
   let pending = ''
   let terminal: BackupTerminalLine | undefined
   let terminalError: string | undefined
-  while (true) {
-    const { done, value } = await reader.read()
-    pending += decoder.decode(value, { stream: !done })
-    const lines = pending.split(String.fromCharCode(10))
-    if (done) pending = ''
-    else pending = lines.pop() as string
-    for (const line of lines) {
-      if (line === '') continue
-      const message = parseProgressLine(line)
-      if (message.type === 'progress') report(message.progress)
-      else if (message.type === 'error') terminalError = message.message
-      else terminal = message
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      pending += decoder.decode(value, { stream: !done })
+      const lines = pending.split(String.fromCharCode(10))
+      if (done) pending = ''
+      else pending = lines.pop() as string
+      for (const line of lines) {
+        if (line === '') continue
+        const message = parseProgressLine(line)
+        if (message.type === 'progress') report(message.progress)
+        else if (message.type === 'error') terminalError = message.message
+        else terminal = message
+      }
+      if (done) break
     }
-    if (done) break
+  } finally {
+    // terminal result只在stream reader释放后交给UI，reload不会中止已完成的fetch。
+    reader.releaseLock()
   }
   if (terminalError !== undefined) throw new Error(terminalError)
   if (terminal === undefined) throw new Error('backup progress response ended without a result')

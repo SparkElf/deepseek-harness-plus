@@ -267,7 +267,7 @@ test.describe('Plus npm profile user workflows', () => {
     const chart = echart.or(nativeBar).first()
     const panel = page.getByRole('button', { name: /^(面板|Panel)/ }).last()
 
-    await sendPrompt(page, '请从我有权访问的 DataOps 表中选择一个适合统计且可查询的表，执行一个返回不超过 12 行的只读聚合查询，并把查询结果展示为交互式柱状图。')
+    await sendPrompt(page, '请从我有权访问的 DataOps 表中选择一个适合统计且可查询的表，执行一个返回不超过 12 行的只读聚合查询，并把查询结果实际渲染成可见的交互式柱状图。即使结果只有一行也必须显示图表，不要只用文字描述或声称已经显示。')
     await stopGenerating.waitFor({ timeout: 30_000 })
     const turnDeadline = Date.now() + 7 * 60_000
     const outcome = chart.or(panel).or(send).or(clarification).first()

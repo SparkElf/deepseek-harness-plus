@@ -1352,50 +1352,47 @@ importers:
         specifier: '>=0.2.8'
         version: 0.2.8(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/better-sidebar-app-frame
       '@sparkelf/dsh-patch-document-attachments':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/document-attachments
       '@sparkelf/dsh-patch-genui-streaming-echart':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/genui-streaming-echart
       '@sparkelf/dsh-patch-mobile-bridge-serialized-actions':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/mobile-bridge-serialized-actions
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-document-attachments':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../plus/document-attachments
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: '>=0.1.0-rc.9'
+        specifier: '>=0.1.0-rc.10'
         version: link:../../plus/subagent-settings
-      dsh-better-sidebar:
-        specifier: '>=0.16.1'
-        version: 0.17.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-locale@packages+client+locale)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@deepseek-ai/dsh-tools@packages+core+tools)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dshmarket:
         specifier: '>=1.29.2'
         version: 1.35.0(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)
@@ -1415,6 +1412,9 @@ importers:
       '@types/semver':
         specifier: '>=7.7.1'
         version: 7.8.0
+      dsh-better-sidebar:
+        specifier: 0.17.1
+        version: 0.17.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-locale@packages+client+locale)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@deepseek-ai/dsh-tools@packages+core+tools)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
   packages/bundle/sdk-app:
     dependencies:
@@ -22303,7 +22303,7 @@ snapshots:
       d3-sankey: 0.12.3
       dagre-d3-es: 7.0.14
       dayjs: 1.11.21
-      dompurify: 3.4.11
+      dompurify: 3.4.14
       es-toolkit: 1.49.0
       fastdom: 1.0.12
       katex: 0.16.47
