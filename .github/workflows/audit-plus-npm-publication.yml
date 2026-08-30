@@ -1,0 +1,66 @@
+# Verify that one Plus release artifact is public and byte-equivalent by file.
+name: Audit Plus npm publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Release publish workflow run ID
+        required: true
+        type: string
+      version:
+        description: Exact shared Plus version
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+
+jobs:
+  audit:
+    name: Audit public package contents
+    runs-on: ubuntu-24.04
+    environment: npm-publish
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+          name: plus-npm-tarballs
+          path: release
+
+      - name: Compare public registry packages with release artifact
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir registry local registry-expanded
+          count=0
+          while IFS= read -r filename; do
+            count=$((count + 1))
+            tarball="release/$filename"
+            manifest=$(tar -xOf "$tarball" package/package.json)
+            name=$(jq -r '.name' <<<"$manifest")
+            version=$(jq -r '.version' <<<"$manifest")
+            test "$version" = "$EXPECTED_VERSION"
+            status=$(npm access get status "$name" --json | jq -r --arg name "$name" '.[$name]')
+            test "$status" = 'public'
+            registry_filename=$(npm pack "$name@$version" --pack-destination registry --silent)
+            mkdir "local/$count" "registry-expanded/$count"
+            tar -xzf "$tarball" -C "local/$count"
+            tar -xzf "registry/$registry_filename" -C "registry-expanded/$count"
+            diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"
+            echo "[$count] $name@$version public and content-identical"
+          done < release/publish-order.txt
+          test "$count" -eq 15
