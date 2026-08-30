@@ -1354,6 +1354,9 @@ importers:
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
         specifier: '>=0.1.0-rc.11'
         version: link:../../../patches/npm/better-sidebar-app-frame
+      '@sparkelf/dsh-patch-browser-auth-mode':
+        specifier: '>=0.1.0-rc.11'
+        version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-document-attachments':
         specifier: '>=0.1.0-rc.11'
         version: link:../../../patches/npm/document-attachments
@@ -10270,6 +10273,8 @@ importers:
         version: link:../../storage/storage-domain
 
   patches/npm/better-sidebar-app-frame: {}
+
+  patches/npm/browser-auth-mode: {}
 
   patches/npm/document-attachments: {}
 

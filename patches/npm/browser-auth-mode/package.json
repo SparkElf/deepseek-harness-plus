@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-patch-browser-auth-mode",
+  "version": "0.1.0-rc.11",
+  "description": "Data-only exact official-source patch adding profile-selected browser authentication policy",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/browser-auth-mode"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "browser-authentication-policy-mode",
+        "dsh": ">=0.1.2-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "paths": [
+            "packages/client/connection/"
+          ]
+        },
+        "file": "./patches/browser-auth-mode.patch"
+      }
+    ]
+  }
+}

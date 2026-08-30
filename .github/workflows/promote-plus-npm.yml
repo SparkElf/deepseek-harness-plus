@@ -93,7 +93,7 @@ jobs:
             diff -qr --no-dereference "local/$count/package" "registry-expanded/$count/package"
             echo "[$count] $name@$version is public and content-identical"
           done < release/publish-order.txt
-          test "$count" -eq 15
+          test "$count" -eq 16
 
       - name: Move and verify npm dist-tag
         env:
@@ -110,7 +110,7 @@ jobs:
             name=$(jq -r '.name' <<<"$manifest")
             npm dist-tag add "$name@$EXPECTED_VERSION" "$DIST_TAG"
           done < release/publish-order.txt
-          test "$count" -eq 15
+          test "$count" -eq 16
           while IFS= read -r filename; do
             manifest=$(tar -xOf "release/$filename" package/package.json)
             name=$(jq -r '.name' <<<"$manifest")

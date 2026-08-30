@@ -70,4 +70,4 @@ jobs:
             fi
             echo "[$count] $name@$version public and content-identical"
           done < release/publish-order.txt
-          test "$count" -eq 15
+          test "$count" -eq 16

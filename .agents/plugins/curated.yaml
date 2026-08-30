@@ -42,6 +42,13 @@ entries:
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-mobile-web-layout', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official AppFrame keeps manually expanded phone navigation at half the measured frame width }]
     plusBundle: false
+  - name: '@deepseek-ai/dsh-client-connection-browser-authentication'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    interest: Profile-selected browser identity policy after the independent Host and Origin trust fence
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-browser-auth-mode', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH exposes an equivalent profile-selected browser-authentication policy }]
+    plusBundle: false
   - name: '@deepseek-ai/dsh-web-base-path'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
     pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
