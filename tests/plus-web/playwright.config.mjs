@@ -1,5 +1,7 @@
 import { defineConfig } from 'playwright/test'
 
+const usesDataOpsPassword = process.env.DSH_PLUS_TEST_DATAOPS_PASSWORD !== undefined
+
 export default defineConfig({
   testDir: '.',
   testMatch: ['plus-web.spec.mjs'],
@@ -20,7 +22,7 @@ export default defineConfig({
     locale: 'zh-CN',
     viewport: { width: 1680, height: 1000 },
     acceptDownloads: true,
-    trace: 'retain-on-failure',
+    trace: usesDataOpsPassword ? 'off' : 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },

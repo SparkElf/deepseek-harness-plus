@@ -6,7 +6,7 @@
 
 ## 前置条件
 
-standard command先build candidate，使每个local npm tarball都包含published Host与Client artifacts。runner需要`DSH_PLUS_TEST_MODEL_SEED_HOME`、以`DSH_PLUS_TEST_MODEL_LABEL`提供的当前GPT可见名称、`DSH_MINERU_ENDPOINT`、`DSH_DATAOPS_BASE_URL`。
+standard command先build candidate，使每个local npm tarball都包含published Host与Client artifacts。runner需要`DSH_PLUS_TEST_MODEL_SEED_HOME`、以`DSH_PLUS_TEST_MODEL_LABEL`提供的当前GPT可见名称、`DSH_MINERU_ENDPOINT`及`DSH_DATAOPS_BASE_URL`。当real DataOps Web要求account login时，`DSH_PLUS_TEST_DATAOPS_USERNAME`与`DSH_PLUS_TEST_DATAOPS_PASSWORD`只由visible browser form消费；其值不写入runtime metadata或repository files。提供password variable时会禁用Playwright tracing，因为action trace会保留form-fill arguments；page、console及network diagnostics仍保持强制。
 
 ```bash
 pnpm run test:plus-web
@@ -14,6 +14,6 @@ pnpm run test:plus-web
 
 Global setup创建ignored `.cache/plus-web-system` tree，只把当前GPT settings与credentials seed到isolated home，checkout exact official revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，pack local Plus capability与patch packages，通过`dsh plugin --profile plus add`安装，执行`dsh-plus apply`，build patched official source，通过official browser picker选择isolated Workspace directory，并在`http://127.0.0.1:3081`启动resulting profile。每个browser context通过official process-token root exchange进入，并跟随redirect到clean root；ephemeral token不写入runtime metadata。runtime只拥有自身记录的process group，并在global teardown停止它。isolated home、deployment lock、Web log、traces、screenshots、videos及HTML report保留在该cache中用于diagnosis，并由下一次run替换。
 
-Desktop cases覆盖Responses gateway setting、Subagent settings persistence、streamed Backup failure recovery与restoration、Document parsing与durable Chat/Trajectory cards、DataOps authorization与chart rendering、Better Sidebar、dshmarket及official Turn folding。一个mobile case在390x844 viewport覆盖installed Mobile Bridge/layout path。每个case记录带stack的page errors、console errors、包括CORS failures的failed requests及HTTP failures；test timeout保留trace/video evidence用于stalls。
+DataOps case保留current visible GPT model，并通过browser为bounded SQL/dsh-genui-chart workflow选择provider公布的**Low** reasoning effort。Desktop cases覆盖Responses gateway setting、Subagent settings persistence、streamed Backup failure recovery与restoration、Document parsing与durable Chat/Trajectory cards、DataOps authorization与expired-grant shell modal recovery入口、GPT tool execution与dsh-genui chart rendering、Better Sidebar、dshmarket及official Turn folding。一个mobile case在390x844 viewport覆盖installed Mobile Bridge/layout path。每个case记录带stack的page errors、console errors、包括CORS failures的failed requests及HTTP failures；failure保留screenshot/video evidence；未提供form password时还保留trace evidence用于stalls。
 
 Agent Teams在该official revision既不是inherited release capability，也不属于tracked accepted composition：其service、tools、Client UI及Web profile packages均是release families排除且shipped profiles默认disabled的private experimental packages。本suite不声明该surface。

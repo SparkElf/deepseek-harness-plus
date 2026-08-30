@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-该distribution把official `@deepseek-ai/dsh-base`及`@deepseek-ai/dsh-web-app`与selected external sidebar、mobile bridge、plugin market、六个完整Plus capability packages及八个independent patch packages组合起来。它只持有ordered composition、minimum compatibility metadata、dependency closure、explicit materialization及credential-free deployment lock；capability behavior和patch payloads仍属于各自package。
+该distribution把official `@deepseek-ai/dsh-base`及`@deepseek-ai/dsh-web-app`与selected external sidebar、mobile bridge、plugin market、GenUI package、五个完整Plus capability packages及九个independent patch packages组合起来。它只持有ordered composition、minimum compatibility metadata、dependency closure、explicit materialization及credential-free deployment lock；capability behavior和patch payloads仍属于各自package。
 
 ## 目录
 
@@ -33,7 +33,7 @@ dsh --profile plus
 
 explicit apply步骤要求official revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，把每个selected runtime package materialize为profile-direct dependency，一次应用全部pending source payloads，配置exact npm patches，删除retired Plus-owned entries，并以`0600` mode写入`.dsh-plus/patchset.lock.json`。version conflict和source mismatch会在profile installation或source mutation前失败。该package没有install lifecycle script。
 
-Official DSH提供onboarding、Workspace selection、Session export、Turn folding及base image path。DataOps和Document Attachments仅在对应endpoint environment variables存在时mount。Agent Teams被排除，因为official packages属于private experimental workspaces且shipped profiles会禁用它们。
+Official DSH提供onboarding、Workspace selection、Session export、Turn folding及base image path。External `@changfenhuang/dsh-genui` bundle拥有generated UI，包括模型以`dsh-ui`输出的inline interactive charts。Temporary GenUI streaming EChart patch只target `0.9.6`；[upstream PR #87](https://github.com/omdsh-dev/dsh-genui/pull/87)进入npm且真实inline-chart path通过后退役。DataOps和Document Attachments仅在对应endpoint environment variables存在时mount。Agent Teams被排除，因为official packages属于private experimental workspaces且shipped profiles会禁用它们。
 
 -----
 

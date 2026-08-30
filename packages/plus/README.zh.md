@@ -18,7 +18,6 @@ kind: "package-group"
 | [`backup/`](backup/README.zh.md) | 基于文件的DSH home流式export/restore及Settings Backup UI | 注册WebServer routes与Settings UI；不新增service |
 | [`subagent-settings/`](subagent-settings/README.zh.md) | settings-backed continuous/one-shot delegation及一个“子代理”Settings section | 消费official Subagent、Settings、Tool与Client slot services |
 | [`document-attachments/`](document-attachments/README.zh.md) | provider-neutral document parser与MinerU provider；generic attachment integration仍在进行 | 提供`documentParser`；消费official attachment storage |
-| [`chart/`](chart/README.zh.md) | durable `render_chart` tool与interactive ECharts Web presentation | 注册一个Tool与keyed Client renderer |
 | [`dataops/`](dataops/README.zh.md) | DataOps OAuth、credential lifecycle、MCP composition与Settings UI | 注册routes、MCP tools与Client Settings section |
 | [`mcp-credentials/`](mcp-credentials/README.zh.md) | 带current credential-backed Bearer transport的official MCP client replacement | mount后注册namespaced MCP tools |
 

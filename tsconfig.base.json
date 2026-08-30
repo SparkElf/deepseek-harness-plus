@@ -569,8 +569,6 @@
       "@deepseek-ai/dsh-workspace/invariant": ["./packages/workspace/workspace/src/invariant.ts"],
       "@sparkelf/dsh-plugin-backup": ["./packages/plus/backup/src"],
       "@sparkelf/dsh-plugin-backup/invariant": ["./packages/plus/backup/src/invariant.ts"],
-      "@sparkelf/dsh-plugin-chart": ["./packages/plus/chart/src"],
-      "@sparkelf/dsh-plugin-chart/invariant": ["./packages/plus/chart/src/invariant.ts"],
       "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
       "@sparkelf/dsh-plugin-dataops/invariant": ["./packages/plus/dataops/src/invariant.ts"],
       "@sparkelf/dsh-plugin-document-attachments": ["./packages/plus/document-attachments/src"],

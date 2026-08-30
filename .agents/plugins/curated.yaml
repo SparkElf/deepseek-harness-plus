@@ -14,6 +14,13 @@ entries:
     owner: SparkElf
     localPatches: [{ package: '@sparkelf/dsh-patch-mobile-bridge-serialized-actions', upstreamUrl: https://github.com/SparkElf/dsh-plugins-plus/pull/30, retireWhen: A released @sparkelf/dsh-mobile-bridge version includes equivalent serialized autosave and action-ordering behavior }]
     plusBundle: true
+  - name: '@changfenhuang/dsh-genui'
+    source: { kind: npm, spec: '@changfenhuang/dsh-genui' }
+    pinned: 0.9.6
+    interest: Model-taught dsh-ui rendering across inline DOM/registry surfaces and interactive panels
+    owner: omdsh-dev
+    localPatches: [{ package: '@sparkelf/dsh-patch-genui-streaming-echart', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/87, retireWhen: A released @changfenhuang/dsh-genui version includes complete top-level component streaming and the real DataOps inline/native/panel chart path passes without browser diagnostics }]
+    plusBundle: true
   - name: dshmarket
     source: { kind: npm, spec: dshmarket }
     pinned: 1.29.2

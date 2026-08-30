@@ -109,7 +109,6 @@ function packageDirectories() {
   const local = [
     'packages/bundle/plus',
     'packages/plus/backup',
-    'packages/plus/chart',
     'packages/plus/dataops',
     'packages/plus/document-attachments',
     'packages/plus/mcp-credentials',
@@ -191,7 +190,7 @@ export default async function globalSetup() {
   const credentialsDestination = join(home, '.credentials.yaml')
   copyFileSync(credentialsSource, credentialsDestination)
   chmodSync(credentialsDestination, 0o600)
-  run('git', ['worktree', 'add', '--detach', sourceRoot, officialRevision], repoRoot)
+  run('git', ['worktree', 'add', '--force', '--detach', sourceRoot, officialRevision], repoRoot)
   run('pnpm', ['install', '--frozen-lockfile'], sourceRoot)
 
   const directories = packageDirectories()

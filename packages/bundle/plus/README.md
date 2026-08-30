@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This distribution composes official `@deepseek-ai/dsh-base` and `@deepseek-ai/dsh-web-app` with the selected external sidebar, mobile bridge, plugin market, six complete Plus capability packages, and eight independent patch packages. It owns only ordered composition, minimum compatibility metadata, dependency closure, explicit materialization, and the credential-free deployment lock; capability behavior and patch payloads stay in their owning packages.
+This distribution composes official `@deepseek-ai/dsh-base` and `@deepseek-ai/dsh-web-app` with the selected external sidebar, mobile bridge, plugin market, GenUI package, five complete Plus capability packages, and nine independent patch packages. It owns only ordered composition, minimum compatibility metadata, dependency closure, explicit materialization, and the credential-free deployment lock; capability behavior and patch payloads stay in their owning packages.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ dsh --profile plus
 
 The explicit apply step requires official revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`, materializes every selected runtime package as a profile-direct dependency, applies all pending source payloads together, configures exact npm patches, removes retired Plus-owned entries, and writes `.dsh-plus/patchset.lock.json` with mode `0600`. Version conflicts and source mismatches fail before profile installation or source mutation. The package has no install lifecycle script.
 
-Official DSH supplies onboarding, Workspace selection, Session export, Turn folding, and the base image path. DataOps and Document Attachments mount only when their endpoint environment variables exist. Agent Teams is excluded because the official packages are private experimental workspaces and shipped profiles disable them.
+Official DSH supplies onboarding, Workspace selection, Session export, Turn folding, and the base image path. The external `@changfenhuang/dsh-genui` bundle owns generated UI, including inline interactive charts emitted by the model as `dsh-ui`. The temporary GenUI streaming EChart patch targets only `0.9.6` and retires after [upstream PR #87](https://github.com/omdsh-dev/dsh-genui/pull/87) ships in npm and the real inline-chart path passes. DataOps and Document Attachments mount only when their endpoint environment variables exist. Agent Teams is excluded because the official packages are private experimental workspaces and shipped profiles disable them.
 
 -----
 

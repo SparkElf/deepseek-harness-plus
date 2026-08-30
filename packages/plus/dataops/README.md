@@ -23,7 +23,7 @@ This complete Host and Client plugin owns one DataOps target identity, browser A
 <a id="use-this-package"></a>
 ## Use this package
 
-Set `DSH_DATAOPS_BASE_URL` to the DataOps Web origin that serves both `/auth/dsh/authorize` and proxied `/api`; `DSH_DATAOPS_CALLBACK_ORIGIN` optionally names a non-loopback DSH browser origin. The package stores access, refresh, and stable target values under `dataops_access_token`, `dataops_refresh_token`, and `dataops_target_ref`. Disconnect revokes account tokens but retains target identity.
+Set `DSH_DATAOPS_BASE_URL` to the DataOps Web origin that serves both `/auth/dsh/authorize` and proxied `/api`; `DSH_DATAOPS_CALLBACK_ORIGIN` optionally names a non-loopback DSH browser origin. The package stores the delegated access token and stable target identity under `dataops_access_token` and `dataops_target_ref`; DataOps ties the token lifetime to its authenticated browser session. When the current grant expires or its browser session is revoked, the DataOps Client contribution raises a DSH shell modal with **Later** and **Sign in again**; the latter opens the real OAuth popup from the user gesture. Settings also distinguishes the rejected stored grant from a never-connected state and keeps the same recovery action available. An authentication-rejected MCP call remains an error result inside the agent turn; it does not terminate the task, and Plus does not automatically replay an unconfirmed tool operation. Disconnect revokes account tokens but retains target identity. OAuth callback failures expose only a fixed, actionable stage in Settings; authorization codes, state, tokens, upstream bodies, and arbitrary error text remain outside the browser message.
 
 -----
 
@@ -58,6 +58,6 @@ Connecting, disconnecting, or MCP discovery changes can alter the tool-schema pr
 
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
-- `src/index.ts` owns authorization, credentials, and MCP child lifecycle; `src/client` owns Settings. The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records the package boundary.
+- `src/index.ts` owns authorization, credentials, access expiry, and MCP child lifecycle. `src/client/store.ts` and `src/client/controller.ts` own shared browser status and OAuth lifecycle; `src/client/DataOpsExpiryModal.tsx` contributes the shell prompt and `src/client/DataOpsSection.tsx` contributes Settings. The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records the package boundary.
 
 </details>

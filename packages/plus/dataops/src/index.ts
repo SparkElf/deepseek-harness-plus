@@ -1,7 +1,7 @@
 /**
  * Standalone DataOps MCP integration. It owns one persistent DSH target
- * identity, the browser Authorization Code + PKCE handoff, token refresh,
- * and a generic authenticated MCP client for the target's immutable principal.
+ * identity, the browser Authorization Code + PKCE handoff, and a generic
+ * authenticated MCP client for the target's immutable principal.
  * @module @sparkelf/dsh-plugin-dataops
  */
 import { createHash, randomBytes } from 'node:crypto'
@@ -40,8 +40,6 @@ export interface Config {
   serverName: string
   /** Access-token credential reference for the standalone DataOps grant. */
   credentialRef: string
-  /** Refresh-token credential reference for the same grant. */
-  refreshCredentialRef: string
   /** Persistent DSH target identity credential; generated once and never cleared by disconnect. */
   targetCredentialRef: string
   /** Explicit HTTP or HTTPS DSH browser origin for non-loopback Web deployments. */
@@ -57,7 +55,6 @@ export const Config: z<Config> = z.object({
   baseUrl: z.string().required(),
   serverName: z.string().default('dataops'),
   credentialRef: z.string().role('credential-ref').required(),
-  refreshCredentialRef: z.string().role('credential-ref').required(),
   targetCredentialRef: z.string().role('credential-ref').required(),
   callbackOrigin: z.string(),
   toolCallTimeoutMs: z.number().min(1).default(60_000),
@@ -73,8 +70,6 @@ type PendingAuthorization = Readonly<{
 type TokenResponse = Readonly<{
   access_token: string
   token_type: 'Bearer'
-  expires_in: number
-  refresh_token: string
   scope: typeof SCOPE
 }>
 
@@ -165,8 +160,14 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
   response.end(JSON.stringify(value))
 }
 
-function popupBridge(response: ServerResponse, result: 'connected' | 'cancelled' | 'failed'): void {
-  const payload = JSON.stringify({ type: 'dsh:dataops-oauth', result })
+type OAuthFailureReason = 'pending-state' | 'missing-code' | 'token-request-rejected' | 'token-account-rejected' | 'token-service-failed' | 'token-response-invalid' | 'account-verification' | 'authorization-activation'
+
+function popupBridge(
+  response: ServerResponse,
+  result: 'connected' | 'cancelled' | 'failed',
+  reason?: OAuthFailureReason,
+): void {
+  const payload = JSON.stringify({ type: 'dsh:dataops-oauth', result, reason })
   response.writeHead(200, {
     'content-type': 'text/html; charset=utf-8',
     'cache-control': 'no-store',
@@ -213,13 +214,29 @@ function parseTokenResponse(value: unknown): TokenResponse {
   const record = value as Record<string, unknown>
   if (typeof record.access_token !== 'string' || record.access_token.length === 0
     || record.token_type !== 'Bearer'
-    || typeof record.expires_in !== 'number' || !Number.isInteger(record.expires_in) || record.expires_in <= 0
-    || record.expires_in * 1000 > MAX_TIMER_DELAY_MS
-    || typeof record.refresh_token !== 'string' || record.refresh_token.length === 0
     || record.scope !== SCOPE) {
     throw new Error('DataOps token endpoint returned an invalid response')
   }
   return record as unknown as TokenResponse
+}
+
+function accessTokenExpiry(accessToken: string): number {
+  const payload = accessToken.split('.')[1]
+  if (payload === undefined) throw new Error('DataOps access token does not contain a JWT payload')
+  let value: unknown
+  try {
+    value = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+  } catch (error) {
+    throw new Error('DataOps access token contains an invalid JWT payload', { cause: error })
+  }
+  if (!value || typeof value !== 'object') throw new Error('DataOps access token JWT payload must be an object')
+  const expiresAt = (value as Record<string, unknown>).exp
+  if (typeof expiresAt !== 'number' || !Number.isInteger(expiresAt)) {
+    throw new Error('DataOps access token JWT payload must contain an integer exp')
+  }
+  const delay = expiresAt * 1000 - Date.now()
+  if (delay <= 0 || delay > MAX_TIMER_DELAY_MS) throw new Error('DataOps access token exp is outside the supported timer range')
+  return expiresAt * 1000
 }
 
 function parseAccountResponse(value: unknown): AccountResponse {
@@ -251,7 +268,6 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     ? undefined
     : normalizeCallbackOrigin(config.callbackOrigin)
   const accessRef: CredentialRef = credentialRef(config.credentialRef)
-  const refreshRef: CredentialRef = credentialRef(config.refreshCredentialRef)
   const targetRefKey: CredentialRef = credentialRef(config.targetCredentialRef)
   // The target credential belongs to this DSH_HOME; disconnecting OAuth tokens must not delete or replace it.
   const targetState = await ctx.credentials.describe(targetRefKey)
@@ -271,10 +287,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   const lifecycleAbort = new AbortController()
   const activeOperations = new Set<Promise<unknown>>()
   let mcpFiber: Fiber | undefined
-  let refreshTimer: ReturnType<typeof setTimeout> | undefined
-  let refreshOperation: Promise<void> | undefined
   let grantGeneration = 0
-  let nominalAccessTtlSeconds: number | undefined
+  let accessExpiresAt: number | null = null
 
   const assertActive = (): void => {
     if (lifecycleAbort.signal.aborted) throw new Error('mcp-dataops: plugin lifecycle is disposed')
@@ -339,14 +353,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     if (fiber !== undefined && fiber.uid !== null) await fiber.dispose()
   }
 
-  const clearRefreshTimer = (): void => {
-    if (refreshTimer === undefined) return
-    clearTimeout(refreshTimer)
-    refreshTimer = undefined
-  }
-
   ctx.effect(() => async () => {
-    clearRefreshTimer()
     pending.clear()
     lifecycleAbort.abort()
     await Promise.allSettled([...activeOperations])
@@ -355,10 +362,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
 
   const credentialState = async (): Promise<CredentialState> => {
     const access = await ctx.credentials.describe(accessRef)
-    const refresh = await ctx.credentials.describe(refreshRef)
     return {
-      configured: access.configured && refresh.configured,
-      writable: access.writable && refresh.writable,
+      configured: access.configured,
+      writable: access.writable,
     }
   }
 
@@ -399,25 +405,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     if (!response.ok) throw new Error(`DataOps token revocation failed with HTTP ${String(response.status)}`)
   }
 
-  const revokeTokenResponse = async (token: TokenResponse): Promise<void> => {
-    await requestRevocation(token.refresh_token)
-    await requestRevocation(token.access_token)
-  }
-
-  const requestRefresh = async (refreshToken: string): Promise<TokenResponse> => {
-    const response = await fetch(new URL('/api/auth/dsh/token', baseUrl), {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        grant_type: 'refresh_token',
-        client_id: CLIENT_ID,
-        refresh_token: refreshToken,
-      }),
-      signal: lifecycleAbort.signal,
-    })
-    if (!response.ok) throw new Error(`DataOps token refresh failed with HTTP ${String(response.status)}`)
-    return parseTokenResponse(await response.json())
-  }
+  const revokeTokenResponse = (token: TokenResponse): Promise<void> => requestRevocation(token.access_token)
 
   const restoreCredential = async (ref: CredentialRef, previous: ResolvedCredential | undefined): Promise<void> => {
     if (previous === undefined) {
@@ -427,39 +415,28 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
   }
 
-  const restoreAuthorization = async (
-    previousAccess: ResolvedCredential | undefined,
-    previousRefresh: ResolvedCredential | undefined,
-  ): Promise<void> => {
-    await restoreCredential(refreshRef, previousRefresh)
-    await restoreCredential(accessRef, previousAccess)
-  }
-
-  // Write the access token last; commit authorization only after the complete grant and MCP child both succeed.
+  // Preserve the previous access credential so an MCP mount failure can restore it.
   const storeAuthorization = async (
     token: TokenResponse,
     expectedGeneration: number,
   ): Promise<() => Promise<void>> => {
     assertActive()
     assertGrantCurrent(expectedGeneration)
-    const [previousAccess, previousRefresh] = await Promise.all([
-      ctx.credentials.resolve(accessRef),
-      ctx.credentials.resolve(refreshRef),
-    ])
+    const previousAccess = await ctx.credentials.resolve(accessRef)
+    const previousExpiresAt = accessExpiresAt
     assertActive()
     assertGrantCurrent(expectedGeneration)
     try {
-      await ctx.credentials.set(refreshRef, token.refresh_token)
-      assertActive()
-      assertGrantCurrent(expectedGeneration)
       await ctx.credentials.set(accessRef, token.access_token)
+      accessExpiresAt = accessTokenExpiry(token.access_token)
       assertActive()
       assertGrantCurrent(expectedGeneration)
     } catch (error) {
       ctx.logger.error('mcp-dataops: DataOps credential replacement failed')
       ctx.logger.error(error)
       try {
-        await restoreAuthorization(previousAccess, previousRefresh)
+        await restoreCredential(accessRef, previousAccess)
+        accessExpiresAt = previousExpiresAt
       } catch (rollbackError) {
         ctx.logger.error('mcp-dataops: DataOps credential rollback failed')
         ctx.logger.error(rollbackError)
@@ -467,59 +444,22 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       }
       throw error
     }
-    return () => restoreAuthorization(previousAccess, previousRefresh)
-  }
-
-  const scheduleRefresh = (token: TokenResponse, resetLifetime: boolean): void => {
-    clearRefreshTimer()
-    if (resetLifetime || nominalAccessTtlSeconds === undefined) {
-      nominalAccessTtlSeconds = token.expires_in
-    } else if (token.expires_in < nominalAccessTtlSeconds) {
-      refreshTimer = setTimeout(() => {
-        refreshTimer = undefined
-        nominalAccessTtlSeconds = undefined
-        void trackOperation(unmountMcp().catch((error: unknown) => {
-          ctx.logger.warn('mcp-dataops: DataOps final access-token expiry unmount failed')
-          ctx.logger.warn(error)
-        }))
-      }, token.expires_in * 1000)
-      return
-    } else {
-      nominalAccessTtlSeconds = token.expires_in
+    return async () => {
+      await restoreCredential(accessRef, previousAccess)
+      accessExpiresAt = previousExpiresAt
     }
-    const delayMs = token.expires_in * 1000 / 2
-    refreshTimer = setTimeout(() => {
-      refreshTimer = undefined
-      const operation = refreshAuthorization().catch(async (error: unknown) => {
-        ctx.logger.warn('mcp-dataops: DataOps token refresh failed; MCP connection was unmounted')
-        ctx.logger.warn(error)
-        try {
-          await unmountMcp()
-        } catch (cleanupError) {
-          ctx.logger.warn('mcp-dataops: failed refresh MCP cleanup failed')
-          ctx.logger.warn(cleanupError)
-        }
-      })
-      refreshOperation = operation
-      void trackOperation(operation.then(() => {
-        if (refreshOperation === operation) refreshOperation = undefined
-      }))
-    }, delayMs)
   }
 
   const acceptAuthorization = async (
     token: TokenResponse,
-    resetRefreshLifetime: boolean,
     expectedGeneration: number,
   ): Promise<void> => {
     const restore = await storeAuthorization(token, expectedGeneration)
     try {
       await ensureMcpMounted()
-      scheduleRefresh(token, resetRefreshLifetime)
     } catch (error) {
       ctx.logger.error('mcp-dataops: DataOps authorization commit failed')
       ctx.logger.error(error)
-      clearRefreshTimer()
       try {
         await restore()
       } catch (rollbackError) {
@@ -531,41 +471,15 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
     }
   }
 
-  async function refreshAuthorization(): Promise<void> {
-    const expectedGeneration = grantGeneration
-    const resolved = await ctx.credentials.resolve(refreshRef)
-    if (resolved === undefined) throw new Error('DataOps refresh credential is not configured')
-    const token = await requestRefresh(resolved.value)
-    try {
-      const account = await fetchAccount(token.access_token)
-      if (account === null) throw new Error('DataOps refreshed access token was rejected by userinfo')
-      await acceptAuthorization(token, false, expectedGeneration)
-    } catch (error) {
-      ctx.logger.warn('mcp-dataops: refreshed DataOps grant could not be accepted')
-      ctx.logger.warn(error)
-      try {
-        await revokeTokenResponse(token)
-      } catch (revocationError) {
-        ctx.logger.warn('mcp-dataops: rejected refreshed DataOps grant revocation failed')
-        ctx.logger.warn(revocationError)
-        throw new AggregateError([error, revocationError], 'Refreshed DataOps grant acceptance and revocation failed')
-      }
-      throw error
-    }
-  }
-
   const startupCredential = await credentialState()
   if (startupCredential.configured) {
     try {
-      if (startupCredential.writable) {
-        await refreshAuthorization()
-      } else {
-        const access = await ctx.credentials.resolve(accessRef)
-        if (access === undefined || await fetchAccount(access.value) === null) {
-          throw new Error('Administrator-managed DataOps access credential was rejected by userinfo')
-        }
-        await ensureMcpMounted()
+      const access = await ctx.credentials.resolve(accessRef)
+      if (access === undefined || await fetchAccount(access.value) === null) {
+        throw new Error('Stored DataOps access credential was rejected by userinfo')
       }
+      accessExpiresAt = accessTokenExpiry(access.value)
+      await ensureMcpMounted()
     } catch (error) {
       ctx.logger.warn('mcp-dataops: stored DataOps authorization could not be accepted')
       ctx.logger.warn(error)
@@ -588,6 +502,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           credentialConfigured: accountState.credential.configured,
           credentialWritable: accountState.credential.writable,
           authorizationAccepted: accountState.authorizationAccepted,
+          expiresAt: accountState.authorizationAccepted ? accessExpiresAt : null,
           account: accountState.account,
         })
       } catch (error) {
@@ -607,13 +522,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         || !requireLoopback(request, response)
         || !requireSameOriginBrowser(request, response)
         || !requireMethod(request, response, 'GET')) return
-      clearRefreshTimer()
-      if (refreshOperation !== undefined) await refreshOperation
-      clearRefreshTimer()
       const state = await credentialState()
       assertActive()
       if (!state.writable) {
-        sendJson(response, 409, { error: 'DataOps access and refresh credentials must both use writable credential sources.' })
+        sendJson(response, 409, { error: 'DataOps access credential must use a writable credential source.' })
         return
       }
       pending.clear()
@@ -654,7 +566,8 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       const authorization = pending.get(stateValue)
       pending.delete(stateValue)
       if (authorization === undefined || Date.now() - authorization.createdAt > PENDING_TTL_MS) {
-        popupBridge(response, 'failed')
+        ctx.logger.warn('mcp-dataops: authorization callback rejected missing or expired pending state')
+        popupBridge(response, 'failed', 'pending-state')
         return
       }
       if (callback.searchParams.get('error') !== null) {
@@ -663,11 +576,13 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
       }
       const code = callback.searchParams.get('code') ?? ''
       if (code === '') {
-        popupBridge(response, 'failed')
+        ctx.logger.warn('mcp-dataops: authorization callback rejected missing code')
+        popupBridge(response, 'failed', 'missing-code')
         return
       }
       const expectedGeneration = grantGeneration
       let token: TokenResponse | undefined
+      let failureReason: OAuthFailureReason = 'token-service-failed'
       try {
         const tokenResponse = await fetch(new URL('/api/auth/dsh/token', baseUrl), {
           method: 'POST',
@@ -681,11 +596,23 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
           }),
           signal: lifecycleAbort.signal,
         })
-        if (!tokenResponse.ok) throw new Error(`DataOps token exchange failed with HTTP ${String(tokenResponse.status)}`)
+        if (!tokenResponse.ok) {
+          if (tokenResponse.status === 400) {
+            failureReason = 'token-request-rejected'
+          } else if (tokenResponse.status === 401 || tokenResponse.status === 403) {
+            failureReason = 'token-account-rejected'
+          } else {
+            failureReason = 'token-service-failed'
+          }
+          throw new Error(`DataOps token exchange failed with HTTP ${String(tokenResponse.status)}`)
+        }
+        failureReason = 'token-response-invalid'
         token = parseTokenResponse(await tokenResponse.json())
+        failureReason = 'account-verification'
         const account = await fetchAccount(token.access_token)
         if (account === null) throw new Error('DataOps access token was rejected by userinfo')
-        await acceptAuthorization(token, true, expectedGeneration)
+        failureReason = 'authorization-activation'
+        await acceptAuthorization(token, expectedGeneration)
       } catch (error) {
         ctx.logger.warn('mcp-dataops: DataOps authorization callback failed')
         ctx.logger.warn(error)
@@ -697,7 +624,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
             ctx.logger.warn(revocationError)
           }
         }
-        popupBridge(response, 'failed')
+        popupBridge(response, 'failed', failureReason)
         return
       }
       popupBridge(response, 'connected')
@@ -712,30 +639,21 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
         || !requireLoopback(request, response)
         || !requireSameOriginBrowser(request, response)
         || !requireMethod(request, response, 'POST')) return
-      clearRefreshTimer()
-      if (refreshOperation !== undefined) await refreshOperation
-      clearRefreshTimer()
       const state = await credentialState()
       assertActive()
       if (!state.writable) {
-        sendJson(response, 409, { error: 'DataOps access and refresh credentials must both use writable credential sources.' })
+        sendJson(response, 409, { error: 'DataOps access credential must use a writable credential source.' })
         return
       }
       grantGeneration += 1
       pending.clear()
       try {
-        const [access, refresh] = await Promise.all([
-          ctx.credentials.resolve(accessRef),
-          ctx.credentials.resolve(refreshRef),
-        ])
+        const access = await ctx.credentials.resolve(accessRef)
         assertActive()
-        clearRefreshTimer()
         await unmountMcp()
-        if (refresh !== undefined) await requestRevocation(refresh.value)
         if (access !== undefined) await requestRevocation(access.value)
         await ctx.credentials.unset(accessRef)
-        await ctx.credentials.unset(refreshRef)
-        nominalAccessTtlSeconds = undefined
+        accessExpiresAt = null
         sendJson(response, 200, { disconnected: true })
       } catch (error) {
         ctx.logger.warn('mcp-dataops: DataOps disconnect failed')

@@ -5,9 +5,6 @@
     - id: plus-backup
       name: '@sparkelf/dsh-plugin-backup'
 
-    - id: plus-chart
-      name: '@sparkelf/dsh-plugin-chart'
-
     - id: plus-dataops
       name: '@sparkelf/dsh-plugin-dataops'
       disabled: !!js "!process.env.DSH_DATAOPS_BASE_URL"
@@ -15,7 +12,6 @@
         baseUrl: !!js process.env.DSH_DATAOPS_BASE_URL
         serverName: dataops
         credentialRef: dataops_access_token
-        refreshCredentialRef: dataops_refresh_token
         targetCredentialRef: dataops_target_ref
         callbackOrigin: !!js process.env.DSH_DATAOPS_CALLBACK_ORIGIN
         toolCallTimeoutMs: 60000

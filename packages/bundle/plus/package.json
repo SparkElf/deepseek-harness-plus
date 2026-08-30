@@ -55,11 +55,13 @@
         "dsh-better-sidebar",
         "@sparkelf/dsh-mobile-bridge",
         "dshmarket",
+        "@changfenhuang/dsh-genui",
         "@sparkelf/dsh-plus"
       ]
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-better-sidebar-app-frame",
+      "@sparkelf/dsh-patch-genui-streaming-echart",
       "@sparkelf/dsh-patch-mobile-bridge-serialized-actions",
       "@sparkelf/dsh-patch-workspace-storage-restore",
       "@sparkelf/dsh-patch-subagent-settings-presets",
@@ -75,9 +77,11 @@
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.8",
     "@sparkelf/dsh-patch-better-sidebar-app-frame": ">=0.1.0-rc.8",
+    "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.8",
     "@sparkelf/dsh-patch-mobile-bridge-serialized-actions": ">=0.1.0-rc.8",
     "dsh-better-sidebar": ">=0.16.1",
     "dshmarket": ">=1.29.2",
+    "@changfenhuang/dsh-genui": ">=0.9.6",
     "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.8",
     "@sparkelf/dsh-patch-workspace-storage-restore": ">=0.1.0-rc.8",
     "semver": ">=7.7.3",
@@ -85,7 +89,6 @@
     "@sparkelf/dsh-plugin-subagent-settings": ">=0.1.0-rc.8",
     "@sparkelf/dsh-patch-subagent-settings-presets": ">=0.1.0-rc.8",
     "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.8",
-    "@sparkelf/dsh-plugin-chart": ">=0.1.0-rc.8",
     "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.8",
     "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.8",
     "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.8",

@@ -18,6 +18,12 @@
       "path": "../../client/locale"
     },
     {
+      "path": "../../client/store"
+    },
+    {
+      "path": "../../client/ui-layout"
+    },
+    {
       "path": "../../client/ui-primitives"
     },
     {

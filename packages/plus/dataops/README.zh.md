@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此软件包
 
-把`DSH_DATAOPS_BASE_URL`设为同时提供`/auth/dsh/authorize`及proxied `/api`的DataOps Web origin；`DSH_DATAOPS_CALLBACK_ORIGIN`可选指定non-loopback DSH browser origin。该package把access、refresh及stable target values存入`dataops_access_token`、`dataops_refresh_token`及`dataops_target_ref`。Disconnect会revoke account tokens但保留target identity。
+把`DSH_DATAOPS_BASE_URL`设为同时提供`/auth/dsh/authorize`及proxied `/api`的DataOps Web origin；`DSH_DATAOPS_CALLBACK_ORIGIN`可选指定non-loopback DSH browser origin。该package把delegated access token及stable target identity存入`dataops_access_token`与`dataops_target_ref`；DataOps把token lifetime绑定到authenticated browser session。Current grant过期或其browser session被revoke时，DataOps Client contribution会弹出带**稍后**与**重新登录**的DSH shell modal；后者从用户手势打开real OAuth popup。Settings也会把rejected stored grant与never-connected state区分，并保留同一个恢复动作。Authentication-rejected MCP call仍是agent turn内的error result，不会终止task；Plus不会自动重放结果未知的tool operation。Disconnect会revoke account tokens但保留target identity。OAuth callback failure只在Settings暴露固定、可操作的failure stage；authorization code、state、token、upstream body及任意error text不会进入browser message。
 
 -----
 
@@ -58,6 +58,6 @@ Connecting、disconnecting或MCP discovery change可能改变tool-schema prefix�
 
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
-- `src/index.ts`持有authorization、credentials及MCP child lifecycle；`src/client`持有Settings。[Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)记录package boundary。
+- `src/index.ts`持有authorization、credentials、access expiry及MCP child lifecycle。`src/client/store.ts`与`src/client/controller.ts`持有shared browser status及OAuth lifecycle；`src/client/DataOpsExpiryModal.tsx`贡献shell prompt，`src/client/DataOpsSection.tsx`贡献Settings。[Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)记录package boundary。
 
 </details>
