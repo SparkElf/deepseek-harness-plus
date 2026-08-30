@@ -135,7 +135,7 @@ function sanitizedRuntimeLog() {
 
 async function waitForWeb(child) {
   const deadline = Date.now() + 10 * 60_000
-  const launchPrefix = `dsh web: ${baseURL}/?token=`
+  const launchPrefix = `dsh web: ${baseURL}/`
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
       throw new Error(`Plus Web exited before readiness with code ${String(child.exitCode)}\n${sanitizedRuntimeLog()}`)
@@ -145,8 +145,7 @@ async function waitForWeb(child) {
     if (launchURL !== undefined) {
       try {
         const response = await fetch(launchURL, { redirect: 'manual' })
-        const location = response.headers.get('location')
-        if (response.status === 303 && location !== null && new URL(location, launchURL).href === `${baseURL}/`) {
+        if (launchURL === `${baseURL}/` && response.status === 200) {
           return launchURL
         }
       } catch (error) {

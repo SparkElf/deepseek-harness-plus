@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-该distribution把official `@deepseek-ai/dsh-base`及`@deepseek-ai/dsh-web-app`与selected external sidebar、mobile bridge、plugin market、GenUI package、五个完整Plus capability packages及九个independent patch packages组合起来。它只持有ordered composition、minimum compatibility metadata、dependency closure、explicit materialization及credential-free deployment lock；capability behavior和patch payloads仍属于各自package。
+该distribution把official `@deepseek-ai/dsh-base`及`@deepseek-ai/dsh-web-app`与selected external sidebar、mobile bridge、plugin market、GenUI package、五个完整Plus capability packages及十个independent patch packages组合起来。它只持有ordered composition、minimum compatibility metadata、dependency closure、explicit materialization及credential-free deployment lock；capability behavior和patch payloads仍属于各自package。
 
 ## 目录
 
@@ -34,6 +34,8 @@ dsh --profile plus
 explicit apply步骤要求official revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`，把每个selected runtime package materialize为profile-direct dependency，一次应用全部pending source payloads，配置exact npm patches，删除retired Plus-owned entries，并以`0600` mode写入`.dsh-plus/patchset.lock.json`。它在profile root安装`dsh-better-sidebar@0.17.1`，只显式允许其`node-pty` native build，并把profile的`@deepseek-ai` scope链接到`apps/cli/node_modules/@deepseek-ai`中的exact official dsh CLI dependency tree。version conflict和source mismatch会在profile installation或source mutation前失败。该package没有install lifecycle script。
 
 Official DSH提供onboarding、Workspace selection、Session export、Turn folding及base image path。External `@changfenhuang/dsh-genui` bundle拥有generated UI，包括模型以`dsh-ui`输出的inline interactive charts。Temporary GenUI streaming EChart patch只target `0.9.6`；[upstream PR #87](https://github.com/omdsh-dev/dsh-genui/pull/87)进入npm且真实inline-chart path通过后退役。DataOps和Document Attachments仅在对应endpoint environment variables存在时mount。Agent Teams被排除，因为official packages属于private experimental workspaces且shipped profiles会禁用它们。
+
+Plus显式选择`browserAuthentication: disabled`：其Web URL保持clean，无需process-token exchange或browser cookie即可打开，同时Connection仍执行official Host/Origin trust fence。因此所有能访问accepted authority的进程都能使用包含Shell、files与Sessions在内的完整Host API。official `web` profile保留upstream `required` default；只有Plus composition选择关闭。
 
 -----
 
