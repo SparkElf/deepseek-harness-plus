@@ -20,7 +20,7 @@ dsh plugin --profile plus exec dsh-plus apply --dsh-root <official-dsh-root>
 dsh --profile plus
 ```
 
-`dsh-plus apply` resolves installed patch-package manifests, requires official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`, copies selected payloads into the profile, configures exact npm patches, applies exact source patches, and writes the credential-free `.dsh-plus/patchset.lock.json`. The `plus` release family discovers the complete `@sparkelf` closure, assigns one `plus-npm-v*` tag, and publishes the exact tarballs produced by the credential-free pack job through the manual npm workflow. Desktop and tray applications may call the same public workflow but are not prerequisites, manifest owners, release owners, or acceptance paths.
+`dsh-plus apply` resolves installed patch-package manifests, requires official source revision `cd5ef8148158c3a752a658978873241fdf8e2bbc`, copies selected payloads into the profile, configures exact npm patches, applies exact source patches, and writes the credential-free `.dsh-plus/patchset.lock.json`. The `plus` release family discovers the complete `@sparkelf` closure, assigns one `plus-npm-v*` tag, and publishes the exact tarballs produced by the credential-free pack job through the manual npm workflow. The manual publication audit then requires all 15 registry entries to be public and compares every extracted registry file with that release artifact. Desktop and tray applications may call the same public workflow but are not prerequisites, manifest owners, release owners, or acceptance paths.
 
 ## Final inventory
 
