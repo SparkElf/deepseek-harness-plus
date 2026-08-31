@@ -21,6 +21,12 @@ overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
 
+packageExtensions:
+  # Office preview 0.1.2 uses registerFileViewer, which remains public in the exact Plus sidebar.
+  '@huanlin/dsh-plugin-better-sidebar-plugin-office@0.1.2':
+    peerDependencies:
+      dsh-better-sidebar: '0.17.1'
+
 peerDependencyRules:
   allowedVersions:
     typescript: '>=5 <7'

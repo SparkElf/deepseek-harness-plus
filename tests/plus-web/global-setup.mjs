@@ -229,6 +229,8 @@ export default async function globalSetup() {
       return [manifest.name, `file:${archives.get(directory)}`]
     })),
     'dsh-better-sidebar': '0.17.1',
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-video-preview': '0.1.4',
     '@sparkelf/dsh-mobile-bridge': '0.2.10',
   }
   writeFileSync(
@@ -239,6 +241,21 @@ export default async function globalSetup() {
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
+  const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
+  const previewBundles = {
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-video-preview': '0.1.4',
+  }
+  for (const [packageName, version] of Object.entries(previewBundles)) {
+    if (profileManifest.dependencies?.[packageName] !== version
+      || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
+      throw new Error(`Plus profile did not materialize ${packageName}@${version}`)
+    }
+    const installedManifest = JSON.parse(readFileSync(join(profileRoot, 'node_modules', packageName, 'package.json'), 'utf8'))
+    if (installedManifest.name !== packageName || installedManifest.version !== version) {
+      throw new Error(`Plus profile installed the wrong ${packageName} version`)
+    }
+  }
   const profileOfficialScope = realpathSync(join(profileRoot, 'node_modules', '@deepseek-ai'))
   const officialRoot = realpathSync(sourceRoot)
   for (const packageName of readdirSync(profileOfficialScope)) {

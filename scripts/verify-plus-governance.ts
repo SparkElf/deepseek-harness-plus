@@ -181,8 +181,13 @@ function main(): void {
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
-  if (JSON.stringify(profileDependencies) !== JSON.stringify({ 'dsh-better-sidebar': '0.17.1' })) {
-    throw new Error('dshPlus.profile.dependencies must own only dsh-better-sidebar@0.17.1')
+  const expectedProfileDependencies = {
+    'dsh-better-sidebar': '0.17.1',
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-video-preview': '0.1.4',
+  }
+  if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
+    throw new Error('dshPlus.profile.dependencies must own the exact Better Sidebar preview bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
   if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true })) {

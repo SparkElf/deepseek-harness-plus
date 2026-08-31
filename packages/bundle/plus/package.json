@@ -53,13 +53,17 @@
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
         "dsh-better-sidebar",
+        "@huanlin/dsh-plugin-better-sidebar-plugin-office",
+        "dsh-video-preview",
         "@sparkelf/dsh-mobile-bridge",
         "dshmarket",
         "@changfenhuang/dsh-genui",
         "@sparkelf/dsh-plus"
       ],
       "dependencies": {
-        "dsh-better-sidebar": "0.17.1"
+        "dsh-better-sidebar": "0.17.1",
+        "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.1.2",
+        "dsh-video-preview": "0.1.4"
       },
       "allowBuilds": {
         "node-pty": true
@@ -121,7 +125,9 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@types/semver": ">=7.7.1",
-    "dsh-better-sidebar": "0.17.1"
+    "dsh-better-sidebar": "0.17.1",
+    "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.1.2",
+    "dsh-video-preview": "0.1.4"
   },
   "bin": {
     "dsh-plus": "lib/bin.js"
