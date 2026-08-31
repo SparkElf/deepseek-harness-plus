@@ -724,7 +724,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.attachments.documents\', () => ctx.slots.register(\n      { name: \'conversation.input.attachments.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/plus/document-attachments/src/client/types.ts:35',
+    source: 'packages/plus/document-attachments/src/client/types.ts:37',
   },
   {
     key: 'conversation.input.dock',
@@ -1071,7 +1071,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     summary: 'Render durable Document metadata in one Chat message\'s attachment area.',
     doc: 'Render durable Document metadata in one Chat message\'s attachment area.\nA contribution receives the message\'s card data and replaces the prior\nsingle Document-card registration. Without one, Chat omits these cards.',
     registerOptions: [],
-    ownerProps: [],
+    ownerProps: [
+      '/** Durable Document metadata and preview references rendered by history cards. */\nexport interface DocumentCardData {\n  readonly previewAttachmentId: AttachmentIdType\n  readonly name: string\n  readonly mediaType: string\n  readonly bytes: number\n}',
+    ],
     ownerPropsReferences: [],
     standardProps: [
       'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
@@ -1092,11 +1094,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'the runtime itself (built in; always present)',
     occupants: [
-      '@sparkelf/dsh-plugin-document-attachments MessageDocuments',
+      '@sparkelf/dsh-plugin-document-attachments props => createElement(MessageDocuments, { ...props, onOp…',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.message.images.documents\', () => ctx.slots.register(\n      { name: \'conversation.message.images.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/plus/document-attachments/src/client/types.ts:45',
+    source: 'packages/plus/document-attachments/src/client/types.ts:47',
   },
   {
     key: 'conversation.session',
@@ -1364,7 +1366,9 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     summary: 'Render durable Document metadata in one Trajectory entry\'s attachment area.',
     doc: 'Render durable Document metadata in one Trajectory entry\'s attachment area.\nA contribution receives the entry\'s card data and replaces the prior single\nDocument-card registration. Without one, Trajectory omits these cards.',
     registerOptions: [],
-    ownerProps: [],
+    ownerProps: [
+      '/** Durable Document metadata and preview references rendered by history cards. */\nexport interface DocumentCardData {\n  readonly previewAttachmentId: AttachmentIdType\n  readonly name: string\n  readonly mediaType: string\n  readonly bytes: number\n}',
+    ],
     ownerPropsReferences: [],
     standardProps: [
       'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
@@ -1385,11 +1389,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
     slotInject: '',
     declaredBy: 'the runtime itself (built in; always present)',
     occupants: [
-      '@sparkelf/dsh-plugin-document-attachments TrajectoryDocuments',
+      '@sparkelf/dsh-plugin-document-attachments props => createElement(TrajectoryDocuments, { ...props, o…',
     ],
     replaceRisk: 'shadows-shipped-ui',
     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.trajectory.images.documents\', () => ctx.slots.register(\n      { name: \'conversation.trajectory.images.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
-    source: 'packages/plus/document-attachments/src/client/types.ts:55',
+    source: 'packages/plus/document-attachments/src/client/types.ts:57',
   },
   {
     key: 'conversation.view',

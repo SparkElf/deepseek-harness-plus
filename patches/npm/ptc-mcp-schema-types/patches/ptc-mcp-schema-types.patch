@@ -1,0 +1,185 @@
+diff --git a/packages/core/tools/README.i18n.yaml b/packages/core/tools/README.i18n.yaml
+index feacbdc2e4..e86e7ea531 100644
+--- a/packages/core/tools/README.i18n.yaml
++++ b/packages/core/tools/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/core/tools/README.md
+-README.md: f586b926ec9a8e426f48b62e4d03b1661201a76a
+-README.zh.md: 5f422dd848ee9a6e8e0afe96d3dd03238ecc3857
++README.md: c4d6ad64f2cc36b295f696262a74ed99ba151859
++README.zh.md: 7f810c335505ff0a34c8f7b4d133880c13a85862
+diff --git a/packages/core/tools/README.md b/packages/core/tools/README.md
+index f586b926ec..c4d6ad64f2 100644
+--- a/packages/core/tools/README.md
++++ b/packages/core/tools/README.md
+@@ -168,7 +168,7 @@ Prefix-stable while visible definitions and their order are unchanged. Registrat
+ 
+ #### What the model sees
+ 
+-PTC mode exposes the generated [`run_code` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tools), the SDK instructions below, and the generated exact SDK block for the loaded runtime's language. The TypeScript instructions identify generated declarations as program-only bindings. When the current `bash` parameter schema accepts the example arguments, they also show a complete `run_code` call around `tools.bash(...)`. The `tools:sdk` section uses first-party order 5000. `both` exposes normal schemas and this PTC mode API; under `ptc` the prompt also carries the `tools:ptc-only` rule earlier in the first-party order, so the model reads which tools it may call before it reads what each one is for.
++PTC mode exposes the generated [`run_code` schema](../../../docs/tool-catalog.md#deepseek-aidsh-tools), the SDK instructions below, and the generated exact SDK block for the loaded runtime's language. The TypeScript instructions identify generated declarations as program-only bindings. JSON Schema draft markers plus string length, string pattern, and array item-count constraints remain owned by the tool validator and are omitted only from TypeScript declarations, so an MCP schema retains its object, array, property, required, and scalar types; unsupported structural keywords still render as `unknown`. When the current `bash` parameter schema accepts the example arguments, the instructions also show a complete `run_code` call around `tools.bash(...)`. The `tools:sdk` section uses first-party order 5000. `both` exposes normal schemas and this PTC mode API; under `ptc` the prompt also carries the `tools:ptc-only` rule earlier in the first-party order, so the model reads which tools it may call before it reads what each one is for.
+ 
+ ##### TypeScript PTC mode SDK instructions with bash
+ 
+diff --git a/packages/core/tools/README.zh.md b/packages/core/tools/README.zh.md
+index 5f422dd848..7f810c3355 100644
+--- a/packages/core/tools/README.zh.md
++++ b/packages/core/tools/README.zh.md
+@@ -168,7 +168,7 @@ ctx.tools.register(defineTool({
+ 
+ #### 模型看到什么
+ 
+-PTC mode 会公开生成的 [`run_code` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tools)、下方 SDK 说明，以及按所加载运行时语言生成的精确 SDK 块。TypeScript 说明会把生成声明明确标为只能在程序内使用的绑定。当当前 `bash` 参数 schema 接受示例参数时，说明还会给出以 `run_code` 包住 `tools.bash(...)` 的完整调用。`tools:sdk` 段使用 first-party 顺序 5000。`both` 会同时公开普通 schema 与此 PTC mode API；在 `ptc` 下，提示词还会带上处于更早 first-party 顺序的 `tools:ptc-only` 规则，让模型先读到「可以调用哪些工具」再读「每个工具做什么」。
++PTC mode 会公开生成的 [`run_code` schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-tools)、下方 SDK 说明，以及按所加载运行时语言生成的精确 SDK 块。TypeScript 说明会把生成声明明确标为只能在程序内使用的绑定。JSON Schema draft 标记、字符串长度与正则约束、数组元素数量约束仍由工具 validator 持有，只在 TypeScript 声明中省略，因此 MCP schema 会保留对象、数组、属性、必填项与标量类型；不受支持的结构性关键字仍渲染为 `unknown`。当当前 `bash` 参数 schema 接受示例参数时，说明还会给出以 `run_code` 包住 `tools.bash(...)` 的完整调用。`tools:sdk` 段使用 first-party 顺序 5000。`both` 会同时公开普通 schema 与此 PTC mode API；在 `ptc` 下，提示词还会带上处于更早 first-party 顺序的 `tools:ptc-only` 规则，让模型先读到「可以调用哪些工具」再读「每个工具做什么」。
+ 
+ ##### 带 bash 的 TypeScript PTC mode SDK 说明
+ 
+diff --git a/packages/core/tools/src/json-schema.ts b/packages/core/tools/src/json-schema.ts
+index c064fb294c..573cdd69c0 100644
+--- a/packages/core/tools/src/json-schema.ts
++++ b/packages/core/tools/src/json-schema.ts
+@@ -84,6 +84,14 @@ const CONSTRAINT_KEYWORDS = new Set([
+   'const',
+ ])
+ const ANNOTATION_KEYWORDS = new Set(['description', 'title', 'default', 'examples'])
++const TYPE_PROJECTION_IGNORED_KEYWORDS = new Set([
++  '$schema',
++  'minLength',
++  'maxLength',
++  'pattern',
++  'minItems',
++  'maxItems',
++])
+ const SCHEMA_TYPES: readonly JsonSchemaType[] = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
+ 
+ /* jscpd:ignore-start -- this realm boundary mirrors the session-owned lossless-JSON intrinsic test */
+@@ -224,7 +232,13 @@ function checkObjectSchemaTail(
+ }
+ 
+ /** Collect every violation for one raw schema tree without using the JavaScript call stack. */
+-function checkSchemaNode(root: unknown, rootPath: string, violations: string[], seen: Set<object>): void {
++function checkSchemaNode(
++  root: unknown,
++  rootPath: string,
++  violations: string[],
++  seen: Set<object>,
++  ignoredKeywords?: ReadonlySet<string>,
++): void {
+   const tasks: SchemaWalkTask[] = [{ kind: 'enter', node: root, path: rootPath }]
+   for (let task = tasks.pop(); task !== undefined; task = tasks.pop()) {
+     if (task.kind === 'leave') {
+@@ -256,6 +270,7 @@ function checkSchemaNode(root: unknown, rootPath: string, violations: string[],
+ 
+     for (const key of Object.keys(node)) {
+       if (CONSTRAINT_KEYWORDS.has(key)) continue
++      if (ignoredKeywords?.has(key)) continue
+       if (ANNOTATION_KEYWORDS.has(key)) {
+         try {
+           if (!isJsonValue(node[key])) violations.push(`${path}.${key} annotation must be lossless JSON data`)
+@@ -388,6 +403,22 @@ export function assertSupportedJsonSchema(schema: unknown): asserts schema is Js
+   if (violations.length > 0) throw new JsonSchemaError(violations)
+ }
+ 
++/**
++ * Assert the JSON Schema structure that a generated TypeScript declaration can represent.
++ *
++ * Validation-only string and array constraints remain outside the enforced ToolRuntime
++ * subset. The PTC declaration omits those constraints while retaining their object,
++ * array, property, required, and scalar types. Structural keywords outside the shared
++ * vocabulary still reject the projection.
++ * @param schema - untrusted raw JSON Schema from a registered tool.
++ * @returns Assertion that the schema structure is safe to render as TypeScript.
++ */
++export function assertTypeProjectableJsonSchema(schema: unknown): asserts schema is JsonSchemaNode {
++  const violations: string[] = []
++  checkSchemaNode(schema, 'schema', violations, new Set(), TYPE_PROJECTION_IGNORED_KEYWORDS)
++  if (violations.length > 0) throw new JsonSchemaError(violations)
++}
++
+ /**
+  * Assert the enforced subset plus the object-root constraint retained by
+  * subagent and workflow structured outputs.
+diff --git a/packages/core/tools/src/ts-types.ts b/packages/core/tools/src/ts-types.ts
+index d92c987817..a2d6fa7132 100644
+--- a/packages/core/tools/src/ts-types.ts
++++ b/packages/core/tools/src/ts-types.ts
+@@ -7,7 +7,7 @@
+  */
+ 
+ import type { ToolSchema } from '@deepseek-ai/dsh-llm'
+-import { assertSupportedJsonSchema } from './json-schema.ts'
++import { assertTypeProjectableJsonSchema } from './json-schema.ts'
+ import type { JsonSchemaNode, JsonSchemaScalar } from './json-schema.ts'
+ /** Internal PTC mode projection: the model-facing schema plus the canonical output schema. */
+ export interface ToolSdkSchema extends ToolSchema {
+@@ -239,7 +239,7 @@ function renderSupportedSchema(schema: JsonSchemaNode, indent: number): TypeDocu
+  */
+ export function jsonSchemaToTs(schema: unknown, indent = 0): string {
+   try {
+-    assertSupportedJsonSchema(schema)
++    assertTypeProjectableJsonSchema(schema)
+     return flattenTypeDocument(renderSupportedSchema(schema, indent))
+   } catch {
+     return 'unknown'
+diff --git a/packages/core/tools/tests/ts-types.spec.ts b/packages/core/tools/tests/ts-types.spec.ts
+index 5a3f0edca5..eacda7635a 100644
+--- a/packages/core/tools/tests/ts-types.spec.ts
++++ b/packages/core/tools/tests/ts-types.spec.ts
+@@ -1,6 +1,7 @@
+ import { describe, expect, it } from 'vitest'
+ import { jsonSchemaToTs, renderToolsSdk } from '@deepseek-ai/dsh-tools/src/ts-types.ts'
+ import type { ToolSdkSchema } from '@deepseek-ai/dsh-tools/src/ts-types.ts'
++import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools/src/json-schema.ts'
+ import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools/src/json-schema.ts'
+ import { parameterSchemaSpecToJsonSchema } from '@deepseek-ai/dsh-tools'
+ 
+@@ -61,6 +62,47 @@ describe('jsonSchemaToTs', () => {
+     ].join('\n'))
+   })
+ 
++  it('projects MCP validation keywords without admitting them to runtime schema enforcement', () => {
++    const schema = {
++      $schema: 'http://json-schema.org/draft-07/schema#',
++      type: 'object',
++      properties: {
++        sources: {
++          type: 'array',
++          minItems: 1,
++          maxItems: 12,
++          items: {
++            type: 'object',
++            properties: {
++              resourceRef: { type: 'string', minLength: 1, maxLength: 1000 },
++              alias: { type: 'string', pattern: '^[A-Za-z_][A-Za-z0-9_]{0,63}$' },
++            },
++            required: ['resourceRef', 'alias'],
++          },
++        },
++        sql: { type: 'string', minLength: 1, maxLength: 20000 },
++      },
++      required: ['sources', 'sql'],
++    }
++
++    expect(() => { assertSupportedJsonSchema(schema) }).toThrow(/not a supported keyword/)
++    const rendered = jsonSchemaToTs(schema)
++    expect(rendered).toContain('sources:')
++    expect(rendered).toContain('resourceRef: string;')
++    expect(rendered).toContain('alias: string;')
++    expect(rendered).toContain('sql: string;')
++    expect(rendered).not.toBe('unknown')
++    const sdk = renderToolsSdk([{
++      name: 'mcp__dataops__execute_sql',
++      description: 'Execute SQL.',
++      parameters: schema,
++      output: {},
++    }])
++    expect(sdk).toContain('mcp__dataops__execute_sql: {')
++    expect(sdk).not.toContain('mcp__dataops__execute_sql: unknown;')
++    expect(jsonSchemaToTs({ type: 'object', allOf: [{ type: 'object' }] })).toBe('unknown')
++  })
++
+   it('is total: unsupported or hostile constructs degrade to unknown, never throw', () => {
+     const cases: unknown[] = [
+       undefined,

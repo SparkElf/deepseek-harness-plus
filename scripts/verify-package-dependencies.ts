@@ -591,15 +591,18 @@ export function collectPackageDependencyViolations(state: PackageDependencyState
       if (rule.section === 'peer-dev') {
         const peerRange = section(facts.manifest, 'peerDependencies')[name]
         const devRange = section(facts.manifest, 'devDependencies')[name]
+        const devRangeValid = facts.workspaceNames.has(name)
+          ? devRange === WORKSPACE_RANGE
+          : typeof devRange === 'string' && devRange.trim().length > 0
         if (actual.length === 2
           && actual.includes('peerDependencies')
           && actual.includes('devDependencies')
           && (externalWorkspacePackage ? isMinimumRange(peerRange) : peerRange === WORKSPACE_RANGE)
-          && devRange === WORKSPACE_RANGE
+          && devRangeValid
           && facts.manifest.peerDependenciesMeta?.[name] === undefined) continue
         violations.push(
           externalWorkspacePackage
-            ? `${facts.manifestPath}: ${name} must be peerDependencies + devDependencies with a minimum peer range and workspace:^ dev range; found ${describeSections(actual)}`
+            ? `${facts.manifestPath}: ${name} must be peerDependencies + devDependencies with a minimum peer range and ${facts.workspaceNames.has(name) ? 'workspace:^' : 'explicit'} dev range; found ${describeSections(actual)}`
             : `${facts.manifestPath}: ${name} must be matching peerDependencies + devDependencies at ${WORKSPACE_RANGE}; found ${describeSections(actual)}`,
         )
         continue
@@ -700,7 +703,10 @@ export function repairPackageDependencyManifest(facts: PackageDependencyFacts): 
         deleteDependency(facts.manifest, sectionName, name)
       }
       if (!externalWorkspacePackage) mutableSection(facts.manifest, 'peerDependencies')[name] = WORKSPACE_RANGE
-      mutableSection(facts.manifest, 'devDependencies')[name] = WORKSPACE_RANGE
+      const devRange = facts.workspaceNames.has(name)
+        ? WORKSPACE_RANGE
+        : preferredRange(facts, name, rule.section)
+      if (devRange !== undefined) mutableSection(facts.manifest, 'devDependencies')[name] = devRange
       deletePeerMeta(facts.manifest, name)
       continue
     }

@@ -98,3 +98,10 @@ entries:
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-responses-reasoning-status', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH ships equivalent pi-ai Responses payload adjustment and Models editor behavior }]
     plusBundle: false
+  - name: '@deepseek-ai/dsh-tools-ptc-mcp-schema-types'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: TypeScript PTC parameter declarations for MCP Schemas carrying validation-only draft keywords
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-ptc-mcp-schema-types', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH projects validation-only MCP Schema keywords into TypeScript PTC declarations without weakening runtime Schema enforcement }]
+    plusBundle: false

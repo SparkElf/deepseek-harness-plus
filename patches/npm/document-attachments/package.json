@@ -34,8 +34,7 @@
             "packages/client/ui-conversation/src/",
             "packages/client/ui-conversation/tests/",
             "packages/client/ui-trajectory/src/",
-            "packages/extensions/cordis-client-runner/src/client/api-catalog.ts",
-            "packages/extensions/cordis-client-runner/src/client/slot-catalog.ts",
+            "packages/extensions/cordis-client-runner/src/client/",
             "packages/llm/llm/src/",
             "packages/llm/llm-deepseek/src/",
             "packages/llm/llm-pi-ai/src/"

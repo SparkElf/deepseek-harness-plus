@@ -1414,6 +1414,9 @@ importers:
       '@sparkelf/dsh-patch-mobile-web-layout':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/mobile-web-layout
+      '@sparkelf/dsh-patch-ptc-mcp-schema-types':
+        specifier: '>=0.1.0-rc.12'
+        version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
         specifier: '>=0.1.0-rc.12'
         version: link:../../../patches/npm/responses-reasoning-status
@@ -10823,6 +10826,8 @@ importers:
   patches/npm/legacy-code-preset: {}
 
   patches/npm/mobile-web-layout: {}
+
+  patches/npm/ptc-mcp-schema-types: {}
 
   patches/npm/responses-reasoning-status: {}
 

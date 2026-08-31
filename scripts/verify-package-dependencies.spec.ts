@@ -454,6 +454,30 @@ describe('dependency sections', () => {
     expect(manifest.dependencies?.['@deepseek-ai/schemastery']).toBe('>=3.18.2')
   })
 
+  it('keeps an external Client injection as a minimum peer plus explicit development input', () => {
+    const manifest: PackageDependencyManifest = {
+      name: '@sparkelf/dsh-plugin-probe',
+      devDependencies: { [CORDIS]: 'workspace:^', external: '1.2.3' },
+      peerDependencies: { [CORDIS]: '>=4.0.1', external: '>=1.2.0' },
+    }
+    const base = facts(manifest)
+    const subject: PackageDependencyFacts = {
+      ...base,
+      allSourceUses: new Map([['external', ['packages/plus/probe/src/client.ts']]]),
+      hostRuntimeSourceUses: new Map(),
+      hostRuntimeExportUses: [],
+      clientInject: new Set(['external']),
+    }
+    const state = {
+      facts: [subject], packages: [], policyViolations: [], workspaceNames: subject.workspaceNames,
+    }
+
+    expect(collectPackageDependencyViolations(state)).toEqual([])
+    repairPackageDependencyManifest(subject)
+    expect(manifest.peerDependencies?.external).toBe('>=1.2.0')
+    expect(manifest.devDependencies?.external).toBe('1.2.3')
+  })
+
   it('lists managed Host runtime dependencies for fix review', () => {
     const subject = facts({ name: '@deepseek-ai/dsh-probe' })
     expect(formatManagedRuntimeDependencies({

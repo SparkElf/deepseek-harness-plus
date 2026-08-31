@@ -78,6 +78,7 @@
       "@sparkelf/dsh-patch-session-export-chinese",
       "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
       "@sparkelf/dsh-patch-responses-reasoning-status",
+      "@sparkelf/dsh-patch-ptc-mcp-schema-types",
       "@sparkelf/dsh-patch-mobile-web-layout",
       "@sparkelf/dsh-patch-web-base-path"
     ],
@@ -109,7 +110,8 @@
     "@sparkelf/dsh-patch-legacy-code-preset": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-session-export-chinese": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-session-log-trajectory-toolbar": ">=0.1.0-rc.12",
-    "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.12"
+    "@sparkelf/dsh-patch-responses-reasoning-status": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-patch-ptc-mcp-schema-types": ">=0.1.0-rc.12"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
