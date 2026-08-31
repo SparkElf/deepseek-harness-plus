@@ -3399,6 +3399,215 @@ export interface Config {
 
 Source: [`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
+<a id="sparkelfdsh-plugin-backup"></a>
+
+## `@sparkelf/dsh-plugin-backup`
+
+Requires: `connection` · `webServer` · `settings` · `workspaceRegistry`
+
+```ts config-catalog
+/** Backup Host resource policy. */
+export interface Config {
+  /** Maximum uploaded ZIP bytes written to Host disk. @default 2147483648 */
+  maxUploadBytes?: number
+}
+```
+
+Source: [`packages/plus/backup/src/index.ts:17`](../packages/plus/backup/src/index.ts)
+
+<a id="sparkelfdsh-plugin-dataops"></a>
+
+## `@sparkelf/dsh-plugin-dataops`
+
+Requires: `connection` · `credentials` · `webServer` · `tools`
+
+```ts config-catalog
+/** Configuration for one standalone DataOps target and delegated MCP connection. */
+export interface Config {
+  /** DataOps origin, for example `https://dataops.example.com`. */
+  baseUrl: string
+  /** Local MCP tool namespace. */
+  serverName: string
+  /** Access-token credential reference for the standalone DataOps grant. */
+  credentialRef: string
+  /** Persistent DSH target identity credential; generated once and never cleared by disconnect. */
+  targetCredentialRef: string
+  /** Explicit HTTP or HTTPS DSH browser origin for non-loopback Web deployments. */
+  callbackOrigin?: string
+  /** Per-MCP-tool timeout forwarded to the generic mcp-client. */
+  toolCallTimeoutMs: number
+  /** Whether an immediately attempted MCP connection failure rejects this plugin. */
+  failOnStartupError: boolean
+}
+```
+
+Source: [`packages/plus/dataops/src/index.ts:36`](../packages/plus/dataops/src/index.ts)
+
+<a id="sparkelfdsh-plugin-document-attachments"></a>
+
+## `@sparkelf/dsh-plugin-document-attachments`
+
+Requires: `attachments` · `connection` · `sessionController` · `webServer`
+
+```ts config-catalog
+/** Deployment choices owned by the provider-neutral parser seam. */
+export interface Config {
+  /** Explicit parser provider id; omission auto-selects exactly one registered provider. */
+  provider?: string
+  /** Maximum aggregate rendered-document bytes, including delimiters and metadata, accepted for direct-context version one. */
+  maxDirectMarkdownBytes: number
+  /** Maximum encoded JSON bytes accepted by the authenticated mixed prompt route. */
+  maxRequestBytes: number
+}
+```
+
+Source: [`packages/plus/document-attachments/src/index.ts:31`](../packages/plus/document-attachments/src/index.ts)
+
+<a id="sparkelfdsh-plugin-mcp-credentials"></a>
+
+## `@sparkelf/dsh-plugin-mcp-credentials`
+
+Requires: `tools`
+
+```ts config-catalog
+/** Configuration for one stdio or Streamable HTTP MCP server. */
+export type Config = StdioConfig | StreamableHttpConfig
+
+/** Config for connecting to an MCP server via a spawned child process over stdio. */
+export interface StdioConfig {
+  /** Selects child-process stdio transport. */
+  transport: 'stdio'
+  /**
+   * Stable local namespace for this server's model-facing tool names
+   * (`mcp__<serverName>__<rawName>`). Must match `[A-Za-z0-9_-]{1,32}` and be
+   * unique across live mcp-client instances.
+   */
+  serverName: string
+  /** Executable used to start the server. */
+  command: string
+  /** Arguments passed directly, without shell interpolation. */
+  args: string[]
+  /** Extra env vars merged on top of scrubbed ambient env. */
+  env: Record<string, string>
+  /** Working directory for the child process. */
+  cwd: string
+  /** Per-tool-call timeout in milliseconds. */
+  toolCallTimeoutMs: number
+  /** Fail plugin activation when the initial connection or tool synchronization fails. */
+  failOnStartupError: boolean
+  /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
+  reconnect?: ReconnectConfig
+}
+
+/** Config for connecting to an MCP server over Streamable HTTP (SSE). */
+export interface StreamableHttpConfig {
+  /** Selects Streamable HTTP transport. */
+  transport: 'streamable-http'
+  /**
+   * Stable local namespace for this server's model-facing tool names
+   * (`mcp__<serverName>__<rawName>`). Must match `[A-Za-z0-9_-]{1,32}` and be
+   * unique across live mcp-client instances.
+   */
+  serverName: string
+  /** MCP endpoint URL. */
+  url: string
+  /** Additional non-credential headers attached to MCP requests. */
+  headers: Record<string, string>
+  /** Credential reference resolved immediately before each HTTP request and sent as a Bearer token. */
+  bearerTokenRef?: string
+  /** Per-tool-call timeout in milliseconds. */
+  toolCallTimeoutMs: number
+  /** Fail plugin activation when the initial connection or tool synchronization fails. */
+  failOnStartupError: boolean
+  /** Automatic reconnect policy after a lost connection; omission uses the defaults. */
+  reconnect?: ReconnectConfig
+}
+
+/** Automatic reconnect policy for one MCP server connection. */
+export interface ReconnectConfig {
+  /** Reconnect automatically after a lost connection (default true). */
+  enabled?: boolean
+  /** First reconnect delay in milliseconds; doubles per consecutive failed attempt (default 500). */
+  initialDelayMs?: number
+  /** Backoff ceiling in milliseconds; also the uptime after which the attempt budget resets (default 30000). */
+  maxDelayMs?: number
+  /** Consecutive failed attempts per outage before giving up for good (default 10). */
+  maxAttempts?: number
+}
+```
+
+Source: [`packages/plus/mcp-credentials/src/index.ts:101`](../packages/plus/mcp-credentials/src/index.ts)
+
+<a id="sparkelfdsh-plugin-subagent-settings"></a>
+
+## `@sparkelf/dsh-plugin-subagent-settings`
+
+Requires: `tools` · `subagents` · `systemPrompt`
+
+```ts config-catalog
+/** Config: which registered provider this tool delegates to, plus child defaults. */
+export interface Config {
+  /** The `ctx.subagents` provider name to start runs on (e.g. `spawn`, `acp`). */
+  provider: string
+  /** Optional Host-registered settings namespace for live child-default overrides. */
+  settingsNamespace?: string
+  /** Whether this model-facing delegation entry is registered (default true). */
+  enabled?: boolean
+  /**
+   * Model-facing tool name (default `subagent`). Each loaded instance must use
+   * a distinct name.
+   */
+  toolName?: string
+  /**
+   * Expose `run_in_background` (default true). Disabled instances omit the
+   * parameter and reject forced background calls.
+   */
+  enableRunInBackground?: boolean
+  /**
+   * Background execution policy (default `one-shot`). `one-shot` defaults calls
+   * to foreground; `continuable` defaults them to background, requires a provider
+   * with the `prepareContinuable` capability, and returns the durable child id.
+   * Follow-up adapters remain independently optional.
+   */
+  backgroundMode?: 'one-shot' | 'continuable'
+  /**
+   * Agent options applied to every child; omitted fields use child-loop defaults.
+   */
+  agentOptions?: AgentOptions
+  /**
+   * Per-child persona that shadows `deployment:persona`. Requires the
+   * provider's `persona` capability; omission preserves the deployment persona.
+   */
+  persona?: string
+  /**
+   * Tool filter applied to every child. Filtered tools disappear from its
+   * prompt and reject execution. Requires the provider's `toolFilter`
+   * capability; unknown names fail startup.
+   */
+  toolFilter?: {
+    /** Global tool names the child keeps; everything else is removed. */
+    allow?: string[]
+    /** Global tool names removed from the child. */
+    deny?: string[]
+  }
+  /**
+   * Additional delegation generations below a direct child: a non-negative safe
+   * integer (default `0`; `0` permits a child but forbids grandchildren), or
+   * `'provider-managed'` to send no cap. A numeric cap
+   * requires the provider's `depthLimit` capability (mount fails loud
+   * otherwise). The provider checks the calling agent's current depth at every
+   * start; the tool remains model-visible so runtime policy owns rejection.
+   * `'provider-managed'` is for an out-of-process provider whose recursion
+   * budget belongs to the child runtime or its own deployment.
+   */
+  maxDepth?: number | 'provider-managed'
+}
+```
+
+Depends on: [`AgentOptions`](subsystems/core.md)
+
+Source: [`packages/plus/subagent-settings/src/index.ts:30`](../packages/plus/subagent-settings/src/index.ts)
+
 ## Loadable plugins with no config
 
 These load from a `cordis.yml` entry with no `config:` block; they declare no configuration API.
@@ -3544,3 +3753,4 @@ Imported as libraries by other packages; a `cordis.yml` cannot load them.
 - `@deepseek-ai/dsh-util-crypto` ([`packages/util/crypto/src/index.ts`](../packages/util/crypto/src/index.ts))
 - `@deepseek-ai/dsh-util-workspace-path` ([`packages/util/workspace-path/src/index.ts`](../packages/util/workspace-path/src/index.ts))
 - `@deepseek-ai/dsh-win32-process` ([`packages/subprocess/win32-process/src/index.ts`](../packages/subprocess/win32-process/src/index.ts))
+- `@sparkelf/dsh-plus` ([`packages/bundle/plus/src/index.ts`](../packages/bundle/plus/src/index.ts))

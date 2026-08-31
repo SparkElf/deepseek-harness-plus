@@ -195,4 +195,36 @@ readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: 
 ```
 
 Source: [`packages/attachment/attachment/src/index.ts`](../../packages/attachment/attachment/src/index.ts)
+
+<a id="ctxdocumentparser--documentparserruntime"></a>
+
+### `ctx.documentParser` — `DocumentParserRuntime`
+
+Provider-neutral parser registry and direct-context policy owner.
+
+```ts cordis-catalog
+/**
+ * Register one parser provider until the owning Cordis fiber disposes.
+ * @param provider - provider implementation keyed by its non-empty id.
+ * @returns disposer that withdraws exactly this registration.
+ */
+registerProvider(provider: DocumentParserProvider): () => void
+
+/**
+ * Report whether current registry state resolves the configured provider selection.
+ * This does not probe provider health or external endpoint availability.
+ * @returns true only when a parse call can select exactly one registered provider.
+ */
+isSelectionResolvable(): boolean
+
+/**
+ * Parse one already-persisted document through the deployment-selected provider.
+ * @param request - verified original bytes and their durable metadata.
+ * @param signal - optional cancellation forwarded to the provider.
+ * @returns provider id together with the complete transient parse bundle.
+ */
+async parse( request: DocumentParseRequest, signal?: AbortSignal, ): Promise<{ parser: string; result: DocumentParseResult }>
+```
+
+Source: [`packages/plus/document-attachments/src/index.ts`](../../packages/plus/document-attachments/src/index.ts)
 <!-- END GENERATED cordis-surface -->

@@ -26,16 +26,32 @@ interface DocumentCardData {
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
+    /**
+     * Render the current Document drafts beside other composer attachments.
+     * A contribution receives the drafts and removal callback from the composer;
+     * it replaces the prior single Document-draft registration. Without one,
+     * Document drafts remain accepted but have no dedicated draft cards.
+     */
     'conversation.input.attachments.documents': {
       kind: 'single'
       scope: 'session-maybe'
       owner: { documents: readonly DocumentDraft[]; onRemoveDocument: (id: DraftAttachmentId) => void }
     }
+    /**
+     * Render durable Document metadata in one Chat message's attachment area.
+     * A contribution receives the message's card data and replaces the prior
+     * single Document-card registration. Without one, Chat omits these cards.
+     */
     'conversation.message.images.documents': {
       kind: 'single'
       scope: 'session'
       owner: { documents: readonly DocumentCardData[] }
     }
+    /**
+     * Render durable Document metadata in one Trajectory entry's attachment area.
+     * A contribution receives the entry's card data and replaces the prior single
+     * Document-card registration. Without one, Trajectory omits these cards.
+     */
     'conversation.trajectory.images.documents': {
       kind: 'single'
       scope: 'session'

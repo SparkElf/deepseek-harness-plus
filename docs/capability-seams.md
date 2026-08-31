@@ -7,6 +7,8 @@ A service can be a core spine service, a swappable capability seam, or a bundle/
 
 ```mermaid
 flowchart LR
+  pkg_document_attachments["document-attachments"]
+  svc_documentParser["ctx.documentParser<br/>Document parser provider registry"]
   pkg_attachment["attachment"]
   svc_attachments["ctx.attachments<br/>Durable binary attachment storage"]
   pkg_attachment_local["attachment-local"]
@@ -246,6 +248,7 @@ flowchart LR
   pkg_credentials --> svc_credentials
   pkg_credentials_local --> svc_credentials
   pkg_deepseek_llm_api_extensions --> svc_deepseekLlmApiExtensions
+  pkg_document_attachments --> svc_documentParser
   pkg_e2b --> svc_e2b
   pkg_experimental_agent_team --> svc_agentTeams
   pkg_file_reference --> svc_fileReferences
@@ -463,6 +466,7 @@ flowchart LR
 
 | ctx key | Role | Owner | Implementations | Direct consumers | Companion plugins | Note |
 | --- | --- | --- | --- | --- | --- | --- |
+| `ctx.documentParser` | `seam` | `document-attachments` | - | - | - | The Plus capability package owns provider registration and selection, the MinerU implementation, authenticated intake, durable artifacts, and bounded model projection. |
 | `ctx.attachments` | `seam` | [`attachment`](../packages/attachment/attachment) | [`attachment-local`](../packages/attachment/attachment-local) | [`api-session-controller`](../packages/api/session-controller), [`tool-fs`](../packages/fs/tool-fs), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-deepseek`](../packages/llm/llm-deepseek) | - | The host commits accepted images before session events; provider adapters resolve authorized durable references into provider-native content. |
 | `ctx.llm` | `seam` | [`llm`](../packages/llm/llm) | [`llm-deepseek`](../packages/llm/llm-deepseek), [`llm-pi-ai`](../packages/llm/llm-pi-ai), [`llm-replay`](../packages/test-support/llm-replay) | [`agent-loop`](../packages/core/agent-loop), [`compaction-basic`](../packages/compaction/compaction-basic) | - | Adapters register provider implementations; the loop and compaction call the provider-neutral stream service. |
 | `ctx.deepseekLlmApiExtensions` | `seam` | [`deepseek-llm-api-extensions`](../packages/llm/deepseek-llm-api-extensions) | [`session-log-deepseek`](../packages/session/session-log-deepseek), [`plugin-package-inventory-deepseek`](../packages/llm/plugin-package-inventory-deepseek) | [`llm-deepseek`](../packages/llm/llm-deepseek) | - | Plugins prepare independent top-level fields; the official adapter merges them and commits their delivery state after HTTP acceptance. |
