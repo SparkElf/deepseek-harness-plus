@@ -308,7 +308,7 @@ function prepareSelection(
   preflightSourcePatches(dshRoot, pendingSourceFiles)
 
   if (writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)) {
-    runPnpm(profileDirectory, ['install'], 'pnpm install Plus profile dependencies')
+    runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install Plus profile dependencies')
   }
   const profileDependencies = Object.keys(profileDependencySpecs).sort().map((name) => {
     const installed = resolveInstalledPackage(profileDirectory, name)
@@ -552,7 +552,7 @@ function applySelectedPatches(
   const workspace = profilePatchConfiguration(profileDirectory, materialized.npmPatchFiles)
   if (workspace.changed) writeFileSync(workspacePath, workspace.text)
   if (profileChanged || workspace.changed) {
-    runPnpm(profileDirectory, ['install'], 'pnpm install in Plus profile')
+    runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in Plus profile')
   }
   const sourceFiles = pendingSourcePatchFiles(materialized.patches)
   for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
