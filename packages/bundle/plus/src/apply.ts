@@ -555,6 +555,8 @@ function applySelectedPatches(
     runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in Plus profile')
   }
   const sourceFiles = pendingSourcePatchFiles(materialized.patches)
+  // Docker/overlay copy会使内容未变的文件stat失效；先刷新clean index项，脏文件仍由git apply判冲突。
+  if (sourceFiles.length > 0) git(dshRoot, ['update-index', '--refresh'], true)
   for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
   if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
     runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
