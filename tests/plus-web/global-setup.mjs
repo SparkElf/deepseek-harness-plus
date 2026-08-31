@@ -85,7 +85,20 @@ async function portAvailable(port) {
 }
 
 function writePdf(path) {
-  const stream = 'BT /F1 18 Tf 72 720 Td (PLUS_DOCUMENT_OK) Tj ET\n'
+  const stream = [
+    'BT',
+    '/F1 28 Tf',
+    '72 680 Td',
+    '(DeepSeek Harness document preview) Tj',
+    '0 -64 Td',
+    '/F1 20 Tf',
+    '(This fixture verifies parsed document content.) Tj',
+    '0 -42 Td',
+    '(The expected phrase is PLUS DOCUMENT OK.) Tj',
+    '0 -42 Td',
+    '(Visible text must reach Chat and Trajectory preview.) Tj',
+    'ET',
+  ].join('\n') + '\n'
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',

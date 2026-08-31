@@ -21,12 +21,14 @@
 
 .card,
 .historyCard {
+  box-sizing: border-box;
   display: grid;
   flex: 0 0 auto;
-  grid-template-columns: 38px minmax(0, 1fr) auto 22px;
+  grid-template-columns: 38px minmax(0, auto) auto 22px;
   align-items: center;
   gap: 8px;
-  width: min(100%, 420px);
+  width: fit-content;
+  max-width: 100%;
   min-width: 0;
   min-height: 44px;
   padding: 5px 8px;
@@ -36,7 +38,27 @@
 }
 
 .historyCard {
-  grid-template-columns: 38px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.previewButton {
+  display: grid;
+  grid-template-columns: 38px minmax(0, auto) auto;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.previewButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 2px;
 }
 
 .kind {
@@ -55,6 +77,7 @@
 
 .name {
   min-width: 0;
+  max-width: 260px;
   overflow: hidden;
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
@@ -86,4 +109,20 @@
 .remove:focus-visible {
   background: var(--dsw-alias-interactive-bg-hover-solid);
   color: var(--dsw-alias-label-primary);
+}
+
+.previewContent {
+  height: 100%;
+  overflow: auto;
+  padding: 16px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.previewState {
+  display: grid;
+  min-height: 160px;
+  place-items: center;
+  padding: 16px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
 }

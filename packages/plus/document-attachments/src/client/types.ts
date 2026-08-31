@@ -1,5 +1,6 @@
 /** Browser-only Document draft, limits, and presentation owner data. */
 
+import type { AttachmentIdType } from '@deepseek-ai/dsh-attachment'
 import type { DraftAttachmentId } from '@deepseek-ai/dsh-client-ui-conversation/client'
 
 /** Browser-owned Document draft before Host admission. */
@@ -17,8 +18,9 @@ export interface DocumentLimits {
   readonly mediaTypes: readonly string[]
 }
 
-/** Plain durable Document metadata rendered by history cards. */
-interface DocumentCardData {
+/** Durable Document metadata and preview references rendered by history cards. */
+export interface DocumentCardData {
+  readonly previewAttachmentId: AttachmentIdType
   readonly name: string
   readonly mediaType: string
   readonly bytes: number

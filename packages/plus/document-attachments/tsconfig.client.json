@@ -8,12 +8,16 @@
   "files": [
     "src/client/DraftDocuments.tsx",
     "src/client/MessageDocuments.tsx",
+    "src/client/SidebarDocumentPreview.tsx",
     "src/client/index.ts",
     "src/client/locales.ts",
     "src/client/css-modules.d.ts",
     "src/client/types.ts"
   ],
   "references": [
+    {
+      "path": "../../attachment/attachment"
+    },
     {
       "path": "../../api/session-controller/tsconfig.client.json"
     },

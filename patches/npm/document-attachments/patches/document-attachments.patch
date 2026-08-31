@@ -1,7 +1,45 @@
+diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
+index 7810249c46..db2c674ce2 100644
+--- a/packages/api/session-controller/src/client/contract/session.ts
++++ b/packages/api/session-controller/src/client/contract/session.ts
+@@ -7,7 +7,7 @@
+  * must stub); implementation-internal entry points (history staging, wire-frame
+  * dispatch) stay on the class, invisible out here.
+  */
+-import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+@@ -85,13 +85,13 @@ export interface ISession {
+     requestId?: SessionRequestId,
+   ): Promise<RemoteResult<{ accepted: true }>>
+   /**
+-   * Resolve one durable image referenced by this session.
++   * Resolve one durable file referenced by this session.
+    * @param attachmentId - opaque id found in the folded session log.
+    * @returns the authenticated reference and decoded bytes.
+    */
+   readAttachment(
+     attachmentId: AttachmentIdType,
+-  ): Promise<RemoteResult<{ attachment: ImageAttachmentRef; data: Uint8Array }>>
++  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; data: Uint8Array }>>
+   /**
+    * Apply one edit, remove, or strict steer action to a still-pending queue occurrence.
+    * @param itemId - agent-owned inbox occurrence identity.
 diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
-index 8af47b5aad..429e6d10c6 100644
+index 8af47b5aad..3599956698 100644
 --- a/packages/api/session-controller/src/client/sessions/session.ts
 +++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -2,7 +2,7 @@
+ 
+ import type { Context } from '@deepseek-ai/cordis'
+ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
+-import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
 @@ -28,7 +28,7 @@ import type {
  } from '../contract/events.ts'
  import { Notifier } from './notifier.ts'
@@ -107,10 +145,35 @@ index 8af47b5aad..429e6d10c6 100644
      if (this.blankBit) {
        this.blankBit = false
        this.options.onEngaged?.(this)
+@@ -262,13 +281,13 @@ export class Session implements SessionFace {
+   }
+ 
+   /**
+-   * Resolve one image referenced by this session into browser-consumable bytes.
++   * Resolve one file referenced by this session into browser-consumable bytes.
+    * @param attachmentId - opaque id found in the folded session log.
+    * @returns the authenticated reference and decoded bytes.
+    */
+   async readAttachment(
+     attachmentId: AttachmentIdType,
+-  ): Promise<RemoteResult<{ attachment: ImageAttachmentRef; data: Uint8Array }>> {
++  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; data: Uint8Array }>> {
+     const result = await this.remote.session.attachment({
+       sessionId: this.sessionId,
+       attachmentId,
 diff --git a/packages/api/session-controller/src/commands.ts b/packages/api/session-controller/src/commands.ts
-index 1ad9127925..1105f1806b 100644
+index 1ad9127925..4384b275a8 100644
 --- a/packages/api/session-controller/src/commands.ts
 +++ b/packages/api/session-controller/src/commands.ts
+@@ -5,7 +5,7 @@ import type { Context } from '@deepseek-ai/cordis'
+ import { brandString } from '@deepseek-ai/dsh-brand'
+ import type { Agent, ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
+ import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
+-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import {
+   ReasoningEffortId, createUserMessage, freezeMessage,
+ } from '@deepseek-ai/dsh-llm'
 @@ -281,6 +281,26 @@ export class SessionCommandController {
     * @returns acknowledgement that the Agent accepted the prompt.
     */
@@ -156,6 +219,173 @@ index 1ad9127925..1105f1806b 100644
          if (request.mode === 'steer') agent.steer(message)
          else agent.followup(message)
        } catch (error) {
+@@ -336,7 +354,7 @@ export class SessionCommandController {
+   }
+ 
+   /**
+-   * Read one durable image after proving the Session log references it.
++   * Read one durable attachment after proving the Session log references it.
+    * @param request - Session and attachment identities used for authorization.
+    * @returns the durable attachment reference and base64-encoded bytes.
+    */
+@@ -348,31 +366,35 @@ export class SessionCommandController {
+       if (error instanceof ApiSessionNotFound) {
+         throw new RemoteError('session/not-found', error.message, { sessionId: request.sessionId })
+       }
++      console.error('session-controller: attachment authorization failed', error)
+       throw new RemoteError(
+         'gateway/internal',
+         `attachment authorization unavailable for session "${request.sessionId}": ${String(error)}`,
+         {},
+       )
+     }
+-    const ref = referencedImage(source.events, String(request.attachmentId))
+-    if (ref === undefined) {
++    const referenced = referencedAttachment(source.events, String(request.attachmentId))
++    if (referenced === undefined) {
+       throw new RemoteError(
+         'session/attachment-invalid',
+-        'Image is not referenced by this session.',
++        'Attachment is not referenced by this session.',
+         { reason: 'ATTACHMENT_NOT_REFERENCED' },
+       )
+     }
+     try {
+-      const stored = await this.ctx.attachments.readImage(ref)
++      const stored = referenced.kind === 'image'
++        ? await this.ctx.attachments.readImage(referenced.ref)
++        : await this.ctx.attachments.readFile(referenced.ref)
+       return {
+         attachment: stored.ref,
+         data: Buffer.from(stored.data).toString('base64'),
+       }
+     } catch (error) {
++      console.error('session-controller: attachment read failed', error)
+       if (error instanceof AttachmentError) {
+         throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
+       }
+-      throw new RemoteError('gateway/internal', 'Unable to read image attachment.', {})
++      throw new RemoteError('gateway/internal', 'Unable to read attachment.', {})
+     }
+   }
+ 
+@@ -507,55 +529,98 @@ async function durablePromptContent(
+     : { type: 'image', attachment: refs[next++] as ImageAttachmentRef })
+ }
+ 
+-function imageBlockIn(
++type ReferencedAttachment =
++  | { readonly kind: 'image'; readonly ref: ImageAttachmentRef }
++  | { readonly kind: 'file'; readonly ref: FileAttachmentRef }
++
++function matchingAttachment(
++  value: unknown,
++  kind: ReferencedAttachment['kind'],
++  attachmentId: string,
++): ReferencedAttachment | undefined {
++  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
++  if (String((value as { readonly attachmentId?: unknown }).attachmentId) !== attachmentId) return undefined
++  return kind === 'image'
++    ? { kind, ref: value as ImageAttachmentRef }
++    : { kind, ref: value as FileAttachmentRef }
++}
++
++function attachmentBlockIn(
+   content: unknown,
+-  match: (ref: ImageAttachmentRef) => boolean,
+-): ImageAttachmentRef | undefined {
++  attachmentId: string,
++): ReferencedAttachment | undefined {
+   if (!Array.isArray(content)) return undefined
+   for (const value of content) {
+     if (typeof value !== 'object' || value === null || Array.isArray(value)) continue
+-    const block = value as { readonly type?: unknown; readonly attachment?: unknown; readonly content?: unknown }
+-    if (block.type === 'image' && typeof block.attachment === 'object' && block.attachment !== null) {
+-      const ref = block.attachment as ImageAttachmentRef
+-      if (match(ref)) return ref
++    const block = value as {
++      readonly type?: unknown
++      readonly attachment?: unknown
++      readonly parsed?: unknown
++      readonly content?: unknown
++    }
++    if (block.type === 'image') {
++      const found = matchingAttachment(block.attachment, 'image', attachmentId)
++      if (found !== undefined) return found
++    }
++    if (block.type === 'document') {
++      const original = matchingAttachment(block.attachment, 'file', attachmentId)
++      if (original !== undefined) return original
++      if (typeof block.parsed === 'object' && block.parsed !== null && !Array.isArray(block.parsed)) {
++        const parsed = block.parsed as {
++          readonly markdown?: unknown
++          readonly modelText?: unknown
++          readonly contentList?: unknown
++          readonly images?: unknown
++        }
++        for (const artifact of [parsed.markdown, parsed.modelText, parsed.contentList]) {
++          const found = matchingAttachment(artifact, 'file', attachmentId)
++          if (found !== undefined) return found
++        }
++        if (Array.isArray(parsed.images)) {
++          for (const image of parsed.images) {
++            const found = matchingAttachment(image, 'image', attachmentId)
++            if (found !== undefined) return found
++          }
++        }
++      }
+     }
+     if (block.type === 'tool-result') {
+-      const nested = imageBlockIn(block.content, match)
++      const nested = attachmentBlockIn(block.content, attachmentId)
+       if (nested !== undefined) return nested
+     }
+   }
+   return undefined
+ }
+ 
+-function imageInEvent(
++function attachmentInEvent(
+   event: SessionEvent,
+-  match: (ref: ImageAttachmentRef) => boolean,
+-): ImageAttachmentRef | undefined {
++  attachmentId: string,
++): ReferencedAttachment | undefined {
+   const data = event.data as {
+     readonly content?: unknown
+     readonly message?: { readonly content?: unknown }
+     readonly inserted?: readonly { readonly content?: unknown }[]
+     readonly chunk?: { readonly type?: unknown; readonly block?: unknown }
+   }
+-  const direct = imageBlockIn(data.content, match)
++  const direct = attachmentBlockIn(data.content, attachmentId)
+   if (direct !== undefined) return direct
+-  const message = imageBlockIn(data.message?.content, match)
++  const message = attachmentBlockIn(data.message?.content, attachmentId)
+   if (message !== undefined) return message
+   for (const inserted of data.inserted ?? []) {
+-    const found = imageBlockIn(inserted.content, match)
++    const found = attachmentBlockIn(inserted.content, attachmentId)
+     if (found !== undefined) return found
+   }
+   return event.type === 'assistant/chunk' && data.chunk?.type === 'block-end'
+-    ? imageBlockIn([data.chunk.block], match)
++    ? attachmentBlockIn([data.chunk.block], attachmentId)
+     : undefined
+ }
+ 
+-function referencedImage(
++function referencedAttachment(
+   events: readonly SessionEvent[],
+   attachmentId: string,
+-): ImageAttachmentRef | undefined {
++): ReferencedAttachment | undefined {
+   for (const event of events) {
+-    const found = imageInEvent(event, ref => String(ref.attachmentId) === attachmentId)
++    const found = attachmentInEvent(event, attachmentId)
+     if (found !== undefined) return found
+   }
+   return undefined
 diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
 index 572f895754..b828038982 100644
 --- a/packages/api/session-controller/src/index.ts
@@ -236,7 +466,7 @@ index ab72da1c92..be3fbe1e31 100644
    }
  
 diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
-index c0b25fcf2c..97703316fd 100644
+index c0b25fcf2c..f080be8601 100644
 --- a/packages/api/session-controller/src/types.ts
 +++ b/packages/api/session-controller/src/types.ts
 @@ -1,7 +1,7 @@
@@ -244,7 +474,7 @@ index c0b25fcf2c..97703316fd 100644
  
  import type {
 -  AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
-+  AttachmentIdType, DocumentAttachmentLimits, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
++  AttachmentIdType, DocumentAttachmentLimits, FileAttachmentRef, ImageAttachmentLimits, ImageMediaType,
  } from '@deepseek-ai/dsh-attachment'
  import type { Branded } from '@deepseek-ai/dsh-brand'
  import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -266,6 +496,25 @@ index c0b25fcf2c..97703316fd 100644
      /** Durable model selection already used and selected for the next request. */
      modelSelection: ModelSelectionProjection
    }
+@@ -313,15 +317,15 @@ export interface SessionPromptValue {
+   readonly accepted: true
+ }
+ 
+-/** Durable image read request. */
++/** Durable attachment read request. */
+ export interface SessionAttachmentRequest {
+   readonly sessionId: SessionId
+   readonly attachmentId: AttachmentIdType
+ }
+ 
+-/** Durable image read response value. */
++/** Durable attachment read response value. */
+ export interface SessionAttachmentValue {
+-  readonly attachment: ImageAttachmentRef
++  readonly attachment: FileAttachmentRef
+   readonly data: string
+ }
+ 
 diff --git a/packages/attachment/attachment-local/src/index.ts b/packages/attachment/attachment-local/src/index.ts
 index 16b963f225..c10fe04f5d 100644
 --- a/packages/attachment/attachment-local/src/index.ts
@@ -381,7 +630,7 @@ index 16b963f225..c10fe04f5d 100644
      await this.compression.run(() => validateImageFile(input, this.imageLimits, this.normalizationPolicy))
    }
 diff --git a/packages/attachment/attachment-local/src/store.ts b/packages/attachment/attachment-local/src/store.ts
-index e5a979aec1..26f8e40e2a 100644
+index e5a979aec1..14de66088e 100644
 --- a/packages/attachment/attachment-local/src/store.ts
 +++ b/packages/attachment/attachment-local/src/store.ts
 @@ -9,9 +9,12 @@ import {
@@ -425,13 +674,14 @@ index e5a979aec1..26f8e40e2a 100644
  }
  
  async function inspectMetadata(
-@@ -183,73 +189,120 @@ async function ensureDurableHome(path: string): Promise<string> {
+@@ -183,73 +189,121 @@ async function ensureDurableHome(path: string): Promise<string> {
  }
  
  /**
 - * Publish one already verified normalized image below a versioned attachment root.
 + * Publish one immutable object after its content digest is known.
-+ * 中文约束：返回前必须完成file与directory durability；Session只能记录已经返回的reference。
++ * The operation returns only after file and directory durability; Sessions
++ * may record only references returned by this function.
   * @param root - absolute `DSH_HOME/attachments/v1` root.
 - * @param prepared - deterministic normalized bytes and reference.
 - * @returns durable content-addressed normalized image reference.
@@ -810,17 +1060,21 @@ index 0000000000..da3ae830f9
 +}
 diff --git a/packages/client/ui-attachment/src/client/AttachmentPicker.tsx b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
 new file mode 100644
-index 0000000000..6e22cb26bc
+index 0000000000..8edb8c5da5
 --- /dev/null
 +++ b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,46 @@
 +import { useCallback, useRef } from 'react'
 +import type { ChangeEvent } from 'react'
 +import { IconPaperclipOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
 +import type { ComposerAttachmentPickerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 +import css from './AttachmentPicker.module.css'
 +
-+/** 在输入框指令按钮右侧提供图片和文档的统一文件选择入口。 */
++/**
++ * Render one image-and-document chooser directly after the command button.
++ * @param props - current intake availability, file callback, and localized labels.
++ * @returns the hidden file input and its visible attachment action.
++ */
 +export function AttachmentPicker({ canAcceptFiles, onAddFiles, t }: ComposerAttachmentPickerProps) {
 +  const fileInput = useRef<HTMLInputElement>(null)
 +  const chooseFiles = useCallback(() => { fileInput.current?.click() }, [])
@@ -916,7 +1170,7 @@ index 1e45dc6230..79db6a90b3 100644
          <div className={css.rail}>
            <AttachmentRail
 diff --git a/packages/client/ui-attachment/src/client/MessageImages.tsx b/packages/client/ui-attachment/src/client/MessageImages.tsx
-index c84914db54..70b28eb660 100644
+index c84914db54..46426f4519 100644
 --- a/packages/client/ui-attachment/src/client/MessageImages.tsx
 +++ b/packages/client/ui-attachment/src/client/MessageImages.tsx
 @@ -1,8 +1,30 @@
@@ -941,7 +1195,7 @@ index c84914db54..70b28eb660 100644
 +}
 +
 +/** Chat attachment slot entry. */
-+export function MessageImages({ images, documents = [], loadImage, align, t, renderSlot }: MessageImagesProps) {
++export function MessageImages({ images, documents, loadImage, align, t, renderSlot }: MessageImagesProps) {
 +  return <AttachmentGallery images={images} loadImage={loadImage} align={align} t={t} documentCards={renderSlot('conversation.message.images.documents', { documents })} />
 +}
 +
@@ -950,7 +1204,7 @@ index c84914db54..70b28eb660 100644
 +  & PropsLocale<'conversation'>
 +
 +/** Trajectory attachment slot entry. */
-+export function TrajectoryImages({ images, documents = [], loadImage, align, t, renderSlot }: TrajectoryProps) {
++export function TrajectoryImages({ images, documents, loadImage, align, t, renderSlot }: TrajectoryProps) {
 +  return <AttachmentGallery images={images} loadImage={loadImage} align={align} t={t} documentCards={renderSlot('conversation.trajectory.images.documents', { documents })} />
  }
 diff --git a/packages/client/ui-attachment/src/client/index.ts b/packages/client/ui-attachment/src/client/index.ts
@@ -1043,7 +1297,7 @@ index ef77068f7e..ba4fc855d5 100644
    })
  
 diff --git a/packages/client/ui-attachment/tests/message-image.client.spec.tsx b/packages/client/ui-attachment/tests/message-image.client.spec.tsx
-index 76a720b983..62475e6924 100644
+index 76a720b983..0ed7b07d03 100644
 --- a/packages/client/ui-attachment/tests/message-image.client.spec.tsx
 +++ b/packages/client/ui-attachment/tests/message-image.client.spec.tsx
 @@ -261,6 +261,7 @@ describe('ImageGallery', () => {
@@ -1054,7 +1308,11 @@ index 76a720b983..62475e6924 100644
        useSession,
        useSessions,
        useSessionPendingInteraction,
-@@ -281,6 +282,7 @@ describe('ImageGallery', () => {
+@@ -278,9 +279,11 @@ describe('ImageGallery', () => {
+         submit: vi.fn(),
+       },
+       images: [{ attachment }],
++      documents: [],
        loadImage,
        align: 'end',
        t,
@@ -1062,10 +1320,31 @@ index 76a720b983..62475e6924 100644
      }
      const view = render(<MessageImages {...props} />)
      await waitFor(() => { expect(view.getByAltText('history.png')).toBeTruthy() })
+diff --git a/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx b/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
+index c517f9d0c2..f24f94ea1d 100644
+--- a/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
++++ b/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
+@@ -87,6 +87,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
+           <Fragment key={start}>
+             {renderMessageImages({
+               images: group.map(({ attachment }) => ({ attachment })),
++              documents: [],
+               align: 'start',
+             })}
+           </Fragment>,
 diff --git a/packages/client/ui-chat/src/client/chat/MessageItem.tsx b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
-index cb8084fe41..47b93fd933 100644
+index cb8084fe41..5dd3aa8512 100644
 --- a/packages/client/ui-chat/src/client/chat/MessageItem.tsx
 +++ b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+@@ -1,7 +1,7 @@
+ import { memo, useEffect, useMemo, useState } from 'react'
+ import type { ReactNode } from 'react'
+ import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
+-import type { MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import type { MessageDocumentSource, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { JsonBlock, projectUserText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
+ import type { ModelRetryNode, TurnErrorNode, UserMessageNode } from '../contract/snapshot.ts'
 @@ -11,14 +11,17 @@ import { MessageIconActions } from './MessageIconActions.tsx'
  import css from './MessageItem.module.css'
  
@@ -1075,22 +1354,28 @@ index cb8084fe41..47b93fd933 100644
  function contentParts(content: readonly unknown[]): {
    text: string
    images: { attachment: UserImage['attachment'] }[]
-+  documents: { name: string; mediaType: string; bytes: number }[]
++  documents: MessageDocumentSource[]
    rest: unknown[]
  } {
    const texts: string[] = []
    const images: { attachment: UserImage['attachment'] }[] = []
-+  const documents: { name: string; mediaType: string; bytes: number }[] = []
++  const documents: MessageDocumentSource[] = []
    const rest: unknown[] = []
    for (const block of content) {
      const b = block as { type?: string; text?: string; attachment?: unknown }
-@@ -26,9 +29,13 @@ function contentParts(content: readonly unknown[]): {
+@@ -26,9 +29,19 @@ function contentParts(content: readonly unknown[]): {
      else if (b.type === 'image' && b.attachment !== undefined) {
        images.push({ attachment: (b as UserImage).attachment })
      }
 +    else if (b.type === 'document' && b.attachment !== undefined) {
-+      const attachment = (b as UserDocument).attachment
-+      documents.push({ name: attachment.name, mediaType: attachment.mediaType, bytes: attachment.bytes })
++      const document = b as UserDocument
++      const attachment = document.attachment
++      documents.push({
++        previewAttachmentId: document.parsed.markdown.attachmentId,
++        name: attachment.name,
++        mediaType: attachment.mediaType,
++        bytes: attachment.bytes,
++      })
 +    }
      else rest.push(block)
    }
@@ -1099,7 +1384,7 @@ index cb8084fe41..47b93fd933 100644
  }
  
  function retrySeconds(milliseconds: number): number {
-@@ -166,7 +173,7 @@ function UserStyleBubble({
+@@ -166,7 +179,7 @@ function UserStyleBubble({
    reveal?: 'always' | 'hover'
    t: ChatViewSlotProps['t']
  }): ReactNode {
@@ -1108,7 +1393,7 @@ index cb8084fe41..47b93fd933 100644
    const images = previewImages ?? contentImages
    const truncated = (total: number): string => t('json.truncated', { total })
    const showBubble = text !== '' || rest.length > 0
-@@ -178,7 +185,7 @@ function UserStyleBubble({
+@@ -178,7 +191,7 @@ function UserStyleBubble({
        data-actions-reveal={reveal}
      >
        <div className={css.userStack}>
@@ -1118,7 +1403,7 @@ index cb8084fe41..47b93fd933 100644
            {projectUserText(text, referenceLabels)}
            {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
 diff --git a/packages/client/ui-chat/src/client/contract/slots.ts b/packages/client/ui-chat/src/client/contract/slots.ts
-index 307d8f703b..0183aede09 100644
+index 307d8f703b..7679be0fba 100644
 --- a/packages/client/ui-chat/src/client/contract/slots.ts
 +++ b/packages/client/ui-chat/src/client/contract/slots.ts
 @@ -1,7 +1,7 @@
@@ -1141,10 +1426,16 @@ index 307d8f703b..0183aede09 100644
  
  /** Details-panel callbacks. */
  export interface DetailsInjected {
-@@ -182,6 +184,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -182,6 +184,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       * registration replaces the shipped gallery; without one, images are omitted.
       */
      'conversation.message.images': { kind: 'single'; scope: 'session'; owner: MessageImagesOwnerProps }
++    /**
++     * Render durable Document cards inside one Chat message's attachment rail.
++     * A contribution receives the message's projected Document metadata and
++     * replaces the prior single card renderer. Without one, Chat keeps image
++     * presentation but omits Document cards.
++     */
 +    'conversation.message.images.documents': { kind: 'single'; scope: 'session'; owner: { documents: readonly MessageDocumentSource[] } }
      /**
       * Command row keyed by the command name. The component receives the folded
@@ -1237,9 +1528,17 @@ index b154e73f4a..480e242a30 100644
            submissionPolicy.resolve(running, gesture, steeringAvailable),
          toggleCommandMenu: inputTriggers === undefined
 diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
-index 377a75ee00..4be7200ae2 100644
+index 377a75ee00..08f4507c92 100644
 --- a/packages/client/ui-conversation/src/client/contract/slots.ts
 +++ b/packages/client/ui-conversation/src/client/contract/slots.ts
+@@ -1,6 +1,6 @@
+ /** Target-neutral Conversation slot declarations and composed component props. */
+ import type { ReactNode, RefObject } from 'react'
+-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
+ import type {
 @@ -34,17 +34,53 @@ export interface ComposerAttachment {
    height?: number
  }
@@ -1296,13 +1595,14 @@ index 377a75ee00..4be7200ae2 100644
    dropLimits?: { readonly count: number; readonly size: string } | undefined
  }
  
-@@ -71,10 +107,19 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
+@@ -71,10 +107,20 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
    peek?: (attachment: ImageAttachmentRef) => string | undefined
  }
  
 -/** Message image group handed to the optional attachment presentation plugin. */
 +/** Display metadata for one durable Document history card. */
 +export interface MessageDocumentSource {
++  readonly previewAttachmentId: AttachmentIdType
 +  readonly name: string
 +  readonly mediaType: string
 +  readonly bytes: number
@@ -1313,11 +1613,11 @@ index 377a75ee00..4be7200ae2 100644
    /** Durable references or submission-echo previews in source order. */
    images: readonly MessageImageSource[]
 +  /** Durable Document cards associated with this user message. */
-+  documents?: readonly MessageDocumentSource[]
++  documents: readonly MessageDocumentSource[]
    /** Session-authorized image URL loader for the durable arm. */
    loadImage: MessageImageLoader
    /** Horizontal placement inside the owning record. */
-@@ -141,6 +186,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -141,6 +187,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
        scope: 'session-maybe'
        owner: ComposerAttachmentsOwnerProps
      }
@@ -1336,7 +1636,7 @@ index 377a75ee00..4be7200ae2 100644
      /** Plan control inside the composer tool row. */
      'conversation.input.plan': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
      /** Model selector inside the composer tool row. */
-@@ -267,6 +324,14 @@ export interface ComposerBarInjected {
+@@ -267,6 +325,14 @@ export interface ComposerBarInjected {
    addImages: ((files: readonly File[]) => string | null) | undefined
    removeImage: ((id: DraftAttachmentId) => void) | undefined
    draftImages: ((ids: readonly DraftAttachmentId[]) => readonly ComposerAttachment[]) | undefined
@@ -1351,7 +1651,7 @@ index 377a75ee00..4be7200ae2 100644
    resolveSubmitMode: (
      running: boolean,
      gesture: ComposerSubmitGesture,
-@@ -292,7 +357,8 @@ export interface InputControlOwnerProps {
+@@ -292,7 +358,8 @@ export interface InputControlOwnerProps {
  export type ComposerBarProps =
    PropsRuntime<'conversation.composer.bar'>
    & PropsRenderSlots<
@@ -1361,7 +1661,7 @@ index 377a75ee00..4be7200ae2 100644
    >
    & InjectFace<ComposerBarInjected>
    & PropsLocale<'conversation'>
-@@ -356,6 +422,8 @@ export type ConversationSessionHeaderSlotProps =
+@@ -356,6 +423,8 @@ export type ConversationSessionHeaderSlotProps =
  /** Full props of the draft-image attachment renderer. */
  export type ComposerAttachmentsProps =
    PropsRuntime<'conversation.input.attachments'> & PropsLocale<'conversation'>
@@ -2095,14 +2395,16 @@ index 1d3f4159f0..08a36c8912 100644
            toggleCommandMenu={vi.fn()}
            useNotices={bindSnapshotSelector(wiring.notices)}
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx b/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
-index 81a428aa35..8f40cb75c1 100644
+index 81a428aa35..ad9d38ff64 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
-@@ -1164,18 +1164,26 @@ function SourceBlocks({
+@@ -1163,19 +1163,27 @@ function SourceBlocks({
+           {/* The Raw view keeps model block order and granularity: one
                gallery per image block, unlike the aggregated record gallery. */}
            {block.attachment !== undefined
-             ? renderImages({ images: [{ attachment: block.attachment }], align: 'start' })
+-            ? renderImages({ images: [{ attachment: block.attachment }], align: 'start' })
 -            : <pre className={css.sourceBlockContent}>{block.content}</pre>}
++            ? renderImages({ images: [{ attachment: block.attachment }], documents: [], align: 'start' })
 +            : block.document !== undefined
 +              ? renderImages({ images: [], documents: [block.document], align: 'start' })
 +              : <pre className={css.sourceBlockContent}>{block.content}</pre>}
@@ -2157,7 +2459,7 @@ index 81a428aa35..8f40cb75c1 100644
 -              {renderImages({ images: [{ attachment: block.attachment }], align: 'start' })}
 +              {renderImages({
 +                images: block.attachment === undefined ? [] : [{ attachment: block.attachment }],
-+                ...(block.document === undefined ? {} : { documents: [block.document] }),
++                documents: block.document === undefined ? [] : [block.document],
 +                align: 'start',
 +              })}
              </div>
@@ -2186,20 +2488,47 @@ index 81a428aa35..8f40cb75c1 100644
    }
    return (
 diff --git a/packages/client/ui-trajectory/src/client/layout.ts b/packages/client/ui-trajectory/src/client/layout.ts
-index a811e915f2..8676ea46dc 100644
+index a811e915f2..0353bce987 100644
 --- a/packages/client/ui-trajectory/src/client/layout.ts
 +++ b/packages/client/ui-trajectory/src/client/layout.ts
-@@ -841,6 +841,16 @@ function sourceBlock(value: unknown): TrajectorySourceBlock {
+@@ -6,6 +6,7 @@ import type {
+   AssistantBlock,
+   AssistantMessageNode,
+   ConversationLocation,
++  MessageDocumentSource,
+   RequestInspectionSnapshot,
+   RequestPromptChange,
+   RequestView,
+@@ -841,6 +842,35 @@ function sourceBlock(value: unknown): TrajectorySourceBlock {
      // wire-shaped 'other' blocks with an unrelated `attachment` member out.
      return { type, content: '', attachment: block.attachment as ImageAttachmentRef }
    }
-+  if (type === 'document' && typeof block.attachment === 'object' && block.attachment !== null) {
++  if (
++    type === 'document'
++    && typeof block.attachment === 'object' && block.attachment !== null
++    && typeof block.parsed === 'object' && block.parsed !== null
++  ) {
 +    const attachment = block.attachment as Record<string, unknown>
-+    if (typeof attachment.name === 'string' && typeof attachment.mediaType === 'string' && typeof attachment.bytes === 'number') {
++    const parsed = block.parsed as Record<string, unknown>
++    const markdown = typeof parsed.markdown === 'object' && parsed.markdown !== null
++      ? parsed.markdown as Record<string, unknown>
++      : null
++    if (
++      typeof attachment.attachmentId === 'string'
++      && typeof markdown?.attachmentId === 'string'
++      && typeof attachment.name === 'string'
++      && typeof attachment.mediaType === 'string'
++      && typeof attachment.bytes === 'number'
++    ) {
 +      return {
 +        type,
 +        content: '',
-+        document: { name: attachment.name, mediaType: attachment.mediaType, bytes: attachment.bytes },
++        document: {
++          previewAttachmentId: markdown.attachmentId as MessageDocumentSource['previewAttachmentId'],
++          name: attachment.name,
++          mediaType: attachment.mediaType,
++          bytes: attachment.bytes,
++        },
 +      }
 +    }
 +  }
@@ -2207,7 +2536,7 @@ index a811e915f2..8676ea46dc 100644
  }
  
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-contract.ts b/packages/client/ui-trajectory/src/client/trajectory-contract.ts
-index 37571f2b83..1c326ebfca 100644
+index 37571f2b83..6a327454c4 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-contract.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-contract.ts
 @@ -1,6 +1,6 @@
@@ -2218,10 +2547,16 @@ index 37571f2b83..1c326ebfca 100644
    RequestView, RunningToolCall, ToolCallBlock,
  } from '@deepseek-ai/dsh-client-ui-conversation/client'
  import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-@@ -93,5 +93,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -93,5 +93,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       * images are omitted.
       */
      'conversation.trajectory.images': { kind: 'single'; scope: 'session'; owner: MessageImagesOwnerProps }
++    /**
++     * Render durable Document cards inside one Trajectory attachment rail.
++     * A contribution receives the record's projected Document metadata and
++     * replaces the prior single card renderer. Without one, Trajectory keeps
++     * image presentation but omits Document cards.
++     */
 +    'conversation.trajectory.images.documents': { kind: 'single'; scope: 'session'; owner: { documents: readonly MessageDocumentSource[] } }
    }
  }
@@ -2246,6 +2581,445 @@ index da330f2ae4..0bb73888c9 100644
    callId?: string
    toolName?: string
  }
+diff --git a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+index bef6356509..9a79565c0c 100644
+--- a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+@@ -559,7 +559,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'ISession',
+-    declaration: 'export interface ISession {\n    readonly sessionId: SessionId;\n    readonly projections: ProjectionsFace;\n    beginSubmission(input: BeginSubmissionInput): SubmissionHandle;\n    prompt(content: PromptContentPart[], mode: \'queue\' | \'steer\', signal?: AbortSignal, requestId?: SessionRequestId): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    readAttachment(attachmentId: AttachmentIdType): Promise<RemoteResult<{\n        attachment: ImageAttachmentRef;\n        data: Uint8Array;\n    }>>;\n    updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    cancel(): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    rename(title: string): Promise<RemoteResult<{\n        title: string;\n        seq: number;\n    }>>;\n    loadOlder(): Promise<void>;\n    command(line: string): Promise<RemoteResult<{\n        matched: boolean;\n    }>>;\n}',
++    declaration: 'export interface ISession {\n    readonly sessionId: SessionId;\n    readonly projections: ProjectionsFace;\n    beginSubmission(input: BeginSubmissionInput): SubmissionHandle;\n    prompt(content: PromptContentPart[], mode: \'queue\' | \'steer\', signal?: AbortSignal, requestId?: SessionRequestId): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    readAttachment(attachmentId: AttachmentIdType): Promise<RemoteResult<{\n        attachment: FileAttachmentRef;\n        data: Uint8Array;\n    }>>;\n    updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    cancel(): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    rename(title: string): Promise<RemoteResult<{\n        title: string;\n        seq: number;\n    }>>;\n    loadOlder(): Promise<void>;\n    command(line: string): Promise<RemoteResult<{\n        matched: boolean;\n    }>>;\n}',
+   },
+   {
+     name: 'KeyPropsOf',
+diff --git a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+index 7fa6e4a9b4..588468d199 100644
+--- a/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/slot-catalog.ts
+@@ -204,7 +204,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.assistant-actions\', () => ctx.slots.register(\n      { name: \'conversation.chat.assistant-actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:202',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:211',
+   },
+   {
+     key: 'conversation.chat.commandview',
+@@ -249,7 +249,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     occupants: [],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.commandview\', () => ctx.slots.register(\n      { name: \'conversation.chat.commandview\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:190',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:199',
+   },
+   {
+     key: 'conversation.chat.node',
+@@ -313,7 +313,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.node\', () => ctx.slots.register(\n      { name: \'conversation.chat.node\', key: \'<one key the owner dispatches>\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:171',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:173',
+   },
+   {
+     key: 'conversation.chat.turnTail',
+@@ -358,7 +358,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.chat.turnTail\', () => ctx.slots.register(\n      { name: \'conversation.chat.turnTail\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:196',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:205',
+   },
+   {
+     key: 'conversation.composer',
+@@ -407,7 +407,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer\', () => ctx.slots.register(\n      { name: \'conversation.composer\', select: owner => null },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:119',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:165',
+   },
+   {
+     key: 'conversation.composer.bar',
+@@ -443,7 +443,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.bar\', () => ctx.slots.register(\n      { name: \'conversation.composer.bar\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:137',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:183',
+   },
+   {
+     key: 'conversation.composer.dock',
+@@ -501,7 +501,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.composer.dock\', () => ctx.slots.register(\n      { name: \'conversation.composer.dock\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:131',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:177',
+   },
+   {
+     key: 'conversation.details.tool',
+@@ -537,7 +537,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.details.tool\', () => ctx.slots.register(\n      { name: \'conversation.details.tool\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:208',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:217',
+   },
+   {
+     key: 'conversation.hero.agentPreset',
+@@ -565,7 +565,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.agentPreset\', () => ctx.slots.register(\n      { name: \'conversation.hero.agentPreset\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:125',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:171',
+   },
+   {
+     key: 'conversation.hero.brand.mark',
+@@ -591,7 +591,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     occupants: [],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.brand.mark\', () => ctx.slots.register(\n      { name: \'conversation.hero.brand.mark\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:123',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:169',
+   },
+   {
+     key: 'conversation.hero.workspace',
+@@ -621,7 +621,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.workspace\', () => ctx.slots.register(\n      { name: \'conversation.hero.workspace\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:121',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:167',
+   },
+   {
+     key: 'conversation.hero.workspace.directoryFlow',
+@@ -652,6 +652,40 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.hero.workspace.directoryFlow\', () => ctx.slots.register(\n      { name: \'conversation.hero.workspace.directoryFlow\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+     source: 'packages/client/ui-workspace/src/client/contract/slots.ts:57',
+   },
++  {
++    key: 'conversation.input.attachment-picker',
++    kind: 'single',
++    scope: 'session-maybe',
++    summary: 'Optional mixed file chooser placed immediately after the command button.',
++    doc: 'Optional mixed file chooser placed immediately after the command button.',
++    registerOptions: [],
++    ownerProps: [
++      '/** Mixed file chooser state handed to the optional attachment UI plugin. */\nexport interface ComposerAttachmentPickerOwnerProps {\n  /** Whether this composer can accept another browser file batch. */\n  canAcceptFiles: boolean\n  /** Add one selected file batch through the composer\'s validation path. */\n  onAddFiles: (files: readonly File[]) => void\n}',
++    ],
++    ownerPropsReferences: [],
++    standardProps: [
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useSessions: UseSessions',
++      'useSessionPendingInteraction: UseSessionPendingInteraction',
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useConversation: MaybeSnapshotSelectorHook<ConversationSnapshot>',
++      'useInput: MaybeSnapshotSelectorHook<InputState>',
++      'inputActions: InputActions | undefined',
++      'useSession: MaybeSnapshotSelectorHook<SessionSnapshot>',
++      'sessionId: SessionId | undefined',
++      'useProjection: UseProjection',
++    ],
++    keyDomain: '',
++    hookContext: '',
++    slotInject: '',
++    declaredBy: 'an entry in \'conversation.composer.bar\' (client-ui-conversation), so it exists while that entry is mounted',
++    occupants: [
++      'client-ui-attachment AttachmentPicker',
++    ],
++    replaceRisk: 'shadows-shipped-ui',
++    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.attachment-picker\', () => ctx.slots.register(\n      { name: \'conversation.input.attachment-picker\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:191',
++  },
+   {
+     key: 'conversation.input.attachments',
+     kind: 'single',
+@@ -660,10 +694,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     doc: 'Optional draft-image rail and drop target.',
+     registerOptions: [],
+     ownerProps: [
+-      '/** Input state handed to the optional attachment presentation plugin. */\nexport interface ComposerAttachmentsOwnerProps {\n  /** Browser-owned draft images in input order. */\n  attachments: readonly ComposerAttachment[]\n  /** Whether a document-level file drop may add images now. */\n  canAcceptDrop: boolean\n  /** Add one dropped batch through the composer\'s validation path. */\n  onAddImages: (files: readonly File[]) => void\n  /** Remove one draft image through the Conversation service. */\n  onRemoveImage: (id: DraftAttachmentId) => void\n  /** Display-ready limits for the drop invitation. */\n  dropLimits?: { readonly count: number; readonly size: string } | undefined\n}',
++      'export interface ComposerAttachmentsOwnerProps {\n  /** Browser-owned draft images in input order. */\n  attachments: readonly ComposerAttachment[]\n  /** Browser-owned draft documents in input order. */\n  documents: readonly ComposerDocumentAttachment[]\n  /** Whether a document-level file drop may add attachments now. */\n  canAcceptDrop: boolean\n  /** Add one dropped batch through the composer\'s validation path. */\n  onAddImages: (files: readonly File[]) => void\n  /** Add one dropped or pasted file batch as a single draft transaction. */\n  onAddFiles: (files: readonly File[]) => void\n  /** Remove one draft image through the Conversation service. */\n  onRemoveImage: (id: DraftAttachmentId) => void\n  /** Remove one draft document through the Conversation service. */\n  onRemoveDocument: (id: DraftAttachmentId) => void\n  /** Capability-owned localized copy for mixed file drops. */\n  fileDropLabels?: { readonly title: string; readonly desc?: string } | undefined\n  /** Display-ready limits for the image drop invitation. */\n  dropLimits?: { readonly count: number; readonly size: string } | undefined\n}',
+     ],
+     ownerPropsReferences: [
+       'ComposerAttachment',
++      'ComposerDocumentAttachment',
+       'DraftAttachmentId',
+     ],
+     standardProps: [
+@@ -687,7 +722,42 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.attachments\', () => ctx.slots.register(\n      { name: \'conversation.input.attachments\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:139',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:185',
++  },
++  {
++    key: 'conversation.input.attachments.documents',
++    kind: 'single',
++    scope: 'session-maybe',
++    summary: 'Document cards rendered inside the shared attachment rail.',
++    doc: 'Document cards rendered inside the shared attachment rail.',
++    registerOptions: [],
++    ownerProps: [
++      '/** Input state handed to the optional attachment presentation plugin. */\nexport interface ComposerDocumentsOwnerProps {\n  documents: readonly ComposerDocumentAttachment[]\n  onRemoveDocument: (id: DraftAttachmentId) => void\n}',
++    ],
++    ownerPropsReferences: [
++      'ComposerDocumentAttachment',
++      'DraftAttachmentId',
++    ],
++    standardProps: [
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useSessions: UseSessions',
++      'useSessionPendingInteraction: UseSessionPendingInteraction',
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useConversation: MaybeSnapshotSelectorHook<ConversationSnapshot>',
++      'useInput: MaybeSnapshotSelectorHook<InputState>',
++      'inputActions: InputActions | undefined',
++      'useSession: MaybeSnapshotSelectorHook<SessionSnapshot>',
++      'sessionId: SessionId | undefined',
++      'useProjection: UseProjection',
++    ],
++    keyDomain: '',
++    hookContext: '',
++    slotInject: '',
++    declaredBy: 'an entry in \'conversation.input.attachments\' (client-ui-attachment), so it exists while that entry is mounted',
++    occupants: [],
++    replaceRisk: 'none',
++    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.attachments.documents\', () => ctx.slots.register(\n      { name: \'conversation.input.attachments.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:197',
+   },
+   {
+     key: 'conversation.input.dock',
+@@ -747,7 +817,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.dock\', () => ctx.slots.register(\n      { name: \'conversation.input.dock\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:127',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:173',
+   },
+   {
+     key: 'conversation.input.left',
+@@ -803,7 +873,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     occupants: [],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.left\', () => ctx.slots.register(\n      { name: \'conversation.input.left\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:133',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:179',
+   },
+   {
+     key: 'conversation.input.model',
+@@ -839,7 +909,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.model\', () => ctx.slots.register(\n      { name: \'conversation.input.model\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:147',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:205',
+   },
+   {
+     key: 'conversation.input.overlay',
+@@ -893,7 +963,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.overlay\', () => ctx.slots.register(\n      { name: \'conversation.input.overlay\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:129',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:175',
+   },
+   {
+     key: 'conversation.input.plan',
+@@ -929,7 +999,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.plan\', () => ctx.slots.register(\n      { name: \'conversation.input.plan\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:145',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:203',
+   },
+   {
+     key: 'conversation.input.right',
+@@ -985,7 +1055,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     occupants: [],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.input.right\', () => ctx.slots.register(\n      { name: \'conversation.input.right\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:135',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:181',
+   },
+   {
+     key: 'conversation.message.images',
+@@ -995,10 +1065,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     doc: 'Renderer for one consecutive group of durable message images. The owner\nsupplies image references, an authorized loader, and alignment. A\nregistration replaces the shipped gallery; without one, images are omitted.',
+     registerOptions: [],
+     ownerProps: [
+-      '/** Message image group handed to the optional attachment presentation plugin. */\nexport interface MessageImagesOwnerProps {\n  /** Durable references or submission-echo previews in source order. */\n  images: readonly MessageImageSource[]\n  /** Session-authorized image URL loader for the durable arm. */\n  loadImage: MessageImageLoader\n  /** Horizontal placement inside the owning record. */\n  align: \'start\' | \'end\'\n}',
++      '/** Message attachment group handed to the optional attachment presentation plugin. */\nexport interface MessageImagesOwnerProps {\n  /** Durable references or submission-echo previews in source order. */\n  images: readonly MessageImageSource[]\n  /** Durable Document cards associated with this user message. */\n  documents: readonly MessageDocumentSource[]\n  /** Session-authorized image URL loader for the durable arm. */\n  loadImage: MessageImageLoader\n  /** Horizontal placement inside the owning record. */\n  align: \'start\' | \'end\'\n}',
+     ],
+     ownerPropsReferences: [
+       'Message',
++      'MessageDocumentSource',
+       'MessageImageLoader',
+       'MessageImageSource',
+     ],
+@@ -1025,7 +1096,41 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.message.images\', () => ctx.slots.register(\n      { name: \'conversation.message.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-chat/src/client/contract/slots.ts:184',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:186',
++  },
++  {
++    key: 'conversation.message.images.documents',
++    kind: 'single',
++    scope: 'session',
++    summary: 'Render durable Document cards inside one Chat message\'s attachment rail.',
++    doc: 'Render durable Document cards inside one Chat message\'s attachment rail.\nA contribution receives the message\'s projected Document metadata and\nreplaces the prior single card renderer. Without one, Chat keeps image\npresentation but omits Document cards.',
++    registerOptions: [],
++    ownerProps: [
++      '/** Display metadata for one durable Document history card. */\nexport interface MessageDocumentSource {\n  readonly previewAttachmentId: AttachmentIdType\n  readonly name: string\n  readonly mediaType: string\n  readonly bytes: number\n}',
++    ],
++    ownerPropsReferences: [],
++    standardProps: [
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useSessions: UseSessions',
++      'useSessionPendingInteraction: UseSessionPendingInteraction',
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useChat: UseChat',
++      'useConversation: UseConversation',
++      'useInput: SnapshotSelectorHook<InputState>',
++      'inputActions: InputActions',
++      'useSession: SessionSnapshotSelector',
++      'sessionId: SessionId',
++      'useProjection: UseProjection',
++      'useTrajectory: UseTrajectory',
++    ],
++    keyDomain: '',
++    hookContext: '',
++    slotInject: '',
++    declaredBy: 'an entry in \'conversation.message.images\' (client-ui-attachment), so it exists while that entry is mounted',
++    occupants: [],
++    replaceRisk: 'none',
++    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.message.images.documents\', () => ctx.slots.register(\n      { name: \'conversation.message.images.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
++    source: 'packages/client/ui-chat/src/client/contract/slots.ts:193',
+   },
+   {
+     key: 'conversation.session',
+@@ -1059,7 +1164,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.session\', () => ctx.slots.register(\n      { name: \'conversation.session\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:95',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:141',
+   },
+   {
+     key: 'conversation.session.header',
+@@ -1093,7 +1198,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.session.header\', () => ctx.slots.register(\n      { name: \'conversation.session.header\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:97',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:143',
+   },
+   {
+     key: 'conversation.session.header.actions',
+@@ -1151,7 +1256,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.session.header.actions\', () => ctx.slots.register(\n      { name: \'conversation.session.header.actions\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:105',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:151',
+   },
+   {
+     key: 'conversation.session.header.lineage',
+@@ -1189,7 +1294,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.session.header.lineage\', () => ctx.slots.register(\n      { name: \'conversation.session.header.lineage\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:99',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:145',
+   },
+   {
+     key: 'conversation.session.header.utilities',
+@@ -1244,7 +1349,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.session.header.utilities\', () => ctx.slots.register(\n      { name: \'conversation.session.header.utilities\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:111',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:157',
+   },
+   {
+     key: 'conversation.trajectory.images',
+@@ -1254,10 +1359,11 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     doc: 'Renderer for one group of durable record images in the Trajectory\nledger. The owner supplies image references, an authorized loader, and\nalignment. A registration replaces the shipped gallery; without one,\nimages are omitted.',
+     registerOptions: [],
+     ownerProps: [
+-      '/** Message image group handed to the optional attachment presentation plugin. */\nexport interface MessageImagesOwnerProps {\n  /** Durable references or submission-echo previews in source order. */\n  images: readonly MessageImageSource[]\n  /** Session-authorized image URL loader for the durable arm. */\n  loadImage: MessageImageLoader\n  /** Horizontal placement inside the owning record. */\n  align: \'start\' | \'end\'\n}',
++      '/** Message attachment group handed to the optional attachment presentation plugin. */\nexport interface MessageImagesOwnerProps {\n  /** Durable references or submission-echo previews in source order. */\n  images: readonly MessageImageSource[]\n  /** Durable Document cards associated with this user message. */\n  documents: readonly MessageDocumentSource[]\n  /** Session-authorized image URL loader for the durable arm. */\n  loadImage: MessageImageLoader\n  /** Horizontal placement inside the owning record. */\n  align: \'start\' | \'end\'\n}',
+     ],
+     ownerPropsReferences: [
+       'Message',
++      'MessageDocumentSource',
+       'MessageImageLoader',
+       'MessageImageSource',
+     ],
+@@ -1280,12 +1386,46 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     slotInject: '',
+     declaredBy: 'an entry in \'conversation.view\' (client-ui-trajectory), so it exists while that entry is mounted',
+     occupants: [
+-      'client-ui-attachment MessageImages',
++      'client-ui-attachment TrajectoryImages',
+     ],
+     replaceRisk: 'shadows-shipped-ui',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.trajectory.images\', () => ctx.slots.register(\n      { name: \'conversation.trajectory.images\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+     source: 'packages/client/ui-trajectory/src/client/trajectory-contract.ts:95',
+   },
++  {
++    key: 'conversation.trajectory.images.documents',
++    kind: 'single',
++    scope: 'session',
++    summary: 'Render durable Document cards inside one Trajectory attachment rail.',
++    doc: 'Render durable Document cards inside one Trajectory attachment rail.\nA contribution receives the record\'s projected Document metadata and\nreplaces the prior single card renderer. Without one, Trajectory keeps\nimage presentation but omits Document cards.',
++    registerOptions: [],
++    ownerProps: [
++      '/** Display metadata for one durable Document history card. */\nexport interface MessageDocumentSource {\n  readonly previewAttachmentId: AttachmentIdType\n  readonly name: string\n  readonly mediaType: string\n  readonly bytes: number\n}',
++    ],
++    ownerPropsReferences: [],
++    standardProps: [
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useSessions: UseSessions',
++      'useSessionPendingInteraction: UseSessionPendingInteraction',
++      'useWorkspaces: SnapshotSelectorHook<WorkspaceSnapshot>',
++      'useChat: UseChat',
++      'useConversation: UseConversation',
++      'useInput: SnapshotSelectorHook<InputState>',
++      'inputActions: InputActions',
++      'useSession: SessionSnapshotSelector',
++      'sessionId: SessionId',
++      'useProjection: UseProjection',
++      'useTrajectory: UseTrajectory',
++    ],
++    keyDomain: '',
++    hookContext: '',
++    slotInject: '',
++    declaredBy: 'an entry in \'conversation.trajectory.images\' (client-ui-attachment), so it exists while that entry is mounted',
++    occupants: [],
++    replaceRisk: 'none',
++    example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.trajectory.images.documents\', () => ctx.slots.register(\n      { name: \'conversation.trajectory.images.documents\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
++    source: 'packages/client/ui-trajectory/src/client/trajectory-contract.ts:102',
++  },
+   {
+     key: 'conversation.view',
+     kind: 'list',
+@@ -1342,7 +1482,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
+     ],
+     replaceRisk: 'none',
+     example: 'return {\n  inject: [\'slots\'],\n  apply(ctx) {\n    ctx.slots.inject(\'conversation.view\', () => ctx.slots.register(\n      { name: \'conversation.view\', id: \'my-entry\', order: 100, label: \'My entry\' },\n      () => React.createElement(\'div\', null, \'hello\'),\n    ))\n  },\n}',
+-    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:117',
++    source: 'packages/client/ui-conversation/src/client/contract/slots.ts:163',
+   },
+   {
+     key: 'details',
 diff --git a/packages/llm/llm-deepseek/src/adapter.ts b/packages/llm/llm-deepseek/src/adapter.ts
 index e211655633..4e468b655b 100644
 --- a/packages/llm/llm-deepseek/src/adapter.ts
@@ -2389,7 +3163,7 @@ index e20b8e0072..058e8f2824 100644
            resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
            maxRequestImageBytes: profile.maxRequestImageBytes,
 diff --git a/packages/llm/llm/src/content.ts b/packages/llm/llm/src/content.ts
-index 5880f82c98..54bcc2d55f 100644
+index 5880f82c98..3e46284c5c 100644
 --- a/packages/llm/llm/src/content.ts
 +++ b/packages/llm/llm/src/content.ts
 @@ -1,10 +1,71 @@
@@ -2416,7 +3190,7 @@ index 5880f82c98..54bcc2d55f 100644
 +  return new TextDecoder('utf-8', { fatal: true }).decode(stored.data)
 +}
 +
-+/** 中文约束：只生成provider request的transient text，不修改Session中的durable reference blocks。 */
++/** Project request-only text without changing durable reference blocks in the Session. */
 +async function projectDocumentsWithAttachments(
 +  blocks: readonly ContentBlock[],
 +  attachments: AttachmentStore,
