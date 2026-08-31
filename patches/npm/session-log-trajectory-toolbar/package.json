@@ -1,0 +1,36 @@
+{
+  "name": "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
+  "version": "0.1.0-rc.12",
+  "description": "Data-only exact official-source patch placing Session export in the desktop Trajectory toolbar",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/session-log-trajectory-toolbar"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "session-log-desktop-trajectory-toolbar",
+        "dsh": ">=0.1.2-alpha.2",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "0a53fb55bea101816fa226bb964ae2bed71c343b",
+          "paths": [
+            "packages/client/ui-trajectory/",
+            "packages/session-query/session-log-export/"
+          ]
+        },
+        "file": "./patches/session-log-trajectory-toolbar.patch"
+      }
+    ]
+  }
+}

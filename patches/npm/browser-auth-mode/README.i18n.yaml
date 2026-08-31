@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/browser-auth-mode/README.md
-README.md: c8d0edd12e347bb64ca10688d02ae9a8b98ecdc6
-README.zh.md: 29d249b20df5a2a6f7ce76082cf4cdc0fe9381a9
+README.md: 6e514a93ca25599c0daa2f5607bd5eb4db098575
+README.zh.md: 861ecc1f3695f77852919da5fc4b984e98b77db8

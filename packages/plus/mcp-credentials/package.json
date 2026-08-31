@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-mcp-credentials",
   "description": "Official MCP client replacement with credential-backed Streamable HTTP Bearer authentication",
-  "version": "0.1.0-rc.11",
+  "version": "0.1.0-rc.12",
   "publishConfig": {
     "access": "public"
   },
@@ -31,15 +31,15 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-attachment": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-llm": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-scope": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-subprocess": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-timeout": ">=0.1.2-alpha.1",
-    "@deepseek-ai/dsh-tools": ">=0.1.2-alpha.1",
+    "@deepseek-ai/dsh-attachment": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-llm": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-scope": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-subprocess": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-timeout": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-tools": ">=0.1.2-alpha.2",
     "@deepseek-ai/cordis": ">=4.0.1",
-    "@deepseek-ai/dsh-credentials": ">=0.1.2-alpha.1"
+    "@deepseek-ai/dsh-credentials": ">=0.1.2-alpha.2"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -54,6 +54,7 @@
     "@deepseek-ai/dsh-subprocess": "workspace:^",
     "@deepseek-ai/dsh-timeout": "workspace:^",
     "@deepseek-ai/dsh-tools": "workspace:^",
+    "@deepseek-ai/dsh-util-values": "workspace:^",
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-credentials": "workspace:^"
   }

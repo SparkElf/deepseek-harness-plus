@@ -1,4 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
+import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
@@ -19,11 +20,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
 const NS = 'settings.dataops'
 
-/** Client services required for the Settings and frame-overlay contributions. */
-export const inject = ['slots', 'locale']
+/** Client services required for Host activation discovery, Settings, and frame overlays. */
+export const inject = ['slots', 'locale', 'remote', 'remote.pluginInventory']
 
-/** Register the shared DataOps lifecycle, Settings section, and expiry modal. */
-export function apply(ctx: Context): void {
+/** 仅在Host inventory确认对应plugin有效启用时注册browser contributions。 */
+export async function apply(ctx: Context): Promise<void> {
+  const result = await ctx.remote.pluginInventory.list()
+  if (!result.ok) {
+    throw new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`)
+  }
+  const active = result.value.entries.some(entry => entry.entryId === 'plus-dataops' && entry.enabled)
+  if (!active) return
+
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'mcp-dataops: Client copy')
   const t = ctx.locale.bind(NS) as DataOpsClientInjected['t']
   const store = createDataOpsStore()

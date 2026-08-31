@@ -1,12 +1,13 @@
 import { expect, test } from 'playwright/test'
 import { rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { assertDiagnostics, watchDiagnostics } from './diagnostics.mjs'
+import { allowNextNavigationAbort, assertDiagnostics, watchDiagnostics } from './diagnostics.mjs'
 
 const stateRoot = resolve(import.meta.dirname, '../../.cache/plus-web-system')
 const pdfFixture = resolve(stateRoot, 'fixtures/acceptance.pdf')
 const invalidBackup = resolve(stateRoot, 'fixtures/not-a-backup.zip')
 const acceptanceWorkspace = resolve(stateRoot, 'workspace')
+const backupWorkspace = resolve(stateRoot, 'workspace-after-backup')
 
 async function enterApp(page) {
   const launchURL = process.env.DSH_PLUS_TEST_START_URL
@@ -47,6 +48,17 @@ async function openSettings(page, section) {
   await dialog.waitFor({ timeout: 15_000 })
   await dialog.getByRole('button', { name: section, exact: true }).click()
   return dialog
+}
+
+async function addWorkspace(page, directory) {
+  await page.getByRole('button', { name: '添加工作区', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: '选择工作区目录' })
+  await dialog.getByRole('button', { name: '编辑路径' }).click()
+  const path = dialog.getByRole('textbox', { name: '编辑路径' })
+  await path.fill(directory)
+  await path.press('Enter')
+  await dialog.getByRole('button', { name: '打开', exact: true }).click()
+  await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toBeVisible()
 }
 
 async function selectAcceptanceModel(page, reasoningEffort) {
@@ -108,11 +120,71 @@ test.afterEach(async ({ page }, testInfo) => {
   try {
     await assertDiagnostics(page, testInfo)
   } finally {
-    await rm(testInfo.outputPath('plus-backup.zip'), { force: true })
+    await Promise.all([
+      'configuration-backup.zip',
+      'sessions-backup.zip',
+      'all-backup.zip',
+    ].map(file => rm(testInfo.outputPath(file), { force: true })))
   }
 })
 
 test.describe('Plus npm profile user workflows', () => {
+  test('uses the official client brand instead of the local-build fallback', async ({ page }) => {
+    await enterApp(page)
+    await expect(page).toHaveTitle('DeepSeek Harness')
+    await expect(page.getByText('DSH 本地构建', { exact: true })).toHaveCount(0)
+  })
+
+  test('places Simplified-Chinese Session export beside Trajectory search and downloads', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    await sendPrompt(page, '/goal clear')
+    const trajectoryTab = page.getByRole('tab', { name: /轨迹|Trajectory/ })
+    await trajectoryTab.waitFor({ timeout: 30_000 })
+    await trajectoryTab.click()
+    const toolbar = page.getByRole('toolbar', { name: '轨迹工具栏', exact: true })
+    const action = toolbar.getByRole('button', { name: '会话日志', exact: true })
+    const utilities = toolbar.locator('[data-trajectory-toolbar-utilities]')
+    const search = toolbar.locator('[data-trajectory-search]')
+    await expect(action).toBeVisible()
+    await expect(page.getByText('Session 日志', { exact: true })).toHaveCount(0)
+    const [actionBox, utilitiesBox, searchBox] = await Promise.all([
+      action.boundingBox(),
+      utilities.boundingBox(),
+      search.boundingBox(),
+    ])
+    if (actionBox === null || utilitiesBox === null || searchBox === null) {
+      throw new Error('Trajectory export and search controls must be visible for layout acceptance')
+    }
+    expect(Math.abs(
+      (actionBox.y + actionBox.height / 2) - (searchBox.y + searchBox.height / 2),
+    )).toBeLessThanOrEqual(1)
+    expect(searchBox.x).toBeGreaterThanOrEqual(utilitiesBox.x + utilitiesBox.width)
+    expect(searchBox.x - (utilitiesBox.x + utilitiesBox.width)).toBeLessThanOrEqual(9)
+
+    const downloadPromise = page.waitForEvent('download')
+    await action.click()
+    await downloadPromise
+    const dialog = page.getByRole('dialog', { name: '会话导出已开始下载' })
+    await expect(dialog).toContainText('浏览器正在下载会话 ZIP 文件。')
+    await dialog.getByText('关闭', { exact: true }).click()
+    await expect(dialog).toBeHidden()
+  })
+
+  test('places the attachment picker directly beside the command button', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    const command = page.getByRole('button', { name: '指令', exact: true })
+    const picker = page.getByRole('button', { name: '添加文件', exact: true })
+    const [commandBox, pickerBox] = await Promise.all([command.boundingBox(), picker.boundingBox()])
+    if (commandBox === null || pickerBox === null) throw new Error('Composer controls must be visible for layout acceptance')
+    const commandCenterY = commandBox.y + commandBox.height / 2
+    const pickerCenterY = pickerBox.y + pickerBox.height / 2
+    expect(Math.abs(commandCenterY - pickerCenterY)).toBeLessThanOrEqual(1)
+    expect(pickerBox.x).toBeGreaterThan(commandBox.x + commandBox.width)
+    expect(pickerBox.x - (commandBox.x + commandBox.width)).toBeLessThanOrEqual(20)
+  })
+
   test('persists the explicit OpenAI Responses gateway compatibility setting', async ({ page }) => {
     await enterApp(page)
     const dialog = await openSettings(page, '模型')
@@ -147,8 +219,9 @@ test.describe('Plus npm profile user workflows', () => {
     await expect(dialog.getByLabel('中转站兼容模式')).toBeChecked()
   })
 
-  test('restores persisted Subagent settings through streamed Backup failure recovery and reload', async ({ page }, testInfo) => {
+  test('exports and restores configuration, sessions, and complete Backup scopes independently', async ({ page }, testInfo) => {
     await enterApp(page)
+    await connectAcceptanceWorkspace(page)
     let dialog = await openSettings(page, '子代理')
     const enabled = dialog.getByLabel('启用连续模式')
     await enabled.check()
@@ -160,49 +233,120 @@ test.describe('Plus npm profile user workflows', () => {
     await expect(dialog.getByLabel('启用连续模式')).toBeChecked()
     await dialog.getByRole('button', { name: '备份', exact: true }).click()
 
-    const downloadPromise = page.waitForEvent('download')
-    await dialog.getByRole('button', { name: '导出备份压缩包', exact: true }).click()
+    await dialog.getByRole('radio', { name: '配置', exact: true }).click()
+    let downloadPromise = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
     await expect(dialog.getByLabel('备份生成进度')).toBeVisible()
-    const download = await downloadPromise
-    const archive = testInfo.outputPath('plus-backup.zip')
-    await download.saveAs(archive)
-    await dialog.getByText('备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
+    let download = await downloadPromise
+    const configurationArchive = testInfo.outputPath('configuration-backup.zip')
+    await download.saveAs(configurationArchive)
+    await dialog.getByText('配置备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
-    await dialog.getByRole('button', { name: '子代理', exact: true }).click()
-    await dialog.getByLabel('启用连续模式').uncheck()
-    await dialog.getByRole('button', { name: '保存', exact: true }).click()
-    await expect(dialog.getByRole('button', { name: '保存', exact: true })).toBeDisabled()
-    await dialog.getByRole('button', { name: '备份', exact: true }).click()
+    await dialog.getByRole('radio', { name: '会话', exact: true }).click()
+    downloadPromise = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
+    download = await downloadPromise
+    const sessionsArchive = testInfo.outputPath('sessions-backup.zip')
+    await download.saveAs(sessionsArchive)
+    await dialog.getByText('会话备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
+
+    await dialog.getByRole('radio', { name: '全部', exact: true }).click()
+    downloadPromise = page.waitForEvent('download')
+    await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
+    download = await downloadPromise
+    const allArchive = testInfo.outputPath('all-backup.zip')
+    await download.saveAs(allArchive)
+    await dialog.getByText('完整备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
     const input = dialog.locator('input[type="file"]')
     await input.setInputFiles(invalidBackup)
     await dialog.getByText('所选压缩包不是 DeepSeek Harness 备份文件。', { exact: true }).waitFor()
-    await input.setInputFiles(archive)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toBeHidden()
+    await addWorkspace(page, backupWorkspace)
+    dialog = await openSettings(page, '子代理')
+    await dialog.getByLabel('启用连续模式').uncheck()
+    await dialog.getByRole('button', { name: '保存', exact: true }).click()
+    await dialog.getByRole('button', { name: '备份', exact: true }).click()
+    await dialog.locator('input[type="file"]').setInputFiles(configurationArchive)
     await expect(dialog.getByLabel('备份恢复进度')).toBeVisible()
-    await dialog.getByText('备份已导入。重新加载页面后，会话和工作区将使用恢复后的数据。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    await dialog.getByText('配置备份已导入。重新加载后将使用恢复的设置和凭据。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
 
     dialog = await openSettings(page, '子代理')
     await expect(dialog.getByLabel('启用连续模式')).toBeChecked()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toBeVisible()
+
+    dialog = await openSettings(page, '子代理')
+    await dialog.getByLabel('启用连续模式').uncheck()
+    await dialog.getByRole('button', { name: '保存', exact: true }).click()
+    await dialog.getByRole('button', { name: '备份', exact: true }).click()
+    await dialog.locator('input[type="file"]').setInputFiles(sessionsArchive)
+    await dialog.getByText('会话备份已导入。重新加载后将使用恢复的会话、附件和工作区。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
+    await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
+
+    await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toHaveCount(0)
+    dialog = await openSettings(page, '子代理')
+    await expect(dialog.getByLabel('启用连续模式')).not.toBeChecked()
+    await page.keyboard.press('Escape')
+
+    await addWorkspace(page, backupWorkspace)
+    dialog = await openSettings(page, '备份')
+    await dialog.locator('input[type="file"]').setInputFiles(allArchive)
+    await dialog.getByText('完整备份已导入。重新加载后将使用恢复的配置、会话和工作区。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
+    await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
+
+    await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toHaveCount(0)
+    dialog = await openSettings(page, '子代理')
+    await expect(dialog.getByLabel('启用连续模式')).toBeChecked()
   })
 
-  test('submits a real document and preserves its cards in Chat and Trajectory', async ({ page }) => {
+  test('submits a real document and previews its cards from Chat and Trajectory', async ({ page }) => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     await selectAcceptanceModel(page)
+    const picker = page.getByRole('button', { name: '添加文件', exact: true })
     const chooserPromise = page.waitForEvent('filechooser')
-    await page.getByRole('button', { name: '添加文件', exact: true }).click()
+    await picker.click()
     await (await chooserPromise).setFiles(pdfFixture)
     const drafts = page.getByLabel('待发送文档')
     await expect(drafts.getByText('acceptance.pdf', { exact: true })).toBeVisible()
-    await sendPrompt(page, 'Read the attached document and reply with exactly DOCUMENT_OK.')
+    const draftCards = drafts.locator(':scope > div')
+    await expect(draftCards).toHaveCount(1)
+    const draftCard = draftCards.first()
+    const [draftsBox, draftCardBox] = await Promise.all([drafts.boundingBox(), draftCard.boundingBox()])
+    if (draftsBox === null || draftCardBox === null) throw new Error('Document draft layout boxes are unavailable')
+    expect(Math.abs(draftCardBox.x - draftsBox.x - 12)).toBeLessThan(1)
+    expect(draftCardBox.width).toBeLessThanOrEqual(280)
+    expect(draftCardBox.height).toBeLessThanOrEqual(46)
+    await sendPrompt(page, "Read the attached document and reply with exactly the three uppercase words after 'The expected phrase is'.")
     const history = page.getByLabel('已附加文档').first()
     await expect(history.getByText('acceptance.pdf', { exact: true })).toBeVisible({ timeout: 3 * 60_000 })
-    await page.getByText('DOCUMENT_OK', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    await page.getByText('PLUS DOCUMENT OK', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    const documentPreview = page.locator('[data-dsh-better-sidebar]')
+    const collapsePreview = documentPreview.getByRole('button', { name: /折叠侧边栏|Collapse sidebar/ })
+    if (await collapsePreview.isVisible()) await collapsePreview.click()
+    await expect(documentPreview.getByRole('button', { name: /展开侧边栏|Open sidebar/ })).toBeVisible()
+    await history.getByRole('button', { name: /在侧边栏预览acceptance\.pdf|Preview acceptance\.pdf in sidebar/ }).click()
+    await expect(collapsePreview).toBeVisible()
+    await expect(documentPreview.locator('[title="acceptance.pdf"]')).toBeVisible()
+    await expect(documentPreview.getByText(/PLUS DOCUMENT OK/)).toBeVisible()
+    await collapsePreview.click()
+    await expect(documentPreview.getByRole('button', { name: /展开侧边栏|Open sidebar/ })).toBeVisible()
 
     await page.getByRole('tab', { name: /轨迹|Trajectory/ }).click()
     await page.getByRole('row', { name: /用户.*Read the attached document/ }).click()
-    await expect(page.getByLabel('已附加文档').getByText('acceptance.pdf', { exact: true }).first()).toBeVisible()
+    const trajectoryHistory = page.getByLabel('已附加文档')
+    await expect(trajectoryHistory.getByText('acceptance.pdf', { exact: true }).first()).toBeVisible()
+    await trajectoryHistory.getByRole('button', { name: /在侧边栏预览acceptance\.pdf|Preview acceptance\.pdf in sidebar/ }).click()
+    await expect(collapsePreview).toBeVisible()
+    await expect(documentPreview.locator('[title="acceptance.pdf"]')).toBeVisible()
+    await expect(documentPreview.getByText(/PLUS DOCUMENT OK/)).toBeVisible()
     await page.getByRole('tab', { name: /对话|Chat/ }).click()
   })
 
@@ -258,16 +402,18 @@ test.describe('Plus npm profile user workflows', () => {
     await page.reload()
     await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
     await selectAcceptanceModel(page, 'Low')
+    const composer = page.locator('[data-composer-input][contenteditable="true"]')
+    await composer.fill('/gen')
+    const skillMenu = page.getByRole('listbox')
+    await expect(skillMenu.getByRole('option', { name: /genui/ })).toBeVisible({ timeout: 30_000 })
     const stopGenerating = page.getByRole('button', { name: /停止生成|Stop generating/ })
     const send = page.getByRole('button', { name: /发送消息|Send message/ })
     const clarification = page.getByRole('button', { name: /^(提交|Submit)$/ })
     const genui = page.locator('[data-genui]').last()
-    const echart = genui.locator('[data-genui-echart]')
-    const nativeBar = genui.locator('[title]').first()
-    const chart = echart.or(nativeBar).first()
+    const chart = genui.locator('svg:has(path):has(circle title)')
     const panel = page.getByRole('button', { name: /^(面板|Panel)/ }).last()
 
-    await sendPrompt(page, '请从我有权访问的 DataOps 表中选择一个适合统计且可查询的表，执行一个返回不超过 12 行的只读聚合查询，并把查询结果实际渲染成可见的交互式柱状图。即使结果只有一行也必须显示图表，不要只用文字描述或声称已经显示。')
+    await sendPrompt(page, '/genui 请从我有权访问的 DataOps 表中选择一个适合统计且可查询的表，执行一个返回不超过 12 行的只读聚合查询，并把真实查询结果渲染成可见的简洁折线图。使用 genui 规范里的 chart line，不要使用 echart full option；不要只用文字描述或声称已经显示。')
     await stopGenerating.waitFor({ timeout: 30_000 })
     const turnDeadline = Date.now() + 7 * 60_000
     const outcome = chart.or(panel).or(send).or(clarification).first()
@@ -312,14 +458,8 @@ test.describe('Plus npm profile user workflows', () => {
       )
     }
     await expect(genui).toBeVisible()
-    if (await echart.isVisible()) {
-      await expect(echart.getByText('ECharts 渲染失败', { exact: true })).toHaveCount(0)
-      await expect(echart.getByRole('img')).toBeVisible()
-      await expect(echart.locator('canvas')).toBeVisible()
-    } else {
-      await expect(nativeBar).toBeVisible()
-      await expect(nativeBar).toHaveAttribute('title', /.+:\s*-?[\d,.]+/)
-    }
+    await expect(chart.locator('path')).toBeVisible()
+    await expect(chart.locator('circle title')).not.toHaveCount(0)
   })
 
   test('uses the external sidebar and plugin market then folds real Trajectory turns', async ({ page }) => {
@@ -356,5 +496,18 @@ test.describe('Plus mobile Web navigation', () => {
     const composer = page.getByRole('textbox').last()
     await expect(composer).toBeVisible()
     await expect(page.getByRole('button', { name: /发送消息|Send message/ })).toBeVisible()
+  })
+
+  test('keeps Session export in the mobile Header and hides the desktop toolbar action', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    await sendPrompt(page, '/goal clear')
+    const header = page.locator('[data-slot="conversation.session.header.utilities"]')
+    await expect(header.getByRole('button', { name: '会话日志', exact: true })).toBeVisible()
+
+    await page.getByRole('tab', { name: /轨迹|Trajectory/ }).click()
+    const toolbar = page.getByRole('toolbar', { name: '轨迹工具栏', exact: true })
+    await expect(toolbar.locator('button').filter({ hasText: '会话日志' })).toBeHidden()
+    await expect(header.getByRole('button', { name: '会话日志', exact: true })).toBeVisible()
   })
 })

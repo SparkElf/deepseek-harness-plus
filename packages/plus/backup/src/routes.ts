@@ -12,7 +12,10 @@ import { pipeline } from 'node:stream/promises'
 import type { Context } from '@deepseek-ai/cordis'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 import { restoreUserBackup, validateUserBackup, writeUserBackup } from './archive.ts'
-import type { BackupHostProgress, BackupProgressLine, BackupProgressReporter } from './protocol.ts'
+import type {
+  BackupHostProgress, BackupProgressLine, BackupProgressReporter,
+} from './protocol.ts'
+import type { BackupScope } from './types.ts'
 
 const BACKUP_TOKEN_TTL_MS = 10 * 60_000
 
@@ -20,6 +23,8 @@ interface BackupDownloadToken {
   kind: 'download'
   path: string
   size: number
+  filename: string
+  scope: BackupScope
   expiresAt: number
 }
 
@@ -42,6 +47,7 @@ export type BackupHostContext = Context & {
 /** Backup route resource policy. */
 export interface BackupRouteConfig {
   maxUploadBytes: number
+  settingsFile: string
 }
 
 class BackupUploadTooLargeError extends Error {}
@@ -50,9 +56,16 @@ class BackupUploadTooLargeError extends Error {}
 class BackupTokenStore {
   private readonly entries = new Map<string, OwnedBackupToken>()
 
-  mintDownload(path: string, size: number): string {
+  mintDownload(path: string, size: number, filename: string, scope: BackupScope): string {
     this.sweep()
-    return this.mint({ kind: 'download', path, size, expiresAt: Date.now() + BACKUP_TOKEN_TTL_MS })
+    return this.mint({
+      kind: 'download',
+      path,
+      size,
+      filename,
+      scope,
+      expiresAt: Date.now() + BACKUP_TOKEN_TTL_MS,
+    })
   }
 
   mintUpload(path: string): string {
@@ -157,7 +170,17 @@ function registerProtectedRoute(
         response.end(rejection === 401 ? 'unauthorized' : 'forbidden')
         return
       }
-      await handler(request, response)
+      try {
+        await handler(request, response)
+      } catch (error: unknown) {
+        if (request.destroyed || response.destroyed) {
+          console.info('[plus-backup] request cancelled', { path }, error)
+          return
+        }
+        console.error('[plus-backup] route failed', { path }, error)
+        if (!response.headersSent) response.writeHead(500)
+        if (!response.writableEnded) response.end('backup request failed')
+      }
     },
   }
   ctx.effect(() => ctx.webServer.register(route), `plus-backup: ${path} route`)
@@ -173,6 +196,19 @@ function requireMethod(request: IncomingMessage, response: ServerResponse, metho
 function tokenFromRequest(request: IncomingMessage): string | undefined {
   const token = new URL(request.url ?? '', 'http://localhost').searchParams.get('token')
   return token === null || token === '' ? undefined : token
+}
+
+function scopeFromRequest(request: IncomingMessage): BackupScope | undefined {
+  const scope = new URL(request.url ?? '', 'http://localhost').searchParams.get('scope')
+  return scope === 'all' || scope === 'configuration' || scope === 'sessions' ? scope : undefined
+}
+
+function backupFilename(scope: BackupScope): string {
+  switch (scope) {
+    case 'all': return 'deepseek-harness-backup.zip'
+    case 'configuration': return 'deepseek-harness-configuration.zip'
+    case 'sessions': return 'deepseek-harness-sessions.zip'
+  }
 }
 
 async function writeProgressLine(response: ServerResponse, line: BackupProgressLine): Promise<void> {
@@ -196,7 +232,7 @@ function beginProgressResponse(response: ServerResponse): AbortSignal {
 
 function publicOperationError(error: unknown, operation: 'export' | 'import'): string {
   if (error instanceof Error
-    && (error.message.includes('missing backup-manifest.json') || error.message.includes('unsafe path'))) {
+    && (error.message.includes('backup-manifest.json') || error.message.includes('unsafe path'))) {
     return error.message
   }
   return 'backup ' + operation + ' failed'
@@ -248,21 +284,31 @@ async function prepareExport(
   response: ServerResponse,
   tokens: BackupTokenStore,
   dshHome: string,
+  settingsFile: string,
 ): Promise<void> {
   if (!requireMethod(request, response, ['POST'])) return
+  const scope = scopeFromRequest(request)
+  if (scope === undefined) {
+    response.writeHead(400)
+    response.end('missing or invalid backup scope')
+    return
+  }
   const signal = beginProgressResponse(response)
   const directory = await mkdtemp(join(tmpdir(), 'dsh-backup-export-'))
   const path = join(directory, 'backup.zip')
   let tokenMinted = false
   try {
-    const { entries } = await writeUserBackup(dshHome, path, signal, progress =>
+    const { entries } = await writeUserBackup(dshHome, path, scope, settingsFile, signal, progress =>
       writeProgressLine(response, { type: 'progress', progress }))
     const { size } = await stat(path)
-    const token = tokens.mintDownload(path, size)
+    const filename = backupFilename(scope)
+    const token = tokens.mintDownload(path, size, filename, scope)
     tokenMinted = true
     await writeProgressLine(response, {
       type: 'export-ready',
       downloadUrl: '/api/backup.export?token=' + token,
+      filename,
+      scope,
       entries,
     })
     response.end()
@@ -295,7 +341,7 @@ async function downloadExport(
   }
   response.writeHead(200, {
     'content-type': 'application/zip',
-    'content-disposition': 'attachment; filename="deepseek-harness-backup.zip"',
+    'content-disposition': `attachment; filename="${entry.filename}"`,
     'content-length': String(entry.size),
   })
   if (request.method === 'HEAD') {
@@ -320,6 +366,7 @@ async function importBackup(
   tokens: BackupTokenStore,
   dshHome: string,
   maxExpandedBytes: number,
+  settingsFile: string,
 ): Promise<void> {
   // cancel只在validation前生效；首次restore progress后必须完成file replacement与Workspace reopen。
   if (!requireMethod(request, response, ['POST'])) return
@@ -354,16 +401,20 @@ async function importBackup(
       staged.path,
       join(dirname(staged.path), 'validated'),
       maxExpandedBytes,
+      settingsFile,
       signal,
     )
     signal.throwIfAborted()
-    const { entries } = await ctx.workspaceRegistry.withStorageRestore(async () => {
+    const restore = async (): Promise<{ entries: number }> => {
       const restored = await restoreUserBackup(validated, dshHome, report)
       await report({ phase: 'reload' })
       return restored
-    })
+    }
+    const { entries } = validated.scope === 'configuration'
+      ? await restore()
+      : await ctx.workspaceRegistry.withStorageRestore(restore)
     if (response.destroyed) return
-    await writeProgressLine(response, { type: 'import-complete', entries })
+    await writeProgressLine(response, { type: 'import-complete', entries, scope: validated.scope })
     response.end()
   } catch (error: unknown) {
     if (!lifecycle.restoreStarted && (signal.aborted || response.destroyed)) return
@@ -388,9 +439,9 @@ export function registerBackupRoutes(ctx: BackupHostContext, config: BackupRoute
   registerProtectedRoute(ctx, '/api/backup.upload', (request, response) =>
     stageUpload(request, response, tokens, config.maxUploadBytes))
   registerProtectedRoute(ctx, '/api/backup.export.prepare', (request, response) =>
-    prepareExport(request, response, tokens, dshHome))
+    prepareExport(request, response, tokens, dshHome, config.settingsFile))
   registerProtectedRoute(ctx, '/api/backup.export', (request, response) =>
     downloadExport(request, response, tokens))
   registerProtectedRoute(ctx, '/api/backup.import', (request, response) =>
-    importBackup(ctx, request, response, tokens, dshHome, config.maxUploadBytes))
+    importBackup(ctx, request, response, tokens, dshHome, config.maxUploadBytes, config.settingsFile))
 }

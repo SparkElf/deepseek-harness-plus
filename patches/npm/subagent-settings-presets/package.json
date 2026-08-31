@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-subagent-settings-presets",
-  "version": "0.1.0-rc.11",
+  "version": "0.1.0-rc.12",
   "description": "Data-only exact official-source patch routing built-in shipped preset delegation rows to the Plus settings capability",
   "publishConfig": {
     "access": "public"
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "subagent-settings-preset-routing",
-        "dsh": ">=0.1.2-alpha.1",
+        "dsh": ">=0.1.2-alpha.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "baseRevision": "0a53fb55bea101816fa226bb964ae2bed71c343b",
           "paths": [
             "packages/preset/agent-presets/presets/"
           ]

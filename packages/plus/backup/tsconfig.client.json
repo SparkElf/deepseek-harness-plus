@@ -11,6 +11,7 @@
     "src/client/locales.ts",
     "src/client/store.ts",
     "src/client/types.ts",
+    "src/types.ts",
     "src/css-modules.d.ts"
   ],
   "references": [

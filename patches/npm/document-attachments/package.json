@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-document-attachments",
-  "version": "0.1.0-rc.11",
-  "description": "Data-only exact official-source patch adding generic durable Document integration points consumed by the Plus Document capability",
+  "version": "0.1.0-rc.12",
+  "description": "Data-only exact official-source patch adding durable Document integration and session-authorized generic reads",
   "publishConfig": {
     "access": "public"
   },
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "document-attachment-generic-integration",
-        "dsh": ">=0.1.2-alpha.1",
+        "dsh": ">=0.1.2-alpha.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "cd5ef8148158c3a752a658978873241fdf8e2bbc",
+          "baseRevision": "0a53fb55bea101816fa226bb964ae2bed71c343b",
           "paths": [
             "packages/api/session-controller/src/",
             "packages/attachment/attachment/src/",
@@ -34,6 +34,7 @@
             "packages/client/ui-conversation/src/",
             "packages/client/ui-conversation/tests/",
             "packages/client/ui-trajectory/src/",
+            "packages/extensions/cordis-client-runner/src/client/",
             "packages/llm/llm/src/",
             "packages/llm/llm-deepseek/src/",
             "packages/llm/llm-pi-ai/src/"

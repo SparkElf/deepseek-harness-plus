@@ -1,7 +1,7 @@
 import { spawn, spawnSync } from 'node:child_process'
 import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { strToU8, zipSync } from 'fflate'
 import { parse, stringify } from 'yaml'
@@ -13,10 +13,11 @@ const home = join(stateRoot, 'home')
 const packagesDir = join(stateRoot, 'packages')
 const fixturesDir = join(stateRoot, 'fixtures')
 const workspaceDir = join(stateRoot, 'workspace')
+const backupWorkspaceDir = join(stateRoot, 'workspace-after-backup')
 const runtimePath = join(stateRoot, 'runtime.json')
 const logPath = join(stateRoot, 'runtime.log')
 const baseURL = 'http://127.0.0.1:3081'
-const officialRevision = 'cd5ef8148158c3a752a658978873241fdf8e2bbc'
+const officialRevision = '0a53fb55bea101816fa226bb964ae2bed71c343b'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -84,7 +85,20 @@ async function portAvailable(port) {
 }
 
 function writePdf(path) {
-  const stream = 'BT /F1 18 Tf 72 720 Td (PLUS_DOCUMENT_OK) Tj ET\n'
+  const stream = [
+    'BT',
+    '/F1 28 Tf',
+    '72 680 Td',
+    '(DeepSeek Harness document preview) Tj',
+    '0 -64 Td',
+    '/F1 20 Tf',
+    '(This fixture verifies parsed document content.) Tj',
+    '0 -42 Td',
+    '(The expected phrase is PLUS DOCUMENT OK.) Tj',
+    '0 -42 Td',
+    '(Visible text must reach Chat and Trajectory preview.) Tj',
+    'ET',
+  ].join('\n') + '\n'
   const objects = [
     '<< /Type /Catalog /Pages 2 0 R >>',
     '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
@@ -173,6 +187,7 @@ export default async function globalSetup() {
   mkdirSync(packagesDir, { recursive: true })
   mkdirSync(fixturesDir, { recursive: true })
   mkdirSync(workspaceDir, { recursive: true })
+  mkdirSync(backupWorkspaceDir, { recursive: true })
   mkdirSync(home, { recursive: true })
   const modelSeedHome = resolve(process.env.DSH_PLUS_TEST_MODEL_SEED_HOME)
   const settingsSource = join(modelSeedHome, 'settings.yaml')
@@ -214,7 +229,9 @@ export default async function globalSetup() {
       return [manifest.name, `file:${archives.get(directory)}`]
     })),
     'dsh-better-sidebar': '0.17.1',
-    '@sparkelf/dsh-mobile-bridge': '0.2.8',
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-video-preview': '0.1.4',
+    '@sparkelf/dsh-mobile-bridge': '0.2.10',
   }
   writeFileSync(
     join(profileRoot, 'pnpm-workspace.yaml'),
@@ -224,9 +241,36 @@ export default async function globalSetup() {
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
   run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
+  const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
+  const previewBundles = {
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-video-preview': '0.1.4',
+  }
+  for (const [packageName, version] of Object.entries(previewBundles)) {
+    if (profileManifest.dependencies?.[packageName] !== version
+      || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
+      throw new Error(`Plus profile did not materialize ${packageName}@${version}`)
+    }
+    const installedManifest = JSON.parse(readFileSync(join(profileRoot, 'node_modules', packageName, 'package.json'), 'utf8'))
+    if (installedManifest.name !== packageName || installedManifest.version !== version) {
+      throw new Error(`Plus profile installed the wrong ${packageName} version`)
+    }
+  }
   const profileOfficialScope = realpathSync(join(profileRoot, 'node_modules', '@deepseek-ai'))
-  const cliOfficialScope = realpathSync(join(sourceRoot, 'apps', 'cli', 'node_modules', '@deepseek-ai'))
-  if (profileOfficialScope !== cliOfficialScope) throw new Error('Plus profile official scope must resolve from the dsh CLI dependency tree')
+  const officialRoot = realpathSync(sourceRoot)
+  for (const packageName of readdirSync(profileOfficialScope)) {
+    const profilePackage = realpathSync(join(profileOfficialScope, packageName))
+    const sourceRelative = relative(officialRoot, profilePackage)
+    const manifest = JSON.parse(readFileSync(join(profilePackage, 'package.json'), 'utf8'))
+    if (
+      isAbsolute(sourceRelative)
+      || sourceRelative === '..'
+      || sourceRelative.startsWith('../')
+      || manifest.name !== `@deepseek-ai/${packageName}`
+    ) {
+      throw new Error(`Plus profile official package must resolve from the exact DSH checkout: @deepseek-ai/${packageName}`)
+    }
+  }
   writePdf(join(fixturesDir, 'acceptance.pdf'))
   writeFileSync(join(fixturesDir, 'not-a-backup.zip'), zipSync({ 'ordinary.txt': strToU8('Not a DeepSeek Harness backup.\n') }))
   const log = openSync(logPath, 'w')

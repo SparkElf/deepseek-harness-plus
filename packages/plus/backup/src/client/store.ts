@@ -1,15 +1,18 @@
-/** Remount-surviving state for the Settings Backup slot registration. */
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
+import type { BackupScope } from '../types.ts'
 import type {
-  BackupErrorKey, BackupOperation, BackupSectionState, BackupStatusKey,
+  BackupErrorKey, BackupOperation, BackupResult, BackupSectionState,
 } from './types.ts'
 
+/** Remount-surviving state for the Settings Backup slot registration. */
+
 type BackupSectionActions = {
+  selectScope: (draft: BackupSectionState, scope: BackupScope) => void
   begin: (draft: BackupSectionState, operation: BackupOperation) => void
   progress: (draft: BackupSectionState, operation: BackupOperation) => void
   requestCancel: (draft: BackupSectionState) => void
   cancelled: (draft: BackupSectionState) => void
-  complete: (draft: BackupSectionState, status: BackupStatusKey) => void
+  complete: (draft: BackupSectionState, result: BackupResult) => void
   fail: (draft: BackupSectionState, error: BackupErrorKey) => void
 }
 
@@ -23,15 +26,21 @@ export type BackupSectionStore = EngineStoreHandle<BackupSectionState, BackupSec
 export function createBackupSectionStore(): BackupSectionStore {
   return defineStore({
     init: (): BackupSectionState => ({
+      scope: 'all',
       operation: null,
-      status: null,
+      result: null,
       error: null,
       cancelling: false,
     }),
     actions: {
+      selectScope: (draft, scope: BackupScope) => {
+        draft.scope = scope
+        draft.result = null
+        draft.error = null
+      },
       begin: (draft, operation: BackupOperation) => {
         draft.operation = operation
-        draft.status = null
+        draft.result = null
         draft.error = null
         draft.cancelling = false
       },
@@ -41,15 +50,15 @@ export function createBackupSectionStore(): BackupSectionStore {
         draft.operation = null
         draft.cancelling = false
       },
-      complete: (draft, status: BackupStatusKey) => {
+      complete: (draft, result: BackupResult) => {
         draft.operation = null
-        draft.status = status
+        draft.result = result
         draft.error = null
         draft.cancelling = false
       },
       fail: (draft, error: BackupErrorKey) => {
         draft.operation = null
-        draft.status = null
+        draft.result = null
         draft.error = error
         draft.cancelling = false
       },

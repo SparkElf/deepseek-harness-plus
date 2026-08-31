@@ -23,6 +23,7 @@ The `plus/` group contains public `@sparkelf/dsh-plugin-*` capability packages t
 
 ## Related documentation
 
+- [Attachment subsystem](../../docs/subsystems/attachment.md)
 - [Plus Backup as one full-stack plugin](../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.md)
 - [Workspace package](../workspace/workspace/README.md)
 - [Host WebServer package](../host/webserver/README.md)

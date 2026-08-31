@@ -21,6 +21,12 @@ overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
 
+packageExtensions:
+  # Office preview 0.1.2 uses registerFileViewer, which remains public in the exact Plus sidebar.
+  '@huanlin/dsh-plugin-better-sidebar-plugin-office@0.1.2':
+    peerDependencies:
+      dsh-better-sidebar: '0.17.1'
+
 peerDependencyRules:
   allowedVersions:
     typescript: '>=5 <7'
@@ -48,6 +54,10 @@ allowBuilds:
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
 
 minimumReleaseAgeExclude:
+  # Plus acceptance may consume reviewed same-day external releases, but only
+  # at the exact versions pinned by distribution governance and curation.
+  - '@sparkelf/dsh-mobile-bridge@0.2.10'
+  - dshmarket@1.38.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.
   - '@earendil-works/pi-ai@0.84.2'

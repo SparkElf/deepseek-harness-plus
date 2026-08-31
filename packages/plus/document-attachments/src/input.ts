@@ -15,7 +15,7 @@ import type {
   SaveImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
-import { TypertRemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { DocumentParserError } from './error.ts'
 import type {
   DocumentAttachmentRef,
@@ -353,8 +353,9 @@ function sendFailure(response: ServerResponse, error: unknown): void {
     sendJson(response, 400, { ok: false, error: { code: error.code, message: error.message, details: {} } })
     return
   }
-  if (error instanceof TypertRemoteFailure) {
-    sendJson(response, 409, { ok: false, error: error.failure })
+  const remote = remoteErrorOf(error)
+  if (remote !== undefined) {
+    sendJson(response, 409, { ok: false, error: remote })
     return
   }
   sendJson(response, 500, { ok: false, error: { code: 'DOCUMENT_PROMPT_FAILED', message: 'Unable to submit the document prompt.', details: {} } })

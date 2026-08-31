@@ -6,6 +6,21 @@ import { pathToFileURL } from 'node:url'
 
 import config from './config.json' with { type: 'json' }
 
+/** Resolve the repository targeted by this run; GitHub Actions owns the live repository fact. */
+export function resolveRepositoryCoordinates(slug, defaults) {
+  if (slug === undefined || slug === '') return defaults
+  const parts = slug.split('/')
+  if (parts.length !== 2 || parts.some((part) => part === '')) {
+    throw new Error(`GITHUB_REPOSITORY 必须是 owner/repository，收到 ${JSON.stringify(slug)}`)
+  }
+  return { organization: parts[0], repository: parts[1] }
+}
+
+const repositoryCoordinates = resolveRepositoryCoordinates(process.env.GITHUB_REPOSITORY, {
+  organization: config.organization,
+  repository: config.repository,
+})
+
 const API_VERSION = '2026-03-10'
 const BODY_LIMIT = 50
 const AUDIT_MARKER = '<!-- dsh-issue-policy -->'
@@ -416,10 +431,10 @@ async function graphql(query, variables) {
 }
 
 async function issueSnapshot(number, status = undefined) {
-  const issue = await api(`/repos/${config.organization}/${config.repository}/issues/${number}`)
+  const issue = await api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/${number}`)
   if (issue.pull_request) return null
   const values = await api(
-    `/repos/${config.organization}/${config.repository}/issues/${number}/issue-field-values?per_page=100`,
+    `/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/${number}/issue-field-values?per_page=100`,
   )
   const field = (name) => values.find((value) => value.issue_field_name === name)
   return {
@@ -483,8 +498,8 @@ async function projectContext(number, includeStatusActor = false) {
       }
     }`,
     {
-      organization: config.organization,
-      repository: config.repository,
+      organization: repositoryCoordinates.organization,
+      repository: repositoryCoordinates.repository,
       number,
       project: config.projectNumber,
       includeStatusActor,
@@ -557,14 +572,14 @@ async function setStatus(number, status) {
 
 async function upsertAudit(number, errors) {
   const comments = await api(
-    `/repos/${config.organization}/${config.repository}/issues/${number}/comments?per_page=100`,
+    `/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/${number}/comments?per_page=100`,
   )
   const existing = comments.find(
     (comment) => comment.user?.type === 'Bot' && comment.body?.includes(AUDIT_MARKER),
   )
   if (errors.length === 0) {
     if (existing) {
-      await api(`/repos/${config.organization}/${config.repository}/issues/comments/${existing.id}`, {
+      await api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/comments/${existing.id}`, {
         method: 'DELETE',
       })
     }
@@ -573,13 +588,13 @@ async function upsertAudit(number, errors) {
   const body = `${AUDIT_MARKER}\n⚠️ Issue policy 未通过：\n\n${errors.map((error) => `- ${error}`).join('\n')}`
   if (existing) {
     if (existing.body === body) return
-    await api(`/repos/${config.organization}/${config.repository}/issues/comments/${existing.id}`, {
+    await api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/comments/${existing.id}`, {
       method: 'PATCH',
       body: JSON.stringify({ body }),
       headers: { 'Content-Type': 'application/json' },
     })
   } else {
-    await api(`/repos/${config.organization}/${config.repository}/issues/${number}/comments`, {
+    await api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/issues/${number}/comments`, {
       method: 'POST',
       body: JSON.stringify({ body }),
       headers: { 'Content-Type': 'application/json' },
@@ -598,7 +613,7 @@ async function auditIssue(number, extraErrors = [], status = undefined) {
 async function resolvingReferencesSnapshot(number, pull) {
   const references = parseReferences({
     body: pull.body ?? '',
-    repository: `${config.organization}/${config.repository}`,
+    repository: `${repositoryCoordinates.organization}/${repositoryCoordinates.repository}`,
   })
   const issues = new Map()
   for (const issueNumber of references.all) {
@@ -614,9 +629,9 @@ async function resolvingReferencesSnapshot(number, pull) {
 
 async function pullRequestSnapshot(number) {
   const [pull, reviewRequests, reviews] = await Promise.all([
-    api(`/repos/${config.organization}/${config.repository}/pulls/${number}`),
-    api(`/repos/${config.organization}/${config.repository}/pulls/${number}/requested_reviewers`),
-    api(`/repos/${config.organization}/${config.repository}/pulls/${number}/reviews?per_page=100`),
+    api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/pulls/${number}`),
+    api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/pulls/${number}/requested_reviewers`),
+    api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/pulls/${number}/reviews?per_page=100`),
   ])
   const resolving = await resolvingReferencesSnapshot(number, pull)
   return {
@@ -630,7 +645,7 @@ async function pullRequestSnapshot(number) {
 }
 
 async function lifecyclePullRequestSnapshot(number) {
-  const pull = await api(`/repos/${config.organization}/${config.repository}/pulls/${number}`)
+  const pull = await api(`/repos/${repositoryCoordinates.organization}/${repositoryCoordinates.repository}/pulls/${number}`)
   return resolvingReferencesSnapshot(number, pull)
 }
 

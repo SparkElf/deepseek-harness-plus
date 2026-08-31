@@ -1,0 +1,33 @@
+{
+  "name": "@sparkelf/dsh-patch-genui-skill-chart-contract",
+  "version": "0.1.0-rc.12",
+  "description": "Exact GenUI 0.9.6 patch for bundled skill discovery and chart field semantics",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/genui-skill-chart-contract"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "genui-skill-chart-contract",
+        "dsh": ">=0.1.2-alpha.2",
+        "target": {
+          "kind": "npm",
+          "name": "@changfenhuang/dsh-genui",
+          "range": "0.9.6"
+        },
+        "file": "./patches/genui-skill-chart-contract.patch"
+      }
+    ]
+  }
+}

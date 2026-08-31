@@ -1,6 +1,6 @@
 /** Full-stack Plus user-data Backup Host plugin. */
 
-import { dirname } from 'node:path'
+import { basename, dirname } from 'node:path'
 import Schema from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -34,5 +34,6 @@ export function apply(ctx: BackupHostContext, config: Config = {}): void {
   if (documentPath === undefined) throw new Error('plus-backup requires a file-backed settings provider')
   registerBackupRoutes(ctx, {
     maxUploadBytes: config.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES,
+    settingsFile: basename(documentPath),
   }, dirname(documentPath))
 }

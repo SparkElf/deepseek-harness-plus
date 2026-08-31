@@ -1,11 +1,58 @@
+diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
+index 7810249c46..db2c674ce2 100644
+--- a/packages/api/session-controller/src/client/contract/session.ts
++++ b/packages/api/session-controller/src/client/contract/session.ts
+@@ -7,7 +7,7 @@
+  * must stub); implementation-internal entry points (history staging, wire-frame
+  * dispatch) stay on the class, invisible out here.
+  */
+-import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+@@ -85,13 +85,13 @@ export interface ISession {
+     requestId?: SessionRequestId,
+   ): Promise<RemoteResult<{ accepted: true }>>
+   /**
+-   * Resolve one durable image referenced by this session.
++   * Resolve one durable file referenced by this session.
+    * @param attachmentId - opaque id found in the folded session log.
+    * @returns the authenticated reference and decoded bytes.
+    */
+   readAttachment(
+     attachmentId: AttachmentIdType,
+-  ): Promise<RemoteResult<{ attachment: ImageAttachmentRef; data: Uint8Array }>>
++  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; data: Uint8Array }>>
+   /**
+    * Apply one edit, remove, or strict steer action to a still-pending queue occurrence.
+    * @param itemId - agent-owned inbox occurrence identity.
 diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
-index 815cf89c40e404a32dd1ec8c20568fc15995a73d..9e03894a8d895bc73fd5ea8ac853b0073b7c70dd 100644
+index 8af47b5aad..3599956698 100644
 --- a/packages/api/session-controller/src/client/sessions/session.ts
 +++ b/packages/api/session-controller/src/client/sessions/session.ts
-@@ -215,27 +215,19 @@ export class Session implements SessionFace {
+@@ -2,7 +2,7 @@
+ 
+ import type { Context } from '@deepseek-ai/cordis'
+ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
+-import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+@@ -28,7 +28,7 @@ import type {
+ } from '../contract/events.ts'
+ import { Notifier } from './notifier.ts'
+ import { isRemoteFailure } from '@deepseek-ai/dsh-api-gateway/client'
+-import type { RemoteFailure, RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
++import { RemoteError, type RemoteFailure, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { SessionRemotes } from './remotes.ts'
+ import { ProjectionValueStore } from './projection-store.ts'
+ import type { ProjectionsBaseline } from './projection-store.ts'
+@@ -210,25 +210,17 @@ export class Session implements SessionFace {
      signal?: AbortSignal,
      requestId?: SessionRequestId,
-   ): Promise<ClientResult<{ accepted: true }>> {
+   ): Promise<RemoteResult<{ accepted: true }>> {
 -    this.promptError = null
 -    this.lastAgentError = null
 -    // Synchronous, before the first await: the blank → engaging edge must be
@@ -14,72 +61,36 @@ index 815cf89c40e404a32dd1ec8c20568fc15995a73d..9e03894a8d895bc73fd5ea8ac853b007
 -    this.promptAttempted = true
 -    if (this.blankBit) this.firstPromptPendingTurn = true
 -    this.notifier.markDirty()
--    let result: ClientResult<{ accepted: true }>
--    try {
+-    let result: RemoteResult<{ accepted: true }>
+-    if (this.address === undefined) {
+-      const clientTimeZone = resolvedClientTimeZone()
+-      result = await this.remote.session.prompt({
+-        requestId: requestId ?? randomUUID() as SessionRequestId,
+-        sessionId: this.sessionId,
+-        mode,
+-        content,
+-        clientTimeZone,
+-      }, signal)
+-    } else {
 +    return this.settlePrompt(requestId, async () => {
-       if (this.address === undefined) {
-         const clientTimeZone = resolvedClientTimeZone()
--        result = toSessionResult(await this.remote.session.prompt({
-+        return toSessionResult(await this.remote.session.prompt({
-           requestId: requestId ?? randomUUID() as SessionRequestId,
-           sessionId: this.sessionId,
-           mode,
-           content,
-           clientTimeZone,
-         }, signal))
--      } else if (this.address.mode === 'one-shot') {
--        result = {
++      if (this.address === undefined) {
++        const clientTimeZone = resolvedClientTimeZone()
++        return this.remote.session.prompt({
++          requestId: requestId ?? randomUUID() as SessionRequestId,
++          sessionId: this.sessionId,
++          mode,
++          content,
++          clientTimeZone,
++        }, signal)
 +      }
-+      if (this.address.mode === 'one-shot') {
-+        return {
-           ok: false,
-           error: {
-             code: 'subagent-not-resumable',
-@@ -243,30 +235,64 @@ export class Session implements SessionFace {
-             details: { childSessionId: this.address.childSessionId },
-           },
-         }
--      } else {
--        if (content.some(part => part.type === 'image')) {
--          result = {
--            ok: false,
--            error: {
--              code: 'attachment-error',
--              message: 'Image input is unavailable for subagent continuations.',
--              details: { reason: 'SUBAGENT_IMAGE_UNSUPPORTED' },
--            },
--          }
--        } else {
--          const routed = toSessionResult(await this.remote.subagents.prompt({
--            requestId: randomUUID() as SessionRequestId,
--            parentSessionId: this.address.parentSessionId,
--            childSessionId: this.address.childSessionId,
--            mode: this.address.mode,
--            content: content.flatMap(part => part.type === 'text'
--              ? [{ type: 'text' as const, text: part.text }]
--              : []),
--            clientTimeZone: resolvedClientTimeZone(),
--          }, signal))
--          result = routed.ok ? { ok: true, value: { accepted: true } } : routed
-+      }
-+      if (content.some(part => part.type === 'image')) {
-+        return {
-+          ok: false,
-+          error: {
-+            code: 'attachment-error',
-+            message: 'Image input is unavailable for subagent continuations.',
-+            details: { reason: 'SUBAGENT_IMAGE_UNSUPPORTED' },
-+          },
-         }
-       }
-+      const routed = toSessionResult(await this.remote.subagents.prompt({
-+        requestId: randomUUID() as SessionRequestId,
-+        parentSessionId: this.address.parentSessionId,
-+        childSessionId: this.address.childSessionId,
-+        mode: this.address.mode,
-+        content: content.flatMap(part => part.type === 'text' ? [{ type: 'text' as const, text: part.text }] : []),
-+        clientTimeZone: resolvedClientTimeZone(),
-+      }, signal))
+       const routed = await this.remote.subagents.prompt({
+         requestId: randomUUID() as SessionRequestId,
+         parentSessionId: this.address.parentSessionId,
+@@ -237,22 +229,49 @@ export class Session implements SessionFace {
+         content,
+         clientTimeZone: resolvedClientTimeZone(),
+       }, signal)
+-      result = routed.ok ? { ok: true, value: { accepted: true } } : routed
 +      return routed.ok ? { ok: true, value: { accepted: true } } : routed
 +    })
 +  }
@@ -92,37 +103,34 @@ index 815cf89c40e404a32dd1ec8c20568fc15995a73d..9e03894a8d895bc73fd5ea8ac853b007
 +   */
 +  promptPrepared(
 +    requestId: SessionRequestId,
-+    submit: () => Promise<ClientResult<{ accepted: true }>>,
-+  ): Promise<ClientResult<{ accepted: true }>> {
++    submit: () => Promise<RemoteResult<{ accepted: true }>>,
++  ): Promise<RemoteResult<{ accepted: true }>> {
 +    if (this.address !== undefined) {
 +      return this.settlePrompt(requestId, async () => ({
 +        ok: false,
-+        error: {
-+          code: 'attachment-error',
-+          message: 'Document input is unavailable for subagent continuations.',
-+          details: { reason: 'SUBAGENT_DOCUMENT_UNSUPPORTED' },
-+        },
++        error: new RemoteError(
++          'session/attachment-invalid',
++          'Document input is unavailable for subagent continuations.',
++          { reason: 'SUBAGENT_DOCUMENT_UNSUPPORTED' },
++        ),
 +      }))
-+    }
+     }
 +    return this.settlePrompt(requestId, submit)
 +  }
 +
 +  private async settlePrompt(
 +    requestId: SessionRequestId | undefined,
-+    submit: () => Promise<ClientResult<{ accepted: true }>>,
-+  ): Promise<ClientResult<{ accepted: true }>> {
++    submit: () => Promise<RemoteResult<{ accepted: true }>>,
++  ): Promise<RemoteResult<{ accepted: true }>> {
 +    this.promptError = null
 +    this.lastAgentError = null
 +    this.promptAttempted = true
 +    if (this.blankBit) this.firstPromptPendingTurn = true
 +    this.notifier.markDirty()
-+    let result: ClientResult<{ accepted: true }>
-+    try {
-+      result = await submit()
-     } catch (error) {
-       result = transportResult(error)
-     }
-@@ -276,14 +302,6 @@ export class Session implements SessionFace {
++    const result = await submit()
+     if (!result.ok) {
+       if (requestId !== undefined) this.retireFailedSubmission(requestId)
+       this.promptError = { op: 'send', error: result.error }
        this.notifier.markDirty()
        return result
      }
@@ -137,28 +145,45 @@ index 815cf89c40e404a32dd1ec8c20568fc15995a73d..9e03894a8d895bc73fd5ea8ac853b007
      if (this.blankBit) {
        this.blankBit = false
        this.options.onEngaged?.(this)
+@@ -262,13 +281,13 @@ export class Session implements SessionFace {
+   }
+ 
+   /**
+-   * Resolve one image referenced by this session into browser-consumable bytes.
++   * Resolve one file referenced by this session into browser-consumable bytes.
+    * @param attachmentId - opaque id found in the folded session log.
+    * @returns the authenticated reference and decoded bytes.
+    */
+   async readAttachment(
+     attachmentId: AttachmentIdType,
+-  ): Promise<RemoteResult<{ attachment: ImageAttachmentRef; data: Uint8Array }>> {
++  ): Promise<RemoteResult<{ attachment: FileAttachmentRef; data: Uint8Array }>> {
+     const result = await this.remote.session.attachment({
+       sessionId: this.sessionId,
+       attachmentId,
 diff --git a/packages/api/session-controller/src/commands.ts b/packages/api/session-controller/src/commands.ts
-index 48c41f3aa143d420890a4ad244d5b7b75b7d3eb4..cae9940f2ae4d5b6b8f57b0d88d48629f8b33c0d 100644
+index 1ad9127925..4384b275a8 100644
 --- a/packages/api/session-controller/src/commands.ts
 +++ b/packages/api/session-controller/src/commands.ts
-@@ -281,6 +281,34 @@ export class SessionCommandController {
+@@ -5,7 +5,7 @@ import type { Context } from '@deepseek-ai/cordis'
+ import { brandString } from '@deepseek-ai/dsh-brand'
+ import type { Agent, ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
+ import { AttachmentError, admitEncodedImages } from '@deepseek-ai/dsh-attachment'
+-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import {
+   ReasoningEffortId, createUserMessage, freezeMessage,
+ } from '@deepseek-ai/dsh-llm'
+@@ -281,6 +281,26 @@ export class SessionCommandController {
     * @returns acknowledgement that the Agent accepted the prompt.
     */
    async prompt(request: SessionPromptRequest): Promise<SessionPromptValue> {
 +    const hasImage = request.content.some(part => part.type === 'image')
-+    try {
-+      return await this.promptPrepared(
-+        request,
-+        hasImage,
-+        () => durablePromptContent(this.ctx, request.content),
-+      )
-+    } catch (error) {
-+      if (error instanceof TypertRemoteFailure) throw error
-+      if (error instanceof AttachmentError) {
-+        reject('attachment-error', error.message, { reason: error.code })
-+      }
-+      reject('agent-busy', 'prompt rejected', { reason: String(error) })
-+    }
++    return this.promptPrepared(
++      request,
++      hasImage,
++      () => durablePromptContent(this.ctx, request.content),
++    )
 +  }
 +
 +  /**
@@ -176,52 +201,193 @@ index 48c41f3aa143d420890a4ad244d5b7b75b7d3eb4..cae9940f2ae4d5b6b8f57b0d88d48629
      const clientTimeZone = request.clientTimeZone === undefined
        ? undefined
        : canonicalClientTimeZone(request.clientTimeZone)
-@@ -305,31 +333,21 @@ export class SessionCommandController {
+@@ -305,7 +325,6 @@ export class SessionCommandController {
        rpcId: request.requestId,
        ...(clientTimeZone === undefined ? {} : { clientTimeZone }),
      }
 -    const hasImage = request.content.some(part => part.type === 'image')
      const admit = async (): Promise<SessionPromptValue> => {
--      try {
--        if (hasImage) {
--          const current = this.agents.selectionFor(agent).current
--          const model = await this.ctx.llm.resolveModelInfo(current.provider, current.model)
--          if (model.inputModalities !== undefined && !model.inputModalities.includes('image')) {
--            reject(
--              'attachment-error',
--              `Model "${current.model}" does not support image input.`,
--              { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' },
--            )
--          }
--        }
+       try {
+         if (hasImage) {
+@@ -319,8 +338,7 @@ export class SessionCommandController {
+             )
+           }
+         }
 -        const content = await durablePromptContent(this.ctx, request.content)
 -        const message: UserMessage = createUserMessage({ content, source })
--        if (request.mode === 'steer') agent.steer(message)
--        else agent.followup(message)
--      } catch (error) {
--        if (error instanceof TypertRemoteFailure) throw error
--        if (error instanceof AttachmentError) {
--          reject('attachment-error', error.message, { reason: error.code })
-+      if (hasImage) {
-+        const current = this.agents.selectionFor(agent).current
-+        const model = await this.ctx.llm.resolveModelInfo(current.provider, current.model)
-+        if (model.inputModalities !== undefined && !model.inputModalities.includes('image')) {
-+          reject(
-+            'attachment-error',
-+            `Model "${current.model}" does not support image input.`,
-+            { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' },
-+          )
-         }
--        reject('agent-busy', 'prompt rejected', { reason: String(error) })
++        const message: UserMessage = createUserMessage({ content: await prepare(), source })
+         if (request.mode === 'steer') agent.steer(message)
+         else agent.followup(message)
+       } catch (error) {
+@@ -336,7 +354,7 @@ export class SessionCommandController {
+   }
+ 
+   /**
+-   * Read one durable image after proving the Session log references it.
++   * Read one durable attachment after proving the Session log references it.
+    * @param request - Session and attachment identities used for authorization.
+    * @returns the durable attachment reference and base64-encoded bytes.
+    */
+@@ -348,31 +366,35 @@ export class SessionCommandController {
+       if (error instanceof ApiSessionNotFound) {
+         throw new RemoteError('session/not-found', error.message, { sessionId: request.sessionId })
        }
-+      const message: UserMessage = createUserMessage({ content: await prepare(), source })
-+      if (request.mode === 'steer') agent.steer(message)
-+      else agent.followup(message)
-       return { accepted: true }
++      console.error('session-controller: attachment authorization failed', error)
+       throw new RemoteError(
+         'gateway/internal',
+         `attachment authorization unavailable for session "${request.sessionId}": ${String(error)}`,
+         {},
+       )
      }
-     return hasImage ? this.agents.serializeImageAdmission(agent, admit) : admit()
+-    const ref = referencedImage(source.events, String(request.attachmentId))
+-    if (ref === undefined) {
++    const referenced = referencedAttachment(source.events, String(request.attachmentId))
++    if (referenced === undefined) {
+       throw new RemoteError(
+         'session/attachment-invalid',
+-        'Image is not referenced by this session.',
++        'Attachment is not referenced by this session.',
+         { reason: 'ATTACHMENT_NOT_REFERENCED' },
+       )
+     }
+     try {
+-      const stored = await this.ctx.attachments.readImage(ref)
++      const stored = referenced.kind === 'image'
++        ? await this.ctx.attachments.readImage(referenced.ref)
++        : await this.ctx.attachments.readFile(referenced.ref)
+       return {
+         attachment: stored.ref,
+         data: Buffer.from(stored.data).toString('base64'),
+       }
+     } catch (error) {
++      console.error('session-controller: attachment read failed', error)
+       if (error instanceof AttachmentError) {
+         throw new RemoteError('session/attachment-invalid', error.message, { reason: error.code })
+       }
+-      throw new RemoteError('gateway/internal', 'Unable to read image attachment.', {})
++      throw new RemoteError('gateway/internal', 'Unable to read attachment.', {})
+     }
+   }
+ 
+@@ -507,55 +529,98 @@ async function durablePromptContent(
+     : { type: 'image', attachment: refs[next++] as ImageAttachmentRef })
+ }
+ 
+-function imageBlockIn(
++type ReferencedAttachment =
++  | { readonly kind: 'image'; readonly ref: ImageAttachmentRef }
++  | { readonly kind: 'file'; readonly ref: FileAttachmentRef }
++
++function matchingAttachment(
++  value: unknown,
++  kind: ReferencedAttachment['kind'],
++  attachmentId: string,
++): ReferencedAttachment | undefined {
++  if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined
++  if (String((value as { readonly attachmentId?: unknown }).attachmentId) !== attachmentId) return undefined
++  return kind === 'image'
++    ? { kind, ref: value as ImageAttachmentRef }
++    : { kind, ref: value as FileAttachmentRef }
++}
++
++function attachmentBlockIn(
+   content: unknown,
+-  match: (ref: ImageAttachmentRef) => boolean,
+-): ImageAttachmentRef | undefined {
++  attachmentId: string,
++): ReferencedAttachment | undefined {
+   if (!Array.isArray(content)) return undefined
+   for (const value of content) {
+     if (typeof value !== 'object' || value === null || Array.isArray(value)) continue
+-    const block = value as { readonly type?: unknown; readonly attachment?: unknown; readonly content?: unknown }
+-    if (block.type === 'image' && typeof block.attachment === 'object' && block.attachment !== null) {
+-      const ref = block.attachment as ImageAttachmentRef
+-      if (match(ref)) return ref
++    const block = value as {
++      readonly type?: unknown
++      readonly attachment?: unknown
++      readonly parsed?: unknown
++      readonly content?: unknown
++    }
++    if (block.type === 'image') {
++      const found = matchingAttachment(block.attachment, 'image', attachmentId)
++      if (found !== undefined) return found
++    }
++    if (block.type === 'document') {
++      const original = matchingAttachment(block.attachment, 'file', attachmentId)
++      if (original !== undefined) return original
++      if (typeof block.parsed === 'object' && block.parsed !== null && !Array.isArray(block.parsed)) {
++        const parsed = block.parsed as {
++          readonly markdown?: unknown
++          readonly modelText?: unknown
++          readonly contentList?: unknown
++          readonly images?: unknown
++        }
++        for (const artifact of [parsed.markdown, parsed.modelText, parsed.contentList]) {
++          const found = matchingAttachment(artifact, 'file', attachmentId)
++          if (found !== undefined) return found
++        }
++        if (Array.isArray(parsed.images)) {
++          for (const image of parsed.images) {
++            const found = matchingAttachment(image, 'image', attachmentId)
++            if (found !== undefined) return found
++          }
++        }
++      }
+     }
+     if (block.type === 'tool-result') {
+-      const nested = imageBlockIn(block.content, match)
++      const nested = attachmentBlockIn(block.content, attachmentId)
+       if (nested !== undefined) return nested
+     }
+   }
+   return undefined
+ }
+ 
+-function imageInEvent(
++function attachmentInEvent(
+   event: SessionEvent,
+-  match: (ref: ImageAttachmentRef) => boolean,
+-): ImageAttachmentRef | undefined {
++  attachmentId: string,
++): ReferencedAttachment | undefined {
+   const data = event.data as {
+     readonly content?: unknown
+     readonly message?: { readonly content?: unknown }
+     readonly inserted?: readonly { readonly content?: unknown }[]
+     readonly chunk?: { readonly type?: unknown; readonly block?: unknown }
+   }
+-  const direct = imageBlockIn(data.content, match)
++  const direct = attachmentBlockIn(data.content, attachmentId)
+   if (direct !== undefined) return direct
+-  const message = imageBlockIn(data.message?.content, match)
++  const message = attachmentBlockIn(data.message?.content, attachmentId)
+   if (message !== undefined) return message
+   for (const inserted of data.inserted ?? []) {
+-    const found = imageBlockIn(inserted.content, match)
++    const found = attachmentBlockIn(inserted.content, attachmentId)
+     if (found !== undefined) return found
+   }
+   return event.type === 'assistant/chunk' && data.chunk?.type === 'block-end'
+-    ? imageBlockIn([data.chunk.block], match)
++    ? attachmentBlockIn([data.chunk.block], attachmentId)
+     : undefined
+ }
+ 
+-function referencedImage(
++function referencedAttachment(
+   events: readonly SessionEvent[],
+   attachmentId: string,
+-): ImageAttachmentRef | undefined {
++): ReferencedAttachment | undefined {
+   for (const event of events) {
+-    const found = imageInEvent(event, ref => String(ref.attachmentId) === attachmentId)
++    const found = attachmentInEvent(event, attachmentId)
+     if (found !== undefined) return found
+   }
+   return undefined
 diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
-index 342dd977ebcb7b12e6c8e4c7f9cb93c72e23261c..f2a42d4e33a450a5874aed5a43bf9184677882a4 100644
+index 572f895754..b828038982 100644
 --- a/packages/api/session-controller/src/index.ts
 +++ b/packages/api/session-controller/src/index.ts
 @@ -3,6 +3,7 @@
@@ -232,7 +398,7 @@ index 342dd977ebcb7b12e6c8e4c7f9cb93c72e23261c..f2a42d4e33a450a5874aed5a43bf9184
  import { canOpenNativePath, openNativePath } from '@deepseek-ai/dsh-native-command'
  import type { SessionEvent, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
  import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
-@@ -328,6 +329,21 @@ export class SessionController extends TypertRemoteService {
+@@ -324,6 +325,21 @@ export class SessionController extends TypertRemoteService {
      return this.commands.prompt(request)
    }
  
@@ -255,7 +421,7 @@ index 342dd977ebcb7b12e6c8e4c7f9cb93c72e23261c..f2a42d4e33a450a5874aed5a43bf9184
     * Read one image proven reachable from the addressed Session log.
     * @param request - Session and attachment identities used for authorization.
 diff --git a/packages/api/session-controller/src/list.ts b/packages/api/session-controller/src/list.ts
-index c9a53a6bd0209669b3e7994d0cb1aa29dfeabf2f..f15912a035586dfa324bf220378c6407e6ebcf86 100644
+index ab72da1c92..be3fbe1e31 100644
 --- a/packages/api/session-controller/src/list.ts
 +++ b/packages/api/session-controller/src/list.ts
 @@ -3,7 +3,7 @@
@@ -281,18 +447,18 @@ index c9a53a6bd0209669b3e7994d0cb1aa29dfeabf2f..f15912a035586dfa324bf220378c6407
  /**
   * Advance the Session-list metadata projection by one committed event.
   * @param state - metadata before the event.
-@@ -109,6 +116,17 @@ export class ApiSessionList {
+@@ -107,6 +114,17 @@ export class ApiSessionList {
          },
          stateVersion: 1,
        })
-+      projectionCtx.sessionProjections.register<'documentLimits', null>({
++      ctx.sessionProjections.register<'documentLimits', null>({
 +        key: 'documentLimits',
 +        stateSchema: z.null(),
 +        init: () => null,
 +        apply: state => state,
 +        wire: {
 +          viewSchema: documentLimitsSchema,
-+          view: () => projectionCtx.attachments.documentLimits,
++          view: () => attachmentCtx.attachments.documentLimits,
 +        },
 +        stateVersion: 1,
 +      })
@@ -300,7 +466,7 @@ index c9a53a6bd0209669b3e7994d0cb1aa29dfeabf2f..f15912a035586dfa324bf220378c6407
    }
  
 diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
-index 167937e3d3317bdc20878662f337f88b85ea47f8..97fc8315afe139fe7c009e5295ee807ec2b542a5 100644
+index c0b25fcf2c..f080be8601 100644
 --- a/packages/api/session-controller/src/types.ts
 +++ b/packages/api/session-controller/src/types.ts
 @@ -1,7 +1,7 @@
@@ -308,11 +474,11 @@ index 167937e3d3317bdc20878662f337f88b85ea47f8..97fc8315afe139fe7c009e5295ee807e
  
  import type {
 -  AttachmentIdType, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
-+  AttachmentIdType, DocumentAttachmentLimits, ImageAttachmentLimits, ImageAttachmentRef, ImageMediaType,
++  AttachmentIdType, DocumentAttachmentLimits, FileAttachmentRef, ImageAttachmentLimits, ImageMediaType,
  } from '@deepseek-ai/dsh-attachment'
  import type { Branded } from '@deepseek-ai/dsh-brand'
  import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
-@@ -18,6 +18,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
+@@ -19,6 +19,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
      sessionListMetadata: SessionListMetadata
      /** Host state for the boot-constant image-limit view. */
      imageLimits: null
@@ -321,7 +487,7 @@ index 167937e3d3317bdc20878662f337f88b85ea47f8..97fc8315afe139fe7c009e5295ee807e
      /** Durable model selection already used by a request and still pending for a later request. */
      modelSelection: ModelSelectionProjectionState
    }
-@@ -26,6 +28,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
+@@ -27,6 +29,8 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
      sessionListMetadata: SessionListMetadata
      /** Image-intake limits enforced by the Session prompt endpoint. */
      imageLimits: ImageAttachmentLimits
@@ -330,8 +496,27 @@ index 167937e3d3317bdc20878662f337f88b85ea47f8..97fc8315afe139fe7c009e5295ee807e
      /** Durable model selection already used and selected for the next request. */
      modelSelection: ModelSelectionProjection
    }
+@@ -313,15 +317,15 @@ export interface SessionPromptValue {
+   readonly accepted: true
+ }
+ 
+-/** Durable image read request. */
++/** Durable attachment read request. */
+ export interface SessionAttachmentRequest {
+   readonly sessionId: SessionId
+   readonly attachmentId: AttachmentIdType
+ }
+ 
+-/** Durable image read response value. */
++/** Durable attachment read response value. */
+ export interface SessionAttachmentValue {
+-  readonly attachment: ImageAttachmentRef
++  readonly attachment: FileAttachmentRef
+   readonly data: string
+ }
+ 
 diff --git a/packages/attachment/attachment-local/src/index.ts b/packages/attachment/attachment-local/src/index.ts
-index 16b963f2259d0fc7e7a0761afb9a73eb1603e7ad..c10fe04f5dd1cf9812c37d814a9ce7c41dc77dba 100644
+index 16b963f225..c10fe04f5d 100644
 --- a/packages/attachment/attachment-local/src/index.ts
 +++ b/packages/attachment/attachment-local/src/index.ts
 @@ -5,22 +5,26 @@ import { Context } from '@deepseek-ai/cordis'
@@ -445,7 +630,7 @@ index 16b963f2259d0fc7e7a0761afb9a73eb1603e7ad..c10fe04f5dd1cf9812c37d814a9ce7c4
      await this.compression.run(() => validateImageFile(input, this.imageLimits, this.normalizationPolicy))
    }
 diff --git a/packages/attachment/attachment-local/src/store.ts b/packages/attachment/attachment-local/src/store.ts
-index e5a979aec14e91ae726b5aef414b307dc0780795..26f8e40e2a97809660f0df1dc7d03f812d2734bc 100644
+index e5a979aec1..14de66088e 100644
 --- a/packages/attachment/attachment-local/src/store.ts
 +++ b/packages/attachment/attachment-local/src/store.ts
 @@ -9,9 +9,12 @@ import {
@@ -489,13 +674,14 @@ index e5a979aec14e91ae726b5aef414b307dc0780795..26f8e40e2a97809660f0df1dc7d03f81
  }
  
  async function inspectMetadata(
-@@ -183,73 +189,120 @@ async function ensureDurableHome(path: string): Promise<string> {
+@@ -183,73 +189,121 @@ async function ensureDurableHome(path: string): Promise<string> {
  }
  
  /**
 - * Publish one already verified normalized image below a versioned attachment root.
 + * Publish one immutable object after its content digest is known.
-+ * 中文约束：返回前必须完成file与directory durability；Session只能记录已经返回的reference。
++ * The operation returns only after file and directory durability; Sessions
++ * may record only references returned by this function.
   * @param root - absolute `DSH_HOME/attachments/v1` root.
 - * @param prepared - deterministic normalized bytes and reference.
 - * @returns durable content-addressed normalized image reference.
@@ -650,7 +836,7 @@ index e5a979aec14e91ae726b5aef414b307dc0780795..26f8e40e2a97809660f0df1dc7d03f81
  }
  
 diff --git a/packages/attachment/attachment/src/error.ts b/packages/attachment/attachment/src/error.ts
-index c19229872b976dc7e20b32220cd07bcc7d380395..67f9852511845c38e0a8359d85da24b9abeda7d4 100644
+index c19229872b..67f9852511 100644
 --- a/packages/attachment/attachment/src/error.ts
 +++ b/packages/attachment/attachment/src/error.ts
 @@ -24,6 +24,7 @@ export type AttachmentErrorCode =
@@ -662,7 +848,7 @@ index c19229872b976dc7e20b32220cd07bcc7d380395..67f9852511845c38e0a8359d85da24b9
  /** Runtime membership for structurally compatible errors crossing package boundaries. */
  const IMAGE_ADMISSION_ERROR_CODE_SET: ReadonlySet<string> = new Set(IMAGE_ADMISSION_ERROR_CODES)
 diff --git a/packages/attachment/attachment/src/index.ts b/packages/attachment/attachment/src/index.ts
-index 4ee001b86c55aaa1da788543477ca670a24f8a5d..9f96b4bf5cdac35afb804e378013cb63eec154ec 100644
+index 4ee001b86c..9f96b4bf5c 100644
 --- a/packages/attachment/attachment/src/index.ts
 +++ b/packages/attachment/attachment/src/index.ts
 @@ -3,11 +3,15 @@
@@ -746,7 +932,7 @@ index 4ee001b86c55aaa1da788543477ca670a24f8a5d..9f96b4bf5cdac35afb804e378013cb63
     * Validate one image without persisting it.
     * Batch callers validate every member before saving any member.
 diff --git a/packages/attachment/attachment/src/types.ts b/packages/attachment/attachment/src/types.ts
-index 046444cd76551380a8d1d924f27db9a002d8a93f..146fe3d501b038c8affc61a59c16d727354b9bb8 100644
+index 046444cd76..146fe3d501 100644
 --- a/packages/attachment/attachment/src/types.ts
 +++ b/packages/attachment/attachment/src/types.ts
 @@ -7,6 +7,47 @@ export type { AttachmentId } from './brand.ts'
@@ -840,23 +1026,20 @@ index 046444cd76551380a8d1d924f27db9a002d8a93f..146fe3d501b038c8affc61a59c16d727
  /** Stored image bytes returned after reference and digest verification. */
  export interface StoredImageAttachment {
    ref: ImageAttachmentRef
-diff --git a/packages/client/ui-attachment/src/client/ComposerAttachments.module.css b/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-index 770a64cef5dba2baded4adb7afe63ae88c7fcffc..1cdfd8c3f5b1138b76ce294db6e0198c2226353d 100644
---- a/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-+++ b/packages/client/ui-attachment/src/client/ComposerAttachments.module.css
-@@ -1,3 +1,34 @@
-+.picker {
-+  display: flex;
-+  padding: 4px 12px 0;
-+}
-+
+diff --git a/packages/client/ui-attachment/src/client/AttachmentPicker.module.css b/packages/client/ui-attachment/src/client/AttachmentPicker.module.css
+new file mode 100644
+index 0000000000..da3ae830f9
+--- /dev/null
++++ b/packages/client/ui-attachment/src/client/AttachmentPicker.module.css
+@@ -0,0 +1,26 @@
 +.fileInput {
 +  display: none;
 +}
 +
-+.add {
++.trigger {
 +  display: grid;
 +  place-items: center;
++  flex: none;
 +  width: 28px;
 +  height: 28px;
 +  padding: 0;
@@ -867,34 +1050,79 @@ index 770a64cef5dba2baded4adb7afe63ae88c7fcffc..1cdfd8c3f5b1138b76ce294db6e0198c
 +  cursor: pointer;
 +}
 +
-+.add:hover:not(:disabled) {
++.trigger:hover:not(:disabled) {
 +  background: var(--dsw-alias-interactive-bg-hover-solid);
 +}
 +
-+.add:disabled {
++.trigger:disabled {
 +  opacity: 0.5;
 +  cursor: default;
 +}
+diff --git a/packages/client/ui-attachment/src/client/AttachmentPicker.tsx b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
+new file mode 100644
+index 0000000000..8edb8c5da5
+--- /dev/null
++++ b/packages/client/ui-attachment/src/client/AttachmentPicker.tsx
+@@ -0,0 +1,46 @@
++import { useCallback, useRef } from 'react'
++import type { ChangeEvent } from 'react'
++import { IconPaperclipOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
++import type { ComposerAttachmentPickerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import css from './AttachmentPicker.module.css'
 +
- .rail {
-   min-width: 0;
-   padding: 4px 12px 0;
++/**
++ * Render one image-and-document chooser directly after the command button.
++ * @param props - current intake availability, file callback, and localized labels.
++ * @returns the hidden file input and its visible attachment action.
++ */
++export function AttachmentPicker({ canAcceptFiles, onAddFiles, t }: ComposerAttachmentPickerProps) {
++  const fileInput = useRef<HTMLInputElement>(null)
++  const chooseFiles = useCallback(() => { fileInput.current?.click() }, [])
++  const onFilesChosen = useCallback((event: ChangeEvent<HTMLInputElement>) => {
++    const files = event.currentTarget.files
++    if (files !== null && files.length > 0) onAddFiles([...files])
++    event.currentTarget.value = ''
++  }, [onAddFiles])
++
++  return (
++    <>
++      <input
++        ref={fileInput}
++        className={css.fileInput}
++        type="file"
++        multiple
++        accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.pptx,.xlsx"
++        disabled={!canAcceptFiles}
++        onChange={onFilesChosen}
++      />
++      <Tooltip label={t('attachment.add')} side="top" delayMs={500}>
++        <button
++          type="button"
++          className={css.trigger}
++          aria-label={t('attachment.add')}
++          disabled={!canAcceptFiles}
++          onMouseDown={(event) => { event.preventDefault() }}
++          onClick={chooseFiles}
++        >
++          <IconPaperclipOutline16 />
++        </button>
++      </Tooltip>
++    </>
++  )
++}
 diff --git a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
-index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f0824469e376 100644
+index 1e45dc6230..79db6a90b3 100644
 --- a/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
 +++ b/packages/client/ui-attachment/src/client/ComposerAttachments.tsx
-@@ -1,7 +1,10 @@
- import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-+import type { ChangeEvent } from 'react'
+@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
  import type {
    ComposerAttachment, ComposerAttachmentsProps,
  } from '@deepseek-ai/dsh-client-ui-conversation/client'
 +import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
-+import { IconPaperclipOutline16, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
  import { AttachmentRail } from '../AttachmentRail.tsx'
  import type { AttachmentRailItem } from '../AttachmentRail.tsx'
  import { DropOverlay } from '../DropOverlay.tsx'
-@@ -15,12 +18,16 @@ interface ComposerRailItem extends AttachmentRailItem {
+@@ -15,9 +16,12 @@ interface ComposerRailItem extends AttachmentRailItem {
  }
  
  /** Draft-image rail, document drop target, and original-image preview slot entry. */
@@ -909,11 +1137,7 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
    const [preview, setPreview] = useState<ComposerAttachment | null>(null)
    const [dragActive, setDragActive] = useState(false)
    const dragDepth = useRef(0)
-+  const fileInput = useRef<HTMLInputElement>(null)
-   const closePreview = useCallback(() => { setPreview(null) }, [])
- 
-   useEffect(() => {
-@@ -62,7 +69,7 @@ export function ComposerAttachments({
+@@ -62,7 +66,7 @@ export function ComposerAttachments({
        if (dataTransfer === null) return
        event.preventDefault()
        reset()
@@ -922,23 +1146,16 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
      }
      document.addEventListener('dragenter', onDragEnter)
      document.addEventListener('dragover', onDragOver)
-@@ -76,7 +83,14 @@ export function ComposerAttachments({
+@@ -76,7 +80,7 @@ export function ComposerAttachments({
        document.removeEventListener('drop', onDrop)
        window.removeEventListener('dragend', reset)
      }
 -  }, [canAcceptDrop, onAddImages])
 +  }, [canAcceptDrop, onAddFiles])
-+
-+  const chooseFiles = useCallback(() => { fileInput.current?.click() }, [])
-+  const onFilesChosen = useCallback((event: ChangeEvent<HTMLInputElement>) => {
-+    const files = event.currentTarget.files
-+    if (files !== null && files.length > 0) onAddFiles([...files])
-+    event.currentTarget.value = ''
-+  }, [onAddFiles])
  
    const railItems = useMemo<ComposerRailItem[]>(() => attachments.map(attachment => ({
      id: attachment.id,
-@@ -91,9 +105,28 @@ export function ComposerAttachments({
+@@ -91,9 +95,12 @@ export function ComposerAttachments({
        {dragActive && (
          <DropOverlay
            disabled={!canAcceptDrop}
@@ -948,28 +1165,12 @@ index 1e45dc6230ac024154822ddca86509bf2850d791..553c6bc24acfb65d11358ebf9fa9f082
 +          : dropOverlayLabels(t, canAcceptDrop, dropLimits)}
          />
        )}
-+      <div className={css.picker}>
-+        <input
-+          ref={fileInput}
-+          className={css.fileInput}
-+          type="file"
-+          multiple
-+          accept="image/png,image/jpeg,image/webp,image/gif,.pdf,.docx,.pptx,.xlsx"
-+          disabled={!canAcceptDrop}
-+          onChange={onFilesChosen}
-+        />
-+        <Tooltip label={t('attachment.add')} side="top">
-+          <button type="button" className={css.add} aria-label={t('attachment.add')} disabled={!canAcceptDrop} onClick={chooseFiles}>
-+            <IconPaperclipOutline16 />
-+          </button>
-+        </Tooltip>
-+      </div>
 +      {renderSlot('conversation.input.attachments.documents', { documents, onRemoveDocument })}
        {railItems.length > 0 && (
          <div className={css.rail}>
            <AttachmentRail
 diff --git a/packages/client/ui-attachment/src/client/MessageImages.tsx b/packages/client/ui-attachment/src/client/MessageImages.tsx
-index c84914db543de23165732809bbe9c723b34dfa90..70b28eb66089203432df9efed6368923c4409754 100644
+index c84914db54..46426f4519 100644
 --- a/packages/client/ui-attachment/src/client/MessageImages.tsx
 +++ b/packages/client/ui-attachment/src/client/MessageImages.tsx
 @@ -1,8 +1,30 @@
@@ -994,7 +1195,7 @@ index c84914db543de23165732809bbe9c723b34dfa90..70b28eb66089203432df9efed6368923
 +}
 +
 +/** Chat attachment slot entry. */
-+export function MessageImages({ images, documents = [], loadImage, align, t, renderSlot }: MessageImagesProps) {
++export function MessageImages({ images, documents, loadImage, align, t, renderSlot }: MessageImagesProps) {
 +  return <AttachmentGallery images={images} loadImage={loadImage} align={align} t={t} documentCards={renderSlot('conversation.message.images.documents', { documents })} />
 +}
 +
@@ -1003,23 +1204,31 @@ index c84914db543de23165732809bbe9c723b34dfa90..70b28eb66089203432df9efed6368923
 +  & PropsLocale<'conversation'>
 +
 +/** Trajectory attachment slot entry. */
-+export function TrajectoryImages({ images, documents = [], loadImage, align, t, renderSlot }: TrajectoryProps) {
++export function TrajectoryImages({ images, documents, loadImage, align, t, renderSlot }: TrajectoryProps) {
 +  return <AttachmentGallery images={images} loadImage={loadImage} align={align} t={t} documentCards={renderSlot('conversation.trajectory.images.documents', { documents })} />
  }
 diff --git a/packages/client/ui-attachment/src/client/index.ts b/packages/client/ui-attachment/src/client/index.ts
-index 8fe94f64ee171798431716e3765e446ca95c935f..a045a3433ef7984df767ce00000ef52deaa9a5d6 100644
+index 8fe94f64ee..0654b882f4 100644
 --- a/packages/client/ui-attachment/src/client/index.ts
 +++ b/packages/client/ui-attachment/src/client/index.ts
-@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -4,24 +4,38 @@ import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
+ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
  import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
  import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
++import { AttachmentPicker } from './AttachmentPicker.tsx'
  import { ComposerAttachments } from './ComposerAttachments.tsx'
 -import { MessageImages } from './MessageImages.tsx'
 +import { MessageImages, TrajectoryImages } from './MessageImages.tsx'
  
  /** Slot registry required by this presentation plugin. */
  export const inject = ['slots']
-@@ -15,13 +15,22 @@ export function apply(ctx: ClientContext): void {
+ 
+ /** Register attachment presentation without exporting React components as package values. */
+ export function apply(ctx: ClientContext): void {
++  ctx.slots.inject('conversation.input.attachment-picker', () => ctx.slots.register({
++    name: 'conversation.input.attachment-picker',
++    locale: 'conversation',
++  }, AttachmentPicker))
    ctx.slots.inject('conversation.input.attachments', () => ctx.slots.register({
      name: 'conversation.input.attachments',
      locale: 'conversation',
@@ -1044,10 +1253,10 @@ index 8fe94f64ee171798431716e3765e446ca95c935f..a045a3433ef7984df767ce00000ef52d
 +  }, TrajectoryImages))
  }
 diff --git a/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx b/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
-index ef77068f7e017845bd400c96bb63340aa0b3cc16..b5f9c55df4a2d75f99df8ab17755b3b20f345a2a 100644
+index ef77068f7e..ba4fc855d5 100644
 --- a/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
 +++ b/packages/client/ui-attachment/tests/composer-attachments.client.spec.tsx
-@@ -53,15 +53,16 @@ function attachment(id: string, name = `${id}.png`): ComposerAttachment {
+@@ -53,22 +53,26 @@ function attachment(id: string, name = `${id}.png`): ComposerAttachment {
    }
  }
  
@@ -1055,9 +1264,12 @@ index ef77068f7e017845bd400c96bb63340aa0b3cc16..b5f9c55df4a2d75f99df8ab17755b3b2
 +function props(overrides: Partial<ComposerAttachmentsOwnerProps> = {}): Parameters<typeof ComposerAttachments>[0] {
    return {
      attachments: [],
++    documents: [],
      canAcceptDrop: true,
      onAddImages: () => {},
++    onAddFiles: () => {},
      onRemoveImage: () => {},
++    onRemoveDocument: () => {},
      t,
 +    renderSlot: () => null,
      ...overrides,
@@ -1066,8 +1278,26 @@ index ef77068f7e017845bd400c96bb63340aa0b3cc16..b5f9c55df4a2d75f99df8ab17755b3b2
  }
  
  describe('ComposerAttachments', () => {
+   it('accepts file drops anywhere on the document and keeps non-file drags native', () => {
+-    const onAddImages = vi.fn()
++    const onAddFiles = vi.fn()
+     const view = render(<ComposerAttachments {...props({
+-      onAddImages,
++      onAddFiles,
+       dropLimits: { count: 20, size: '5MB' },
+     })} />)
+ 
+@@ -87,7 +91,7 @@ describe('ComposerAttachments', () => {
+     expect(fireEvent.dragOver(document.body, { dataTransfer })).toBe(false)
+     expect(dataTransfer.dropEffect).toBe('copy')
+     expect(fireEvent.drop(document.body, { dataTransfer })).toBe(false)
+-    expect(onAddImages).toHaveBeenCalledWith([image])
++    expect(onAddFiles).toHaveBeenCalledWith([image])
+     expect(view.queryByRole('status')).toBeNull()
+   })
+ 
 diff --git a/packages/client/ui-attachment/tests/message-image.client.spec.tsx b/packages/client/ui-attachment/tests/message-image.client.spec.tsx
-index 76a720b983be3c54d4af91435f5b82ecf746685c..62475e6924e1373611d7035b4319329d458d07e7 100644
+index 76a720b983..0ed7b07d03 100644
 --- a/packages/client/ui-attachment/tests/message-image.client.spec.tsx
 +++ b/packages/client/ui-attachment/tests/message-image.client.spec.tsx
 @@ -261,6 +261,7 @@ describe('ImageGallery', () => {
@@ -1078,7 +1308,11 @@ index 76a720b983be3c54d4af91435f5b82ecf746685c..62475e6924e1373611d7035b4319329d
        useSession,
        useSessions,
        useSessionPendingInteraction,
-@@ -281,6 +282,7 @@ describe('ImageGallery', () => {
+@@ -278,9 +279,11 @@ describe('ImageGallery', () => {
+         submit: vi.fn(),
+       },
+       images: [{ attachment }],
++      documents: [],
        loadImage,
        align: 'end',
        t,
@@ -1086,10 +1320,31 @@ index 76a720b983be3c54d4af91435f5b82ecf746685c..62475e6924e1373611d7035b4319329d
      }
      const view = render(<MessageImages {...props} />)
      await waitFor(() => { expect(view.getByAltText('history.png')).toBeTruthy() })
+diff --git a/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx b/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
+index c517f9d0c2..f24f94ea1d 100644
+--- a/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
++++ b/packages/client/ui-chat/src/client/chat/AssistantMarkdown.tsx
+@@ -87,6 +87,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
+           <Fragment key={start}>
+             {renderMessageImages({
+               images: group.map(({ attachment }) => ({ attachment })),
++              documents: [],
+               align: 'start',
+             })}
+           </Fragment>,
 diff --git a/packages/client/ui-chat/src/client/chat/MessageItem.tsx b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
-index 467e486ecb3b28ddf7aa99281ad231032a98a76c..d89c77009fb52bdf7992f8f35c14553bb5e798ed 100644
+index cb8084fe41..5dd3aa8512 100644
 --- a/packages/client/ui-chat/src/client/chat/MessageItem.tsx
 +++ b/packages/client/ui-chat/src/client/chat/MessageItem.tsx
+@@ -1,7 +1,7 @@
+ import { memo, useEffect, useMemo, useState } from 'react'
+ import type { ReactNode } from 'react'
+ import type { PendingSubmission } from '@deepseek-ai/dsh-api-session-controller/client'
+-import type { MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import type { MessageDocumentSource, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { JsonBlock, projectUserText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
+ import type { ModelRetryNode, TurnErrorNode, UserMessageNode } from '../contract/snapshot.ts'
 @@ -11,14 +11,17 @@ import { MessageIconActions } from './MessageIconActions.tsx'
  import css from './MessageItem.module.css'
  
@@ -1099,22 +1354,28 @@ index 467e486ecb3b28ddf7aa99281ad231032a98a76c..d89c77009fb52bdf7992f8f35c14553b
  function contentParts(content: readonly unknown[]): {
    text: string
    images: { attachment: UserImage['attachment'] }[]
-+  documents: { name: string; mediaType: string; bytes: number }[]
++  documents: MessageDocumentSource[]
    rest: unknown[]
  } {
    const texts: string[] = []
    const images: { attachment: UserImage['attachment'] }[] = []
-+  const documents: { name: string; mediaType: string; bytes: number }[] = []
++  const documents: MessageDocumentSource[] = []
    const rest: unknown[] = []
    for (const block of content) {
      const b = block as { type?: string; text?: string; attachment?: unknown }
-@@ -26,9 +29,13 @@ function contentParts(content: readonly unknown[]): {
+@@ -26,9 +29,19 @@ function contentParts(content: readonly unknown[]): {
      else if (b.type === 'image' && b.attachment !== undefined) {
        images.push({ attachment: (b as UserImage).attachment })
      }
 +    else if (b.type === 'document' && b.attachment !== undefined) {
-+      const attachment = (b as UserDocument).attachment
-+      documents.push({ name: attachment.name, mediaType: attachment.mediaType, bytes: attachment.bytes })
++      const document = b as UserDocument
++      const attachment = document.attachment
++      documents.push({
++        previewAttachmentId: document.parsed.markdown.attachmentId,
++        name: attachment.name,
++        mediaType: attachment.mediaType,
++        bytes: attachment.bytes,
++      })
 +    }
      else rest.push(block)
    }
@@ -1123,8 +1384,8 @@ index 467e486ecb3b28ddf7aa99281ad231032a98a76c..d89c77009fb52bdf7992f8f35c14553b
  }
  
  function retrySeconds(milliseconds: number): number {
-@@ -164,7 +171,7 @@ function UserStyleBubble({
-   previewImages?: readonly MessageImageSource[]
+@@ -166,7 +179,7 @@ function UserStyleBubble({
+   reveal?: 'always' | 'hover'
    t: ChatViewSlotProps['t']
  }): ReactNode {
 -  const { text, images: contentImages, rest } = contentParts(content)
@@ -1132,8 +1393,8 @@ index 467e486ecb3b28ddf7aa99281ad231032a98a76c..d89c77009fb52bdf7992f8f35c14553b
    const images = previewImages ?? contentImages
    const truncated = (total: number): string => t('json.truncated', { total })
    const showBubble = text !== '' || rest.length > 0
-@@ -176,7 +183,7 @@ function UserStyleBubble({
-       data-time-hover-root
+@@ -178,7 +191,7 @@ function UserStyleBubble({
+       data-actions-reveal={reveal}
      >
        <div className={css.userStack}>
 -        {renderMessageImages({ images, align: 'end' })}
@@ -1142,7 +1403,7 @@ index 467e486ecb3b28ddf7aa99281ad231032a98a76c..d89c77009fb52bdf7992f8f35c14553b
            {projectUserText(text, referenceLabels)}
            {rest.map((block, i) => <JsonBlock key={i} label={t('message.extraBlock')} payload={block} truncatedLabel={truncated} />)}
 diff --git a/packages/client/ui-chat/src/client/contract/slots.ts b/packages/client/ui-chat/src/client/contract/slots.ts
-index 307d8f703b013962d19212618c522ef35feec0d2..0183aede0996a91d4de2f17bdf54e0b333708eac 100644
+index 307d8f703b..7679be0fba 100644
 --- a/packages/client/ui-chat/src/client/contract/slots.ts
 +++ b/packages/client/ui-chat/src/client/contract/slots.ts
 @@ -1,7 +1,7 @@
@@ -1165,19 +1426,33 @@ index 307d8f703b013962d19212618c522ef35feec0d2..0183aede0996a91d4de2f17bdf54e0b3
  
  /** Details-panel callbacks. */
  export interface DetailsInjected {
-@@ -182,6 +184,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -182,6 +184,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       * registration replaces the shipped gallery; without one, images are omitted.
       */
      'conversation.message.images': { kind: 'single'; scope: 'session'; owner: MessageImagesOwnerProps }
++    /**
++     * Render durable Document cards inside one Chat message's attachment rail.
++     * A contribution receives the message's projected Document metadata and
++     * replaces the prior single card renderer. Without one, Chat keeps image
++     * presentation but omits Document cards.
++     */
 +    'conversation.message.images.documents': { kind: 'single'; scope: 'session'; owner: { documents: readonly MessageDocumentSource[] } }
      /**
       * Command row keyed by the command name. The component receives the folded
       * command lifecycle and linked compaction when present. Reusing a key
 diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
-index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065589d19dc 100644
+index b154e73f4a..480e242a30 100644
 --- a/packages/client/ui-conversation/src/client/apply.ts
 +++ b/packages/client/ui-conversation/src/client/apply.ts
-@@ -254,6 +254,10 @@ export function apply(ctx: Context): void {
+@@ -244,6 +244,7 @@ export function apply(ctx: Context): void {
+     locale: NS,
+     children: {
+       'conversation.input.attachments': { kind: 'single', scope: 'session-maybe' },
++      'conversation.input.attachment-picker': { kind: 'single', scope: 'session-maybe' },
+       'conversation.input.plan': { kind: 'single', scope: 'session' },
+       'conversation.input.model': { kind: 'single', scope: 'session' },
+     },
+@@ -254,6 +255,10 @@ export function apply(ctx: Context): void {
            addImages: undefined,
            removeImage: undefined,
            draftImages: undefined,
@@ -1188,7 +1463,7 @@ index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065
            resolveSubmitMode: (running, gesture, steeringAvailable) =>
              submissionPolicy.resolve(running, gesture, steeringAvailable),
            toggleCommandMenu: undefined,
-@@ -269,25 +273,51 @@ export function apply(ctx: Context): void {
+@@ -269,25 +274,51 @@ export function apply(ctx: Context): void {
        const conversation = concreteConversation(ctx)
        const shell = inputHub.shell(sessionId)
        const inputTriggers = inputHub.inputTriggers(sessionId)
@@ -1253,10 +1528,18 @@ index b154e73f4abc7034d93cac9b4634c65483731a08..8c9c1a2c7a2a7d2a3ea02e7931959065
            submissionPolicy.resolve(running, gesture, steeringAvailable),
          toggleCommandMenu: inputTriggers === undefined
 diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
-index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b829f9968f8 100644
+index 377a75ee00..08f4507c92 100644
 --- a/packages/client/ui-conversation/src/client/contract/slots.ts
 +++ b/packages/client/ui-conversation/src/client/contract/slots.ts
-@@ -34,17 +34,45 @@ export interface ComposerAttachment {
+@@ -1,6 +1,6 @@
+ /** Target-neutral Conversation slot declarations and composed component props. */
+ import type { ReactNode, RefObject } from 'react'
+-import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
++import type { AttachmentIdType, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { SessionSnapshot } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
+ import type {
+@@ -34,17 +34,53 @@ export interface ComposerAttachment {
    height?: number
  }
  
@@ -1279,6 +1562,14 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
 +export interface ComposerDocumentsOwnerProps {
 +  documents: readonly ComposerDocumentAttachment[]
 +  onRemoveDocument: (id: DraftAttachmentId) => void
++}
++
++/** Mixed file chooser state handed to the optional attachment UI plugin. */
++export interface ComposerAttachmentPickerOwnerProps {
++  /** Whether this composer can accept another browser file batch. */
++  canAcceptFiles: boolean
++  /** Add one selected file batch through the composer's validation path. */
++  onAddFiles: (files: readonly File[]) => void
 +}
 +
  export interface ComposerAttachmentsOwnerProps {
@@ -1304,13 +1595,14 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    dropLimits?: { readonly count: number; readonly size: string } | undefined
  }
  
-@@ -71,10 +99,19 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
+@@ -71,10 +107,20 @@ export type MessageImageLoader = ((attachment: ImageAttachmentRef) => Promise<st
    peek?: (attachment: ImageAttachmentRef) => string | undefined
  }
  
 -/** Message image group handed to the optional attachment presentation plugin. */
 +/** Display metadata for one durable Document history card. */
 +export interface MessageDocumentSource {
++  readonly previewAttachmentId: AttachmentIdType
 +  readonly name: string
 +  readonly mediaType: string
 +  readonly bytes: number
@@ -1321,14 +1613,20 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    /** Durable references or submission-echo previews in source order. */
    images: readonly MessageImageSource[]
 +  /** Durable Document cards associated with this user message. */
-+  documents?: readonly MessageDocumentSource[]
++  documents: readonly MessageDocumentSource[]
    /** Session-authorized image URL loader for the durable arm. */
    loadImage: MessageImageLoader
    /** Horizontal placement inside the owning record. */
-@@ -141,6 +178,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -141,6 +187,18 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
        scope: 'session-maybe'
        owner: ComposerAttachmentsOwnerProps
      }
++    /** Optional mixed file chooser placed immediately after the command button. */
++    'conversation.input.attachment-picker': {
++      kind: 'single'
++      scope: 'session-maybe'
++      owner: ComposerAttachmentPickerOwnerProps
++    }
 +    /** Document cards rendered inside the shared attachment rail. */
 +    'conversation.input.attachments.documents': {
 +      kind: 'single'
@@ -1338,7 +1636,7 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
      /** Plan control inside the composer tool row. */
      'conversation.input.plan': { kind: 'single'; scope: 'session'; owner: InputControlOwnerProps }
      /** Model selector inside the composer tool row. */
-@@ -267,6 +310,14 @@ export interface ComposerBarInjected {
+@@ -267,6 +325,14 @@ export interface ComposerBarInjected {
    addImages: ((files: readonly File[]) => string | null) | undefined
    removeImage: ((id: DraftAttachmentId) => void) | undefined
    draftImages: ((ids: readonly DraftAttachmentId[]) => readonly ComposerAttachment[]) | undefined
@@ -1353,16 +1651,36 @@ index 377a75ee0019ac0b791bf659ac390df1bd46d81a..9b8cc42deb4c58fc8e00fc54aa244b82
    resolveSubmitMode: (
      running: boolean,
      gesture: ComposerSubmitGesture,
+@@ -292,7 +358,8 @@ export interface InputControlOwnerProps {
+ export type ComposerBarProps =
+   PropsRuntime<'conversation.composer.bar'>
+   & PropsRenderSlots<
+-    'conversation.input.attachments' | 'conversation.input.plan' | 'conversation.input.model'
++    | 'conversation.input.attachments' | 'conversation.input.attachment-picker'
++    | 'conversation.input.plan' | 'conversation.input.model'
+   >
+   & InjectFace<ComposerBarInjected>
+   & PropsLocale<'conversation'>
+@@ -356,6 +423,8 @@ export type ConversationSessionHeaderSlotProps =
+ /** Full props of the draft-image attachment renderer. */
+ export type ComposerAttachmentsProps =
+   PropsRuntime<'conversation.input.attachments'> & PropsLocale<'conversation'>
++export type ComposerAttachmentPickerProps =
++  PropsRuntime<'conversation.input.attachment-picker'> & PropsLocale<'conversation'>
+ 
+ /** Owner share common to blank-session Workspace pickers. */
+ export interface EmptyWorkspaceOwnerProps {
 diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
-index 102b385e8cfedd49b769c45446b31e0b96dd1782..1b08839b96a6a937b3216da2092ca6f2d4981c29 100644
+index 102b385e8c..a278db2780 100644
 --- a/packages/client/ui-conversation/src/client/index.ts
 +++ b/packages/client/ui-conversation/src/client/index.ts
-@@ -46,14 +46,14 @@ export { ConversationViewRegistry } from './conversation/view-registry.ts'
+@@ -46,14 +46,15 @@ export { ConversationViewRegistry } from './conversation/view-registry.ts'
  
  export type { ConversationKey } from './locales.ts'
  export type {
 -  ComposerAttachment, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
-+  ComposerAttachment, ComposerDocumentAttachment, ComposerDocumentLimits, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
++  ComposerAttachment, ComposerAttachmentPickerOwnerProps, ComposerAttachmentPickerProps,
++  ComposerDocumentAttachment, ComposerDocumentLimits, ComposerAttachmentsOwnerProps, ComposerAttachmentsProps,
    ComposerBarInjected, ComposerBarOwnerProps, ComposerBarProps, ComposerChainProps,
    ConversationHeaderActionOwnerProps, ConversationHeaderLineageOwnerProps,
    ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionHeaderSlotProps,
@@ -1375,7 +1693,7 @@ index 102b385e8cfedd49b769c45446b31e0b96dd1782..1b08839b96a6a937b3216da2092ca6f2
  } from './contract/slots.ts'
  export type {
 diff --git a/packages/client/ui-conversation/src/client/locales.ts b/packages/client/ui-conversation/src/client/locales.ts
-index 9eaf2a82a02fad08032dfc50d2720b8c77d26c69..1cf4726092bea967269029a8bc9c2b335014b457 100644
+index 3b1f9c1fc8..ab8e44d430 100644
 --- a/packages/client/ui-conversation/src/client/locales.ts
 +++ b/packages/client/ui-conversation/src/client/locales.ts
 @@ -27,6 +27,7 @@ export const zh = {
@@ -1386,7 +1704,7 @@ index 9eaf2a82a02fad08032dfc50d2720b8c77d26c69..1cf4726092bea967269029a8bc9c2b33
    'image.openOriginal': '查看原图',
    'image.openOriginalLabel': '{label}，点击查看原图',
    'image.remove': '移除图片 {name}',
-@@ -175,6 +176,7 @@ export const en = {
+@@ -177,6 +178,7 @@ export const en = {
    'image.dropDesc': 'Up to {count} images, {size} each',
    'image.dropBlocked': 'Images cannot be added right now',
    'image.pending': 'Pending images',
@@ -1395,7 +1713,7 @@ index 9eaf2a82a02fad08032dfc50d2720b8c77d26c69..1cf4726092bea967269029a8bc9c2b33
    'image.openOriginalLabel': '{label}, click to view original',
    'image.remove': 'Remove image {name}',
 diff --git a/packages/client/ui-conversation/src/client/service.ts b/packages/client/ui-conversation/src/client/service.ts
-index 2fb0c99b51092091815af04a172699de24cd867d..0321824f6ada49487995ec01f4487e2b51d5ef47 100644
+index fd59a492f0..7357b9cc72 100644
 --- a/packages/client/ui-conversation/src/client/service.ts
 +++ b/packages/client/ui-conversation/src/client/service.ts
 @@ -18,7 +18,7 @@ import type {
@@ -1796,15 +2114,13 @@ index 2fb0c99b51092091815af04a172699de24cd867d..0321824f6ada49487995ec01f4487e2b
    if (url.startsWith('blob:')) URL.revokeObjectURL(url)
  }
 diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c040761ff5e 100644
+index d4c06d8bf3..d0bce93cd1 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
 +++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-@@ -40,7 +40,8 @@ import css from './InputBar.module.css'
- export type InputBarProps = ComposerBarProps
+@@ -41,6 +41,7 @@ export type InputBarProps = ComposerBarProps
  
  export function InputBar({
--  useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
-+  useSession, useInput, inputActions, keyboard, removeImage, draftImages,
+   useSession, useInput, inputActions, keyboard, addImages, removeImage, draftImages,
 +  addFiles, resolveDocumentDropLabels, removeDocument, draftDocuments,
    resolveSubmitMode, toggleCommandMenu, stop, command, t,
    renderSlot, useNotices, useLexicon, useMenuLauncher,
@@ -1830,7 +2146,7 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
    // Prompt failures are ordinary failures (no create/attach transaction exists
    // anymore): the toast announces promptError, the draft stays in the machine,
    // and the user resubmits. A remount over a session whose machine still holds
-@@ -134,10 +140,13 @@ export function InputBar({
+@@ -136,10 +142,13 @@ export function InputBar({
  
    useEffect(() => {
      if (input === undefined || inputActions === undefined) return
@@ -1847,7 +2163,7 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
  
    // Scroll the draft scrollport the minimum that brings the selection focus
    // into view — the browser's own behavior for typing, performed for the
-@@ -210,46 +219,55 @@ export function InputBar({
+@@ -212,46 +221,67 @@ export function InputBar({
      return () => { el.removeEventListener('wheel', onWheel) }
    }, [])
  
@@ -1856,8 +2172,29 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
 -  // never enters the rail — no more submit-time failure rolling the rail
 -  // back. The host enforces the same limits at submit for callers that bypass
 -  // this composer.
--  const intakeImages = useCallback((files: readonly File[]): void => {
--    if (addImages === undefined || files.length === 0) return
++  // Intake pre-check: an addition that would break a projected image limit is
++  // refused before the single mixed draft transaction starts. The Host repeats
++  // every admission check for callers that bypass this composer.
++  const imageIntakeError = useCallback((files: readonly File[]): string | null => {
++    if (files.length === 0 || imageLimits === undefined) return null
++    if (files.some(file => !(imageLimits.mediaTypes as readonly string[]).includes(file.type))) {
++      return t('image.unsupportedType')
++    }
++    if (attachments.length + files.length > imageLimits.maxImagesPerMessage) {
++      return t('image.tooMany', { count: imageLimits.maxImagesPerMessage })
++    }
++    if (files.some(file => file.size > imageLimits.maxImageBytes)) {
++      return t('image.fileTooLarge', { size: imageSizeText(imageLimits.maxImageBytes) })
++    }
++    const total = attachments.reduce((sum, attachment) => sum + attachment.file.size, 0)
++      + files.reduce((sum, file) => sum + file.size, 0)
++    return total > imageLimits.maxMessageImageBytes
++      ? t('image.totalTooLarge', { size: imageSizeText(imageLimits.maxMessageImageBytes) })
++      : null
++  }, [attachments, imageLimits, t])
++
+   const intakeImages = useCallback((files: readonly File[]): void => {
+     if (addImages === undefined || files.length === 0) return
 -    const rejected = ((): string | null => {
 -      if (imageLimits !== undefined) {
 -        // Format precedes limits: a batch with
@@ -1880,29 +2217,21 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
 -      }
 -      return addImages(files)
 -    })()
-+  // Intake pre-check: an addition that would break a projected image limit is
-+  // refused before the single mixed draft transaction starts. The Host repeats
-+  // every admission check for callers that bypass this composer.
-+  const imageIntakeError = useCallback((files: readonly File[]): string | null => {
-+    if (files.length === 0 || imageLimits === undefined) return null
-+    if (files.some(file => !(imageLimits.mediaTypes as readonly string[]).includes(file.type))) {
-+      return t('image.unsupportedType')
++    const imageRejected = imageIntakeError(files)
++    if (imageRejected !== null) {
++      showToast(imageRejected)
++      return
 +    }
-+    if (attachments.length + files.length > imageLimits.maxImagesPerMessage) {
-+      return t('image.tooMany', { count: imageLimits.maxImagesPerMessage })
-+    }
-+    if (files.some(file => file.size > imageLimits.maxImageBytes)) {
-+      return t('image.fileTooLarge', { size: imageSizeText(imageLimits.maxImageBytes) })
-+    }
-+    const total = attachments.reduce((sum, attachment) => sum + attachment.file.size, 0)
-+      + files.reduce((sum, file) => sum + file.size, 0)
-+    return total > imageLimits.maxMessageImageBytes
-+      ? t('image.totalTooLarge', { size: imageSizeText(imageLimits.maxMessageImageBytes) })
-+      : null
-+  }, [attachments, imageLimits, t])
++    const rejected = addImages(files)
++    if (rejected !== null) showToast(rejected)
++  }, [addImages, imageIntakeError, showToast])
 +
 +  const intakeFiles = useCallback((files: readonly File[]): void => {
-+    if (addFiles === undefined || files.length === 0) return
++    if (files.length === 0) return
++    if (addFiles === undefined) {
++      intakeImages(files)
++      return
++    }
 +    const documentTypes = draftDocuments === undefined || documentLimits === undefined
 +      ? []
 +      : documentLimits.mediaTypes as readonly string[]
@@ -1916,14 +2245,11 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
 +    const rejected = addFiles(imageFiles, documentFiles, documentLimits)
      if (rejected !== null) showToast(rejected)
 -  }, [addImages, attachments, imageLimits, showToast, t])
-+  }, [addFiles, documentLimits, draftDocuments, imageIntakeError, showToast])
-+
-+  const intakeImages = useCallback((files: readonly File[]): void => {
-+    intakeFiles(files)
-+  }, [intakeFiles])
++  }, [addFiles, documentLimits, draftDocuments, imageIntakeError, intakeImages, showToast])
  
 -  const canAcceptDrop = !locked && !machineBusy && addImages !== undefined
-+  const canAcceptDrop = !locked && !machineBusy && addFiles !== undefined
++  const canAcceptDrop = !locked && !machineBusy && (addFiles !== undefined || addImages !== undefined)
++  const canAcceptFiles = !locked && !machineBusy && addFiles !== undefined
  
    // The keymap handlers read live bar state through this ref so the editor
    // registration survives re-renders without re-arming per keystroke.
@@ -1936,7 +2262,7 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
  
    useEffect(() => {
      if (editor === null || keyboard === undefined) return
-@@ -276,7 +294,7 @@ export function InputBar({
+@@ -278,7 +308,7 @@ export function InputBar({
            g.subagent === null,
          ))
        },
@@ -1945,7 +2271,7 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
        pasteText: (text) => {
          if (gate.current.machineBusy || gate.current.locked) return
          keyboard.paste(text)
-@@ -393,9 +411,13 @@ export function InputBar({
+@@ -395,9 +425,13 @@ export function InputBar({
          {accessory !== undefined && <div className={css.accessory}>{accessory}</div>}
          {renderSlot('conversation.input.attachments', {
            attachments,
@@ -1959,11 +2285,22 @@ index d6126acdfd62b2b9be0af3fbb99c63b4435859b8..cf99cdac86bc2f308032de81baa89c04
            dropLimits: imageLimits === undefined ? undefined : {
              count: imageLimits.maxImagesPerMessage,
              size: imageSizeText(imageLimits.maxImageBytes),
+@@ -450,6 +484,10 @@ export function InputBar({
+                 <IconPlusOutline16 size={14} />
+               </button>
+             </Tooltip>
++            {renderSlot('conversation.input.attachment-picker', {
++              canAcceptFiles,
++              onAddFiles: intakeFiles,
++            })}
+             <div className={css.modes}>
+               {accessSelect}
+               {sessionId === undefined ? null : renderSlot('conversation.input.plan', { locked })}
 diff --git a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
-index 9becd7f1095f135ecd3d24b6a06f52b956fe4834..b00b618d0bd1288a552cc4dcb46760c9e2198129 100644
+index fafa85283b..9a8ee83691 100644
 --- a/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
 +++ b/packages/client/ui-conversation/tests/input-bar.client.spec.tsx
-@@ -173,6 +173,10 @@ function bench(over?: BenchOptions) {
+@@ -175,6 +175,10 @@ function bench(over?: BenchOptions) {
        const attachment = over?.attachments?.find(candidate => candidate.id === id)
        return attachment === undefined ? [] : [attachment]
      }),
@@ -1974,8 +2311,46 @@ index 9becd7f1095f135ecd3d24b6a06f52b956fe4834..b00b618d0bd1288a552cc4dcb46760c9
      resolveSubmitMode: (running, gesture, steeringAvailable) => {
        if (!running || !steeringAvailable) return 'queue'
        const preferred = over?.busyEnter ?? 'queue'
+@@ -320,7 +324,7 @@ describe('image draft rail', () => {
+       new File([new ArrayBuffer(64)], 'b.pdf', { type: 'application/pdf' }),
+     ]
+     act(() => { attachmentOwner(result.slotCalls).onAddImages(files) })
+-    expect(addImages).toHaveBeenCalledWith(files)
++    expect(addImages).not.toHaveBeenCalled()
+     expect(result.view.getByRole('alert').textContent).toContain('仅支持 PNG、JPG、WebP、GIF 格式的图片')
+   })
+ 
+@@ -1300,7 +1304,8 @@ describe('command launcher chrome and control seats', () => {
+     // Every seat dispatched, nothing rendered (render passes may repeat; the
+     // seat set is the contract).
+     expect([...new Set(slotCalls.map(c => c.key))]).toEqual([
+-      'conversation.input.attachments', 'conversation.input.plan', 'conversation.input.model',
++      'conversation.input.attachments', 'conversation.input.attachment-picker',
++      'conversation.input.plan', 'conversation.input.model',
+     ])
+     expect(view.queryByLabelText('Plan mode')).toBeNull()
+     expect(view.queryByLabelText('Model')).toBeNull()
+@@ -1466,12 +1471,16 @@ describe('command launcher chrome and control seats', () => {
+     expect(view.getByTestId('plan-entry')).toBeTruthy()
+     expect(view.getByTestId('model-entry')).toBeTruthy()
+     // The bar hands its chrome disable state to the filling entry.
+-    const controls = slotCalls.filter(call => call.key !== 'conversation.input.attachments')
++    const controls = slotCalls.filter(call =>
++      call.key !== 'conversation.input.attachments'
++      && call.key !== 'conversation.input.attachment-picker')
+     expect(controls.every(c => (c.owner as { locked: boolean }).locked)).toBe(true)
+     expect(attachmentOwner(slotCalls).canAcceptDrop).toBe(false)
+     cleanup()
+     const live = bench({ running: true })
+-    const liveControls = live.slotCalls.filter(call => call.key !== 'conversation.input.attachments')
++    const liveControls = live.slotCalls.filter(call =>
++      call.key !== 'conversation.input.attachments'
++      && call.key !== 'conversation.input.attachment-picker')
+     expect(liveControls.every(c => !(c.owner as { locked: boolean }).locked)).toBe(true)
+     expect(attachmentOwner(live.slotCalls).canAcceptDrop).toBe(true)
+   })
 diff --git a/packages/client/ui-conversation/tests/input-matrix.client.spec.tsx b/packages/client/ui-conversation/tests/input-matrix.client.spec.tsx
-index bdb878672b080e06ec84b065b5bfbfea04a951ee..dc155229a154a0e23384ad821135146b8bf74866 100644
+index bdb878672b..dc155229a1 100644
 --- a/packages/client/ui-conversation/tests/input-matrix.client.spec.tsx
 +++ b/packages/client/ui-conversation/tests/input-matrix.client.spec.tsx
 @@ -71,6 +71,10 @@ function mountBar(shell: SessionInputShell, over?: { running?: boolean; disabled
@@ -1990,7 +2365,7 @@ index bdb878672b080e06ec84b065b5bfbfea04a951ee..dc155229a154a0e23384ad821135146b
      toggleCommandMenu: vi.fn(),
      useNotices: bindSnapshotSelector(shell.notices),
 diff --git a/packages/client/ui-conversation/tests/input-scenarios.client.spec.tsx b/packages/client/ui-conversation/tests/input-scenarios.client.spec.tsx
-index ec7f586683f96d9374bc31cc0e6d8b39e4a4df43..266d2e15c742a9eb9dbbea670f98943d83b64198 100644
+index ec7f586683..266d2e15c7 100644
 --- a/packages/client/ui-conversation/tests/input-scenarios.client.spec.tsx
 +++ b/packages/client/ui-conversation/tests/input-scenarios.client.spec.tsx
 @@ -160,6 +160,10 @@ async function scopedBench(register?: (inputTriggers: InputTriggerService) => vo
@@ -2005,7 +2380,7 @@ index ec7f586683f96d9374bc31cc0e6d8b39e4a4df43..266d2e15c742a9eb9dbbea670f98943d
      toggleCommandMenu: (selection) => {
        const snapshot = shell.snapshot
 diff --git a/packages/client/ui-conversation/tests/skeleton.client.spec.tsx b/packages/client/ui-conversation/tests/skeleton.client.spec.tsx
-index 40f6dfda6d1b6d04003b7c210cd600f6cbaa1d83..24632b55e94b1053793b761e047e03db40ddbe14 100644
+index 1d3f4159f0..08a36c8912 100644
 --- a/packages/client/ui-conversation/tests/skeleton.client.spec.tsx
 +++ b/packages/client/ui-conversation/tests/skeleton.client.spec.tsx
 @@ -250,6 +250,10 @@ function mount(
@@ -2020,14 +2395,16 @@ index 40f6dfda6d1b6d04003b7c210cd600f6cbaa1d83..24632b55e94b1053793b761e047e03db
            toggleCommandMenu={vi.fn()}
            useNotices={bindSnapshotSelector(wiring.notices)}
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx b/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
-index 81a428aa35fada3286b0f7b025347dc6a51a3766..8f40cb75c119394dc32963ce6733775ad7996515 100644
+index 81a428aa35..ad9d38ff64 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryTable.tsx
-@@ -1164,18 +1164,26 @@ function SourceBlocks({
+@@ -1163,19 +1163,27 @@ function SourceBlocks({
+           {/* The Raw view keeps model block order and granularity: one
                gallery per image block, unlike the aggregated record gallery. */}
            {block.attachment !== undefined
-             ? renderImages({ images: [{ attachment: block.attachment }], align: 'start' })
+-            ? renderImages({ images: [{ attachment: block.attachment }], align: 'start' })
 -            : <pre className={css.sourceBlockContent}>{block.content}</pre>}
++            ? renderImages({ images: [{ attachment: block.attachment }], documents: [], align: 'start' })
 +            : block.document !== undefined
 +              ? renderImages({ images: [], documents: [block.document], align: 'start' })
 +              : <pre className={css.sourceBlockContent}>{block.content}</pre>}
@@ -2082,7 +2459,7 @@ index 81a428aa35fada3286b0f7b025347dc6a51a3766..8f40cb75c119394dc32963ce6733775a
 -              {renderImages({ images: [{ attachment: block.attachment }], align: 'start' })}
 +              {renderImages({
 +                images: block.attachment === undefined ? [] : [{ attachment: block.attachment }],
-+                ...(block.document === undefined ? {} : { documents: [block.document] }),
++                documents: block.document === undefined ? [] : [block.document],
 +                align: 'start',
 +              })}
              </div>
@@ -2111,20 +2488,47 @@ index 81a428aa35fada3286b0f7b025347dc6a51a3766..8f40cb75c119394dc32963ce6733775a
    }
    return (
 diff --git a/packages/client/ui-trajectory/src/client/layout.ts b/packages/client/ui-trajectory/src/client/layout.ts
-index a811e915f20d7a2247726dc6a750bb67e0697304..8676ea46dcf367243f96cf53ffa29b135e8ceffd 100644
+index a811e915f2..0353bce987 100644
 --- a/packages/client/ui-trajectory/src/client/layout.ts
 +++ b/packages/client/ui-trajectory/src/client/layout.ts
-@@ -841,6 +841,16 @@ function sourceBlock(value: unknown): TrajectorySourceBlock {
+@@ -6,6 +6,7 @@ import type {
+   AssistantBlock,
+   AssistantMessageNode,
+   ConversationLocation,
++  MessageDocumentSource,
+   RequestInspectionSnapshot,
+   RequestPromptChange,
+   RequestView,
+@@ -841,6 +842,35 @@ function sourceBlock(value: unknown): TrajectorySourceBlock {
      // wire-shaped 'other' blocks with an unrelated `attachment` member out.
      return { type, content: '', attachment: block.attachment as ImageAttachmentRef }
    }
-+  if (type === 'document' && typeof block.attachment === 'object' && block.attachment !== null) {
++  if (
++    type === 'document'
++    && typeof block.attachment === 'object' && block.attachment !== null
++    && typeof block.parsed === 'object' && block.parsed !== null
++  ) {
 +    const attachment = block.attachment as Record<string, unknown>
-+    if (typeof attachment.name === 'string' && typeof attachment.mediaType === 'string' && typeof attachment.bytes === 'number') {
++    const parsed = block.parsed as Record<string, unknown>
++    const markdown = typeof parsed.markdown === 'object' && parsed.markdown !== null
++      ? parsed.markdown as Record<string, unknown>
++      : null
++    if (
++      typeof attachment.attachmentId === 'string'
++      && typeof markdown?.attachmentId === 'string'
++      && typeof attachment.name === 'string'
++      && typeof attachment.mediaType === 'string'
++      && typeof attachment.bytes === 'number'
++    ) {
 +      return {
 +        type,
 +        content: '',
-+        document: { name: attachment.name, mediaType: attachment.mediaType, bytes: attachment.bytes },
++        document: {
++          previewAttachmentId: markdown.attachmentId as MessageDocumentSource['previewAttachmentId'],
++          name: attachment.name,
++          mediaType: attachment.mediaType,
++          bytes: attachment.bytes,
++        },
 +      }
 +    }
 +  }
@@ -2132,7 +2536,7 @@ index a811e915f20d7a2247726dc6a750bb67e0697304..8676ea46dcf367243f96cf53ffa29b13
  }
  
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-contract.ts b/packages/client/ui-trajectory/src/client/trajectory-contract.ts
-index 37571f2b83403944c2cb0e1e8a71b17972461994..1c326ebfca6e1b8636457d04c4517f39630e4d8b 100644
+index 37571f2b83..6a327454c4 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-contract.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-contract.ts
 @@ -1,6 +1,6 @@
@@ -2143,15 +2547,21 @@ index 37571f2b83403944c2cb0e1e8a71b17972461994..1c326ebfca6e1b8636457d04c4517f39
    RequestView, RunningToolCall, ToolCallBlock,
  } from '@deepseek-ai/dsh-client-ui-conversation/client'
  import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
-@@ -93,5 +93,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -93,5 +93,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       * images are omitted.
       */
      'conversation.trajectory.images': { kind: 'single'; scope: 'session'; owner: MessageImagesOwnerProps }
++    /**
++     * Render durable Document cards inside one Trajectory attachment rail.
++     * A contribution receives the record's projected Document metadata and
++     * replaces the prior single card renderer. Without one, Trajectory keeps
++     * image presentation but omits Document cards.
++     */
 +    'conversation.trajectory.images.documents': { kind: 'single'; scope: 'session'; owner: { documents: readonly MessageDocumentSource[] } }
    }
  }
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-record.ts b/packages/client/ui-trajectory/src/client/trajectory-record.ts
-index da330f2ae43a55ca813bfffe867dbfc33a2c15a9..0bb73888c955883403d785e7bcc737c8cb0f7054 100644
+index da330f2ae4..0bb73888c9 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-record.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-record.ts
 @@ -2,7 +2,7 @@
@@ -2171,8 +2581,21 @@ index da330f2ae43a55ca813bfffe867dbfc33a2c15a9..0bb73888c955883403d785e7bcc737c8
    callId?: string
    toolName?: string
  }
+diff --git a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+index bef6356509..9a79565c0c 100644
+--- a/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
++++ b/packages/extensions/cordis-client-runner/src/client/api-catalog.ts
+@@ -559,7 +559,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
+   },
+   {
+     name: 'ISession',
+-    declaration: 'export interface ISession {\n    readonly sessionId: SessionId;\n    readonly projections: ProjectionsFace;\n    beginSubmission(input: BeginSubmissionInput): SubmissionHandle;\n    prompt(content: PromptContentPart[], mode: \'queue\' | \'steer\', signal?: AbortSignal, requestId?: SessionRequestId): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    readAttachment(attachmentId: AttachmentIdType): Promise<RemoteResult<{\n        attachment: ImageAttachmentRef;\n        data: Uint8Array;\n    }>>;\n    updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    cancel(): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    rename(title: string): Promise<RemoteResult<{\n        title: string;\n        seq: number;\n    }>>;\n    loadOlder(): Promise<void>;\n    command(line: string): Promise<RemoteResult<{\n        matched: boolean;\n    }>>;\n}',
++    declaration: 'export interface ISession {\n    readonly sessionId: SessionId;\n    readonly projections: ProjectionsFace;\n    beginSubmission(input: BeginSubmissionInput): SubmissionHandle;\n    prompt(content: PromptContentPart[], mode: \'queue\' | \'steer\', signal?: AbortSignal, requestId?: SessionRequestId): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    readAttachment(attachmentId: AttachmentIdType): Promise<RemoteResult<{\n        attachment: FileAttachmentRef;\n        data: Uint8Array;\n    }>>;\n    updateQueue(itemId: MessageId, action: QueueAction): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    cancel(): Promise<RemoteResult<{\n        accepted: true;\n    }>>;\n    rename(title: string): Promise<RemoteResult<{\n        title: string;\n        seq: number;\n    }>>;\n    loadOlder(): Promise<void>;\n    command(line: string): Promise<RemoteResult<{\n        matched: boolean;\n    }>>;\n}',
+   },
+   {
+     name: 'KeyPropsOf',
 diff --git a/packages/llm/llm-deepseek/src/adapter.ts b/packages/llm/llm-deepseek/src/adapter.ts
-index e2116556331159ee348aacfb194d46e2ae7b5920..4e468b655b20fd8a7664334be3365be1d1438237 100644
+index e211655633..4e468b655b 100644
 --- a/packages/llm/llm-deepseek/src/adapter.ts
 +++ b/packages/llm/llm-deepseek/src/adapter.ts
 @@ -8,7 +8,7 @@
@@ -2235,7 +2658,7 @@ index e2116556331159ee348aacfb194d46e2ae7b5920..4e468b655b20fd8a7664334be3365be1
      )[Symbol.asyncIterator]()
      let exhausted = false
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index e20b8e00720d52ef9cbb3712884661e8025f3dde..acd9dcda4fd57e0effe1f2bb6c3f406340219b93 100644
+index e20b8e0072..058e8f2824 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
 @@ -40,9 +40,11 @@ import type {
@@ -2250,7 +2673,40 @@ index e20b8e00720d52ef9cbb3712884661e8025f3dde..acd9dcda4fd57e0effe1f2bb6c3f4063
    ReasoningEffortId,
  } from '@deepseek-ai/dsh-llm'
  import type {
-@@ -350,20 +352,24 @@ export class PiAiAdapter extends LlmAdapter {
+@@ -111,6 +113,24 @@ export interface PiAiAuthInjection {
+   authContext: AuthContext
+ }
+ 
++/** Whether one Responses input item is replayed reasoning with response status metadata. */
++function hasReasoningInputStatus(item: unknown): boolean {
++  const inputItem = item as Record<string, unknown>
++  return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
++}
++
++/** Remove response-only status metadata from replayed reasoning input items. */
++function omitReasoningInputStatus(payload: unknown): unknown {
++  const request = payload as Record<string, unknown> & { input: unknown[] }
++  if (!request.input.some(hasReasoningInputStatus)) return undefined
++  const input = request.input.map((item) => {
++    if (!hasReasoningInputStatus(item)) return item
++    const { status: _status, ...withoutStatus } = item as Record<string, unknown>
++    return withoutStatus
++  })
++  return { ...request, input }
++}
++
+ /** Copy profile stream knobs into pi-ai's common option vocabulary. */
+ function profileOptions(
+   profile: ResolvedPiAiProviderProfile,
+@@ -126,6 +146,7 @@ function profileOptions(
+     ...profile.transport === undefined ? {} : { transport: profile.transport },
+     ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
+     ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
++    ...profile.responsesCompatibility?.omitReasoningInputStatus === true ? { onPayload: omitReasoningInputStatus } : {},
+     // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
+     maxRetries: 0,
+   }
+@@ -350,20 +371,24 @@ export class PiAiAdapter extends LlmAdapter {
      using watchdog = idleWatchdog(upstream, streamIdleTimeoutMs, 'LLM_STREAM_IDLE_TIMEOUT')
  
      try {
@@ -2281,7 +2737,7 @@ index e20b8e00720d52ef9cbb3712884661e8025f3dde..acd9dcda4fd57e0effe1f2bb6c3f4063
            resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
            maxRequestImageBytes: profile.maxRequestImageBytes,
 diff --git a/packages/llm/llm/src/content.ts b/packages/llm/llm/src/content.ts
-index 43c392a64129981a1dd99f6f38fcae39df5e4228..96e9fece476649b8e8dfeb13979e40d456f0f903 100644
+index 5880f82c98..3e46284c5c 100644
 --- a/packages/llm/llm/src/content.ts
 +++ b/packages/llm/llm/src/content.ts
 @@ -1,10 +1,71 @@
@@ -2291,7 +2747,7 @@ index 43c392a64129981a1dd99f6f38fcae39df5e4228..96e9fece476649b8e8dfeb13979e40d4
 +import type { ContentBlock, DocumentBlock } from './types.ts'
  import type { Message } from './message.ts'
  import type { AttachmentStore, ImageAttachmentRef, ImageMediaType, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
- import { assertNever } from './never.ts'
+ import { assertNever } from '@deepseek-ai/dsh-util-values'
  
 +/** Return whether typed model content contains a durable parsed document. */
 +export function contentHasDocument(content: readonly ContentBlock[]): boolean {
@@ -2308,7 +2764,7 @@ index 43c392a64129981a1dd99f6f38fcae39df5e4228..96e9fece476649b8e8dfeb13979e40d4
 +  return new TextDecoder('utf-8', { fatal: true }).decode(stored.data)
 +}
 +
-+/** 中文约束：只生成provider request的transient text，不修改Session中的durable reference blocks。 */
++/** Project request-only text without changing durable reference blocks in the Session. */
 +async function projectDocumentsWithAttachments(
 +  blocks: readonly ContentBlock[],
 +  attachments: AttachmentStore,
@@ -2358,7 +2814,7 @@ index 43c392a64129981a1dd99f6f38fcae39df5e4228..96e9fece476649b8e8dfeb13979e40d4
  export interface ImageAttachmentAccess {
    /** Absolute path to immutable normalized bytes; callers must treat it as read-only. */
 diff --git a/packages/llm/llm/src/types.ts b/packages/llm/llm/src/types.ts
-index 438fcaa67baed51a6b1c8f867e802d2a6aa46023..f82ec614c131c23b8810422017ab1e4fd6415b09 100644
+index 4303538892..7c30dac96f 100644
 --- a/packages/llm/llm/src/types.ts
 +++ b/packages/llm/llm/src/types.ts
 @@ -5,7 +5,7 @@

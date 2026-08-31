@@ -1,7 +1,10 @@
 /** Browser Document prompt transport, localized intake validation, and nested card registrations. */
 
+import { createElement } from 'react'
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
+import type { AttachmentIdType } from '@deepseek-ai/dsh-attachment'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { SessionRequestId } from '@deepseek-ai/dsh-api-session-controller/types'
@@ -11,14 +14,18 @@ import type { DocumentDraft, DocumentLimits } from './types.ts'
 import type {} from '@deepseek-ai/dsh-client-ui-chat/client'
 import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
 import type {} from '@deepseek-ai/dsh-client-ui-attachment/client'
+import type {} from 'dsh-better-sidebar/client/api'
 import { DraftDocuments } from './DraftDocuments.tsx'
 import { MessageDocuments, TrajectoryDocuments } from './MessageDocuments.tsx'
+import type { OpenDocumentPreview } from './MessageDocuments.tsx'
+import { SidebarDocumentPreview } from './SidebarDocumentPreview.tsx'
 import { en, zh } from './locales.ts'
 
 export const name = 'document-attachments-client'
-export const inject = ['locale', 'slots']
+export const inject = ['locale', 'slots', 'sessions', 'betterSidebar']
 const NS = 'documentAttachments'
 const PATH = '/api/document.prompt'
+const PREVIEW_TAB = 'document-attachment'
 
 interface DocumentPromptRequest {
   readonly sessionId: SessionId
@@ -64,14 +71,19 @@ function formatBytes(bytes: number): string {
 
 /** Localized Document intake and authenticated prompt transport consumed by Conversation. */
 export interface DocumentPromptClient {
-  /** @returns localized rejection text for slash-command submissions. */
+  /**
+   * Return the localized rejection for slash-command submissions carrying Documents.
+   * @returns localized rejection text for slash-command submissions.
+   */
   commandUnsupported(): string
   /**
+   * Format the browser drop target from the Host-projected limits.
    * @param limits - actual Host Document limits.
    * @returns localized mixed file drop invitation.
    */
   dropLabels(limits: DocumentLimits): { readonly title: string; readonly desc: string }
   /**
+   * Validate a proposed browser Document intake before upload.
    * @param files - newly selected browser Documents.
    * @param existing - live Document drafts already registered.
    * @param limits - actual Host attachment-provider limits.
@@ -83,6 +95,7 @@ export interface DocumentPromptClient {
     limits: DocumentLimits,
   ): string | null
   /**
+   * Submit one prepared mixed prompt through the authenticated Host route.
    * @param request - prepared mixed browser prompt.
    * @returns Session-compatible prompt admission result.
    */
@@ -165,6 +178,33 @@ class DocumentPromptClientService extends Service implements DocumentPromptClien
 export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'document-attachments: client dictionaries')
   new DocumentPromptClientService(ctx)
+  /** Resolve one parser Markdown object through the owning Session's authorization check. */
+  const readDocumentPreview = async (sessionId: SessionId, attachmentId: AttachmentIdType): Promise<string> => {
+    const binding = ctx.sessions.binding(sessionId)
+    if (binding === undefined) throw new Error('document-attachments: preview session binding is unavailable')
+    const result = await binding.session.readAttachment(attachmentId)
+    if (!result.ok) throw new Error(`${result.error.code}: ${result.error.message}`)
+    return new TextDecoder('utf-8', { fatal: true }).decode(result.value.data)
+  }
+  const openDocument: OpenDocumentPreview = (document, sessionId) => {
+    ctx.betterSidebar.openTab({
+      type: PREVIEW_TAB,
+      id: `${PREVIEW_TAB}:${document.previewAttachmentId}:${document.name}`,
+      title: document.name,
+      path: document.previewAttachmentId,
+    }, { sessionId })
+  }
+  ctx.effect(() => ctx.betterSidebar.registerTab({
+    id: PREVIEW_TAB,
+    title: () => ctx.locale.bind(NS)('preview.title'),
+    hidden: true,
+    component: props => createElement(SidebarDocumentPreview, {
+      attachmentId: props.tab.path as AttachmentIdType,
+      sessionId: props.scope.sessionId as SessionId,
+      load: readDocumentPreview,
+      t: ctx.locale.bind(NS),
+    }),
+  }), 'document-attachments: Better Sidebar preview tab')
   ctx.slots.inject('conversation.input.attachments.documents', () => ctx.slots.register({
     name: 'conversation.input.attachments.documents',
     locale: NS,
@@ -172,9 +212,9 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('conversation.message.images.documents', () => ctx.slots.register({
     name: 'conversation.message.images.documents',
     locale: NS,
-  }, MessageDocuments))
+  }, props => createElement(MessageDocuments, { ...props, onOpenDocument: openDocument })))
   ctx.slots.inject('conversation.trajectory.images.documents', () => ctx.slots.register({
     name: 'conversation.trajectory.images.documents',
     locale: NS,
-  }, TrajectoryDocuments))
+  }, props => createElement(TrajectoryDocuments, { ...props, onOpenDocument: openDocument })))
 }

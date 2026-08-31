@@ -1,8 +1,11 @@
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './Documents.module.css'
+import type { DocumentCardData } from './types.ts'
 
 type Props = PropsRuntime<'conversation.message.images.documents'> & PropsLocale<'documentAttachments'>
 type TrajectoryProps = PropsRuntime<'conversation.trajectory.images.documents'> & PropsLocale<'documentAttachments'>
+/** Open one durable Document card in its owning Session's sidebar. */
+export type OpenDocumentPreview = (document: DocumentCardData, sessionId: Props['sessionId']) => void
 function fileKind(mediaType: string, t: Props['t']): string {
   if (mediaType === 'application/pdf') return t('format.pdf')
   if (mediaType.includes('wordprocessingml')) return t('format.docx')
@@ -18,8 +21,10 @@ function formatBytes(bytes: number, t: Props['t']): string {
  * @param props - nested Chat attachment owner data and locale translator.
  * @returns the history card row, or null when empty.
  */
-export function MessageDocuments({ documents, t }: Props) {
-  return <DocumentCards documents={documents} label={t('history.group')} t={t} />
+export function MessageDocuments({
+  documents, t, sessionId, onOpenDocument,
+}: Props & { onOpenDocument: OpenDocumentPreview }) {
+  return <DocumentCards documents={documents} label={t('history.group')} sessionId={sessionId} onOpenDocument={onOpenDocument} t={t} />
 }
 
 /**
@@ -27,17 +32,32 @@ export function MessageDocuments({ documents, t }: Props) {
  * @param props - nested Trajectory attachment owner data and locale translator.
  * @returns the history card row, or null when empty.
  */
-export function TrajectoryDocuments({ documents, t }: TrajectoryProps) {
-  return <DocumentCards documents={documents} label={t('history.group')} t={t} />
+export function TrajectoryDocuments({
+  documents, t, sessionId, onOpenDocument,
+}: TrajectoryProps & { onOpenDocument: OpenDocumentPreview }) {
+  return <DocumentCards documents={documents} label={t('history.group')} sessionId={sessionId} onOpenDocument={onOpenDocument} t={t} />
 }
 
-function DocumentCards({ documents, label, t }: { documents: Props['documents']; label: string; t: Props['t'] }) {
+function DocumentCards({ documents, label, sessionId, onOpenDocument, t }: {
+  documents: Props['documents']
+  label: string
+  sessionId: Props['sessionId']
+  onOpenDocument: OpenDocumentPreview
+  t: Props['t']
+}) {
   if (documents.length === 0) return null
   return <div className={css.history} aria-label={label}>
-    {documents.map((document, index) => <div className={css.historyCard} key={`${document.name}:${index}`}>
-      <span className={css.kind}>{fileKind(document.mediaType, t)}</span>
-      <span className={css.name} title={document.name}>{document.name}</span>
-      <span className={css.size}>{formatBytes(document.bytes, t)}</span>
+    {documents.map((document, index) => <div className={css.historyCard} key={`${document.previewAttachmentId}:${index}`}>
+      <button
+        type="button"
+        className={css.previewButton}
+        aria-label={t('preview.open', { name: document.name })}
+        onClick={() => { onOpenDocument(document, sessionId) }}
+      >
+        <span className={css.kind}>{fileKind(document.mediaType, t)}</span>
+        <span className={css.name} title={document.name}>{document.name}</span>
+        <span className={css.size}>{formatBytes(document.bytes, t)}</span>
+      </button>
     </div>)}
   </div>
 }

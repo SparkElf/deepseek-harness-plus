@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-patch-ptc-mcp-schema-types",
+  "version": "0.1.0-rc.12",
+  "description": "Data-only exact official-source patch preserving MCP parameter types in the TypeScript PTC SDK",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/ptc-mcp-schema-types"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "ptc-mcp-validation-schema-types",
+        "dsh": ">=0.1.2-alpha.2",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "0a53fb55bea101816fa226bb964ae2bed71c343b",
+          "paths": [
+            "packages/core/tools/"
+          ]
+        },
+        "file": "./patches/ptc-mcp-schema-types.patch"
+      }
+    ]
+  }
+}

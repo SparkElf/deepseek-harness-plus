@@ -2,78 +2,106 @@
 entries:
   - name: dsh-better-sidebar
     source: { kind: npm, spec: dsh-better-sidebar }
-    pinned: 0.16.1
+    pinned: 0.17.1
     interest: VSCode-like right sidebar with third-party tab registration
     owner: omdsh-dev
-    localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }]
+    localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }, { package: '@sparkelf/dsh-patch-better-sidebar-alpha2-settings', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/releases/tag/v0.18.0-alpha.0, retireWhen: A stable dsh-better-sidebar release uses the alpha.2 Settings namespace contract without importing settingsNamespace at runtime }]
     plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
     source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
-    pinned: 0.2.8
+    pinned: 0.2.10
     interest: End-to-end encrypted mobile access with a Host tunnel and Settings section
     owner: SparkElf
-    localPatches: [{ package: '@sparkelf/dsh-patch-mobile-bridge-serialized-actions', upstreamUrl: https://github.com/SparkElf/dsh-plugins-plus/pull/30, retireWhen: A released @sparkelf/dsh-mobile-bridge version includes equivalent serialized autosave and action-ordering behavior }]
+    localPatches: []
     plusBundle: true
   - name: '@changfenhuang/dsh-genui'
     source: { kind: npm, spec: '@changfenhuang/dsh-genui' }
     pinned: 0.9.6
     interest: Model-taught dsh-ui rendering across inline DOM/registry surfaces and interactive panels
     owner: omdsh-dev
-    localPatches: [{ package: '@sparkelf/dsh-patch-genui-streaming-echart', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/87, retireWhen: A released @changfenhuang/dsh-genui version includes complete top-level component streaming and the real DataOps inline/native/panel chart path passes without browser diagnostics }]
+    localPatches: [{ package: '@sparkelf/dsh-patch-genui-streaming-echart', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/87, retireWhen: A released @changfenhuang/dsh-genui version includes complete top-level component streaming and the real DataOps inline/native/panel chart path passes without browser diagnostics }, { package: '@sparkelf/dsh-patch-genui-skill-chart-contract', upstreamUrl: https://github.com/omdsh-dev/dsh-genui/pull/89, retireWhen: A released @changfenhuang/dsh-genui version registers its bundled skill, exposes the compact chart signature, rejects invalid chart semantics, and passes the real DataOps chart path }]
     plusBundle: true
   - name: dshmarket
     source: { kind: npm, spec: dshmarket }
-    pinned: 1.29.2
+    pinned: 1.38.1
     interest: Web marketplace for community dsh plugins
     owner: dsh-market
     localPatches: []
     plusBundle: true
   - name: '@deepseek-ai/dsh-agent-presets'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Deployment replacement of the two built-in delegation rows in shipped Agent presets
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-subagent-settings-presets', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official shipped Agent presets expose a deployment overlay or equivalent settings-backed rows }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-client-ui-layout'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Phone AppFrame navigation that preserves repeated Session and Workspace actions
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-mobile-web-layout', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official AppFrame keeps manually expanded phone navigation at half the measured frame width }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-client-connection-browser-authentication'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Profile-selected browser identity policy after the independent Host and Origin trust fence
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-browser-auth-mode', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH exposes an equivalent profile-selected browser-authentication policy }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-web-base-path'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Complete reverse-proxy Web mount prefix across Host transport browser assets and downloads
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-web-base-path', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH ships equivalent end-to-end reverse-proxy base-path behavior }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-workspace'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Public durable-storage restore operation consumed by the Plus Backup plugin
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-workspace-storage-restore', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: An official DSH release exposes an equivalent Workspace storage restore operation }]
     plusBundle: false
   - name: '@deepseek-ai/dsh-document-integration'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Generic durable file objects Document content projection prepared prompts and nested Client attachment slots
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-document-attachments', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH supplies equivalent generic file-object storage Document content projection prepared prompt settlement mixed draft integration and nested Document slots }]
     plusBundle: false
+  - name: '@deepseek-ai/dsh-session-export-chinese-copy'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: Consistent Simplified-Chinese wording across the Session export action and status dialog
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-session-export-chinese', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official Session export Simplified-Chinese copy consistently uses the Chinese term for Session }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-session-log-trajectory-toolbar'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: Desktop Session-log export placement and styling within the Trajectory toolbar while phones retain the Header action
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-session-log-trajectory-toolbar', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH exposes an equivalent Trajectory toolbar utility slot and places Session export before search on desktop while retaining the Header action on phones }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-legacy-code-preset'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: Resume and display compatibility for Sessions persisted before the code preset was renamed to ptc
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-legacy-code-preset', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH resolves a missing persisted code preset through ptc while preserving any real code preset and localizes the legacy Session label }]
+    plusBundle: false
   - name: '@deepseek-ai/dsh-llm-pi-ai-responses-compatibility'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
-    pinned: cd5ef8148158c3a752a658978873241fdf8e2bbc
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
     interest: Explicit OpenAI Responses replay compatibility for gateways that reject reasoning input status metadata
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-responses-reasoning-status', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH ships equivalent pi-ai Responses payload adjustment and Models editor behavior }]
+    plusBundle: false
+  - name: '@deepseek-ai/dsh-tools-ptc-mcp-schema-types'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: 0a53fb55bea101816fa226bb964ae2bed71c343b
+    interest: TypeScript PTC parameter declarations for MCP Schemas carrying validation-only draft keywords
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-ptc-mcp-schema-types', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH projects validation-only MCP Schema keywords into TypeScript PTC declarations without weakening runtime Schema enforcement }]
     plusBundle: false

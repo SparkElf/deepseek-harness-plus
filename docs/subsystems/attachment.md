@@ -6,6 +6,8 @@ The attachment seam separates binary image ownership from the session log. A pro
 
 Unsent browser drafts may stay in memory and native clients may stage them in operating-system temporary storage. Once the host accepts a user message, its images move below `<DSH_HOME>/attachments/v1` before the user event is appended. Structured model image output follows the same persist-before-event rule.
 
+The Plus Document capability composes with this storage seam through `ctx.documentParser`: providers parse an already persisted PDF or Office source into a transient result, while the [Document Attachments package](../../packages/plus/document-attachments/README.md) owns durable original and parsed artifacts, accepted formats, limits, and model projection.
+
 Source: [`packages/attachment/attachment/src/types.ts`](../../packages/attachment/attachment/src/types.ts)
 
 ## Identity and verified metadata
@@ -195,4 +197,36 @@ readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: 
 ```
 
 Source: [`packages/attachment/attachment/src/index.ts`](../../packages/attachment/attachment/src/index.ts)
+
+<a id="ctxdocumentparser--documentparserruntime"></a>
+
+### `ctx.documentParser` — `DocumentParserRuntime`
+
+Provider-neutral parser registry and direct-context policy owner.
+
+```ts cordis-catalog
+/**
+ * Register one parser provider until the owning Cordis fiber disposes.
+ * @param provider - provider implementation keyed by its non-empty id.
+ * @returns disposer that withdraws exactly this registration.
+ */
+registerProvider(provider: DocumentParserProvider): () => void
+
+/**
+ * Report whether current registry state resolves the configured provider selection.
+ * This does not probe provider health or external endpoint availability.
+ * @returns true only when a parse call can select exactly one registered provider.
+ */
+isSelectionResolvable(): boolean
+
+/**
+ * Parse one already-persisted document through the deployment-selected provider.
+ * @param request - verified original bytes and their durable metadata.
+ * @param signal - optional cancellation forwarded to the provider.
+ * @returns provider id together with the complete transient parse bundle.
+ */
+async parse( request: DocumentParseRequest, signal?: AbortSignal, ): Promise<{ parser: string; result: DocumentParseResult }>
+```
+
+Source: [`packages/plus/document-attachments/src/index.ts`](../../packages/plus/document-attachments/src/index.ts)
 <!-- END GENERATED cordis-surface -->

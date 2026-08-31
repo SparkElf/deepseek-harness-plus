@@ -1,17 +1,17 @@
 diff --git a/packages/client/connection/README.i18n.yaml b/packages/client/connection/README.i18n.yaml
-index 6be2c4aa21..8171010faa 100644
+index 528a378161..8baa29134d 100644
 --- a/packages/client/connection/README.i18n.yaml
 +++ b/packages/client/connection/README.i18n.yaml
 @@ -2,5 +2,5 @@
  # side as of the last confirmed-consistent state. Both languages carry equal authority;
  # after editing either side, bring the other along and re-record with:
  #   pnpm run verify-translation-pairing --write packages/client/connection/README.md
--README.md: af757608aa7face6854aaf9d103654f974b51ed4
--README.zh.md: fef7248abe1e19595b90c43a6a1b9abf0aafa88a
-+README.md: 3ee066c2e94b3553c3f9d13499b1c720d400ccde
-+README.zh.md: 2984cd4795524fb6ef76e5baa02e442c0d3c1325
+-README.md: ee0566bf811a0bad32f7d59b4c8849e26efea613
+-README.zh.md: 48425a428247b7749bf0dd75f592b5f7e4088ef2
++README.md: 6454dfa7d8d69a10480f9bd310325300f7c9cec0
++README.zh.md: 9fd600d1fcf3d9ade970436e544a7d9c3b67fac4
 diff --git a/packages/client/connection/README.md b/packages/client/connection/README.md
-index af757608aa..3ee066c2e9 100644
+index ee0566bf81..6454dfa7d8 100644
 --- a/packages/client/connection/README.md
 +++ b/packages/client/connection/README.md
 @@ -25,18 +25,18 @@ The package carries browser-to-Host Remote calls, exact Fetch responses, and con
@@ -38,7 +38,7 @@ index af757608aa..3ee066c2e9 100644
  <a id="connection-generation"></a>
  ## Connection generation
 diff --git a/packages/client/connection/README.zh.md b/packages/client/connection/README.zh.md
-index fef7248abe..2984cd4795 100644
+index 48425a4282..9fd600d1fc 100644
 --- a/packages/client/connection/README.zh.md
 +++ b/packages/client/connection/README.zh.md
 @@ -25,18 +25,18 @@ kind: "package-reference"
@@ -153,7 +153,7 @@ index 34cf79bd65..6bed1e1c9a 100644
    const fetchHandler = connection.createSharedFetchHandler(API_PATH)
    const route: WebRoute = {
 diff --git a/packages/client/connection/src/rpc-host.ts b/packages/client/connection/src/rpc-host.ts
-index a00277d813..b690383ea6 100644
+index a9bbc72954..486c669ea2 100644
 --- a/packages/client/connection/src/rpc-host.ts
 +++ b/packages/client/connection/src/rpc-host.ts
 @@ -11,7 +11,7 @@ import { clientRequestSchema } from './rpc-schema.ts'

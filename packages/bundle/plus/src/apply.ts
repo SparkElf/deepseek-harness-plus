@@ -1,9 +1,21 @@
 /** Materialize the Plus distribution's independent patch packages without Desktop. */
 
 import { spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { satisfies, valid, validRange } from 'semver'
 import { parseDocument } from 'yaml'
 
@@ -19,6 +31,12 @@ interface InstalledPackage {
 interface RuntimePackage {
   name: string
   version: string
+}
+
+/** One official workspace package available as a profile peer dependency. */
+export interface OfficialWorkspacePackage {
+  name: string
+  directory: string
 }
 
 interface NpmTarget {
@@ -58,6 +76,15 @@ interface SelectedSourcePatch {
 }
 
 type SelectedPatch = SelectedNpmPatch | SelectedSourcePatch
+
+function isSelectedNpmPatch(patch: SelectedPatch): patch is SelectedNpmPatch {
+  return patch.target.kind === 'npm'
+}
+
+interface MaterializedPatches {
+  patches: readonly SelectedPatch[]
+  npmPatchFiles: ReadonlyMap<string, string>
+}
 
 function readJsonObject(path: string, label: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'))
@@ -168,6 +195,26 @@ function sourcePatchState(root: string, file: string): 'pending' | 'applied' {
   throw new Error('unreachable')
 }
 
+/** 在隔离index中按真实顺序预演source patches，避免失败后污染official worktree。 */
+function preflightSourcePatches(root: string, files: readonly string[]): void {
+  if (files.length === 0) return
+  const directory = mkdtempSync(resolve(tmpdir(), 'dsh-plus-source-patches-'))
+  const index = resolve(directory, 'index')
+  const env = { ...process.env, GIT_INDEX_FILE: index }
+  const run = (args: readonly string[]): void => {
+    const result = spawnSync('git', args, { cwd: root, encoding: 'utf8', env })
+    if (result.status === 0) return
+    const detail = result.stderr.trim()
+    throw new Error('git ' + args.join(' ') + ' failed' + (detail === '' ? '' : ': ' + detail))
+  }
+  try {
+    run(['read-tree', 'HEAD'])
+    for (const file of files) run(['apply', '--cached', '--3way', file])
+  } finally {
+    rmSync(directory, { recursive: true, force: true })
+  }
+}
+
 function requireSourceBase(root: string, baseRevision: string): string {
   const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
   if (checkoutRevision !== baseRevision) {
@@ -247,18 +294,21 @@ function prepareSelection(
   }
 
   const sourceStates = new Map<string, ReturnType<typeof sourcePatchState>>()
-  for (const variant of [...groups.values()].flat()) {
-    if (variant.target.kind !== 'dsh-source'
-      || variant.target.baseRevision !== baseRevision
-      || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
-    const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
-    sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+  const orderedGroups = [...groups].sort(([left], [right]) => left.localeCompare(right))
+  for (const [, variants] of orderedGroups) {
+    for (const variant of variants) {
+      if (variant.target.kind !== 'dsh-source'
+        || variant.target.baseRevision !== baseRevision
+        || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
+      const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
+      sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+    }
   }
   const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
-  if (pendingSourceFiles.length > 0) git(dshRoot, ['apply', '--check', ...pendingSourceFiles])
+  preflightSourcePatches(dshRoot, pendingSourceFiles)
 
   if (writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)) {
-    runPnpm(profileDirectory, ['install'], 'pnpm install Plus profile dependencies')
+    runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install Plus profile dependencies')
   }
   const profileDependencies = Object.keys(profileDependencySpecs).sort().map((name) => {
     const installed = resolveInstalledPackage(profileDirectory, name)
@@ -274,8 +324,8 @@ function prepareSelection(
 
   const selected: SelectedPatch[] = []
   // 每个patch id必须在当前DSH、official base与installed npm graph上唯一命中，不能fallback到第二variant。
-  for (const id of [...groups.keys()].sort()) {
-    const candidates = (groups.get(id) ?? []).flatMap((variant): SelectedPatch[] => {
+  for (const [id, variants] of orderedGroups) {
+    const candidates = variants.flatMap((variant): SelectedPatch[] => {
       if (!satisfies(dshVersion, variant.dsh, { includePrerelease: true })) return []
       const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
       if (variant.target.kind === 'dsh-source') {
@@ -330,26 +380,55 @@ function prepareSelection(
   }
 }
 
-function materializePatchFiles(profileDirectory: string, patches: readonly SelectedPatch[]): SelectedPatch[] {
+/** 保留每个独立payload，并为同一npm目标生成pnpm可消费的唯一组合patch。 */
+function materializePatchFiles(profileDirectory: string, patches: readonly SelectedPatch[]): MaterializedPatches {
   const root = resolve(profileDirectory, '.dsh-plus', 'patches')
   rmSync(root, { recursive: true, force: true })
-  return patches.map((patch) => {
+  const stablePatches = patches.map((patch) => {
     const destination = resolve(root, patch.patchPackage.name, patch.patchPackage.version, patch.file)
     mkdirSync(dirname(destination), { recursive: true })
     copyFileSync(patch.absoluteFile, destination)
     return { ...patch, absoluteFile: destination }
   })
+  const npmGroups = new Map<string, [SelectedNpmPatch, ...SelectedNpmPatch[]]>()
+  for (const patch of stablePatches) {
+    if (!isSelectedNpmPatch(patch)) continue
+    const key = patch.target.name + '@' + patch.target.version
+    const group = npmGroups.get(key)
+    if (group === undefined) npmGroups.set(key, [patch])
+    else group.push(patch)
+  }
+  const npmPatchFiles = new Map<string, string>()
+  for (const [key, group] of npmGroups) {
+    const first = group[0]
+    if (group.length === 1) {
+      npmPatchFiles.set(key, first.absoluteFile)
+      continue
+    }
+    // 成员或版本变化必须改变workspace路径，使pnpm重新应用新的组合payload。
+    const members = group.map(patch => encodeURIComponent(patch.id + '@' + patch.patchPackage.version)).join('+')
+    const destination = resolve(root, 'combined', encodeURIComponent(key), members + '.patch')
+    mkdirSync(dirname(destination), { recursive: true })
+    const contents = group.map((patch) => {
+      const content = readFileSync(patch.absoluteFile, 'utf8')
+      return content.endsWith('\n') ? content : content + '\n'
+    }).join('')
+    writeFileSync(destination, contents)
+    npmPatchFiles.set(key, destination)
+  }
+  return { patches: stablePatches, npmPatchFiles }
 }
 
-function profilePatchConfiguration(profileDirectory: string, patches: readonly SelectedPatch[]): { text: string; changed: boolean } {
+function profilePatchConfiguration(
+  profileDirectory: string,
+  npmPatchFiles: ReadonlyMap<string, string>,
+): { text: string; changed: boolean } {
   const path = resolve(profileDirectory, 'pnpm-workspace.yaml')
   const document = parseDocument(readFileSync(path, 'utf8'))
   const [documentError] = document.errors
   if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
   let changed = false
-  const desiredKeys = new Set(patches.flatMap(patch => patch.target.kind === 'npm'
-    ? [patch.target.name + '@' + patch.target.version]
-    : []))
+  const desiredKeys = new Set(npmPatchFiles.keys())
   const workspace = requireObject(document.toJS() as unknown, 'Plus profile workspace')
   const configured = workspace.patchedDependencies === undefined
     ? {}
@@ -360,10 +439,8 @@ function profilePatchConfiguration(profileDirectory: string, patches: readonly S
       changed = true
     }
   }
-  for (const patch of patches) {
-    if (patch.target.kind !== 'npm') continue
-    const key = patch.target.name + '@' + patch.target.version
-    const value = relative(profileDirectory, patch.absoluteFile).replaceAll('\\', '/')
+  for (const [key, file] of npmPatchFiles) {
+    const value = relative(profileDirectory, file).replaceAll('\\', '/')
     const current = document.getIn(['patchedDependencies', key])
     if (current !== undefined && current !== value
       && (typeof current !== 'string' || !current.startsWith('.dsh-plus/patches/'))) {
@@ -470,17 +547,19 @@ function applySelectedPatches(
   patches: readonly SelectedPatch[],
   profileChanged: boolean,
 ): void {
-  const stablePatches = materializePatchFiles(profileDirectory, patches)
+  const materialized = materializePatchFiles(profileDirectory, patches)
   const workspacePath = resolve(profileDirectory, 'pnpm-workspace.yaml')
-  const workspace = profilePatchConfiguration(profileDirectory, stablePatches)
+  const workspace = profilePatchConfiguration(profileDirectory, materialized.npmPatchFiles)
   if (workspace.changed) writeFileSync(workspacePath, workspace.text)
   if (profileChanged || workspace.changed) {
-    runPnpm(profileDirectory, ['install'], 'pnpm install in Plus profile')
+    runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in Plus profile')
   }
-  const sourceFiles = pendingSourcePatchFiles(stablePatches)
-  if (sourceFiles.length > 0) git(dshRoot, ['apply', ...sourceFiles])
-  if (stablePatches.some(patch => patch.target.kind === 'dsh-source')) {
-    runPnpm(dshRoot, ['run', 'build'], 'official DSH build after source patches')
+  const sourceFiles = pendingSourcePatchFiles(materialized.patches)
+  // Docker/overlay copy会使内容未变的文件stat失效；先刷新clean index项，脏文件仍由git apply判冲突。
+  if (sourceFiles.length > 0) git(dshRoot, ['update-index', '--refresh'], true)
+  for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
+  if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
+    runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
   }
 }
 
@@ -489,13 +568,88 @@ function officialPackageRoot(dshRoot: string): string {
   return resolve(dshRoot, 'apps', 'cli')
 }
 
-// Profile plugins通过exact source checkout解析official peers；npm profile不复制该scope。
-function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
-  const source = resolve(officialPackageRoot(dshRoot), 'node_modules', '@deepseek-ai')
-  if (!existsSync(source)) throw new Error('official DSH dependencies are missing under ' + source)
+/**
+ * Parse pnpm's workspace roster into exact official package directories.
+ * @param dshRoot - exact official DSH checkout root.
+ * @param stdout - JSON emitted by `pnpm -r list --json --depth -1`.
+ * @returns sorted official package names and directories inside the checkout.
+ */
+export function parseOfficialWorkspacePackages(dshRoot: string, stdout: string): OfficialWorkspacePackage[] {
+  const parsed: unknown = JSON.parse(stdout)
+  if (!Array.isArray(parsed)) throw new Error('pnpm workspace package list must be an array')
+  const packages = new Map<string, string>()
+  for (const [index, value] of parsed.entries()) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('pnpm workspace package list[' + String(index) + '] must be an object')
+    }
+    const entry = value as Record<string, unknown>
+    if (typeof entry.name !== 'string' || !entry.name.startsWith('@deepseek-ai/')) continue
+    const localName = entry.name.slice('@deepseek-ai/'.length)
+    if (localName === '' || localName.includes('/')) {
+      throw new Error('unsupported official workspace package name: ' + entry.name)
+    }
+    if (typeof entry.path !== 'string' || entry.path === '') {
+      throw new Error('pnpm workspace package ' + entry.name + ' has no path')
+    }
+    const directory = resolve(dshRoot, entry.path)
+    const local = relative(dshRoot, directory)
+    if (isAbsolute(local) || local === '..' || local.startsWith('../')) {
+      throw new Error('official workspace package escapes DSH root: ' + entry.name)
+    }
+    const previous = packages.get(entry.name)
+    if (previous !== undefined && previous !== directory) {
+      throw new Error('duplicate official workspace package: ' + entry.name)
+    }
+    packages.set(entry.name, directory)
+  }
+  return [...packages].sort(([left], [right]) => left.localeCompare(right))
+    .map(([name, directory]) => ({ name, directory }))
+}
+
+function listOfficialWorkspacePackages(dshRoot: string): OfficialWorkspacePackage[] {
+  const result = spawnSync('pnpm', ['-r', 'list', '--json', '--depth', '-1'], {
+    cwd: dshRoot,
+    encoding: 'utf8',
+    shell: process.platform === 'win32',
+  })
+  if (result.error !== undefined) throw result.error
+  if (result.status !== 0) {
+    throw new Error('pnpm list official DSH workspace packages failed with exit code ' + String(result.status))
+  }
+  return parseOfficialWorkspacePackages(dshRoot, result.stdout)
+}
+
+/**
+ * Build the profile's official scope from the CLI closure plus source workspaces.
+ * @param profileDirectory - materialized Plus profile root.
+ * @param cliScope - official packages already installed under the DSH CLI.
+ * @param workspacePackages - additional official source workspaces required by external peers.
+ */
+export function materializeOfficialPackageScope(
+  profileDirectory: string,
+  cliScope: string,
+  workspacePackages: readonly OfficialWorkspacePackage[],
+): void {
+  if (!existsSync(cliScope)) throw new Error('official DSH dependencies are missing under ' + cliScope)
   const destination = resolve(profileDirectory, 'node_modules', '@deepseek-ai')
   rmSync(destination, { recursive: true, force: true })
-  symlinkSync(source, destination, process.platform === 'win32' ? 'junction' : 'dir')
+  mkdirSync(destination, { recursive: true })
+  const linkType = process.platform === 'win32' ? 'junction' : 'dir'
+  for (const name of readdirSync(cliScope).sort()) {
+    symlinkSync(resolve(cliScope, name), resolve(destination, name), linkType)
+  }
+  for (const entry of workspacePackages) {
+    const name = entry.name.slice('@deepseek-ai/'.length)
+    const target = resolve(destination, name)
+    if (existsSync(target)) continue
+    symlinkSync(entry.directory, target, linkType)
+  }
+}
+
+// Profile plugins resolve official peers from the exact source checkout, including peers outside the CLI closure.
+function linkOfficialPackages(profileDirectory: string, dshRoot: string): void {
+  const cliScope = resolve(officialPackageRoot(dshRoot), 'node_modules', '@deepseek-ai')
+  materializeOfficialPackageScope(profileDirectory, cliScope, listOfficialWorkspacePackages(dshRoot))
 }
 
 function writeLock(profileDirectory: string, lock: Record<string, unknown>): string {

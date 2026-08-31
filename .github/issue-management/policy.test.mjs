@@ -5,6 +5,7 @@ import {
   countVisibleUnits,
   nextResolvingIssueStatus,
   parseReferences,
+  resolveRepositoryCoordinates,
   retainIssueReferences,
   resolvingIssueStatusCommand,
   requiresPullRequestPolicy,
@@ -12,6 +13,16 @@ import {
   validateIssue,
   validatePullRequest,
 } from './policy.mjs'
+
+test('repository coordinates prefer the GitHub Actions repository', () => {
+  const defaults = { organization: 'upstream-owner', repository: 'upstream-repository' }
+  assert.deepEqual(resolveRepositoryCoordinates('fork-owner/fork-repository', defaults), {
+    organization: 'fork-owner',
+    repository: 'fork-repository',
+  })
+  assert.equal(resolveRepositoryCoordinates(undefined, defaults), defaults)
+  assert.throws(() => resolveRepositoryCoordinates('missing-separator', defaults), /owner\/repository/)
+})
 
 const withDetails = (summary) =>
   `${summary}\n\n<details><summary>验收与细节</summary>待补充。</details>`
