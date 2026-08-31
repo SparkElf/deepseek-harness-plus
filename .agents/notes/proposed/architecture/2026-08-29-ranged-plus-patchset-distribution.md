@@ -12,6 +12,8 @@ Accepted Plus production combines official DSH behavior, complete user capabilit
 
 Use three delivery forms only. A complete user capability is one npm-installable Cordis plugin closure containing every required Host and Client role, provider, persistence rule, profile face, and locale. `@sparkelf/dsh-plus` owns only dependency closure, ordered profile composition, defaults, enablement, compatibility metadata, and references to independent patch packages. A proven gap in official DSH or an external package becomes one data-only npm patch package with one exact payload variant and retirement lifecycle; patch packages contain no JavaScript entry, lifecycle script, Cordis plugin, fallback, or compatibility adapter.
 
+The root pnpm supply-chain policy exempts only the exact curated `@sparkelf/dsh-mobile-bridge@0.2.10` and `dshmarket@1.38.1` releases from minimum release age, so a clean same-day Plus build can consume its reviewed runtime pins while every other version remains age-gated.
+
 The primary materialization path is independent of Desktop and tray applications:
 
 ```bash

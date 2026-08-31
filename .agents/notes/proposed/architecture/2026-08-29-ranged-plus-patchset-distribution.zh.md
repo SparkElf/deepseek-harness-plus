@@ -12,6 +12,8 @@
 
 只使用三种delivery forms。完整user capability是一个npm-installable Cordis plugin closure，包含所需全部Host/Client roles、provider、persistence rule、profile face及locale。`@sparkelf/dsh-plus`只拥有dependency closure、ordered profile composition、defaults、enablement、compatibility metadata和independent patch-package references。Official DSH或external package中有证据的gap才成为一个data-only npm patch package，拥有一个exact payload variant和一个retirement lifecycle；patch package不包含JavaScript entry、lifecycle script、Cordis plugin、fallback或compatibility adapter。
 
+root pnpm supply-chain policy只把exact curated `@sparkelf/dsh-mobile-bridge@0.2.10`与`dshmarket@1.38.1` release排除在minimum release age之外，因此clean same-day Plus build可消费reviewed runtime pins，同时其他version继续受age gate约束。
+
 primary materialization path不依赖Desktop或tray application：
 
 ```bash
