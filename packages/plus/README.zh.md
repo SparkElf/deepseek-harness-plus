@@ -23,6 +23,7 @@ kind: "package-group"
 
 ## Related documentation
 
+- [Attachment subsystem](../../docs/subsystems/attachment.zh.md)
 - [Plus Backup作为单个full-stack插件](../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.zh.md)
 - [Workspace package](../workspace/workspace/README.zh.md)
 - [Host WebServer package](../host/webserver/README.zh.md)
