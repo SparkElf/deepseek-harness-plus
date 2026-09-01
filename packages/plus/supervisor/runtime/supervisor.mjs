@@ -125,7 +125,7 @@ class RuntimeSupervisor {
   async openLog() {
     const logPath = join(this.manifest.dshHome, 'supervisor', 'runtime.log')
     await mkdir(dirname(logPath), { recursive: true })
-    if (this.logHandle === undefined) this.logHandle = openSync(logPath, 'a')
+    if (this.logHandle === undefined) this.logHandle = openSync(logPath, 'w')
     return this.logHandle
   }
 
