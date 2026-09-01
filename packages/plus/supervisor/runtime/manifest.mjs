@@ -1,7 +1,7 @@
 /** Supervisor manifest loading and status publication. */
 
 import { readFile } from 'node:fs/promises'
-import { writeFileSync } from 'node:fs'
+import { renameSync, writeFileSync } from 'node:fs'
 
 /**
  * Load the explicit command and runtime paths used by one Supervisor process.
@@ -19,5 +19,7 @@ export async function readSupervisorManifest(manifestPath) {
  * @returns {void}
  */
 export function writeSupervisorManifest(manifestPath, content) {
-  writeFileSync(manifestPath, content)
+  const nextPath = manifestPath + '.next'
+  writeFileSync(nextPath, content)
+  renameSync(nextPath, manifestPath)
 }
