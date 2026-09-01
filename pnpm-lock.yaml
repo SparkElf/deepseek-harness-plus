@@ -10845,6 +10845,8 @@ importers:
 
   patches/npm/subagent-settings-presets: {}
 
+  patches/npm/univer-office-alpha2: {}
+
   patches/npm/web-base-path: {}
 
   patches/npm/workspace-storage-restore: {}

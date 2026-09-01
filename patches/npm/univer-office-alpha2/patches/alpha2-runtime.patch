@@ -1,0 +1,650 @@
+diff --git a/README.md b/README.md
+index c90eb74591b228bbb871fdf2f7f6610cb0df20fd..33a14dbccede983c9c9f43a65490ec9d5b5cb1b8 100644
+--- a/README.md
++++ b/README.md
+@@ -149,7 +149,7 @@ DSH selects these tools automatically; you normally do not need to call them man
+ 
+ | Tool | Purpose |
+ | --- | --- |
+-| `univer_new` | Create an empty `.univer` file without overwriting an existing file |
++| `univer_new` | Create an empty `.univer` file or copy an existing workspace `.univer` template, without overwriting |
+ | `univer_status` | View the content and draft status of a file |
+ | `univer_worktree` | Create, submit, revise, approve, or discard an isolated draft |
+ | `univer_unit` | Add or remove Sheet, Doc, Slide, Base, or Board content |
+diff --git a/README.zh-CN.md b/README.zh-CN.md
+index 833a511e2f313f5bacb50219a6b4ba81beab5c53..cdc46ec8d42824d8a73bb8225f731bb6c3f7bb53 100644
+--- a/README.zh-CN.md
++++ b/README.zh-CN.md
+@@ -149,7 +149,7 @@ DSH 会自动选择这些工具，日常使用不需要手动调用。
+ 
+ | 工具 | 作用 |
+ | --- | --- |
+-| `univer_new` | 创建空 `.univer` 文件，不覆盖已有文件 |
++| `univer_new` | 创建空 `.univer` 文件或复制工作区内现有 `.univer` 模板，不覆盖已有文件 |
+ | `univer_status` | 查看文件内容与草稿状态 |
+ | `univer_worktree` | 创建、提交、继续修改、确认或放弃隔离草稿 |
+ | `univer_unit` | 添加或删除 Sheet、Doc、Slide、多维表格或 Board 内容 |
+diff --git a/artifacts/gateway.cjs b/artifacts/gateway.cjs
+index 9ce99ef2a552319f5f15bc4e414cb50bf8b4522b..632009f9c39d16f432ef2336710c08b72229a6f6 100644
+--- a/artifacts/gateway.cjs
++++ b/artifacts/gateway.cjs
+@@ -450526,6 +450526,17 @@ var UniverfileManager = class {
+     (0, import_node_fs7.mkdirSync)((0, import_node_path6.dirname)(normalized), { recursive: true });
+     return this._open(normalized, true);
+   }
++  /** Create a new file from an existing, workspace-confined `.univer` template. */
++  createUniverfileFromTemplate(rawPath, rawTemplatePath) {
++    const normalized = this.prepareNewUniverfilePath(rawPath);
++    const template = this._normalizeUniverfile(rawTemplatePath);
++    if (!(0, import_node_fs7.existsSync)(template)) {
++      throw new UniverfileNotFoundError(`univerfile template not found: ${template}`);
++    }
++    (0, import_node_fs7.mkdirSync)((0, import_node_path6.dirname)(normalized), { recursive: true });
++    (0, import_node_fs7.copyFileSync)(template, normalized, import_node_fs7.constants.COPYFILE_EXCL);
++    return this._open(normalized, false);
++  }
+   /** Validate and normalize a new `.univer` path without creating or opening it. */
+   prepareNewUniverfilePath(rawPath) {
+     const normalized = this._normalizeUniverfile(rawPath);
+@@ -450549,8 +450560,9 @@ var UniverfileManager = class {
+     return normalized;
+   }
+   /** Decode a `base64url(univerfile)` key, then create the univerfile. */
+-  createByKey(key) {
+-    return this.createUniverfile(this._decodeKey(key));
++  createByKey(key, templatePath) {
++    const target = this._decodeKey(key);
++    return templatePath === void 0 ? this.createUniverfile(target) : this.createUniverfileFromTemplate(target, templatePath);
+   }
+   /** Decode and validate a `base64url(univerfile)` key without opening or creating the file. */
+   assertAddressableByKey(key) {
+@@ -450728,7 +450740,8 @@ async function dispatch(manager, req, res) {
+     }
+     if (rest2.length === 0 && method2 === "POST") {
+       try {
+-        manager.createByKey(key);
++        const input = requireCreateUniverfileBody(await readJsonBody(req));
++        manager.createByKey(key, input.templateFile);
+         sendJson(res, 200, { error: { code: 1, message: "" } });
+       } catch (error) {
+         sendUniverfileError(res, error);
+@@ -451369,6 +451382,21 @@ function numType(raw) {
+   const n = Number(raw);
+   return Number.isFinite(n) ? n : SHEET_TYPE;
+ }
++function requireCreateUniverfileBody(body) {
++  if (body === void 0) {
++    return {};
++  }
++  if (typeof body !== "object" || body === null || Array.isArray(body)) {
++    throw new UniverfileError("request body must be an object");
++  }
++  if (body.templateFile === void 0) {
++    return {};
++  }
++  if (typeof body.templateFile !== "string" || body.templateFile.length === 0) {
++    throw new UniverfileError("templateFile must be a non-empty string");
++  }
++  return { templateFile: body.templateFile };
++}
+ function requireDraftWorktree(worktreeId, status) {
+   if (status !== "draft") {
+     throw new Error(`Worktree ${worktreeId} is ${status}; Unit changes require draft`);
+diff --git a/artifacts/viewer/index.html b/artifacts/viewer/index.html
+index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..19596bb85f75f135dbd7683db69f13d5742ecf8f 100644
+--- a/artifacts/viewer/index.html
++++ b/artifacts/viewer/index.html
+@@ -10,6 +10,14 @@
+     />
+     <!-- Placeholder only: main.tsx localizes the title (and <html lang>) at boot via applyDocumentLang(). -->
+     <title>Univer</title>
++    <script>
++      const send = WebSocket.prototype.send;
++      WebSocket.prototype.send = function (...args) {
++        if (this.readyState === WebSocket.OPEN) {
++          return send.apply(this, args);
++        }
++      };
++    </script>
+     <script type="module" crossorigin src="/assets/index-xe_OYCFu.js"></script>
+     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
+     <link rel="modulepreload" crossorigin href="/assets/es-C_3AFWIu.js">
+diff --git a/docs/architecture.md b/docs/architecture.md
+index ab35fcd839172d9546ff3e822b5a94ce4c03f22c..aebc0bc91dcdf044614f9a086342b3ade8769fa9 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -41,7 +41,7 @@
+ - 多个 DSH 会话的预览目标与审阅状态相互隔离；
+ - 中英文界面；
+ - Univer 文件尚无 Unit 时，Viewer 使用现有空状态布局并显示“空文件”；
+-- 模型可创建空 `.univer` 文件、管理 worktree 与 Unit、导入 Office 文件、查询 Univer API、修改、检查和导出内容；
++- 模型可创建空 `.univer` 文件或复制 workspace 内现有 `.univer` 模板，并管理 worktree 与 Unit、导入 Office 文件、查询 Univer API、修改、检查和导出内容；
+ - 模型可对 Slide 执行不输出图片的真实布局检查，并把 workspace 内的 SVG 编译并应用到显式 Slide 页面；
+ - 模型可从内置多 registry 资源库查找、读取并导出 SVG 资源，下载缓存由 Provider 持久管理；
+ - 模型可把显式 Unit 渲染为 workspace 内 PNG，并在当前模型支持图片输入时以 DSH attachment 回读；Sheet 支持范围，Doc/Slide 支持页面，Slide 支持联系表，Board 支持区域与元素聚焦；
+@@ -257,7 +257,7 @@ bundled skill provider -> DSH skill registry
+ 
+ 服务能力分为六组：
+ 
+-- File 与状态：创建空 `.univer` 容器，读取 trunk、worktree 与 Unit 状态；
++- File 与状态：创建空 `.univer` 容器或从 workspace 模板复制新文件，读取 trunk、worktree 与 Unit 状态；
+ - Collaboration：创建 worktree，执行 ready、reopen、merge 与 discard 生命周期操作；
+ - Unit Content：在 draft worktree 中创建、移除或导入 Unit，以及检查、执行、导出和读取 machine render snapshot；
+ - Render：对 Slide snapshot 执行布局检查，把 SVG 编译为 Facade program 并提交到显式 draft worktree，以及为显式 Unit、依赖 Unit 和图片资源装配渲染源并生成 PNG；
+@@ -355,7 +355,7 @@ Client 必须满足：
+ 
+ 当前实现满足以下约束：
+ 
+-1. `univer_new` 只创建空 `.univer` 容器，Unit 由 `univer_unit` 或 `univer_import` 显式加入 draft worktree；
++1. `univer_new` 创建空 `.univer` 容器，或从同一会话 workspace 内现有 `.univer` 模板完整复制新文件；空容器的 Unit 仍由 `univer_unit` 或 `univer_import` 显式加入 draft worktree；
+ 2. `univer_execute` 只写入显式 draft worktree 与 Unit，并由 Gateway revision 确认提交；
+ 3. `univer_inspect` 与 `univer_export` 可读取 trunk 或显式 worktree；
+ 4. `univer_api` 使用包依赖的精确版本 API Reference，不调用外部 CLI；
+diff --git a/lib/client.js b/lib/client.js
+index 6111dde2bfc81aee69686c1bc7ec8d5c1a4ed77d..3cc07052cea6cd1c338d89e9b425e5d2ef5e6cae 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -22333,7 +22333,7 @@ window.__ModuleLoader__.load({
+     }
+     function fallbackValue(snapshot) {
+       const value = typeof snapshot.base === "object" && snapshot.base !== null && !Array.isArray(snapshot.base) ? snapshot.base.autoOpenLivePreview : void 0;
+-      return typeof value === "boolean" ? value : true;
++      return typeof value === "boolean" ? value : false;
+     }
+     function hasBooleanField(value, field) {
+       return typeof value === "object" && value !== null && !Array.isArray(value) && Object.hasOwn(value, field) && typeof value[field] === "boolean";
+@@ -22813,7 +22813,7 @@ window.__ModuleLoader__.load({
+ 
+     // src/client/settings/live-preview-preference.ts
+     var LivePreviewPreference = class {
+-      enabled = true;
++      enabled = false;
+       listeners = /* @__PURE__ */ new Set();
+       getSnapshot = () => this.enabled;
+       subscribe = (listener) => {
+@@ -22824,14 +22824,14 @@ window.__ModuleLoader__.load({
+       attach(scope) {
+         const sync = () => {
+           const snapshot = scope.getSnapshot();
+-          const enabled = snapshot.status === "loading" ? false : snapshot.status === "ready" ? snapshot.value?.autoOpenLivePreview ?? true : true;
++          const enabled = snapshot.status === "loading" ? false : snapshot.status === "ready" ? snapshot.value?.autoOpenLivePreview ?? false : false;
+           this.publish(enabled);
+         };
+         const dispose = scope.subscribe(sync);
+         sync();
+         return () => {
+           dispose();
+-          this.publish(true);
++          this.publish(false);
+         };
+       }
+       publish(enabled) {
+diff --git a/lib/index.js b/lib/index.js
+index d05a92f61ede1895d19517c717aeca9d1977ac2f..696dc98bf720e9ff9f1004d05ba0b5469029ff3c 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -419,9 +419,9 @@ var GatewayFileApi = class {
+   listUnits(file) {
+     return this.client.get(`/uf/${fileKeyOf(file)}/units`);
+   }
+-  /** Create an empty Univer file in the bundled collaboration store. */
+-  create(file) {
+-    return this.client.post(`/uf/${fileKeyOf(file)}`, {});
++  /** Create an empty Univer file or copy an existing template in the bundled collaboration store. */
++  create(file, templateFile) {
++    return this.client.post(`/uf/${fileKeyOf(file)}`, templateFile === void 0 ? {} : { templateFile });
+   }
+   /** Create the first trunk Unit after the file container exists. */
+   createUnit(file, kind, name7) {
+@@ -593,6 +593,24 @@ async function resolveNewUniverPath(cwd, value) {
+   requireUniverExtension(resolved.path);
+   return { ...resolved, path: univerFilePath(resolved.path) };
+ }
++async function resolveTemplateUniverPath(cwd, value) {
++  if (value.trim().length === 0) throw new UniverError("template path is required", "INVALID_FILE_PATH");
++  let workspace;
++  try {
++    workspace = await realpath(cwd);
++  } catch (error) {
++    throw new UniverError("session workspace cannot be resolved", "SESSION_SCOPE_UNAVAILABLE", { cause: error });
++  }
++  const candidate = isAbsolute2(value) ? resolve3(value) : resolve3(workspace, value);
++  let canonical;
++  try {
++    canonical = await realpath(candidate);
++  } catch (error) {
++    throw new UniverError("template path does not exist", "INVALID_FILE_PATH", { cause: error });
++  }
++  requireUniverExtension(canonical);
++  return univerFilePath(canonical);
++}
+ function resolveExistingWorkspacePath(cwd, value) {
+   return resolveAuthorizedPath(cwd, value, true);
+ }
+@@ -1090,7 +1108,7 @@ var WorktreeOperations = class {
+ 
+ // src/host/provider/render-operations.ts
+ import { readFileSync, realpathSync } from "node:fs";
+-import { mkdir, readFile, writeFile } from "node:fs/promises";
++import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+ import { basename, dirname as dirname2, isAbsolute as isAbsolute4, relative as relative2, resolve as resolve4, sep as sep2 } from "node:path";
+ 
+ // node_modules/.pnpm/@univer-cli+svg-facade@1.0.0-insiders.20260822-0c0c0dd/node_modules/@univer-cli/svg-facade/dist/index.mjs
+@@ -6452,6 +6470,42 @@ function combinedSignal(operation, request) {
+ }
+ 
+ // src/host/provider/gateway-univer-service.ts
++var TemplateRootRegistry = class {
++  roots = /* @__PURE__ */ new Map();
++  register(registration) {
++    const token = Symbol();
++    this.roots.set(token, realpathSync(registration.root));
++    return () => {
++      this.roots.delete(token);
++    };
++  }
++  async prepare(workspace, value) {
++    const canonical = await realpath(value);
++    if (isTemplateWithin(workspace, canonical)) {
++      return { file: univerFilePath(canonical), cleanup: () => Promise.resolve() };
++    }
++    if (![...this.roots.values()].some((root) => isTemplateWithin(root, canonical))) {
++      throw new UniverError(
++        "template file is outside the session workspace and registered template roots",
++        "SESSION_SCOPE_DENIED"
++      );
++    }
++    const staged = join(workspace, ".dsh-univer-office", "template-stage", `${randomUUID()}.univer`);
++    await mkdir(dirname(staged), { recursive: true });
++    await copyFile(canonical, staged);
++    return {
++      file: univerFilePath(staged),
++      cleanup: () => rm(staged, { force: true })
++    };
++  }
++  clear() {
++    this.roots.clear();
++  }
++};
++function isTemplateWithin(root, candidate) {
++  const child = relative(resolve3(root), resolve3(candidate));
++  return child === "" || child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute2(child);
++}
+ var GatewayUniverService = class extends UniverService {
+   constructor(ctx, config) {
+     super(ctx);
+@@ -6484,6 +6538,7 @@ var GatewayUniverService = class extends UniverService {
+   stateCache;
+   unitCache;
+   api;
++  templateRoots = new TemplateRootRegistry();
+   /** Current Gateway status. */
+   gatewayStatus() {
+     return this.gatewaySupervisor.status();
+@@ -6521,13 +6576,22 @@ var GatewayUniverService = class extends UniverService {
+       };
+     }
+   }
+-  /** Create one empty Univer container without an implicit Unit. */
++  /** Register one trusted read-only template directory for the current Host lifecycle. */
++  registerTemplateRoot(registration) {
++    return this.templateRoots.register(registration);
++  }
++  /** Create one empty Univer container or copy an existing template without adding an implicit Unit. */
+   async newFile(request, signal) {
+     await assertAuthorizedPath(request.workspace, request.file, false);
+-    signal?.throwIfAborted();
+-    const gateway = await this.requireGateway();
+-    const result2 = await new GatewayFileApi(new GatewayClient(gateway, this.config.gatewayMutationTimeoutMs)).create(request.file);
+-    requireGatewaySuccess(result2, "Gateway rejected the Univer file creation.");
++    const template = request.templateFile === void 0 ? void 0 : await this.templateRoots.prepare(request.workspace, request.templateFile);
++    try {
++      signal?.throwIfAborted();
++      const gateway = await this.requireGateway();
++      const result2 = await new GatewayFileApi(new GatewayClient(gateway, this.config.gatewayMutationTimeoutMs)).create(request.file, template?.file);
++      requireGatewaySuccess(result2, "Gateway rejected the Univer file creation.");
++    } finally {
++      await template?.cleanup();
++    }
+     signal?.throwIfAborted();
+     this.stateCache.delete(request.file);
+     return {
+@@ -6736,6 +6800,7 @@ var GatewayUniverService = class extends UniverService {
+   async dispose() {
+     this.stateCache.clear();
+     this.unitCache.clear();
++    this.templateRoots.clear();
+     await this.gatewaySupervisor.dispose();
+   }
+   /** Status value used by the Web Consumer. */
+@@ -6854,20 +6919,19 @@ __export(plugin_exports2, {
+   apply: () => apply2,
+   name: () => name2
+ });
+-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+ import z6 from "@deepseek-ai/schemastery";
+ 
+ // src/shared/settings.ts
+ var UNIVER_SETTINGS_NAMESPACE = "univer-office";
+ var DEFAULT_UNIVER_SETTINGS = {
+-  autoOpenLivePreview: true
++  autoOpenLivePreview: false
+ };
+ 
+ // src/host/settings/plugin.ts
+ var name2 = "univer-settings";
+-var namespace = settingsNamespace(UNIVER_SETTINGS_NAMESPACE);
++var namespace = UNIVER_SETTINGS_NAMESPACE;
+ var SettingsSchema = z6.object({
+-  autoOpenLivePreview: z6.boolean().default(true)
++  autoOpenLivePreview: z6.boolean().default(false)
+ });
+ function apply2(ctx) {
+   ctx.inject(["settings"], (settingsCtx) => {
+@@ -7313,6 +7377,9 @@ function toolWorkspace(exec) {
+ function existingToolFile(exec, file) {
+   return resolveExistingUniverPath(toolWorkspace(exec), file);
+ }
++function templateToolFile(exec, file) {
++  return resolveTemplateUniverPath(toolWorkspace(exec), file);
++}
+ function newToolFile(exec, file) {
+   return resolveNewUniverPath(toolWorkspace(exec), file);
+ }
+@@ -7389,18 +7456,20 @@ function executeTool(ctx, timeoutMs) {
+   });
+ }
+ async function resolveExecutionCode(exec, code, codeFile) {
+-  if (code === void 0 === (codeFile === void 0)) {
++  const inlineCode = optionalString(code);
++  const sourceFile = optionalString(codeFile);
++  if (inlineCode === void 0 === (sourceFile === void 0)) {
+     throw new UniverError("Provide exactly one of code or codeFile.", "INVALID_EXECUTION_SOURCE");
+   }
+-  if (code !== void 0) return code;
+-  if (codeFile === void 0) {
++  if (inlineCode !== void 0) return inlineCode;
++  if (sourceFile === void 0) {
+     throw new UniverError("codeFile is required when code is omitted.", "INVALID_EXECUTION_SOURCE");
+   }
+-  const source = await existingToolPath(exec, codeFile);
++  const source = await existingToolPath(exec, sourceFile);
+   try {
+     return await readFile4(source.path, "utf8");
+   } catch (error) {
+-    throw new UniverError(`Cannot read codeFile ${JSON.stringify(codeFile)}.`, "CODE_FILE_READ_FAILED", { cause: error });
++    throw new UniverError(`Cannot read codeFile ${JSON.stringify(sourceFile)}.`, "CODE_FILE_READ_FAILED", { cause: error });
+   }
+ }
+ 
+@@ -7419,6 +7488,7 @@ function exportTool(ctx, timeoutMs) {
+     },
+     output: operationOutput,
+     async execute(args, exec) {
++      const selectedWorktree = optionalString(args.worktreeId);
+       const [target, output] = await Promise.all([
+         existingToolFile(exec, args.file),
+         newToolPath(exec, args.output)
+@@ -7429,7 +7499,7 @@ function exportTool(ctx, timeoutMs) {
+         outputWorkspace: output.workspace,
+         output: output.path,
+         unitId: unitId(args.unitId),
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) }
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("export", args.file), kind: "execute" })
+@@ -7448,6 +7518,9 @@ function stripGatewaySuccessEnvelope(value) {
+   const { error: _envelope, ...rest } = result2;
+   return { ...value, result: rest };
+ }
++function optionalString(value) {
++  return value === void 0 || value.trim().length === 0 ? void 0 : value;
++}
+ 
+ // src/host/tools/definitions/import.ts
+ function importTool(ctx, timeoutMs) {
+@@ -7499,12 +7572,14 @@ function inspectTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const range = optionalString(args.range);
++      const selectedWorktree = optionalString(args.worktreeId);
+       return ctx.univer.inspectUnitContent({
+         workspace: target.workspace,
+         file: target.path,
+         unitId: unitId(args.unitId),
+-        ...args.range === void 0 ? {} : { range: args.range },
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) }
++        ...range === void 0 ? {} : { range },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("inspect", args.file), kind: "read" })
+@@ -7527,6 +7602,7 @@ function lintTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const selectedWorktree = optionalString(args.worktreeId);
+       const pages = args.pages?.map((selector) => {
+         if (typeof selector === "number") return selector;
+         const value = selector.trim();
+@@ -7537,7 +7613,7 @@ function lintTool(ctx, timeoutMs) {
+         workspace: target.workspace,
+         file: target.path,
+         unitId: unitId(args.unitId),
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
+         ...pages === void 0 ? {} : { pages }
+       }, exec.signal);
+     },
+@@ -7550,15 +7626,21 @@ import { defineTool as defineTool8 } from "@deepseek-ai/dsh-tools";
+ function newTool(ctx, timeoutMs) {
+   return defineTool8({
+     name: "univer_new",
+-    description: "Create a new empty .univer file in the current workspace. This never overwrites an existing file and does not create an implicit Unit.",
++    description: "Create a new .univer file in the current workspace, either empty or from an existing .univer template. This never overwrites an existing file.",
+     timeoutMs,
+     parameters: {
+-      file: { type: "string", required: true, description: "Workspace-relative or absolute output path ending in .univer." }
++      file: { type: "string", required: true, description: "Workspace-relative or absolute output path ending in .univer." },
++      templateFile: { type: "string", description: "Optional existing .univer template inside the current workspace or a trusted registered template root. The complete file is copied, including its Units and document layout." }
+     },
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await newToolFile(exec, args.file);
+-      return ctx.univer.newFile({ workspace: target.workspace, file: target.path }, exec.signal);
++      const template = args.templateFile === void 0 ? void 0 : { path: await templateToolFile(exec, args.templateFile) };
++      return ctx.univer.newFile({
++        workspace: target.workspace,
++        file: target.path,
++        ...template === void 0 ? {} : { templateFile: template.path }
++      }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("new", args.file), kind: "execute" })
+   });
+@@ -7732,6 +7814,7 @@ function screenshotTool(ctx, timeoutMs) {
+       ]
+     },
+     async execute(args, exec) {
++      const selectedWorktree = optionalString(args.worktreeId);
+       const attachments = ctx.get("attachments");
+       if (attachments === void 0) {
+         throw new UniverError("Screenshot requires the DSH attachment service.", "SCREENSHOT_ATTACHMENTS_UNAVAILABLE");
+@@ -7750,7 +7833,7 @@ function screenshotTool(ctx, timeoutMs) {
+         unitId: unitId(args.unitId),
+         outputWorkspace: output.workspace,
+         output: output.path,
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
+         ...screenshotTarget(args)
+       }, exec.signal);
+       const decoded = captured.result.images.map((item) => ({
+@@ -7828,7 +7911,9 @@ function screenshotTool(ctx, timeoutMs) {
+   });
+ }
+ function screenshotTarget(args) {
+-  const usesSheet = args.sheetName !== void 0 || args.range !== void 0;
++  const sheetName = optionalString(args.sheetName);
++  const range = optionalString(args.range);
++  const usesSheet = sheetName !== void 0 || range !== void 0;
+   const usesSlide = args.pages !== void 0 || args.contactSheet === true || args.tileColumns !== void 0 || args.tileRows !== void 0;
+   const usesBoard = args.region !== void 0 || args.elementIds !== void 0 || args.padding !== void 0;
+   if ([usesSheet, usesSlide, usesBoard].filter(Boolean).length > 1) {
+@@ -7838,14 +7923,14 @@ function screenshotTarget(args) {
+     throw new UniverError("Screenshot scale must be between 0.1 and 4.", "SCREENSHOT_INPUT_INVALID");
+   }
+   if (usesSheet) {
+-    if (args.range === void 0 || args.range.trim().length === 0) {
++    if (range === void 0) {
+       throw new UniverError("sheetName requires a non-empty range.", "SCREENSHOT_INPUT_INVALID");
+     }
+     return {
+       target: {
+         kind: "sheet-range",
+-        range: args.range,
+-        ...args.sheetName === void 0 ? {} : { sheetName: args.sheetName },
++        range,
++        ...sheetName === void 0 ? {} : { sheetName },
+         ...args.scale === void 0 ? {} : { scale: args.scale }
+       }
+     };
+@@ -7922,11 +8007,13 @@ function statusTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const selectedWorktree = optionalString(args.worktreeId);
++      const selectedUnit = optionalString(args.unitId);
+       return ctx.univer.status({
+         workspace: target.workspace,
+         file: target.path,
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
+-        ...args.unitId === void 0 ? {} : { unitId: unitId(args.unitId) }
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
++        ...selectedUnit === void 0 ? {} : { unitId: unitId(selectedUnit) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("status", args.file), kind: "read" })
+@@ -7996,11 +8083,12 @@ function worktreeTool(ctx, timeoutMs) {
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
+       if (args.action === "create") {
++        const name = optionalString(args.name);
+         return stripGatewaySuccessEnvelope(await ctx.univer.worktree({
+           action: "create",
+           workspace: target.workspace,
+           file: target.path,
+-          ...args.name === void 0 ? {} : { name: args.name }
++          ...name === void 0 ? {} : { name }
+         }, exec.signal));
+       }
+       if (args.worktreeId === void 0 || args.worktreeId.length === 0) {
+diff --git a/node_modules/.bin/browsers b/node_modules/.bin/browsers
+new file mode 100755
+index 0000000000000000000000000000000000000000..e34492a3179431f4c72ceb71939061177952b20c
+--- /dev/null
++++ b/node_modules/.bin/browsers
+@@ -0,0 +1,55 @@
++#!/bin/sh
++# Resolve $0 through symlinks so basedir is the shim's real directory.
++# Cap hops at the kernel's ELOOP limit so a cycle cannot hang the shim.
++link="$0"
++hops=0
++while [ -L "$link" ] && [ "$hops" -lt 40 ]; do
++  hops=$((hops+1))
++  target=$(readlink "$link")
++  case "$target" in
++    /*) link="$target" ;;
++    *)  link="$(dirname "$link")/$target" ;;
++  esac
++done
++basedir=$(dirname "$(echo "$link" | sed -e 's,\\,/,g')")
++basedir_win="$basedir"
++exe=""
++msys=""
++
++case `uname -a` in
++  *CYGWIN*|*MINGW*|*MSYS*)
++    if command -v cygpath > /dev/null 2>&1; then
++      basedir_win=`cygpath -w "$basedir"`
++    fi
++    exe=".exe"
++    msys="true"
++  ;;
++  *WSL2*)
++    if command -v wslpath > /dev/null 2>&1; then
++      basedir_win="$(wslpath -w "$basedir" 2> /dev/null)"
++      if [ $? -ne 0 ] || [ -z "$basedir_win" ]; then
++        basedir_win="$basedir"
++      else
++        exe=".exe"
++      fi
++    fi
++  ;;
++esac
++
++if [ -z "$NODE_PATH" ]; then
++  export NODE_PATH="/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/node_modules:/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules:/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/node_modules"
++else
++  export NODE_PATH="/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/node_modules:/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules:/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/node_modules:$NODE_PATH"
++fi
++if [ -n "$exe" ] && [ -x "$basedir/node.exe" ]; then
++  exec "$basedir/node.exe"  "$basedir_win/../../../../../@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js" "$@"
++elif [ -x "$basedir/node" ]; then
++  exec "$basedir/node"  "$basedir/../../../../../@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js" "$@"
++elif command -v node >/dev/null 2>&1; then
++  exec node  "$basedir/../../../../../@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js" "$@"
++elif [ -n "$exe" ] && command -v node.exe >/dev/null 2>&1; then
++  exec node.exe  "$basedir_win/../../../../../@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js" "$@"
++else
++  exec node  "$basedir/../../../../../@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js" "$@"
++fi
++# cmd-shim-target=/root/.dsh/releases/plus/0648057d3df4c0666048cf8011716a77c5f83511/profile/node_modules/.pnpm/@puppeteer+browsers@3.2.1_yauzl@3.4.0/node_modules/@puppeteer/browsers/lib/main-cli.js
+diff --git a/package.json b/package.json
+index b2916863a39b307b7b7aa0271484b02cadd94fbb..044394bf3df52f3b1f665e142f77f41cf01dd2b9 100644
+--- a/package.json
++++ b/package.json
+@@ -93,13 +93,13 @@
+   },
+   "peerDependencies": {
+     "@deepseek-ai/cordis": "^4.0.1",
+-    "@deepseek-ai/dsh-attachment": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-session": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-settings": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-skill": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-tools": "0.1.1-rc.2 || 0.1.2-alpha.1",
++    "@deepseek-ai/dsh-attachment": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-llm": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-session": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-settings": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-skill": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-tools": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
+     "@deepseek-ai/schemastery": "^3.18.1"
+   },
+   "engines": {
+diff --git a/skills/univer/SKILL.md b/skills/univer/SKILL.md
+index 8ef94d80edde25b221f881eba418498dcced4c6e..0857e7f35c19a21ba76e2c481954760c311568fd 100644
+--- a/skills/univer/SKILL.md
++++ b/skills/univer/SKILL.md
+@@ -10,7 +10,8 @@ Use the structured `univer_*` tools whenever the task creates, reads, changes, c
+ ## Start immediately
+ 
+ - Existing `.univer`: call `univer_status` before selecting a Unit or worktree.
+-- New `.univer`: call `univer_new`, then `univer_worktree` with `action: "create"`.
++- New empty `.univer`: call `univer_new`, then `univer_worktree` with `action: "create"`.
++- New file from an existing workspace `.univer` template: call `univer_new` with `templateFile`, call `univer_status` to discover the copied Units, then create a worktree.
+ - Office source (`.xlsx`, `.csv`, `.tsv`, `.docx`, `.pptx`): create the target `.univer` and draft worktree, then call `univer_import`.
+ - Before authoring content, load the matching Unit skill: `univer-sheet`, `univer-doc`, `univer-slide`, `univer-base`, or `univer-board`.
+ - For an Embed, also load `univer-embed`. For formulas that read another Unit, also load `univer-cross-unit-formula`.
+@@ -77,7 +78,7 @@ Never reopen or reuse a merged or discarded worktree; create a new worktree inst
+ 
+ | Stage | Tool | Use |
+ | --- | --- | --- |
+-| Start | `univer_new` | Create an empty `.univer`; never overwrites and never creates an implicit Unit. |
++| Start | `univer_new` | Create an empty `.univer` or copy an existing workspace `.univer` template; never overwrites. |
+ | Start | `univer_status` | List trunk Units and worktrees, or inspect one explicit scope. |
+ | Start | `univer_worktree` | `create`, `ready`, `reopen`, `merge`, or `discard`. |
+ | Start | `univer_unit` | Create or remove a Sheet, Doc, Slide, Base, or Board in a draft worktree. |
