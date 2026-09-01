@@ -58,6 +58,7 @@
         "@sparkelf/dsh-mobile-bridge",
         "dshmarket",
         "@changfenhuang/dsh-genui",
+        "@sparkelf/dsh-plugin-supervisor",
         "@sparkelf/dsh-plus"
       ],
       "dependencies": {
@@ -108,6 +109,7 @@
     "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.12",
     "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.12",
     "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.12",
+    "@sparkelf/dsh-plugin-supervisor": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.12",

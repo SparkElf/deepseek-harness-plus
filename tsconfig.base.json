@@ -590,6 +590,8 @@
       "@sparkelf/dsh-plugin-mcp-credentials/invariant": ["./packages/plus/mcp-credentials/src/invariant.ts"],
       "@sparkelf/dsh-plugin-subagent-settings": ["./packages/plus/subagent-settings/src"],
       "@sparkelf/dsh-plugin-subagent-settings/invariant": ["./packages/plus/subagent-settings/src/invariant.ts"],
+      "@sparkelf/dsh-plugin-supervisor": ["./packages/plus/supervisor/src"],
+      "@sparkelf/dsh-plugin-supervisor/invariant": ["./packages/plus/supervisor/src/invariant.ts"],
       "@sparkelf/dsh-plus": ["./packages/bundle/plus/src"],
       "@sparkelf/dsh-plus/invariant": ["./packages/bundle/plus/src/invariant.ts"]
       // END generated package aliases

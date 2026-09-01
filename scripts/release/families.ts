@@ -381,7 +381,11 @@ class DshFamily extends ReleaseFamily {
 /** Plus-owned npm artifacts share an independent version and tag. */
 class PlusFamily extends DshFamily {
   override readonly id = 'plus'
-  override readonly patterns = ['packages/!(experimental)/*/package.json', 'patches/npm/*/package.json'] as const
+  override readonly patterns = [
+    'packages/!(experimental)/*/package.json',
+    'patches/npm/*/package.json',
+    'apps/plus-desktop/package.json',
+  ] as const
   override readonly tagPrefix = 'plus-npm-v'
 
   protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
