@@ -10,7 +10,7 @@ npm Plus distribution会materialize official DSH及Plus-owned packages，但没�
 
 ## 提案
 
-Plus发布两个独立持有的npm packages。<code>@sparkelf/dsh-plugin-supervisor</code>包含Host Cordis entry、plain Node Supervisor executable、local command client及progress page。<code>@sparkelf/dsh-plus-desktop</code>只包含由Electron host消费的可选tray function并依赖Supervisor package。distribution package会materialize Supervisor并mount其Host entry，但不依赖Desktop。
+Plus发布两个独立持有的npm packages。<code>@sparkelf/dsh-plugin-supervisor</code>包含Host Cordis entry、plain Node Supervisor executable、local command client及progress page。<code>@sparkelf/dsh-plus-desktop</code>只包含由Electron host消费的可选tray function并依赖Supervisor package。distribution package会materialize Supervisor并mount其Host entry，但不依赖Desktop。Supervisor source由`SparkElf/dsh-plugins-plus`持有，Desktop source由`SparkElf/dsh-plus-desktop`持有，本fork只保留exact registry dependency及composition contract。
 
 Supervisor manifest声明已经materialize的runtime command、arguments、working directory、DSH home、Web port、Supervisor port、local socket及可选build command。Supervisor不clone repository，也不选择source branch。Desktop读取该manifest，在需要时启动Supervisor，把所有command委托给它，并在Desktop退出后保持Supervisor与Harness运行。
 
@@ -23,8 +23,8 @@ Supervisor manifest声明已经materialize的runtime command、arguments、worki
 | Package | Ownership |
 |---|---|
 | <code>@sparkelf/dsh-plus</code> | 把Supervisor package与official DSH及其他Plus packages一起materialize并compose。 |
-| <code>@sparkelf/dsh-plugin-supervisor</code> | Host capture/recovery entry、external process lifecycle、command socket、manifest、runtime log及progress page。 |
-| <code>@sparkelf/dsh-plus-desktop</code> | 可选tray presentation及对Supervisor command client的delegation。 |
+| <code>@sparkelf/dsh-plugin-supervisor</code> | `SparkElf/dsh-plugins-plus`持有Host capture/recovery、process lifecycle、command socket、manifest、runtime log及progress page。 |
+| <code>@sparkelf/dsh-plus-desktop</code> | `SparkElf/dsh-plus-desktop`持有可选tray presentation及对Supervisor command client的delegation。 |
 | Official Session Controller | 列出running Sessions、resume cold Sessions、接收logged recovery user message并queue其turn。 |
 
 ## 考虑过的替代方案
@@ -39,7 +39,7 @@ Supervisor manifest声明已经materialize的runtime command、arguments、worki
 
 ## 验收标准
 
-- Plus bundle会materialize Supervisor，不要求Desktop或第二条source-install path。
+- Plus bundle会materialize exact published Supervisor version，不要求Desktop、第二条source-install path或本fork内的Supervisor/Desktop source。
 - 受控restart会捕获每个running顶层Session，并在replacement Web runtime开始监听后准确排入一条recovery prompt。
 - 普通start、stop、crash、reconnect及HMR不会排入recovery。
 - Package、process、progress及recovery行为继续由release与system-test gates覆盖。

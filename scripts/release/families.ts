@@ -384,7 +384,6 @@ class PlusFamily extends DshFamily {
   override readonly patterns = [
     'packages/!(experimental)/*/package.json',
     'patches/npm/*/package.json',
-    'apps/plus-desktop/package.json',
   ] as const
   override readonly tagPrefix = 'plus-npm-v'
 

@@ -169,7 +169,6 @@
     { "path": "./packages/plus/document-attachments/tsconfig.host.json" },
     { "path": "./packages/plus/mcp-credentials" },
     { "path": "./packages/plus/subagent-settings/tsconfig.host.json" },
-    { "path": "./packages/plus/supervisor" },
     { "path": "./packages/settings/settings" },
     { "path": "./packages/settings/settings-file" },
     { "path": "./packages/credentials/credentials" },
