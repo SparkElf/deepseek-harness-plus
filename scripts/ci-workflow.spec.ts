@@ -106,7 +106,10 @@ describe('CI workflow', () => {
       expect(job['runs-on']).toContain('self-hosted')
       expect(job['runs-on']).toContain('dsh-win-ci')
       expect(job['runs-on']).toContain('dsh-windows-2025-16core')
-      expect(job.if).toBe("github.event_name == 'pull_request'")
+      expect(job['runs-on']).toContain('windows-2025')
+      expect(job.if).toBe(jobName === 'windows-coverage' || jobName === 'windows-observational'
+        ? "github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'"
+        : "github.event_name == 'pull_request'")
     }
 
     // windows-build runs the blocking build/site pair.
@@ -169,7 +172,12 @@ describe('CI workflow', () => {
       expect(job['runs-on'], `${jobName} runs-on must use the Linux failover switch`).toContain('DSH_CI_FAILOVER_LINUX')
       expect(job['runs-on'], `${jobName} runs-on must not use the Windows failover switch`).not.toContain('DSH_CI_FAILOVER_WINDOWS')
       expect(job['runs-on']).toContain('vm-backup')
+      expect(job['runs-on']).toContain('dsh-ubuntu-24-04-16core')
+      expect(job['runs-on']).toContain('ubuntu-latest')
     }
+    expect(node24.if).toBe("github.event_name == 'pull_request'")
+    expect(node24Coverage.if).toBe("github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'")
+    expect(node24Consumers.if).toBe("github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'")
     expect(aggregate['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
     expect(aggregate['runs-on']).not.toContain('DSH_CI_FAILOVER_WINDOWS')
     expect(aggregate['runs-on']).toContain('vm-backup')
@@ -302,6 +310,13 @@ describe('CI workflow', () => {
 })
 
 describe('DeepSeek e2e workflow', () => {
+  it('requires repository opt-in before consuming the real API secret', () => {
+    const workflow = loadWorkflow('.github/workflows/e2e.yml')
+    const e2e = workflowJob(workflow, 'e2e')
+
+    expect(String(e2e.if)).toContain("vars.RUN_REAL_API_E2E == 'true'")
+  })
+
   it('prepares bubblewrap from the pinned payload without a package transaction', () => {
     const workflow = loadWorkflow('.github/workflows/e2e.yml')
     const e2e = workflowJob(workflow, 'e2e')
@@ -508,6 +523,10 @@ describe('Python release workflows', () => {
       env: { DEEPSEEK_API_KEY: '${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}' },
     })
     expect(String(realApiPreflightPosix.if)).toContain('inputs.ci')
+    expect(String(realApiPreflightPosix.if)).toContain("vars.RUN_REAL_API_E2E == 'true'")
+    expect(String(realApiPreflightWindows.if)).toContain("vars.RUN_REAL_API_E2E == 'true'")
+    expect(String(installedRealApiPosix.if)).toContain("vars.RUN_REAL_API_E2E == 'true'")
+    expect(String(installedRealApiWindows.if)).toContain("vars.RUN_REAL_API_E2E == 'true'")
     expect(String(realApiPreflightPosix.if)).toContain('head.repo.fork')
     expect(String(realApiPreflightPosix.if)).toContain('dependabot[bot]')
     expect(realApiPreflightWindows).toMatchObject({ shell: 'pwsh' })
@@ -584,16 +603,29 @@ describe('Issue lifecycle workflow', () => {
     expect(lifecyclePullRequest.types).not.toContain('ready_for_review')
     expect(lifecyclePullRequest.types).toContain('review_requested')
     expect(lifecycleReview.types).toEqual(['submitted'])
-    const gated = "${{ github.event_name != 'pull_request_review' || github.event.review.state == 'changes_requested' }}"
+    const gated = "${{ github.repository == 'deepseek-harness/deepseek-harness' && (github.event_name != 'pull_request_review' || github.event.review.state == 'changes_requested') }}"
     const steps = lifecycleJob.steps.filter(isRecord)
+    const skipStep = steps.find(s => s.name === 'Skip upstream Project lifecycle outside the official repository')
+    const checkoutStep = steps.find(s => s.name === 'Check out trusted policy')
     const tokenStep = steps.find(s => s.name === 'Create project token')
     const handleStep = steps.find(s => s.name === 'Handle repository event')
+    expect(skipStep).toMatchObject({ if: "${{ github.repository != 'deepseek-harness/deepseek-harness' }}" })
+    expect(checkoutStep).toMatchObject({ if: "${{ github.repository == 'deepseek-harness/deepseek-harness' }}" })
     expect(tokenStep).toMatchObject({ if: gated })
     expect(handleStep).toMatchObject({ if: gated })
 
     // issue-policy owns PR validation; it is read-only and a real gate.
     const policyPullRequest = workflowEvent(policy, 'pull_request')
     expect(policyPullRequest.types).toContain('ready_for_review')
+  })
+})
+
+describe('fork-only deployment workflows', () => {
+  it('does not allocate the upstream Cloudflare preview runner in forks', () => {
+    const workflow = loadWorkflow('.github/workflows/build-preview-cloudflare.yml')
+    const preview = workflowJob(workflow, 'preview')
+
+    expect(preview.if).toBe("github.repository == 'deepseek-harness/deepseek-harness'")
   })
 })
 

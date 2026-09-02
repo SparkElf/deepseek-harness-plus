@@ -3,7 +3,8 @@ name: Build PR preview
 # Every push to a pull request publishes that pull request's preview to
 # Cloudflare Pages under its own branch alias, behind Cloudflare Access. The
 # upload carries build products only: the workflow never grants the deployment
-# platform access to this repository's sources.
+# platform access to this repository's sources. The job is upstream-only because
+# its runner, Cloudflare project, and credentials belong to that repository.
 
 on:
   pull_request:
@@ -32,6 +33,7 @@ env:
 
 jobs:
   preview:
+    if: github.repository == 'deepseek-harness/deepseek-harness'
     runs-on: dsh-ubuntu-24-04-16core
     name: cloudflare pages preview
     steps:

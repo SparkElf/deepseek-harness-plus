@@ -15,8 +15,9 @@ const fixturesDir = join(stateRoot, 'fixtures')
 const workspaceDir = join(stateRoot, 'workspace')
 const backupWorkspaceDir = join(stateRoot, 'workspace-after-backup')
 const runtimePath = join(stateRoot, 'runtime.json')
-const logPath = join(stateRoot, 'runtime.log')
+const logPath = join(home, 'supervisor', 'runtime.log')
 const baseURL = 'http://127.0.0.1:3081'
+const supervisorURL = 'http://127.0.0.1:3083'
 const officialRevision = '0a53fb55bea101816fa226bb964ae2bed71c343b'
 
 function requireRecord(value, label) {
@@ -127,6 +128,7 @@ function packageDirectories() {
     'packages/plus/document-attachments',
     'packages/plus/mcp-credentials',
     'packages/plus/subagent-settings',
+    'packages/plus/supervisor',
   ]
   const patchesRoot = join(repoRoot, 'patches/npm')
   const patches = readdirSync(patchesRoot, { withFileTypes: true })
@@ -273,8 +275,25 @@ export default async function globalSetup() {
   }
   writePdf(join(fixturesDir, 'acceptance.pdf'))
   writeFileSync(join(fixturesDir, 'not-a-backup.zip'), zipSync({ 'ordinary.txt': strToU8('Not a DeepSeek Harness backup.\n') }))
-  const log = openSync(logPath, 'w')
-  const child = spawn(process.execPath, [join(sourceRoot, 'apps/cli/lib/bin.js'), '--profile', 'plus', '--port', '3081', '--no-open'], {
+  const supervisorDirectory = join(home, 'supervisor')
+  mkdirSync(supervisorDirectory, { recursive: true })
+  const supervisorManifestPath = join(supervisorDirectory, 'system-test.json')
+  writeFileSync(logPath, '')
+  const supervisorSocketPath = join(supervisorDirectory, 'system-test.sock')
+  writeFileSync(supervisorManifestPath, JSON.stringify({
+    dshHome: home,
+    port: 3081,
+    supervisorPort: 3083,
+    socketPath: supervisorSocketPath,
+    runtime: {
+      command: process.execPath,
+      args: [join(sourceRoot, 'apps/cli/lib/bin.js'), '--profile', 'plus', '--port', '3081', '--no-open'],
+      cwd: sourceRoot,
+    },
+  }, null, 2) + '\n')
+  const supervisorEntry = join(profileRoot, 'node_modules', '@sparkelf', 'dsh-plugin-supervisor', 'runtime', 'bin.mjs')
+  const log = openSync(join(supervisorDirectory, 'process.log'), 'w')
+  const child = spawn(process.execPath, [supervisorEntry, '--manifest', supervisorManifestPath], {
     cwd: sourceRoot,
     env,
     detached: true,
@@ -282,7 +301,16 @@ export default async function globalSetup() {
   })
   child.unref()
   closeSync(log)
-  writeFileSync(runtimePath, JSON.stringify({ pid: child.pid, sourceRoot, home, baseURL, logPath }, null, 2) + '\n')
+  writeFileSync(runtimePath, JSON.stringify({
+    pid: child.pid,
+    sourceRoot,
+    home,
+    baseURL,
+    supervisorURL,
+    supervisorManifestPath,
+    supervisorSocketPath,
+    logPath,
+  }, null, 2) + '\n')
   try {
     process.env.DSH_PLUS_TEST_START_URL = await waitForWeb(child)
   } catch (error) {

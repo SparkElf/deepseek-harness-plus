@@ -20,8 +20,8 @@ concurrency:
 
 jobs:
 
-  # Three enterprise jobs isolate coverage, static analysis, and the
-  # build-backed consumer tail. The consumer job owns the only Linux build so
+  # Three Linux jobs isolate coverage, static analysis, and the build-backed
+  # consumer tail. Upstream uses enterprise runners; forks use ubuntu-latest. The consumer job owns the only Linux build so
   # all three jobs enter runner allocation independently.
   #
   # FAILOVER (Linux): each Linux enterprise job resolves its pool through the
@@ -42,7 +42,9 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-ubuntu-24-04-16core'
+              || 'ubuntu-latest') }}
     name: node 24 / static
     env:
       DSH_GATE_CONCURRENCY: '8'
@@ -89,19 +91,21 @@ jobs:
         run: pnpm run check:ci:static
 
   node-24-coverage:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-ubuntu-24-04-16core'
+              || 'ubuntu-latest') }}
     name: node 24 / coverage
     env:
       # Partitioning replaces the instrumented share; this budget gives the
       # exempt-heavy gate two workers on both hosted and failover runners.
-      DSH_COVERAGE_MAX_WORKERS: '6'
-      DSH_COVERAGE_PARTITIONS: '4'
-      DSH_GATE_CONCURRENCY: '3'
+      DSH_COVERAGE_MAX_WORKERS: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '6' || '1' }}
+      DSH_COVERAGE_PARTITIONS: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '4' || '2' }}
+      DSH_GATE_CONCURRENCY: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '3' || '1' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -151,21 +155,24 @@ jobs:
         run: pnpm run check:ci:coverage
 
   node-24-consumers:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
-          || 'dsh-ubuntu-24-04-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-ubuntu-24-04-16core'
+              || 'ubuntu-latest') }}
     name: node 24 / snapshots and artifacts
     env:
-      DSH_GATE_CONCURRENCY: '10'
+      DSH_GATE_CONCURRENCY: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '10' || '1' }}
       DSH_NODE_COMPAT_SKIP_TYPECHECK: '1'
-      DSH_OXLINT_THREADS: '8'
-      DSH_PUBLINT_CONCURRENCY: '8'
-      DSH_WEB_SNAPSHOT_WORKERS: '6'
+      DSH_OXLINT_THREADS: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '8' || '2' }}
+      DSH_PUBLINT_CONCURRENCY: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '8' || '2' }}
+      DSH_WEB_SNAPSHOT_WORKERS: ${{ github.repository == 'deepseek-harness/deepseek-harness' && '6' || '2' }}
+      TZ: Asia/Shanghai
       # Failover halves snapshot concurrency for the shared 64-core VM.
-      DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || '32' }}
+      DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ github.repository != 'deepseek-harness/deepseek-harness' && '1' || (vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || '32') }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -422,7 +429,9 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
-          || 'dsh-windows-2025-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-windows-2025-16core'
+              || 'windows-2025') }}
     name: windows node 24 / build
     timeout-minutes: 60
     steps:
@@ -448,12 +457,14 @@ jobs:
         run: pnpm run check:ci:windows-blocking
 
   windows-coverage:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
-          || 'dsh-windows-2025-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-windows-2025-16core'
+              || 'windows-2025') }}
     name: windows node 24 / coverage
     timeout-minutes: 120
     env:
@@ -514,7 +525,9 @@ jobs:
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
-          || 'dsh-windows-2025-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-windows-2025-16core'
+              || 'windows-2025') }}
     name: windows node 24 / native tests
     timeout-minutes: 60
     steps:
@@ -548,13 +561,15 @@ jobs:
           packages/session/session-persistence-sqlite/tests/differential.spec.ts
 
   windows-observational:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && github.repository == 'deepseek-harness/deepseek-harness'
     continue-on-error: true
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "dsh-win-ci", "windows"]')
-          || 'dsh-windows-2025-16core' }}
+          || (github.repository == 'deepseek-harness/deepseek-harness'
+              && 'dsh-windows-2025-16core'
+              || 'windows-2025') }}
     name: windows node 24 / observational
     timeout-minutes: 60
     env:
@@ -609,7 +624,7 @@ jobs:
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Fail if any needed job did not succeed
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || (github.repository == 'deepseek-harness/deepseek-harness' && contains(needs.*.result, 'skipped'))
         run: |
           echo "::error::Needed job results: ${{ join(needs.*.result, ', ') }}"
           exit 1

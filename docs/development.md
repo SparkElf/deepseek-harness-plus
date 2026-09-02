@@ -41,6 +41,24 @@ Setup is complete when `pnpm run typecheck` exits successfully.
 
 ## Contributor reference
 
+### Patched third-party packages
+
+Before editing a package or plugin that this repository consumes from npm, inspect the root workspace and the active DSH profile's `pnpm-workspace.yaml#patchedDependencies`. A matching entry means the Plus-distributed implementation is the patch, not an upstream source checkout ([decision](../.agents/notes/implemented/process/2026-09-01-patched-third-party-plugin-workflow.md)).
+
+Prepare and commit the patch with the pinned pnpm commands:
+
+```sh
+pnpm patch <package>@<version> --edit-dir <directory>
+# Edit the extracted package.
+pnpm patch-commit <directory> --patches-dir <patch-directory>
+```
+
+A release workspace may retain the extracted package under `packages-preview/<topic>/edit` and the generated patch under `profile/.dsh-plus/patches/`. The extracted package already contains the active Plus patch: modify it incrementally and regenerate the patch. Do not replace whole built files with artifacts from an upstream checkout, and do not edit `node_modules`, an installed package, or the generated patch by hand.
+
+Install, build, and validate the profile that declares the patch before restarting its managed Host. A managed deployment restarts only through its owning supervisor; the official Plus service uses `systemctl restart deepseek-harness-plus.service`, followed by `systemctl status deepseek-harness-plus.service` and `journalctl -u deepseek-harness-plus.service`. An Agent running inside that service schedules the restart from a separate transient unit, for example `systemd-run --on-active=2s --unit=dsh-plus-reload systemctl restart deepseek-harness-plus.service`, so the request survives termination of the current service cgroup. Do not kill the Host or relaunch it with `nohup`, because that bypasses supervisor ownership and restart diagnostics.
+
+After the patched profile passes, port the same behavior to a separate upstream checkout and open the upstream contribution; the upstream checkout does not replace the Plus patch during development.
+
 ### TypeScript project layout
 
 The repository uses isolated Host and Client aggregates. An ordinary package is registered in exactly one aggregate: Host packages in `tsconfig.host.json` and Client packages in `tsconfig.client.json`; three packages (`host/webserver`, `compaction/compaction`, `typert/registry`) are referenced by both aggregates as shared leaves so each side type-checks the same source.

@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## Summary
 
-`plus/` group包含与official DSH source base组合的public `@sparkelf/dsh-plugin-*` capability packages。这里的每个package拥有完整Host/Client behavior、面向profile的entry、runtime locale与npm dependency closure。official或external gaps由独立versioned patch packages拥有；本group不fork或复制official capability implementations。
+`plus/` group包含与official DSH source base组合的public `@sparkelf/dsh-plugin-*` capability packages。这里的每个package拥有其capability所需的全部roles，包括Host、Client或external process，并同时拥有面向profile的entry、runtime locale与npm dependency closure。official或external gaps由独立versioned patch packages拥有；本group不fork或复制official capability implementations。
 
 ## Packages
 
@@ -20,11 +20,13 @@ kind: "package-group"
 | [`document-attachments/`](document-attachments/README.zh.md) | provider-neutral document parser与MinerU provider；generic attachment integration仍在进行 | 提供`documentParser`；消费official attachment storage |
 | [`dataops/`](dataops/README.zh.md) | DataOps OAuth、credential lifecycle、MCP composition与Settings UI | 注册routes、MCP tools与Client Settings section |
 | [`mcp-credentials/`](mcp-credentials/README.zh.md) | 带current credential-backed Bearer transport的official MCP client replacement | mount后注册namespaced MCP tools |
+| [`supervisor/`](supervisor/README.zh.md) | out-of-process Plus runtime lifecycle及受控重启Session恢复 | 注册Host recovery route并发布Supervisor executable |
 
 ## Related documentation
 
 - [Attachment subsystem](../../docs/subsystems/attachment.zh.md)
 - [Plus Backup作为单个full-stack插件](../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.zh.md)
+- [Plus Supervisor与Desktop packages](../../.agents/notes/proposed/architecture/2026-09-02-plus-supervisor-packages.zh.md)
 - [Workspace package](../workspace/workspace/README.zh.md)
 - [Host WebServer package](../host/webserver/README.zh.md)
 
