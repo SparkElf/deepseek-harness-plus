@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-export-chinese",
-  "version": "0.1.0-rc.12",
+  "version": "0.1.0-rc.13",
   "description": "Data-only exact official-source patch using consistent Simplified-Chinese Session export wording",
   "publishConfig": {
     "access": "public"

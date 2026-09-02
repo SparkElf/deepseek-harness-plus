@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-genui-streaming-echart",
   "description": "Temporary data-only patch for streamed EChart component completion in dsh-genui",
-  "version": "0.1.0-rc.12",
+  "version": "0.1.0-rc.13",
   "publishConfig": {
     "access": "public"
   },
