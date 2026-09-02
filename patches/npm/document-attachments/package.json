@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-document-attachments",
-  "version": "0.1.0-rc.13",
+  "version": "0.1.0-rc.14",
   "description": "Data-only exact official-source patch adding durable Document integration and session-authorized generic reads",
   "publishConfig": {
     "access": "public"

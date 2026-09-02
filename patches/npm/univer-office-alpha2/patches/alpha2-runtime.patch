@@ -94,7 +94,7 @@ diff --git a/artifacts/viewer/index.html b/artifacts/viewer/index.html
 index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..071e222a516ea1a7a4e5c5bcd9af3ca9cc86de2d 100644
 --- a/artifacts/viewer/index.html
 +++ b/artifacts/viewer/index.html
-@@ -10,7 +10,33 @@
+@@ -10,7 +10,36 @@
      />
      <!-- Placeholder only: main.tsx localizes the title (and <html lang>) at boot via applyDocumentLang(). -->
      <title>Univer</title>
@@ -110,15 +110,18 @@ index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..071e222a516ea1a7a4e5c5bcd9af3ca9
 +      window.__dshExternalFontsReady =
 +        fontManifest === null
 +          ? Promise.resolve()
-+          : Promise.all(
++          : Promise.allSettled(
 +              JSON.parse(fontManifest).map((font) =>
 +                new FontFace(font.family, `url("${font.source}")`, {
 +                  style: "normal",
 +                  weight: "400",
 +                }).load()
 +              )
-+            ).then(async (fonts) => {
-+              for (const font of fonts) document.fonts.add(font);
++            ).then(async (results) => {
++              for (const result of results) {
++                if (result.status === "fulfilled") document.fonts.add(result.value);
++                else console.warn("[univer-viewer] external font failed to load; continuing with fallback fonts", result.reason);
++              }
 +              await document.fonts.ready;
 +            });
 +    </script>

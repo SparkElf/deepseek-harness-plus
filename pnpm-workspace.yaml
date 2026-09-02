@@ -58,6 +58,7 @@ minimumReleaseAgeExclude:
   # at the exact versions pinned by distribution governance and curation.
   - '@sparkelf/dsh-mobile-bridge@0.2.10'
   - '@sparkelf/dsh-plugin-supervisor@0.1.1'
+  - '@changfenhuang/dsh-genui@0.9.7'
   - dshmarket@1.38.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.

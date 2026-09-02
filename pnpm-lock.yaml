@@ -1390,67 +1390,67 @@ importers:
         specifier: '>=0.2.10'
         version: 0.2.10(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-alpha2-settings':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/better-sidebar-alpha2-settings
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/better-sidebar-app-frame
+      '@sparkelf/dsh-patch-better-sidebar-openpath-interception':
+        specifier: '>=0.1.0-rc.14'
+        version: link:../../../patches/npm/better-sidebar-openpath-interception
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-document-attachments':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/document-attachments
-      '@sparkelf/dsh-patch-genui-skill-chart-contract':
-        specifier: '>=0.1.0-rc.13'
-        version: link:../../../patches/npm/genui-skill-chart-contract
       '@sparkelf/dsh-patch-genui-streaming-echart':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/genui-streaming-echart
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-univer-office-alpha2':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/univer-office-alpha2
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-document-attachments':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../plus/document-attachments
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: '>=0.1.0-rc.13'
+        specifier: '>=0.1.0-rc.14'
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.38.1'
@@ -1463,8 +1463,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@changfenhuang/dsh-genui':
-        specifier: 0.9.6
-        version: 0.9.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)
+        specifier: 0.9.7
+        version: 0.9.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
@@ -1482,7 +1482,7 @@ importers:
         version: 0.17.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-locale@packages+client+locale)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-host-webserver@packages+host+webserver)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@deepseek-ai/dsh-tools@packages+core+tools)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dsh-univer-office:
         specifier: 0.2.12
-        version: 0.2.12(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-attachment@packages+attachment+attachment)(@deepseek-ai/dsh-skill@packages+skill+skill)(@deepseek-ai/schemastery@vendor+schemastery)(yauzl@3.4.0)
+        version: 0.2.12(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-attachment@packages+attachment+attachment)(@deepseek-ai/schemastery@vendor+schemastery)(yauzl@3.4.0)
       dsh-video-preview:
         specifier: 0.1.4
         version: 0.1.4
@@ -10829,11 +10829,11 @@ importers:
 
   patches/npm/better-sidebar-app-frame: {}
 
+  patches/npm/better-sidebar-openpath-interception: {}
+
   patches/npm/browser-auth-mode: {}
 
   patches/npm/document-attachments: {}
-
-  patches/npm/genui-skill-chart-contract: {}
 
   patches/npm/genui-streaming-echart: {}
 
@@ -11790,8 +11790,8 @@ packages:
   '@bufbuild/protobuf@2.13.0':
     resolution: {integrity: sha512-acq7c49vxfm1ggJ95P70TX7ABDM0vxr1SYD3BB0o0jnBLB4OAqeHyKuN+cD3w80gXEDQ2zxHpR6CUeA+O/aU9g==}
 
-  '@changfenhuang/dsh-genui@0.9.6':
-    resolution: {integrity: sha512-rWRz3Z/BgeMQKI/Ut9im73jXu4OmyBjMR/aRTnpx2VAPQw1073xJIxK3WH1shKLYLjzumxlB3tR1Sgm8VSi0KA==}
+  '@changfenhuang/dsh-genui@0.9.7':
+    resolution: {integrity: sha512-kP3qkvlTc/qfkE2RtZIGKGkw4hdvbeM85/7kqpXMQm9H6sBDrmkHbrKGXJiebtw4mTDhO+MhiKTjAHUyn5RXcw==}
     engines: {node: ^22.19.0 || >=24.0.0, pnpm: '>=11.7.0 <12'}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.1
@@ -11804,6 +11804,7 @@ packages:
       '@deepseek-ai/dsh-invariants': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
       '@deepseek-ai/dsh-llm': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
       '@deepseek-ai/dsh-session': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
+      '@deepseek-ai/dsh-skill': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
       '@deepseek-ai/dsh-system-prompt': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
       '@deepseek-ai/dsh-tools': ^0.1.0-rc.8 || >=0.1.1-rc.0 <0.2.0
       react: ^18.0.0 || ^19.0.0
@@ -19300,7 +19301,7 @@ snapshots:
 
   '@bufbuild/protobuf@2.13.0': {}
 
-  '@changfenhuang/dsh-genui@0.9.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)':
+  '@changfenhuang/dsh-genui@0.9.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-client-ui-conversation': link:packages/client/ui-conversation
@@ -24114,11 +24115,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  dsh-univer-office@0.2.12(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-attachment@packages+attachment+attachment)(@deepseek-ai/dsh-skill@packages+skill+skill)(@deepseek-ai/schemastery@vendor+schemastery)(yauzl@3.4.0):
+  dsh-univer-office@0.2.12(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-attachment@packages+attachment+attachment)(@deepseek-ai/schemastery@vendor+schemastery)(yauzl@3.4.0):
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-attachment': link:packages/attachment/attachment
-      '@deepseek-ai/dsh-skill': link:packages/skill/skill
       '@deepseek-ai/schemastery': link:vendor/schemastery
       '@puppeteer/browsers': 3.2.1(yauzl@3.4.0)
       '@univerjs-pro/cli-assets': 0.1.0
