@@ -8,7 +8,7 @@ English | [中文](2026-09-02-plus-supervisor-packages.zh.md)
 
 The npm Plus distribution materializes official DSH and Plus-owned packages, but no published owner spans a controlled Web process restart. A Session running when the process stops retains durable history but receives no new turn after the replacement process starts. The former Desktop application combined source installation, Electron presentation, process supervision, and browser-based recovery, so restoring it as one application would recreate a second distribution path beside the npm profile.
 
-## Decision
+## Proposal
 
 Plus ships two independently owned npm packages. <code>@sparkelf/dsh-plugin-supervisor</code> contains the Host Cordis entry, a plain Node Supervisor executable, its local command client, and the progress page. <code>@sparkelf/dsh-plus-desktop</code> contains only the optional tray function consumed by an Electron host and depends on the Supervisor package. The distribution package materializes Supervisor and mounts its Host entry; it does not depend on Desktop.
 
@@ -36,6 +36,17 @@ Ordinary start, stop, process crash, network reconnect, and client HMR do not tr
 **Keep recovery in browser HMR.** Rejected because browser connectivity does not own the process restart and an absent browser could not recover work.
 
 **Keep Desktop and Supervisor in one package.** Rejected because npm-only Plus must supervise a runtime without installing Electron, while Desktop presentation remains optional.
+
+## Acceptance criteria
+
+- The Plus bundle materializes Supervisor without requiring Desktop or a second source-install path.
+- A controlled restart captures every running top-level Session and queues exactly one recovery prompt after the replacement Web runtime listens.
+- Ordinary start, stop, crash, reconnect, and HMR do not enqueue recovery.
+- Package, process, progress, and recovery behavior remain covered by the release and system-test gates.
+
+## Risks
+
+A stale or invalid manifest prevents Supervisor startup, while a failed capture or recovery leaves affected Sessions paused until the operator retries. The single ordered restart operation must keep reporting those failures rather than hiding them behind an alternate lifecycle.
 
 ## Verification
 

@@ -48,13 +48,14 @@ Start the Supervisor with <code>dsh-plus-supervisor --manifest &lt;path&gt;</cod
 
 A restart performs one ordered operation: optional build, capture the current running top-level Session ids, stop the old process, start the configured command, wait for its Web port, and queue the recovery prompt. Ordinary start, stop, process crash, and network reconnect do not send recovery messages.
 
+<a id="model-experience"></a>
 ## Model Experience
 
 ### Controlled-Restart Recovery
 
 #### What the model sees
 
-Each captured Session receives one ordinary user message stating that Supervisor restarted DSH, directing the model to inspect durable history, current workspace state, and tool results, avoid repeating completed operations, finish remaining work, and answer <code>已完成</code> when nothing remains. The Session Controller logs the message through its normal prompt path.
+Each captured Session receives one ordinary user message stating that Supervisor restarted DSH, directing the model to inspect durable history, current workspace state, and tool results, avoid repeating completed operations, finish remaining work, and answer `已完成` when nothing remains. The Session Controller logs the message through its normal `SessionController.prompt` path.
 
 #### Token effect
 
@@ -65,10 +66,12 @@ A recovered Session adds the fixed recovery instruction to its next request and 
 The recovery prompt appends to the existing Session request series. Restarting the process does not preserve process-local cache state.
 
 ## Known Limitations and Deferred Work
+<a id="known-limitations-and-deferred-work"></a>
 
 - A failed recovery prompt is reported by the Supervisor and is not retried automatically.
 - The Supervisor manages one runtime manifest and one Web port per process.
 
-## Dev Note
+<a id="dev-note"></a>
+### Dev Note
 
 The [Supervisor package Agent Note](../../../.agents/notes/proposed/architecture/2026-09-02-plus-supervisor-packages.md) owns the process split and recovery lifecycle.

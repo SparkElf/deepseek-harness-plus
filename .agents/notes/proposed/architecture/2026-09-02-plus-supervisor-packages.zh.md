@@ -8,7 +8,7 @@ Status: proposed
 
 npm Plus distribution会materialize official DSH及Plus-owned packages，但没有published owner跨越一次受控Web process restart。process停止时仍在运行的Session会保留durable history，却不会在replacement process启动后得到新turn。以前的Desktop application把source installation、Electron presentation、process supervision及browser-based recovery放在一起；把它作为一个application恢复会在npm profile旁重新建立第二条distribution path。
 
-## 决策
+## 提案
 
 Plus发布两个独立持有的npm packages。<code>@sparkelf/dsh-plugin-supervisor</code>包含Host Cordis entry、plain Node Supervisor executable、local command client及progress page。<code>@sparkelf/dsh-plus-desktop</code>只包含由Electron host消费的可选tray function并依赖Supervisor package。distribution package会materialize Supervisor并mount其Host entry，但不依赖Desktop。
 
@@ -36,6 +36,17 @@ Supervisor manifest声明已经materialize的runtime command、arguments、worki
 **继续把recovery放在browser HMR。** 不采用，因为browser connectivity不持有process restart，且browser不存在时无法恢复工作。
 
 **把Desktop与Supervisor保留在一个package。** 不采用，因为npm-only Plus必须能在不安装Electron时监管runtime，而Desktop presentation保持可选。
+
+## 验收标准
+
+- Plus bundle会materialize Supervisor，不要求Desktop或第二条source-install path。
+- 受控restart会捕获每个running顶层Session，并在replacement Web runtime开始监听后准确排入一条recovery prompt。
+- 普通start、stop、crash、reconnect及HMR不会排入recovery。
+- Package、process、progress及recovery行为继续由release与system-test gates覆盖。
+
+## 风险
+
+过期或无效manifest会阻止Supervisor启动；capture或recovery失败会使受影响Session保持暂停，直到operator重试。单一有序restart operation必须持续报告这些失败，不能用另一条lifecycle隐藏。
 
 ## 验证
 

@@ -48,13 +48,14 @@ Plus profile会mount Host entry并materialize <code>dsh-plus-supervisor</code> e
 
 一次restart依次执行：可选build、捕获当前running顶层Session ids、停止旧process、启动配置命令、等待Web port，然后排入recovery prompt。普通start、stop、process crash及network reconnect不发送恢复消息。
 
+<a id="model-experience"></a>
 ## 模型体验
 
 ### 受控重启恢复
 
 #### 模型看到什么
 
-每个被捕获的Session收到一条普通user message，说明Supervisor重启了DSH，要求模型检查durable history、当前workspace state和tool results，避免重复已经完成的操作，完成剩余工作，并在没有剩余任务时回复<code>已完成</code>。Session Controller通过正常prompt path记录该消息。
+每个被捕获的Session收到一条普通user message，说明Supervisor重启了DSH，要求模型检查durable history、当前workspace state和tool results，避免重复已经完成的操作，完成剩余工作，并在没有剩余任务时回复`已完成`。Session Controller通过正常`SessionController.prompt` path记录该消息。
 
 #### Token影响
 
@@ -65,10 +66,12 @@ Plus profile会mount Host entry并materialize <code>dsh-plus-supervisor</code> e
 恢复prompt追加到既有Session request series。process重启不保留process-local cache state。
 
 ## 已知限制和延期工作
+<a id="known-limitations-and-deferred-work"></a>
 
 - 恢复prompt失败时Supervisor会报告失败，但不会自动重试。
 - 每个Supervisor process管理一个runtime manifest及一个Web port。
 
-## 开发备注
+<a id="dev-note"></a>
+### 开发备注
 
 [Supervisor package Agent Note](../../../.agents/notes/proposed/architecture/2026-09-02-plus-supervisor-packages.zh.md)持有process拆分及recovery lifecycle。

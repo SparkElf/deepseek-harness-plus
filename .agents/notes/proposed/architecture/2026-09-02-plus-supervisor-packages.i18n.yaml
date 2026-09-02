@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-09-02-plus-supervisor-packages.md
-2026-09-02-plus-supervisor-packages.md: 2a3d0ab4fbb6ccd0a36bad6508da40bab42a2023
-2026-09-02-plus-supervisor-packages.zh.md: 5a83119869b335aaeae09629b373af70335c9c31
+2026-09-02-plus-supervisor-packages.md: 60632c74867cd4b22e1fa0edf0205cf64904d03f
+2026-09-02-plus-supervisor-packages.zh.md: 9546ddf037c3b56881d53d1748dc600e42d20e87
