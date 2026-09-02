@@ -63,7 +63,7 @@
         "@sparkelf/dsh-plus"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.9.6",
+        "@changfenhuang/dsh-genui": "0.9.7",
         "dsh-better-sidebar": "0.17.1",
         "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.1.2",
         "dsh-video-preview": "0.1.4",
@@ -81,7 +81,6 @@
       "@sparkelf/dsh-patch-better-sidebar-openpath-interception",
       "@sparkelf/dsh-patch-univer-office-alpha2",
       "@sparkelf/dsh-patch-genui-streaming-echart",
-      "@sparkelf/dsh-patch-genui-skill-chart-contract",
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-workspace-storage-restore",
       "@sparkelf/dsh-patch-subagent-settings-presets",
@@ -105,7 +104,6 @@
     "@sparkelf/dsh-patch-better-sidebar-openpath-interception": ">=0.1.0-rc.14",
     "@sparkelf/dsh-patch-univer-office-alpha2": ">=0.1.0-rc.14",
     "@sparkelf/dsh-patch-genui-streaming-echart": ">=0.1.0-rc.14",
-    "@sparkelf/dsh-patch-genui-skill-chart-contract": ">=0.1.0-rc.14",
     "@sparkelf/dsh-patch-browser-auth-mode": ">=0.1.0-rc.14",
     "dshmarket": ">=1.38.1",
     "@sparkelf/dsh-plugin-backup": ">=0.1.0-rc.14",
@@ -131,7 +129,7 @@
     "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.2"
   },
   "devDependencies": {
-    "@changfenhuang/dsh-genui": "0.9.6",
+    "@changfenhuang/dsh-genui": "0.9.7",
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@types/semver": ">=7.7.1",

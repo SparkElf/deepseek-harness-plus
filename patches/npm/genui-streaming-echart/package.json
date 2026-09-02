@@ -28,7 +28,7 @@
         "target": {
           "kind": "npm",
           "name": "@changfenhuang/dsh-genui",
-          "range": "0.9.6"
+          "range": "0.9.7"
         },
         "file": "./patches/streaming-echart-components.patch"
       }

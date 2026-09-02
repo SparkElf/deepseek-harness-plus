@@ -182,7 +182,7 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.9.6',
+    '@changfenhuang/dsh-genui': '0.9.7',
     'dsh-better-sidebar': '0.17.1',
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
     'dsh-video-preview': '0.1.4',

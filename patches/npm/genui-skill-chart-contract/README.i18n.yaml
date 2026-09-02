@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write patches/npm/genui-skill-chart-contract/README.md
-README.md: 95da6e3c3db846b2b20bcbad80fba11b7f99fd60
-README.zh.md: c160948b7c5886e50e03b5962f1f47afbfe0998c
