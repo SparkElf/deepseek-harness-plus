@@ -1,6 +1,6 @@
 ---
 description: "Standalone Plus runtime supervision and controlled-restart Session recovery."
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @sparkelf/dsh-plugin-supervisor
@@ -11,6 +11,16 @@ English | [中文](README.zh.md)
 
 This package joins two process roles under one npm release: a Host Cordis plugin exposes the current running top-level Session set and admits recovery prompts, while a plain Node Supervisor starts, stops, rebuilds, and restarts one explicitly described Plus Web runtime. A controlled restart captures running Sessions immediately before shutdown and queues one recovery message in each after the replacement runtime listens.
 
+## Table of Contents
+
+- [Use This Package](#use-this-package)
+- [Model Experience](#model-experience)
+- [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
+
+-----
+
+<a id="use-this-package"></a>
 ## Use This Package
 
 The Plus profile mounts the Host entry and materializes the <code>dsh-plus-supervisor</code> executable. The external process reads one manifest:

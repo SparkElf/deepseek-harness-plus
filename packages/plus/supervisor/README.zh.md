@@ -1,6 +1,6 @@
 ---
 description: "独立的Plus runtime监管及受控重启Session恢复。"
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @sparkelf/dsh-plugin-supervisor
@@ -11,6 +11,16 @@ kind: "package-reference"
 
 该package在一个npm release中连接两个process roles：Host Cordis plugin公开当前运行中的顶层Session集合并接收恢复prompt，plain Node Supervisor则启动、停止、构建及重启一个由显式manifest描述的Plus Web runtime。受控重启会在shutdown前立即记录running Sessions，并在replacement runtime开始监听后为每个Session排入一条恢复消息。
 
+## 目录
+
+- [使用此软件包](#use-this-package)
+- [模型体验](#model-experience)
+- [已知限制和延期工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
+
+-----
+
+<a id="use-this-package"></a>
 ## 使用此软件包
 
 Plus profile会mount Host entry并materialize <code>dsh-plus-supervisor</code> executable。外部process读取一个manifest：
