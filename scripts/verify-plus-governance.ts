@@ -182,6 +182,7 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
+    '@changfenhuang/dsh-genui': '0.9.6',
     'dsh-better-sidebar': '0.17.1',
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
     'dsh-video-preview': '0.1.4',
@@ -189,7 +190,7 @@ function main(): void {
     '@sparkelf/dsh-plugin-supervisor': '0.1.1',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
-    throw new Error('dshPlus.profile.dependencies must own the exact external preview, Office, and Supervisor bundle set')
+    throw new Error('dshPlus.profile.dependencies must own the exact GenUI, preview, Office, and Supervisor bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
   if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true, protobufjs: false })) {

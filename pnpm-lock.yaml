@@ -1386,74 +1386,71 @@ importers:
 
   packages/bundle/plus:
     dependencies:
-      '@changfenhuang/dsh-genui':
-        specifier: '>=0.9.6'
-        version: 0.9.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)
       '@sparkelf/dsh-mobile-bridge':
         specifier: '>=0.2.10'
         version: 0.2.10(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-alpha2-settings':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/better-sidebar-alpha2-settings
       '@sparkelf/dsh-patch-better-sidebar-app-frame':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/better-sidebar-app-frame
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-document-attachments':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/document-attachments
       '@sparkelf/dsh-patch-genui-skill-chart-contract':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/genui-skill-chart-contract
       '@sparkelf/dsh-patch-genui-streaming-echart':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/genui-streaming-echart
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-univer-office-alpha2':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/univer-office-alpha2
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-document-attachments':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../plus/document-attachments
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: '>=0.1.0-rc.12'
+        specifier: '>=0.1.0-rc.13'
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.38.1'
@@ -1465,6 +1462,9 @@ importers:
         specifier: '>=2.9.0'
         version: 2.9.0
     devDependencies:
+      '@changfenhuang/dsh-genui':
+        specifier: 0.9.6
+        version: 0.9.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(react@18.3.1)
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
