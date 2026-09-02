@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-univer-office-alpha2",
   "description": "DSH alpha.2 compatibility, authorized template creation, and external Viewer fonts patch for dsh-univer-office",
-  "version": "0.1.0-rc.14",
+  "version": "0.1.0-rc.16",
   "publishConfig": {
     "access": "public"
   },

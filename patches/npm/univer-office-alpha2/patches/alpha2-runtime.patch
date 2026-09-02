@@ -161,10 +161,94 @@ index ab35fcd839172d9546ff3e822b5a94ce4c03f22c..aebc0bc91dcdf044614f9a086342b3ad
  3. `univer_inspect` 与 `univer_export` 可读取 trunk 或显式 worktree；
  4. `univer_api` 使用包依赖的精确版本 API Reference，不调用外部 CLI；
 diff --git a/lib/client.js b/lib/client.js
-index 6111dde2bfc81aee69686c1bc7ec8d5c1a4ed77d..3cc07052cea6cd1c338d89e9b425e5d2ef5e6cae 100644
+index 6111dde2bfc81aee69686c1bc7ec8d5c1a4ed77d..f3d16cd5f75acad75510641d3be9033eded14a11 100644
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -22333,7 +22333,7 @@ window.__ModuleLoader__.load({
+@@ -21813,25 +21813,36 @@ window.__ModuleLoader__.load({
+         const operation2 = file2.operations.find((entry) => entry.callId === callId);
+         if (operation2 !== void 0) matched = operation2;
+       }
+-      if (matched === void 0 && structured === null) return state;
++      const phase = data.error === void 0 && data.message.content[0].isError !== true ? "succeeded" : "failed";
++      if (matched === void 0) {
++        if (structured === null) return state;
++        return nestedUniverResults(structured).reduce((current, result, index) => {
++          const operation2 = operationFromResult(result, `${callId}:${index}`, phase);
++          return operation2 === null ? current : { ...current, files: appendOperation(current.files, operation2) };
++        }, state);
++      }
++      const operation = operationFromResult(structured, callId, phase, matched);
++      if (operation === null) return state;
++      const withoutCall = state.files.flatMap((entry) => {
++        const operations = entry.operations.filter((candidate) => candidate.callId !== callId);
++        return operations.length === 0 ? [] : [{ ...entry, operations }];
++      });
++      return { ...state, files: appendOperation(withoutCall, operation) };
++    }
++    function operationFromResult(structured, callId, phase, matched) {
+       const result = structured === null || !isRecord(structured.result) ? null : structured.result;
+       const name = matched?.name ?? operationName(typeof structured?.operation === "string" ? `univer_${structured.operation.replace("-", "_")}` : "");
+       const file = typeof structured?.file === "string" ? structured.file : matched?.file;
+-      if (name === null || name === void 0 || file === void 0) return state;
+-      const operation = {
++      if (name === null || name === void 0 || file === void 0) return null;
++      return {
+         callId,
+         name,
+         action: typeof result?.action === "string" ? result.action : matched?.action ?? null,
+         file,
+         worktreeId: typeof result?.worktreeId === "string" ? result.worktreeId : matched?.worktreeId ?? null,
+         unitId: typeof result?.unitId === "string" ? result.unitId : matched?.unitId ?? null,
+-        phase: data.error === void 0 && data.message.content[0].isError !== true ? "succeeded" : "failed"
++        phase
+       };
+-      const withoutCall = state.files.flatMap((entry) => {
+-        const operations = entry.operations.filter((candidate) => candidate.callId !== callId);
+-        return operations.length === 0 ? [] : [{ ...entry, operations }];
+-      });
+-      return { ...state, files: appendOperation(withoutCall, operation) };
+     }
+     function appendOperation(files, operation) {
+       const next = [...files];
+@@ -21848,6 +21859,12 @@ window.__ModuleLoader__.load({
+       const firstBrace = text.indexOf("{");
+       return firstBrace === -1 ? null : parseRecord(text.slice(firstBrace));
+     }
++    function nestedUniverResults(value) {
++      if (Array.isArray(value)) return value.flatMap(nestedUniverResults);
++      if (!isRecord(value)) return [];
++      if (typeof value.operation === "string" && operationName(`univer_${value.operation.replace("-", "_")}`) !== null && typeof value.file === "string") return [value];
++      return Object.values(value).flatMap(nestedUniverResults);
++    }
+     function operationName(name) {
+       if (!name.startsWith("univer_")) return null;
+       const operation = name.slice("univer_".length).replaceAll("_", "-");
+@@ -22007,6 +22024,15 @@ window.__ModuleLoader__.load({
+       return target.toString();
+     }
+ 
++    // src/client/viewer-fonts.ts
++    function withViewerFonts(url) {
++      const fonts = window.__DSH_UNIVER_VIEWER_FONTS__;
++      if (fonts === void 0 || fonts.length === 0) return url;
++      const target = new URL(url);
++      target.searchParams.set("dshFonts", JSON.stringify(fonts));
++      return target.toString();
++    }
++
+     // src/client/components/unit-chips.tsx
+     var React2 = require("react");
+     var import_jsx_runtime = require("react/jsx-runtime");
+@@ -22047,7 +22073,7 @@ window.__ModuleLoader__.load({
+       const units = worktree?.units ?? [];
+       const selectedUnit = selected !== void 0 && units.some((unit) => unit.unitId === selected) ? selected : props.preferredUnitId !== null && units.some((unit) => unit.unitId === props.preferredUnitId) ? props.preferredUnitId : units[0]?.unitId;
+       const target = cardTarget(props.state, props.worktreeId, worktree, selectedUnit);
+-      const url = target === void 0 ? void 0 : localizeViewerUrl(reviewPageUrl(target), props.viewerLocale);
++      const url = target === void 0 ? void 0 : localizeViewerUrl(withViewerFonts(reviewPageUrl(target)), props.viewerLocale);
+       const title = worktree?.name || worktree?.worktreeId || props.t("dock.currentVersion");
+       const merged = status === "merged";
+       const discarded = status === "discarded";
+@@ -22333,7 +22359,7 @@ window.__ModuleLoader__.load({
      }
      function fallbackValue(snapshot) {
        const value = typeof snapshot.base === "object" && snapshot.base !== null && !Array.isArray(snapshot.base) ? snapshot.base.autoOpenLivePreview : void 0;
@@ -173,7 +257,16 @@ index 6111dde2bfc81aee69686c1bc7ec8d5c1a4ed77d..3cc07052cea6cd1c338d89e9b425e5d2
      }
      function hasBooleanField(value, field) {
        return typeof value === "object" && value !== null && !Array.isArray(value) && Object.hasOwn(value, field) && typeof value[field] === "boolean";
-@@ -22813,7 +22813,7 @@ window.__ModuleLoader__.load({
+@@ -22397,7 +22423,7 @@ window.__ModuleLoader__.load({
+       const units = worktree?.units ?? [];
+       const selectedUnit = selected !== void 0 && units.some((unit) => unit.unitId === selected) ? selected : units[0]?.unitId;
+       const target = props.worktreeId === null ? props.state?.viewerUrl ?? void 0 : worktree === void 0 ? void 0 : unitViewerUrl(worktree.status === "ready" ? worktree.mergeUrl : worktree.worktreeUrl, units, selectedUnit, worktree.status === "ready" ? "merge" : "worktree");
+-      const url = target === void 0 ? void 0 : localizeViewerUrl(target, props.viewerLocale);
++      const url = target === void 0 ? void 0 : localizeViewerUrl(withViewerFonts(target), props.viewerLocale);
+       const title = worktree?.name || worktree?.worktreeId || props.worktreeId || props.t("dock.currentVersion");
+       const status = props.state === void 0 ? "loading" : props.worktreeId === null ? "trunk" : worktree?.status ?? "unavailable";
+       const beginPointerSession = (event, kind) => {
+@@ -22813,7 +22839,7 @@ window.__ModuleLoader__.load({
  
      // src/client/settings/live-preview-preference.ts
      var LivePreviewPreference = class {
@@ -182,7 +275,7 @@ index 6111dde2bfc81aee69686c1bc7ec8d5c1a4ed77d..3cc07052cea6cd1c338d89e9b425e5d2
        listeners = /* @__PURE__ */ new Set();
        getSnapshot = () => this.enabled;
        subscribe = (listener) => {
-@@ -22824,14 +22824,14 @@ window.__ModuleLoader__.load({
+@@ -22824,14 +22850,14 @@ window.__ModuleLoader__.load({
        attach(scope) {
          const sync = () => {
            const snapshot = scope.getSnapshot();
