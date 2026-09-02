@@ -115,7 +115,6 @@
     "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.12",
     "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.12",
     "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.12",
-    "@sparkelf/dsh-plugin-supervisor": "0.1.1",
     "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.12",
     "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.12",
