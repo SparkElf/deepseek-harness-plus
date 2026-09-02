@@ -175,6 +175,7 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`dayjs`](https://github.com/iamkun/dayjs) | MIT |
 | [`debug`](https://github.com/debug-js/debug) | MIT |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
+| [`dsh-univer-office`](https://github.com/dream-num/dsh-univer-office) | Apache-2.0 |
 | [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`esbuild`](https://github.com/evanw/esbuild) | MIT |
 | [`eslint-plugin-sonarjs`](https://github.com/SonarSource/SonarJS) | LGPL-3.0-only |

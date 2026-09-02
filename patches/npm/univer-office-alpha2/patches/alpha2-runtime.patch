@@ -1,0 +1,271 @@
+diff --git a/artifacts/viewer/index.html b/artifacts/viewer/index.html
+--- a/artifacts/viewer/index.html
++++ b/artifacts/viewer/index.html
+@@ -10,6 +10,14 @@
+     />
+     <!-- Placeholder only: main.tsx localizes the title (and <html lang>) at boot via applyDocumentLang(). -->
+     <title>Univer</title>
++    <script>
++      const send = WebSocket.prototype.send;
++      WebSocket.prototype.send = function (...args) {
++        if (this.readyState === WebSocket.OPEN) {
++          return send.apply(this, args);
++        }
++      };
++    </script>
+     <script type="module" crossorigin src="/assets/index-xe_OYCFu.js"></script>
+     <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
+     <link rel="modulepreload" crossorigin href="/assets/es-C_3AFWIu.js">
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -93,13 +93,13 @@
+   },
+   "peerDependencies": {
+     "@deepseek-ai/cordis": "^4.0.1",
+-    "@deepseek-ai/dsh-attachment": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-llm": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-session": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-settings": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-skill": "0.1.1-rc.2 || 0.1.2-alpha.1",
+-    "@deepseek-ai/dsh-tools": "0.1.1-rc.2 || 0.1.2-alpha.1",
++    "@deepseek-ai/dsh-attachment": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-host-webserver": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-llm": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-session": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-settings": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-skill": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
++    "@deepseek-ai/dsh-tools": "0.1.1-rc.2 || 0.1.2-alpha.1 || 0.1.2-alpha.2",
+     "@deepseek-ai/schemastery": "^3.18.1"
+   },
+   "engines": {
+diff --git a/lib/client.js b/lib/client.js
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -22334,6 +22334,6 @@ function UniverSettingsCard(props) {
+     function fallbackValue(snapshot) {
+       const value = typeof snapshot.base === "object" && snapshot.base !== null && !Array.isArray(snapshot.base) ? snapshot.base.autoOpenLivePreview : void 0;
+-      return typeof value === "boolean" ? value : true;
++      return typeof value === "boolean" ? value : false;
+     }
+     function hasBooleanField(value, field) {
+       return typeof value === "object" && value !== null && !Array.isArray(value) && Object.hasOwn(value, field) && typeof value[field] === "boolean";
+@@ -22815,7 +22815,7 @@ var UNIVER_LOCALE_NAMESPACE = "univer";
+ 
+     // src/client/settings/live-preview-preference.ts
+     var LivePreviewPreference = class {
+-      enabled = true;
++      enabled = false;
+       listeners = /* @__PURE__ */ new Set();
+       getSnapshot = () => this.enabled;
+       subscribe = (listener) => {
+@@ -22824,14 +22824,14 @@ var LivePreviewPreference = class {
+       attach(scope) {
+         const sync = () => {
+           const snapshot = scope.getSnapshot();
+-          const enabled = snapshot.status === "loading" ? false : snapshot.status === "ready" ? snapshot.value?.autoOpenLivePreview ?? true : true;
++          const enabled = snapshot.status === "loading" ? false : snapshot.status === "ready" ? snapshot.value?.autoOpenLivePreview ?? false : false;
+           this.publish(enabled);
+         };
+         const dispose = scope.subscribe(sync);
+         sync();
+         return () => {
+           dispose();
+-          this.publish(true);
++          this.publish(false);
+         };
+       }
+       publish(enabled) {
+diff --git a/lib/index.js b/lib/index.js
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -6854,7 +6854,6 @@ __export(plugin_exports2, {
+   apply: () => apply2,
+   name: () => name2
+ });
+-import { settingsNamespace } from "@deepseek-ai/dsh-settings";
+ import z6 from "@deepseek-ai/schemastery";
+ 
+ // src/shared/settings.ts
+@@ -6860,14 +6859,14 @@ import z6 from "@deepseek-ai/schemastery";
+ // src/shared/settings.ts
+ var UNIVER_SETTINGS_NAMESPACE = "univer-office";
+ var DEFAULT_UNIVER_SETTINGS = {
+-  autoOpenLivePreview: true
++  autoOpenLivePreview: false
+ };
+ 
+ // src/host/settings/plugin.ts
+ var name2 = "univer-settings";
+-var namespace = settingsNamespace(UNIVER_SETTINGS_NAMESPACE);
++var namespace = UNIVER_SETTINGS_NAMESPACE;
+ var SettingsSchema = z6.object({
+-  autoOpenLivePreview: z6.boolean().default(true)
++  autoOpenLivePreview: z6.boolean().default(false)
+ });
+ function apply2(ctx) {
+   ctx.inject(["settings"], (settingsCtx) => {
+@@ -7389,18 +7388,20 @@ function executeTool(ctx, timeoutMs) {
+   });
+ }
+ async function resolveExecutionCode(exec, code, codeFile) {
+-  if (code === void 0 === (codeFile === void 0)) {
++  const inlineCode = optionalString(code);
++  const sourceFile = optionalString(codeFile);
++  if (inlineCode === void 0 === (sourceFile === void 0)) {
+     throw new UniverError("Provide exactly one of code or codeFile.", "INVALID_EXECUTION_SOURCE");
+   }
+-  if (code !== void 0) return code;
+-  if (codeFile === void 0) {
++  if (inlineCode !== void 0) return inlineCode;
++  if (sourceFile === void 0) {
+     throw new UniverError("codeFile is required when code is omitted.", "INVALID_EXECUTION_SOURCE");
+   }
+-  const source = await existingToolPath(exec, codeFile);
++  const source = await existingToolPath(exec, sourceFile);
+   try {
+     return await readFile4(source.path, "utf8");
+   } catch (error) {
+-    throw new UniverError(`Cannot read codeFile ${JSON.stringify(codeFile)}.`, "CODE_FILE_READ_FAILED", { cause: error });
++    throw new UniverError(`Cannot read codeFile ${JSON.stringify(sourceFile)}.`, "CODE_FILE_READ_FAILED", { cause: error });
+   }
+ }
+ 
+@@ -7419,6 +7420,7 @@ function exportTool(ctx, timeoutMs) {
+     },
+     output: operationOutput,
+     async execute(args, exec) {
++      const selectedWorktree = optionalString(args.worktreeId);
+       const [target, output] = await Promise.all([
+         existingToolFile(exec, args.file),
+         newToolPath(exec, args.output)
+@@ -7429,7 +7431,7 @@ function exportTool(ctx, timeoutMs) {
+         outputWorkspace: output.workspace,
+         output: output.path,
+         unitId: unitId(args.unitId),
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) }
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("export", args.file), kind: "execute" })
+@@ -7448,6 +7450,9 @@ function stripGatewaySuccessEnvelope(value) {
+   const { error: _envelope, ...rest } = result2;
+   return { ...value, result: rest };
+ }
++function optionalString(value) {
++  return value === void 0 || value.trim().length === 0 ? void 0 : value;
++}
+ 
+ // src/host/tools/definitions/import.ts
+ function importTool(ctx, timeoutMs) {
+@@ -7499,12 +7504,14 @@ function inspectTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const range = optionalString(args.range);
++      const selectedWorktree = optionalString(args.worktreeId);
+       return ctx.univer.inspectUnitContent({
+         workspace: target.workspace,
+         file: target.path,
+         unitId: unitId(args.unitId),
+-        ...args.range === void 0 ? {} : { range: args.range },
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) }
++        ...range === void 0 ? {} : { range },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("inspect", args.file), kind: "read" })
+@@ -7527,6 +7534,7 @@ function lintTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const selectedWorktree = optionalString(args.worktreeId);
+       const pages = args.pages?.map((selector) => {
+         if (typeof selector === "number") return selector;
+         const value = selector.trim();
+@@ -7537,7 +7545,7 @@ function lintTool(ctx, timeoutMs) {
+         workspace: target.workspace,
+         file: target.path,
+         unitId: unitId(args.unitId),
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
+         ...pages === void 0 ? {} : { pages }
+       }, exec.signal);
+     },
+@@ -7732,6 +7740,7 @@ function screenshotTool(ctx, timeoutMs) {
+       ]
+     },
+     async execute(args, exec) {
++      const selectedWorktree = optionalString(args.worktreeId);
+       const attachments = ctx.get("attachments");
+       if (attachments === void 0) {
+         throw new UniverError("Screenshot requires the DSH attachment service.", "SCREENSHOT_ATTACHMENTS_UNAVAILABLE");
+@@ -7750,7 +7759,7 @@ function screenshotTool(ctx, timeoutMs) {
+         unitId: unitId(args.unitId),
+         outputWorkspace: output.workspace,
+         output: output.path,
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
+         ...screenshotTarget(args)
+       }, exec.signal);
+       const decoded = captured.result.images.map((item) => ({
+@@ -7828,7 +7837,9 @@ function screenshotTool(ctx, timeoutMs) {
+   });
+ }
+ function screenshotTarget(args) {
+-  const usesSheet = args.sheetName !== void 0 || args.range !== void 0;
++  const sheetName = optionalString(args.sheetName);
++  const range = optionalString(args.range);
++  const usesSheet = sheetName !== void 0 || range !== void 0;
+   const usesSlide = args.pages !== void 0 || args.contactSheet === true || args.tileColumns !== void 0 || args.tileRows !== void 0;
+   const usesBoard = args.region !== void 0 || args.elementIds !== void 0 || args.padding !== void 0;
+   if ([usesSheet, usesSlide, usesBoard].filter(Boolean).length > 1) {
+@@ -7838,14 +7849,14 @@ function screenshotTarget(args) {
+     throw new UniverError("Screenshot scale must be between 0.1 and 4.", "SCREENSHOT_INPUT_INVALID");
+   }
+   if (usesSheet) {
+-    if (args.range === void 0 || args.range.trim().length === 0) {
++    if (range === void 0) {
+       throw new UniverError("sheetName requires a non-empty range.", "SCREENSHOT_INPUT_INVALID");
+     }
+     return {
+       target: {
+         kind: "sheet-range",
+-        range: args.range,
+-        ...args.sheetName === void 0 ? {} : { sheetName: args.sheetName },
++        range,
++        ...sheetName === void 0 ? {} : { sheetName },
+         ...args.scale === void 0 ? {} : { scale: args.scale }
+       }
+     };
+@@ -7922,11 +7933,13 @@ function statusTool(ctx, timeoutMs) {
+     output: operationOutput,
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
++      const selectedWorktree = optionalString(args.worktreeId);
++      const selectedUnit = optionalString(args.unitId);
+       return ctx.univer.status({
+         workspace: target.workspace,
+         file: target.path,
+-        ...args.worktreeId === void 0 ? {} : { worktreeId: worktreeId(args.worktreeId) },
+-        ...args.unitId === void 0 ? {} : { unitId: unitId(args.unitId) }
++        ...selectedWorktree === void 0 ? {} : { worktreeId: worktreeId(selectedWorktree) },
++        ...selectedUnit === void 0 ? {} : { unitId: unitId(selectedUnit) }
+       }, exec.signal);
+     },
+     presentCall: (args) => ({ card: "generic", title: operationTitle("status", args.file), kind: "read" })
+@@ -7996,11 +8009,12 @@ function worktreeTool(ctx, timeoutMs) {
+     async execute(args, exec) {
+       const target = await existingToolFile(exec, args.file);
+       if (args.action === "create") {
++        const name = optionalString(args.name);
+         return stripGatewaySuccessEnvelope(await ctx.univer.worktree({
+           action: "create",
+           workspace: target.workspace,
+           file: target.path,
+-          ...args.name === void 0 ? {} : { name: args.name }
++          ...name === void 0 ? {} : { name }
+         }, exec.signal));
+       }
+       if (args.worktreeId === void 0 || args.worktreeId.length === 0) {

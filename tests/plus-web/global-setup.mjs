@@ -1,14 +1,20 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { chmodSync, closeSync, copyFileSync, existsSync, mkdirSync, openSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { strToU8, zipSync } from 'fflate'
 import { parse, stringify } from 'yaml'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const stateRoot = join(repoRoot, '.cache/plus-web-system')
-const sourceRoot = join(stateRoot, 'official-source')
+const legacySourceRoot = join(stateRoot, 'official-source')
+const buildCacheRoot = join(repoRoot, '.cache/plus-web-build-cache')
+const sourceRoot = join(buildCacheRoot, 'official-source')
+const cachedProfileRoot = join(buildCacheRoot, 'profile')
+const cachedPackagesDir = join(buildCacheRoot, 'packages')
+const buildCacheManifestPath = join(buildCacheRoot, 'manifest.json')
 const home = join(stateRoot, 'home')
 const packagesDir = join(stateRoot, 'packages')
 const fixturesDir = join(stateRoot, 'fixtures')
@@ -132,15 +138,98 @@ function packageDirectories() {
   const patches = readdirSync(patchesRoot, { withFileTypes: true })
     .filter(entry => entry.isDirectory() && existsSync(join(patchesRoot, entry.name, 'package.json')))
     .map(entry => `patches/npm/${entry.name}`)
+    .sort()
   return [...local, ...patches]
 }
 
+function packCandidateArchives(directories) {
+  run('pnpm', ['exec', 'tsx', 'scripts/release/pack.ts', '--family', 'plus', '--out', packagesDir], repoRoot)
+  const archivesByName = new Map()
+  for (const file of readdirSync(packagesDir).filter(file => file.endsWith('.tgz')).sort()) {
+    const archive = join(packagesDir, file)
+    const manifest = requireRecord(JSON.parse(run('tar', ['-xOzf', archive, 'package/package.json'], repoRoot)), `${file} manifest`)
+    if (typeof manifest.name !== 'string' || manifest.name === '' || archivesByName.has(manifest.name)) {
+      throw new Error(`Plus release pack produced an invalid package identity in ${file}`)
+    }
+    archivesByName.set(manifest.name, archive)
+  }
+  if (archivesByName.size !== directories.length) {
+    throw new Error('Plus Web package inventory differs from the Plus release family')
+  }
+  return new Map(directories.map(directory => {
+    const manifest = requireRecord(JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8')), `${directory} manifest`)
+    const archive = archivesByName.get(manifest.name)
+    if (archive === undefined) throw new Error(`Plus release pack omitted ${String(manifest.name)}`)
+    return [directory, archive]
+  }))
+}
 
-function pack(directory) {
-  const output = run('pnpm', ['pack', '--pack-destination', packagesDir], join(repoRoot, directory))
-  const archive = output.split(/\r?\n/u).findLast(line => line.trim().endsWith('.tgz'))
-  if (archive === undefined) throw new Error(`pnpm pack did not report an archive for ${directory}`)
-  return resolve(join(repoRoot, directory), archive.trim())
+/** Cache key只取会改变official build/profile的声明输入，不纳入凭据、模型选择或运行数据。 */
+function buildCacheDescriptor(directories, archives) {
+  const packages = directories.map(directory => ({
+    directory,
+    sha256: createHash('sha256').update(readFileSync(archives.get(directory))).digest('hex'),
+  }))
+  const descriptor = {
+    formatVersion: 1,
+    officialRevision,
+    platform: process.platform,
+    architecture: process.arch,
+    node: process.version,
+    pnpm: run('pnpm', ['--version'], repoRoot),
+    packages,
+  }
+  return {
+    ...descriptor,
+    key: createHash('sha256').update(JSON.stringify(descriptor)).digest('hex'),
+  }
+}
+
+function readBuildCacheManifest() {
+  if (!existsSync(buildCacheManifestPath)) return null
+  const manifest = requireRecord(JSON.parse(readFileSync(buildCacheManifestPath, 'utf8')), 'Plus Web build cache manifest')
+  if (manifest.formatVersion !== 1 || typeof manifest.key !== 'string' || manifest.key === '') {
+    throw new Error('Plus Web build cache manifest is invalid')
+  }
+  return manifest
+}
+
+function resetBuildCache() {
+  if (existsSync(sourceRoot)) run('git', ['worktree', 'remove', '--force', sourceRoot], repoRoot)
+  rmSync(buildCacheRoot, { recursive: true, force: true })
+  mkdirSync(cachedPackagesDir, { recursive: true })
+}
+
+function cacheArchives(directories, packedArchives) {
+  return new Map(directories.map(directory => {
+    const source = packedArchives.get(directory)
+    const destination = join(cachedPackagesDir, basename(source))
+    copyFileSync(source, destination)
+    return [directory, destination]
+  }))
+}
+
+function existingCacheArchives(directories, packedArchives) {
+  return new Map(directories.map(directory => {
+    const archive = join(cachedPackagesDir, basename(packedArchives.get(directory)))
+    if (!existsSync(archive)) throw new Error(`Plus Web build cache is missing ${basename(archive)}`)
+    return [directory, archive]
+  }))
+}
+
+/** Profile template不含用户数据；每轮以hardlink新建目录树，运行状态只写独立home。 */
+function restoreCachedProfile(profileRoot) {
+  if (!existsSync(join(sourceRoot, 'apps/cli/lib/bin.js')) || !existsSync(join(cachedProfileRoot, 'package.json'))) {
+    throw new Error('Plus Web build cache marker exists without its built source and profile')
+  }
+  mkdirSync(dirname(profileRoot), { recursive: true })
+  run('cp', ['-al', cachedProfileRoot, profileRoot], repoRoot)
+}
+
+function writeBuildCacheManifest(descriptor) {
+  const temporary = buildCacheManifestPath + '.tmp'
+  writeFileSync(temporary, JSON.stringify(descriptor, null, 2) + '\n')
+  renameSync(temporary, buildCacheManifestPath)
 }
 
 function sanitizedRuntimeLog() {
@@ -182,7 +271,7 @@ export default async function globalSetup() {
   if (missing.length > 0) throw new Error(`Plus Web system acceptance requires: ${missing.join(', ')}`)
   if (!(await portAvailable(3081))) throw new Error('Plus Web system acceptance requires unused port 3081; production 3080 is never reused or stopped.')
 
-  if (existsSync(sourceRoot)) run('git', ['worktree', 'remove', '--force', sourceRoot], repoRoot)
+  if (existsSync(legacySourceRoot)) run('git', ['worktree', 'remove', '--force', legacySourceRoot], repoRoot)
   rmSync(stateRoot, { recursive: true, force: true })
   mkdirSync(packagesDir, { recursive: true })
   mkdirSync(fixturesDir, { recursive: true })
@@ -204,49 +293,65 @@ export default async function globalSetup() {
   const credentialsDestination = join(home, '.credentials.yaml')
   copyFileSync(credentialsSource, credentialsDestination)
   chmodSync(credentialsDestination, 0o600)
-  run('git', ['worktree', 'add', '--force', '--detach', sourceRoot, officialRevision], repoRoot)
-  run('pnpm', ['install', '--frozen-lockfile'], sourceRoot)
-
   const directories = packageDirectories()
   const distributionDirectory = 'packages/bundle/plus'
   const mcpDirectory = 'packages/plus/mcp-credentials'
-  const archives = new Map(directories.map(directory => [directory, pack(directory)]))
-  const mcpArchive = archives.get(mcpDirectory)
-  const dependencyArchives = directories
-    .filter(directory => directory !== distributionDirectory && directory !== mcpDirectory)
-    .map(directory => archives.get(directory))
-  const distributionArchive = archives.get(distributionDirectory)
+  const packedArchives = packCandidateArchives(directories)
+  const cacheDescriptor = buildCacheDescriptor(directories, packedArchives)
+  const cacheHit = readBuildCacheManifest()?.key === cacheDescriptor.key
+  let archives
+  if (cacheHit) {
+    console.log(`[plus-web] build cache hit ${cacheDescriptor.key.slice(0, 12)}`)
+    archives = existingCacheArchives(directories, packedArchives)
+  } else {
+    console.log(`[plus-web] build cache miss ${cacheDescriptor.key.slice(0, 12)}`)
+    resetBuildCache()
+    archives = cacheArchives(directories, packedArchives)
+    run('git', ['worktree', 'add', '--force', '--detach', sourceRoot, officialRevision], repoRoot)
+    run('pnpm', ['install', '--frozen-lockfile'], sourceRoot)
+  }
   const env = {
     ...process.env,
     DSH_HOME: home,
     DSH_DATAOPS_CALLBACK_ORIGIN: baseURL,
   }
   const profileRoot = join(home, 'profiles', 'plus')
-  mkdirSync(profileRoot, { recursive: true })
-  const overrides = {
-    ...Object.fromEntries(directories.map((directory) => {
-      const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
-      return [manifest.name, `file:${archives.get(directory)}`]
-    })),
-    'dsh-better-sidebar': '0.17.1',
-    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
-    'dsh-video-preview': '0.1.4',
-    '@sparkelf/dsh-mobile-bridge': '0.2.10',
+  if (cacheHit) {
+    restoreCachedProfile(profileRoot)
+  } else {
+    mkdirSync(profileRoot, { recursive: true })
+    const overrides = {
+      ...Object.fromEntries(directories.map((directory) => {
+        const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
+        return [manifest.name, `file:${archives.get(directory)}`]
+      })),
+      'dsh-better-sidebar': '0.17.1',
+      '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+      'dsh-video-preview': '0.1.4',
+      'dsh-univer-office': '0.2.12',
+      '@sparkelf/dsh-mobile-bridge': '0.2.10',
+    }
+    writeFileSync(
+      join(profileRoot, 'pnpm-workspace.yaml'),
+      stringify({ packages: ['.'], overrides, autoInstallPeers: false }),
+    )
+    const mcpArchive = archives.get(mcpDirectory)
+    const dependencyArchives = directories
+      .filter(directory => directory !== distributionDirectory && directory !== mcpDirectory)
+      .map(directory => archives.get(directory))
+    const distributionArchive = archives.get(distributionDirectory)
+    run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', mcpArchive], repoRoot, env)
+    run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
+    run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
+    run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
   }
-  writeFileSync(
-    join(profileRoot, 'pnpm-workspace.yaml'),
-    stringify({ packages: ['.'], overrides, autoInstallPeers: false }),
-  )
-  run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', mcpArchive], repoRoot, env)
-  run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', ...dependencyArchives], repoRoot, env)
-  run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'add', '-w', distributionArchive], repoRoot, env)
-  run('pnpm', ['dsh', 'plugin', '--profile', 'plus', 'exec', 'dsh-plus', 'apply', '--dsh-root', sourceRoot], repoRoot, env)
   const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
-  const previewBundles = {
+  const externalBundles = {
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
     'dsh-video-preview': '0.1.4',
+    'dsh-univer-office': '0.2.12',
   }
-  for (const [packageName, version] of Object.entries(previewBundles)) {
+  for (const [packageName, version] of Object.entries(externalBundles)) {
     if (profileManifest.dependencies?.[packageName] !== version
       || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
       throw new Error(`Plus profile did not materialize ${packageName}@${version}`)
@@ -270,6 +375,12 @@ export default async function globalSetup() {
     ) {
       throw new Error(`Plus profile official package must resolve from the exact DSH checkout: @deepseek-ai/${packageName}`)
     }
+  }
+  if (!cacheHit) {
+    rmSync(join(profileRoot, '.dsh-market'), { recursive: true, force: true })
+    renameSync(profileRoot, cachedProfileRoot)
+    restoreCachedProfile(profileRoot)
+    writeBuildCacheManifest(cacheDescriptor)
   }
   writePdf(join(fixturesDir, 'acceptance.pdf'))
   writeFileSync(join(fixturesDir, 'not-a-backup.zip'), zipSync({ 'ordinary.txt': strToU8('Not a DeepSeek Harness backup.\n') }))
