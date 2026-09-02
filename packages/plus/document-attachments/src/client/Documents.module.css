@@ -35,6 +35,8 @@
   border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
   border-radius: 6px;
   background: var(--dsw-specific-input-major);
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .historyCard {

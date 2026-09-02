@@ -46,7 +46,7 @@ describe('release families', () => {
     const members = releaseFamily('plus').members(resolve(import.meta.dirname, '../..'))
     const names = members.map(member => member.name)
 
-    expect(names).toHaveLength(18)
+    expect(names).toHaveLength(21)
     expect(names).toContain('@sparkelf/dsh-plus')
     expect(names).toContain('@sparkelf/dsh-plugin-backup')
     expect(names).toContain('@sparkelf/dsh-plugin-dataops')
