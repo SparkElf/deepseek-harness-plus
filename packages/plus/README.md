@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The `plus/` group contains public `@sparkelf/dsh-plugin-*` capability packages that compose with the official DSH source base. A package here owns its complete Host and Client behavior, profile-facing entry, runtime locale, and npm dependency closure. Official or external gaps remain independently versioned patch packages; this group does not fork or duplicate official capability implementations.
+The `plus/` group contains public `@sparkelf/dsh-plugin-*` capability packages that compose with the official DSH source base. A package here owns every role its capability needs, including Host, Client, or an external process, together with its profile-facing entry, runtime locale, and npm dependency closure. Official or external gaps remain independently versioned patch packages; this group does not fork or duplicate official capability implementations.
 
 ## Packages
 
@@ -20,11 +20,13 @@ The `plus/` group contains public `@sparkelf/dsh-plugin-*` capability packages t
 | [`document-attachments/`](document-attachments/README.md) | Provider-neutral document parser and MinerU provider; generic attachment integration remains in progress | provides `documentParser`; consumes official attachment storage |
 | [`dataops/`](dataops/README.md) | DataOps OAuth, credential lifecycle, MCP composition, and Settings UI | registers routes, MCP tools, and Client Settings section |
 | [`mcp-credentials/`](mcp-credentials/README.md) | Official MCP client replacement with current credential-backed Bearer transport | registers namespaced MCP tools when mounted |
+| [`supervisor/`](supervisor/README.md) | Out-of-process Plus runtime lifecycle and controlled-restart Session recovery | registers the Host recovery route and ships the Supervisor executable |
 
 ## Related documentation
 
 - [Attachment subsystem](../../docs/subsystems/attachment.md)
 - [Plus Backup as one full-stack plugin](../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.md)
+- [Plus Supervisor and Desktop packages](../../.agents/notes/proposed/architecture/2026-09-02-plus-supervisor-packages.md)
 - [Workspace package](../workspace/workspace/README.md)
 - [Host WebServer package](../host/webserver/README.md)
 

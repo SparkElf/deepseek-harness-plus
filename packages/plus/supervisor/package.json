@@ -1,0 +1,50 @@
+{
+  "name": "@sparkelf/dsh-plugin-supervisor",
+  "description": "Out-of-process Plus runtime Supervisor with controlled Session recovery",
+  "version": "0.1.0-rc.12",
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "packages/plus/supervisor"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": { "types": "./lib/types/index.d.ts", "default": "./lib/index.js" },
+    "./invariant": { "types": "./lib/types/invariant.d.ts", "default": "./lib/invariant.js" },
+    "./client": "./runtime/client.mjs",
+    "./manifest": "./runtime/manifest.mjs",
+    "./run": "./runtime/supervisor.mjs",
+    "./bin": "./runtime/bin.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/invariant.js",
+    "lib/bin.js",
+    "cordis.patch.yml",
+    "runtime/**/*.mjs",
+    "progress/**/*",
+    "lib/types/**/*.d.ts"
+  ],
+  "bin": { "dsh-plus-supervisor": "lib/bin.js" },
+  "scripts": { "bundle": "tsdown", "watch": "tsdown --watch" },
+  "license": "MIT",
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } },
+  "dependencies": { "yaml": "^2.9.0" },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.1",
+    "@deepseek-ai/dsh-api-session-controller": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.2-alpha.2",
+    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-api-session-controller": "workspace:^",
+    "@deepseek-ai/dsh-host-webserver": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
+    "@deepseek-ai/dsh-session": "workspace:^"
+  }
+}

@@ -1,12 +1,12 @@
 import { expect, test } from 'playwright/test'
 import { rm } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { allowNextNavigationAbort, assertDiagnostics, watchDiagnostics } from './diagnostics.mjs'
+import { allowNextNavigationAbort, assertDiagnostics, beginRuntimeRestart, endRuntimeRestart, watchDiagnostics } from './diagnostics.mjs'
 
 const stateRoot = resolve(import.meta.dirname, '../../.cache/plus-web-system')
 const pdfFixture = resolve(stateRoot, 'fixtures/acceptance.pdf')
 const invalidBackup = resolve(stateRoot, 'fixtures/not-a-backup.zip')
-const acceptanceWorkspace = resolve(stateRoot, 'workspace')
+const acceptanceWorkspace = process.env.DSH_PLUS_TEST_WORKSPACE ?? resolve(stateRoot, 'workspace')
 const backupWorkspace = resolve(stateRoot, 'workspace-after-backup')
 
 async function enterApp(page) {
@@ -63,6 +63,7 @@ async function addWorkspace(page, directory) {
 
 async function selectAcceptanceModel(page, reasoningEffort) {
   const label = process.env.DSH_PLUS_TEST_MODEL_LABEL
+  if (label === undefined) return
   const trigger = page.getByRole('button', { name: /^(?:选择模型|Select model)/ })
   await expect(trigger).toBeVisible({ timeout: 30_000 })
   const current = await trigger.getAttribute('aria-label')
@@ -133,6 +134,39 @@ test.describe('Plus npm profile user workflows', () => {
     await enterApp(page)
     await expect(page).toHaveTitle('DeepSeek Harness')
     await expect(page.getByText('DSH 本地构建', { exact: true })).toHaveCount(0)
+  })
+
+  test('recovers the Session running across a Supervisor restart', async ({ page, context }, testInfo) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
+    await selectAcceptanceModel(page)
+    await sendPrompt(page, '请立即调用 bash 工具运行 sleep 90，然后再回复完成；现在不要先输出最终答案。')
+    const stopGenerating = page.getByRole('button', { name: /停止生成|Stop generating/ })
+    await stopGenerating.waitFor({ timeout: 30_000 })
+
+    const progress = await context.newPage()
+    watchDiagnostics(progress)
+    await progress.goto(process.env.DSH_PLUS_TEST_SUPERVISOR_URL ?? 'http://127.0.0.1:3083')
+    const restart = progress.getByRole('button', { name: '重启', exact: true })
+    await expect(restart).toBeEnabled({ timeout: 30_000 })
+    beginRuntimeRestart(page)
+    await restart.click()
+    await expect(progress.getByText(/重启：已记录 [1-9]\d* 个运行中会话/).first()).toBeVisible({ timeout: 90_000 })
+    await expect(progress.getByText(/重启：完成（恢复 [1-9]\d*，失败 0）/).first()).toBeVisible({ timeout: 120_000 })
+
+    await page.bringToFront()
+    const recoveryPrompt = 'Supervisor 在此会话执行期间重启了 DSH。请以持久化会话记录、当前工作区和工具结果为准，先确认已完成的操作，避免重复执行；继续完成剩余任务。若原任务已经全部完成，回复“已完成”。'
+    await expect(page.getByText(recoveryPrompt, { exact: true })).toBeVisible({ timeout: 120_000 })
+    endRuntimeRestart(page)
+    const send = page.getByRole('button', { name: /发送消息|Send message/ })
+    await expect(stopGenerating.or(send)).toBeVisible({ timeout: 30_000 })
+    if (await stopGenerating.isVisible()) {
+      await stopGenerating.click()
+      await send.waitFor({ timeout: 30_000 })
+    }
+    await assertDiagnostics(progress, testInfo)
+    await progress.close()
   })
 
   test('places Simplified-Chinese Session export beside Trajectory search and downloads', async ({ page }) => {

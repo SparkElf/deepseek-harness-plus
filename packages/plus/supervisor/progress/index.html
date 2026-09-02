@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>Runtime Supervisor</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand"><img class="deepseek-logo" src="/assets/deepseek-logo.svg" alt="DeepSeek"><span class="brand-product">HARNESS</span></div>
+        <div id="topbarTitle" class="topbar-title">运行时监管</div>
+        <div id="statusBadge" class="status-badge" data-state="unknown"><span class="state-dot"></span><span>正在读取状态</span></div>
+      </header>
+      <section class="content" aria-live="polite">
+        <header class="content-header">
+          <h1 id="pageTitle">重启进度</h1>
+          <div class="header-actions">
+            <div id="commandActions" class="command-actions" role="group" aria-label="Supervisor 命令">
+              <button data-command="start" class="button secondary" type="button" disabled><img class="button-icon" src="/assets/player-play.svg" alt=""><span id="startLabel">启动</span></button>
+              <button data-command="restart" class="button secondary" type="button" disabled><img class="button-icon" src="/assets/refresh.svg" alt=""><span id="restartLabel">重启</span></button>
+              <button data-command="rebuild-and-restart" class="button primary" type="button" disabled><img class="button-icon" src="/assets/hammer.svg" alt=""><span id="rebuildLabel">构建并重启</span></button>
+            </div>
+          </div>
+        </header>
+        <section class="identity-surface" aria-label="运行时身份">
+          <dl id="runtimeIdentity" class="identity-list"></dl>
+        </section>
+          <section class="activity-grid" aria-label="Supervisor 活动">
+            <section class="activity-panel timeline-panel">
+              <header class="panel-header"><h2 id="activityTitle"><span class="panel-icon" aria-hidden="true">◷</span>活动</h2></header>
+              <ol id="timeline" class="timeline"></ol>
+            </section>
+            <section class="activity-panel log-panel">
+              <header class="panel-header"><h2 id="logTitle"><span class="panel-icon" aria-hidden="true">›_</span>运行日志</h2></header>
+              <div id="log" class="log-output" role="log" aria-live="polite" tabindex="0"></div>
+            </section>
+          </section>
+          <p id="error" class="error-message" role="alert"></p>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
