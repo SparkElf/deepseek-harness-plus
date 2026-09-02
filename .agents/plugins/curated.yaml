@@ -7,6 +7,13 @@ entries:
     owner: omdsh-dev
     localPatches: [{ package: '@sparkelf/dsh-patch-better-sidebar-app-frame', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/pull/398, retireWhen: A released dsh-better-sidebar version preserves the desktop AppFrame width while reserving right-panel space }, { package: '@sparkelf/dsh-patch-better-sidebar-alpha2-settings', upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar/releases/tag/v0.18.0-alpha.0, retireWhen: A stable dsh-better-sidebar release uses the alpha.2 Settings namespace contract without importing settingsNamespace at runtime }]
     plusBundle: true
+  - name: dsh-univer-office
+    source: { kind: npm, spec: dsh-univer-office }
+    pinned: 0.2.12
+    interest: Agent-authored spreadsheets documents presentations databases and boards with live worktree review
+    owner: dream-num
+    localPatches: [{ package: '@sparkelf/dsh-patch-univer-office-alpha2', upstreamUrl: https://github.com/dream-num/dsh-univer-office, retireWhen: A released dsh-univer-office version natively supports DSH alpha.2 Settings Host peers blank optional Tool inputs close-safe Viewer collaboration sends and non-disruptive opt-in floating live previews }]
+    plusBundle: true
   - name: '@sparkelf/dsh-mobile-bridge'
     source: { kind: npm, spec: '@sparkelf/dsh-mobile-bridge' }
     pinned: 0.2.10

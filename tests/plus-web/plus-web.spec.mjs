@@ -384,6 +384,31 @@ test.describe('Plus npm profile user workflows', () => {
     await page.getByRole('tab', { name: /对话|Chat/ }).click()
   })
 
+  test('creates and merges a real Univer Office spreadsheet for visible review', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
+    await selectAcceptanceModel(page)
+    // Ready/merge replaces the Viewer iframe and may cancel its in-flight exact locale chunk.
+    allowNextNavigationAbort(page, 'GET', '/assets/zh-CN-C7pm8zHW.js')
+    await sendPrompt(page, [
+      'Use the bundled univer and univer-sheet skills.',
+      'In the current workspace create plus-univer-acceptance.univer with one Sheet named Acceptance.',
+      'Set A1 to PLUS UNIVER OK and B1 to the number 42.',
+      'Read the finished Sheet to verify both values, submit the worktree for confirmation, and merge it into the current version.',
+      'Do not ask questions. After the merge reply with exactly UNIVER_ACCEPTANCE_DONE.',
+    ].join(' '))
+
+    const allowMerge = page.getByRole('button', { name: /允许一次|Allow once/ })
+    await expect(allowMerge).toBeVisible({ timeout: 6 * 60_000 })
+    await expect(page.getByRole('region', { name: /· plus-univer-acceptance\.univer$/ })).toHaveCount(0)
+    await allowMerge.click()
+    await page.getByText('UNIVER_ACCEPTANCE_DONE', { exact: true }).waitFor({ timeout: 3 * 60_000 })
+    const review = page.getByRole('region', { name: 'plus-univer-acceptance.univer', exact: true })
+    await expect(review.getByText('已合入', { exact: true })).toBeVisible()
+    await expect(review.locator('iframe')).toBeVisible()
+  })
+
   test('authorizes DataOps through its real UI and renders a dsh-genui chart from the result', async ({ page }, testInfo) => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
