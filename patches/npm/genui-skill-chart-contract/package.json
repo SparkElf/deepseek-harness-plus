@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-genui-skill-chart-contract",
-  "version": "0.1.0-rc.13",
+  "version": "0.1.0-rc.14",
   "description": "Exact GenUI 0.9.6 patch for bundled skill discovery and chart field semantics",
   "publishConfig": {
     "access": "public"

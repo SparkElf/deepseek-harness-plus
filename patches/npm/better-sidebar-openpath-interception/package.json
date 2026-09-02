@@ -1,6 +1,6 @@
 {
-  "name": "@sparkelf/dsh-patch-genui-streaming-echart",
-  "description": "Temporary data-only patch for streamed EChart component completion in dsh-genui",
+  "name": "@sparkelf/dsh-patch-better-sidebar-openpath-interception",
+  "description": "Compatibility patch for Better Sidebar chat file interception on DSH alpha.2",
   "version": "0.1.0-rc.14",
   "publishConfig": {
     "access": "public"
@@ -9,11 +9,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/genui-streaming-echart"
+    "directory": "patches/npm/better-sidebar-openpath-interception"
   },
   "exports": {
     "./package.json": "./package.json",
-    "./patches/streaming-echart-components.patch": "./patches/streaming-echart-components.patch"
+    "./patches/openpath-interception.patch": "./patches/openpath-interception.patch"
   },
   "files": [
     "patches/*.patch"
@@ -23,14 +23,14 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "genui-streaming-echart-components",
+        "id": "better-sidebar-openpath-interception",
         "dsh": ">=0.1.2-alpha.2",
         "target": {
           "kind": "npm",
-          "name": "@changfenhuang/dsh-genui",
-          "range": "0.9.6"
+          "name": "dsh-better-sidebar",
+          "range": "0.17.1"
         },
-        "file": "./patches/streaming-echart-components.patch"
+        "file": "./patches/openpath-interception.patch"
       }
     ]
   }
