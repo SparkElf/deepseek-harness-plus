@@ -58,8 +58,6 @@ const plusDistributionDirectory = 'packages/bundle/plus'
 const plusPatchDirectory = /^patches\/npm\/[^/]+$/
 const plusPackageNamePrefix = '@sparkelf/dsh-plugin-'
 const plusDistributionName = '@sparkelf/dsh-plus'
-const plusDesktopDirectory = 'apps/plus-desktop'
-const plusDesktopName = '@sparkelf/dsh-plus-desktop'
 const plusPatchNamePrefix = '@sparkelf/dsh-patch-'
 /** Directories whose packages this repository publishes: one release member each. */
 const releaseMemberDirectory = /^(?:packages\/(?!experimental\/)[^/]+\/[^/]+|patches\/npm\/[^/]+|apps\/[^/]+|vendor\/[^/]+)$/
@@ -152,7 +150,6 @@ function workspaceManifests(): WorkspaceManifest[] {
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@sparkelf/dsh-plus': ['lib/apply.js'],
   '@sparkelf/dsh-plugin-document-attachments': ['lib/mineru.js', 'lib/types-*.js'],
-  '@sparkelf/dsh-plugin-supervisor': ['runtime/**/*.mjs', 'progress/**/*'],
   // Statically linked client libraries keep their stylesheets next to the emitted
   // JavaScript, which imports them by relative path: the compile shell runs
   // them through its own CSS pipeline, so the sheets are published artifacts.
@@ -296,7 +293,6 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
   const isPlusPackage = isPlusPackageDir && manifest.name?.startsWith(plusPackageNamePrefix) === true
   const isPlusDistribution = dir === plusDistributionDirectory && manifest.name === plusDistributionName
   const isPlusRuntimePackage = isPlusPackage || isPlusDistribution
-  const isPlusDesktop = dir === plusDesktopDirectory && manifest.name === plusDesktopName
   const isPlusPatchDir = plusPatchDirectory.test(dir)
   const isPlusPatch = isPlusPatchDir && manifest.name?.startsWith(plusPatchNamePrefix) === true
   if (isPlusPackageDir && !isPlusPackage) {
@@ -304,9 +300,6 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
   }
   if (dir === plusDistributionDirectory && !isPlusDistribution) {
     errors.push(`${label}: Plus distribution package must be ${JSON.stringify(plusDistributionName)}`)
-  }
-  if (dir === plusDesktopDirectory && !isPlusDesktop) {
-    errors.push(`${label}: Plus Desktop package must be ${JSON.stringify(plusDesktopName)}`)
   }
   if (isPlusPatchDir && !isPlusPatch) {
     errors.push(`${label}: Plus patch package name must start with ${JSON.stringify(plusPatchNamePrefix)}`)
@@ -342,7 +335,7 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     if (manifest.publishConfig?.access !== 'public') {
       errors.push(`${label}: release member must set publishConfig.access to "public"`)
     }
-    const expectedRepositoryUrl = isPlusRuntimePackage || isPlusPatch || isPlusDesktop
+    const expectedRepositoryUrl = isPlusRuntimePackage || isPlusPatch
       ? plusRepositoryUrl
       : publishedRepositoryUrl
     if (manifest.repository?.type !== 'git'

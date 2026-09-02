@@ -55,6 +55,7 @@ External packages that a workspace package resolves at runtime. The tier covers 
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-mobile-bridge`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-plugin-supervisor`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@types/mdast`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |

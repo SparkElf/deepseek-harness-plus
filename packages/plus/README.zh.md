@@ -9,7 +9,7 @@ kind: "package-group"
 
 ## Summary
 
-`plus/` group包含与official DSH source base组合的public `@sparkelf/dsh-plugin-*` capability packages。这里的每个package拥有其capability所需的全部roles，包括Host、Client或external process，并同时拥有面向profile的entry、runtime locale与npm dependency closure。official或external gaps由独立versioned patch packages拥有；本group不fork或复制official capability implementations。
+`plus/` group包含源码仍由本fork持有并与official DSH source base组合的public `@sparkelf/dsh-plugin-*` capability packages。外部持有的capability保持registry dependencies：`@sparkelf/dsh-plugin-supervisor`由`SparkElf/dsh-plugins-plus`维护，可选Desktop由`SparkElf/dsh-plus-desktop`维护。official或external gaps由独立versioned patch packages拥有；本group不fork或复制external capability source。
 
 ## Packages
 
@@ -20,7 +20,6 @@ kind: "package-group"
 | [`document-attachments/`](document-attachments/README.zh.md) | provider-neutral document parser与MinerU provider；generic attachment integration仍在进行 | 提供`documentParser`；消费official attachment storage |
 | [`dataops/`](dataops/README.zh.md) | DataOps OAuth、credential lifecycle、MCP composition与Settings UI | 注册routes、MCP tools与Client Settings section |
 | [`mcp-credentials/`](mcp-credentials/README.zh.md) | 带current credential-backed Bearer transport的official MCP client replacement | mount后注册namespaced MCP tools |
-| [`supervisor/`](supervisor/README.zh.md) | out-of-process Plus runtime lifecycle及受控重启Session恢复 | 注册Host recovery route并发布Supervisor executable |
 
 ## Related documentation
 

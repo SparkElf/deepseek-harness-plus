@@ -134,7 +134,6 @@ function packageDirectories() {
     'packages/plus/document-attachments',
     'packages/plus/mcp-credentials',
     'packages/plus/subagent-settings',
-    'packages/plus/supervisor',
   ]
   const patchesRoot = join(repoRoot, 'patches/npm')
   const patches = readdirSync(patchesRoot, { withFileTypes: true })

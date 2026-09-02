@@ -3696,7 +3696,6 @@ export interface Config {
 - `@deepseek-ai/dsh-user-questions`（[`packages/interaction/user-questions/src/index.ts`](../packages/interaction/user-questions/src/index.ts)）
 - `@deepseek-ai/dsh-webhook` — 需要 `agents` · `agentDefaultModel` · `agentPresets` · `permissionPresets` · `sessionTitle` · `workspaceRegistry`（[`packages/webhook/webhook/src/index.ts`](../packages/webhook/webhook/src/index.ts)）
 - `@deepseek-ai/dsh-workspace` — 需要 `storageDomain` · `sessionPersistence`（[`packages/workspace/workspace/src/index.ts`](../packages/workspace/workspace/src/index.ts)）
-- `@sparkelf/dsh-plugin-supervisor` — 需要 `sessionController` · `webServer`（[`packages/plus/supervisor/src/index.ts`](../packages/plus/supervisor/src/index.ts)）
 
 ## Seam 包（不可直接加载）
 

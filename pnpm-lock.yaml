@@ -481,12 +481,6 @@ importers:
         specifier: 8.21.0
         version: 8.21.0
 
-  apps/plus-desktop:
-    dependencies:
-      '@sparkelf/dsh-plugin-supervisor':
-        specifier: workspace:^
-        version: link:../../packages/plus/supervisor
-
   apps/web:
     devDependencies:
       '@deepseek-ai/cordis-plugin-group':
@@ -1462,8 +1456,8 @@ importers:
         specifier: '>=0.1.0-rc.12'
         version: link:../../plus/subagent-settings
       '@sparkelf/dsh-plugin-supervisor':
-        specifier: '>=0.1.0-rc.12'
-        version: link:../../plus/supervisor
+        specifier: 0.1.1
+        version: 0.1.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-api-session-controller@packages+api+session-controller)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)
       dshmarket:
         specifier: '>=1.38.1'
         version: 1.38.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/schemastery@vendor+schemastery)
@@ -7366,28 +7360,6 @@ importers:
       react:
         specifier: ^18.2.0
         version: 18.3.1
-
-  packages/plus/supervisor:
-    dependencies:
-      yaml:
-        specifier: ^2.9.0
-        version: 2.9.0
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@deepseek-ai/dsh-api-session-controller':
-        specifier: workspace:^
-        version: link:../../api/session-controller
-      '@deepseek-ai/dsh-host-webserver':
-        specifier: workspace:^
-        version: link:../../host/webserver
-      '@deepseek-ai/dsh-invariants':
-        specifier: workspace:^
-        version: link:../../runtime-diagnostics/invariants
-      '@deepseek-ai/dsh-session':
-        specifier: workspace:^
-        version: link:../../core/session
 
   packages/preset/agent-presets:
     dependencies:
@@ -14320,6 +14292,17 @@ packages:
       '@deepseek-ai/dsh-client-ui-slots': '>=0.1.1-rc.2 <1'
       '@deepseek-ai/dsh-settings': '>=0.1.1-rc.2 <1'
       react: '>=18.2.0 <20'
+
+  '@sparkelf/dsh-plugin-supervisor@0.1.1':
+    resolution: {integrity: sha512-6+hCzKERrrr0T3A5c/YUrlaXr0ldWrGUokgTOQpyMGW2IxrhORS8GCuanbnZfEaRlLoY8mSchC/g1DC3A3auHQ==}
+    engines: {node: ^22.19.0 || >=24.0.0}
+    hasBin: true
+    peerDependencies:
+      '@deepseek-ai/cordis': '>=4.0.1'
+      '@deepseek-ai/dsh-api-session-controller': '>=0.1.2-alpha.2'
+      '@deepseek-ai/dsh-host-webserver': '>=0.1.2-alpha.2'
+      '@deepseek-ai/dsh-invariants': '>=0.1.2-alpha.2'
+      '@deepseek-ai/dsh-session': '>=0.1.2-alpha.2'
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -21431,6 +21414,13 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@sparkelf/dsh-plugin-supervisor@0.1.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-api-session-controller@packages+api+session-controller)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)':
+    dependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
+      '@deepseek-ai/dsh-api-session-controller': link:packages/api/session-controller
+      '@deepseek-ai/dsh-invariants': link:packages/runtime-diagnostics/invariants
+      yaml: 2.9.0
 
   '@standard-schema/spec@1.1.0': {}
 

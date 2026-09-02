@@ -10,7 +10,7 @@ The npm Plus distribution materializes official DSH and Plus-owned packages, but
 
 ## Proposal
 
-Plus ships two independently owned npm packages. <code>@sparkelf/dsh-plugin-supervisor</code> contains the Host Cordis entry, a plain Node Supervisor executable, its local command client, and the progress page. <code>@sparkelf/dsh-plus-desktop</code> contains only the optional tray function consumed by an Electron host and depends on the Supervisor package. The distribution package materializes Supervisor and mounts its Host entry; it does not depend on Desktop.
+Plus ships two independently owned npm packages. <code>@sparkelf/dsh-plugin-supervisor</code> contains the Host Cordis entry, a plain Node Supervisor executable, its local command client, and the progress page. <code>@sparkelf/dsh-plus-desktop</code> contains only the optional tray function consumed by an Electron host and depends on the Supervisor package. The distribution package materializes Supervisor and mounts its Host entry; it does not depend on Desktop. Supervisor source is owned by `SparkElf/dsh-plugins-plus`, Desktop source by `SparkElf/dsh-plus-desktop`, and this fork retains only the exact registry dependency and composition contract.
 
 The Supervisor manifest names the already materialized runtime command, arguments, working directory, DSH home, Web port, Supervisor port, local socket, and optional build command. Supervisor neither clones a repository nor selects a source branch. Desktop reads that manifest, starts Supervisor when needed, delegates every command, and leaves both Supervisor and Harness running when Desktop exits.
 
@@ -23,8 +23,8 @@ Ordinary start, stop, process crash, network reconnect, and client HMR do not tr
 | Package | Ownership |
 |---|---|
 | <code>@sparkelf/dsh-plus</code> | Materializes and composes the Supervisor package with official DSH and the other Plus packages. |
-| <code>@sparkelf/dsh-plugin-supervisor</code> | Host capture/recovery entry, external process lifecycle, command socket, manifest, runtime log, and progress page. |
-| <code>@sparkelf/dsh-plus-desktop</code> | Optional tray presentation and delegation to the Supervisor command client. |
+| <code>@sparkelf/dsh-plugin-supervisor</code> | `SparkElf/dsh-plugins-plus` owns Host capture/recovery, process lifecycle, command socket, manifest, runtime log, and progress page. |
+| <code>@sparkelf/dsh-plus-desktop</code> | `SparkElf/dsh-plus-desktop` owns optional tray presentation and delegation to the Supervisor command client. |
 | Official Session Controller | Lists running Sessions, resumes cold Sessions, admits the logged recovery user message, and queues its turn. |
 
 ## Alternatives considered
@@ -39,7 +39,7 @@ Ordinary start, stop, process crash, network reconnect, and client HMR do not tr
 
 ## Acceptance criteria
 
-- The Plus bundle materializes Supervisor without requiring Desktop or a second source-install path.
+- The Plus bundle materializes the exact published Supervisor version without requiring Desktop, a second source-install path, or Supervisor/Desktop source in this fork.
 - A controlled restart captures every running top-level Session and queues exactly one recovery prompt after the replacement Web runtime listens.
 - Ordinary start, stop, crash, reconnect, and HMR do not enqueue recovery.
 - Package, process, progress, and recovery behavior remain covered by the release and system-test gates.
