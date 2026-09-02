@@ -43,6 +43,26 @@ pnpm run typecheck
 
 ## 贡献者参考
 
+<a id="patched-third-party-packages"></a>
+
+### 通过补丁维护三方包
+
+在修改本仓库从 npm 使用的包或插件前，先检查根工作区和当前 DSH profile 的 `pnpm-workspace.yaml#patchedDependencies`。命中条目时，Plus 交付的实现以补丁为准，而不是以上游源码 checkout 为准（[决策](../.agents/notes/implemented/process/2026-09-01-patched-third-party-plugin-workflow.zh.md)）。
+
+使用锁定的 pnpm 命令准备并提交补丁：
+
+```sh
+pnpm patch <package>@<version> --edit-dir <directory>
+# Edit the extracted package.
+pnpm patch-commit <directory> --patches-dir <patch-directory>
+```
+
+release 工作区可以把展开后的包保存在 `packages-preview/<topic>/edit`，并把生成补丁保存在 `profile/.dsh-plus/patches/`。展开后的包已经包含当前生效的 Plus 补丁：只做增量修改并重新生成补丁。不要用上游 checkout 的整份构建文件覆盖它，也不要手工修改 `node_modules`、已安装包或生成后的补丁文件。
+
+重启受管 Host 前，先安装、构建并验证声明该补丁的 profile。受管部署只能通过自己的 supervisor 重启；official Plus 服务使用 `systemctl restart deepseek-harness-plus.service`，随后运行 `systemctl status deepseek-harness-plus.service` 和 `journalctl -u deepseek-harness-plus.service`。运行在该 service 内的 Agent 通过独立 transient unit 调度重启，例如 `systemd-run --on-active=2s --unit=dsh-plus-reload systemctl restart deepseek-harness-plus.service`，使重启请求在当前 service cgroup 终止后仍然存活。不要 kill Host 或用 `nohup` 重新启动，否则会绕过 supervisor 所有权和重启诊断。
+
+打过补丁的 profile 通过后，再把相同行为移植到独立的上游 checkout 并提交上游贡献；开发期间，上游 checkout 不能替代 Plus 补丁。
+
 <a id="typescript-project-layout"></a>
 
 ### TypeScript 项目布局
