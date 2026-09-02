@@ -190,8 +190,8 @@ function main(): void {
     throw new Error('dshPlus.profile.dependencies must own the exact Better Sidebar preview bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
-  if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true })) {
-    throw new Error('dshPlus.profile.allowBuilds must allow only node-pty')
+  if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true, protobufjs: false })) {
+    throw new Error('dshPlus.profile.allowBuilds must allow node-pty and explicitly deny protobufjs')
   }
   // External runtime packages由transitive dependency或apply-owned profile dependency恰好一个owner提供。
   for (const name of Object.keys(profileDependencies)) {
