@@ -186,9 +186,10 @@ function main(): void {
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
     'dsh-video-preview': '0.1.4',
     'dsh-univer-office': '0.2.12',
+    '@sparkelf/dsh-plugin-supervisor': '0.1.1',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
-    throw new Error('dshPlus.profile.dependencies must own the exact external preview and Office bundle set')
+    throw new Error('dshPlus.profile.dependencies must own the exact external preview, Office, and Supervisor bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
   if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true, protobufjs: false })) {
