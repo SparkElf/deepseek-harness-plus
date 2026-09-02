@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-univer-office-alpha2",
+  "description": "DSH alpha.2 compatibility, authorized template creation, and external Viewer fonts patch for dsh-univer-office",
+  "version": "0.1.0-rc.16",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/univer-office-alpha2"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/alpha2-runtime.patch": "./patches/alpha2-runtime.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "univer-office-alpha2-runtime",
+        "dsh": ">=0.1.2-alpha.2",
+        "target": {
+          "kind": "npm",
+          "name": "dsh-univer-office",
+          "range": "0.2.12"
+        },
+        "file": "./patches/alpha2-runtime.patch"
+      }
+    ]
+  }
+}
