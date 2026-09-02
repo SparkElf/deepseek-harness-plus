@@ -91,13 +91,14 @@ index 9ce99ef2a552319f5f15bc4e414cb50bf8b4522b..632009f9c39d16f432ef2336710c08b7
    if (status !== "draft") {
      throw new Error(`Worktree ${worktreeId} is ${status}; Unit changes require draft`);
 diff --git a/artifacts/viewer/index.html b/artifacts/viewer/index.html
-index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..2c44bc059339e1f55cd6a7046729b25d3ab229aa 100644
+index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..071e222a516ea1a7a4e5c5bcd9af3ca9cc86de2d 100644
 --- a/artifacts/viewer/index.html
 +++ b/artifacts/viewer/index.html
-@@ -10,6 +10,45 @@
+@@ -10,7 +10,33 @@
      />
      <!-- Placeholder only: main.tsx localizes the title (and <html lang>) at boot via applyDocumentLang(). -->
      <title>Univer</title>
+-    <script type="module" crossorigin src="/assets/index-xe_OYCFu.js"></script>
 +    <script>
 +      const send = WebSocket.prototype.send;
 +      WebSocket.prototype.send = function (...args) {
@@ -105,41 +106,29 @@ index da34c48dee700a69ec8c96969a9ad11e35c8dbaa..2c44bc059339e1f55cd6a7046729b25d
 +          return send.apply(this, args);
 +        }
 +      };
-+      const externalFonts = new Map();
-+      window.addEventListener("message", (event) => {
-+        const message = event.data;
-+        if (
-+          event.source !== window.parent ||
-+          typeof message !== "object" ||
-+          message === null ||
-+          message.type !== "dsh-univer/register-fonts" ||
-+          !Array.isArray(message.fonts)
-+        ) {
-+          return;
-+        }
-+        const loads = message.fonts.map((font) => {
-+          const key = font.family + "\n" + font.source;
-+          let pending = externalFonts.get(key);
-+          if (pending === undefined) {
-+            pending = new FontFace(font.family, `url("${font.source}")`, {
-+              style: "normal",
-+              weight: "400",
-+            }).load();
-+            externalFonts.set(key, pending);
-+          }
-+          return pending;
-+        });
-+        Promise.all(loads)
-+          .then((fonts) => {
-+            for (const font of fonts) document.fonts.add(font);
-+            window.dispatchEvent(new Event("resize"));
-+          })
-+          .catch((error) => console.error("[dsh-univer-office] external font load failed", error));
-+      });
++      const fontManifest = new URLSearchParams(location.search).get("dshFonts");
++      window.__dshExternalFontsReady =
++        fontManifest === null
++          ? Promise.resolve()
++          : Promise.all(
++              JSON.parse(fontManifest).map((font) =>
++                new FontFace(font.family, `url("${font.source}")`, {
++                  style: "normal",
++                  weight: "400",
++                }).load()
++              )
++            ).then(async (fonts) => {
++              for (const font of fonts) document.fonts.add(font);
++              await document.fonts.ready;
++            });
 +    </script>
-     <script type="module" crossorigin src="/assets/index-xe_OYCFu.js"></script>
++    <script type="module">
++      await window.__dshExternalFontsReady;
++      await import("/assets/index-xe_OYCFu.js");
++    </script>
      <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-hePW80VL.js">
      <link rel="modulepreload" crossorigin href="/assets/es-C_3AFWIu.js">
+     <link rel="modulepreload" crossorigin href="/assets/render-preset-Daci-FOK.js">
 diff --git a/docs/architecture.md b/docs/architecture.md
 index ab35fcd839172d9546ff3e822b5a94ce4c03f22c..aebc0bc91dcdf044614f9a086342b3ade8769fa9 100644
 --- a/docs/architecture.md
