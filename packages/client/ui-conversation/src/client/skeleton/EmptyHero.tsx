@@ -150,9 +150,11 @@ export function HeroShell({ t, renderSlot, children }: HeroShellProps) {
             })}
           </span>
           <span className={css.headlineText}>
-            {t('hero.headline')}
+            {renderSlot('conversation.hero.brand.name', {}, { fallback: t('hero.headline') })}
           </span>
-          <span className={css.previewBadge}>{t('hero.preview')}</span>
+          {renderSlot('conversation.hero.brand.badge', {}, {
+            fallback: <span className={css.previewBadge}>{t('hero.preview')}</span>,
+          })}
         </div>
         <div className={css.body}>
           {/* The composer remains mounted outside this component. */}
