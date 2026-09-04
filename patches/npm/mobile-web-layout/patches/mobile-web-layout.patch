@@ -245,7 +245,7 @@ index ce989f0..569d5d1 100644
                  <button
                    key={viewTab.id}
 diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
-index 6576608..986a8a8 100644
+index 6576608..f21ff55 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
 +++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
 @@ -211,7 +211,7 @@
@@ -297,7 +297,7 @@ index 6576608..986a8a8 100644
 +  .tools,
 +  .modes,
 +  .trailing {
-+    gap: 4px;
++    gap: 2px;
 +  }
 +}
 +
