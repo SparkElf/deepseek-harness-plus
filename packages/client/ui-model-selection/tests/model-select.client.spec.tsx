@@ -71,6 +71,8 @@ describe('ModelSelect reasoning effort', () => {
     const trigger = screen.getByRole('button', {
       name: '选择模型，当前 DeepSeek-V4-Flash，推理等级 High',
     })
+    expect(trigger.title).toBe('DeepSeek-V4-Flash · High')
+    expect(trigger.querySelector('[data-model-trigger-icon]')?.getAttribute('aria-hidden')).toBe('true')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
     expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
