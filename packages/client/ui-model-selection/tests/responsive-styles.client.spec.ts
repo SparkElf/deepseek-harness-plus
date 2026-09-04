@@ -24,7 +24,7 @@ describe('responsive composer model trigger styles', () => {
 
   it('constrains only the mobile menu while preserving the desktop content-sized menu', () => {
     const desktopMenu = modelCss.slice(modelCss.indexOf('.menu {'), modelCss.indexOf('.status,'))
-    const mobileMenu = modelCss.slice(modelCss.lastIndexOf('@container (max-width: 420px)'))
+    const mobileMenu = modelCss.slice(modelCss.indexOf('.portalMenu {'))
     expect(desktopMenu).toContain('width: max-content;')
     expect(desktopMenu).toContain('max-width: min(420px, calc(100vw - 32px));')
     expect(mobileMenu).toContain('box-sizing: border-box;')

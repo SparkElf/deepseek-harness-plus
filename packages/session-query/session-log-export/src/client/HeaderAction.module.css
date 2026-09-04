@@ -34,3 +34,30 @@
 .sessionLogButton span {
   white-space: nowrap;
 }
+
+@media (max-width: 640px) {
+  .sessionLogButton {
+    width: 28px;
+    min-width: 28px;
+    height: 28px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+  }
+
+  :global(body[data-dsh-sidebar-collapsed]) .sessionLogButton {
+    position: fixed;
+    top: calc(3px + env(safe-area-inset-top));
+    right: 42px;
+    z-index: 45;
+  }
+
+  .sessionLogButton span {
+    display: none;
+  }
+
+  .sessionLogButton svg {
+    width: 16px;
+    height: 16px;
+  }
+}

@@ -141,6 +141,36 @@ describe('web e2e: settings modal and General preferences', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+
+  it('uses a full-screen navigation-to-detail flow on phones', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-mobile-shell'))
+    await page.setViewportSize({ width: 418, height: 820 })
+    const trigger = page.getByRole('button', { name: '设置', exact: true })
+    await trigger.click()
+    const dialog = page.getByRole('dialog', { name: '设置' })
+    await dialog.waitFor({ timeout: 10_000 })
+    const box = await dialog.boundingBox()
+    expect(box).toMatchObject({ x: 0, y: 0, width: 418, height: 820 })
+    await expect.poll(() => dialog.getByRole('button', { name: '通用设置' }).isVisible()).toBe(true)
+    expect(await dialog.getByText('语言', { exact: true }).isVisible()).toBe(false)
+
+    await dialog.getByRole('button', { name: '通用设置' }).click()
+    const back = dialog.locator('[data-settings-mobile-back]')
+    await back.waitFor()
+    expect(await back.isVisible()).toBe(true)
+    expect(await dialog.getByRole('button', { name: '模型' }).isVisible()).toBe(false)
+    await expect.poll(() => dialog.getByText('语言', { exact: true }).isVisible()).toBe(true)
+    const overflow = await dialog.evaluate(element => element.scrollWidth - element.clientWidth)
+    expect(overflow).toBeLessThanOrEqual(1)
+
+    await back.click()
+    await expect.poll(() => dialog.getByRole('button', { name: '模型' }).isVisible()).toBe(true)
+    expect(await dialog.getByText('语言', { exact: true }).isVisible()).toBe(false)
+    await dialog.getByRole('button', { name: '关闭' }).click()
+    await page.setViewportSize({ width: 1680, height: 1000 })
+    expect(tripwire.pageErrors).toEqual([])
+  }, 60_000)
+
   it('stores Permission as the default for future sessions without changing an existing session', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-settings-permission'))
     const existing = scaffold.ctx.sessions.create(SessionId('settings-permission-before'))

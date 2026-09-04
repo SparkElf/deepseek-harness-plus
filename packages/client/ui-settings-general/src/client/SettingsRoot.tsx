@@ -11,10 +11,11 @@
  * to the step, so a mounted-but-deciding step paints nothing here.
  */
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import {
   ConnectionIndicator,
-  IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,
+  IconAgentPresetOutline16, IconChevronLeftOutline14, IconCloseOutline16, IconDataOutline16,
   IconPersonalizationOutline16, IconSettingsOutline16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ConnectionIndicatorState } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -35,7 +36,7 @@ type PanelProps = {
   rows: readonly SettingsSectionRow[]
   renderSlot: SettingsRootComponentProps['renderSlot']
   activeId: string | undefined
-  onSelect: (id: string) => void
+  onSelect: (id: string | undefined) => void
   onClose: () => void
 }
 
@@ -47,8 +48,21 @@ type PanelProps = {
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
-  const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
+  const activeRow = rows.find(row => row.id === activeId) ?? rows[0]
+  const active = activeRow?.id
+  const detailOpen = activeId !== undefined && activeId === active
   const titleId = useId()
+  const [mobile, setMobile] = useState(() => typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 640px)').matches
+    : window.innerWidth <= 640)
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const query = window.matchMedia('(max-width: 640px)')
+    const update = (): void => { setMobile(query.matches) }
+    query.addEventListener('change', update)
+    return () => { query.removeEventListener('change', update) }
+  }, [])
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -60,12 +74,22 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
 
   // Entering the dialog focuses the close button; the root restores its trigger on close.
   const closeButton = useRef<HTMLButtonElement | null>(null)
-  useEffect(() => { closeButton.current?.focus() }, [])
+  const mobileCloseButton = useRef<HTMLButtonElement | null>(null)
+  useEffect(() => {
+    const target = mobile ? mobileCloseButton : closeButton
+    target.current?.focus()
+  }, [mobile])
 
-  return (
+  return createPortal((
     <div className={css.overlay} role="presentation">
       <div className={css.mask} aria-hidden="true" onClick={onClose} />
-      <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className={clsx(css.panel, detailOpen && css.detailOpen)} role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        {mobile && (
+          <button ref={mobileCloseButton} type="button" className={clsx(css.close, css.mobileClose)} onClick={onClose}>
+            <IconCloseOutline16 size={16} />
+            <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
+          </button>
+        )}
         <nav className={css.nav}>
           <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
           <div className={css.navList}>
@@ -85,11 +109,17 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         </nav>
         <div className={css.content}>
           <div className={css.header}>
-            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
-            <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
-              <IconCloseOutline16 size={14} />
-              <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
+            <button type="button" className={css.mobileBack} data-settings-mobile-back aria-labelledby={titleId} onClick={() => { onSelect(undefined) }}>
+              <IconChevronLeftOutline14 size={18} />
             </button>
+            <div className={css.mobileSectionTitle}>{activeRow?.label}</div>
+            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
+            {!mobile && (
+              <button ref={closeButton} type="button" className={clsx(css.close, css.desktopClose)} onClick={onClose}>
+                <IconCloseOutline16 size={14} />
+                <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
+              </button>
+            )}
           </div>
           <div className={css.options}>
             {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
@@ -97,7 +127,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         </div>
       </div>
     </div>
-  )
+  ), document.body)
 }
 
 /**

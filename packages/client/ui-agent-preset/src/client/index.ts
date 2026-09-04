@@ -156,7 +156,7 @@ export function apply(ctx: ClientContext): void {
         inject: seatInjected,
       }, AgentPresetSeat)
       const label = scope.slots.register({
-        name: 'conversation.session.header.actions',
+        name: 'conversation.session.header.utilities',
         id: 'agent-preset',
         // Static session context occupies the header's leading negative-order band.
         order: -10,

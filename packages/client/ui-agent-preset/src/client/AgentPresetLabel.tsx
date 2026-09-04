@@ -31,7 +31,7 @@ export interface AgentPresetLabelInjected {
 
 /** Full component props. */
 export type AgentPresetLabelProps =
-  PropsRuntime<'conversation.session.header.actions'>
+  PropsRuntime<'conversation.session.header.utilities'>
   & PropsLocale<'settings.agentPreset'>
   & InjectFace<AgentPresetLabelInjected>
 
