@@ -230,6 +230,10 @@ export abstract class RemoteJournalStream<Page, Entry, Cursor, PageRequest = voi
         if (next.done) return
         const item = next.value
         if (item.generation !== this.generation) {
+          // A replaced mobile carrier can surface buffered live entries before
+          // its opening snapshot. The snapshot subsumes them, so retain the
+          // published window and wait for that generation's opening cursor.
+          if (item.value.type !== 'opened') continue
           this.replaceGeneration(item, true)
           continue
         }

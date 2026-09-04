@@ -22,6 +22,16 @@ describe('responsive composer model trigger styles', () => {
     expect(iconOnly).toContain('.triggerLabel,')
   })
 
+  it('constrains only the mobile menu while preserving the desktop content-sized menu', () => {
+    const desktopMenu = modelCss.slice(modelCss.indexOf('.menu {'), modelCss.indexOf('.status,'))
+    const mobileMenu = modelCss.slice(modelCss.lastIndexOf('@container (max-width: 420px)'))
+    expect(desktopMenu).toContain('width: max-content;')
+    expect(desktopMenu).toContain('max-width: min(420px, calc(100vw - 32px));')
+    expect(mobileMenu).toContain('box-sizing: border-box;')
+    expect(mobileMenu).toContain('width: min(240px, calc(100vw - 24px));')
+    expect(mobileMenu).toContain('max-height: min(300px, calc(100dvh - 80px));')
+  })
+
   it('keeps the full model label available to ellipsis and hover surfaces', () => {
     const label = modelCss.slice(modelCss.indexOf('.triggerLabel {'), modelCss.indexOf('.triggerEffort {'))
     expect(label).toContain('text-overflow: ellipsis;')
