@@ -270,7 +270,7 @@
   .tools,
   .modes,
   .trailing {
-    gap: 4px;
+    gap: 2px;
   }
 }
 

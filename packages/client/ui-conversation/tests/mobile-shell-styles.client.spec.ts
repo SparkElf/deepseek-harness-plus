@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
 const conversation = read('../src/client/skeleton/ConversationRoot.module.css')
+const inputBar = read('../src/client/skeleton/InputBar.module.css')
 const sessionHeader = read('../src/client/skeleton/ConversationSession.tsx')
 const settings = read('../../ui-settings-general/src/client/SettingsRoot.module.css')
 const jobs = read('../../ui-jobs/src/client/JobListAction.module.css')
@@ -21,6 +22,8 @@ describe('mobile shell responsive contracts', () => {
     expect(mobile).toContain('position: absolute;')
     expect(mobile).toContain('padding-right: min(112px, 32vw);')
     expect(mobile).toContain('writing-mode: horizontal-tb;')
+    const ultraNarrow = inputBar.slice(inputBar.indexOf('@container (max-width: 340px)'))
+    expect(ultraNarrow).toContain('gap: 2px;')
   })
 
   it('uses a full-screen Settings navigation-to-detail flow', () => {
