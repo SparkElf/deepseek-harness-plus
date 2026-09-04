@@ -88,6 +88,72 @@ describe.skipIf(MODE === 'record')('web e2e: declared reasoning efforts reach th
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+  it('collapses the model trigger before the composer toolbar can wrap', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-responsive-model-trigger'))
+    const trigger = page.locator('[data-model-trigger]')
+    await trigger.waitFor({ timeout: 15_000 })
+    await page.getByRole('button', { name: /收起侧边栏|Collapse sidebar/i }).click()
+
+    const measure = async (width: number) => {
+      await page.setViewportSize({ width, height: 820 })
+      await page.locator('[data-composer-toolbar]').evaluate(async (row) => {
+        const deadline = performance.now() + 5_000
+        let previous = row.getBoundingClientRect().width
+        let stableFrames = 0
+        while (performance.now() < deadline) {
+          await new Promise<void>((resolve) => { requestAnimationFrame(() => { resolve() }) })
+          const current = row.getBoundingClientRect().width
+          stableFrames = Math.abs(current - previous) < 0.01 ? stableFrames + 1 : 0
+          if (stableFrames >= 3) return
+          previous = current
+        }
+        throw new Error('composer toolbar width did not settle after viewport change')
+      })
+      return page.evaluate(() => {
+        const row = document.querySelector<HTMLElement>('[data-composer-toolbar]')
+        const tools = document.querySelector<HTMLElement>('[data-composer-tools]')
+        const trailing = document.querySelector<HTMLElement>('[data-composer-trailing]')
+        const model = document.querySelector<HTMLElement>('[data-model-trigger]')
+        const icon = document.querySelector<HTMLElement>('[data-model-trigger-icon]')
+        const label = model?.children[1]
+        const effort = model?.children[2]
+        if (row === null || tools === null || trailing === null || model === null || icon === null) {
+          throw new Error('responsive composer measurement target is missing')
+        }
+        const box = (element: HTMLElement) => element.getBoundingClientRect()
+        return {
+          rowHeight: box(row).height,
+          rowClientWidth: row.clientWidth,
+          rowScrollWidth: row.scrollWidth,
+          toolsRight: box(tools).right,
+          trailingLeft: box(trailing).left,
+          toolsY: box(tools).y,
+          trailingY: box(trailing).y,
+          icon: getComputedStyle(icon).display,
+          label: label instanceof HTMLElement ? getComputedStyle(label).display : 'missing',
+          effort: effort instanceof HTMLElement && !effort.matches('svg') ? getComputedStyle(effort).display : 'none',
+          title: model.title,
+          ariaLabel: model.getAttribute('aria-label'),
+        }
+      })
+    }
+
+    const full = await measure(702)
+    const compact = await measure(600)
+    const iconOnly = await measure(418)
+    for (const metrics of [full, compact, iconOnly]) {
+      expect(metrics.rowHeight).toBeLessThanOrEqual(42)
+      expect(metrics.rowScrollWidth).toBe(metrics.rowClientWidth)
+      expect(metrics.toolsRight).toBeLessThanOrEqual(metrics.trailingLeft)
+      expect(Math.abs(metrics.toolsY - metrics.trailingY)).toBeLessThanOrEqual(4)
+      expect(metrics.title).toBe('Acme Think · High')
+      expect(metrics.ariaLabel).toBe('选择模型，当前 Acme Think，推理等级 High')
+    }
+    expect(full).toMatchObject({ icon: 'none', label: 'block', effort: 'block' })
+    expect(compact).toMatchObject({ icon: 'none', label: 'block', effort: 'none' })
+    expect(iconOnly).toMatchObject({ icon: 'flex', label: 'none', effort: 'none' })
+  }, 60_000)
+
   it('keeps its snapshot inventory closed', async () => {
     await assertFixtureInventory(SNAPSHOT_DIR, ['ui.expected.md'])
   })

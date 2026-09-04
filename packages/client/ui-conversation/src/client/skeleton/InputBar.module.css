@@ -211,7 +211,7 @@
    (figma Input_Bottom chrome). */
 .row {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -239,6 +239,7 @@
    Read-only; the chip gap widened to 12 so the pill chips read as separate
    controls. */
 .tools {
+  flex: 1 1 auto;
   gap: 16px;
 }
 
@@ -247,14 +248,21 @@
 }
 
 .trailing {
-  flex: none;
-  /* Wrap keeps the left mode chips and the right controls apart when the card
-     runs out of row width: the trailing group (model + send) moves to its own
-     line instead of the left group shrinking until its chip overlaps the
-     model trigger (external:107). The auto margin re-anchors it right on the
-     wrapped line; on a single line space-between already pins it right. */
+  flex: 0 1 auto;
+  /* The model trigger progressively collapses before this trailing group can
+     push the send action off the toolbar. The auto margin pins
+     model/context/send to the right while this group and its model seat retain
+     the ability to shrink on narrow composers. */
   margin-left: auto;
   gap: 12px;
+}
+
+@container (max-width: 460px) {
+  .tools,
+  .modes,
+  .trailing {
+    gap: 8px;
+  }
 }
 
 /* Attach circle (figma + control): 28px, selector fill, primary glyph. */

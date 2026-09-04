@@ -434,8 +434,8 @@ export function InputBar({
             <DecoratorPortals editor={workspaceTrigger ? null : editor} />
           </div>
         </div>
-        <div className={css.row}>
-          <div className={css.tools}>
+        <div className={css.row} data-composer-toolbar>
+          <div className={css.tools} data-composer-tools>
             <Tooltip label={t('input.commands')} side="top" delayMs={500}>
               <button
                 type="button"
@@ -456,7 +456,7 @@ export function InputBar({
             </div>
             {leftItems}
           </div>
-          <div className={css.trailing}>
+          <div className={css.trailing} data-composer-trailing>
             {rightItems}
             {sessionId === undefined ? null : renderSlot('conversation.input.model', { locked: modelSeatLocked })}
             <ContextMeter useProjection={useProjection} t={t} />

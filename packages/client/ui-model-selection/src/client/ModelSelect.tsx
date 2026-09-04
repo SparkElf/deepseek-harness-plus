@@ -9,7 +9,10 @@
  * /model popup; exact-model reasoning metadata and the selected effort come
  * from the Host rather than a client-owned vocabulary. A rejected selection
  * announces through the shared transient Toast anchored to the composer
- * card; the in-menu strip with Retry remains the catalog-load surface.
+ * card; the in-menu strip with Retry remains the catalog-load surface. The
+ * closed trigger progressively drops effort, ellipsizes the model name, then
+ * uses the shared model glyph on narrow composer rows without changing its
+ * accessible name or menu behavior.
  */
 import {
   useEffect, useId, useMemo, useRef, useState, useSyncExternalStore,
@@ -19,7 +22,7 @@ import clsx from 'clsx'
 import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
-  IconWarningOutline16, Toast,
+  IconThinkOutline16, IconWarningOutline16, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelSelectInjected } from './slots.ts'
@@ -218,6 +221,7 @@ export function ModelSelect(
         ref={triggerRef}
         type="button"
         className={css.trigger}
+        data-model-trigger
         aria-label={triggerAria}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -232,6 +236,7 @@ export function ModelSelect(
           }
         }}
       >
+        <span className={css.triggerIcon} data-model-trigger-icon aria-hidden><IconThinkOutline16 /></span>
         <span className={css.triggerLabel}>{modelLabel}</span>
         {effortLabel !== undefined && <span className={css.triggerEffort}>{effortLabel}</span>}
         <IconChevronDownOutline14 className={clsx(css.chevron, open && css.chevronOpen)} />

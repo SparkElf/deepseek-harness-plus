@@ -1,6 +1,8 @@
 .root {
   position: relative;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: min(360px, 45cqw);
 }
 
 /* Figma 313:14108 ToggleButton: 13/20 medium secondary label, 4px gap,
@@ -10,11 +12,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  width: 100%;
   min-width: 0;
-  /* Legacy fallback, then a row-relative cap that grants long names more
-     room without letting this trailing control consume the composer. */
-  max-width: 220px;
-  max-width: min(360px, 45cqw);
+  max-width: 100%;
   height: 28px;
   padding: 0 4px 0 8px;
   border: none;
@@ -42,7 +42,13 @@
   cursor: default;
 }
 
+.triggerIcon {
+  display: none;
+  flex: 0 0 auto;
+}
+
 .triggerLabel {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -63,6 +69,48 @@
 
 .chevronOpen {
   transform: rotate(180deg);
+}
+
+/* The composer row is the anonymous inline-size container. Keep the model name
+   as the primary identity, then replace it with the familiar model glyph only
+   when text would compete with the fixed context and send actions. */
+@container (max-width: 560px) {
+  .root {
+    max-width: min(180px, 34cqw);
+  }
+
+  .triggerEffort {
+    display: none;
+  }
+}
+
+@container (max-width: 420px) {
+  .root {
+    flex: 0 0 36px;
+    width: 36px;
+    max-width: 36px;
+  }
+
+  .trigger {
+    justify-content: center;
+    gap: 2px;
+    width: 36px;
+    padding: 0 3px 0 5px;
+  }
+
+  .triggerIcon {
+    display: inline-flex;
+  }
+
+  .triggerIcon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .triggerLabel,
+  .triggerEffort {
+    display: none;
+  }
 }
 
 .menu {
