@@ -742,7 +742,7 @@ describe('RemoteJournalStream', () => {
     await fixture.journal.dispose()
   })
 
-  it('reports a resumed generation that emits an entry before its cursor', async () => {
+  it('drops resumed entries before the replacement opening cursor', async () => {
     const finish = Promise.withResolvers<undefined>()
     const fixture = journalFixture(
       [
@@ -751,17 +751,26 @@ describe('RemoteJournalStream', () => {
           waitAfterFrames: finish.promise,
           terminal: new RemoteStreamCarrierError('lost'),
         },
-        { frames: [{ type: 'entry', entry: { seq: 1 } }] },
+        {
+          frames: [
+            { type: 'entry', entry: { seq: 1 } },
+            opened(1, page('replacement', [0, 1])),
+          ],
+          hold: true,
+        },
       ],
       [],
     )
 
     await fixture.journal.open({})
     finish.resolve(undefined)
-    await vi.waitFor(() => { expect(fixture.failed).toHaveBeenCalledOnce() })
-    expect(fixture.failed.mock.calls[0]?.[0]).toMatchObject({
-      message: 'resumed fixture journal emitted an entry before its opening cursor',
+    await vi.waitFor(() => { expect(fixture.changes).toHaveLength(2) })
+    expect(fixture.changes.at(-1)).toMatchObject({
+      type: 'replace',
+      page: { marker: 'replacement' },
+      entries: [{ seq: 0 }, { seq: 1 }],
     })
+    expect(fixture.failed).not.toHaveBeenCalled()
     await fixture.journal.dispose()
   })
 

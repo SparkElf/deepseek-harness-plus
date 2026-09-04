@@ -307,3 +307,22 @@
   flex: 0 0 auto;
   color: var(--dsw-alias-label-tertiary);
 }
+
+/* The icon trigger sits near the right edge of narrow composer rows. A fixed
+   compact width keeps the root pane and drilled lists inside the viewport;
+   desktop keeps the content-sized menu above. */
+@container (max-width: 420px) {
+  .menu {
+    box-sizing: border-box;
+    width: min(240px, calc(100vw - 24px));
+    min-width: 0;
+    max-width: calc(100vw - 24px);
+    max-height: min(300px, calc(100dvh - 80px));
+  }
+
+  .cell,
+  .option {
+    width: 100%;
+    min-width: 0;
+  }
+}

@@ -152,6 +152,18 @@ describe.skipIf(MODE === 'record')('web e2e: declared reasoning efforts reach th
     expect(full).toMatchObject({ icon: 'none', label: 'block', effort: 'block' })
     expect(compact).toMatchObject({ icon: 'none', label: 'block', effort: 'none' })
     expect(iconOnly).toMatchObject({ icon: 'flex', label: 'none', effort: 'none' })
+
+    await trigger.click()
+    const menu = page.getByRole('menu', { name: '模型与推理等级' })
+    await menu.waitFor()
+    const menuBox = await menu.boundingBox()
+    if (menuBox === null) throw new Error('mobile model menu has no layout box')
+    expect(menuBox.x).toBeGreaterThanOrEqual(12)
+    expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(418 - 12)
+    expect(menuBox.width).toBeLessThanOrEqual(240)
+    const rootRows = await menu.getByRole('menuitem').allTextContents()
+    expect(rootRows).toEqual(['模型Acme Think', '推理等级High'])
+    await page.keyboard.press('Escape')
   }, 60_000)
 
   it('keeps its snapshot inventory closed', async () => {
