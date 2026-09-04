@@ -74,3 +74,378 @@ index 374ce64703..1f8d94a640 100644
  /**
   * Solve the three column widths for one viewport frame. Pure: no hysteresis —
   * the output is a function of (viewport, preferences) only, so recovery on
+diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
+index b40453e..3a42c74 100644
+--- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
++++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
+@@ -31,7 +31,7 @@ export interface AgentPresetLabelInjected {
+ 
+ /** Full component props. */
+ export type AgentPresetLabelProps =
+-  PropsRuntime<'conversation.session.header.actions'>
++  PropsRuntime<'conversation.session.header.context'>
+   & PropsLocale<'settings.agentPreset'>
+   & InjectFace<AgentPresetLabelInjected>
+ 
+diff --git a/packages/client/ui-agent-preset/src/client/index.ts b/packages/client/ui-agent-preset/src/client/index.ts
+index d3b8b34..5fb7896 100644
+--- a/packages/client/ui-agent-preset/src/client/index.ts
++++ b/packages/client/ui-agent-preset/src/client/index.ts
+@@ -156,7 +156,7 @@ export function apply(ctx: ClientContext): void {
+         inject: seatInjected,
+       }, AgentPresetSeat)
+       const label = scope.slots.register({
+-        name: 'conversation.session.header.actions',
++        name: 'conversation.session.header.context',
+         id: 'agent-preset',
+         // Static session context occupies the header's leading negative-order band.
+         order: -10,
+diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
+index b154e73..46cc5d7 100644
+--- a/packages/client/ui-conversation/src/client/apply.ts
++++ b/packages/client/ui-conversation/src/client/apply.ts
+@@ -229,6 +229,7 @@ export function apply(ctx: Context): void {
+     locale: NS,
+     children: {
+       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
++      'conversation.session.header.context': { kind: 'list', scope: 'session' },
+       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
+     },
+diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
+index 377a75e..071864a 100644
+--- a/packages/client/ui-conversation/src/client/contract/slots.ts
++++ b/packages/client/ui-conversation/src/client/contract/slots.ts
+@@ -101,7 +101,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+       scope: 'session'
+       owner: ConversationHeaderLineageOwnerProps
+     }
+-    /** Title-adjacent Session actions in ascending order. */
++    /** Immutable Session context kept beside the title on every layout. */
++    'conversation.session.header.context': {
++      kind: 'list'
++      scope: 'session'
++      owner: ConversationHeaderActionOwnerProps
++    }
++    /** Title-adjacent desktop actions; mobile layouts place them beside the View tabs. */
+     'conversation.session.header.actions': {
+       kind: 'list'
+       scope: 'session'
+@@ -346,6 +352,7 @@ export type ConversationSessionHeaderSlotProps =
+   PropsRuntime<'conversation.session.header'>
+   & PropsRenderSlots<
+     'conversation.session.header.lineage'
++    | 'conversation.session.header.context'
+     | 'conversation.session.header.actions'
+     | 'conversation.session.header.utilities'
+   >
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
+index 73c5fcc..912c0af 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
+@@ -127,10 +127,19 @@
+   cursor: default;
+ }
+ 
+-.headerActions {
++.headerContext,
++.headerActions,
++.headerUtilities {
+   display: flex;
+   flex: none;
+   align-items: center;
++}
++
++.headerContext {
++  gap: 4px;
++}
++
++.headerActions {
+   gap: 8px;
+ }
+ 
+@@ -450,3 +459,43 @@
+ .root[data-phase='settling'] .composerSeat {
+   visibility: hidden;
+ }
++
++@media (max-width: 800px) {
++  .header {
++    padding-right: 12px;
++    padding-left: 12px;
++  }
++
++  .titleCluster {
++    gap: 6px;
++  }
++
++  .headerContext {
++    max-width: min(120px, 34vw);
++    overflow: hidden;
++  }
++
++  .headerActions {
++    position: absolute;
++    right: 8px;
++    bottom: 0;
++    z-index: 2;
++    gap: 2px;
++  }
++
++  .headerUtilities {
++    gap: 2px;
++    margin-left: 6px;
++  }
++
++  .tabs {
++    gap: 16px;
++    padding-right: min(112px, 32vw);
++  }
++
++  .tab {
++    writing-mode: horizontal-tb;
++    white-space: nowrap;
++  }
++}
++
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
+index ce989f0..569d5d1 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
+@@ -84,7 +84,7 @@ export function ConversationSessionHeader({
+       {!hideChrome && (
+         <>
+           <div className={css.titleRow}>
+-            <div className={css.titleCluster}>
++            <div className={css.titleCluster} data-session-title-cluster>
+               <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
+                 {ancestry.map((summary, index) => {
+                   const last = index === ancestry.length - 1
+@@ -134,16 +134,19 @@ export function ConversationSessionHeader({
+                 })}
+                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
+               </nav>
+-              <div className={css.headerActions}>
++              <div className={css.headerContext} data-session-header-context>
++                {renderSlot('conversation.session.header.context', {})}
++              </div>
++              <div className={css.headerActions} data-session-header-actions>
+                 {renderSlot('conversation.session.header.actions', {})}
+               </div>
+             </div>
+-            <div className={css.headerUtilities}>
++            <div className={css.headerUtilities} data-session-header-utilities>
+               {renderSlot('conversation.session.header.utilities', {})}
+             </div>
+           </div>
+           {tabs.length > 1 && (
+-            <div className={css.tabs} role="tablist">
++            <div className={css.tabs} data-session-tabs role="tablist">
+               {tabs.map(viewTab => (
+                 <button
+                   key={viewTab.id}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
+index 6576608..986a8a8 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
+@@ -211,7 +211,7 @@
+    (figma Input_Bottom chrome). */
+ .row {
+   display: flex;
+-  flex-wrap: wrap;
++  flex-wrap: nowrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+@@ -239,6 +239,7 @@
+    Read-only; the chip gap widened to 12 so the pill chips read as separate
+    controls. */
+ .tools {
++  flex: 1 1 auto;
+   gap: 16px;
+ }
+ 
+@@ -247,16 +248,32 @@
+ }
+ 
+ .trailing {
+-  flex: none;
+-  /* Wrap keeps the left mode chips and the right controls apart when the card
+-     runs out of row width: the trailing group (model + send) moves to its own
+-     line instead of the left group shrinking until its chip overlaps the
+-     model trigger (external:107). The auto margin re-anchors it right on the
+-     wrapped line; on a single line space-between already pins it right. */
++  flex: 0 1 auto;
++  /* The model trigger progressively collapses before this trailing group can
++     push the send action off the toolbar. The auto margin pins
++     model/context/send to the right while this group and its model seat retain
++     the ability to shrink on narrow composers. */
+   margin-left: auto;
+   gap: 12px;
+ }
+ 
++@container (max-width: 460px) {
++  .tools,
++  .modes,
++  .trailing {
++    gap: 8px;
++  }
++}
++
++@container (max-width: 340px) {
++  .row,
++  .tools,
++  .modes,
++  .trailing {
++    gap: 4px;
++  }
++}
++
+ /* Attach circle (figma + control): 28px, selector fill, primary glyph. */
+ .add {
+   display: grid;
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+index d4c06d8..5c74017 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -434,8 +434,8 @@ export function InputBar({
+             <DecoratorPortals editor={workspaceTrigger ? null : editor} />
+           </div>
+         </div>
+-        <div className={css.row}>
+-          <div className={css.tools}>
++        <div className={css.row} data-composer-toolbar>
++          <div className={css.tools} data-composer-tools>
+             <Tooltip label={t('input.commands')} side="top" delayMs={500}>
+               <button
+                 type="button"
+@@ -456,7 +456,7 @@ export function InputBar({
+             </div>
+             {leftItems}
+           </div>
+-          <div className={css.trailing}>
++          <div className={css.trailing} data-composer-trailing>
+             {rightItems}
+             {sessionId === undefined ? null : renderSlot('conversation.input.model', { locked: modelSeatLocked })}
+             <ContextMeter useProjection={useProjection} t={t} />
+diff --git a/packages/client/ui-jobs/src/client/JobListAction.module.css b/packages/client/ui-jobs/src/client/JobListAction.module.css
+index 2f475bd..1f5b092 100644
+--- a/packages/client/ui-jobs/src/client/JobListAction.module.css
++++ b/packages/client/ui-jobs/src/client/JobListAction.module.css
+@@ -34,6 +34,11 @@
+   flex: none;
+ }
+ 
++.compactIcon {
++  display: none;
++  flex: none;
++}
++
+ .count {
+   margin: 0 5px;
+ }
+@@ -123,3 +128,31 @@
+ .duration {
+   font-variant-numeric: tabular-nums;
+ }
++
++@media (max-width: 800px) {
++  .trigger {
++    justify-content: center;
++    gap: 2px;
++    width: 34px;
++    min-width: 34px;
++    padding: 0 2px;
++  }
++
++  .compactIcon {
++    display: block;
++    width: 14px;
++    height: 14px;
++  }
++
++  .count {
++    display: none;
++  }
++
++  .menu {
++    right: 0;
++    left: auto;
++    width: min(336px, calc(100vw - 80px));
++    max-width: calc(100vw - 80px);
++  }
++}
++
+diff --git a/packages/client/ui-jobs/src/client/JobListAction.tsx b/packages/client/ui-jobs/src/client/JobListAction.tsx
+index bf15074..1801b91 100644
+--- a/packages/client/ui-jobs/src/client/JobListAction.tsx
++++ b/packages/client/ui-jobs/src/client/JobListAction.tsx
+@@ -1,6 +1,6 @@
+ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+ import type { SessionJob as JobView } from '@deepseek-ai/dsh-api-session-controller/types'
+-import { IconChevronDownOutline14, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
++import { IconChevronDownOutline14, IconCodeOutline16, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+ import { NS } from './locales.ts'
+ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -137,8 +137,10 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
+         ref={triggerRef}
+         type="button"
+         className={css.trigger}
++        data-job-list-trigger
+         aria-expanded={open}
+         aria-label={countLabel}
++        title={countLabel}
+         onClick={() => {
+           // Sample the clock in the same commit that opens the list: the
+           // mount-time value predates every job, so the first painted frame
+@@ -148,6 +150,7 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
+           setOpen(current => !current)
+         }}
+       >
++        <span className={css.compactIcon} aria-hidden><IconCodeOutline16 size={14} /></span>
+         {liveCount > 0 ? <StateDot state="ongoing" className={css.triggerDot} /> : null}
+         <span className={css.count}>{countLabel}</span>
+         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
+diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
+index 3f4d6c5..d38bb9b 100644
+--- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
++++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
+@@ -125,3 +125,22 @@
+ .relativeOverdue {
+   color: var(--dsw-alias-state-warn-label);
+ }
++
++@media (max-width: 800px) {
++  .trigger {
++    width: 32px;
++    min-width: 32px;
++    padding: 0 1px;
++    gap: 2px;
++  }
++
++  .count {
++    display: none;
++  }
++
++  .menu {
++    width: min(336px, calc(100vw - 80px));
++    max-width: calc(100vw - 80px);
++  }
++}
++
+diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
+index 34d071f..2a976e9 100644
+--- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
++++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
+@@ -141,8 +141,10 @@ export function ScheduleCatalogAction({ useSession, useProjection, t }: Schedule
+       ref={triggerRef}
+       type="button"
+       className={css.trigger}
++      data-schedule-trigger
+       aria-expanded={open}
+       aria-label={countLabel}
++      title={countLabel}
+       onClick={toggleCatalog}
+     >
+       <IconAlarmClockOutline16 size={14} />

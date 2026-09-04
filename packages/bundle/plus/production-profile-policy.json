@@ -1,0 +1,145 @@
+{
+  "formatVersion": 1,
+  "name": "DeepSeek Harness Plus 0.6.0 production profile closure",
+  "requiredBundles": [
+    "@deepseek-ai/dsh-base",
+    "@deepseek-ai/dsh-web-app",
+    "dsh-better-sidebar",
+    "dsh-univer-office",
+    "@sparkelf/dsh-mobile-bridge",
+    "@changfenhuang/dsh-genui",
+    "@sparkelf/dsh-plugin-supervisor",
+    "@sparkelf/dsh-plus",
+    "@sparkelf/dsh-univer-government-docs",
+    "dsh-sql-workbench",
+    "@sparkelf/dsh-ssh-manager",
+    "@sparkelf/dsh-api-client"
+  ],
+  "packages": {
+    "@deepseek-ai/dsh-api-gateway": {
+      "mode": "preserve",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "087f1a4a4c80141b12043281206240eb146ead34c10f79dd8190f19c0189ab5a",
+      "candidateSha256": "087f1a4a4c80141b12043281206240eb146ead34c10f79dd8190f19c0189ab5a"
+    },
+    "@deepseek-ai/dsh-client-ui-agent-preset": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "d1f4243ee0f031713766c17ac3f889f282673a5ebc2163685092dfa13607da66",
+      "candidateSha256": "2de85f88b68ab426e7db7dce981090f73d06e4d7a782e4a8bf2b39df950047d7",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "conversation.session.header.context"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-client-ui-conversation": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "80069eeb0042e0c6aff99c0cc141a3cfe969fe14edf65d80b2870997252dd5a6",
+      "candidateSha256": "f96eededa6e784199f256d78eeb55e9472ae8734b4f7fd02bc46a15cbb65a995",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "data-composer-toolbar",
+            "Images and documents share the input machine's opaque id list",
+            "conversation.session.header.context"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-client-ui-jobs": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "62182729945075638c01dfa7df32fd67c43e08a864e912eca51cc2999e56c969",
+      "candidateSha256": "416f8551a2eaefad74ef907f28fb9ad7eaf442f19d91024aa7ad2ef1bb0a8a7c",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "data-job-list-trigger"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-client-ui-model-selection": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "9b66784a508e042ef1071b322e2423882774ed23ea657a057d041e01b6d290e1",
+      "candidateSha256": "da0284d82bbc4af77a2064c27b2080aaf3eb649b95f6737ac8c6ab91684c990d",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "max-width: 640px",
+            "document.body"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-client-ui-schedule": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "fbb527f43b52f6be39b2c277955ed3bed1a3121ef5c55e6a3d7007bb3ec3b062",
+      "candidateSha256": "4ce34cbbc37aabcfdcaad5f05841c28d9c7e3908ceceb67d79808d1c0f124051",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "data-schedule-trigger"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-client-ui-settings-general": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "7ea9a223abfb49cb2fc89d42449011a255f1c3fe2e60e295b6f0ffc36af1342f",
+      "candidateSha256": "4780b315a7a64c1926c668d0e2749b1a1c4d18d0a9bbb4d09de0bdcb486e338e",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "data-settings-mobile-back",
+            "max-width: 640px"
+          ]
+        }
+      ]
+    },
+    "@deepseek-ai/dsh-session-log-export": {
+      "mode": "replace",
+      "version": "0.1.2-alpha.2",
+      "baselineSha256": "f1ae12c218552fc6ed02955351823aad76e84cd61c16acc5e4cd2c614cb370c9",
+      "candidateSha256": "009fac921ad13f787c6c02386beedc2f1959d7b601f6a378c2021827bd6a6331",
+      "probes": [
+        {
+          "file": "lib/client.js",
+          "contains": [
+            "conversation.trajectory.toolbar.utilities",
+            "data-session-log-header",
+            "data-session-log-toolbar"
+          ]
+        }
+      ]
+    },
+    "@sparkelf/dsh-plus": {
+      "mode": "replace",
+      "version": "0.1.0-rc.14",
+      "baselineSha256": "524d9e801952632e5bd1fb73ffd7778af791b80fde3344111f1c1c01dc0a1943",
+      "candidateSha256": "548372973f9ebf393478ab0ee14ecb863f7429dd5a22378d805f03f3d9045509",
+      "probes": [
+        {
+          "file": "cordis.patch.yml",
+          "contains": [
+            "plus-subagent-settings-client",
+            "browserAuthentication: disabled"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -34,7 +34,7 @@
   flex: none;
 }
 
-.compactLabel {
+.compactIcon {
   display: none;
   flex: none;
 }
@@ -52,8 +52,8 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  width: min(336px, 92cqw);
-  max-width: 92cqw;
+  width: 336px;
+  max-width: min(400px, calc(100vw - 32px));
   max-height: min(420px, calc(100vh - 140px));
   margin: 0;
   padding: 4px;
@@ -130,8 +130,18 @@
 }
 
 @media (max-width: 800px) {
-  .compactLabel {
-    display: inline-flex;
+  .trigger {
+    justify-content: center;
+    gap: 2px;
+    width: 34px;
+    min-width: 34px;
+    padding: 0 2px;
+  }
+
+  .compactIcon {
+    display: block;
+    width: 14px;
+    height: 14px;
   }
 
   .count {
@@ -141,5 +151,7 @@
   .menu {
     right: 0;
     left: auto;
+    width: min(336px, calc(100vw - 80px));
+    max-width: calc(100vw - 80px);
   }
 }

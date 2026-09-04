@@ -134,12 +134,15 @@ export function ConversationSessionHeader({
                 })}
                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
               </nav>
-              <div className={css.headerUtilities} data-session-header-utilities>
-                {renderSlot('conversation.session.header.utilities', {})}
+              <div className={css.headerContext} data-session-header-context>
+                {renderSlot('conversation.session.header.context', {})}
+              </div>
+              <div className={css.headerActions} data-session-header-actions>
+                {renderSlot('conversation.session.header.actions', {})}
               </div>
             </div>
-            <div className={css.headerActions} data-session-header-actions>
-              {renderSlot('conversation.session.header.actions', {})}
+            <div className={css.headerUtilities} data-session-header-utilities>
+              {renderSlot('conversation.session.header.utilities', {})}
             </div>
           </div>
           {tabs.length > 1 && (

@@ -141,8 +141,10 @@ export function ScheduleCatalogAction({ useSession, useProjection, t }: Schedule
       ref={triggerRef}
       type="button"
       className={css.trigger}
+      data-schedule-trigger
       aria-expanded={open}
       aria-label={countLabel}
+      title={countLabel}
       onClick={toggleCatalog}
     >
       <IconAlarmClockOutline16 size={14} />
