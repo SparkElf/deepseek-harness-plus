@@ -88,6 +88,41 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
     await scaffold?.close()
   })
 
+
+  it('preserves the desktop menu and uses a compact viewport portal on phones', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-permission-menu-responsive'))
+    const trigger = page.locator('[data-permission-trigger]')
+    await trigger.waitFor({ timeout: 10_000 })
+    const measure = async (width: number) => {
+      await page.setViewportSize({ width, height: 820 })
+      await page.waitForTimeout(300)
+      await trigger.click()
+      const menu = page.getByRole('menu')
+      await menu.waitFor()
+      const box = await menu.boundingBox()
+      if (box === null) throw new Error('permission menu has no layout box')
+      const rows = await menu.getByRole('menuitem').evaluateAll(nodes => nodes.map(node => ({
+        height: node.getBoundingClientRect().height,
+        fontSize: getComputedStyle(node).fontSize,
+      })))
+      const parentBody = await menu.evaluate(element => element.parentElement === document.body)
+      await page.keyboard.press('Escape')
+      return { box, rows, parentBody }
+    }
+
+    const desktop = await measure(1000)
+    expect(desktop).toMatchObject({ parentBody: false, box: { width: 218, height: 130 } })
+    expect(desktop.rows).toEqual(Array.from({ length: 3 }, () => ({ height: 40, fontSize: '14px' })))
+    for (const width of [418, 320]) {
+      const mobile = await measure(width)
+      expect(mobile).toMatchObject({ parentBody: true, box: { width: 164, height: 84 } })
+      expect(mobile.rows).toEqual(Array.from({ length: 3 }, () => ({ height: 26, fontSize: '12px' })))
+      expect(mobile.box.x).toBeGreaterThanOrEqual(12)
+      expect(mobile.box.x + mobile.box.width).toBeLessThanOrEqual(width - 12)
+    }
+    await page.setViewportSize({ width: 1280, height: 820 })
+  }, 60_000)
+
   it('switches read-only, danger-full-access, and workspace-write through the real GUI command path', async () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-permission-policy-context'))
     if (MODE !== 'record') {

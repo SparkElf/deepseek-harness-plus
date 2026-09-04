@@ -1330,11 +1330,14 @@ describe('command launcher chrome and control seats', () => {
     }
     const { view } = bench({ permissions, command })
     const trigger = view.getByLabelText(/^访问模式/) as HTMLButtonElement
+    expect(trigger.getAttribute('data-permission-trigger')).not.toBeNull()
     // Product-label display is presentation only; the menu ids stay machine names.
     expect(trigger.textContent).toBe('仅可查看')
     expect([...trigger.querySelectorAll('svg')]
       .every(icon => icon.closest('[aria-hidden="true"]') !== null)).toBe(true)
     fireEvent.click(trigger)
+    const desktopMenu = view.getByRole('menu')
+    expect(desktopMenu.parentElement).not.toBe(document.body)
     const items = view.getAllByRole('menuitem')
     expect(items.map(o => o.textContent)).toEqual(['仅可查看', '可写入工作区', '完全权限'])
     fireEvent.click(items[1]!)
@@ -1345,6 +1348,34 @@ describe('command launcher chrome and control seats', () => {
     expect(command).toHaveBeenCalledWith('/permission workspace-write')
     await act(async () => {})
     expect((view.getByLabelText(/^访问模式/) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+
+  it('portals and compacts the Access menu only on mobile viewports', () => {
+    const addEventListener = vi.fn()
+    const removeEventListener = vi.fn()
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      addEventListener,
+      removeEventListener,
+    }) as unknown as MediaQueryList))
+    onTestFinished(() => { vi.unstubAllGlobals() })
+    const permissions = {
+      options: [
+        { value: 'read-only', name: 'read-only' },
+        { value: 'workspace-write', name: 'workspace-write' },
+        { value: 'danger-full-access', name: 'danger-full-access' },
+      ],
+      currentValue: 'danger-full-access',
+    }
+    const { view } = bench({ permissions })
+    const trigger = view.getByLabelText(/^访问模式/) as HTMLButtonElement
+    fireEvent.click(trigger)
+    const menu = view.getByRole('menu')
+    expect(menu.parentElement).toBe(document.body)
+    expect(addEventListener).toHaveBeenCalledWith('change', expect.any(Function))
+    cleanup()
+    expect(removeEventListener).toHaveBeenCalledWith('change', expect.any(Function))
   })
 
   it('the Access chip preserves host labels for built-in preset values', () => {
