@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
@@ -88,16 +88,30 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [acknowledged, setAcknowledged] = useState(false)
-  const [mobile, setMobile] = useState(() => typeof window.matchMedia === 'function'
+  const [compactMenu, setCompactMenu] = useState(() => typeof window.matchMedia === 'function'
     ? window.matchMedia('(max-width: 800px)').matches
     : window.innerWidth <= 800)
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
-  useEffect(() => {
-    if (typeof window.matchMedia !== 'function') return
-    const query = window.matchMedia('(max-width: 800px)')
-    const update = (): void => { setMobile(query.matches) }
-    query.addEventListener('change', update)
-    return () => { query.removeEventListener('change', update) }
+  useLayoutEffect(() => {
+    const toolbar = triggerRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
+    const query = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 800px)')
+      : undefined
+    const update = (): void => {
+      const width = toolbar?.clientWidth ?? 0
+      setCompactMenu((query?.matches ?? window.innerWidth <= 800) || (width > 0 && width <= 460))
+    }
+    update()
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
+    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
+    query?.addEventListener('change', update)
+    window.addEventListener('resize', update)
+    return () => {
+      observer?.disconnect()
+      query?.removeEventListener('change', update)
+      window.removeEventListener('resize', update)
+    }
   }, [])
 
   useEffect(() => {
@@ -166,11 +180,12 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
         onSelect={choose}
         onClose={() => { setOpen(false) }}
         side="top"
-        align={mobile ? 'end' : 'start'}
-        portal={mobile}
-        compact={mobile}
+        align={compactMenu ? 'end' : 'start'}
+        portal={compactMenu}
+        compact={compactMenu}
         anchor={
           <button
+            ref={triggerRef}
             type="button"
             className={css.trigger}
             data-permission-trigger

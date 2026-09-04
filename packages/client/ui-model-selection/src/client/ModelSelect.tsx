@@ -125,22 +125,33 @@ export function ModelSelect(
     return () => { document.removeEventListener('mousedown', closeOutside) }
   }, [open])
 
-  // Mobile frames can clip the composer row. Move this two-level menu to the
-  // document layer only in that state; desktop keeps the original local menu.
+  // Use the actual composer width as the primary constraint: a wide desktop
+  // viewport can still have a phone-width conversation column beside panels.
   useLayoutEffect(() => {
-    const root = rootRef.current
-    const collapsed = root?.closest('[data-dsh-frame][data-sidebar-collapsed]') !== null
-    const narrow = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 640px)').matches
-      : window.innerWidth <= 640
     if (!open) {
       setPortalMode(false)
       setPortalPosition(null)
       return
     }
-    const nextPortalMode = collapsed || narrow
-    if (nextPortalMode !== portalMode) setPortalMode(nextPortalMode)
-  }, [open, portalMode])
+    const toolbar = rootRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
+    const query = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(max-width: 640px)')
+      : undefined
+    const update = (): void => {
+      const width = toolbar?.clientWidth ?? 0
+      setPortalMode((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
+    }
+    update()
+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
+    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
+    query?.addEventListener('change', update)
+    window.addEventListener('resize', update)
+    return () => {
+      observer?.disconnect()
+      query?.removeEventListener('change', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [open])
 
   // Keep vertical placement tied to the trigger and horizontal placement tied
   // to the composer card. This avoids both the trigger-seat clipping and the

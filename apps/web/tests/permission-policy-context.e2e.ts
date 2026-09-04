@@ -113,6 +113,22 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
     const desktop = await measure(1000)
     expect(desktop).toMatchObject({ parentBody: false, box: { width: 218, height: 130 } })
     expect(desktop.rows).toEqual(Array.from({ length: 3 }, () => ({ height: 40, fontSize: '14px' })))
+
+    const card = page.locator('[data-composer-card]')
+    await card.evaluate((element) => {
+      element.style.width = '300px'
+      element.style.maxWidth = '300px'
+    })
+    await page.waitForTimeout(300)
+    const constrainedDesktop = await measure(1000)
+    expect(constrainedDesktop).toMatchObject({ parentBody: true, box: { width: 164, height: 84 } })
+    expect(constrainedDesktop.box.x).toBeGreaterThanOrEqual(12)
+    expect(constrainedDesktop.box.x + constrainedDesktop.box.width).toBeLessThanOrEqual(988)
+    await card.evaluate((element) => {
+      element.style.removeProperty('width')
+      element.style.removeProperty('max-width')
+    })
+
     for (const width of [418, 320]) {
       const mobile = await measure(width)
       expect(mobile).toMatchObject({ parentBody: true, box: { width: 164, height: 84 } })

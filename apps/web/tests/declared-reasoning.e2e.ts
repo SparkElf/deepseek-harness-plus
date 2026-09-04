@@ -160,6 +160,37 @@ describe.skipIf(MODE === 'record')('web e2e: declared reasoning efforts reach th
     expect(compact).toMatchObject({ icon: 'none', label: 'block', effort: 'none' })
     expect(iconOnly).toMatchObject({ icon: 'flex', label: 'none', effort: 'none' })
 
+    await page.setViewportSize({ width: 1000, height: 820 })
+    await page.waitForTimeout(300)
+    await trigger.click()
+    const wideMenu = page.getByRole('menu', { name: '模型与推理等级' })
+    await wideMenu.waitFor()
+    expect(await wideMenu.evaluate(element => element.parentElement === document.body)).toBe(false)
+    await page.keyboard.press('Escape')
+
+    const card = page.locator('[data-composer-card]')
+    await card.evaluate((element) => {
+      element.style.width = '300px'
+      element.style.maxWidth = '300px'
+    })
+    await page.waitForTimeout(300)
+    await trigger.click()
+    const constrainedMenu = page.getByRole('menu', { name: '模型与推理等级' })
+    await constrainedMenu.waitFor()
+    const constrainedBox = await constrainedMenu.boundingBox()
+    if (constrainedBox === null) throw new Error('constrained desktop model menu has no layout box')
+    expect(await constrainedMenu.evaluate(element => element.parentElement === document.body)).toBe(true)
+    expect(constrainedBox.width).toBeLessThanOrEqual(240)
+    expect(constrainedBox.x).toBeGreaterThanOrEqual(12)
+    expect(constrainedBox.x + constrainedBox.width).toBeLessThanOrEqual(988)
+    await page.keyboard.press('Escape')
+    await card.evaluate((element) => {
+      element.style.removeProperty('width')
+      element.style.removeProperty('max-width')
+    })
+    await page.setViewportSize({ width: 418, height: 820 })
+    await page.waitForTimeout(300)
+
     await trigger.click()
     const menu = page.getByRole('menu', { name: '模型与推理等级' })
     await menu.waitFor()
