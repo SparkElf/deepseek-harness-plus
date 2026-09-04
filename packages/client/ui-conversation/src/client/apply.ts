@@ -231,6 +231,7 @@ export function apply(ctx: Context): void {
     locale: NS,
     children: {
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
+      'conversation.session.header.context': { kind: 'list', scope: 'session' },
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
     },

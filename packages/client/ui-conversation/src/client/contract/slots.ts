@@ -101,7 +101,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'session'
       owner: ConversationHeaderLineageOwnerProps
     }
-    /** Title-adjacent Session actions in ascending order. */
+    /** Immutable Session context kept beside the title on every layout. */
+    'conversation.session.header.context': {
+      kind: 'list'
+      scope: 'session'
+      owner: ConversationHeaderActionOwnerProps
+    }
+    /** Title-adjacent desktop actions; mobile layouts place them beside the View tabs. */
     'conversation.session.header.actions': {
       kind: 'list'
       scope: 'session'
@@ -350,6 +356,7 @@ export type ConversationSessionHeaderSlotProps =
   PropsRuntime<'conversation.session.header'>
   & PropsRenderSlots<
     'conversation.session.header.lineage'
+    | 'conversation.session.header.context'
     | 'conversation.session.header.actions'
     | 'conversation.session.header.utilities'
   >

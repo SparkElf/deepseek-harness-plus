@@ -37,7 +37,6 @@
 .header {
   position: relative;
   flex: none;
-  container-type: inline-size;
   padding: 12px 28px 0 20px;
   border-bottom: 1px solid transparent;
 }
@@ -128,20 +127,25 @@
   cursor: default;
 }
 
-.headerActions {
-  display: flex;
-  flex: 0 1 auto;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
-  margin-left: auto;
-}
-
+.headerContext,
+.headerActions,
 .headerUtilities {
   display: flex;
   flex: none;
   align-items: center;
+}
+
+.headerContext {
   gap: 4px;
+}
+
+.headerActions {
+  gap: 8px;
+}
+
+.headerUtilities {
+  gap: 8px;
+  margin-left: 20px;
 }
 
 .headerUtilities:empty {
@@ -454,9 +458,19 @@
 }
 
 @media (max-width: 800px) {
-  /* Preset/export stay beside the title; task controls belong beside tabs. */
+  /* Context stays with the title; only command/task controls move beside tabs. */
+  .header {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
   .titleCluster {
-    flex: 0 1 auto;
+    gap: 6px;
+  }
+
+  .headerContext {
+    max-width: min(120px, 34vw);
+    overflow: hidden;
   }
 
   .headerActions {
@@ -467,8 +481,18 @@
     gap: 2px;
   }
 
+  .headerUtilities {
+    gap: 2px;
+    margin-left: 6px;
+  }
+
   .tabs {
     gap: 16px;
-    padding-right: 150px;
+    padding-right: min(112px, 32vw);
+  }
+
+  .tab {
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
   }
 }

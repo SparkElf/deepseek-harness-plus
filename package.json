@@ -157,6 +157,7 @@
     "dev:web": "tsx scripts/dev-web.ts --poll",
     "postinstall": "node scripts/install-lefthook.mjs",
     "verify:plus-governance": "tsx scripts/verify-plus-governance.ts",
+    "verify:plus-profile-upgrade": "tsx scripts/verify-plus-profile-upgrade.ts",
     "test:plus-web": "pnpm run build && playwright test --config tests/plus-web/playwright.config.mjs"
   },
   "devDependencies": {

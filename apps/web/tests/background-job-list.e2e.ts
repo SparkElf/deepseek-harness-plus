@@ -70,6 +70,11 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
     // job owner must be that exact live instance, never a second one.
     // `expect.poll` is test-scoped, so this hook polls by hand.
     agent = await liveAgent(scaffold, SessionId(SEED_ID))
+    // This fixture validates Jobs UI, not sandbox enforcement. Keep its own
+    // bounded sleep independent of the host kernel's optional sandbox backend.
+    agent.session.append('permission/preset', { preset: 'danger-full-access' })
+    agent.session.append('sandbox/mode', { mode: 'danger-full-access' })
+    agent.session.append('approval/policy', { policy: 'never' })
   }, 120_000)
 
   afterAll(async () => {
@@ -96,7 +101,27 @@ describe.skipIf(MODE === 'record')('web e2e: background job list', () => {
     jobId = JobId(matched[0])
 
     await trigger.waitFor({ timeout: 15_000 })
+    expect(await trigger.getAttribute('data-job-list-trigger')).not.toBeNull()
+    const desktopBox = await trigger.boundingBox()
+    if (desktopBox === null) throw new Error('desktop job trigger has no layout box')
+    expect(desktopBox.width).toBeGreaterThan(34)
+    expect(await trigger.locator('span:last-of-type').evaluate(element => getComputedStyle(element).display)).not.toBe('none')
+
+    await page.setViewportSize({ width: 320, height: 820 })
+    await page.waitForTimeout(300)
+    const mobileBox = await trigger.boundingBox()
+    if (mobileBox === null) throw new Error('mobile job trigger has no layout box')
+    expect(mobileBox.width).toBe(34)
+    expect(await trigger.locator('span:last-of-type').evaluate(element => getComputedStyle(element).display)).toBe('none')
     await trigger.click()
+    const mobileMenu = page.getByRole('list', { name: 'Background jobs' })
+    await mobileMenu.waitFor()
+    const mobileMenuBox = await mobileMenu.boundingBox()
+    if (mobileMenuBox === null) throw new Error('mobile job menu has no layout box')
+    expect(mobileMenuBox.x).toBeGreaterThanOrEqual(56)
+    expect(mobileMenuBox.x + mobileMenuBox.width).toBeLessThanOrEqual(312)
+    await page.setViewportSize({ width: 1680, height: 1000 })
+    await page.waitForTimeout(300)
     const row = page.getByRole('list', { name: 'Background jobs' }).getByRole('listitem').first()
     await row.waitFor({ timeout: 10_000 })
     await expect.poll(() => row.textContent()).toContain(COMMAND)

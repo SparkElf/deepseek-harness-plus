@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
-index aa386504113dbb6db3afd3d3eb72d51b4a8ad71f..6f6c5343b115bb39845bbf774ad52a871922922e 100644
+index aa38650..6f6c534 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
 @@ -164,13 +164,19 @@
@@ -24,7 +24,7 @@ index aa386504113dbb6db3afd3d3eb72d51b4a8ad71f..6f6c5343b115bb39845bbf774ad52a87
    gap: 4px;
    border: 1px solid var(--dsw-alias-border-l2);
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
-index 92d7ce9ab07211d6a58c24e20a428381b7c4b61d..dfbc88f1e3aeb0e1e08fed4c7947150693dbcde5 100644
+index 92d7ce9..dfbc88f 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 @@ -1,5 +1,6 @@
@@ -62,7 +62,7 @@ index 92d7ce9ab07211d6a58c24e20a428381b7c4b61d..dfbc88f1e3aeb0e1e08fed4c79471506
            <input
              type="search"
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-index 2ac0d5ddf124714e459c72a99d7eb699fa62d3bd..ace4e584fb8b3922378c9e297ec58c64561e7c55 100644
+index 2ac0d5d..ace4e58 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 @@ -121,7 +121,9 @@ export function TrajectoryView({
@@ -85,7 +85,7 @@ index 2ac0d5ddf124714e459c72a99d7eb699fa62d3bd..ace4e584fb8b3922378c9e297ec58c64
        />
        <TrajectoryTimeline
 diff --git a/packages/client/ui-trajectory/src/client/index.ts b/packages/client/ui-trajectory/src/client/index.ts
-index 118f3b2c288730018fba6b97add0bf078b64062f..a8c71cf9ee2662870567355b4f44738fe7c1e3bd 100644
+index 118f3b2..a8c71cf 100644
 --- a/packages/client/ui-trajectory/src/client/index.ts
 +++ b/packages/client/ui-trajectory/src/client/index.ts
 @@ -36,6 +36,13 @@ export type {
@@ -111,7 +111,7 @@ index 118f3b2c288730018fba6b97add0bf078b64062f..a8c71cf9ee2662870567355b4f44738f
      inject: (sessionId: SessionId): TrajectoryViewInjected => {
        const session = ctx.sessions.binding(sessionId)?.session
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index 60cba7ebdd3fbff86223db0f482380f198ff83e1..a717c25ae3af88e2286afe7d58f43d4ff71bcdc5 100644
+index 60cba7e..a717c25 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
 @@ -60,6 +60,7 @@
@@ -133,10 +133,10 @@ index 60cba7ebdd3fbff86223db0f482380f198ff83e1..a717c25ae3af88e2286afe7d58f43d4f
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index 288e7f9bae4b7b103c5ce52dfbc4292437fa7d83..8007563465a27cfd556f185a5042aa8878cc92d1 100644
+index 288e7f9..39ec1bd 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-@@ -34,3 +34,52 @@
+@@ -34,3 +34,72 @@
  .sessionLogButton span {
    white-space: nowrap;
  }
@@ -180,6 +180,26 @@ index 288e7f9bae4b7b103c5ce52dfbc4292437fa7d83..8007563465a27cfd556f185a5042aa88
 +  white-space: nowrap;
 +}
 +
++@media (max-width: 800px) {
++  .sessionLogButton {
++    width: 28px;
++    min-width: 28px;
++    height: 28px;
++    padding: 0;
++    border: none;
++    border-radius: 50%;
++  }
++
++  .sessionLogButton span {
++    display: none;
++  }
++
++  .sessionLogButton svg {
++    width: 16px;
++    height: 16px;
++  }
++}
++
 +@media (min-width: 768px) {
 +  .sessionLogButton {
 +    display: none;
@@ -190,7 +210,7 @@ index 288e7f9bae4b7b103c5ce52dfbc4292437fa7d83..8007563465a27cfd556f185a5042aa88
 +  }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index 7adc40aa5cde8d3b25e2168ea49b630e2fe6af83..3a6dd6fa9bcd82418184dda0938f377bd7347789 100644
+index 7adc40a..f0ebd2a 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 @@ -1,8 +1,16 @@
@@ -210,7 +230,15 @@ index 7adc40aa5cde8d3b25e2168ea49b630e2fe6af83..3a6dd6fa9bcd82418184dda0938f377b
  /**
   * Render the Session Header export capsule and its shared result dialog.
   * @param props - Session runtime, download controller, and localized dialog copy.
-@@ -29,3 +37,30 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+@@ -18,6 +26,7 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+       <button
+         type="button"
+         className={css.sessionLogButton}
++        data-session-log-header
+         disabled={busy}
+         aria-busy={busy}
+         onClick={() => { void request(sessionId) }}
+@@ -29,3 +38,31 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
      </>
    )
  }
@@ -231,6 +259,7 @@ index 7adc40aa5cde8d3b25e2168ea49b630e2fe6af83..3a6dd6fa9bcd82418184dda0938f377b
 +    <button
 +      type="button"
 +      className={css.trajectoryButton}
++      data-session-log-toolbar
 +      disabled={busy}
 +      aria-busy={busy}
 +      title={t('header.action')}
@@ -242,7 +271,7 @@ index 7adc40aa5cde8d3b25e2168ea49b630e2fe6af83..3a6dd6fa9bcd82418184dda0938f377b
 +  )
 +}
 diff --git a/packages/session-query/session-log-export/src/client/index.ts b/packages/session-query/session-log-export/src/client/index.ts
-index 97187311fad4ab6f021fc298b8205dd529b9af37..a6ca23e3b3ec1ded2a21d3428990261f7d7da0c4 100644
+index 9718731..a6ca23e 100644
 --- a/packages/session-query/session-log-export/src/client/index.ts
 +++ b/packages/session-query/session-log-export/src/client/index.ts
 @@ -7,9 +7,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-commands/client'
@@ -292,7 +321,7 @@ index 97187311fad4ab6f021fc298b8205dd529b9af37..a6ca23e3b3ec1ded2a21d3428990261f
  
  export type { SessionLogDownloadDialogInjected, SessionLogDownloadDialogProps } from './Dialog.tsx'
 diff --git a/packages/session-query/session-log-export/tsconfig.client.json b/packages/session-query/session-log-export/tsconfig.client.json
-index 6e3e746c4c58753b3023f94ed4c872e5f1ac1d51..c5e2c7b69c41289d2db3be1753c5bb3030be87d8 100644
+index 6e3e746..c5e2c7b 100644
 --- a/packages/session-query/session-log-export/tsconfig.client.json
 +++ b/packages/session-query/session-log-export/tsconfig.client.json
 @@ -23,6 +23,7 @@

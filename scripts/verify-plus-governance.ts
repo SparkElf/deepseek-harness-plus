@@ -1,7 +1,8 @@
 /** Verify Plus npm composition, independent patch packages, and curation ownership. */
 
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { createRequire } from 'node:module'
@@ -80,9 +81,26 @@ function sourcePatchPaths(path: string): string[] {
   return result.stdout.trim().split('\n').filter(Boolean).map(line => line.split('\t').at(-1) ?? '')
 }
 
-function verifySourcePatchApplies(path: string): void {
-  const result = spawnSync('git', ['apply', '--check', path], { cwd: root, encoding: 'utf8' })
-  if (result.status !== 0) throw new Error('source patch does not apply to the official base: ' + path + ': ' + result.stderr.trim())
+function verifySourcePatchApplies(path: string, baseRevision: string): void {
+  const parent = mkdtempSync(join(tmpdir(), 'dsh-plus-patch-base-'))
+  const checkout = join(parent, 'source')
+  const added = spawnSync('git', ['worktree', 'add', '--detach', '--force', checkout, baseRevision], {
+    cwd: root,
+    encoding: 'utf8',
+  })
+  if (added.status !== 0) {
+    rmSync(parent, { recursive: true, force: true })
+    throw new Error('cannot materialize source patch base ' + baseRevision + ': ' + added.stderr.trim())
+  }
+  try {
+    const result = spawnSync('git', ['apply', '--check', path], { cwd: checkout, encoding: 'utf8' })
+    if (result.status !== 0) {
+      throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + result.stderr.trim())
+    }
+  } finally {
+    spawnSync('git', ['worktree', 'remove', '--force', checkout], { cwd: root, encoding: 'utf8' })
+    rmSync(parent, { recursive: true, force: true })
+  }
 }
 
 /** npm payload必须能应用到distribution当前解析的exact target，不能把失败推迟到部署。 */
@@ -148,7 +166,7 @@ function patchPackages(sourceBaseRevision: string): PatchRecord[] {
         if (paths.length === 0 || paths.some(path => !allowedPaths.some(prefix => path.startsWith(prefix)))) {
           throw new Error(name + ' source payload modifies a path outside its declared owners')
         }
-        verifySourcePatchApplies(payload)
+        verifySourcePatchApplies(payload, baseRevision)
         targets.push({ kind, baseRevision, paths: allowedPaths })
       } else {
         throw new Error(name + ' has unsupported target kind ' + kind)

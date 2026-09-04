@@ -25,7 +25,11 @@
           "kind": "dsh-source",
           "baseRevision": "0a53fb55bea101816fa226bb964ae2bed71c343b",
           "paths": [
-            "packages/client/ui-layout/"
+            "packages/client/ui-layout/",
+            "packages/client/ui-agent-preset/",
+            "packages/client/ui-conversation/",
+            "packages/client/ui-jobs/",
+            "packages/client/ui-schedule/"
           ]
         },
         "file": "./patches/mobile-web-layout.patch"

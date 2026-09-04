@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const read = (relative: string): string => readFileSync(fileURLToPath(new URL(relative, import.meta.url)), 'utf8')
 const conversation = read('../src/client/skeleton/ConversationRoot.module.css')
+const sessionHeader = read('../src/client/skeleton/ConversationSession.tsx')
 const settings = read('../../ui-settings-general/src/client/SettingsRoot.module.css')
 const jobs = read('../../ui-jobs/src/client/JobListAction.module.css')
 const schedule = read('../../ui-schedule/src/client/ScheduleCatalogAction.module.css')
@@ -11,11 +12,15 @@ const sessionExport = read('../../../session-query/session-log-export/src/client
 const models = read('../../ui-model-selection/src/client/ModelSelect.module.css')
 
 describe('mobile shell responsive contracts', () => {
-  it('places task actions beside tabs and keeps title utilities separate', () => {
-    expect(conversation).toContain('container-type: inline-size;')
+  it('preserves desktop order while placing only mobile task actions beside tabs', () => {
+    expect(conversation).not.toContain('container-type: inline-size;')
+    expect(conversation).toContain('.headerContext')
+    expect(sessionHeader.indexOf('data-session-header-context')).toBeLessThan(sessionHeader.indexOf('data-session-header-actions'))
+    expect(sessionHeader.indexOf('data-session-header-actions')).toBeLessThan(sessionHeader.indexOf('data-session-header-utilities'))
     const mobile = conversation.slice(conversation.lastIndexOf('@media (max-width: 800px)'))
     expect(mobile).toContain('position: absolute;')
-    expect(mobile).toContain('padding-right: 150px;')
+    expect(mobile).toContain('padding-right: min(112px, 32vw);')
+    expect(mobile).toContain('writing-mode: horizontal-tb;')
   })
 
   it('uses a full-screen Settings navigation-to-detail flow', () => {
@@ -27,11 +32,14 @@ describe('mobile shell responsive contracts', () => {
   })
 
   it('collapses every header action family on phone widths', () => {
-    expect(jobs).toContain('.compactLabel')
-    expect(jobs).toContain('width: min(336px, 92cqw);')
+    expect(jobs).toContain('.compactIcon')
+    expect(jobs).toContain('width: 336px;')
+    expect(jobs).toContain('width: min(336px, calc(100vw - 80px));')
     expect(schedule).toContain('.count {')
     expect(schedule).toContain('display: none;')
+    expect(sessionExport).toContain('@media (max-width: 800px)')
     expect(sessionExport).toContain('width: 28px;')
+    expect(sessionExport).not.toContain('position: fixed;')
   })
 
   it('portals the mobile model menu outside composer clipping', () => {
