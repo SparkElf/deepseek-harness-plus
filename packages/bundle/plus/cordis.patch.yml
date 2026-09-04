@@ -38,6 +38,15 @@
         timeoutMs: 120000
         maxResponseBytes: 67108864
 
+    # A disabled root node carries the package's Web Settings entry into the
+    # client inventory; the startup nodes below exclusively own Host schemas.
+    - id: plus-subagent-settings-client
+      name: '@sparkelf/dsh-plugin-subagent-settings'
+      config:
+        provider: spawn
+        enabled: false
+        enableRunInBackground: false
+
     - id: plus-subagent-settings
       name: '@sparkelf/dsh-plugin-subagent-settings/startup'
       config:

@@ -37,6 +37,7 @@
 .header {
   position: relative;
   flex: none;
+  container-type: inline-size;
   padding: 12px 28px 0 20px;
   border-bottom: 1px solid transparent;
 }
@@ -129,17 +130,18 @@
 
 .headerActions {
   display: flex;
-  flex: none;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
+  margin-left: auto;
 }
 
 .headerUtilities {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 8px;
-  margin-left: 20px;
+  gap: 4px;
 }
 
 .headerUtilities:empty {
@@ -449,4 +451,24 @@
    mounted but invisible so no wrong layout flashes before the phase lands. */
 .root[data-phase='settling'] .composerSeat {
   visibility: hidden;
+}
+
+@media (max-width: 800px) {
+  /* Preset/export stay beside the title; task controls belong beside tabs. */
+  .titleCluster {
+    flex: 0 1 auto;
+  }
+
+  .headerActions {
+    position: absolute;
+    right: 8px;
+    bottom: 0;
+    z-index: 2;
+    gap: 2px;
+  }
+
+  .tabs {
+    gap: 16px;
+    padding-right: 150px;
+  }
 }

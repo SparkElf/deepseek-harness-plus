@@ -92,6 +92,13 @@ describe.skipIf(MODE === 'record')('web e2e: declared reasoning efforts reach th
     onTestFailed(() => saveFailureShot(page, 'web-e2e-responsive-model-trigger'))
     const trigger = page.locator('[data-model-trigger]')
     await trigger.waitFor({ timeout: 15_000 })
+    if (!((await trigger.getAttribute('aria-label'))?.endsWith('High') ?? false)) {
+      await trigger.click()
+      await page.getByRole('menuitem', { name: /推理等级/ }).click()
+      await page.getByRole('menuitemradio', { name: 'High' }).click()
+      await expect.poll(() => trigger.getAttribute('aria-label'), { timeout: 10_000 })
+        .toBe('选择模型，当前 Acme Think，推理等级 High')
+    }
     await page.getByRole('button', { name: /收起侧边栏|Collapse sidebar/i }).click()
 
     const measure = async (width: number) => {

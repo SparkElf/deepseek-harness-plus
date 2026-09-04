@@ -1,4 +1,5 @@
-import { lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -20,6 +21,24 @@ function fixture(): string {
 }
 
 describe('Plus official package scope', () => {
+  it('loads the Subagent Settings client beside its two Host schema owners', () => {
+    const manifest = JSON.parse(readFileSync(
+      fileURLToPath(new URL('../package.json', import.meta.url)),
+      'utf8',
+    )) as { dshPlus: { profile: { bundles: string[] } } }
+    const subagentManifest = JSON.parse(readFileSync(
+      fileURLToPath(new URL('../../../plus/subagent-settings/package.json', import.meta.url)),
+      'utf8',
+    )) as { dsh: { client: unknown } }
+    const plusPatch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
+
+    expect(manifest.dshPlus.profile.bundles).not.toContain('@sparkelf/dsh-plugin-subagent-settings')
+    expect(subagentManifest.dsh.client).toBeDefined()
+    expect(plusPatch).toContain("id: plus-subagent-settings-client\n      name: '@sparkelf/dsh-plugin-subagent-settings'")
+    expect(plusPatch).toContain("id: plus-subagent-settings\n      name: '@sparkelf/dsh-plugin-subagent-settings/startup'")
+    expect(plusPatch).toContain("id: plus-subagent-fork-settings\n      name: '@sparkelf/dsh-plugin-subagent-settings/startup'")
+  })
+
   it('parses, scopes, and sorts the official workspace roster', () => {
     const root = fixture()
     const attachment = join(root, 'packages/attachment/attachment')
