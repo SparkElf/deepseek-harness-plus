@@ -88,6 +88,17 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [acknowledged, setAcknowledged] = useState(false)
+  const [mobile, setMobile] = useState(() => typeof window.matchMedia === 'function'
+    ? window.matchMedia('(max-width: 800px)').matches
+    : window.innerWidth <= 800)
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return
+    const query = window.matchMedia('(max-width: 800px)')
+    const update = (): void => { setMobile(query.matches) }
+    query.addEventListener('change', update)
+    return () => { query.removeEventListener('change', update) }
+  }, [])
 
   useEffect(() => {
     if (!locked && value !== undefined) return
@@ -155,10 +166,14 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
         onSelect={choose}
         onClose={() => { setOpen(false) }}
         side="top"
+        align={mobile ? 'end' : 'start'}
+        portal={mobile}
+        compact={mobile}
         anchor={
           <button
             type="button"
             className={css.trigger}
+            data-permission-trigger
             aria-label={t('input.accessMode', { name: currentLabel })}
             title={current?.description}
             disabled={locked || busy}

@@ -40,14 +40,15 @@
       "mode": "replace",
       "version": "0.1.2-alpha.2",
       "baselineSha256": "80069eeb0042e0c6aff99c0cc141a3cfe969fe14edf65d80b2870997252dd5a6",
-      "candidateSha256": "dd2aa58832758ae1094a08c5682465bbc9829f06bdb99e2a41e830b9638dc4d1",
+      "candidateSha256": "e2746cfc53472cc6a8a1e3f683a3a9324a446834dfa7bbf8b34bce5c486d14f3",
       "probes": [
         {
           "file": "lib/client.js",
           "contains": [
             "data-composer-toolbar",
             "Images and documents share the input machine's opaque id list",
-            "conversation.session.header.context"
+            "conversation.session.header.context",
+            "data-permission-trigger"
           ]
         }
       ]
