@@ -40,7 +40,7 @@
       "mode": "replace",
       "version": "0.1.2-alpha.2",
       "baselineSha256": "80069eeb0042e0c6aff99c0cc141a3cfe969fe14edf65d80b2870997252dd5a6",
-      "candidateSha256": "e2746cfc53472cc6a8a1e3f683a3a9324a446834dfa7bbf8b34bce5c486d14f3",
+      "candidateSha256": "383a6893afa893dbb98f93c40d7a1b018e52599706e4343af24e0cc7cd8d4d7b",
       "probes": [
         {
           "file": "lib/client.js",
@@ -71,13 +71,14 @@
       "mode": "replace",
       "version": "0.1.2-alpha.2",
       "baselineSha256": "9b66784a508e042ef1071b322e2423882774ed23ea657a057d041e01b6d290e1",
-      "candidateSha256": "da0284d82bbc4af77a2064c27b2080aaf3eb649b95f6737ac8c6ab91684c990d",
+      "candidateSha256": "b04a1b0c5b609d334dceeb56e383cffa8b78d2e9d71265915fa9445634b7ba09",
       "probes": [
         {
           "file": "lib/client.js",
           "contains": [
             "max-width: 640px",
-            "document.body"
+            "document.body",
+            "data-composer-toolbar"
           ]
         }
       ]
