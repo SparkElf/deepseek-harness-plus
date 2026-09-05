@@ -104,7 +104,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   const segments = parts.filter(part => part.width > 0)
 
   return (
-    <span ref={rootRef} className={css.root}>
+    <span ref={rootRef} className={css.root} data-context-meter>
       <Tooltip label={t('context.aria', { percent: reading })} side="top" delayMs={200} disabled={open}>
         <button
           type="button"

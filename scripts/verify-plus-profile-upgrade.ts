@@ -21,7 +21,9 @@ export interface ProfileProbe {
 
 export interface ProfilePackagePolicy {
   readonly mode: 'preserve' | 'replace'
-  readonly version: string
+  readonly version?: string
+  readonly baselineVersion?: string
+  readonly candidateVersion?: string
   readonly baselineSha256: string
   readonly candidateSha256: string
   readonly probes?: readonly ProfileProbe[]
@@ -40,7 +42,7 @@ export interface ProfileDiffRow {
   readonly candidate?: Pick<ProfilePackageEvidence, 'version' | 'fingerprint'>
 }
 
-const RUNTIME_FILE = /(?:^package\.json$|^cordis\.patch\.ya?ml$|\.(?:[cm]?js|css|json|ya?ml|wasm)$)/u
+const RUNTIME_FILE = /(?:^package\.json$|^cordis\.patch\.ya?ml$|\.(?:[cm]?js|css|diff|json|patch|ya?ml|wasm)$)/u
 const NON_RUNTIME_FILE = /(?:\.map$|\.d\.ts$|\.tsbuildinfo$)/u
 const SHA256 = /^[0-9a-f]{64}$/u
 
@@ -171,8 +173,14 @@ export function verifyProfileUpgrade(
       violations.push(name + ': policy fingerprints must be lowercase SHA-256')
       continue
     }
-    if (before.version !== expected.version) violations.push(name + ': baseline version ' + before.version + ' != ' + expected.version)
-    if (after.version !== expected.version) violations.push(name + ': candidate version ' + after.version + ' != ' + expected.version)
+    const baselineVersion = expected.baselineVersion ?? expected.version
+    const candidateVersion = expected.candidateVersion ?? expected.version
+    if (baselineVersion === undefined || candidateVersion === undefined) {
+      violations.push(name + ': policy must declare version or both baselineVersion and candidateVersion')
+      continue
+    }
+    if (before.version !== baselineVersion) violations.push(name + ': baseline version ' + before.version + ' != ' + baselineVersion)
+    if (after.version !== candidateVersion) violations.push(name + ': candidate version ' + after.version + ' != ' + candidateVersion)
     if (before.fingerprint !== expected.baselineSha256) violations.push(name + ': baseline fingerprint drifted to ' + before.fingerprint)
     if (after.fingerprint !== expected.candidateSha256) violations.push(name + ': candidate fingerprint drifted to ' + after.fingerprint)
     if (expected.mode === 'preserve' && before.fingerprint !== after.fingerprint) {

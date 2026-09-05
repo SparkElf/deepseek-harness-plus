@@ -24,6 +24,8 @@ describe('mobile shell responsive contracts', () => {
     expect(mobile).toContain('writing-mode: horizontal-tb;')
     const ultraNarrow = inputBar.slice(inputBar.indexOf('@container (max-width: 340px)'))
     expect(ultraNarrow).toContain('gap: 2px;')
+    expect(ultraNarrow).toContain('padding-right: 6px;')
+    expect(ultraNarrow).toContain('.trailing > [data-context-meter]')
   })
 
   it('uses a full-screen Settings navigation-to-detail flow', () => {
