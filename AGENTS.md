@@ -2,9 +2,9 @@
 
 DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
-## Pre-release stance: foundation over blast radius
+## Pre-stable APIs and released Session data
 
-**Remove at the first tagged release.** Until then, prefer foundations to compatibility shims: rename freely and update every reference. Backends reject old formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` without compatibility promises.
+Public APIs are pre-stable; update every consumer. Released Session JSONL follows [adjacent migration](.agents/notes/implemented/architecture/2026-08-31-released-session-format-migrations.md): body reads may add a version-named successor but never move, overwrite, or delete committed generations; predecessors imply neither fallback nor downgrade support. SQLite domains use monotonic `SCHEMA_VERSION`.
 
 **Application launch.** Only `dsh` profiles launch supported Node apps; package bins, demos, and public SDK argv escapes are forbidden ([rule](docs/architecture.md#application-launch)).
 
@@ -13,27 +13,49 @@ DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.
 ## Repository layout
 
 ```
-vendor/      Cordis source; see vendor/README.md
-packages/    workspaces at packages/<group>/<pkg>/
-  core/      session, prompt, tools, agent, loop
-  api/       BFF and Typert RPC gateway
-  typert/    type graph, loader, registry
-  llm/       model interfaces and providers
-  e2b/       remote sandbox adapters
-  shell/     bash/pwsh providers and tools
-  subprocess/ process capability and Win32 library
-  terminal/  persistent sessions
-  fs/ lsp/ web/ skill/ context/ compaction/
-  subagent/ workflow/ webhook/ todo/ plan/ preset/ guard/
-  bundle/ boot/ sdk/ examples/ interaction/ hooks/
-  session/ identity/ settings/ credentials/ acp/
-  self-modification/ experimental/ support/ util/
-python/      Python SDK and runtime
-native/      native package sources
-.agents/     workflows and Agent Notes
-docs/        architecture and references
-scripts/     gates and generators
-website/     VitePress projection
+vendor/      Vendored Cordis source — manifest + sync procedure in vendor/README.md
+packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
+  core/        product API spine: session, system-prompt, tools, agent, agent-loop
+  api/         Remote BFF assembly and Typert RPC gateway
+  typert/      type graph generator, loader, and runtime registry
+  llm/         LLM capability: Service Definition/Consumer + DeepSeek providers
+  e2b/         E2B POC: sandbox + FS/subprocess adapters
+  shell/        bash capability: Service Definition + local/pwsh providers + shell Consumers
+  subprocess/  subprocess capability + local process-tree provider + shared Win32 library
+  terminal/         persistent sessions
+  fs/          filesystem capability + policy
+  lsp/         language-server capability
+  skill/       skill provider registry + local impl + catalog/loader tool
+  web/         web capability: Service Definition + search/fetch providers + tool Consumer
+  compaction/     compaction capability + basic provider
+  context/     request-context plugins
+  subagent/    subagent capability: Service Definition + providers + delegation Consumers
+  bundle/      installable dsh --profile patch-layer bundles
+  workflow/    workflow capability + worker-thread provider + tool Consumer
+  webhook/     webhook ingress
+  todo/        todo_write tool
+  plan/        plan mode as logged state
+  preset/      per-session agent composition from preset cordis.yml files
+  guard/       loop-hygiene + tool-timeout plugins
+  self-modification/  the agent inspects/mounts its own plugins
+  hooks/       Claude Code/Codex hook bridges + wire-protocol library
+  session/     durable session data: persistence, projection, titles, telemetry
+  identity/    anonymous identity
+  settings/    user-settings capability + file provider
+  credentials/ credential/authorization capabilities + env/.env provider
+  acp/         automation-only Agent Client Protocol server
+  interaction/ approval/interaction capabilities, permission, commands, ask-user
+  boot/        shared profile/application boot glue
+  sdk/         JSON-RPC protocol + TypeScript client/server
+  experimental/ private prototypes excluded from official releases
+  support/     dev/test infrastructure
+  util/        zero-dependency utilities
+python/      Python SDK and bundled runtime (see python/README.md)
+native/      @deepseek-ai/node-addon-landlock-run source of record (see native/README.md)
+.agents/     Agent workflows and Agent Notes (`notes/`)
+docs/        architecture, generated catalogs, postmortems, cookbook (see docs/AGENTS.md)
+scripts/     repo gates and generators
+website/     VitePress projection of selected bilingual docs/ sources
 ```
 
 Package groups: [packages/README.md](packages/README.md).
@@ -84,7 +106,7 @@ Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, 
 - Every npm package is `@deepseek-ai/dsh-<name>`; vendored packages are rescoped ([mapping](docs/rescope.md)) and `private: true`. `@deepseek-ai/cordis` is a peerDependency (+ dev) of every harness package.
 - ESM everywhere (`"type": "module"`). Use package names across packages and `.ts` in local relative imports. Config subprocesses run built `lib/` under plain Node; source regressions use their declared launcher ([testing policy](docs/testing.md#test-subprocess-launch-modes)). The `dsh` CLI source launch runs through tsx's ESM-only hook (`node --import tsx/esm`); modules it reaches must stay ESM (no CJS-only exports) — Node's native TypeScript modes are unavailable across the engines range ([source-launch contract](.agents/notes/implemented/architecture/2026-07-29-dsh-source-launch-tsx-esm.md)). Raw/Web `cordis.yml` bare plugins must appear in their resolver manifest's `dependencies`; `verify-cordis-config` enforces it.
 - **Registrations are effects**: every contribution goes through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
-- **Runtime invariants assert owned relationships.** Check authoritative event streams or mutable data, not service or method presence, plugin metadata or effects, or fixed pure examples. Without a plausible relationship, an explained empty companion is correct ([package invariant rules](packages/AGENTS.md)).
+- **Runtime invariants assert owned relationships.** Publish `./invariant` only when independent observations can diverge. Otherwise omit its source and wiring and record why in its README; empty installers and checks of service presence, plugin metadata, effects, or fixed examples are invalid ([package invariant rules](packages/AGENTS.md)).
 - **Typed events use declaration merging** and merge-extensible maps. Event JSDoc needs `@mode` and payload `@param`; scoped keys absent from payloads need `@dshScopeScan unsupported`. Public service methods document parameters and non-void returns. `SessionEventMap` members are required-on-read by default — builds that do not know a type refuse the log unless the event carries the envelope's `ignorable: true`; only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
 - **Switch on discriminant tags.** Closed unions end in `assertNever`; merge-extensible unions fall through a documented default.
 - **Waterfall listeners MUST call `next()`** to delegate; returning without it short-circuits the chain ([semantics](docs/cordis-primer.md#cordis-waterfall-semantics)).

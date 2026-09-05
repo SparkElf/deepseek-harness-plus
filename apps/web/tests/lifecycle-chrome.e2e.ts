@@ -27,7 +27,7 @@ import {
 } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/lifecycle-chrome', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.jsonl')
+const FIXTURE = join(SNAPSHOT_DIR, 'session.v2.jsonl')
 const REPLAY_OVERRIDE = join(SNAPSHOT_DIR, 'replay.override.json')
 const HERO_EXPECTED = join(SNAPSHOT_DIR, 'hero.expected.md')
 const COMMAND_MENU_EXPECTED = join(SNAPSHOT_DIR, 'command-menu.expected.md')
@@ -188,10 +188,16 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
         await input.press('Enter')
         if (MODE !== 'record') {
           const liveTail = page.locator('[data-variant="think"][data-state="running"] [data-follow-end]')
-          await expect.poll(async () => await liveTail.evaluate(element => (
-            element.scrollWidth > element.clientWidth
-              && element.scrollLeft >= element.scrollWidth - element.clientWidth - 1
-          )), { timeout: 10_000, interval: 10 }).toBe(true)
+          await expect.poll(async () => {
+            if (await liveTail.count() !== 1) return false
+            return await liveTail.evaluate((element) => {
+              const text = element.firstElementChild
+              if (!(text instanceof HTMLElement)) return false
+              const viewport = element.getBoundingClientRect()
+              const content = text.getBoundingClientRect()
+              return content.width > viewport.width && Math.abs(content.right - viewport.right) <= 1
+            })
+          }, { timeout: 10_000, interval: 10 }).toBe(true)
         }
         return await settled
       } finally {
@@ -385,7 +391,7 @@ describe('web e2e: lifecycle & chrome (workspace flow / reload / dark mode)', ()
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
     await assertFixtureInventory(SNAPSHOT_DIR, [
-      'session.jsonl', 'replay.override.json', 'command-menu.expected.md',
+      'session.v2.jsonl', 'replay.override.json', 'command-menu.expected.md',
       'command-menu-fuzzy.expected.md', 'connection-error.expected.md', 'hero.expected.md', 'plan-active.expected.md',
       'reloaded.expected.md', 'reloaded-expanded.expected.md',
     ])
