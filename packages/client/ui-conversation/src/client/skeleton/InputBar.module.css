@@ -371,3 +371,14 @@
   font-size: 12px;
   cursor: pointer;
 }
+
+@container (max-width: 240px) {
+  .row {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .trailing > [data-context-meter] {
+    display: none;
+  }
+}

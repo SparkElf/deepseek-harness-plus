@@ -40,7 +40,7 @@
       "mode": "replace",
       "version": "0.1.2-alpha.2",
       "baselineSha256": "80069eeb0042e0c6aff99c0cc141a3cfe969fe14edf65d80b2870997252dd5a6",
-      "candidateSha256": "383a6893afa893dbb98f93c40d7a1b018e52599706e4343af24e0cc7cd8d4d7b",
+      "candidateSha256": "0cc4af9af39e9c3fd284b419b72ed74387b47ae2aa57ab65e72bb9b7353045fe",
       "probes": [
         {
           "file": "lib/client.js",
@@ -48,7 +48,8 @@
             "data-composer-toolbar",
             "Images and documents share the input machine's opaque id list",
             "conversation.session.header.context",
-            "data-permission-trigger"
+            "data-permission-trigger",
+            "width<=240px"
           ]
         }
       ]
@@ -71,7 +72,7 @@
       "mode": "replace",
       "version": "0.1.2-alpha.2",
       "baselineSha256": "9b66784a508e042ef1071b322e2423882774ed23ea657a057d041e01b6d290e1",
-      "candidateSha256": "b04a1b0c5b609d334dceeb56e383cffa8b78d2e9d71265915fa9445634b7ba09",
+      "candidateSha256": "ee26c97d89ed776c6c0bb546323ec504b91f6667f4b8cb8221d32e99aad6aee6",
       "probes": [
         {
           "file": "lib/client.js",
@@ -130,9 +131,8 @@
     },
     "@sparkelf/dsh-plus": {
       "mode": "replace",
-      "version": "0.1.0-rc.14",
       "baselineSha256": "524d9e801952632e5bd1fb73ffd7778af791b80fde3344111f1c1c01dc0a1943",
-      "candidateSha256": "548372973f9ebf393478ab0ee14ecb863f7429dd5a22378d805f03f3d9045509",
+      "candidateSha256": "37eafa00f02a1f696f6ee3e2c9c4a33e33d1389a4af4d6a1eb3718756a6b3fe1",
       "probes": [
         {
           "file": "cordis.patch.yml",
@@ -140,8 +140,54 @@
             "plus-subagent-settings-client",
             "browserAuthentication: disabled"
           ]
+        },
+        {
+          "file": "package.json",
+          "contains": [
+            "dsh-sql-workbench-0.4.0.tgz",
+            "sparkelf-dsh-ssh-manager-0.6.0.tgz",
+            "sparkelf-dsh-api-client-0.4.2.tgz",
+            "sparkelf-dsh-plugin-supervisor-0.1.3.tgz"
+          ]
         }
-      ]
+      ],
+      "baselineVersion": "0.1.0-rc.14",
+      "candidateVersion": "0.1.0-rc.16"
+    },
+    "@sparkelf/dsh-patch-mobile-web-layout": {
+      "mode": "replace",
+      "baselineSha256": "28a68bb002eb3b296d3dff3a4744badd9552a96eef3b7a0efbeb451c53e06887",
+      "candidateSha256": "a8c84cdbfe1545be7029b335585cc06e147e4b23bd5e2754a6174a5c27071149",
+      "probes": [
+        {
+          "file": "patches/mobile-web-layout.patch",
+          "contains": [
+            "SettingsRoot",
+            "ModelSelect",
+            "PermissionSelect",
+            "data-composer-toolbar",
+            "@container (max-width: 240px)"
+          ]
+        }
+      ],
+      "baselineVersion": "0.1.0-rc.14",
+      "candidateVersion": "0.1.0-rc.16"
+    },
+    "@sparkelf/dsh-plugin-supervisor": {
+      "mode": "replace",
+      "baselineSha256": "04ad81972aca6355e8ca9e15a7d1f6a2adc4130ead864906286bb056948b582f",
+      "candidateSha256": "066793b01aa08112579bf58c1377f2ce268f7a3a2122bdada312db57f54811c1",
+      "probes": [
+        {
+          "file": "runtime/profile-guard.mjs",
+          "contains": [
+            "accepted Plus profile runtime closure was modified",
+            "accepted-next"
+          ]
+        }
+      ],
+      "baselineVersion": "0.1.1",
+      "candidateVersion": "0.1.3"
     }
   }
 }

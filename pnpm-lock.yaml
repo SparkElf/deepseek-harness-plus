@@ -1411,7 +1411,7 @@ importers:
         specifier: '>=0.1.0-rc.14'
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.14'
+        specifier: '>=0.1.0-rc.16'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
         specifier: '>=0.1.0-rc.14'

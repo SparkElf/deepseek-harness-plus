@@ -326,3 +326,24 @@
   width: 100%;
   min-width: 0;
 }
+
+@container (max-width: 240px) {
+  .root,
+  .trigger {
+    width: 28px;
+    max-width: 28px;
+  }
+
+  .root {
+    flex-basis: 28px;
+  }
+
+  .trigger {
+    gap: 0;
+    padding: 0;
+  }
+
+  .chevron {
+    display: none;
+  }
+}

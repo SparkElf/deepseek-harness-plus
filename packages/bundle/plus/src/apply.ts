@@ -641,7 +641,9 @@ export function materializeOfficialPackageScope(
   for (const entry of workspacePackages) {
     const name = entry.name.slice('@deepseek-ai/'.length)
     const target = resolve(destination, name)
-    if (existsSync(target)) continue
+    // Source patches mutate the reviewed workspace checkout. The profile must
+    // never shadow those artifacts with the same-version clean CLI package.
+    rmSync(target, { recursive: true, force: true })
     symlinkSync(entry.directory, target, linkType)
   }
 }

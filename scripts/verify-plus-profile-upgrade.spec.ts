@@ -61,6 +61,29 @@ describe('Plus production profile closure gate', () => {
       .toEqual(['@fixture/ui'])
   })
 
+
+  it('accepts an exact declared package version upgrade', () => {
+    const baseline = profile('plus-baseline-', { '@fixture/ui': { 'lib/client.js': 'old' } })
+    const candidate = profile('plus-candidate-', { '@fixture/ui': { 'lib/client.js': 'kept replacement' } })
+    const candidateManifest = join(candidate, 'node_modules/@fixture/ui/package.json')
+    writeFileSync(candidateManifest, JSON.stringify({ name: '@fixture/ui', version: '2.0.0' }))
+    const basePolicy = policy(baseline, candidate, 'replace')
+    const expected = basePolicy.packages['@fixture/ui']!
+    const { version: _version, ...fingerprints } = expected
+    const versionedPolicy: PlusProfileUpgradePolicy = {
+      ...basePolicy,
+      packages: {
+        '@fixture/ui': {
+          ...fingerprints,
+          baselineVersion: '1.0.0',
+          candidateVersion: '2.0.0',
+        },
+      },
+    }
+    expect(verifyProfileUpgrade(inspectProfile(baseline), inspectProfile(candidate), versionedPolicy).changed)
+      .toEqual(['@fixture/ui'])
+  })
+
   it('rejects same-version payload drift that has no policy entry', () => {
     const baseline = profile('plus-baseline-', { '@fixture/ui': { 'lib/client.js': 'old' }, '@fixture/hidden': { 'lib/client.js': 'one' } })
     const candidate = profile('plus-candidate-', { '@fixture/ui': { 'lib/client.js': 'kept replacement' }, '@fixture/hidden': { 'lib/client.js': 'two' } })
@@ -83,11 +106,15 @@ describe('Plus production profile closure gate', () => {
   })
 
   it('fingerprints runtime files but ignores source maps', () => {
-    const root = profile('plus-profile-', { '@fixture/ui': { 'lib/client.js': 'one', 'lib/client.js.map': 'first' } })
+    const root = profile('plus-profile-', {
+      '@fixture/ui': { 'lib/client.js': 'one', 'lib/client.js.map': 'first', 'patches/ui.patch': 'first' },
+    })
     const directory = inspectProfile(root).packages['@fixture/ui']!.directory
     const before = fingerprintPackage(directory)
     writeFileSync(join(directory, 'lib/client.js.map'), 'second')
     expect(fingerprintPackage(directory)).toBe(before)
+    writeFileSync(join(directory, 'patches/ui.patch'), 'second')
+    expect(fingerprintPackage(directory)).not.toBe(before)
     writeFileSync(join(directory, 'lib/client.js'), 'two')
     expect(fingerprintPackage(directory)).not.toBe(before)
     expect(profileDiff(inspectProfile(root), inspectProfile(root))).toEqual([])

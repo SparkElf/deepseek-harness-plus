@@ -170,8 +170,8 @@ describe.skipIf(MODE === 'record')('web e2e: declared reasoning efforts reach th
 
     const card = page.locator('[data-composer-card]')
     await card.evaluate((element) => {
-      element.style.width = '300px'
-      element.style.maxWidth = '300px'
+      element.style.width = '190px'
+      element.style.maxWidth = '190px'
     })
     await page.waitForTimeout(300)
     await trigger.click()
