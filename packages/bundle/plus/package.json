@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "publishConfig": {
     "access": "public"
   },

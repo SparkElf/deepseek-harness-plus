@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-responses-reasoning-status",
-  "version": "0.1.0-rc.20",
+  "version": "0.1.0-rc.21",
   "description": "Data-only exact official-source patch for OpenAI Responses gateways that reject replayed reasoning status metadata",
   "publishConfig": {
     "access": "public"
