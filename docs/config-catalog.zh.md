@@ -3362,26 +3362,6 @@ export interface Config {
 
 来源：[`packages/plus/dataops/src/index.ts:49`](../packages/plus/dataops/src/index.ts)
 
-<a id="sparkelfdsh-plugin-document-attachments"></a>
-
-## `@sparkelf/dsh-plugin-document-attachments`
-
-需要：`attachments` · `connection` · `sessionController` · `webServer`
-
-```ts config-catalog
-/** Deployment choices owned by the provider-neutral parser seam. */
-export interface Config {
-  /** Explicit parser provider id; omission auto-selects exactly one registered provider. */
-  provider?: string
-  /** Maximum aggregate rendered-document bytes, including delimiters and metadata, accepted for direct-context version one. */
-  maxDirectMarkdownBytes: number
-  /** Maximum encoded JSON bytes accepted by the authenticated mixed prompt route. */
-  maxRequestBytes: number
-}
-```
-
-来源：[`packages/plus/document-attachments/src/index.ts:31`](../packages/plus/document-attachments/src/index.ts)
-
 <a id="sparkelfdsh-plugin-mcp-credentials"></a>
 
 ## `@sparkelf/dsh-plugin-mcp-credentials`

@@ -177,12 +177,29 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
   return secret
 }
 
+/** Browser-session policy selected once while Connection activates. */
+export interface BrowserAuthentication {
+  /** Add any authentication input to the clean application URL. */
+  authenticatedUrl(baseUrl: string): string
+  /** Authorize one frontend index request, owning the response when denied or redirected. */
+  authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse): boolean
+  /** Decide whether a trusted Host request has the required browser identity. */
+  isAuthenticated(request: ConnectionTrustRequest): boolean
+}
+
+/** Profile-selected policy that admits every request after the independent Host/Origin fence. */
+export const DISABLED_BROWSER_AUTHENTICATION: BrowserAuthentication = {
+  authenticatedUrl: baseUrl => new URL(baseUrl).href,
+  authorizeIndex: () => true,
+  isAuthenticated: () => true,
+}
+
 /**
  * Process launch-token exchange and persistent signed-cookie verification.
  * Connection loads the credential provider's signing secret during activation
  * and retains it for synchronous request authentication.
  */
-export class BrowserAuth {
+export class BrowserAuth implements BrowserAuthentication {
   private readonly launchToken: string
   private readonly maxAgeMilliseconds: number
 

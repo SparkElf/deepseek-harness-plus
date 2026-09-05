@@ -95,7 +95,6 @@
     { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
     { "path": "./packages/plus/backup/tsconfig.client.json" },
     { "path": "./packages/plus/dataops/tsconfig.client.json" },
-    { "path": "./packages/plus/document-attachments/tsconfig.client.json" },
     { "path": "./packages/plus/subagent-settings/tsconfig.client.json" },
     { "path": "./packages/client/ui-theme" },
     { "path": "./packages/client/ui-settings" },

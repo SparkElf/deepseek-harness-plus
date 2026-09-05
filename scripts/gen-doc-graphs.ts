@@ -99,13 +99,6 @@ const GROUP_ORDER = [
 
 const SERVICE_ROLES: ServiceRole[] = [
   {
-    key: 'documentParser',
-    pkg: 'document-attachments',
-    title: 'Document parser provider registry',
-    mode: 'seam',
-    note: 'The Plus capability package owns provider registration and selection, the MinerU implementation, authenticated intake, durable artifacts, and bounded model projection.',
-  },
-  {
     key: 'attachments',
     pkg: 'attachment',
     title: 'Durable binary attachment storage',

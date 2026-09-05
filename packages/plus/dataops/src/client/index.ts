@@ -29,7 +29,9 @@ export async function apply(ctx: Context): Promise<void> {
   if (!result.ok) {
     throw new Error(`pluginInventory.list failed: ${result.error.code}: ${result.error.message}`)
   }
-  const active = result.value.entries.some(entry => entry.entryId === 'plus-dataops' && entry.enabled)
+  const active = result.value.entries.some(
+    entry => entry.moduleName === '@sparkelf/dsh-plugin-dataops' && entry.enabled,
+  )
   if (!active) return
 
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'mcp-dataops: Client copy')

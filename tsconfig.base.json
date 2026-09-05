@@ -129,7 +129,6 @@
       "@deepseek-ai/dsh-client-*/invariant": ["./packages/client/*/src/invariant.ts"],
       "@deepseek-ai/dsh-headless/startup": ["./packages/bundle/headless/src/startup.ts"],
       "@deepseek-ai/dsh-web-app/startup": ["./packages/bundle/web-app/src/startup.ts"],
-      "@sparkelf/dsh-plugin-document-attachments/mineru": ["./packages/plus/document-attachments/src/mineru.ts"],
       "@sparkelf/dsh-plugin-subagent-settings/startup": ["./packages/plus/subagent-settings/src/startup.ts"],
       "@deepseek-ai/dsh-client-*/client": ["./packages/client/*/src/client"],
       // One wildcard maps every @deepseek-ai/dsh-<name> to its source. Package
@@ -437,8 +436,6 @@
       "@sparkelf/dsh-plugin-backup/invariant": ["./packages/plus/backup/src/invariant.ts"],
       "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
       "@sparkelf/dsh-plugin-dataops/invariant": ["./packages/plus/dataops/src/invariant.ts"],
-      "@sparkelf/dsh-plugin-document-attachments": ["./packages/plus/document-attachments/src"],
-      "@sparkelf/dsh-plugin-document-attachments/invariant": ["./packages/plus/document-attachments/src/invariant.ts"],
       "@sparkelf/dsh-plugin-mcp-credentials": ["./packages/plus/mcp-credentials/src"],
       "@sparkelf/dsh-plugin-mcp-credentials/invariant": ["./packages/plus/mcp-credentials/src/invariant.ts"],
       "@sparkelf/dsh-plugin-subagent-settings": ["./packages/plus/subagent-settings/src"],

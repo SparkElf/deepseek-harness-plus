@@ -19,6 +19,8 @@ import type { AgentPresetSettingsState } from './settings-store.ts'
 import { presetDisplayText } from './locales.ts'
 import css from './AgentPresetLabel.module.css'
 
+const LEGACY_PTC_PRESET = 'code'
+
 /** Registration-side business face for the header label. */
 export interface AgentPresetLabelInjected {
   hooks: {
@@ -59,10 +61,11 @@ export function AgentPresetLabel({
 
   const option = options.find(entry => entry.id === preset)
   const text = option === undefined ? undefined : presetDisplayText(option, t)
+  const name = text?.name ?? (preset === LEGACY_PTC_PRESET ? t('presetPtcName') : preset)
   return (
     <span className={css.label} title={text?.description ?? t('headerHint')}>
       <IconAgentPresetOutline16 size={14} className={css.icon} />
-      {text?.name ?? preset}
+      {name}
     </span>
   )
 }

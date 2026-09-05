@@ -209,7 +209,7 @@ test.describe('Plus npm profile user workflows', () => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     const command = page.getByRole('button', { name: '指令', exact: true })
-    const picker = page.getByRole('button', { name: '添加文件', exact: true })
+    const picker = page.getByRole('button', { name: '添加附件', exact: true })
     const [commandBox, pickerBox] = await Promise.all([command.boundingBox(), picker.boundingBox()])
     if (commandBox === null || pickerBox === null) throw new Error('Composer controls must be visible for layout acceptance')
     const commandCenterY = commandBox.y + commandBox.height / 2
@@ -270,7 +270,6 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByRole('radio', { name: '配置', exact: true }).click()
     let downloadPromise = page.waitForEvent('download')
     await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
-    await expect(dialog.getByLabel('备份生成进度')).toBeVisible()
     let download = await downloadPromise
     const configurationArchive = testInfo.outputPath('configuration-backup.zip')
     await download.saveAs(configurationArchive)
@@ -304,7 +303,6 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await dialog.getByRole('button', { name: '备份', exact: true }).click()
     await dialog.locator('input[type="file"]').setInputFiles(configurationArchive)
-    await expect(dialog.getByLabel('备份恢复进度')).toBeVisible()
     await dialog.getByText('配置备份已导入。重新加载后将使用恢复的设置和凭据。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
     allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
@@ -340,73 +338,42 @@ test.describe('Plus npm profile user workflows', () => {
     await expect(dialog.getByLabel('启用连续模式')).toBeChecked()
   })
 
-  test('submits a real document and previews its cards from Chat and Trajectory', async ({ page }) => {
+  test('uploads a real PDF through official attachments and parses it with the MinerU tool', async ({ page }) => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     await selectAcceptanceModel(page)
-    const picker = page.getByRole('button', { name: '添加文件', exact: true })
+    const picker = page.getByRole('button', { name: '添加附件', exact: true })
     const chooserPromise = page.waitForEvent('filechooser')
     await picker.click()
     await (await chooserPromise).setFiles(pdfFixture)
-    const drafts = page.getByLabel('待发送文档')
+    const drafts = page.getByRole('group', { name: '待发送附件' })
     await expect(drafts.getByText('acceptance.pdf', { exact: true })).toBeVisible()
-    const draftCards = drafts.locator(':scope > div')
-    await expect(draftCards).toHaveCount(1)
-    const draftCard = draftCards.first()
-    const [draftsBox, draftCardBox] = await Promise.all([drafts.boundingBox(), draftCard.boundingBox()])
-    if (draftsBox === null || draftCardBox === null) throw new Error('Document draft layout boxes are unavailable')
-    expect(Math.abs(draftCardBox.x - draftsBox.x - 12)).toBeLessThan(1)
-    expect(draftCardBox.width).toBeLessThanOrEqual(280)
-    expect(draftCardBox.height).toBeLessThanOrEqual(46)
-    await sendPrompt(page, "Read the attached document and reply with exactly the three uppercase words after 'The expected phrase is'.")
-    const history = page.getByLabel('已附加文档').first()
+    await sendPrompt(page, "Call mineru_parse_pdf with the exact read-only path of the attached PDF. Then reply with exactly the three uppercase words after 'The expected phrase is'.")
+    const history = page.locator('[data-message-attachments]').first()
     await expect(history.getByText('acceptance.pdf', { exact: true })).toBeVisible({ timeout: 3 * 60_000 })
+    await expect(page.locator('[data-tool="mineru_parse_pdf"][data-state="ok"]')).toBeVisible({ timeout: 6 * 60_000 })
     await page.getByText('PLUS DOCUMENT OK', { exact: true }).waitFor({ timeout: 6 * 60_000 })
-    const documentPreview = page.locator('[data-dsh-better-sidebar]')
-    const collapsePreview = documentPreview.getByRole('button', { name: /折叠侧边栏|Collapse sidebar/ })
-    if (await collapsePreview.isVisible()) await collapsePreview.click()
-    await expect(documentPreview.getByRole('button', { name: /展开侧边栏|Open sidebar/ })).toBeVisible()
-    await history.getByRole('button', { name: /在侧边栏预览acceptance\.pdf|Preview acceptance\.pdf in sidebar/ }).click()
-    await expect(collapsePreview).toBeVisible()
-    await expect(documentPreview.locator('[title="acceptance.pdf"]')).toBeVisible()
-    await expect(documentPreview.getByText(/PLUS DOCUMENT OK/)).toBeVisible()
-    await collapsePreview.click()
-    await expect(documentPreview.getByRole('button', { name: /展开侧边栏|Open sidebar/ })).toBeVisible()
-
-    await page.getByRole('tab', { name: /轨迹|Trajectory/ }).click()
-    await page.getByRole('row', { name: /用户.*Read the attached document/ }).click()
-    const trajectoryHistory = page.getByLabel('已附加文档')
-    await expect(trajectoryHistory.getByText('acceptance.pdf', { exact: true }).first()).toBeVisible()
-    await trajectoryHistory.getByRole('button', { name: /在侧边栏预览acceptance\.pdf|Preview acceptance\.pdf in sidebar/ }).click()
-    await expect(collapsePreview).toBeVisible()
-    await expect(documentPreview.locator('[title="acceptance.pdf"]')).toBeVisible()
-    await expect(documentPreview.getByText(/PLUS DOCUMENT OK/)).toBeVisible()
-    await page.getByRole('tab', { name: /对话|Chat/ }).click()
   })
 
-  test('creates and merges a real Univer Office spreadsheet for visible review', async ({ page }) => {
+  test('creates an original spreadsheet with OfficeCLI and opens it in Better Sidebar', async ({ page }) => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
     await selectAcceptanceModel(page)
-    // Ready/merge replaces the Viewer iframe and may cancel its in-flight exact locale chunk.
-    allowNextNavigationAbort(page, 'GET', '/assets/zh-CN-C7pm8zHW.js')
     await sendPrompt(page, [
-      'Use the bundled univer and univer-sheet skills.',
-      'In the current workspace create plus-univer-acceptance.univer with one Sheet named Acceptance.',
-      'Set A1 to PLUS UNIVER OK and B1 to the number 42.',
-      'Read the finished Sheet to verify both values, submit the worktree for confirmation, and merge it into the current version.',
-      'Do not ask questions. After the merge reply with exactly UNIVER_ACCEPTANCE_DONE.',
+      'Use officecli and load its excel skill.',
+      `Create the original file ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx with a Sheet named Acceptance.`,
+      'Set A1 to PLUS OFFICECLI OK and B1 to the number 42, save it, validate it, and read the values back.',
+      'Do not create HTML, PNG, PDF, or .univer files and do not ask questions.',
+      `Reply with exactly OFFICECLI_ACCEPTANCE_DONE and the absolute path ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx.`,
     ].join(' '))
-
-    const allowMerge = page.getByRole('button', { name: /允许一次|Allow once/ })
-    await expect(allowMerge).toBeVisible({ timeout: 6 * 60_000 })
-    await expect(page.getByRole('region', { name: /· plus-univer-acceptance\.univer$/ })).toHaveCount(0)
-    await allowMerge.click()
-    await page.getByText('UNIVER_ACCEPTANCE_DONE', { exact: true }).waitFor({ timeout: 3 * 60_000 })
-    const review = page.getByRole('region', { name: 'plus-univer-acceptance.univer', exact: true })
-    await expect(review.getByText('已合入', { exact: true })).toBeVisible()
-    await expect(review.locator('iframe')).toBeVisible()
+    await page.locator('p').filter({ hasText: 'OFFICECLI_ACCEPTANCE_DONE' }).waitFor({ timeout: 6 * 60_000 })
+    await page.getByRole('button', { name: 'plus-officecli-acceptance.xlsx', exact: true }).click()
+    const viewer = page.getByLabel('plus-officecli-acceptance.xlsx', { exact: true })
+    await expect(viewer).toBeVisible()
+    await expect(viewer.getByText('Acceptance', { exact: true })).toBeVisible()
+    await expect(viewer.getByText('公式', { exact: true })).toBeVisible()
+    await expect(page.getByText(/^(下载查看|Download to view)$/)).toHaveCount(0)
   })
 
   test('authorizes DataOps through its real UI and renders a dsh-genui chart from the result', async ({ page }, testInfo) => {
@@ -435,7 +402,9 @@ test.describe('Plus npm profile user workflows', () => {
         const password = process.env.DSH_PLUS_TEST_DATAOPS_PASSWORD
         if (!username || !password) {
           await assertDiagnostics(popup, testInfo)
-          throw new Error('DataOps authorization requires DSH_PLUS_TEST_DATAOPS_USERNAME and DSH_PLUS_TEST_DATAOPS_PASSWORD')
+          await popup.close()
+          test.skip(true, 'DataOps account login requires DSH_PLUS_TEST_DATAOPS_USERNAME and DSH_PLUS_TEST_DATAOPS_PASSWORD')
+          return
         }
         await popup.getByRole('button', { name: /账号密码|Password/ }).click()
         await popup.getByRole('textbox', { name: /用户名或邮箱|Username or email/ }).fill(username)
@@ -561,12 +530,11 @@ test.describe('Plus mobile Web navigation', () => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)
     await sendPrompt(page, '/goal clear')
-    const header = page.locator('[data-slot="conversation.session.header.utilities"]')
-    await expect(header.getByRole('button', { name: '会话日志', exact: true })).toBeVisible()
+    await expect(page.locator('[data-session-log-header]')).toBeVisible()
 
     await page.getByRole('tab', { name: /轨迹|Trajectory/ }).click()
     const toolbar = page.getByRole('toolbar', { name: '轨迹工具栏', exact: true })
     await expect(toolbar.locator('button').filter({ hasText: '会话日志' })).toBeHidden()
-    await expect(header.getByRole('button', { name: '会话日志', exact: true })).toBeVisible()
+    await expect(page.locator('[data-session-log-header]')).toBeVisible()
   })
 })

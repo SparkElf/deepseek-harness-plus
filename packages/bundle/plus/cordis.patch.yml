@@ -22,22 +22,6 @@
         toolCallTimeoutMs: 60000
         failOnStartupError: false
 
-    - id: plus-document-parser
-      name: '@sparkelf/dsh-plugin-document-attachments'
-      disabled: !!js "!process.env.DSH_MINERU_ENDPOINT"
-      config:
-        provider: mineru
-        maxDirectMarkdownBytes: 1048576
-        maxRequestBytes: 402653184
-
-    - id: plus-document-parser-mineru
-      name: '@sparkelf/dsh-plugin-document-attachments/mineru'
-      disabled: !!js "!process.env.DSH_MINERU_ENDPOINT"
-      config:
-        endpoint: !!js process.env.DSH_MINERU_ENDPOINT
-        timeoutMs: 120000
-        maxResponseBytes: 67108864
-
     # A disabled root node carries the package's Web Settings entry into the
     # client inventory; the startup nodes below exclusively own Host schemas.
     - id: plus-subagent-settings-client

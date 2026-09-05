@@ -202,13 +202,14 @@ function main(): void {
   const plusReleaseAsset = (filename: string): string =>
     'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/' + filename
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.9.7',
+    '@changfenhuang/dsh-genui': '0.9.8',
     'dsh-better-sidebar': plusReleaseAsset('dsh-better-sidebar-0.18.1.tgz'),
+    '@sparkelf/dsh-office-viewer-fonts': '>=0.1.0',
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
     'dsh-video-preview': '0.1.4',
-    'dsh-univer-office': '0.2.14',
+    '@sparkelf/dsh-mineru': '>=0.1.0',
+    '@sparkelf/dsh-officecli': '>=0.1.0',
     '@sparkelf/dsh-plugin-supervisor': plusReleaseAsset('sparkelf-dsh-plugin-supervisor-0.1.3.tgz'),
-    '@sparkelf/dsh-univer-government-docs': '0.1.6',
     'dsh-sql-workbench': plusReleaseAsset('dsh-sql-workbench-0.4.0.tgz'),
     '@sparkelf/dsh-workbench-vault': plusReleaseAsset('sparkelf-dsh-workbench-vault-0.1.0.tgz'),
     '@sparkelf/dsh-ssh-manager': plusReleaseAsset('sparkelf-dsh-ssh-manager-0.6.0.tgz'),
@@ -218,8 +219,8 @@ function main(): void {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
-  if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true, protobufjs: false })) {
-    throw new Error('dshPlus.profile.allowBuilds must allow node-pty and explicitly deny protobufjs')
+  if (JSON.stringify(allowBuilds) !== JSON.stringify({ '@officecli/officecli': true, 'node-pty': true, protobufjs: false })) {
+    throw new Error('dshPlus.profile.allowBuilds must allow OfficeCLI and node-pty and explicitly deny protobufjs')
   }
   // External runtime packages由transitive dependency或apply-owned profile dependency恰好一个owner提供。
   for (const name of Object.keys(profileDependencies)) {

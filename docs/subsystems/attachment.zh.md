@@ -6,7 +6,7 @@
 
 未发送的浏览器草稿可以保留在内存中，原生客户端也可以将其暂存于操作系统临时存储。浏览器通用文件取得暂存 prompt 凭证前会完成持久化。宿主接受用户消息后，会先把消息中的图片移到 `<DSH_HOME>/attachments/v1` 下，再追加用户事件。结构化模型图片输出遵循同样的先持久化、后追加事件规则。
 
-Plus Document capability通过`ctx.documentParser`与该storage seam组合：provider把已持久化的PDF或Office source解析为transient result，而[Document Attachments package](../../packages/plus/document-attachments/README.zh.md)拥有durable original/parsed artifacts、accepted formats、limits及model projection。
+Official generic file upload存储原始bytes，并向model history投影read-only execution-world path。Plus把PDF解析组合为独立`@sparkelf/dsh-mineru` model tool，不扩展该storage service。
 
 来源：[`packages/attachment/attachment/src/types.ts`](../../packages/attachment/attachment/src/types.ts)
 
@@ -290,38 +290,6 @@ readImageRequest( ref: ImageAttachmentRef, policy: ImageRequestPolicy, signal?: 
 ```
 
 Source: [`packages/attachment/attachment/src/index.ts`](../../packages/attachment/attachment/src/index.ts)
-
-<a id="ctxdocumentparser--documentparserruntime"></a>
-
-### `ctx.documentParser` — `DocumentParserRuntime`
-
-Provider-neutral parser registry and direct-context policy owner.
-
-```ts cordis-catalog
-/**
- * Register one parser provider until the owning Cordis fiber disposes.
- * @param provider - provider implementation keyed by its non-empty id.
- * @returns disposer that withdraws exactly this registration.
- */
-registerProvider(provider: DocumentParserProvider): () => void
-
-/**
- * Report whether current registry state resolves the configured provider selection.
- * This does not probe provider health or external endpoint availability.
- * @returns true only when a parse call can select exactly one registered provider.
- */
-isSelectionResolvable(): boolean
-
-/**
- * Parse one already-persisted document through the deployment-selected provider.
- * @param request - verified original bytes and their durable metadata.
- * @param signal - optional cancellation forwarded to the provider.
- * @returns provider id together with the complete transient parse bundle.
- */
-async parse( request: DocumentParseRequest, signal?: AbortSignal, ): Promise<{ parser: string; result: DocumentParseResult }>
-```
-
-Source: [`packages/plus/document-attachments/src/index.ts`](../../packages/plus/document-attachments/src/index.ts)
 
 <a id="ctxfileuploads--fileuploads"></a>
 

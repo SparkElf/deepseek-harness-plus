@@ -149,7 +149,6 @@ function workspaceManifests(): WorkspaceManifest[] {
 
 const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
   '@sparkelf/dsh-plus': ['lib/apply.js'],
-  '@sparkelf/dsh-plugin-document-attachments': ['lib/mineru.js', 'lib/types-*.js'],
   // Statically linked client libraries keep their stylesheets next to the emitted
   // JavaScript, which imports them by relative path: the compile shell runs
   // them through its own CSS pipeline, so the sheets are published artifacts.
