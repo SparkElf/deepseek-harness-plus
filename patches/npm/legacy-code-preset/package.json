@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-legacy-code-preset",
-  "version": "0.1.0-rc.21",
+  "version": "0.1.0-rc.22",
   "description": "Data-only exact official-source patch mapping persisted legacy code presets to PTC without rewriting Session logs",
   "publishConfig": {
     "access": "public"

@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-history-search",
-  "version": "0.1.0-rc.21",
+  "version": "0.1.0-rc.22",
   "description": "Data-only exact official-source patch for searchable historical Session migration at production scale",
   "publishConfig": {
     "access": "public"

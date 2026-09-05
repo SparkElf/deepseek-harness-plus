@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-dataops",
   "description": "Standalone DataOps MCP integration with delegated browser authorization and Settings UI",
-  "version": "0.1.0-rc.21",
+  "version": "0.1.0-rc.22",
   "publishConfig": {
     "access": "public"
   },
