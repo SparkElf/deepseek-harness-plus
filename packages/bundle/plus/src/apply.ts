@@ -559,6 +559,9 @@ function applySelectedPatches(
   if (sourceFiles.length > 0) git(dshRoot, ['update-index', '--refresh'], true)
   for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
   if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
+    if (sourceFiles.length > 0) {
+      runPnpm(dshRoot, ['install', '--no-frozen-lockfile'], 'pnpm install after source patches')
+    }
     runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
   }
 }

@@ -1,5 +1,5 @@
 diff --git a/packages/session-query/session-log-export/src/client/locales.ts b/packages/session-query/session-log-export/src/client/locales.ts
-index 29989f3dd4d2cf20431cfdf2adaae09496fd8a6d..7e2e77e0e69ffaae958c15016244405eccd652a6 100644
+index 29989f3dd4..7e2e77e0e6 100644
 --- a/packages/session-query/session-log-export/src/client/locales.ts
 +++ b/packages/session-query/session-log-export/src/client/locales.ts
 @@ -3,14 +3,14 @@ export const NS = 'session-log-download'

@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-backup",
   "description": "Full-stack Plus user-data Backup plugin with streamed Host archive routes and Settings UI",
-  "version": "0.1.0-rc.14",
+  "version": "0.1.0-rc.22",
   "publishConfig": {
     "access": "public"
   },
@@ -46,14 +46,14 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
-    "@deepseek-ai/dsh-client-locale": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-host-webserver": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-invariants": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-settings": ">=0.1.2-alpha.2",
-    "@deepseek-ai/dsh-workspace": ">=0.1.2-alpha.2"
+    "@deepseek-ai/dsh-client-locale": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-invariants": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-settings": ">=0.1.3-alpha.1",
+    "@deepseek-ai/dsh-workspace": ">=0.1.3-alpha.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",

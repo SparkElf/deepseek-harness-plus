@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/ptc-mcp-schema-types/README.md
-README.md: 92bf8729e1881f4bdecb6c27c56e277a47901c75
-README.zh.md: 66601620ed68a7995a076f9d6605f64c9b9c0a8a
+README.md: 35431431e166db9a004cd22fd3ec2eeb3b2a4be9
+README.zh.md: 0acbda6045cf60a4111e4dfefa77b2531b7d39b9

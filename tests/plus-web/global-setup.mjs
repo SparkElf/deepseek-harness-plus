@@ -22,9 +22,11 @@ const workspaceDir = join(stateRoot, 'workspace')
 const backupWorkspaceDir = join(stateRoot, 'workspace-after-backup')
 const runtimePath = join(stateRoot, 'runtime.json')
 const logPath = join(home, 'supervisor', 'runtime.log')
-const baseURL = 'http://127.0.0.1:3081'
-const supervisorURL = 'http://127.0.0.1:3083'
-const officialRevision = '0a53fb55bea101816fa226bb964ae2bed71c343b'
+const webPort = Number(process.env.DSH_PLUS_TEST_PORT ?? '3081')
+const supervisorPort = Number(process.env.DSH_PLUS_TEST_SUPERVISOR_PORT ?? '3083')
+const baseURL = `http://127.0.0.1:${String(webPort)}`
+const supervisorURL = `http://127.0.0.1:${String(supervisorPort)}`
+const officialRevision = 'd347e703908d0406b7a7ef80e3a0e594d86b2215'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -131,7 +133,6 @@ function packageDirectories() {
     'packages/bundle/plus',
     'packages/plus/backup',
     'packages/plus/dataops',
-    'packages/plus/document-attachments',
     'packages/plus/mcp-credentials',
     'packages/plus/subagent-settings',
   ]
@@ -166,11 +167,14 @@ function packCandidateArchives(directories) {
 }
 
 /** Cache key只取会改变official build/profile的声明输入，不纳入凭据、模型选择或运行数据。 */
-function buildCacheDescriptor(directories, archives) {
+function buildCacheDescriptor(directories, archives, externalArchives) {
   const packages = directories.map(directory => ({
     directory,
     sha256: createHash('sha256').update(readFileSync(archives.get(directory))).digest('hex'),
-  }))
+  })).concat(Object.entries(externalArchives).map(([name, archive]) => ({
+    directory: 'external:' + name,
+    sha256: createHash('sha256').update(readFileSync(archive)).digest('hex'),
+  })))
   const descriptor = {
     formatVersion: 1,
     officialRevision,
@@ -267,10 +271,19 @@ export default async function globalSetup() {
     'DSH_PLUS_TEST_MODEL_LABEL',
     'DSH_MINERU_ENDPOINT',
     'DSH_DATAOPS_BASE_URL',
+    'DSH_PLUS_TEST_SIDEBAR_ARCHIVE',
+    'DSH_PLUS_TEST_SUPERVISOR_ARCHIVE',
+    'DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE',
+    'DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE',
+    'DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE',
+    'DSH_PLUS_TEST_API_CLIENT_ARCHIVE',
+    'DSH_PLUS_TEST_MINERU_ARCHIVE',
+    'DSH_PLUS_TEST_OFFICECLI_ARCHIVE',
+    'DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE',
   ]
   const missing = required.filter(name => process.env[name] === undefined || process.env[name] === '')
   if (missing.length > 0) throw new Error(`Plus Web system acceptance requires: ${missing.join(', ')}`)
-  if (!(await portAvailable(3081))) throw new Error('Plus Web system acceptance requires unused port 3081; production 3080 is never reused or stopped.')
+  if (!(await portAvailable(webPort))) throw new Error(`Plus Web system acceptance requires unused port ${String(webPort)}; production 3080 is never reused or stopped.`)
 
   if (existsSync(legacySourceRoot)) run('git', ['worktree', 'remove', '--force', legacySourceRoot], repoRoot)
   rmSync(stateRoot, { recursive: true, force: true })
@@ -295,10 +308,21 @@ export default async function globalSetup() {
   copyFileSync(credentialsSource, credentialsDestination)
   chmodSync(credentialsDestination, 0o600)
   const directories = packageDirectories()
+  const externalArchives = {
+    'dsh-better-sidebar': resolve(process.env.DSH_PLUS_TEST_SIDEBAR_ARCHIVE),
+    '@sparkelf/dsh-plugin-supervisor': resolve(process.env.DSH_PLUS_TEST_SUPERVISOR_ARCHIVE),
+    'dsh-sql-workbench': resolve(process.env.DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE),
+    '@sparkelf/dsh-workbench-vault': resolve(process.env.DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE),
+    '@sparkelf/dsh-ssh-manager': resolve(process.env.DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE),
+    '@sparkelf/dsh-api-client': resolve(process.env.DSH_PLUS_TEST_API_CLIENT_ARCHIVE),
+    '@sparkelf/dsh-mineru': resolve(process.env.DSH_PLUS_TEST_MINERU_ARCHIVE),
+    '@sparkelf/dsh-officecli': resolve(process.env.DSH_PLUS_TEST_OFFICECLI_ARCHIVE),
+    '@sparkelf/dsh-office-viewer-fonts': resolve(process.env.DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE),
+  }
   const distributionDirectory = 'packages/bundle/plus'
   const mcpDirectory = 'packages/plus/mcp-credentials'
   const packedArchives = packCandidateArchives(directories)
-  const cacheDescriptor = buildCacheDescriptor(directories, packedArchives)
+  const cacheDescriptor = buildCacheDescriptor(directories, packedArchives, externalArchives)
   const cacheHit = readBuildCacheManifest()?.key === cacheDescriptor.key
   let archives
   if (cacheHit) {
@@ -326,10 +350,9 @@ export default async function globalSetup() {
         const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
         return [manifest.name, `file:${archives.get(directory)}`]
       })),
-      'dsh-better-sidebar': '0.17.1',
-      '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+      '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
       'dsh-video-preview': '0.1.4',
-      'dsh-univer-office': '0.2.12',
+      ...Object.fromEntries(Object.entries(externalArchives).map(([name, archive]) => [name, `file:${archive}`])),
       '@sparkelf/dsh-mobile-bridge': '0.2.10',
     }
     writeFileSync(
@@ -348,17 +371,24 @@ export default async function globalSetup() {
   }
   const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
   const externalBundles = {
-    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
-    'dsh-video-preview': '0.1.4',
-    'dsh-univer-office': '0.2.12',
+    'dsh-better-sidebar': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-better-sidebar-0.18.1.tgz', version: '0.18.1' },
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': { spec: '0.2.0', version: '0.2.0' },
+    'dsh-video-preview': { spec: '0.1.4', version: '0.1.4' },
+    '@sparkelf/dsh-mineru': { spec: '>=0.1.0', version: '0.1.0' },
+    '@sparkelf/dsh-officecli': { spec: '>=0.1.0', version: '0.1.0' },
+    '@sparkelf/dsh-office-viewer-fonts': { spec: '>=0.1.0', version: '0.1.0' },
+    '@sparkelf/dsh-plugin-supervisor': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-plugin-supervisor-0.1.3.tgz', version: '0.1.3' },
+    'dsh-sql-workbench': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-sql-workbench-0.4.0.tgz', version: '0.4.0' },
+    '@sparkelf/dsh-ssh-manager': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-ssh-manager-0.6.0.tgz', version: '0.6.0' },
+    '@sparkelf/dsh-api-client': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-api-client-0.4.2.tgz', version: '0.4.2' },
   }
-  for (const [packageName, version] of Object.entries(externalBundles)) {
-    if (profileManifest.dependencies?.[packageName] !== version
+  for (const [packageName, expected] of Object.entries(externalBundles)) {
+    if (profileManifest.dependencies?.[packageName] !== expected.spec
       || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
-      throw new Error(`Plus profile did not materialize ${packageName}@${version}`)
+      throw new Error(`Plus profile did not materialize ${packageName}@${expected.spec}`)
     }
     const installedManifest = JSON.parse(readFileSync(join(profileRoot, 'node_modules', packageName, 'package.json'), 'utf8'))
-    if (installedManifest.name !== packageName || installedManifest.version !== version) {
+    if (installedManifest.name !== packageName || installedManifest.version !== expected.version) {
       throw new Error(`Plus profile installed the wrong ${packageName} version`)
     }
   }
@@ -392,12 +422,12 @@ export default async function globalSetup() {
   const supervisorSocketPath = join(supervisorDirectory, 'system-test.sock')
   writeFileSync(supervisorManifestPath, JSON.stringify({
     dshHome: home,
-    port: 3081,
-    supervisorPort: 3083,
+    port: webPort,
+    supervisorPort,
     socketPath: supervisorSocketPath,
     runtime: {
       command: process.execPath,
-      args: [join(sourceRoot, 'apps/cli/lib/bin.js'), '--profile', 'plus', '--port', '3081', '--no-open'],
+      args: [join(sourceRoot, 'apps/cli/lib/bin.js'), '--profile', 'plus', '--port', String(webPort), '--no-open'],
       cwd: sourceRoot,
     },
   }, null, 2) + '\n')
@@ -423,6 +453,7 @@ export default async function globalSetup() {
   }, null, 2) + '\n')
   try {
     process.env.DSH_PLUS_TEST_START_URL = await waitForWeb(child)
+    process.env.DSH_PLUS_TEST_SUPERVISOR_URL = supervisorURL
   } catch (error) {
     try {
       process.kill(-child.pid, 'SIGTERM')

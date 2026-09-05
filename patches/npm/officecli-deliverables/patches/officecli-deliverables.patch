@@ -1,0 +1,41 @@
+diff --git a/packages/client/ui-deliverables/src/client/turn-deliverables.ts b/packages/client/ui-deliverables/src/client/turn-deliverables.ts
+index 90e3248516..74b08021b5 100644
+--- a/packages/client/ui-deliverables/src/client/turn-deliverables.ts
++++ b/packages/client/ui-deliverables/src/client/turn-deliverables.ts
+@@ -53,11 +53,36 @@ function mutationPath(name: string, argsRaw: string): string | null {
+       return validEditArgs(args) ? pathValue(args.file_path) : null
+     case 'str_replace_editor':
+       return editorMutationPath(args)
++    case 'officecli':
++      return officeCliMutationPath(args)
+     default:
+       return null
+   }
+ }
+ 
++const OFFICECLI_MUTATIONS = new Set([
++  'create',
++  'set',
++  'add',
++  'remove',
++  'move',
++  'swap',
++  'batch',
++  'refresh',
++  'merge',
++  'raw-set',
++  'add-part',
++  'save',
++  'close',
++])
++
++/** 读取 OfficeCLI 写命令的原件路径；命令 argv 是该工具的唯一文件合同。 */
++function officeCliMutationPath(args: Readonly<Record<string, unknown>>): string | null {
++  if (!Array.isArray(args.command) || !args.command.every(value => typeof value === 'string')) return null
++  const [operation, file] = args.command
++  return operation !== undefined && OFFICECLI_MUTATIONS.has(operation) ? pathValue(file) : null
++}
++
+ /** Validate the fields that an `edit` execution requires. */
+ function validEditArgs(args: Readonly<Record<string, unknown>>): boolean {
+   return typeof args.old_string === 'string'

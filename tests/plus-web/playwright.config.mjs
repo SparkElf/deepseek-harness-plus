@@ -18,7 +18,7 @@ export default defineConfig({
     ['html', { outputFolder: '../../.cache/plus-web-system/report', open: 'never' }],
   ],
   use: {
-    baseURL: 'http://127.0.0.1:3081',
+    baseURL: `http://127.0.0.1:${process.env.DSH_PLUS_TEST_PORT ?? '3081'}`,
     locale: 'zh-CN',
     viewport: { width: 1680, height: 1000 },
     acceptDownloads: true,

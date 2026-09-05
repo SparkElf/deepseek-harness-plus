@@ -23,7 +23,7 @@ import {
 import { connectFreshWorkspace, newEnglishPage, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('../../../snapshots/web/turn-tail-actions', import.meta.url))
-const FIXTURE = join(SNAPSHOT_DIR, 'session.jsonl')
+const FIXTURE = join(SNAPSHOT_DIR, 'session.v2.jsonl')
 // Three goldens for the same message: parked mid-turn, aborted, and completed.
 const RUNNING_EXPECTED = join(SNAPSHOT_DIR, 'running.expected.md')
 const SETTLED_EXPECTED = join(SNAPSHOT_DIR, 'settled.expected.md')
@@ -139,6 +139,9 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
       () => page.getByRole('status').filter({ hasText: 'Deep diving...' }).isVisible(),
       { timeout: 10_000 },
     ).toBe(true)
+    await page.locator('[data-streaming="true"]')
+      .getByText('partial', { exact: true })
+      .waitFor({ timeout: 10_000 })
     // Only the user bubble owns a footer (clock + copy; user bubbles carry no
     // branch action): the narration is not the answer yet.
     const copyButtons = page.getByRole('button', { name: 'Copy' })
@@ -288,7 +291,7 @@ describe('web e2e: assistant IconActions wait for the turn to end', () => {
     await assertFixtureInventory(
       SNAPSHOT_DIR,
       [
-        'completed.expected.md', 'focused.expected.md', 'running.expected.md', 'session.jsonl',
+        'completed.expected.md', 'focused.expected.md', 'running.expected.md', 'session.v2.jsonl',
         'settled.expected.md', 'usage-expanded.expected.md',
       ],
     )

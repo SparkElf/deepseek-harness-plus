@@ -34,7 +34,7 @@ export function watchDiagnostics(page) {
     const expectedRestartRequest = runtimeRestartWindows.get(page) === true
       && request.method() === 'GET'
       && path === '/plugins/events'
-      && error === 'net::ERR_INCOMPLETE_CHUNKED_ENCODING'
+      && (error === 'net::ERR_INCOMPLETE_CHUNKED_ENCODING' || error === 'net::ERR_CONNECTION_REFUSED')
     if (expectedRestartRequest) {
       record.intentionalCancellations.push(rendered)
     } else if (error === 'net::ERR_ABORTED' && allowance >= 0) {
@@ -63,7 +63,7 @@ export function endRuntimeRestart(page) {
   runtimeRestartWindows.set(page, false)
 }
 
-/** Allow one request to be cancelled by the next user-triggered page navigation. */
+/** Allow one exact request cancellation when the user-visible navigation or download result is asserted separately. */
 export function allowNextNavigationAbort(page, method, path) {
   const allowances = navigationAbortAllowances.get(page)
   if (allowances === undefined) throw new Error('Browser diagnostics were not installed')
