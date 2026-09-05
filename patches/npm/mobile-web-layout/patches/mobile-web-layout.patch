@@ -507,3 +507,879 @@ index b54049e..85ad9d8 100644
              aria-label={t('input.accessMode', { name: currentLabel })}
              title={current?.description}
              disabled={locked || busy}
+diff --git a/packages/client/ui-model-selection/package.json b/packages/client/ui-model-selection/package.json
+index b5b4e63f52..64faef859b 100644
+--- a/packages/client/ui-model-selection/package.json
++++ b/packages/client/ui-model-selection/package.json
+@@ -61,8 +61,10 @@
+     "@deepseek-ai/dsh-invariants": "workspace:^",
+     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
+     "@types/react": "~18.3.1",
++    "@types/react-dom": "~18.3.0",
+     "@deepseek-ai/cordis": "workspace:^",
+     "react": "^18.2.0",
++    "react-dom": "^18.2.0",
+     "@deepseek-ai/dsh-client-store": "workspace:^",
+     "@deepseek-ai/dsh-session": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
+diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+index 492fb12f8c..82fa9b0f3c 100644
+--- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
++++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+@@ -1,6 +1,8 @@
+ .root {
+   position: relative;
++  flex: 0 1 auto;
+   min-width: 0;
++  max-width: min(360px, 45cqw);
+ }
+ 
+ /* Figma 313:14108 ToggleButton: 13/20 medium secondary label, 4px gap,
+@@ -10,11 +12,9 @@
+   display: flex;
+   align-items: center;
+   gap: 4px;
++  width: 100%;
+   min-width: 0;
+-  /* Legacy fallback, then a row-relative cap that grants long names more
+-     room without letting this trailing control consume the composer. */
+-  max-width: 220px;
+-  max-width: min(360px, 45cqw);
++  max-width: 100%;
+   height: 28px;
+   padding: 0 4px 0 8px;
+   border: none;
+@@ -42,7 +42,13 @@
+   cursor: default;
+ }
+ 
++.triggerIcon {
++  display: none;
++  flex: 0 0 auto;
++}
++
+ .triggerLabel {
++  flex: 1 1 auto;
+   min-width: 0;
+   overflow: hidden;
+   text-overflow: ellipsis;
+@@ -65,6 +71,48 @@
+   transform: rotate(180deg);
+ }
+ 
++/* The composer row is the anonymous inline-size container. Keep the model name
++   as the primary identity, then replace it with the familiar model glyph only
++   when text would compete with the fixed context and send actions. */
++@container (max-width: 560px) {
++  .root {
++    max-width: min(180px, 34cqw);
++  }
++
++  .triggerEffort {
++    display: none;
++  }
++}
++
++@container (max-width: 420px) {
++  .root {
++    flex: 0 0 36px;
++    width: 36px;
++    max-width: 36px;
++  }
++
++  .trigger {
++    justify-content: center;
++    gap: 2px;
++    width: 36px;
++    padding: 0 3px 0 5px;
++  }
++
++  .triggerIcon {
++    display: inline-flex;
++  }
++
++  .triggerIcon svg {
++    width: 14px;
++    height: 14px;
++  }
++
++  .triggerLabel,
++  .triggerEffort {
++    display: none;
++  }
++}
++
+ .menu {
+   position: absolute;
+   right: 0;
+@@ -259,3 +307,22 @@
+   flex: 0 0 auto;
+   color: var(--dsw-alias-label-tertiary);
+ }
++
++/* Applied only while the mobile menu is portaled outside composer clips. */
++.portalMenu {
++  position: fixed;
++  right: auto;
++  bottom: auto;
++  z-index: 100;
++  box-sizing: border-box;
++  width: min(240px, calc(100vw - 24px));
++  min-width: 0;
++  max-width: calc(100vw - 24px);
++  max-height: min(300px, calc(100dvh - 80px));
++}
++
++.portalMenu .cell,
++.portalMenu .option {
++  width: 100%;
++  min-width: 0;
++}
+diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
+index e910651e86..111b614cb5 100644
+--- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
++++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
+@@ -9,17 +9,21 @@
+  * /model popup; exact-model reasoning metadata and the selected effort come
+  * from the Host rather than a client-owned vocabulary. A rejected selection
+  * announces through the shared transient Toast anchored to the composer
+- * card; the in-menu strip with Retry remains the catalog-load surface.
++ * card; the in-menu strip with Retry remains the catalog-load surface. The
++ * closed trigger progressively drops effort, ellipsizes the model name, then
++ * uses the shared model glyph on narrow composer rows without changing its
++ * accessible name or menu behavior.
+  */
+ import {
+-  useEffect, useId, useMemo, useRef, useState, useSyncExternalStore,
+-  type KeyboardEvent, type FocusEvent,
++  useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
++  type CSSProperties, type KeyboardEvent, type FocusEvent,
+ } from 'react'
++import { createPortal } from 'react-dom'
+ import clsx from 'clsx'
+ import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+ import {
+   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
+-  IconWarningOutline16, Toast,
++  IconThinkOutline16, IconWarningOutline16, Toast,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { ModelSelectInjected } from './slots.ts'
+@@ -35,6 +39,9 @@ interface EffortChoice {
+   label: string
+ }
+ 
++/** Hidden fixed placement used while the portaled menu measures its real size. */
++const PORTAL_MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
++
+ /**
+  * Render the composer model seat.
+  * @param props - owner share (locked) + injected face (shared directory
+@@ -51,6 +58,8 @@ export function ModelSelect(
+   )
+   const [open, setOpen] = useState(false)
+   const [pane, setPane] = useState<Pane>('root')
++  const [portalMode, setPortalMode] = useState(false)
++  const [portalPosition, setPortalPosition] = useState<CSSProperties | null>(null)
+   // The in-menu error strip serves catalog loads (its Retry re-runs the
+   // load); a rejected SELECTION announces through the transient toast
+   // instead, so the strip renders only while the latest failure-capable
+@@ -60,6 +69,7 @@ export function ModelSelect(
+   const toastSeq = useRef(0)
+   const rootRef = useRef<HTMLDivElement | null>(null)
+   const triggerRef = useRef<HTMLButtonElement | null>(null)
++  const menuRef = useRef<HTMLDivElement | null>(null)
+   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
+   const id = useId()
+ 
+@@ -108,12 +118,72 @@ export function ModelSelect(
+   useEffect(() => {
+     if (!open) return
+     const closeOutside = (event: MouseEvent): void => {
+-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
++      const target = event.target as Node
++      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false)
+     }
+     document.addEventListener('mousedown', closeOutside)
+     return () => { document.removeEventListener('mousedown', closeOutside) }
+   }, [open])
+ 
++  // Use the actual composer width as the primary constraint: a wide desktop
++  // viewport can still have a phone-width conversation column beside panels.
++  useLayoutEffect(() => {
++    if (!open) {
++      setPortalMode(false)
++      setPortalPosition(null)
++      return
++    }
++    const toolbar = rootRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
++    const query = typeof window.matchMedia === 'function'
++      ? window.matchMedia('(max-width: 640px)')
++      : undefined
++    const update = (): void => {
++      const width = toolbar?.clientWidth ?? 0
++      setPortalMode((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
++    }
++    update()
++    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
++    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
++    query?.addEventListener('change', update)
++    window.addEventListener('resize', update)
++    return () => {
++      observer?.disconnect()
++      query?.removeEventListener('change', update)
++      window.removeEventListener('resize', update)
++    }
++  }, [open])
++
++  // Keep vertical placement tied to the trigger and horizontal placement tied
++  // to the composer card. This avoids both the trigger-seat clipping and the
++  // large vertical gap caused by using one ancestor for both axes.
++  useLayoutEffect(() => {
++    if (!open || !portalMode) {
++      setPortalPosition(null)
++      return
++    }
++    const place = (): void => {
++      const trigger = triggerRef.current
++      const menu = menuRef.current
++      const card = rootRef.current?.closest<HTMLElement>('[data-composer-card]')
++      if (trigger === null || menu === null || card === null || card === undefined) return
++      const triggerRect = trigger.getBoundingClientRect()
++      const cardRect = card.getBoundingClientRect()
++      const width = menu.offsetWidth
++      const height = menu.offsetHeight
++      const margin = 12
++      const left = Math.min(Math.max(cardRect.right - width, margin), window.innerWidth - width - margin)
++      const top = Math.max(margin, triggerRect.top - height - 8)
++      setPortalPosition({ left, top })
++    }
++    place()
++    window.addEventListener('scroll', place, true)
++    window.addEventListener('resize', place)
++    return () => {
++      window.removeEventListener('scroll', place, true)
++      window.removeEventListener('resize', place)
++    }
++  }, [open, pane, portalMode, state.groups.length, state.status, effortChoices.length])
++
+   if (!available) return null
+ 
+   const show = (): void => {
+@@ -152,7 +222,8 @@ export function ModelSelect(
+   }
+ 
+   const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
+-    if (event.relatedTarget instanceof Node && rootRef.current?.contains(event.relatedTarget)) return
++    if (event.relatedTarget instanceof Node
++      && (rootRef.current?.contains(event.relatedTarget) || menuRef.current?.contains(event.relatedTarget))) return
+     close()
+   }
+ 
+@@ -218,6 +289,7 @@ export function ModelSelect(
+         ref={triggerRef}
+         type="button"
+         className={css.trigger}
++        data-model-trigger
+         aria-label={triggerAria}
+         aria-haspopup="menu"
+         aria-expanded={open}
+@@ -232,125 +304,131 @@ export function ModelSelect(
+           }
+         }}
+       >
++        <span className={css.triggerIcon} data-model-trigger-icon aria-hidden><IconThinkOutline16 /></span>
+         <span className={css.triggerLabel}>{modelLabel}</span>
+         {effortLabel !== undefined && <span className={css.triggerEffort}>{effortLabel}</span>}
+         <IconChevronDownOutline14 className={clsx(css.chevron, open && css.chevronOpen)} />
+       </button>
+ 
+-      {open && (
+-        <div
+-          id={`${id}-menu`}
+-          className={css.menu}
+-          role="menu"
+-          aria-label={t('menu.aria')}
+-          aria-busy={state.status === 'loading' || busy}
+-        >
+-          {pane === 'root' && (
+-            <>
+-              <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model') }}>
+-                <span className={css.cellLabel}>{t('menu.model')}</span>
+-                <span className={css.cellValue}>{modelLabel}</span>
+-                <IconChevronRightOutline14 className={css.cellChevron} />
+-              </button>
+-              {reasoning !== undefined && (
+-                <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
+-                  <span className={css.cellLabel}>{t('menu.effort')}</span>
+-                  <span className={css.cellValue}>{effortLabel}</span>
++      {open && (() => {
++        const menu = (
++          <div
++            ref={menuRef}
++            id={`${id}-menu`}
++            className={clsx(css.menu, portalMode && css.portalMenu)}
++            style={portalMode ? portalPosition ?? PORTAL_MEASURE_STYLE : undefined}
++            role="menu"
++            aria-label={t('menu.aria')}
++            aria-busy={state.status === 'loading' || busy}
++          >
++            {pane === 'root' && (
++              <>
++                <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model') }}>
++                  <span className={css.cellLabel}>{t('menu.model')}</span>
++                  <span className={css.cellValue}>{modelLabel}</span>
+                   <IconChevronRightOutline14 className={css.cellChevron} />
+                 </button>
+-              )}
+-            </>
+-          )}
++                {reasoning !== undefined && (
++                  <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
++                    <span className={css.cellLabel}>{t('menu.effort')}</span>
++                    <span className={css.cellValue}>{effortLabel}</span>
++                    <IconChevronRightOutline14 className={css.cellChevron} />
++                  </button>
++                )}
++              </>
++            )}
+ 
+-          {pane === 'model' && (
+-            <>
+-              {state.status === 'loading' && (
+-                <div className={css.status}>{t('status.loading')}</div>
+-              )}
+-              {state.error !== null && lastActionRef.current === 'load' && (
+-                <div className={css.error}>
+-                  <span>{t('error.action', { message: state.error })}</span>
+-                  <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
+-                </div>
+-              )}
+-              {state.failures.map(failure => (
+-                <div className={css.warning} key={failure.id}>
+-                  <span>{t('warning.groupLoad', { name: failure.name, message: failure.message })}</span>
+-                  <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
++            {pane === 'model' && (
++              <>
++                {state.status === 'loading' && (
++                  <div className={css.status}>{t('status.loading')}</div>
++                )}
++                {state.error !== null && lastActionRef.current === 'load' && (
++                  <div className={css.error}>
++                    <span>{t('error.action', { message: state.error })}</span>
++                    <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
++                  </div>
++                )}
++                {state.failures.map(failure => (
++                  <div className={css.warning} key={failure.id}>
++                    <span>{t('warning.groupLoad', { name: failure.name, message: failure.message })}</span>
++                    <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
++                  </div>
++                ))}
++                <div className={clsx(css.groups, 'scrollable')}>
++                  {state.groups.map((group) => {
++                    const headingId = `${id}-${group.id}`
++                    return (
++                      <section role="group" aria-labelledby={headingId} className={css.group} key={group.id}>
++                        <div className={css.groupTitle} id={headingId}>{group.name}</div>
++                        {group.models.map((model) => {
++                          const selected = state.current?.provider === group.id && state.current.model === model.id
++                          return (
++                            <button
++                              ref={itemRef()}
++                              type="button"
++                              role="menuitemradio"
++                              aria-checked={selected}
++                              className={clsx(css.option, selected && css.selected)}
++                              key={model.id}
++                              title={model.name}
++                              disabled={busy}
++                              onClick={() => { choose({ provider: group.id, model: model.id }) }}
++                            >
++                              <span className={css.optionCopy}>
++                                <span className={css.modelName}>{model.name}</span>
++                              </span>
++                              <span className={css.check}>
++                                {selected ? <IconCheckOutline16 /> : null}
++                              </span>
++                            </button>
++                          )
++                        })}
++                      </section>
++                    )
++                  })}
+                 </div>
+-              ))}
+-              <div className={clsx(css.groups, 'scrollable')}>
+-                {state.groups.map((group) => {
+-                  const headingId = `${id}-${group.id}`
+-                  return (
+-                    <section role="group" aria-labelledby={headingId} className={css.group} key={group.id}>
+-                      <div className={css.groupTitle} id={headingId}>{group.name}</div>
+-                      {group.models.map((model) => {
+-                        const selected = state.current?.provider === group.id && state.current.model === model.id
+-                        return (
+-                          <button
+-                            ref={itemRef()}
+-                            type="button"
+-                            role="menuitemradio"
+-                            aria-checked={selected}
+-                            className={clsx(css.option, selected && css.selected)}
+-                            key={model.id}
+-                            title={model.name}
+-                            disabled={busy}
+-                            onClick={() => { choose({ provider: group.id, model: model.id }) }}
+-                          >
+-                            <span className={css.optionCopy}>
+-                              <span className={css.modelName}>{model.name}</span>
+-                            </span>
+-                            <span className={css.check}>
+-                              {selected ? <IconCheckOutline16 /> : null}
+-                            </span>
+-                          </button>
+-                        )
+-                      })}
+-                    </section>
+-                  )
+-                })}
+-              </div>
+-              {state.status === 'ready' && choices.length === 0 && (
+-                <div className={css.empty}>{t('empty.models')}</div>
+-              )}
+-            </>
+-          )}
++                {state.status === 'ready' && choices.length === 0 && (
++                  <div className={css.empty}>{t('empty.models')}</div>
++                )}
++              </>
++            )}
+ 
+-          {pane === 'effort' && (
+-            <>
+-              {state.error !== null && lastActionRef.current === 'load' && (
+-                <div className={css.error}>
+-                  <span>{t('error.action', { message: state.error })}</span>
+-                  <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
+-                </div>
+-              )}
+-              {effortChoices.length === 0
+-                ? <div className={css.empty}>{t('empty.efforts')}</div>
+-                : effortChoices.map(level => (
+-                  <button
+-                    ref={itemRef()}
+-                    type="button"
+-                    role="menuitemradio"
+-                    aria-checked={effectiveEffort === level.effort}
+-                    className={clsx(css.option, effectiveEffort === level.effort && css.selected)}
+-                    key={level.key}
+-                    disabled={busy}
+-                    onClick={() => { chooseEffort(level.effort) }}
+-                  >
+-                    <span className={css.optionCopy}>
+-                      <span className={css.modelName}>{level.label}</span>
+-                    </span>
+-                    <span className={css.check}>
+-                      {effectiveEffort === level.effort ? <IconCheckOutline16 /> : null}
+-                    </span>
+-                  </button>
+-                ))}
+-            </>
+-          )}
+-        </div>
+-      )}
++            {pane === 'effort' && (
++              <>
++                {state.error !== null && lastActionRef.current === 'load' && (
++                  <div className={css.error}>
++                    <span>{t('error.action', { message: state.error })}</span>
++                    <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
++                  </div>
++                )}
++                {effortChoices.length === 0
++                  ? <div className={css.empty}>{t('empty.efforts')}</div>
++                  : effortChoices.map(level => (
++                    <button
++                      ref={itemRef()}
++                      type="button"
++                      role="menuitemradio"
++                      aria-checked={effectiveEffort === level.effort}
++                      className={clsx(css.option, effectiveEffort === level.effort && css.selected)}
++                      key={level.key}
++                      disabled={busy}
++                      onClick={() => { chooseEffort(level.effort) }}
++                    >
++                      <span className={css.optionCopy}>
++                        <span className={css.modelName}>{level.label}</span>
++                      </span>
++                      <span className={css.check}>
++                        {effectiveEffort === level.effort ? <IconCheckOutline16 /> : null}
++                      </span>
++                    </button>
++                  ))}
++              </>
++            )}
++          </div>
++        )
++        return portalMode ? createPortal(menu, document.body) : menu
++      })()}
+       {toast !== null && (
+         <Toast
+           key={toast.seq}
+diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+index f30c3f7f3e..286aa692d7 100644
+--- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
++++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+@@ -71,6 +71,8 @@ describe('ModelSelect reasoning effort', () => {
+     const trigger = screen.getByRole('button', {
+       name: '选择模型，当前 DeepSeek-V4-Flash，推理等级 High',
+     })
++    expect(trigger.title).toBe('DeepSeek-V4-Flash · High')
++    expect(trigger.querySelector('[data-model-trigger-icon]')?.getAttribute('aria-hidden')).toBe('true')
+     fireEvent.click(trigger)
+     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+     expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
+diff --git a/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
+new file mode 100644
+index 0000000000..7621f3013f
+--- /dev/null
++++ b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
+@@ -0,0 +1,40 @@
++import { readFileSync } from 'node:fs'
++import { fileURLToPath } from 'node:url'
++import { describe, expect, it } from 'vitest'
++
++const modelCss = readFileSync(fileURLToPath(new URL('../src/client/ModelSelect.module.css', import.meta.url)), 'utf8')
++const inputCss = readFileSync(fileURLToPath(new URL('../../ui-conversation/src/client/skeleton/InputBar.module.css', import.meta.url)), 'utf8')
++
++describe('responsive composer model trigger styles', () => {
++  it('keeps the toolbar on one line and lets the trailing group shrink', () => {
++    const row = inputCss.slice(inputCss.indexOf('.row {'), inputCss.indexOf('.tools,'))
++    expect(row).toContain('flex-wrap: nowrap;')
++    expect(inputCss).toContain('.trailing {\n  flex: 0 1 auto;')
++  })
++
++  it('drops effort before replacing the model label with an icon', () => {
++    const compact = modelCss.slice(modelCss.indexOf('@container (max-width: 560px)'), modelCss.indexOf('@container (max-width: 420px)'))
++    const iconOnly = modelCss.slice(modelCss.indexOf('@container (max-width: 420px)'), modelCss.indexOf('.menu {'))
++    expect(compact).toContain('.triggerEffort')
++    expect(compact).toContain('display: none;')
++    expect(iconOnly).toContain('.triggerIcon')
++    expect(iconOnly).toContain('display: inline-flex;')
++    expect(iconOnly).toContain('.triggerLabel,')
++  })
++
++  it('constrains only the mobile menu while preserving the desktop content-sized menu', () => {
++    const desktopMenu = modelCss.slice(modelCss.indexOf('.menu {'), modelCss.indexOf('.status,'))
++    const mobileMenu = modelCss.slice(modelCss.indexOf('.portalMenu {'))
++    expect(desktopMenu).toContain('width: max-content;')
++    expect(desktopMenu).toContain('max-width: min(420px, calc(100vw - 32px));')
++    expect(mobileMenu).toContain('box-sizing: border-box;')
++    expect(mobileMenu).toContain('width: min(240px, calc(100vw - 24px));')
++    expect(mobileMenu).toContain('max-height: min(300px, calc(100dvh - 80px));')
++  })
++
++  it('keeps the full model label available to ellipsis and hover surfaces', () => {
++    const label = modelCss.slice(modelCss.indexOf('.triggerLabel {'), modelCss.indexOf('.triggerEffort {'))
++    expect(label).toContain('text-overflow: ellipsis;')
++    expect(label).toContain('white-space: nowrap;')
++  })
++})
+diff --git a/packages/client/ui-settings-general/package.json b/packages/client/ui-settings-general/package.json
+index a601a425fe..36f89fda4d 100644
+--- a/packages/client/ui-settings-general/package.json
++++ b/packages/client/ui-settings-general/package.json
+@@ -66,7 +66,9 @@
+     "@deepseek-ai/dsh-invariants": "workspace:^",
+     "@deepseek-ai/cordis": "workspace:^",
+     "@types/react": "~18.3.1",
++    "@types/react-dom": "~18.3.0",
+     "react": "^18.2.0",
++    "react-dom": "^18.2.0",
+     "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
+     "@deepseek-ai/dsh-client-ui-session": "workspace:^",
+     "@deepseek-ai/dsh-settings": "workspace:^"
+diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+index f68b7a5d4e..d46ba8ac11 100644
+--- a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
++++ b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+@@ -84,7 +84,7 @@
+   z-index: 1;
+   display: flex;
+   width: 800px;
+-  height: min(800px, calc(100vh - 48px));
++  height: min(800px, calc(100dvh - 48px));
+   max-width: calc(100vw - 48px);
+   border-radius: 24px;
+   overflow: hidden;
+@@ -184,10 +184,15 @@
+   justify-content: space-between;
+   gap: 8px;
+   height: 54px;
+-  padding: 20px 14px 8px 10px;
++  padding: 20px 52px 8px 10px;
+   box-sizing: border-box;
+ }
+ 
++.mobileBack,
++.mobileSectionTitle {
++  display: none;
++}
++
+ .actions {
+   min-width: 0;
+   display: flex;
+@@ -199,6 +204,10 @@
+ 
+ /* Close button (figma .Icon_container 501:29982): 28x28, r28, 14px glyph. */
+ .close {
++  position: absolute;
++  top: 20px;
++  right: 14px;
++  z-index: 2;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+@@ -212,6 +221,10 @@
+   color: var(--dsw-alias-label-primary);
+ }
+ 
++.close.mobileClose {
++  display: none;
++}
++
+ .close:hover {
+   background: var(--dsw-alias-interactive-bg-hover);
+ }
+@@ -233,3 +246,126 @@
+   clip: rect(0 0 0 0);
+   white-space: nowrap;
+ }
++
++@media (max-width: 640px) {
++  .overlay {
++    align-items: stretch;
++  }
++
++  .panel {
++    position: absolute;
++    inset: 0;
++    width: auto;
++    height: auto;
++    max-width: none;
++    border-radius: 0;
++    box-shadow: none;
++  }
++
++  .nav {
++    width: 100%;
++    gap: 16px;
++    padding: max(20px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
++    overflow-y: auto;
++  }
++
++  .navTitle {
++    min-height: 40px;
++    padding: 7px 52px 7px 4px;
++    font-size: 18px;
++    line-height: 26px;
++  }
++
++  .navList {
++    gap: 6px;
++  }
++
++  .navCell {
++    width: 100%;
++    height: 48px;
++    padding: 12px;
++    border-radius: 8px;
++    font-size: 15px;
++    line-height: 24px;
++  }
++
++  .content {
++    display: none;
++    width: 100%;
++  }
++
++  .detailOpen .nav {
++    display: none;
++  }
++
++  .detailOpen .content {
++    display: flex;
++  }
++
++  .header {
++    align-items: center;
++    height: auto;
++    min-height: calc(64px + env(safe-area-inset-top));
++    padding: max(12px, env(safe-area-inset-top)) 60px 8px 12px;
++  }
++
++  .mobileBack {
++    flex: none;
++    display: inline-flex;
++    align-items: center;
++    justify-content: center;
++    width: 40px;
++    height: 40px;
++    padding: 0;
++    border: none;
++    border-radius: 50%;
++    background: transparent;
++    color: var(--dsw-alias-label-primary);
++  }
++
++  .mobileBack:active {
++    background: var(--dsw-alias-interactive-bg-hover);
++  }
++
++  .mobileSectionTitle {
++    flex: 1;
++    display: block;
++    min-width: 0;
++    overflow: hidden;
++    color: var(--dsw-alias-label-primary);
++    font-size: 17px;
++    line-height: 24px;
++    font-weight: 500;
++    white-space: nowrap;
++    text-overflow: ellipsis;
++  }
++
++  .actions {
++    flex: none;
++    margin-left: auto;
++  }
++
++  .close {
++    top: max(12px, env(safe-area-inset-top));
++    right: 12px;
++    width: 40px;
++    height: 40px;
++  }
++
++  .close.mobileClose {
++    display: inline-flex;
++  }
++
++  .close.desktopClose {
++    display: none;
++  }
++
++  .options {
++    width: 100%;
++    max-width: 100%;
++    padding: 8px 16px max(24px, env(safe-area-inset-bottom));
++    box-sizing: border-box;
++    overflow-x: hidden;
++    overflow-wrap: break-word;
++  }
++}
+diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.tsx b/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+index d5b1df190a..4935955e48 100644
+--- a/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
++++ b/packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+@@ -11,10 +11,11 @@
+  * to the step, so a mounted-but-deciding step paints nothing here.
+  */
+ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
++import { createPortal } from 'react-dom'
+ import clsx from 'clsx'
+ import {
+   ConnectionIndicator,
+-  IconAgentPresetOutline16, IconCloseOutline16, IconDataOutline16,
++  IconAgentPresetOutline16, IconChevronLeftOutline14, IconCloseOutline16, IconDataOutline16,
+   IconPersonalizationOutline16, IconSettingsOutline16,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { ConnectionIndicatorState } from '@deepseek-ai/dsh-client-ui-primitives'
+@@ -35,7 +36,7 @@ type PanelProps = {
+   rows: readonly SettingsSectionRow[]
+   renderSlot: SettingsRootComponentProps['renderSlot']
+   activeId: string | undefined
+-  onSelect: (id: string) => void
++  onSelect: (id: string | undefined) => void
+   onClose: () => void
+ }
+ 
+@@ -47,8 +48,21 @@ type PanelProps = {
+ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
+   // Entries can unmount underneath the requested id, so the render-time
+   // projection falls back to the first row when the id is gone.
+-  const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
++  const activeRow = rows.find(row => row.id === activeId) ?? rows[0]
++  const active = activeRow?.id
++  const detailOpen = activeId !== undefined && activeId === active
+   const titleId = useId()
++  const [mobile, setMobile] = useState(() => typeof window.matchMedia === 'function'
++    ? window.matchMedia('(max-width: 640px)').matches
++    : window.innerWidth <= 640)
++
++  useEffect(() => {
++    if (typeof window.matchMedia !== 'function') return
++    const query = window.matchMedia('(max-width: 640px)')
++    const update = (): void => { setMobile(query.matches) }
++    query.addEventListener('change', update)
++    return () => { query.removeEventListener('change', update) }
++  }, [])
+ 
+   useEffect(() => {
+     const onKeyDown = (e: KeyboardEvent) => {
+@@ -60,12 +74,22 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
+ 
+   // Entering the dialog focuses the close button; the root restores its trigger on close.
+   const closeButton = useRef<HTMLButtonElement | null>(null)
+-  useEffect(() => { closeButton.current?.focus() }, [])
++  const mobileCloseButton = useRef<HTMLButtonElement | null>(null)
++  useEffect(() => {
++    const target = mobile ? mobileCloseButton : closeButton
++    target.current?.focus()
++  }, [mobile])
+ 
+-  return (
++  return createPortal((
+     <div className={css.overlay} role="presentation">
+       <div className={css.mask} aria-hidden="true" onClick={onClose} />
+-      <div className={css.panel} role="dialog" aria-modal="true" aria-labelledby={titleId}>
++      <div className={clsx(css.panel, detailOpen && css.detailOpen)} role="dialog" aria-modal="true" aria-labelledby={titleId}>
++        {mobile && (
++          <button ref={mobileCloseButton} type="button" className={clsx(css.close, css.mobileClose)} onClick={onClose}>
++            <IconCloseOutline16 size={16} />
++            <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
++          </button>
++        )}
+         <nav className={css.nav}>
+           <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
+           <div className={css.navList}>
+@@ -85,11 +109,17 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
+         </nav>
+         <div className={css.content}>
+           <div className={css.header}>
+-            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
+-            <button ref={closeButton} type="button" className={css.close} onClick={onClose}>
+-              <IconCloseOutline16 size={14} />
+-              <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
++            <button type="button" className={css.mobileBack} data-settings-mobile-back aria-labelledby={titleId} onClick={() => { onSelect(undefined) }}>
++              <IconChevronLeftOutline14 size={18} />
+             </button>
++            <div className={css.mobileSectionTitle}>{activeRow?.label}</div>
++            <div className={css.actions}>{renderSlot('settings.action', {})}</div>
++            {!mobile && (
++              <button ref={closeButton} type="button" className={clsx(css.close, css.desktopClose)} onClick={onClose}>
++                <IconCloseOutline16 size={14} />
++                <span className={css.hiddenLabel}>{renderSlot('settings.close', {})}</span>
++              </button>
++            )}
+           </div>
+           <div className={css.options}>
+             {active !== undefined && renderSlot('settings.section', { close: onClose }, { only: active })}
+@@ -97,7 +127,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
+         </div>
+       </div>
+     </div>
+-  )
++  ), document.body)
+ }
+ 
+ /**

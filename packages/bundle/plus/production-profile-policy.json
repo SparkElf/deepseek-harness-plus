@@ -130,9 +130,8 @@
     },
     "@sparkelf/dsh-plus": {
       "mode": "replace",
-      "version": "0.1.0-rc.14",
       "baselineSha256": "524d9e801952632e5bd1fb73ffd7778af791b80fde3344111f1c1c01dc0a1943",
-      "candidateSha256": "548372973f9ebf393478ab0ee14ecb863f7429dd5a22378d805f03f3d9045509",
+      "candidateSha256": "0ebc25d18d54d1ed247af3afc926127a09b5793a98c06ba11d937dadcb646960",
       "probes": [
         {
           "file": "cordis.patch.yml",
@@ -140,8 +139,53 @@
             "plus-subagent-settings-client",
             "browserAuthentication: disabled"
           ]
+        },
+        {
+          "file": "package.json",
+          "contains": [
+            "dsh-sql-workbench-0.4.0.tgz",
+            "sparkelf-dsh-ssh-manager-0.6.0.tgz",
+            "sparkelf-dsh-api-client-0.4.2.tgz",
+            "sparkelf-dsh-plugin-supervisor-0.1.2.tgz"
+          ]
         }
-      ]
+      ],
+      "baselineVersion": "0.1.0-rc.14",
+      "candidateVersion": "0.1.0-rc.15"
+    },
+    "@sparkelf/dsh-patch-mobile-web-layout": {
+      "mode": "replace",
+      "baselineSha256": "327e744ff3c20b62269a0911e225ee48254b4eca2504b80de8126d98dd95a41d",
+      "candidateSha256": "63bcfb78644de6bfbc4c9a7ea1d5e304c7864a9319282a6381286e1c173fbb0e",
+      "probes": [
+        {
+          "file": "patches/mobile-web-layout.patch",
+          "contains": [
+            "SettingsRoot",
+            "ModelSelect",
+            "PermissionSelect",
+            "data-composer-toolbar"
+          ]
+        }
+      ],
+      "baselineVersion": "0.1.0-rc.14",
+      "candidateVersion": "0.1.0-rc.15"
+    },
+    "@sparkelf/dsh-plugin-supervisor": {
+      "mode": "replace",
+      "baselineSha256": "04ad81972aca6355e8ca9e15a7d1f6a2adc4130ead864906286bb056948b582f",
+      "candidateSha256": "e21597c9236a7f223baebd0de46e11108542355fe23b8f27e7bfcb0eb39fa74f",
+      "probes": [
+        {
+          "file": "runtime/profile-guard.mjs",
+          "contains": [
+            "accepted Plus profile runtime closure was modified",
+            "accepted-next"
+          ]
+        }
+      ],
+      "baselineVersion": "0.1.1",
+      "candidateVersion": "0.1.2"
     }
   }
 }

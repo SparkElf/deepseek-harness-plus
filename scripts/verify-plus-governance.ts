@@ -199,16 +199,23 @@ function main(): void {
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
+  const plusReleaseAsset = (filename: string): string =>
+    'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/' + filename
   const expectedProfileDependencies = {
     '@changfenhuang/dsh-genui': '0.9.7',
-    'dsh-better-sidebar': '0.17.1',
-    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.1.2',
+    'dsh-better-sidebar': plusReleaseAsset('dsh-better-sidebar-0.18.1.tgz'),
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
     'dsh-video-preview': '0.1.4',
-    'dsh-univer-office': '0.2.12',
-    '@sparkelf/dsh-plugin-supervisor': '0.1.1',
+    'dsh-univer-office': '0.2.14',
+    '@sparkelf/dsh-plugin-supervisor': plusReleaseAsset('sparkelf-dsh-plugin-supervisor-0.1.2.tgz'),
+    '@sparkelf/dsh-univer-government-docs': '0.1.6',
+    'dsh-sql-workbench': plusReleaseAsset('dsh-sql-workbench-0.4.0.tgz'),
+    '@sparkelf/dsh-workbench-vault': plusReleaseAsset('sparkelf-dsh-workbench-vault-0.1.0.tgz'),
+    '@sparkelf/dsh-ssh-manager': plusReleaseAsset('sparkelf-dsh-ssh-manager-0.6.0.tgz'),
+    '@sparkelf/dsh-api-client': plusReleaseAsset('sparkelf-dsh-api-client-0.4.2.tgz'),
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
-    throw new Error('dshPlus.profile.dependencies must own the exact GenUI, preview, Office, and Supervisor bundle set')
+    throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
   if (JSON.stringify(allowBuilds) !== JSON.stringify({ 'node-pty': true, protobufjs: false })) {

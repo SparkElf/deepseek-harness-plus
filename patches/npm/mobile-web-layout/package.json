@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-mobile-web-layout",
-  "version": "0.1.0-rc.14",
+  "version": "0.1.0-rc.15",
   "description": "Data-only exact official-source patch keeping user-expanded phone navigation at half the AppFrame width",
   "publishConfig": {
     "access": "public"
@@ -29,7 +29,9 @@
             "packages/client/ui-agent-preset/",
             "packages/client/ui-conversation/",
             "packages/client/ui-jobs/",
-            "packages/client/ui-schedule/"
+            "packages/client/ui-schedule/",
+            "packages/client/ui-model-selection/",
+            "packages/client/ui-settings-general/"
           ]
         },
         "file": "./patches/mobile-web-layout.patch"

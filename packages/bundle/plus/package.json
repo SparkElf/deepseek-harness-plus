@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.1.0-rc.14",
+  "version": "0.1.0-rc.15",
   "publishConfig": {
     "access": "public"
   },
@@ -60,15 +60,24 @@
         "dshmarket",
         "@changfenhuang/dsh-genui",
         "@sparkelf/dsh-plugin-supervisor",
-        "@sparkelf/dsh-plus"
+        "@sparkelf/dsh-plus",
+        "@sparkelf/dsh-univer-government-docs",
+        "dsh-sql-workbench",
+        "@sparkelf/dsh-ssh-manager",
+        "@sparkelf/dsh-api-client"
       ],
       "dependencies": {
         "@changfenhuang/dsh-genui": "0.9.7",
-        "dsh-better-sidebar": "0.17.1",
-        "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.1.2",
+        "dsh-better-sidebar": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-better-sidebar-0.18.1.tgz",
+        "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.2.0",
         "dsh-video-preview": "0.1.4",
-        "dsh-univer-office": "0.2.12",
-        "@sparkelf/dsh-plugin-supervisor": "0.1.1"
+        "dsh-univer-office": "0.2.14",
+        "@sparkelf/dsh-plugin-supervisor": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-plugin-supervisor-0.1.2.tgz",
+        "@sparkelf/dsh-univer-government-docs": "0.1.6",
+        "dsh-sql-workbench": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-sql-workbench-0.4.0.tgz",
+        "@sparkelf/dsh-workbench-vault": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-workbench-vault-0.1.0.tgz",
+        "@sparkelf/dsh-ssh-manager": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-ssh-manager-0.6.0.tgz",
+        "@sparkelf/dsh-api-client": "https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-api-client-0.4.2.tgz"
       },
       "allowBuilds": {
         "node-pty": true,
@@ -115,7 +124,7 @@
     "@sparkelf/dsh-plugin-document-attachments": ">=0.1.0-rc.14",
     "@sparkelf/dsh-plugin-dataops": ">=0.1.0-rc.14",
     "@sparkelf/dsh-plugin-mcp-credentials": ">=0.1.0-rc.14",
-    "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.14",
+    "@sparkelf/dsh-patch-mobile-web-layout": ">=0.1.0-rc.15",
     "@sparkelf/dsh-patch-web-base-path": ">=0.1.0-rc.14",
     "@sparkelf/dsh-patch-document-attachments": ">=0.1.0-rc.14",
     "@sparkelf/dsh-patch-legacy-code-preset": ">=0.1.0-rc.14",

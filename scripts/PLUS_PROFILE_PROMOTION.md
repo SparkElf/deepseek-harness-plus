@@ -30,3 +30,13 @@ This runbook is mandatory for a production Plus profile promotion. Package versi
 9. Update release assets, checksums, image overlay metadata, and tags only after active verification succeeds.
 
 The verifier fingerprints runtime JavaScript, CSS, JSON, YAML, WebAssembly, and package manifests while ignoring source maps and declarations. This makes same-version payload drift a blocking production change.
+
+## Rebuild And Restart Enforcement
+
+- Every Core change needed by Plus must be owned by a source patch relative to `dshPlus.sourceBase.revision`; a later Core commit alone is not a production artifact.
+- `dsh-plus apply` must make official source workspaces override same-version CLI packages in the materialized profile.
+- Build the patched source after apply and verify that every patched workspace package resolves from the source checkout, not the CLI dependency tree.
+- Bump a patch or distribution package version whenever its payload changes. Do not republish or repackage a different payload under an existing version.
+- After the production closure gate passes, run `dsh-plus-profile-guard accept` and only then switch the profile.
+- Install the guard at `$DSH_HOME/supervisor/profile-guard.mjs`; systemd must run it through `ExecStartPre` before importing Supervisor code from `$DSH_HOME/profiles/plus`.
+- An automatic updater may materialize a candidate, but it cannot become the accepted startup profile without a new closure gate and explicit acceptance.

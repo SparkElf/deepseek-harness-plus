@@ -62,7 +62,7 @@ describe('Plus official package scope', () => {
     ]))).toThrow('escapes DSH root')
   })
 
-  it('unions CLI dependencies with official workspaces and keeps CLI precedence', () => {
+  it('unions CLI dependencies with official workspaces and gives patched workspaces precedence', () => {
     const root = fixture()
     const cliScope = join(root, 'source/apps/cli/node_modules/@deepseek-ai')
     const cliTools = join(cliScope, 'dsh-tools')
@@ -80,7 +80,7 @@ describe('Plus official package scope', () => {
 
     const scope = join(profile, 'node_modules/@deepseek-ai')
     expect(lstatSync(scope).isDirectory()).toBe(true)
-    expect(realpathSync(join(scope, 'dsh-tools'))).toBe(realpathSync(cliTools))
+    expect(realpathSync(join(scope, 'dsh-tools'))).toBe(realpathSync(workspaceTools))
     expect(realpathSync(join(scope, 'dsh-attachment'))).toBe(realpathSync(workspaceAttachment))
   })
 })
