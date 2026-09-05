@@ -1367,55 +1367,55 @@ importers:
         specifier: '>=0.2.10'
         version: 0.2.10(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-primitives@packages+client+ui-primitives)(@deepseek-ai/dsh-client-ui-slots@packages+client+ui-slots)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-office-viewer':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/better-sidebar-office-viewer
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-web-layout':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/mobile-web-layout
       '@sparkelf/dsh-patch-officecli-deliverables':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/officecli-deliverables
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-history-search':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/session-history-search
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: '>=0.1.0-rc.20'
+        specifier: '>=0.1.0-rc.21'
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.43.0'
