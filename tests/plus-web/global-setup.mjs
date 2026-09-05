@@ -271,6 +271,12 @@ export default async function globalSetup() {
     'DSH_PLUS_TEST_MODEL_LABEL',
     'DSH_MINERU_ENDPOINT',
     'DSH_DATAOPS_BASE_URL',
+    'DSH_PLUS_TEST_SIDEBAR_ARCHIVE',
+    'DSH_PLUS_TEST_SUPERVISOR_ARCHIVE',
+    'DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE',
+    'DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE',
+    'DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE',
+    'DSH_PLUS_TEST_API_CLIENT_ARCHIVE',
     'DSH_PLUS_TEST_MINERU_ARCHIVE',
     'DSH_PLUS_TEST_OFFICECLI_ARCHIVE',
     'DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE',
@@ -303,6 +309,12 @@ export default async function globalSetup() {
   chmodSync(credentialsDestination, 0o600)
   const directories = packageDirectories()
   const externalArchives = {
+    'dsh-better-sidebar': resolve(process.env.DSH_PLUS_TEST_SIDEBAR_ARCHIVE),
+    '@sparkelf/dsh-plugin-supervisor': resolve(process.env.DSH_PLUS_TEST_SUPERVISOR_ARCHIVE),
+    'dsh-sql-workbench': resolve(process.env.DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE),
+    '@sparkelf/dsh-workbench-vault': resolve(process.env.DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE),
+    '@sparkelf/dsh-ssh-manager': resolve(process.env.DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE),
+    '@sparkelf/dsh-api-client': resolve(process.env.DSH_PLUS_TEST_API_CLIENT_ARCHIVE),
     '@sparkelf/dsh-mineru': resolve(process.env.DSH_PLUS_TEST_MINERU_ARCHIVE),
     '@sparkelf/dsh-officecli': resolve(process.env.DSH_PLUS_TEST_OFFICECLI_ARCHIVE),
     '@sparkelf/dsh-office-viewer-fonts': resolve(process.env.DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE),
@@ -338,7 +350,6 @@ export default async function globalSetup() {
         const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
         return [manifest.name, `file:${archives.get(directory)}`]
       })),
-      'dsh-better-sidebar': '0.18.0',
       '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
       'dsh-video-preview': '0.1.4',
       ...Object.fromEntries(Object.entries(externalArchives).map(([name, archive]) => [name, `file:${archive}`])),
@@ -360,11 +371,16 @@ export default async function globalSetup() {
   }
   const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
   const externalBundles = {
+    'dsh-better-sidebar': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-better-sidebar-0.18.1.tgz', version: '0.18.1' },
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': { spec: '0.2.0', version: '0.2.0' },
     'dsh-video-preview': { spec: '0.1.4', version: '0.1.4' },
     '@sparkelf/dsh-mineru': { spec: '>=0.1.0', version: '0.1.0' },
     '@sparkelf/dsh-officecli': { spec: '>=0.1.0', version: '0.1.0' },
     '@sparkelf/dsh-office-viewer-fonts': { spec: '>=0.1.0', version: '0.1.0' },
+    '@sparkelf/dsh-plugin-supervisor': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-plugin-supervisor-0.1.3.tgz', version: '0.1.3' },
+    'dsh-sql-workbench': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-sql-workbench-0.4.0.tgz', version: '0.4.0' },
+    '@sparkelf/dsh-ssh-manager': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-ssh-manager-0.6.0.tgz', version: '0.6.0' },
+    '@sparkelf/dsh-api-client': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-api-client-0.4.2.tgz', version: '0.4.2' },
   }
   for (const [packageName, expected] of Object.entries(externalBundles)) {
     if (profileManifest.dependencies?.[packageName] !== expected.spec

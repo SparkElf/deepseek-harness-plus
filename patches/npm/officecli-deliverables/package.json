@@ -1,6 +1,6 @@
 {
-  "name": "@sparkelf/dsh-patch-workspace-storage-restore",
-  "description": "Data-only patch adding the Workspace storage restore transaction to the exact official DSH source revision",
+  "name": "@sparkelf/dsh-patch-officecli-deliverables",
+  "description": "Data-only exact source patch adding OfficeCLI originals to the existing deliverables and file-link projection",
   "version": "0.1.0-rc.18",
   "publishConfig": {
     "access": "public"
@@ -9,11 +9,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/workspace-storage-restore"
+    "directory": "patches/npm/officecli-deliverables"
   },
   "exports": {
     "./package.json": "./package.json",
-    "./patches/workspace-storage-restore.patch": "./patches/workspace-storage-restore.patch"
+    "./patches/officecli-deliverables.patch": "./patches/officecli-deliverables.patch"
   },
   "files": [
     "patches/*.patch"
@@ -23,16 +23,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "workspace-storage-restore",
+        "id": "officecli-deliverables",
         "dsh": ">=0.1.3-alpha.1",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
           "paths": [
-            "packages/workspace/workspace/"
+            "packages/client/ui-deliverables/src/client/"
           ]
         },
-        "file": "./patches/workspace-storage-restore.patch"
+        "file": "./patches/officecli-deliverables.patch"
       }
     ]
   }

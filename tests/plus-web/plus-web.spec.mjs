@@ -268,6 +268,7 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByRole('button', { name: '备份', exact: true }).click()
 
     await dialog.getByRole('radio', { name: '配置', exact: true }).click()
+    allowNextNavigationAbort(page, 'POST', '/api/backup.export.prepare')
     let downloadPromise = page.waitForEvent('download')
     await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
     let download = await downloadPromise
@@ -276,6 +277,7 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByText('配置备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
     await dialog.getByRole('radio', { name: '会话', exact: true }).click()
+    allowNextNavigationAbort(page, 'POST', '/api/backup.export.prepare')
     downloadPromise = page.waitForEvent('download')
     await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
     download = await downloadPromise
@@ -284,6 +286,7 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByText('会话备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
     await dialog.getByRole('radio', { name: '全部', exact: true }).click()
+    allowNextNavigationAbort(page, 'POST', '/api/backup.export.prepare')
     downloadPromise = page.waitForEvent('download')
     await dialog.getByRole('button', { name: '导出所选内容', exact: true }).click()
     download = await downloadPromise
@@ -302,9 +305,9 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByLabel('启用连续模式').uncheck()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await dialog.getByRole('button', { name: '备份', exact: true }).click()
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.locator('input[type="file"]').setInputFiles(configurationArchive)
     await dialog.getByText('配置备份已导入。重新加载后将使用恢复的设置和凭据。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
-    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
 
     dialog = await openSettings(page, '子代理')
@@ -316,9 +319,9 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByLabel('启用连续模式').uncheck()
     await dialog.getByRole('button', { name: '保存', exact: true }).click()
     await dialog.getByRole('button', { name: '备份', exact: true }).click()
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.locator('input[type="file"]').setInputFiles(sessionsArchive)
     await dialog.getByText('会话备份已导入。重新加载后将使用恢复的会话、附件和工作区。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
-    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
 
     await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toHaveCount(0)
@@ -328,9 +331,9 @@ test.describe('Plus npm profile user workflows', () => {
 
     await addWorkspace(page, backupWorkspace)
     dialog = await openSettings(page, '备份')
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.locator('input[type="file"]').setInputFiles(allArchive)
     await dialog.getByText('完整备份已导入。重新加载后将使用恢复的配置、会话和工作区。', { exact: true }).waitFor({ timeout: 6 * 60_000 })
-    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await dialog.getByRole('button', { name: '重新加载页面', exact: true }).click()
 
     await expect(page.getByRole('treeitem', { name: 'workspace-after-backup', exact: true })).toHaveCount(0)

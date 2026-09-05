@@ -2,7 +2,7 @@
 entries:
   - name: dsh-better-sidebar
     source: { kind: npm, spec: dsh-better-sidebar }
-    pinned: 0.18.0
+    pinned: 0.18.1
     interest: VSCode-like right sidebar with third-party tab registration
     owner: omdsh-dev
     localPatches: []

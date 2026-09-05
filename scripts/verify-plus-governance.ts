@@ -219,8 +219,15 @@ function main(): void {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
   }
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
-  if (JSON.stringify(allowBuilds) !== JSON.stringify({ '@officecli/officecli': true, 'node-pty': true, protobufjs: false })) {
-    throw new Error('dshPlus.profile.allowBuilds must allow OfficeCLI and node-pty and explicitly deny protobufjs')
+  if (JSON.stringify(allowBuilds) !== JSON.stringify({
+    '@officecli/officecli': true,
+    'cpu-features': false,
+    'node-pty': true,
+    'oracledb': true,
+    'protobufjs': false,
+    'ssh2': true,
+  })) {
+    throw new Error('dshPlus.profile.allowBuilds must match the reviewed production native-build set')
   }
   // External runtime packages由transitive dependency或apply-owned profile dependency恰好一个owner提供。
   for (const name of Object.keys(profileDependencies)) {

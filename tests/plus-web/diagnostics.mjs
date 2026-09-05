@@ -63,7 +63,7 @@ export function endRuntimeRestart(page) {
   runtimeRestartWindows.set(page, false)
 }
 
-/** Allow one request to be cancelled by the next user-triggered page navigation. */
+/** Allow one exact request cancellation when the user-visible navigation or download result is asserted separately. */
 export function allowNextNavigationAbort(page, method, path) {
   const allowances = navigationAbortAllowances.get(page)
   if (allowances === undefined) throw new Error('Browser diagnostics were not installed')
