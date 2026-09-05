@@ -119,6 +119,13 @@ entries:
     owner: deepseek-ai
     localPatches: [{ package: '@sparkelf/dsh-patch-legacy-code-preset', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH resolves a missing persisted code preset through ptc while preserving any real code preset and localizes the legacy Session label }]
     plusBundle: false
+  - name: '@deepseek-ai/dsh-session-history-search'
+    source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
+    pinned: d347e703908d0406b7a7ef80e3a0e594d86b2215
+    interest: Historical Session migration and bounded SQLite content-index reconciliation for retained production corpora
+    owner: deepseek-ai
+    localPatches: [{ package: '@sparkelf/dsh-patch-session-history-search', upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness, retireWhen: Official DSH migrates the evidenced legacy replay and descriptor records and bounds full-corpus content-index reconciliation equivalently }]
+    plusBundle: false
   - name: '@deepseek-ai/dsh-llm-pi-ai-responses-compatibility'
     source: { kind: git, url: https://github.com/deepseek-ai/DeepSeek-Harness.git }
     pinned: d347e703908d0406b7a7ef80e3a0e594d86b2215

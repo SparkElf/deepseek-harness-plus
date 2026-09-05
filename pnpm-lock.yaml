@@ -1390,6 +1390,9 @@ importers:
       '@sparkelf/dsh-patch-session-export-chinese':
         specifier: '>=0.1.0-rc.19'
         version: link:../../../patches/npm/session-export-chinese
+      '@sparkelf/dsh-patch-session-history-search':
+        specifier: '>=0.1.0-rc.19'
+        version: link:../../../patches/npm/session-history-search
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
         specifier: '>=0.1.0-rc.19'
         version: link:../../../patches/npm/session-log-trajectory-toolbar
@@ -10239,6 +10242,8 @@ importers:
   patches/npm/responses-reasoning-status: {}
 
   patches/npm/session-export-chinese: {}
+
+  patches/npm/session-history-search: {}
 
   patches/npm/session-log-trajectory-toolbar: {}
 
