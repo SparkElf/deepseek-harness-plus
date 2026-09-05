@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
-  "version": "0.1.0-rc.19",
+  "version": "0.1.0-rc.20",
   "description": "Data-only exact official-source patch placing Session export in the desktop Trajectory toolbar",
   "publishConfig": {
     "access": "public"
