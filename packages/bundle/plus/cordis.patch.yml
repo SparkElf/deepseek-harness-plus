@@ -6,6 +6,11 @@
     trustedHosts: !!js ctx.webRuntime.trustedHosts
     browserAuthentication: disabled
 
+- id: session-query-sqlite
+  config:
+    path: !!js dshHomePath('storages/session-query.sqlite')
+    openAt: first-search
+
 - insert:
     - id: plus-backup
       name: '@sparkelf/dsh-plugin-backup'

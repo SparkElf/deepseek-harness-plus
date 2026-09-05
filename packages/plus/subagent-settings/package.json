@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-subagent-settings",
   "description": "Settings-backed continuous and one-shot subagent delegation with one Web Settings section",
-  "version": "0.1.0-rc.18",
+  "version": "0.1.0-rc.19",
   "publishConfig": {
     "access": "public"
   },

@@ -34,7 +34,7 @@ export function watchDiagnostics(page) {
     const expectedRestartRequest = runtimeRestartWindows.get(page) === true
       && request.method() === 'GET'
       && path === '/plugins/events'
-      && error === 'net::ERR_INCOMPLETE_CHUNKED_ENCODING'
+      && (error === 'net::ERR_INCOMPLETE_CHUNKED_ENCODING' || error === 'net::ERR_CONNECTION_REFUSED')
     if (expectedRestartRequest) {
       record.intentionalCancellations.push(rendered)
     } else if (error === 'net::ERR_ABORTED' && allowance >= 0) {

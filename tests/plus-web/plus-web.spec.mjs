@@ -514,6 +514,33 @@ test.describe('Plus npm profile user workflows', () => {
     await page.getByRole('button', { name: /收起所有轮次|Collapse turns/ }).click({ timeout: 30_000 })
     await expect(page.getByRole('button', { name: /展开所有轮次|Expand turns/ })).toBeVisible()
   })
+
+  test('finds and opens a Session by second-turn message content', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
+    await selectAcceptanceModel(page)
+    await sendPrompt(page, 'Reply with exactly FULLTEXT_BASE_READY.')
+    await page.getByText('FULLTEXT_BASE_READY', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+
+    const needle = 'PLUS_FULLTEXT_SECOND_TURN_7429'
+    await sendPrompt(page, `Reply with exactly ${needle}.`)
+    await page.getByText(needle, { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    await page.getByRole('button', { name: /新建会话|New session/ }).first().click()
+
+    await page.getByRole('button', { name: '搜索会话', exact: true }).click()
+    await page.getByRole('textbox', { name: '搜索会话…', exact: true }).fill(needle)
+    const pending = page.getByText('正在搜索会话历史…', { exact: true })
+    await pending.waitFor({ timeout: 5_000 })
+    await pending.waitFor({ state: 'hidden', timeout: 6 * 60_000 })
+    await expect(page.getByText('内容搜索暂不可用，仅显示名称匹配。', { exact: true })).toHaveCount(0)
+
+    const results = page.getByRole('tree', { name: '搜索结果', exact: true })
+    const match = results.getByRole('treeitem').filter({ hasText: needle })
+    await expect(match).toHaveCount(1)
+    await match.click()
+    await expect(page.getByText(needle, { exact: true })).toBeVisible({ timeout: 60_000 })
+  })
 })
 
 test.describe('Plus mobile Web navigation', () => {

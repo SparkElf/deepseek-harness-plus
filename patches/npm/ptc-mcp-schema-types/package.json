@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-ptc-mcp-schema-types",
-  "version": "0.1.0-rc.18",
+  "version": "0.1.0-rc.19",
   "description": "Data-only exact official-source patch preserving MCP parameter types in the TypeScript PTC SDK",
   "publishConfig": {
     "access": "public"

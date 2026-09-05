@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-office-viewer",
   "description": "Office Viewer fit, fonts, fidelity, refresh and presentation controls for Better Sidebar",
-  "version": "0.1.0-rc.18",
+  "version": "0.1.0-rc.19",
   "publishConfig": {
     "access": "public"
   },
