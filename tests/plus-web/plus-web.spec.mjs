@@ -556,6 +556,27 @@ test.describe('Plus mobile Web navigation', () => {
     await expect(page.getByRole('button', { name: /发送消息|Send message/ })).toBeVisible()
   })
 
+  test('keeps composer popovers between the collapsed rail and right edge', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+    const center = page.locator('[data-dsh-center-col]')
+    const margin = 12
+    const expectInsideCenter = async (menu) => {
+      const [menuBox, centerBox] = await Promise.all([menu.boundingBox(), center.boundingBox()])
+      if (menuBox === null || centerBox === null) throw new Error('Composer popover and center column must be visible')
+      expect(menuBox.x).toBeGreaterThanOrEqual(centerBox.x + margin)
+      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(centerBox.x + centerBox.width - margin)
+    }
+
+    await page.locator('button[aria-label^="访问模式"]').first().click()
+    await expectInsideCenter(page.getByRole('menu'))
+    await page.keyboard.press('Escape')
+
+    await page.getByRole('button', { name: /^(?:选择模型|Select model)/ }).click()
+    await expectInsideCenter(page.getByRole('menu', { name: /模型与推理等级|Model and reasoning effort/ }))
+    await page.keyboard.press('Escape')
+  })
+
   test('keeps Session export in the mobile Header and hides the desktop toolbar action', async ({ page }) => {
     await enterApp(page)
     await connectAcceptanceWorkspace(page)

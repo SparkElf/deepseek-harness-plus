@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-index 0f22c6d0fc..62f1d81983 100644
+index b40453e94a..3a42c745a7 100644
 --- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
 +++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-@@ -33,7 +33,7 @@ export interface AgentPresetLabelInjected {
+@@ -31,7 +31,7 @@ export interface AgentPresetLabelInjected {
  
  /** Full component props. */
  export type AgentPresetLabelProps =
@@ -310,7 +310,7 @@ index 22f64d6e61..cc2d3adae6 100644
 +  }
 +}
 diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-index b54049efef..85ad9d8a73 100644
+index b54049efef..6bf1cc7e92 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
 +++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
 @@ -1,4 +1,4 @@
@@ -319,7 +319,7 @@ index b54049efef..85ad9d8a73 100644
  import type { ReactNode } from 'react'
  import clsx from 'clsx'
  import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
-@@ -88,6 +88,31 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+@@ -88,6 +88,33 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
    const [open, setOpen] = useState(false)
    const [confirmation, setConfirmation] = useState<string | null>(null)
    const [acknowledged, setAcknowledged] = useState(false)
@@ -327,8 +327,10 @@ index b54049efef..85ad9d8a73 100644
 +    ? window.matchMedia('(max-width: 800px)').matches
 +    : window.innerWidth <= 800)
 +  const triggerRef = useRef<HTMLButtonElement | null>(null)
++  const boundaryRef = useRef<HTMLElement | null>(null)
 +
 +  useLayoutEffect(() => {
++    boundaryRef.current = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
 +    const toolbar = triggerRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
 +    const query = typeof window.matchMedia === 'function'
 +      ? window.matchMedia('(max-width: 800px)')
@@ -351,13 +353,14 @@ index b54049efef..85ad9d8a73 100644
  
    useEffect(() => {
      if (!locked && value !== undefined) return
-@@ -155,10 +180,15 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+@@ -155,10 +182,16 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
          onSelect={choose}
          onClose={() => { setOpen(false) }}
          side="top"
-+        align={compactMenu ? 'end' : 'start'}
-+        portal={compactMenu}
++        align="start"
++        portal
 +        compact={compactMenu}
++        boundaryRef={boundaryRef}
          anchor={
            <button
 +            ref={triggerRef}
@@ -537,7 +540,7 @@ index 4bd090aa3a..174911d285 100644
      "@deepseek-ai/dsh-session": "workspace:^",
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index 85b67ba496..1e25dbbd77 100644
+index 85b67ba496..24b29e4319 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 @@ -1,6 +1,8 @@
@@ -626,26 +629,32 @@ index 85b67ba496..1e25dbbd77 100644
  .menu {
    position: absolute;
    right: 0;
-@@ -260,3 +308,43 @@
+@@ -260,3 +308,49 @@
    flex: 0 0 auto;
    color: var(--dsw-alias-label-tertiary);
  }
 +
-+/* Applied only while the mobile menu is portaled outside composer clips. */
++/* Portaled menus use measured fixed coordinates at every width, so ancestor
++   clipping and viewport edges follow one positioning contract. */
 +.portalMenu {
 +  position: fixed;
 +  right: auto;
 +  bottom: auto;
 +  z-index: 100;
 +  box-sizing: border-box;
++}
++
++/* Narrow composer rows keep a predictable card width while the positioning
++   hook independently preserves the viewport margin. */
++.compactMenu {
 +  width: min(240px, calc(100vw - 24px));
 +  min-width: 0;
 +  max-width: calc(100vw - 24px);
 +  max-height: min(300px, calc(100dvh - 80px));
 +}
 +
-+.portalMenu .cell,
-+.portalMenu .option {
++.compactMenu .cell,
++.compactMenu .option {
 +  width: 100%;
 +  min-width: 0;
 +}
@@ -671,7 +680,7 @@ index 85b67ba496..1e25dbbd77 100644
 +  }
 +}
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index e910651e86..111b614cb5 100644
+index e910651e86..b42621d310 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 @@ -9,17 +9,21 @@
@@ -696,7 +705,7 @@ index e910651e86..111b614cb5 100644
  import {
    IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
 -  IconWarningOutline16, Toast,
-+  IconThinkOutline16, IconWarningOutline16, Toast,
++  IconThinkOutline16, IconWarningOutline16, Toast, useAnchoredPosition,
  } from '@deepseek-ai/dsh-client-ui-primitives'
  import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
  import type { ModelSelectInjected } from './slots.ts'
@@ -710,24 +719,24 @@ index e910651e86..111b614cb5 100644
  /**
   * Render the composer model seat.
   * @param props - owner share (locked) + injected face (shared directory
-@@ -51,6 +58,8 @@ export function ModelSelect(
+@@ -51,6 +58,7 @@ export function ModelSelect(
    )
    const [open, setOpen] = useState(false)
    const [pane, setPane] = useState<Pane>('root')
-+  const [portalMode, setPortalMode] = useState(false)
-+  const [portalPosition, setPortalPosition] = useState<CSSProperties | null>(null)
++  const [compactMenu, setCompactMenu] = useState(false)
    // The in-menu error strip serves catalog loads (its Retry re-runs the
    // load); a rejected SELECTION announces through the transient toast
    // instead, so the strip renders only while the latest failure-capable
-@@ -60,6 +69,7 @@ export function ModelSelect(
+@@ -60,6 +68,8 @@ export function ModelSelect(
    const toastSeq = useRef(0)
    const rootRef = useRef<HTMLDivElement | null>(null)
    const triggerRef = useRef<HTMLButtonElement | null>(null)
 +  const menuRef = useRef<HTMLDivElement | null>(null)
++  const boundaryRef = useRef<HTMLElement | null>(null)
    const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
    const id = useId()
  
-@@ -108,12 +118,72 @@ export function ModelSelect(
+@@ -108,12 +118,52 @@ export function ModelSelect(
    useEffect(() => {
      if (!open) return
      const closeOutside = (event: MouseEvent): void => {
@@ -742,9 +751,9 @@ index e910651e86..111b614cb5 100644
 +  // Use the actual composer width as the primary constraint: a wide desktop
 +  // viewport can still have a phone-width conversation column beside panels.
 +  useLayoutEffect(() => {
++    boundaryRef.current = rootRef.current?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
 +    if (!open) {
-+      setPortalMode(false)
-+      setPortalPosition(null)
++      setCompactMenu(false)
 +      return
 +    }
 +    const toolbar = rootRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
@@ -753,7 +762,7 @@ index e910651e86..111b614cb5 100644
 +      : undefined
 +    const update = (): void => {
 +      const width = toolbar?.clientWidth ?? 0
-+      setPortalMode((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
++      setCompactMenu((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
 +    }
 +    update()
 +    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
@@ -767,41 +776,21 @@ index e910651e86..111b614cb5 100644
 +    }
 +  }, [open])
 +
-+  // Keep vertical placement tied to the trigger and horizontal placement tied
-+  // to the composer card. This avoids both the trigger-seat clipping and the
-+  // large vertical gap caused by using one ancestor for both axes.
-+  useLayoutEffect(() => {
-+    if (!open || !portalMode) {
-+      setPortalPosition(null)
-+      return
-+    }
-+    const place = (): void => {
-+      const trigger = triggerRef.current
-+      const menu = menuRef.current
-+      const card = rootRef.current?.closest<HTMLElement>('[data-composer-card]')
-+      if (trigger === null || menu === null || card === null || card === undefined) return
-+      const triggerRect = trigger.getBoundingClientRect()
-+      const cardRect = card.getBoundingClientRect()
-+      const width = menu.offsetWidth
-+      const height = menu.offsetHeight
-+      const margin = 12
-+      const left = Math.min(Math.max(cardRect.right - width, margin), window.innerWidth - width - margin)
-+      const top = Math.max(margin, triggerRect.top - height - 8)
-+      setPortalPosition({ left, top })
-+    }
-+    place()
-+    window.addEventListener('scroll', place, true)
-+    window.addEventListener('resize', place)
-+    return () => {
-+      window.removeEventListener('scroll', place, true)
-+      window.removeEventListener('resize', place)
-+    }
-+  }, [open, pane, portalMode, state.groups.length, state.status, effortChoices.length])
++  const menuPosition = useAnchoredPosition({
++    open,
++    anchorRef: triggerRef,
++    panelRef: menuRef,
++    boundaryRef,
++    side: 'top',
++    align: 'end',
++    gap: 8,
++    margin: 12,
++  })
 +
    if (!available) return null
  
    const show = (): void => {
-@@ -152,7 +222,8 @@ export function ModelSelect(
+@@ -152,7 +202,8 @@ export function ModelSelect(
    }
  
    const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
@@ -811,7 +800,7 @@ index e910651e86..111b614cb5 100644
      close()
    }
  
-@@ -218,6 +289,7 @@ export function ModelSelect(
+@@ -218,6 +269,7 @@ export function ModelSelect(
          ref={triggerRef}
          type="button"
          className={css.trigger}
@@ -819,7 +808,7 @@ index e910651e86..111b614cb5 100644
          aria-label={triggerAria}
          aria-haspopup="menu"
          aria-expanded={open}
-@@ -232,125 +304,131 @@ export function ModelSelect(
+@@ -232,125 +284,131 @@ export function ModelSelect(
            }
          }}
        >
@@ -853,8 +842,8 @@ index e910651e86..111b614cb5 100644
 +          <div
 +            ref={menuRef}
 +            id={`${id}-menu`}
-+            className={clsx(css.menu, portalMode && css.portalMenu)}
-+            style={portalMode ? portalPosition ?? PORTAL_MEASURE_STYLE : undefined}
++            className={clsx(css.menu, css.portalMenu, compactMenu && css.compactMenu)}
++            style={menuPosition ?? PORTAL_MEASURE_STYLE}
 +            role="menu"
 +            aria-label={t('menu.aria')}
 +            aria-busy={state.status === 'loading' || busy}
@@ -1055,7 +1044,7 @@ index e910651e86..111b614cb5 100644
 +            )}
 +          </div>
 +        )
-+        return portalMode ? createPortal(menu, document.body) : menu
++        return createPortal(menu, document.body)
 +      })()}
        {toast !== null && (
          <Toast
@@ -1073,52 +1062,171 @@ index f30c3f7f3e..286aa692d7 100644
      fireEvent.click(trigger)
      fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
      expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
-diff --git a/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
-new file mode 100644
-index 0000000000..7621f3013f
---- /dev/null
-+++ b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
-@@ -0,0 +1,40 @@
-+import { readFileSync } from 'node:fs'
-+import { fileURLToPath } from 'node:url'
-+import { describe, expect, it } from 'vitest'
-+
-+const modelCss = readFileSync(fileURLToPath(new URL('../src/client/ModelSelect.module.css', import.meta.url)), 'utf8')
-+const inputCss = readFileSync(fileURLToPath(new URL('../../ui-conversation/src/client/skeleton/InputBar.module.css', import.meta.url)), 'utf8')
-+
-+describe('responsive composer model trigger styles', () => {
-+  it('keeps the toolbar on one line and lets the trailing group shrink', () => {
-+    const row = inputCss.slice(inputCss.indexOf('.row {'), inputCss.indexOf('.tools,'))
-+    expect(row).toContain('flex-wrap: nowrap;')
-+    expect(inputCss).toContain('.trailing {\n  flex: 0 1 auto;')
-+  })
-+
-+  it('drops effort before replacing the model label with an icon', () => {
-+    const compact = modelCss.slice(modelCss.indexOf('@container (max-width: 560px)'), modelCss.indexOf('@container (max-width: 420px)'))
-+    const iconOnly = modelCss.slice(modelCss.indexOf('@container (max-width: 420px)'), modelCss.indexOf('.menu {'))
-+    expect(compact).toContain('.triggerEffort')
-+    expect(compact).toContain('display: none;')
-+    expect(iconOnly).toContain('.triggerIcon')
-+    expect(iconOnly).toContain('display: inline-flex;')
-+    expect(iconOnly).toContain('.triggerLabel,')
-+  })
-+
-+  it('constrains only the mobile menu while preserving the desktop content-sized menu', () => {
-+    const desktopMenu = modelCss.slice(modelCss.indexOf('.menu {'), modelCss.indexOf('.status,'))
-+    const mobileMenu = modelCss.slice(modelCss.indexOf('.portalMenu {'))
-+    expect(desktopMenu).toContain('width: max-content;')
-+    expect(desktopMenu).toContain('max-width: min(420px, calc(100vw - 32px));')
-+    expect(mobileMenu).toContain('box-sizing: border-box;')
-+    expect(mobileMenu).toContain('width: min(240px, calc(100vw - 24px));')
-+    expect(mobileMenu).toContain('max-height: min(300px, calc(100dvh - 80px));')
-+  })
-+
-+  it('keeps the full model label available to ellipsis and hover surfaces', () => {
-+    const label = modelCss.slice(modelCss.indexOf('.triggerLabel {'), modelCss.indexOf('.triggerEffort {'))
-+    expect(label).toContain('text-overflow: ellipsis;')
-+    expect(label).toContain('white-space: nowrap;')
-+  })
-+})
+diff --git a/packages/client/ui-primitives/src/Menu.module.css b/packages/client/ui-primitives/src/Menu.module.css
+index 72210cffbc..279a6566df 100644
+--- a/packages/client/ui-primitives/src/Menu.module.css
++++ b/packages/client/ui-primitives/src/Menu.module.css
+@@ -46,6 +46,8 @@
+   top: auto;
+   left: auto;
+   z-index: 1100;
++  min-width: min(218px, calc(100vw - 24px));
++  max-width: min(360px, calc(100vw - 24px));
+ }
+ 
+ /* Open above the anchor (empty-state workspace chip: figma 122:9481). */
+diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
+index 0360ddf9af..118fcf886c 100644
+--- a/packages/client/ui-primitives/src/Menu.tsx
++++ b/packages/client/ui-primitives/src/Menu.tsx
+@@ -1,5 +1,5 @@
+ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+-import type { CSSProperties, ReactNode } from 'react'
++import type { CSSProperties, ReactNode, RefObject } from 'react'
+ import { createPortal } from 'react-dom'
+ import clsx from 'clsx'
+ import { IconCheckOutline16 } from './icons/index.tsx'
+@@ -77,7 +77,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * by a hairline; they stay visible while the items above scroll.
+  * @returns anchor wrapper with the conditional list.
+  */
+-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, footer, className }: {
++export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, boundaryRef, footer, className }: {
+   open: boolean
+   anchor: ReactNode
+   items: readonly MenuEntry[]
+@@ -93,6 +93,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+   dense?: boolean
+   compact?: boolean
+   getAnchorRect?: () => DOMRect | null
++  boundaryRef?: RefObject<HTMLElement | null>
+   className?: string
+ }) {
+   const rootRef = useRef<HTMLSpanElement>(null)
+@@ -123,6 +124,11 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+       const listEl = listRef.current
+       const lw = listEl?.offsetWidth ?? 0
+       const lh = listEl?.offsetHeight ?? 0
++      const boundary = boundaryRef?.current?.getBoundingClientRect()
++      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
++      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
++      const availableWidth = Math.max(0, maxX - minX)
++      const placedWidth = Math.min(lw, availableWidth)
+ 
+       let x: number
+       let y: number
+@@ -133,14 +139,21 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+         x = r.left
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       } else {
+-        x = r.right - lw
++        x = r.right - placedWidth
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       }
+ 
+-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
++      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
+       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
+ 
+-      setFixedPos({ left: x, top: y })
++      setFixedPos({
++        left: x,
++        top: y,
++        ...boundary === undefined ? {} : {
++          minWidth: Math.min(218, availableWidth),
++          maxWidth: availableWidth,
++        },
++      })
+     }
+     // First run measures the hidden pre-render (same commit as `open`), so
+     // end/top alignment and clamping use real dimensions before anything
+@@ -148,11 +161,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+     place()
+     window.addEventListener('scroll', place, true)
+     window.addEventListener('resize', place)
++    const observer = typeof ResizeObserver === 'undefined' || boundaryRef?.current === null || boundaryRef?.current === undefined
++      ? undefined
++      : new ResizeObserver(place)
++    if (observer !== undefined && boundaryRef?.current !== null && boundaryRef?.current !== undefined) {
++      observer.observe(boundaryRef.current)
++    }
+     return () => {
++      observer?.disconnect()
+       window.removeEventListener('scroll', place, true)
+       window.removeEventListener('resize', place)
+     }
+-  }, [open, portal, align, side, getAnchorRect])
++  }, [open, portal, align, side, getAnchorRect, boundaryRef])
+ 
+   useEffect(() => {
+     if (!open) {
+diff --git a/packages/client/ui-primitives/src/useAnchoredPosition.ts b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+index 90404bd639..5280cc6a1e 100644
+--- a/packages/client/ui-primitives/src/useAnchoredPosition.ts
++++ b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+@@ -20,8 +20,12 @@ export interface AnchoredPositionOptions {
+   anchorRef: RefObject<HTMLElement | null>
+   /** The floating element, measured so the clamp uses real dimensions. */
+   panelRef: RefObject<HTMLElement | null>
++  /** Optional horizontal boundary; viewport and boundary margins are intersected. */
++  boundaryRef?: RefObject<HTMLElement | null>
+   /** Which anchor edge the panel hangs from: below it (`bottom`, the default) or above it (`top`). */
+   side?: 'top' | 'bottom'
++  /** Align the panel's inline start or end edge with the matching anchor edge. */
++  align?: 'start' | 'end'
+   /** Distance kept between the anchor edge named by `side` and the panel. */
+   gap: number
+   /** Distance kept between the panel and each viewport edge. */
+@@ -30,11 +34,11 @@ export interface AnchoredPositionOptions {
+ 
+ /**
+  * Track an anchor and return the panel's fixed coordinates.
+- * @param options - the open state, the two refs, the placement side, and the gap/margin distances.
++ * @param options - the open state, refs, side/alignment, and gap/margin distances.
+  * @returns `left`/`top` for the panel, or `null` before the first measurement.
+  */
+ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProperties | null {
+-  const { open, anchorRef, panelRef, side = 'bottom', gap, margin } = options
++  const { open, anchorRef, panelRef, boundaryRef, side = 'bottom', align = 'start', gap, margin } = options
+   const [position, setPosition] = useState<CSSProperties | null>(null)
+   useLayoutEffect(() => {
+     if (!open) {
+@@ -50,12 +54,17 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
+       const panel = panelRef.current
+       const width = panel?.offsetWidth ?? 0
+       const height = panel?.offsetHeight ?? 0
+-      let left = rect.left
++      const boundary = boundaryRef?.current?.getBoundingClientRect()
++      const minLeft = Math.max(margin, (boundary?.left ?? 0) + margin)
++      const maxRight = Math.min(window.innerWidth - margin, (boundary?.right ?? window.innerWidth) - margin)
++      const availableWidth = Math.max(0, maxRight - minLeft)
++      const placedWidth = Math.min(width, availableWidth)
++      let left = align === 'start' ? rect.left : rect.right - placedWidth
+       let top = side === 'top' ? rect.top - gap - height : rect.bottom + gap
+-      if (width > 0) left = Math.min(Math.max(left, margin), window.innerWidth - width - margin)
++      if (width > 0) left = Math.min(Math.max(left, minLeft), maxRight - placedWidth)
+       if (height > 0) top = Math.min(Math.max(top, margin), window.innerHeight - height - margin)
+       /* v8 ignore stop */
+-      setPosition({ left, top })
++      setPosition({ left, top, maxWidth: availableWidth })
+     }
+     // The first run measures the panel in the same commit that opened it, so
+     // the clamp uses real dimensions before anything paints.
+@@ -72,12 +81,13 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
+     if (typeof ResizeObserver !== 'undefined' && panel !== null) {
+       observer = new ResizeObserver(place)
+       observer.observe(panel)
++      if (boundaryRef?.current !== null && boundaryRef?.current !== undefined) observer.observe(boundaryRef.current)
+     }
+     return () => {
+       observer?.disconnect()
+       window.removeEventListener('scroll', place, true)
+       window.removeEventListener('resize', place)
+     }
+-  }, [open, anchorRef, panelRef, side, gap, margin])
++  }, [open, anchorRef, panelRef, boundaryRef, side, align, gap, margin])
+   return position
+ }
 diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
 index c768861cea..224f0e5303 100644
 --- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
