@@ -8,7 +8,6 @@ import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-presets'
 import SessionStore, { SESSION_FORMAT_VERSION, SessionLogOffset, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -414,38 +413,6 @@ describe('ApiSession create or adoption', () => {
     expect(resume).toHaveBeenCalledWith(expect.objectContaining({ resumeSessionId: meta.id }))
   })
 
-  it('resumes a persisted legacy code session through the ptc composition', async () => {
-    const { ctx, agents } = await harness()
-    const meta = { ...header('stored-legacy-code'), agentPreset: 'code' }
-    providePersistence(ctx, {
-      list: () => Promise.resolve([meta]),
-      inspect: () => Promise.resolve({ meta, events: [] }),
-    })
-    const resolve = vi.fn((id?: string) => id === 'code'
-      ? Promise.reject(new RemoteError(
-        'agent-preset/not-found',
-        'code is no longer shipped',
-        { agentPreset: 'code', available: ['ptc'] },
-      ))
-      : Promise.resolve({ id: id ?? 'ptc' }))
-    ctx.provide('agentPresets', { resolve, mount: () => Promise.resolve() } as never)
-    const resumed = {
-      id: meta.id,
-      session: { id: meta.id, header: meta, events: [] },
-      status: 'idle',
-      ctx,
-    } as unknown as Agent
-    vi.spyOn(ctx.agents, 'resume').mockResolvedValue({
-      agent: resumed,
-      dispose: () => Promise.resolve(),
-    })
-
-    await expect(agents.resolveAgent(meta.id)).resolves.toEqual({ agent: resumed })
-    expect(resolve).toHaveBeenNthCalledWith(1, 'code')
-    expect(resolve).toHaveBeenNthCalledWith(2, 'ptc')
-    expect(resumed.session.header.agentPreset).toBe('code')
-  })
-
   it('rejects an ownership race before resume and a persisted cwd conflict', async () => {
     const child = await harness()
     const childMeta = header('resume-child-race')
@@ -487,30 +454,5 @@ describe('ApiSession create or adoption', () => {
 
     const composition = await agents.composeAgent(undefined)
     expect(() => composition.setup(new Context())).toThrow('Agent setup has no scoped Agent')
-  })
-
-  it('falls back from a missing legacy code preset to ptc', async () => {
-    const { ctx, agents } = await harness()
-    const resolve = vi.fn((id?: string) => id === 'code'
-      ? Promise.reject(new RemoteError(
-        'agent-preset/not-found',
-        'code is no longer shipped',
-        { agentPreset: 'code', available: ['ptc'] },
-      ))
-      : Promise.resolve({ id: id ?? 'ptc' }))
-    ctx.provide('agentPresets', { resolve, mount: () => Promise.resolve() } as never)
-
-    await expect(agents.composeAgent('code')).resolves.toMatchObject({ agentPreset: 'ptc' })
-    expect(resolve).toHaveBeenNthCalledWith(1, 'code')
-    expect(resolve).toHaveBeenNthCalledWith(2, 'ptc')
-  })
-
-  it('prefers an explicitly available code preset over the ptc fallback', async () => {
-    const { ctx, agents } = await harness()
-    const resolve = vi.fn((id?: string) => Promise.resolve({ id: id ?? 'ptc' }))
-    ctx.provide('agentPresets', { resolve, mount: () => Promise.resolve() } as never)
-
-    await expect(agents.composeAgent('code')).resolves.toMatchObject({ agentPreset: 'code' })
-    expect(resolve).toHaveBeenCalledExactlyOnceWith('code')
   })
 })

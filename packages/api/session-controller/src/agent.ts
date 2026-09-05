@@ -12,12 +12,9 @@ import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
-import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-typert-registry'
 import type { ModelSelection } from './types.ts'
-
-const LEGACY_PTC_PRESET = 'code'
-const PTC_PRESET = 'ptc'
 
 /** Cold Session identity absent from persistence. */
 export class ApiSessionNotFound extends Error {}
@@ -380,15 +377,7 @@ export class ApiSessionAgentController {
   }> {
     const presets = this.ctx.get('agentPresets')
     if (presets === undefined) return { setup: (agentCtx) => { this.installSelection(agentCtx) } }
-    let resolved
-    try {
-      resolved = await presets.resolve(presetId)
-    } catch (error: unknown) {
-      if (presetId !== LEGACY_PTC_PRESET
-        || remoteErrorOf(error)?.code !== 'agent-preset/not-found') throw error
-      resolved = await presets.resolve(PTC_PRESET)
-    }
-    const resolvedId = resolved.id
+    const resolvedId = (await presets.resolve(presetId)).id
     return {
       agentPreset: resolvedId,
       setup: async (agentCtx) => {

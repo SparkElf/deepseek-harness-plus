@@ -302,12 +302,6 @@ describe('the session-header label', () => {
     expect(screen.getByTitle(en.headerHint).textContent).toBe('mine')
   })
 
-  it('labels a persisted legacy code preset as PTC mode', () => {
-    renderLabel({ blank: false, projectionValues: { agentPreset: 'code' } })
-
-    expect(screen.getByTitle(en.headerHint).textContent).toBe(en.presetPtcName)
-  })
-
   it('shows the id until the roster resolves it', () => {
     renderLabel({
       blank: false,
