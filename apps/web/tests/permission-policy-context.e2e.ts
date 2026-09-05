@@ -116,11 +116,15 @@ describe('web e2e: current sandbox policy reaches the model before tools', () =>
 
     const card = page.locator('[data-composer-card]')
     await card.evaluate((element) => {
-      element.style.width = '300px'
-      element.style.maxWidth = '300px'
+      element.style.width = '190px'
+      element.style.maxWidth = '190px'
     })
     await page.waitForTimeout(300)
     const constrainedDesktop = await measure(1000)
+    const permissionBox = await trigger.boundingBox()
+    const modelBox = await page.locator('[data-model-trigger]').boundingBox()
+    if (permissionBox === null || modelBox === null) throw new Error('constrained composer controls have no layout boxes')
+    expect(permissionBox.x + permissionBox.width).toBeLessThanOrEqual(modelBox.x)
     expect(constrainedDesktop).toMatchObject({ parentBody: true, box: { width: 164, height: 84 } })
     expect(constrainedDesktop.box.x).toBeGreaterThanOrEqual(12)
     expect(constrainedDesktop.box.x + constrainedDesktop.box.width).toBeLessThanOrEqual(988)

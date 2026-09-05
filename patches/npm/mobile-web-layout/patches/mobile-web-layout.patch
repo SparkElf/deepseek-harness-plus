@@ -245,7 +245,7 @@ index ce989f0..569d5d1 100644
                  <button
                    key={viewTab.id}
 diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
-index 6576608..f21ff55 100644
+index 6576608916..9497eda024 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
 +++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
 @@ -211,7 +211,7 @@
@@ -304,6 +304,21 @@ index 6576608..f21ff55 100644
  /* Attach circle (figma + control): 28px, selector fill, primary glyph. */
  .add {
    display: grid;
+@@ -354,3 +371,14 @@
+   font-size: 12px;
+   cursor: pointer;
+ }
++
++@container (max-width: 240px) {
++  .row {
++    padding-right: 6px;
++    padding-left: 6px;
++  }
++
++  .trailing > [data-context-meter] {
++    display: none;
++  }
++}
 diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
 index d4c06d8..5c74017 100644
 --- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
@@ -523,7 +538,7 @@ index b5b4e63f52..64faef859b 100644
      "@deepseek-ai/dsh-session": "workspace:^",
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index 492fb12f8c..82fa9b0f3c 100644
+index 492fb12f8c..f3b492d9ff 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 @@ -1,6 +1,8 @@
@@ -612,7 +627,7 @@ index 492fb12f8c..82fa9b0f3c 100644
  .menu {
    position: absolute;
    right: 0;
-@@ -259,3 +307,22 @@
+@@ -259,3 +307,43 @@
    flex: 0 0 auto;
    color: var(--dsw-alias-label-tertiary);
  }
@@ -634,6 +649,27 @@ index 492fb12f8c..82fa9b0f3c 100644
 +.portalMenu .option {
 +  width: 100%;
 +  min-width: 0;
++}
++
++@container (max-width: 240px) {
++  .root,
++  .trigger {
++    width: 28px;
++    max-width: 28px;
++  }
++
++  .root {
++    flex-basis: 28px;
++  }
++
++  .trigger {
++    gap: 0;
++    padding: 0;
++  }
++
++  .chevron {
++    display: none;
++  }
 +}
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 index e910651e86..111b614cb5 100644
@@ -1383,3 +1419,46 @@ index d5b1df190a..4935955e48 100644
  }
  
  /**
+diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
+index 22f64d6e61..cc2d3adae6 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
+@@ -74,3 +74,25 @@
+ .chevronOpen {
+   transform: rotate(180deg);
+ }
++
++@container (max-width: 240px) {
++  .root,
++  .trigger {
++    width: 28px;
++    max-width: 28px;
++  }
++
++  .root {
++    flex: 0 0 28px;
++  }
++
++  .trigger {
++    justify-content: center;
++    gap: 0;
++    padding: 0;
++  }
++
++  .chevron {
++    display: none;
++  }
++}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
+index 0caaf28cb8..92883c2792 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
+@@ -104,7 +104,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
+   const segments = parts.filter(part => part.width > 0)
+ 
+   return (
+-    <span ref={rootRef} className={css.root}>
++    <span ref={rootRef} className={css.root} data-context-meter>
+       <Tooltip label={t('context.aria', { percent: reading })} side="top" delayMs={200} disabled={open}>
+         <button
+           type="button"

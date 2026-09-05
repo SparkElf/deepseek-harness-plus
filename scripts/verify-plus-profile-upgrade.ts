@@ -42,7 +42,7 @@ export interface ProfileDiffRow {
   readonly candidate?: Pick<ProfilePackageEvidence, 'version' | 'fingerprint'>
 }
 
-const RUNTIME_FILE = /(?:^package\.json$|^cordis\.patch\.ya?ml$|\.(?:[cm]?js|css|json|ya?ml|wasm)$)/u
+const RUNTIME_FILE = /(?:^package\.json$|^cordis\.patch\.ya?ml$|\.(?:[cm]?js|css|diff|json|patch|ya?ml|wasm)$)/u
 const NON_RUNTIME_FILE = /(?:\.map$|\.d\.ts$|\.tsbuildinfo$)/u
 const SHA256 = /^[0-9a-f]{64}$/u
 

@@ -106,11 +106,15 @@ describe('Plus production profile closure gate', () => {
   })
 
   it('fingerprints runtime files but ignores source maps', () => {
-    const root = profile('plus-profile-', { '@fixture/ui': { 'lib/client.js': 'one', 'lib/client.js.map': 'first' } })
+    const root = profile('plus-profile-', {
+      '@fixture/ui': { 'lib/client.js': 'one', 'lib/client.js.map': 'first', 'patches/ui.patch': 'first' },
+    })
     const directory = inspectProfile(root).packages['@fixture/ui']!.directory
     const before = fingerprintPackage(directory)
     writeFileSync(join(directory, 'lib/client.js.map'), 'second')
     expect(fingerprintPackage(directory)).toBe(before)
+    writeFileSync(join(directory, 'patches/ui.patch'), 'second')
+    expect(fingerprintPackage(directory)).not.toBe(before)
     writeFileSync(join(directory, 'lib/client.js'), 'two')
     expect(fingerprintPackage(directory)).not.toBe(before)
     expect(profileDiff(inspectProfile(root), inspectProfile(root))).toEqual([])

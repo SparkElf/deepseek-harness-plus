@@ -207,7 +207,7 @@ function main(): void {
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
     'dsh-video-preview': '0.1.4',
     'dsh-univer-office': '0.2.14',
-    '@sparkelf/dsh-plugin-supervisor': plusReleaseAsset('sparkelf-dsh-plugin-supervisor-0.1.2.tgz'),
+    '@sparkelf/dsh-plugin-supervisor': plusReleaseAsset('sparkelf-dsh-plugin-supervisor-0.1.3.tgz'),
     '@sparkelf/dsh-univer-government-docs': '0.1.6',
     'dsh-sql-workbench': plusReleaseAsset('dsh-sql-workbench-0.4.0.tgz'),
     '@sparkelf/dsh-workbench-vault': plusReleaseAsset('sparkelf-dsh-workbench-vault-0.1.0.tgz'),
