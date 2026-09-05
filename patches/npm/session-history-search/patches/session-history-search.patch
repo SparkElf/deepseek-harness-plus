@@ -1,3 +1,81 @@
+diff --git a/packages/api/session-controller/src/list.ts b/packages/api/session-controller/src/list.ts
+index 4aa369c378..8a610c2541 100644
+--- a/packages/api/session-controller/src/list.ts
++++ b/packages/api/session-controller/src/list.ts
+@@ -273,7 +273,8 @@ export class ApiSessionList {
+       const cache = this.ctx.get('sessionProjectionCache')
+       const block = session === undefined
+         ? header.isSeeded
+-          ? undefined
++          ? cache?.cachedListedSnapshot(header)
++            ?? cache?.cachedListedPredecessorTitle(header)
+           : cache?.cachedSnapshot(header, SessionLogOffset(0))
+             ?? cache?.cachedPredecessorTitle(header, SessionLogOffset(0))
+         : this.ctx.sessionProjections.cachedSnapshot(session)
+diff --git a/packages/api/session-controller/tests/session-cold.host.spec.ts b/packages/api/session-controller/tests/session-cold.host.spec.ts
+index deb58794ca..aafcd14108 100644
+--- a/packages/api/session-controller/tests/session-cold.host.spec.ts
++++ b/packages/api/session-controller/tests/session-cold.host.spec.ts
+@@ -96,6 +96,8 @@ describe('sessions.list cold merge', () => {
+       cachedPredecessorTitle: (meta: SessionHeader) => meta.id === sid('legacy-title')
+         ? { asOfSeq: -1, values: { title: 'Cached predecessor title' } }
+         : undefined,
++      cachedListedSnapshot: () => undefined,
++      cachedListedPredecessorTitle: () => undefined,
+     } as never)
+     const remote = createSessionTestRemote(ctx, {
+       defaultModelSelection: () => ({ provider: 'p', model: 'm' }),
+@@ -140,6 +142,7 @@ describe('sessions.list cold merge', () => {
+       inspect,
+     })
+     const cacheCalls: string[] = []
++    const listedCacheCalls: string[] = []
+     ctx.provide('sessionProjectionCache', {
+       cachedSnapshot: (meta: SessionHeader) => {
+         cacheCalls.push(String(meta.id))
+@@ -152,6 +155,19 @@ describe('sessions.list cold merge', () => {
+         return undefined
+       },
+       cachedPredecessorTitle: () => undefined,
++      cachedListedSnapshot: (meta: SessionHeader) => {
++        listedCacheCalls.push(String(meta.id))
++        return meta.id === sid('seeded-cold')
++          ? {
++              asOfSeq: 4,
++              values: {
++                title: 'Seeded title',
++                sessionListMetadata: { blank: false, lastPromptAt: 2000 },
++              },
++            }
++          : undefined
++      },
++      cachedListedPredecessorTitle: () => undefined,
+     } as never)
+     const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+ 
+@@ -169,10 +185,19 @@ describe('sessions.list cold merge', () => {
+       origin: 'subagent',
+     })
+     expect(byId['missing-cwd']).toBeUndefined()
+-    // A cold seeded header never consults the cache: its cut is not 0, so a
+-    // cut-0 lookup would alias a different projection identity.
+-    expect(byId['seeded-cold']).toMatchObject({ blank: false, updatedAt: 450 })
++    expect(byId['seeded-cold']).toMatchObject({
++      blank: false,
++      updatedAt: 2000,
++      projections: {
++        asOfSeq: 4,
++        values: {
++          title: 'Seeded title',
++          sessionListMetadata: { blank: false, lastPromptAt: 2000 },
++        },
++      },
++    })
+     expect(cacheCalls).not.toContain('seeded-cold')
++    expect(listedCacheCalls).toEqual(['seeded-cold'])
+     expect(inspect).not.toHaveBeenCalled()
+   })
+ 
 diff --git a/packages/session-query/session-query-sqlite/src/index.ts b/packages/session-query/session-query-sqlite/src/index.ts
 index 0fd390ee6a..3268c040f4 100644
 --- a/packages/session-query/session-query-sqlite/src/index.ts
@@ -828,3 +906,226 @@ index 16e2f526a6..e975bc99f5 100644
    it('rejects header-less raw and Zstandard sources and a non-independent Zstandard header frame', async () => {
      const root = await tempRoot()
      const rawRoot = join(root, 'raw')
+diff --git a/packages/session/session-projection-cache/README.i18n.yaml b/packages/session/session-projection-cache/README.i18n.yaml
+index fa346cd9e5..0d7b1acdbe 100644
+--- a/packages/session/session-projection-cache/README.i18n.yaml
++++ b/packages/session/session-projection-cache/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/session/session-projection-cache/README.md
+-README.md: ba90e838763787d28e5b6e278d868504fc672c5f
+-README.zh.md: 8b3fe4148d408af75194212e4787a7cdb9030507
++README.md: bc1f32685184c2b6aefb4f2225dc53a880230a08
++README.zh.md: bcf3348bf1ea5993d569bdf6a99c04f1ecd26cb2
+diff --git a/packages/session/session-projection-cache/README.md b/packages/session/session-projection-cache/README.md
+index ba90e83876..bc1f326851 100644
+--- a/packages/session/session-projection-cache/README.md
++++ b/packages/session/session-projection-cache/README.md
+@@ -58,13 +58,13 @@ Three mandatory points always write: session creation persists the seed-derived
+ 
+ ### Reading cached values
+ 
+-`cachedSnapshot(meta, inheritedEventCount)` synchronously serves client values from the storage domain's in-memory tables with zero I/O. It accepts only an identity-matching record and version- and schema-matching keys, then returns a `{ asOfSeq, values }` cut at the lowest served-row watermark. `cachedPredecessorTitle(meta, inheritedEventCount)` is the narrower listing-only exception: a structurally admitted predecessor record whose lifecycle matches may expose only a current-version-compatible `title` row. The title is a possibly stale fact from a durable prefix, not a fold seed; it carries the sentinel `asOfSeq: -1` because a cardinality-changing Session migration can invalidate the predecessor row's numeric sequence. All other predecessor rows remain unavailable. An unseeded listing knows that its cut is zero; a seeded header-only listing does not know the numeric cut and skips both fast paths until an authoritative body read supplies it. `coldSnapshot(meta, inheritedEventCount, events)` accepts the exact cut with a complete ordered log, skips the checkpointed prefix while folding, and refreshes the record without reading persistence itself.
++`cachedSnapshot(meta, inheritedEventCount)` synchronously serves client values from the storage domain's in-memory tables with zero I/O. It accepts only an identity-matching record and version- and schema-matching keys, then returns a `{ asOfSeq, values }` cut at the lowest served-row watermark. A header-only seeded listing does not know the numeric inherited cut, so `cachedListedSnapshot(meta)` accepts only a current-format checkpoint whose own identity carries that immutable cut and whose remaining lifecycle fields match the authoritative header. `cachedPredecessorTitle(meta, inheritedEventCount)` and `cachedListedPredecessorTitle(meta)` are narrower listing-only exceptions: a structurally admitted predecessor record whose lifecycle matches may expose only a current-version-compatible `title` row. The title is a possibly stale fact from a durable prefix, not a fold seed; it carries the sentinel `asOfSeq: -1` because a cardinality-changing Session migration can invalidate the predecessor row's numeric sequence. All other predecessor rows remain unavailable. `coldSnapshot(meta, inheritedEventCount, events)` accepts the exact cut with a complete ordered log, skips the checkpointed prefix while folding, and refreshes the record without reading persistence itself.
+ 
+ ### What the cache guarantees
+ 
+ The log leads and the cache follows: a live checkpoint flushes the session's buffered events durably before the cache row lands, so a crash can leave the cache behind the log but never ahead of it. Reads and writes share the storage domain's coherent in-memory state; the per-unit write chain mutates memory only after durability. Each version-stamped record must match the live unit schema and complete lifecycle identity (`formatVersion`, `createdAt`, `cwd`, `isSeeded`, and `inheritedEventCount`), so a row folded from another Session format generation or fork cut cannot seed the caller. The JSON backend stores each record at `<root>/session_projcache/sessions/<id>.json` in an owner-only directory tree.
+ 
+-Upgrades never cost the boot or expose an unproven fold. Records stamped with a version in the spec's `compatibleVersions` remain structurally readable for a current checkpoint rewrite, but a missing or older `formatVersion` never matches a current Session and therefore cannot seed hydration. A lifecycle-matching predecessor title remains available only through the listing hint above because title text is invariant across the adjacent Session-format edges and its row still passes the current projection `stateVersion` and schema. Once the format matches, absent lineage fields decode as the unseeded lineage — exact for unseeded sessions, while a seeded caller fails the identity match and refolds cold. A stored record that still fails schema validation is moved aside as `<id>.json.bak.<stamp>` under the domain's `invalidRecords: 'backup-and-skip'` policy, logged with its cause, and rebuilt by the next checkpoint.
++Upgrades never cost the boot or expose an unproven fold. Records stamped with a version in the spec's `compatibleVersions` remain structurally readable for a current checkpoint rewrite, but a missing or older `formatVersion` never matches a current Session and therefore cannot seed hydration. A lifecycle-matching predecessor title remains available only through the listing hints above because title text is invariant across the adjacent Session-format edges and its row still passes the current projection `stateVersion` and schema. Missing lineage still cannot seed a fold; the listed predecessor path uses only the id-bound title and never interprets its historical cut. A stored record that still fails schema validation is moved aside as `<id>.json.bak.<stamp>` under the domain's `invalidRecords: 'backup-and-skip'` policy, logged with its cause, and rebuilt by the next checkpoint.
+ 
+ -----
+ 
+diff --git a/packages/session/session-projection-cache/README.zh.md b/packages/session/session-projection-cache/README.zh.md
+index 8b3fe4148d..bcf3348bf1 100644
+--- a/packages/session/session-projection-cache/README.zh.md
++++ b/packages/session/session-projection-cache/README.zh.md
+@@ -58,13 +58,13 @@ kind: "package-reference"
+ 
+ ### 读取缓存值
+ 
+-`cachedSnapshot(meta, inheritedEventCount)` 以零 I/O 从存储域的内存表同步提供客户端值。它只接受身份匹配的记录以及版本和 schema 均匹配的 key，再按所服务行的最低水位返回 `{ asOfSeq, values }` 切面。`cachedPredecessorTitle(meta, inheritedEventCount)` 是更窄的列表专用例外：生命周期匹配且已通过结构准入的 predecessor record 只能公开与当前版本兼容的 `title` row。该 title 是 durable prefix 中可能过时的事实，而不是 fold seed；它携带 sentinel `asOfSeq: -1`，因为改变事件数量的 Session 迁移会使 predecessor row 的数字序号失效。其他 predecessor row 仍不可用。未 seeded 的列表知道切点为零；仅 header 的 seeded 列表不知道数字切点，因此两条快速路径都要跳过，直到权威正文读取提供它。`coldSnapshot(meta, inheritedEventCount, events)` 接受精确切点与完整有序日志，在折叠时跳过已检查点化的前缀，并在自身不读取持久化层的情况下刷新记录。
++`cachedSnapshot(meta, inheritedEventCount)` 以零 I/O 从存储域的内存表同步提供客户端值。它只接受身份匹配的记录以及版本和 schema 均匹配的 key，再按所服务行的最低水位返回 `{ asOfSeq, values }` 切面。仅 header 的 seeded 列表不知道数字继承切点，因此 `cachedListedSnapshot(meta)` 只接受当前格式的 checkpoint：其自身 identity 必须携带该不可变切点，其余生命周期字段必须匹配权威 header。`cachedPredecessorTitle(meta, inheritedEventCount)` 与 `cachedListedPredecessorTitle(meta)` 是更窄的列表专用例外：生命周期匹配且已通过结构准入的 predecessor record 只能公开与当前版本兼容的 `title` row。该 title 是 durable prefix 中可能过时的事实，而不是 fold seed；它携带 sentinel `asOfSeq: -1`，因为改变事件数量的 Session 迁移会使 predecessor row 的数字序号失效。其他 predecessor row 仍不可用。`coldSnapshot(meta, inheritedEventCount, events)` 接受精确切点与完整有序日志，在折叠时跳过已检查点化的前缀，并在自身不读取持久化层的情况下刷新记录。
+ 
+ ### 缓存保证什么
+ 
+ 日志领先，缓存跟随：实时检查点先把会话的缓冲事件持久化，然后才保存缓存记录。因此崩溃可能让缓存落后于日志，但绝不会让缓存领先。读取和写入共享存储域内一致的内存状态；逐单元写入链只在持久化成功后修改内存。每个带版本戳的记录必须匹配实时单元 schema 与完整生命周期身份（`formatVersion`、`createdAt`、`cwd`、`isSeeded` 和 `inheritedEventCount`），因此从另一会话格式代或 fork 切点折叠出的行不能播种调用方。JSON 后端把每条记录存于仅所有者可访问的 `<root>/session_projcache/sessions/<id>.json` 目录树中。
+ 
+-升级绝不拖垮启动，也不会暴露未经证明的折叠结果。版本戳落在 spec `compatibleVersions` 集合内的记录仍可被结构化读取并等待当前检查点重写，但缺失或更旧的 `formatVersion` 绝不匹配当前 Session，因此不能作为 hydrate seed。生命周期匹配的 predecessor title 只能通过上述列表 hint 读取，因为 title 文本在相邻 Session format edge 之间保持不变，并且该 row 仍须通过当前 projection `stateVersion` 与 schema。格式匹配后，缺失的 lineage 字段解码为 unseeded lineage——对非 fork 会话精确无误，seeded 调用方则通不过身份比对、回落冷折叠。仍然通不过 schema 校验的存量记录会按域的 `invalidRecords: 'backup-and-skip'` 策略移出为 `<id>.json.bak.<时间戳>`、连同原因写入日志，并由下一次检查点重建。
++升级绝不拖垮启动，也不会暴露未经证明的折叠结果。版本戳落在 spec `compatibleVersions` 集合内的记录仍可被结构化读取并等待当前检查点重写，但缺失或更旧的 `formatVersion` 绝不匹配当前 Session，因此不能作为 hydrate seed。生命周期匹配的 predecessor title 只能通过上述列表 hints 读取，因为 title 文本在相邻 Session format edge 之间保持不变，并且该 row 仍须通过当前 projection `stateVersion` 与 schema。缺失的 lineage 仍不能播种 fold；listed predecessor路径只使用由id绑定的title，绝不解释其historical cut。仍然通不过 schema 校验的存量记录会按域的 `invalidRecords: 'backup-and-skip'` 策略移出为 `<id>.json.bak.<时间戳>`、连同原因写入日志，并由下一次检查点重建。
+ 
+ -----
+ 
+diff --git a/packages/session/session-projection-cache/src/index.ts b/packages/session/session-projection-cache/src/index.ts
+index 639dfcc978..592ef3e682 100644
+--- a/packages/session/session-projection-cache/src/index.ts
++++ b/packages/session/session-projection-cache/src/index.ts
+@@ -152,6 +152,24 @@ export class SessionProjectionCache extends Service {
+     return this.viewRecord(record, keys)
+   }
+ 
++  /**
++   * Read a current-format checkpoint for a listed header when the persistence
++   * listing does not expose the seeded Session's inherited cut. The checkpoint
++   * identity carries the cut written by a prior exact open; the remaining
++   * lifecycle fields still have to match the authoritative listed header.
++   * @param meta - authoritative listed Session header.
++   * @param keys - optional projection keys required by the caller's audience.
++   * @returns the current cached projection cut, or `undefined` when absent or unrelated.
++   */
++  cachedListedSnapshot(
++    meta: SessionHeader,
++    keys?: readonly Extract<keyof SessionProjectionMap, string>[],
++  ): ProjectionSnapshot | undefined {
++    const record = this.requireTable().get(meta.id)
++    if (record === undefined || !listedCurrentIdentityMatches(record.identity, meta)) return undefined
++    return this.viewRecord(record, keys)
++  }
++
+   /**
+    * Read only a predecessor checkpoint's title as a zero-I/O listing hint.
+    *
+@@ -180,6 +198,20 @@ export class SessionProjectionCache extends Service {
+     return title === undefined ? undefined : { ...title, asOfSeq: -1 }
+   }
+ 
++  /**
++   * Read only a predecessor title for a listed seeded Session whose historical
++   * checkpoint predates lineage fields. Session id, creation time, and cwd bind
++   * the hint to the listed lifecycle; no other predecessor row is exposed.
++   * @param meta - authoritative listed Session header.
++   * @returns a title-only predecessor hint with the non-ordering watermark.
++   */
++  cachedListedPredecessorTitle(meta: SessionHeader): ProjectionSnapshot | undefined {
++    const record = this.requireTable().get(meta.id)
++    if (record === undefined || !listedPredecessorIdentityMatches(record.identity, meta)) return undefined
++    const title = this.viewRecord(record, [PREDECESSOR_TITLE_KEY])
++    return title === undefined ? undefined : { ...title, asOfSeq: -1 }
++  }
++
+   /** View selected wire rows and bind them to their lowest served watermark. */
+   private viewRecord(
+     record: CheckpointRecord,
+@@ -431,6 +463,22 @@ function predecessorIdentityMatches(
+   return predecessor && lifecycleIdentityMatches(stored, expected)
+ }
+ 
++/** Match a current checkpoint whose own immutable cut completes a listed header. */
++function listedCurrentIdentityMatches(stored: CheckpointIdentity, header: SessionHeader): boolean {
++  return stored.formatVersion === header.version
++    && stored.createdAt === header.createdAt
++    && stored.cwd === header.cwd
++    && stored.isSeeded === header.isSeeded
++    && typeof stored.inheritedEventCount === 'number'
++}
++
++/** Match a predecessor title to a listed lifecycle without interpreting its old cut. */
++function listedPredecessorIdentityMatches(stored: CheckpointIdentity, header: SessionHeader): boolean {
++  return (stored.formatVersion === undefined || stored.formatVersion < header.version)
++    && stored.createdAt === header.createdAt
++    && stored.cwd === header.cwd
++}
++
+ /** Match the format-independent fields that distinguish one Session lifecycle. */
+ function lifecycleIdentityMatches(
+   stored: CheckpointIdentity,
+diff --git a/packages/session/session-projection-cache/tests/cache.spec.ts b/packages/session/session-projection-cache/tests/cache.spec.ts
+index 9bfd91680d..aece5955d4 100644
+--- a/packages/session/session-projection-cache/tests/cache.spec.ts
++++ b/packages/session/session-projection-cache/tests/cache.spec.ts
+@@ -39,6 +39,7 @@ import type { CheckpointRecord } from '../src/spec.ts'
+ 
+ declare module '@deepseek-ai/dsh-session-projection/types' {
+   interface SessionProjectionStateMap {
++    title: string | null
+     'cache-test/marks': MarksState
+     'cache-test/secondary-marks': MarksState
+     'cache-test/marks2': Map<string, string>
+@@ -47,6 +48,7 @@ declare module '@deepseek-ai/dsh-session-projection/types' {
+     'cache-test/marks3': MarksState
+   }
+   interface SessionProjectionMap {
++    title: string | null
+     'cache-test/marks': { marks: string[] }
+     'cache-test/secondary-marks': { marks: string[] }
+     'cache-test/marks3': { marks: string[] }
+@@ -76,6 +78,15 @@ const marksUnit = (stateVersion = 1) => ({
+   stateVersion,
+ }) satisfies ProjectionDefinition<'cache-test/marks', MarksState>
+ 
++const titleUnit = {
++  key: 'title',
++  stateSchema: z.string().nullable(),
++  init: () => null,
++  apply: state => state,
++  wire: { viewSchema: z.string().nullable(), view: state => state },
++  stateVersion: 1,
++} satisfies ProjectionDefinition<'title', string | null>
++
+ const marks3Unit = {
+   key: 'cache-test/marks3',
+   stateSchema: z.object({ marks: z.array(z.string()) }).nullable(),
+@@ -457,6 +468,61 @@ describe('SessionProjectionCache listing read', () => {
+       .toBeUndefined()
+   })
+ 
++  it('serves a seeded listed lifecycle from the cut carried by its current checkpoint', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-'))
++    roots.push(root)
++    const id = SessionId('listed-seeded')
++    await seedRecord(root, id, {
++      'cache-test/marks': { ver: 1, seq: SessionSeq(4), val: { marks: ['seeded'] } },
++    }, {
++      formatVersion: SESSION_FORMAT_VERSION,
++      createdAt: 10,
++      cwd: '/work',
++      isSeeded: true,
++      inheritedEventCount: SessionLogOffset(3),
++    })
++    const { cache } = await harness({ root })
++
++    expect(cache.cachedListedSnapshot({
++      ...headerOf(id, 10, '/work'),
++      isSeeded: true,
++    })).toEqual({
++      asOfSeq: 4,
++      values: { 'cache-test/marks': { marks: ['seeded'] } },
++    })
++    expect(cache.cachedListedSnapshot({ ...headerOf(id, 11, '/work'), isSeeded: true }))
++      .toBeUndefined()
++    expect(cache.cachedListedSnapshot({ ...headerOf(id, 10, '/elsewhere'), isSeeded: true }))
++      .toBeUndefined()
++  })
++
++  it('serves only the title from a lineage-less predecessor to a listed seeded lifecycle', async () => {
++    const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-'))
++    roots.push(root)
++    const id = SessionId('listed-predecessor-seeded')
++    const path = recordPath(root, id)
++    await mkdir(dirname(path), { recursive: true })
++    await writeFile(path, JSON.stringify({
++      version: 4,
++      record: {
++        identity: { createdAt: 10, cwd: '/work' },
++        rows: {
++          title: { ver: 1, seq: 9, val: 'Historical title' },
++          'cache-test/marks': { ver: 1, seq: 9, val: { marks: ['hidden'] } },
++        },
++      },
++    }))
++    const { ctx, cache } = await harness({ root })
++    ctx.sessionProjections.register(titleUnit)
++
++    expect(cache.cachedListedPredecessorTitle({
++      ...headerOf(id, 10, '/work'),
++      isSeeded: true,
++    })).toEqual({ asOfSeq: -1, values: { title: 'Historical title' } })
++    expect(cache.cachedListedPredecessorTitle({ ...headerOf(id, 11, '/work'), isSeeded: true }))
++      .toBeUndefined()
++  })
++
+   it('carries ONE cut across multiple served rows: the lowest watermark wins', async () => {
+     const root = await mkdtemp(join(tmpdir(), 'dsh-projcache-'))
+     roots.push(root)

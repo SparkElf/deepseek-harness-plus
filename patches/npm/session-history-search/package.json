@@ -25,10 +25,12 @@
           "kind": "dsh-source",
           "baseRevision": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
           "paths": [
+            "packages/api/session-controller/",
             "packages/session/session-format/",
             "packages/session/session-format-v0-to-v1/",
             "packages/session/session-format-v1-to-v2/",
             "packages/session/session-persistence-jsonl/",
+            "packages/session/session-projection-cache/",
             "packages/session-query/session-query-sqlite/"
           ]
         },

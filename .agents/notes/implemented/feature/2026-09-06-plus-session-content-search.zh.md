@@ -10,7 +10,7 @@ Official DSH交付SQLite Session query provider时关闭full-text search。因�
 
 ## Decision
 
-Plus profile覆盖既有`session-query-sqlite`行，设置`openAt: first-search`及专用路径`$DSH_HOME/storages/session-query.sqlite`。首次内容查询到达时，official provider从live Sessions及persisted JSONL对账derived FTS5 database，后续搜索增量刷新。Compressed JSONL仍是唯一authoritative history；SQLite文件可删除并重建。临时`@sparkelf/dsh-patch-session-history-search` source patch接受两种已有证据的pre-release records，并在同一stable-corpus transaction内逐Session写入，使reconciliation memory有界。
+Plus profile覆盖既有`session-query-sqlite`行，设置`openAt: first-search`及专用路径`$DSH_HOME/storages/session-query.sqlite`。首次内容查询到达时，official provider从live Sessions及persisted JSONL对账derived FTS5 database，后续搜索增量刷新。Compressed JSONL仍是唯一authoritative history；SQLite文件可删除并重建。临时`@sparkelf/dsh-patch-session-history-search` source patch接受两种已有证据的pre-release records，在同一stable-corpus transaction内逐Session写入以有界化reconciliation memory，并使cold seeded分支在重启后无需读取正文即可保留current或predecessor title hints。
 
 这是[内容搜索opt-in决策](../architecture/2026-08-13-session-content-search-opt-in.zh.md)预期的deployment opt-in，不是replacement provider或official-default change。Archive visibility仍为独立语义：归档Session在Workspace archive state恢复前不进入侧边栏结果。
 
