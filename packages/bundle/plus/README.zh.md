@@ -71,5 +71,6 @@ Plus显式选择`browserAuthentication: disabled`：其Web URL保持clean，无�
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
 - [Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)持有package forms、inventory、materialization及deletion rules；`src/apply.ts`和`cordis.patch.yml`持有executable profile behavior。
+- 该package不发布`./invariant` companion，因为profile与patchset validity会在materialization前检查，且bundle没有independent runtime observation。
 
 </details>

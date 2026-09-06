@@ -71,5 +71,6 @@ Independent by itself. The profile changes a request prefix only when one of its
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
 - The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) owns package forms, inventory, materialization, and deletion rules; `src/apply.ts` and `cordis.patch.yml` own the executable profile behavior.
+- No runtime invariant companion is published because profile and patchset validity is checked before materialization and the bundle owns no independent runtime observation.
 
 </details>
