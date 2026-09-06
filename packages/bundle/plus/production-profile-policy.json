@@ -607,35 +607,35 @@
       "baselineVersion": "0.1.0-rc.21",
       "candidateVersion": "0.1.0-rc.22",
       "baselineSha256": "ae837c2a55deb07e004c51cb3afb9a7e6c472c4d8567dc1d89757a86c33c1875",
-      "candidateSha256": "131b679f7ac5afe078c3a023d902e6310d4a1357c584c09002e4f3c592b3793f"
+      "candidateSha256": "81a97e574d5112befcbcdcf6f3c6de2994d420508c2b6a9f25df6c63afd4db99"
     },
     "@sparkelf/dsh-plugin-dataops": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.21",
       "candidateVersion": "0.1.0-rc.22",
       "baselineSha256": "7ad3b3f23eb2d05c0b52f97af879f934cbd1acfb369349fc81e9e7ddd7b5a691",
-      "candidateSha256": "59f5ea64856bfac477a273f8eb1907f3f770a889f4ea03b6228c4610997bb1a7"
+      "candidateSha256": "881585271a657801c3e7a2b455736fac792e87d0e24530ba588e65e2e1bcea7f"
     },
     "@sparkelf/dsh-plugin-mcp-credentials": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.21",
       "candidateVersion": "0.1.0-rc.22",
       "baselineSha256": "b4f8e47b456f3031bbcc3d6b20def938284e298fc4eb07a739e30dabdf79cfae",
-      "candidateSha256": "6eaa074c6e64143e8b2eb3b6a9ba43ec42b0f1d8f1e932886405c5bbb3271369"
+      "candidateSha256": "0f0417bf418a90be86ae8974395b834b1146e7d9936d3ea5cb9153fe70c57837"
     },
     "@sparkelf/dsh-plugin-subagent-settings": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.21",
       "candidateVersion": "0.1.0-rc.22",
       "baselineSha256": "e03a2bee1c48b43151b00df2a17d62aaecd047482582b97f357d7aab00bd9fa6",
-      "candidateSha256": "ab0bca40b319d56dac8026ab5b259c210e2e42db0dae680737a2bdd3a078deef"
+      "candidateSha256": "6609e429ebceaee8bd6774036a873e816d7f004673e086cd05533966d24b0fc4"
     },
     "@sparkelf/dsh-plus": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.21",
       "candidateVersion": "0.1.0-rc.22",
       "baselineSha256": "77e3b6f0e37459715025703ec2630d7b87b9c55fe43913ef7dfd48dbb44bd4a6",
-      "candidateSha256": "6396b6741e5bcf06b3d3feb8d412f82b23ab8cab282aefd742c8c484963d238a",
+      "candidateSha256": "4a7296faca45bef263f00abaf845ba19c86343d3edae6cd5c1839eb95f894c56",
       "probes": [
         {
           "file": "cordis.patch.yml",
