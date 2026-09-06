@@ -341,8 +341,9 @@ test('reads Priority and Status from Project custom fields', async (t) => {
 
   assert.equal(issue.priority, 'P1')
   assert.equal(issue.status, 'Inbox')
+  const repository = process.env.GITHUB_REPOSITORY ?? 'deepseek-harness/deepseek-harness'
   assert.deepEqual(urls, [
-    'https://api.github.com/repos/deepseek-harness/deepseek-harness/issues/42',
+    `https://api.github.com/repos/${repository}/issues/42`,
     'https://api.github.com/graphql',
   ])
 })
