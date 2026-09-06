@@ -20,12 +20,12 @@ export interface ProfileProbe {
 }
 
 export interface ProfilePackagePolicy {
-  readonly mode: 'preserve' | 'replace'
+  readonly mode: 'preserve' | 'replace' | 'add' | 'remove'
   readonly version?: string
   readonly baselineVersion?: string
   readonly candidateVersion?: string
-  readonly baselineSha256: string
-  readonly candidateSha256: string
+  readonly baselineSha256?: string
+  readonly candidateSha256?: string
   readonly probes?: readonly ProfileProbe[]
 }
 
@@ -75,19 +75,17 @@ export function fingerprintPackage(directory: string): string {
 function packageDirectories(profile: string): string[] {
   const modules = join(profile, 'node_modules')
   if (!existsSync(modules)) throw new Error('profile has no node_modules: ' + modules)
-  const directories: string[] = []
-  for (const entry of readdirSync(modules, { withFileTypes: true })) {
-    if (entry.name.startsWith('.')) continue
-    const path = join(modules, entry.name)
-    if (entry.name.startsWith('@')) {
-      for (const child of readdirSync(path, { withFileTypes: true })) {
-        if (!child.name.startsWith('.')) directories.push(join(path, child.name))
-      }
-    } else {
-      directories.push(path)
+  const manifest = JSON.parse(readFileSync(join(profile, 'package.json'), 'utf8')) as {
+    dependencies: Readonly<Record<string, string>>
+  }
+  const names = new Set(Object.keys(manifest.dependencies))
+  const officialScope = join(modules, '@deepseek-ai')
+  if (existsSync(officialScope)) {
+    for (const entry of readdirSync(officialScope, { withFileTypes: true })) {
+      if (!entry.name.startsWith('.')) names.add('@deepseek-ai/' + entry.name)
     }
   }
-  return directories.filter((directory) => {
+  return [...names].sort().map(name => join(modules, ...name.split('/'))).filter((directory) => {
     try {
       const stat = lstatSync(directory)
       return stat.isDirectory() || stat.isSymbolicLink()
@@ -167,9 +165,47 @@ export function verifyProfileUpgrade(
   for (const [name, expected] of Object.entries(policy.packages)) {
     const before = baseline.packages[name]
     const after = candidate.packages[name]
+
+    if (expected.mode === 'add') {
+      if (before !== undefined) violations.push(name + ': add policy requires the package to be absent from the baseline profile')
+      if (after === undefined) { violations.push(name + ': missing from candidate profile'); continue }
+      const candidateVersion = expected.candidateVersion ?? expected.version
+      if (candidateVersion === undefined) violations.push(name + ': add policy must declare candidateVersion or version')
+      else if (after.version !== candidateVersion) violations.push(name + ': candidate version ' + after.version + ' != ' + candidateVersion)
+      if (expected.candidateSha256 === undefined || !SHA256.test(expected.candidateSha256)) {
+        violations.push(name + ': candidate fingerprint must be lowercase SHA-256')
+      } else if (after.fingerprint !== expected.candidateSha256) {
+        violations.push(name + ': candidate fingerprint drifted to ' + after.fingerprint)
+      }
+      for (const probe of expected.probes ?? []) {
+        const path = join(after.directory, probe.file)
+        if (!existsSync(path)) { violations.push(name + ': probe file is missing: ' + probe.file); continue }
+        const payload = readFileSync(path, 'utf8')
+        for (const marker of probe.contains) {
+          if (!payload.includes(marker)) violations.push(name + ': ' + probe.file + ' is missing capability marker ' + JSON.stringify(marker))
+        }
+      }
+      continue
+    }
+
+    if (expected.mode === 'remove') {
+      if (before === undefined) { violations.push(name + ': missing from baseline profile'); continue }
+      if (after !== undefined) violations.push(name + ': remove policy requires the package to be absent from the candidate profile')
+      const baselineVersion = expected.baselineVersion ?? expected.version
+      if (baselineVersion === undefined) violations.push(name + ': remove policy must declare baselineVersion or version')
+      else if (before.version !== baselineVersion) violations.push(name + ': baseline version ' + before.version + ' != ' + baselineVersion)
+      if (expected.baselineSha256 === undefined || !SHA256.test(expected.baselineSha256)) {
+        violations.push(name + ': baseline fingerprint must be lowercase SHA-256')
+      } else if (before.fingerprint !== expected.baselineSha256) {
+        violations.push(name + ': baseline fingerprint drifted to ' + before.fingerprint)
+      }
+      continue
+    }
+
     if (before === undefined) { violations.push(name + ': missing from baseline profile'); continue }
     if (after === undefined) { violations.push(name + ': missing from candidate profile'); continue }
-    if (!SHA256.test(expected.baselineSha256) || !SHA256.test(expected.candidateSha256)) {
+    if (expected.baselineSha256 === undefined || expected.candidateSha256 === undefined
+      || !SHA256.test(expected.baselineSha256) || !SHA256.test(expected.candidateSha256)) {
       violations.push(name + ': policy fingerprints must be lowercase SHA-256')
       continue
     }

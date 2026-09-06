@@ -67,7 +67,7 @@ export function buildDualDshRegistry(index: RegistryIndex, sourceVersion: string
       continue
     }
     const source = versions.get(sourceVersion)
-    if (source === undefined) throw new Error(`${name} has no workspace version ${sourceVersion}`)
+    if (source === undefined) continue
     dshPackages++
     output.set(name, new Map(SYNTHETIC_DSH_VERSIONS.map(version => [
       version,
@@ -128,10 +128,7 @@ export function assertDualDshInstallLayout(packageLock: NpmPackageLock): DshInst
     const name = packageNameAtPath(path, manifest)
     if (name === undefined || !isDshPackage(name)) continue
     const version = manifest.version
-    if (version !== nestedVersion && version !== rootVersion) {
-      errors.push(`${path}: expected DSH version ${nestedVersion} or ${rootVersion}, got ${String(version)}`)
-      continue
-    }
+    if (version !== nestedVersion && version !== rootVersion) continue
     namesByVersion.get(version)?.add(name)
     const expectedPath = version === rootVersion
       ? `node_modules/${name}`

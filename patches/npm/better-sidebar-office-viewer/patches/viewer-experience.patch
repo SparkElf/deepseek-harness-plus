@@ -1,0 +1,836 @@
+diff --git a/lib/client.js b/lib/client.js
+index 86e9dad212..df9fb14b73 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -57,10 +57,6 @@ window.__ModuleLoader__.load({
+ 		function mediaUrl(scope, path) {
+ 			return fileUrl(scope, path, false);
+ 		}
+-		/** Absolute URL of the download route (Content-Disposition: attachment). */
+-		function downloadUrl(scope, path) {
+-			return fileUrl(scope, path, true);
+-		}
+ 		/** Shared URL builder for the /sidebar/file route (media vs download). */
+ 		function fileUrl(scope, path, download) {
+ 			const params = new URLSearchParams({
+@@ -81,8 +77,14 @@ window.__ModuleLoader__.load({
+ 			downloadToView: "Download to view",
+ 			previousSlide: "Previous",
+ 			nextSlide: "Next",
++			previousMatch: "Previous match",
++			nextMatch: "Next match",
+ 			zoom: "Zoom",
+ 			zoomHint: "Alt + wheel",
++			fitWidth: "Fit width",
++			search: "Search",
++			slide: "Slide",
++			slideThumbnails: "Thumbnails",
+ 			viewerDocx: "Word",
+ 			viewerXlsx: "Excel",
+ 			viewerPptx: "PowerPoint"
+@@ -93,8 +95,14 @@ window.__ModuleLoader__.load({
+ 			downloadToView: "下载查看",
+ 			previousSlide: "上一页",
+ 			nextSlide: "下一页",
++			previousMatch: "上一个匹配项",
++			nextMatch: "下一个匹配项",
+ 			zoom: "缩放",
+ 			zoomHint: "Alt + 滚轮",
++			fitWidth: "适合宽度",
++			search: "搜索",
++			slide: "幻灯片",
++			slideThumbnails: "缩略图",
+ 			viewerDocx: "Word 文档",
+ 			viewerXlsx: "Excel 表格",
+ 			viewerPptx: "PPT 演示"
+@@ -40206,7 +40214,8 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 			wb.SheetNames.forEach((name, index) => {
+ 				const sheetId = `sheet-${index}`;
+ 				sheetOrder.push(sheetId);
+-				sheets[sheetId] = worksheetToUniver(wb.Sheets[name] ?? {}, name, sheetId);
++				const hidden = (wb.Workbook?.Sheets?.[index]?.Hidden ?? 0) !== 0;
++				sheets[sheetId] = worksheetToUniver(wb.Sheets[name] ?? {}, name, sheetId, hidden);
+ 			});
+ 			if (sheetOrder.length === 0) {
+ 				const fallbackId = "sheet-0";
+@@ -40233,7 +40242,7 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 			};
+ 		}
+ 		/** Convert one SheetJS worksheet to a Univer IWorksheetData. */
+-		function worksheetToUniver(ws, name, sheetId) {
++		function worksheetToUniver(ws, name, sheetId, hidden) {
+ 			const cellData = {};
+ 			const merges = [];
+ 			for (const addr of Object.keys(ws)) {
+@@ -40264,7 +40273,7 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 				id: sheetId,
+ 				name,
+ 				tabColor: "",
+-				hidden: BooleanNumber.FALSE,
++				hidden: hidden ? BooleanNumber.TRUE : BooleanNumber.FALSE,
+ 				freeze: {
+ 					startRow: -1,
+ 					startColumn: -1,
+@@ -40306,8 +40315,19 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 					out.v = cell.w ?? (cell.v !== void 0 ? String(cell.v) : "");
+ 			}
+ 			if (typeof cell.f === "string" && cell.f !== "") out.f = cell.f;
++			const style = convertCellStyle(cell);
++			if (style !== void 0) out.s = style;
+ 			return out;
+ 		}
++		/** 映射 SheetJS CE 确实公开的单元格视觉信息，不猜测缺失的 OOXML 样式。 */
++		function convertCellStyle(cell) {
++			const out = {};
++			if (typeof cell.z === "string" && cell.z !== "" && cell.z !== "General") out.n = { pattern: cell.z };
++			const style = cell.s;
++			const rgb = style?.patternType === "solid" ? style.fgColor?.rgb : void 0;
++			if (rgb !== void 0) out.bg = { rgb: "#" + rgb.slice(-6) };
++			return out.n === void 0 && out.bg === void 0 ? void 0 : out;
++		}
+ 		/** Convert SheetJS `!cols` (ColInfo[]) to Univer columnData (sparse, by index). */
+ 		function convertCols(cols) {
+ 			if (!Array.isArray(cols)) return {};
+@@ -40395,8 +40415,35 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 			};
+ 		}
+ 		//#endregion
+-		//#region \0dsh-css:D:\Projects\deepseek-harness\dsh-better-sidebar-plugin-office\src\client\office.module.css.mjs
+-		const css$1 = "/* Office preview styles (extracted from dsh-better-sidebar's sidebar.l5v9sv_module.l5v9sv_css\n   when the office viewers moved into this plugin). The shared placeholder /\n   binary-fallback / download-link affordances are scoped here too so the\n   plugin is self-contained. */\n\n/* Loading / empty state shared by the docx / xlsx / pptx views. */\n.l5v9sv_editorPlaceholder {\n  flex: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font: var(--dsw-font-xxs-12);\n  color: var(--dsw-alias-label-tertiary);\n  padding: 16px;\n  text-align: center;\n}\n\n/* Error / download-only fallback: a centered notice plus a download link —\n   the user always gets the file. */\n.l5v9sv_editorBinary {\n  flex: 1;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  gap: 12px;\n  padding: 24px 16px;\n  text-align: center;\n}\n\n.l5v9sv_editorBinaryNotice {\n  font: var(--dsw-font-xxs-12);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.l5v9sv_editorDownloadLink {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  padding: 6px 14px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 6px;\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-primary);\n  font: var(--dsw-font-xxs-strong-12);\n  text-decoration: none;\n  cursor: pointer;\n  transition:\n    background var(--ds-transition-duration-slow) var(--ds-ease-in-out),\n    border-color var(--ds-transition-duration-slow) var(--ds-ease-in-out);\n}\n\n.l5v9sv_editorDownloadLink:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n  border-color: var(--dsw-alias-border-l2);\n}\n\n.l5v9sv_editorError {\n  padding: 12px 16px;\n  font: var(--dsw-font-xxs-12);\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* Word preview: the document scrolls independently while the zoom control\n   stays pinned to the bottom edge. */\n.l5v9sv_editorDocx {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--dsw-alias-bg-base);\n}\n\n.l5v9sv_editorDocxViewport {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  overflow: auto;\n  background: var(--dsw-alias-bg-base);\n}\n\n/* docx-preview renders into a wrapper div with .l5v9sv_docx className; the host\n   above scrolls while the wrapper holds the page flow. */\n.l5v9sv_editorDocxWrap {\n  flex: none;\n  padding: 16px;\n}\n\n.l5v9sv_editorDocxZoom {\n  flex: none;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 34px;\n  padding: 4px 10px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.l5v9sv_editorDocxZoomHint,\n.l5v9sv_editorDocxZoomValue {\n  flex: none;\n  font: var(--dsw-font-xxxs-11);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.l5v9sv_editorDocxZoomValue {\n  width: 36px;\n  text-align: right;\n}\n\n.l5v9sv_editorDocxZoomRange {\n  flex: 1;\n  min-width: 72px;\n  accent-color: var(--dsw-alias-brand-primary);\n  cursor: pointer;\n}\n\n/* Excel preview: the Univer canvas fills the pane; the overlay covers it\n   while loading / on error. */\n.l5v9sv_editorXlsx {\n  position: relative;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n  background: var(--dsw-alias-bg-base);\n}\n\n.l5v9sv_editorUniverHost {\n  width: 100%;\n  height: 100%;\n  min-width: 0;\n  min-height: 0;\n}\n\n.l5v9sv_editorOfficeOverlay {\n  position: absolute;\n  inset: 0;\n  z-index: 2;\n  display: flex;\n  background: var(--dsw-alias-bg-base);\n}\n\n/* PPTX preview: a pinned toolbar over a scrolling slide stage. */\n.l5v9sv_editorPptx {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--dsw-alias-bg-base);\n}\n\n.l5v9sv_editorPptxToolbar {\n  flex: none;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 6px 8px;\n  border-bottom: 1px solid var(--dsw-alias-border-l1);\n}\n\n.l5v9sv_editorPptxToolbar .l5v9sv_editorDownloadLink {\n  margin-left: auto;\n}\n\n.l5v9sv_editorPptxButton {\n  height: 28px;\n  padding: 0 10px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 6px;\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-secondary);\n  font: var(--dsw-font-xxs-strong-12);\n  cursor: pointer;\n}\n\n.l5v9sv_editorPptxButton:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.l5v9sv_editorPptxButton:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n.l5v9sv_editorPptxPosition {\n  min-width: 64px;\n  text-align: center;\n  font: var(--dsw-font-xxs-12);\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.l5v9sv_editorPptxStage {\n  position: relative;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n}\n\n.l5v9sv_editorPptxHost {\n  width: 100%;\n  height: 100%;\n  min-width: 0;\n  min-height: 0;\n  overflow: auto;\n}\n";
++		//#region src/client/viewer-runtime.ts
++		let fontsReady;
++		/** 载入字体资产插件公开的字体，保证 Office renderer 首帧即可使用。 */
++		function loadOfficeFonts() {
++			const fonts = window.__DSH_OFFICE_VIEWER_FONTS__;
++			if (fonts === void 0) return Promise.resolve();
++			fontsReady ??= Promise.all(fonts.map(async ({ family, source }) => {
++				const face = await new FontFace(family, `url("${source}")`).load();
++				document.fonts.add(face);
++			})).then(async () => {
++				await document.fonts.ready;
++			});
++			return fontsReady;
++		}
++		/** 向 Better Sidebar 声明 Viewer 工具栏状态，使宿主显示统一刷新按钮。 */
++		function useRefreshToolbar(report) {
++			(0, react$1.useEffect)(() => {
++				report?.({
++					modes: false,
++					mode: "preview",
++					dirty: false,
++					editable: false,
++					saveState: "idle"
++				});
++			}, [report]);
++		}
++		//#endregion
++		//#region src/client/office.module.css.mjs
++		const css$1 = ".yc6sg6_editorPlaceholder {\n  flex: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 16px;\n  color: var(--dsw-alias-label-tertiary);\n  font: var(--dsw-font-xxs-12);\n  text-align: center;\n}\n\n.yc6sg6_editorBinary {\n  flex: 1;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 24px 16px;\n  text-align: center;\n}\n\n.yc6sg6_editorBinaryNotice {\n  max-width: 48ch;\n  color: var(--dsw-alias-state-error-primary);\n  font: var(--dsw-font-xxs-12);\n}\n\n.yc6sg6_editorError {\n  padding: 12px 16px;\n  color: var(--dsw-alias-state-error-primary);\n  font: var(--dsw-font-xxs-12);\n}\n\n.yc6sg6_editorToolButton,\n.yc6sg6_editorToolButtonActive,\n.yc6sg6_editorIconButton {\n  flex: none;\n  height: 26px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 4px;\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-secondary);\n  font: var(--dsw-font-xxxs-11);\n  white-space: nowrap;\n  cursor: pointer;\n  transition:\n    background var(--ds-transition-duration-fast) var(--ds-ease-in-out),\n    border-color var(--ds-transition-duration-fast) var(--ds-ease-in-out),\n    color var(--ds-transition-duration-fast) var(--ds-ease-in-out);\n}\n\n.yc6sg6_editorToolButton,\n.yc6sg6_editorToolButtonActive {\n  padding: 0 8px;\n}\n\n.yc6sg6_editorIconButton {\n  width: 26px;\n  padding: 0;\n  font-size: 18px;\n  line-height: 1;\n}\n\n.yc6sg6_editorToolButton:hover:not(:disabled),\n.yc6sg6_editorToolButtonActive:hover:not(:disabled),\n.yc6sg6_editorIconButton:hover:not(:disabled) {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.yc6sg6_editorToolButton:active:not(:disabled),\n.yc6sg6_editorToolButtonActive:active:not(:disabled),\n.yc6sg6_editorIconButton:active:not(:disabled) {\n  transform: translateY(1px);\n}\n\n.yc6sg6_editorToolButtonActive {\n  border-color: var(--dsw-alias-brand-primary);\n  color: var(--dsw-alias-label-primary);\n}\n\n.yc6sg6_editorToolButton:disabled,\n.yc6sg6_editorToolButtonActive:disabled,\n.yc6sg6_editorIconButton:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n.yc6sg6_editorToolGroup {\n  display: flex;\n  align-items: center;\n  gap: 5px;\n}\n\n.yc6sg6_editorDocx {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--dsw-alias-bg-base);\n}\n\n.yc6sg6_editorDocxViewport {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  overflow: auto;\n  background: color-mix(\n    in srgb,\n    var(--dsw-alias-bg-base) 84%,\n    var(--dsw-alias-label-primary) 16%\n  );\n}\n\n.yc6sg6_editorDocxCanvas {\n  flex: none;\n  box-sizing: border-box;\n  min-width: 100%;\n  display: flex;\n  justify-content: center;\n  align-items: flex-start;\n  padding: 16px;\n}\n\n.yc6sg6_editorDocxWrap {\n  flex: none;\n  width: max-content;\n  transform-origin: top center;\n}\n\n.yc6sg6_editorDocxWrap [class~=\"docx-wrapper\"] {\n  padding: 0 !important;\n  background: transparent !important;\n}\n\n.yc6sg6_editorDocxWrap section[class~=\"docx\"] {\n  margin: 0 0 18px !important;\n  box-shadow: 0 1px 3px color-mix(in srgb, var(--dsw-alias-label-primary) 20%, transparent);\n}\n\n.yc6sg6_editorDocxZoom {\n  flex: none;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 34px;\n  padding: 4px 10px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.yc6sg6_editorDocxZoomValue,\n.yc6sg6_editorPptxZoomValue {\n  flex: none;\n  width: 38px;\n  color: var(--dsw-alias-label-tertiary);\n  font: var(--dsw-font-xxxs-11);\n  text-align: right;\n}\n\n.yc6sg6_editorDocxZoomHint {\n  flex: none;\n  color: var(--dsw-alias-label-tertiary);\n  font: var(--dsw-font-xxxs-11);\n}\n\n.yc6sg6_editorDocxZoomRange,\n.yc6sg6_editorPptxZoomRange {\n  min-width: 72px;\n  accent-color: var(--dsw-alias-brand-primary);\n  cursor: pointer;\n}\n\n.yc6sg6_editorDocxZoomRange {\n  flex: 1;\n}\n\n.yc6sg6_editorXlsx {\n  position: relative;\n  flex: 1;\n  min-height: 0;\n  overflow: hidden;\n  background: var(--dsw-alias-bg-base);\n}\n\n.yc6sg6_editorUniverHost {\n  width: 100%;\n  height: 100%;\n  min-width: 0;\n  min-height: 0;\n}\n\n.yc6sg6_editorUniverHost footer {\n  overflow-x: auto;\n  overflow-y: hidden;\n  scrollbar-width: thin;\n}\n\n.yc6sg6_editorUniverHost footer > section {\n  min-width: 720px;\n}\n\n.yc6sg6_editorOfficeOverlay {\n  position: absolute;\n  inset: 0;\n  z-index: 2;\n  display: flex;\n  background: var(--dsw-alias-bg-base);\n}\n\n.yc6sg6_editorPptx {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n  flex-direction: column;\n  background: var(--dsw-alias-bg-base);\n}\n\n.yc6sg6_editorPptxBody {\n  flex: 1;\n  min-height: 0;\n  display: flex;\n}\n\n.yc6sg6_editorPptxThumbRail {\n  flex: none;\n  width: 112px;\n  box-sizing: border-box;\n  overflow-x: hidden;\n  overflow-y: auto;\n  padding: 8px;\n  border-right: 1px solid var(--dsw-alias-border-l1);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.yc6sg6_editorPptxThumb,\n.yc6sg6_editorPptxThumbActive {\n  position: relative;\n  width: 96px;\n  min-height: 64px;\n  display: block;\n  margin: 0 0 8px;\n  padding: 0;\n  overflow: hidden;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 4px;\n  background: var(--dsw-alias-bg-base);\n  color: var(--dsw-alias-label-secondary);\n  cursor: pointer;\n}\n\n.yc6sg6_editorPptxThumb:hover,\n.yc6sg6_editorPptxThumbActive {\n  border-color: var(--dsw-alias-brand-primary);\n}\n\n.yc6sg6_editorPptxThumb:active,\n.yc6sg6_editorPptxThumbActive:active {\n  transform: translateY(1px);\n}\n\n.yc6sg6_editorPptxThumbPreview {\n  display: block;\n  width: 96px;\n  aspect-ratio: 16 / 9;\n  overflow: hidden;\n  background: var(--dsw-alias-bg-base);\n}\n\n.yc6sg6_editorPptxThumbNumber {\n  position: absolute;\n  right: 3px;\n  bottom: 3px;\n  min-width: 18px;\n  padding: 1px 4px;\n  border-radius: 3px;\n  background: color-mix(in srgb, var(--dsw-alias-bg-base) 90%, transparent);\n  color: var(--dsw-alias-label-secondary);\n  font: var(--dsw-font-xxxs-11);\n  text-align: center;\n}\n\n.yc6sg6_editorPptxStage {\n  position: relative;\n  flex: 1;\n  min-width: 0;\n  min-height: 0;\n  overflow: hidden;\n  background: color-mix(\n    in srgb,\n    var(--dsw-alias-bg-base) 88%,\n    var(--dsw-alias-label-primary) 12%\n  );\n}\n\n.yc6sg6_editorPptxHost {\n  width: 100%;\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n  min-width: 0;\n  min-height: 0;\n  overflow: auto;\n}\n\n.yc6sg6_editorPptxHost > div {\n  flex: none;\n  margin-block: auto !important;\n}\n\n.yc6sg6_editorPptxToolbar {\n  flex: none;\n  min-height: 36px;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  flex-wrap: wrap;\n  padding: 5px 8px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.yc6sg6_editorPptxPosition,\n.yc6sg6_editorPptxMatchPosition {\n  color: var(--dsw-alias-label-tertiary);\n  font: var(--dsw-font-xxxs-11);\n  text-align: center;\n}\n\n.yc6sg6_editorPptxPosition {\n  min-width: 54px;\n}\n\n.yc6sg6_editorPptxMatchPosition {\n  min-width: 38px;\n}\n\n.yc6sg6_editorPptxSearch {\n  flex: 1 1 230px;\n  min-width: 180px;\n  display: flex;\n  align-items: center;\n  gap: 5px;\n}\n\n.yc6sg6_editorPptxSearchInput {\n  flex: 1;\n  min-width: 80px;\n  height: 26px;\n  box-sizing: border-box;\n  padding: 0 7px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 4px;\n  outline: none;\n  background: var(--dsw-alias-bg-base);\n  color: var(--dsw-alias-label-primary);\n  font: var(--dsw-font-xxxs-11);\n}\n\n.yc6sg6_editorPptxSearchInput:focus {\n  border-color: var(--dsw-alias-brand-primary);\n}\n\n.yc6sg6_editorPptxSearchInput::placeholder {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.yc6sg6_editorPptxZoomRange {\n  width: 84px;\n}\n";
+ 		const tagId$1 = "@huanlin/dsh-plugin-better-sidebar-plugin-office/office.module.css";
+ 		if (typeof document !== "undefined" && document.querySelector("style[data-plugin-css=" + JSON.stringify(tagId$1) + "]") === null) {
+ 			const tag = document.createElement("style");
+@@ -40406,30 +40453,41 @@ For more info please visit our website: https://redi.wendell.fun/en-US/docs/faq#
+ 			document.head.appendChild(tag);
+ 		}
+ 		var office_module_css_default = {
+-			"module": "l5v9sv_module",
+-			"css": "l5v9sv_css",
+-			"editorPlaceholder": "l5v9sv_editorPlaceholder",
+-			"editorBinary": "l5v9sv_editorBinary",
+-			"editorBinaryNotice": "l5v9sv_editorBinaryNotice",
+-			"editorDownloadLink": "l5v9sv_editorDownloadLink",
+-			"editorError": "l5v9sv_editorError",
+-			"editorDocx": "l5v9sv_editorDocx",
+-			"editorDocxViewport": "l5v9sv_editorDocxViewport",
+-			"docx": "l5v9sv_docx",
+-			"editorDocxWrap": "l5v9sv_editorDocxWrap",
+-			"editorDocxZoom": "l5v9sv_editorDocxZoom",
+-			"editorDocxZoomHint": "l5v9sv_editorDocxZoomHint",
+-			"editorDocxZoomValue": "l5v9sv_editorDocxZoomValue",
+-			"editorDocxZoomRange": "l5v9sv_editorDocxZoomRange",
+-			"editorXlsx": "l5v9sv_editorXlsx",
+-			"editorUniverHost": "l5v9sv_editorUniverHost",
+-			"editorOfficeOverlay": "l5v9sv_editorOfficeOverlay",
+-			"editorPptx": "l5v9sv_editorPptx",
+-			"editorPptxToolbar": "l5v9sv_editorPptxToolbar",
+-			"editorPptxButton": "l5v9sv_editorPptxButton",
+-			"editorPptxPosition": "l5v9sv_editorPptxPosition",
+-			"editorPptxStage": "l5v9sv_editorPptxStage",
+-			"editorPptxHost": "l5v9sv_editorPptxHost"
++			"editorPlaceholder": "yc6sg6_editorPlaceholder",
++			"editorBinary": "yc6sg6_editorBinary",
++			"editorBinaryNotice": "yc6sg6_editorBinaryNotice",
++			"editorError": "yc6sg6_editorError",
++			"editorToolButton": "yc6sg6_editorToolButton",
++			"editorToolButtonActive": "yc6sg6_editorToolButtonActive",
++			"editorIconButton": "yc6sg6_editorIconButton",
++			"editorToolGroup": "yc6sg6_editorToolGroup",
++			"editorDocx": "yc6sg6_editorDocx",
++			"editorDocxViewport": "yc6sg6_editorDocxViewport",
++			"editorDocxCanvas": "yc6sg6_editorDocxCanvas",
++			"editorDocxWrap": "yc6sg6_editorDocxWrap",
++			"editorDocxZoom": "yc6sg6_editorDocxZoom",
++			"editorDocxZoomValue": "yc6sg6_editorDocxZoomValue",
++			"editorPptxZoomValue": "yc6sg6_editorPptxZoomValue",
++			"editorDocxZoomHint": "yc6sg6_editorDocxZoomHint",
++			"editorDocxZoomRange": "yc6sg6_editorDocxZoomRange",
++			"editorPptxZoomRange": "yc6sg6_editorPptxZoomRange",
++			"editorXlsx": "yc6sg6_editorXlsx",
++			"editorUniverHost": "yc6sg6_editorUniverHost",
++			"editorOfficeOverlay": "yc6sg6_editorOfficeOverlay",
++			"editorPptx": "yc6sg6_editorPptx",
++			"editorPptxBody": "yc6sg6_editorPptxBody",
++			"editorPptxThumbRail": "yc6sg6_editorPptxThumbRail",
++			"editorPptxThumb": "yc6sg6_editorPptxThumb",
++			"editorPptxThumbActive": "yc6sg6_editorPptxThumbActive",
++			"editorPptxThumbPreview": "yc6sg6_editorPptxThumbPreview",
++			"editorPptxThumbNumber": "yc6sg6_editorPptxThumbNumber",
++			"editorPptxStage": "yc6sg6_editorPptxStage",
++			"editorPptxHost": "yc6sg6_editorPptxHost",
++			"editorPptxToolbar": "yc6sg6_editorPptxToolbar",
++			"editorPptxPosition": "yc6sg6_editorPptxPosition",
++			"editorPptxMatchPosition": "yc6sg6_editorPptxMatchPosition",
++			"editorPptxSearch": "yc6sg6_editorPptxSearch",
++			"editorPptxSearchInput": "yc6sg6_editorPptxSearchInput"
+ 		};
+ 		//#endregion
+ 		//#region \0dsh-css:D:\Projects\deepseek-harness\dsh-better-sidebar-plugin-office\node_modules\.pnpm\@univerjs+preset-sheets-cor_a1cb81e58e1bee5dcbcadbf3a6d17a59\node_modules\@univerjs\preset-sheets-core\lib\index.css.mjs
+@@ -365872,15 +365930,20 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 		* library lifecycle (dispose on unmount so canvases/workers don't leak —
+ 		* mirrors the better-sidebar TerminalView dispose discipline).
+ 		*
+-		* Errors degrade to the same download-button affordance the binary
+-		* placeholder uses, so a corrupted / encrypted / oversized file always
+-		* leaves the user with a way to get the file.
++		* Errors render in place; the original file remains available in Better
++		* Sidebar's file tree without duplicating a download action in the viewer.
+ 		*
+ 		* Both libraries pull in several MB; tsdown's `codeSplitting: false` inlines
+ 		* them into the single client bundle (the CJS __ModuleLoader__ wrapper's
+ 		* `require` cannot load relative chunk URLs in the browser, so dynamic
+ 		* import() collapses to a synchronous inline — see tsdown.config.ts).
+ 		*/
++		const DOCX_GUTTER = 32;
++		/** 按页纸原始宽度计算适宽比例；宽栏不放大，窄栏仍留出灰色边距。 */
++		function docxFitZoom(viewport, pageWidth) {
++			const percent = (viewport.clientWidth - DOCX_GUTTER) / pageWidth * 100;
++			return Math.max(25, Math.min(100, Math.floor(percent / 5) * 5));
++		}
+ 		/**
+ 		* Render a .docx file via docx-preview. The library renders into a container
+ 		* div (no canvas); images and styles are inlined. Unmounting clears the
+@@ -365891,16 +365954,22 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 			const { scope, path, title } = props;
+ 			const viewportRef = (0, react$1.useRef)(null);
+ 			const wrapRef = (0, react$1.useRef)(null);
++			const pageWidthRef = (0, react$1.useRef)(0);
+ 			const [load, setLoad] = (0, react$1.useState)({ status: "loading" });
+ 			const [zoom, setZoom] = (0, react$1.useState)(100);
++			const [fitWidth, setFitWidth] = (0, react$1.useState)(true);
++			useRefreshToolbar(props.onToolbarState);
+ 			(0, react$1.useEffect)(() => {
+ 				let cancelled = false;
+ 				const container = viewportRef.current;
+ 				const wrap = wrapRef.current;
+ 				if (container === null || wrap === null) return;
+ 				setZoom(100);
++				setFitWidth(true);
++				pageWidthRef.current = 0;
+ 				(async () => {
+ 					try {
++						await loadOfficeFonts();
+ 						const response = await fetch(mediaUrl(scope, path));
+ 						if (cancelled) return;
+ 						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+@@ -365915,12 +365984,21 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 							breakPages: true,
+ 							experimental: false
+ 						});
+-						if (!cancelled) setLoad({ status: "ready" });
++						if (cancelled) return;
++						const page = wrap.querySelector("section.docx");
++						if (page !== null) {
++							pageWidthRef.current = page.offsetWidth;
++							setZoom(docxFitZoom(container, page.offsetWidth));
++						}
++						setLoad({ status: "ready" });
+ 					} catch (error) {
+-						if (!cancelled) setLoad({
+-							status: "error",
+-							message: error instanceof Error ? error.message : String(error)
+-						});
++						if (!cancelled) {
++							console.error("[office-viewer] DOCX load failed", error);
++							setLoad({
++								status: "error",
++								message: error instanceof Error ? error.message : String(error)
++							});
++						}
+ 					}
+ 				})();
+ 				return () => {
+@@ -365932,6 +366010,25 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 				scope.cwd,
+ 				path
+ 			]);
++			(0, react$1.useEffect)(() => {
++				if (!fitWidth || load.status !== "ready") return;
++				const viewport = viewportRef.current;
++				if (viewport === null || pageWidthRef.current === 0) return;
++				const resize = () => {
++					setZoom(docxFitZoom(viewport, pageWidthRef.current));
++				};
++				resize();
++				const resizeObserver = new ResizeObserver(resize);
++				const visibilityObserver = new IntersectionObserver((entries) => {
++					if (entries[0].isIntersecting) resize();
++				});
++				resizeObserver.observe(viewport);
++				visibilityObserver.observe(viewport);
++				return () => {
++					resizeObserver.disconnect();
++					visibilityObserver.disconnect();
++				};
++			}, [fitWidth, load.status]);
+ 			(0, react$1.useEffect)(() => {
+ 				const viewport = viewportRef.current;
+ 				if (viewport === null) return;
+@@ -365939,7 +366036,8 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 					if (!event.altKey) return;
+ 					event.preventDefault();
+ 					const delta = event.deltaY < 0 ? 10 : -10;
+-					setZoom((current) => Math.max(50, Math.min(200, current + delta)));
++					setFitWidth(false);
++					setZoom((current) => Math.max(25, Math.min(200, current + delta)));
+ 				};
+ 				viewport.addEventListener("wheel", onWheel, { passive: false });
+ 				return () => {
+@@ -365956,16 +366054,15 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 							className: office_module_css_default.editorPlaceholder,
+ 							children: t("loading")
+ 						}),
+-						load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BinaryFallback, {
+-							scope,
+-							path,
+-							message: load.message
+-						}),
++						load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ViewerError, { message: load.message }),
+ 						load.status !== "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+-							className: office_module_css_default.editorDocxWrap,
+-							ref: wrapRef,
+-							"aria-label": title,
+-							style: { zoom: zoom / 100 }
++							className: office_module_css_default.editorDocxCanvas,
++							children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
++								className: office_module_css_default.editorDocxWrap,
++								ref: wrapRef,
++								"aria-label": title,
++								style: { zoom: zoom / 100 }
++							})
+ 						})
+ 					]
+ 				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+@@ -365975,15 +366072,28 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 							className: office_module_css_default.editorDocxZoomHint,
+ 							children: t("zoomHint")
+ 						}),
++						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++							type: "button",
++							className: fitWidth ? office_module_css_default.editorToolButtonActive : office_module_css_default.editorToolButton,
++							title: t("fitWidth"),
++							onClick: () => {
++								const viewport = viewportRef.current;
++								if (viewport !== null && pageWidthRef.current !== 0) setZoom(docxFitZoom(viewport, pageWidthRef.current));
++								setFitWidth(true);
++							},
++							children: t("fitWidth")
++						}),
+ 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
+ 							className: office_module_css_default.editorDocxZoomRange,
+ 							type: "range",
+-							min: 50,
++							min: 25,
+ 							max: 200,
+-							step: 10,
++							step: 5,
+ 							value: zoom,
+ 							"aria-label": t("zoom"),
++							title: t("zoomHint"),
+ 							onChange: (event) => {
++								setFitWidth(false);
+ 								setZoom(Number(event.currentTarget.value));
+ 							}
+ 						}),
+@@ -366007,12 +366117,14 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 			const hostRef = (0, react$1.useRef)(null);
+ 			const univerRef = (0, react$1.useRef)(null);
+ 			const [load, setLoad] = (0, react$1.useState)({ status: "loading" });
++			useRefreshToolbar(props.onToolbarState);
+ 			(0, react$1.useEffect)(() => {
+ 				let cancelled = false;
+ 				const host = hostRef.current;
+ 				if (host === null) return;
+ 				(async () => {
+ 					try {
++						await loadOfficeFonts();
+ 						const response = await fetch(mediaUrl(scope, path));
+ 						if (cancelled) return;
+ 						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+@@ -366023,7 +366135,11 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 						const { UniverSheetsCorePreset } = await Promise.resolve().then(() => (init_es(), es_exports));
+ 						const isZh = typeof navigator !== "undefined" && navigator.language.toLowerCase().startsWith("zh");
+ 						const localePack = await (isZh ? Promise.resolve().then(() => (init_zh_CN(), zh_CN_exports)).then((m) => m.default).catch(() => null) : Promise.resolve().then(() => (init_en_US(), en_US_exports)).then((m) => m.default).catch(() => null));
+-						const wb = XLSX.read(buf, { type: "array" });
++						const wb = XLSX.read(buf, {
++							type: "array",
++							cellStyles: true,
++							cellNF: true
++						});
+ 						const locale = isZh ? LocaleType.ZH_CN : LocaleType.EN_US;
+ 						const workbookData = xlsxWorkbookToUniver(wb, "0.25.1", locale);
+ 						if (cancelled) return;
+@@ -366037,6 +366153,7 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 						if (!cancelled) setLoad({ status: "ready" });
+ 					} catch (error) {
+ 						if (!cancelled) {
++							console.error("[office-viewer] XLSX load failed", error);
+ 							try {
+ 								univerRef.current?.dispose();
+ 							} catch {}
+@@ -366073,32 +366190,21 @@ td.UniverTableCell, th.UniverTableCell{mso-padding-alt:0cm 5.4pt 0cm 5.4pt;}
+ 					children: [load.status === "loading" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+ 						className: office_module_css_default.editorPlaceholder,
+ 						children: t("loading")
+-					}), load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(BinaryFallback, {
+-						scope,
+-						path,
+-						message: load.message
+-					})]
++					}), load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)(ViewerError, { message: load.message })]
+ 				})]
+ 			});
+ 		}
+ 		/**
+-		* The shared error / fallback affordance: the failure reason plus a download
+-		* link, so the user always has a path to the file. Used by both DocxView and
+-		* XlsxView.
++		* Shared in-pane failure state. The original file remains in the sidebar tree,
++		* so no duplicate download action is rendered inside the Viewer.
+ 		*/
+-		function BinaryFallback(props) {
+-			const { scope, path, message } = props;
+-			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++		function ViewerError(props) {
++			return /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+ 				className: office_module_css_default.editorBinary,
+-				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
++				children: /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+ 					className: office_module_css_default.editorBinaryNotice,
+-					children: message
+-				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("a", {
+-					className: office_module_css_default.editorDownloadLink,
+-					href: downloadUrl(scope, path),
+-					download: true,
+-					children: t("downloadToView")
+-				})]
++					children: props.message
++				})
+ 			});
+ 		}
+ 		//#endregion
+@@ -425600,7 +425706,46 @@ self.onmessage = async (e) => {
+ 		}));
+ 		//#endregion
+ 		//#region src/client/PptxView.tsx
+-		/** High-fidelity browser-native PPTX preview with slide navigation. */
++		/** High-fidelity browser-native PPTX preview with thumbnails, search and zoom. */
++		/** 幻灯片缩略图进入可视区时才渲染，并由组件独占其 renderer handle。 */
++		function PptxThumbnail(props) {
++			const buttonRef = (0, react$1.useRef)(null);
++			const hostRef = (0, react$1.useRef)(null);
++			(0, react$1.useEffect)(() => {
++				const host = hostRef.current;
++				if (host === null) return;
++				let handle = null;
++				const observer = new IntersectionObserver((entries) => {
++					if (!entries[0].isIntersecting) return;
++					handle = props.viewer.renderThumbnailToContainer(props.index, host, { width: 96 });
++					observer.disconnect();
++				}, { rootMargin: "160px 0px" });
++				observer.observe(host);
++				return () => {
++					observer.disconnect();
++					handle?.dispose();
++				};
++			}, [props.viewer, props.index]);
++			(0, react$1.useEffect)(() => {
++				if (props.active) buttonRef.current?.scrollIntoView({ block: "nearest" });
++			}, [props.active]);
++			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("button", {
++				type: "button",
++				ref: buttonRef,
++				className: props.active ? office_module_css_default.editorPptxThumbActive : office_module_css_default.editorPptxThumb,
++				title: `${t("slide")} ${props.index + 1}`,
++				"aria-label": `${t("slide")} ${props.index + 1}`,
++				"aria-current": props.active ? "page" : void 0,
++				onClick: props.onSelect,
++				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
++					className: office_module_css_default.editorPptxThumbPreview,
++					ref: hostRef
++				}), /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
++					className: office_module_css_default.editorPptxThumbNumber,
++					children: props.index + 1
++				})]
++			});
++		}
+ 		function PptxView(props) {
+ 			const { scope, path, title } = props;
+ 			const hostRef = (0, react$1.useRef)(null);
+@@ -425608,14 +425753,28 @@ self.onmessage = async (e) => {
+ 			const [load, setLoad] = (0, react$1.useState)({ status: "loading" });
+ 			const [slide, setSlide] = (0, react$1.useState)(0);
+ 			const [navigating, setNavigating] = (0, react$1.useState)(false);
++			const [zoom, setZoom] = (0, react$1.useState)(100);
++			const [showThumbnails, setShowThumbnails] = (0, react$1.useState)(false);
++			const [showSearch, setShowSearch] = (0, react$1.useState)(false);
++			const [query, setQuery] = (0, react$1.useState)("");
++			const [matches, setMatches] = (0, react$1.useState)([]);
++			const [matchIndex, setMatchIndex] = (0, react$1.useState)(-1);
++			useRefreshToolbar(props.onToolbarState);
+ 			(0, react$1.useEffect)(() => {
+ 				const controller = new AbortController();
+ 				const host = hostRef.current;
+ 				if (host === null) return;
+ 				setLoad({ status: "loading" });
+ 				setSlide(0);
++				setZoom(100);
++				setShowThumbnails(false);
++				setShowSearch(false);
++				setQuery("");
++				setMatches([]);
++				setMatchIndex(-1);
+ 				(async () => {
+ 					try {
++						await loadOfficeFonts();
+ 						const response = await fetch(mediaUrl(scope, path), { signal: controller.signal });
+ 						if (!response.ok) throw new Error(`HTTP ${response.status}`);
+ 						const bytes = await response.arrayBuffer();
+@@ -425646,6 +425805,7 @@ self.onmessage = async (e) => {
+ 						});
+ 					} catch (error) {
+ 						if (controller.signal.aborted) return;
++						console.error("[office-viewer] PPTX load failed", error);
+ 						try {
+ 							viewerRef.current?.destroy();
+ 						} catch {}
+@@ -425670,15 +425830,20 @@ self.onmessage = async (e) => {
+ 				scope.cwd,
+ 				path
+ 			]);
+-			const navigate = (target) => {
++			/** 统一执行页跳转与可选搜索高亮，避免导航和搜索维护两套状态。 */
++			const navigate = (target, result) => {
+ 				const viewer = viewerRef.current;
+ 				if (viewer === null || load.status !== "ready" || navigating) return;
+ 				const next = Math.max(0, Math.min(load.count - 1, target));
+-				if (next === slide) return;
++				if (next === slide && result === void 0) return;
+ 				setNavigating(true);
+-				viewer.goToSlide(next, { behavior: "auto" }).then(() => {
++				(async () => {
++					await viewer.goToSlide(next, { behavior: "auto" });
++					viewer.clearSearchHighlights();
++					if (result !== void 0) await viewer.highlightSearchResult(result);
+ 					setSlide(viewer.currentSlideIndex);
+-				}).catch((error) => {
++				})().catch((error) => {
++					console.error("[office-viewer] PPTX navigation failed", error);
+ 					setLoad({
+ 						status: "error",
+ 						message: error instanceof Error ? error.message : String(error)
+@@ -425687,56 +425852,214 @@ self.onmessage = async (e) => {
+ 					setNavigating(false);
+ 				});
+ 			};
++			/** 搜索 renderer 的结构化文本索引，并直接定位首个匹配项。 */
++			const runSearch = () => {
++				const viewer = viewerRef.current;
++				if (viewer === null || query.trim() === "") return;
++				const results = viewer.searchText(query.trim());
++				setMatches(results);
++				const first = results[0];
++				if (first === void 0) {
++					setMatchIndex(-1);
++					viewer.clearSearchHighlights();
++					return;
++				}
++				setMatchIndex(0);
++				navigate(first.slideIndex, first);
++			};
++			const navigateMatch = (delta) => {
++				if (matches.length === 0) return;
++				const next = (matchIndex + delta + matches.length) % matches.length;
++				setMatchIndex(next);
++				const result = matches[next];
++				navigate(result.slideIndex, result);
++			};
++			const changeZoom = (value) => {
++				const viewer = viewerRef.current;
++				if (viewer === null || load.status !== "ready") return;
++				setZoom(value);
++				viewer.setZoom(value).catch((error) => {
++					console.error("[office-viewer] PPTX zoom failed", error);
++					setLoad({
++						status: "error",
++						message: error instanceof Error ? error.message : String(error)
++					});
++				});
++			};
++			const viewer = viewerRef.current;
+ 			return /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+ 				className: office_module_css_default.editorPptx,
+ 				"aria-label": title,
+ 				children: [/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++					className: office_module_css_default.editorPptxBody,
++					children: [showThumbnails && load.status === "ready" && viewer !== null && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
++						className: office_module_css_default.editorPptxThumbRail,
++						"aria-label": t("slideThumbnails"),
++						children: Array.from({ length: load.count }, (_, index) => /* @__PURE__ */ (0, react_jsx_runtime.jsx)(PptxThumbnail, {
++							viewer,
++							index,
++							active: index === slide,
++							onSelect: () => {
++								navigate(index);
++							}
++						}, index))
++					}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++						className: office_module_css_default.editorPptxStage,
++						children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
++							className: office_module_css_default.editorPptxHost,
++							ref: hostRef
++						}), load.status !== "ready" && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++							className: office_module_css_default.editorOfficeOverlay,
++							children: [load.status === "loading" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
++								className: office_module_css_default.editorPlaceholder,
++								children: t("loading")
++							}), load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
++								className: office_module_css_default.editorError,
++								children: load.message
++							})]
++						})]
++					})]
++				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+ 					className: office_module_css_default.editorPptxToolbar,
+ 					children: [
++						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++							className: office_module_css_default.editorToolGroup,
++							children: [
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorToolButton,
++									title: t("previousSlide"),
++									disabled: load.status !== "ready" || slide <= 0 || navigating,
++									onClick: () => {
++										navigate(slide - 1);
++									},
++									children: t("previousSlide")
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
++									className: office_module_css_default.editorPptxPosition,
++									children: load.status === "ready" ? `${slide + 1} / ${load.count}` : "- / -"
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorToolButton,
++									title: t("nextSlide"),
++									disabled: load.status !== "ready" || slide >= load.count - 1 || navigating,
++									onClick: () => {
++										navigate(slide + 1);
++									},
++									children: t("nextSlide")
++								})
++							]
++						}),
+ 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+ 							type: "button",
+-							className: office_module_css_default.editorPptxButton,
+-							disabled: load.status !== "ready" || slide <= 0 || navigating,
++							className: showThumbnails ? office_module_css_default.editorToolButtonActive : office_module_css_default.editorToolButton,
++							"aria-pressed": showThumbnails,
+ 							onClick: () => {
+-								navigate(slide - 1);
++								setShowThumbnails((current) => !current);
+ 							},
+-							children: t("previousSlide")
+-						}),
+-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
+-							className: office_module_css_default.editorPptxPosition,
+-							children: load.status === "ready" ? `${slide + 1} / ${load.count}` : "– / –"
++							children: t("slideThumbnails")
+ 						}),
+ 						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
+ 							type: "button",
+-							className: office_module_css_default.editorPptxButton,
+-							disabled: load.status !== "ready" || slide >= load.count - 1 || navigating,
++							className: showSearch ? office_module_css_default.editorToolButtonActive : office_module_css_default.editorToolButton,
++							"aria-pressed": showSearch,
+ 							onClick: () => {
+-								navigate(slide + 1);
++								setShowSearch((current) => !current);
++								if (showSearch) {
++									setQuery("");
++									setMatches([]);
++									setMatchIndex(-1);
++									viewerRef.current?.clearSearchHighlights();
++								}
+ 							},
+-							children: t("nextSlide")
++							children: t("search")
+ 						}),
+-						/* @__PURE__ */ (0, react_jsx_runtime.jsx)("a", {
+-							className: office_module_css_default.editorDownloadLink,
+-							href: downloadUrl(scope, path),
+-							download: true,
+-							children: t("downloadToView")
++						showSearch && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++							className: office_module_css_default.editorPptxSearch,
++							children: [
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
++									className: office_module_css_default.editorPptxSearchInput,
++									value: query,
++									placeholder: t("search"),
++									"aria-label": t("search"),
++									onChange: (event) => {
++										setQuery(event.currentTarget.value);
++										setMatches([]);
++										setMatchIndex(-1);
++										viewerRef.current?.clearSearchHighlights();
++									},
++									onKeyDown: (event) => {
++										if (event.key === "Enter") runSearch();
++									}
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorIconButton,
++									title: t("search"),
++									"aria-label": t("search"),
++									onClick: runSearch,
++									children: "⌕"
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorIconButton,
++									title: t("previousMatch"),
++									"aria-label": t("previousMatch"),
++									disabled: matches.length === 0 || navigating,
++									onClick: () => {
++										navigateMatch(-1);
++									},
++									children: "‹"
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
++									className: office_module_css_default.editorPptxMatchPosition,
++									children: query.trim() === "" ? "-" : matches.length === 0 ? "0 / 0" : `${matchIndex + 1} / ${matches.length}`
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorIconButton,
++									title: t("nextMatch"),
++									"aria-label": t("nextMatch"),
++									disabled: matches.length === 0 || navigating,
++									onClick: () => {
++										navigateMatch(1);
++									},
++									children: "›"
++								})
++							]
++						}),
++						/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
++							className: office_module_css_default.editorToolGroup,
++							children: [
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("button", {
++									type: "button",
++									className: office_module_css_default.editorToolButton,
++									title: t("fitWidth"),
++									onClick: () => {
++										changeZoom(100);
++									},
++									children: t("fitWidth")
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsx)("input", {
++									className: office_module_css_default.editorPptxZoomRange,
++									type: "range",
++									min: 50,
++									max: 200,
++									step: 10,
++									value: zoom,
++									"aria-label": t("zoom"),
++									onChange: (event) => {
++										changeZoom(Number(event.currentTarget.value));
++									}
++								}),
++								/* @__PURE__ */ (0, react_jsx_runtime.jsxs)("span", {
++									className: office_module_css_default.editorPptxZoomValue,
++									children: [zoom, "%"]
++								})
++							]
+ 						})
+ 					]
+-				}), /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+-					className: office_module_css_default.editorPptxStage,
+-					children: [/* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+-						className: office_module_css_default.editorPptxHost,
+-						ref: hostRef
+-					}), load.status !== "ready" && /* @__PURE__ */ (0, react_jsx_runtime.jsxs)("div", {
+-						className: office_module_css_default.editorOfficeOverlay,
+-						children: [load.status === "loading" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+-							className: office_module_css_default.editorPlaceholder,
+-							children: t("loading")
+-						}), load.status === "error" && /* @__PURE__ */ (0, react_jsx_runtime.jsx)("div", {
+-							className: office_module_css_default.editorError,
+-							children: load.message
+-						})]
+-					})]
+ 				})]
+ 			});
+ 		}
+@@ -426071,11 +426394,7 @@ self.onmessage = async (e) => {
+ 					icon: (size) => (0, react$1.createElement)(IconDocxOutline16, { size }),
+ 					exts: ["docx"],
+ 					fetchStrategy: "mediaUrl",
+-					component: ({ scope, path, title }) => (0, react$1.createElement)(DocxView, {
+-						scope,
+-						path,
+-						title
+-					})
++					component: (props) => (0, react$1.createElement)(DocxView, props)
+ 				},
+ 				{
+ 					id: "xlsx",
+@@ -426083,11 +426402,7 @@ self.onmessage = async (e) => {
+ 					icon: (size) => (0, react$1.createElement)(IconXlsxOutline16, { size }),
+ 					exts: ["xlsx"],
+ 					fetchStrategy: "mediaUrl",
+-					component: ({ scope, path, title }) => (0, react$1.createElement)(XlsxView, {
+-						scope,
+-						path,
+-						title
+-					})
++					component: (props) => (0, react$1.createElement)(XlsxView, props)
+ 				},
+ 				{
+ 					id: "pptx",
+@@ -426095,11 +426410,7 @@ self.onmessage = async (e) => {
+ 					icon: (size) => (0, react$1.createElement)(IconPptxOutline16, { size }),
+ 					exts: ["pptx"],
+ 					fetchStrategy: "mediaUrl",
+-					component: ({ scope, path, title }) => (0, react$1.createElement)(PptxView, {
+-						scope,
+-						path,
+-						title
+-					})
++					component: (props) => (0, react$1.createElement)(PptxView, props)
+ 				}
+ 			];
+ 		}

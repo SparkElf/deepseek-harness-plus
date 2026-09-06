@@ -1,3 +1,453 @@
+diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
+index b40453e94a..3a42c745a7 100644
+--- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
++++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
+@@ -31,7 +31,7 @@ export interface AgentPresetLabelInjected {
+ 
+ /** Full component props. */
+ export type AgentPresetLabelProps =
+-  PropsRuntime<'conversation.session.header.actions'>
++  PropsRuntime<'conversation.session.header.context'>
+   & PropsLocale<'settings.agentPreset'>
+   & InjectFace<AgentPresetLabelInjected>
+ 
+diff --git a/packages/client/ui-agent-preset/src/client/index.ts b/packages/client/ui-agent-preset/src/client/index.ts
+index d3b8b34ec7..5fb78964ad 100644
+--- a/packages/client/ui-agent-preset/src/client/index.ts
++++ b/packages/client/ui-agent-preset/src/client/index.ts
+@@ -156,7 +156,7 @@ export function apply(ctx: ClientContext): void {
+         inject: seatInjected,
+       }, AgentPresetSeat)
+       const label = scope.slots.register({
+-        name: 'conversation.session.header.actions',
++        name: 'conversation.session.header.context',
+         id: 'agent-preset',
+         // Static session context occupies the header's leading negative-order band.
+         order: -10,
+diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
+index 9cc8f95758..4dcf257283 100644
+--- a/packages/client/ui-conversation/src/client/apply.ts
++++ b/packages/client/ui-conversation/src/client/apply.ts
+@@ -277,6 +277,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+     locale: NS,
+     children: {
+       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
++      'conversation.session.header.context': { kind: 'list', scope: 'session' },
+       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
+       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
+     },
+diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
+index 272d84b8e3..436c0fcc0a 100644
+--- a/packages/client/ui-conversation/src/client/contract/slots.ts
++++ b/packages/client/ui-conversation/src/client/contract/slots.ts
+@@ -127,7 +127,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+       scope: 'session'
+       owner: ConversationHeaderLineageOwnerProps
+     }
+-    /** Title-adjacent Session actions in ascending order. */
++    /** Immutable Session context kept beside the title on every layout. */
++    'conversation.session.header.context': {
++      kind: 'list'
++      scope: 'session'
++      owner: ConversationHeaderActionOwnerProps
++    }
++    /** Title-adjacent desktop actions; mobile layouts place them beside the View tabs. */
+     'conversation.session.header.actions': {
+       kind: 'list'
+       scope: 'session'
+@@ -373,6 +379,7 @@ export type ConversationSessionHeaderSlotProps =
+   PropsRuntime<'conversation.session.header'>
+   & PropsRenderSlots<
+     'conversation.session.header.lineage'
++    | 'conversation.session.header.context'
+     | 'conversation.session.header.actions'
+     | 'conversation.session.header.utilities'
+   >
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
+index 0caaf28cb8..92883c2792 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
+@@ -104,7 +104,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
+   const segments = parts.filter(part => part.width > 0)
+ 
+   return (
+-    <span ref={rootRef} className={css.root}>
++    <span ref={rootRef} className={css.root} data-context-meter>
+       <Tooltip label={t('context.aria', { percent: reading })} side="top" delayMs={200} disabled={open}>
+         <button
+           type="button"
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
+index 3e98b17b42..663414224e 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
+@@ -127,10 +127,19 @@
+   cursor: default;
+ }
+ 
+-.headerActions {
++.headerContext,
++.headerActions,
++.headerUtilities {
+   display: flex;
+   flex: none;
+   align-items: center;
++}
++
++.headerContext {
++  gap: 4px;
++}
++
++.headerActions {
+   gap: 8px;
+ }
+ 
+@@ -450,3 +459,42 @@
+ .root[data-phase='settling'] .composerSeat {
+   visibility: hidden;
+ }
++
++@media (max-width: 800px) {
++  .header {
++    padding-right: 12px;
++    padding-left: 12px;
++  }
++
++  .titleCluster {
++    gap: 6px;
++  }
++
++  .headerContext {
++    max-width: min(120px, 34vw);
++    overflow: hidden;
++  }
++
++  .headerActions {
++    position: absolute;
++    right: 8px;
++    bottom: 0;
++    z-index: 2;
++    gap: 2px;
++  }
++
++  .headerUtilities {
++    gap: 2px;
++    margin-left: 6px;
++  }
++
++  .tabs {
++    gap: 16px;
++    padding-right: min(112px, 32vw);
++  }
++
++  .tab {
++    writing-mode: horizontal-tb;
++    white-space: nowrap;
++  }
++}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
+index ea7a3fe76f..faa38bb5e9 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
+@@ -76,7 +76,7 @@ export function ConversationSessionHeader({
+       {!hideChrome && (
+         <>
+           <div className={css.titleRow}>
+-            <div className={css.titleCluster}>
++            <div className={css.titleCluster} data-session-title-cluster>
+               <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
+                 {ancestry.map((summary, index) => {
+                   const last = index === ancestry.length - 1
+@@ -126,16 +126,19 @@ export function ConversationSessionHeader({
+                 })}
+                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
+               </nav>
+-              <div className={css.headerActions}>
++              <div className={css.headerContext} data-session-header-context>
++                {renderSlot('conversation.session.header.context', {})}
++              </div>
++              <div className={css.headerActions} data-session-header-actions>
+                 {renderSlot('conversation.session.header.actions', {})}
+               </div>
+             </div>
+-            <div className={css.headerUtilities}>
++            <div className={css.headerUtilities} data-session-header-utilities>
+               {renderSlot('conversation.session.header.utilities', {})}
+             </div>
+           </div>
+           {tabs.length > 1 && (
+-            <div className={css.tabs} role="tablist">
++            <div className={css.tabs} data-session-tabs role="tablist">
+               {tabs.map(viewTab => (
+                 <button
+                   key={viewTab.id}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
+index b7561bbfd8..0d25922233 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
+@@ -213,7 +213,7 @@
+    (figma Input_Bottom chrome). */
+ .row {
+   display: flex;
+-  flex-wrap: wrap;
++  flex-wrap: nowrap;
+   align-items: center;
+   justify-content: space-between;
+   gap: 12px;
+@@ -241,6 +241,7 @@
+    Read-only; the chip gap widened to 12 so the pill chips read as separate
+    controls. */
+ .tools {
++  flex: 1 1 auto;
+   gap: 16px;
+ }
+ 
+@@ -249,16 +250,32 @@
+ }
+ 
+ .trailing {
+-  flex: none;
+-  /* Wrap keeps the left mode chips and the right controls apart when the card
+-     runs out of row width: the trailing group (model + send) moves to its own
+-     line instead of the left group shrinking until its chip overlaps the
+-     model trigger (external:107). The auto margin re-anchors it right on the
+-     wrapped line; on a single line space-between already pins it right. */
++  flex: 0 1 auto;
++  /* The model trigger progressively collapses before this trailing group can
++     push the send action off the toolbar. The auto margin pins
++     model/context/send to the right while this group and its model seat retain
++     the ability to shrink on narrow composers. */
+   margin-left: auto;
+   gap: 12px;
+ }
+ 
++@container (max-width: 460px) {
++  .tools,
++  .modes,
++  .trailing {
++    gap: 8px;
++  }
++}
++
++@container (max-width: 340px) {
++  .row,
++  .tools,
++  .modes,
++  .trailing {
++    gap: 2px;
++  }
++}
++
+ /* Attach circle (figma + control): 28px, selector fill, primary glyph. */
+ .add {
+   display: grid;
+@@ -358,3 +375,14 @@
+   font-size: 12px;
+   cursor: pointer;
+ }
++
++@container (max-width: 240px) {
++  .row {
++    padding-right: 6px;
++    padding-left: 6px;
++  }
++
++  .trailing > [data-context-meter] {
++    display: none;
++  }
++}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+index 8747f70104..f23aafda40 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -459,8 +459,8 @@ export const InputBar = memo(function InputBar({
+             <DecoratorPortals editor={workspaceTrigger ? null : editor} />
+           </div>
+         </div>
+-        <div className={css.row}>
+-          <div className={css.tools}>
++        <div className={css.row} data-composer-toolbar>
++          <div className={css.tools} data-composer-tools>
+             <Tooltip label={t('input.commands')} side="top" delayMs={500}>
+               <button
+                 type="button"
+@@ -503,7 +503,7 @@ export const InputBar = memo(function InputBar({
+               ? null
+               : renderSlot('conversation.input.left', {})}
+           </div>
+-          <div className={css.trailing}>
++          <div className={css.trailing} data-composer-trailing>
+             {input === undefined || sessionId === undefined
+               ? null
+               : renderSlot('conversation.input.right', {})}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
+index 22f64d6e61..cc2d3adae6 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
++++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
+@@ -74,3 +74,25 @@
+ .chevronOpen {
+   transform: rotate(180deg);
+ }
++
++@container (max-width: 240px) {
++  .root,
++  .trigger {
++    width: 28px;
++    max-width: 28px;
++  }
++
++  .root {
++    flex: 0 0 28px;
++  }
++
++  .trigger {
++    justify-content: center;
++    gap: 0;
++    padding: 0;
++  }
++
++  .chevron {
++    display: none;
++  }
++}
+diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
+index b54049efef..6bf1cc7e92 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from 'react'
++import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+ import type { ReactNode } from 'react'
+ import clsx from 'clsx'
+ import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
+@@ -88,6 +88,33 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+   const [open, setOpen] = useState(false)
+   const [confirmation, setConfirmation] = useState<string | null>(null)
+   const [acknowledged, setAcknowledged] = useState(false)
++  const [compactMenu, setCompactMenu] = useState(() => typeof window.matchMedia === 'function'
++    ? window.matchMedia('(max-width: 800px)').matches
++    : window.innerWidth <= 800)
++  const triggerRef = useRef<HTMLButtonElement | null>(null)
++  const boundaryRef = useRef<HTMLElement | null>(null)
++
++  useLayoutEffect(() => {
++    boundaryRef.current = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
++    const toolbar = triggerRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
++    const query = typeof window.matchMedia === 'function'
++      ? window.matchMedia('(max-width: 800px)')
++      : undefined
++    const update = (): void => {
++      const width = toolbar?.clientWidth ?? 0
++      setCompactMenu((query?.matches ?? window.innerWidth <= 800) || (width > 0 && width <= 460))
++    }
++    update()
++    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
++    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
++    query?.addEventListener('change', update)
++    window.addEventListener('resize', update)
++    return () => {
++      observer?.disconnect()
++      query?.removeEventListener('change', update)
++      window.removeEventListener('resize', update)
++    }
++  }, [])
+ 
+   useEffect(() => {
+     if (!locked && value !== undefined) return
+@@ -155,10 +182,16 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+         onSelect={choose}
+         onClose={() => { setOpen(false) }}
+         side="top"
++        align="start"
++        portal
++        compact={compactMenu}
++        boundaryRef={boundaryRef}
+         anchor={
+           <button
++            ref={triggerRef}
+             type="button"
+             className={css.trigger}
++            data-permission-trigger
+             aria-label={t('input.accessMode', { name: currentLabel })}
+             title={current?.description}
+             disabled={locked || busy}
+diff --git a/packages/client/ui-jobs/src/client/JobListAction.module.css b/packages/client/ui-jobs/src/client/JobListAction.module.css
+index 418ddf9b9a..6e9adfcba7 100644
+--- a/packages/client/ui-jobs/src/client/JobListAction.module.css
++++ b/packages/client/ui-jobs/src/client/JobListAction.module.css
+@@ -34,6 +34,11 @@
+   flex: none;
+ }
+ 
++.compactIcon {
++  display: none;
++  flex: none;
++}
++
+ .count {
+   margin: 0 5px;
+ }
+@@ -124,3 +129,30 @@
+ .duration {
+   font-variant-numeric: tabular-nums;
+ }
++
++@media (max-width: 800px) {
++  .trigger {
++    justify-content: center;
++    gap: 2px;
++    width: 34px;
++    min-width: 34px;
++    padding: 0 2px;
++  }
++
++  .compactIcon {
++    display: block;
++    width: 14px;
++    height: 14px;
++  }
++
++  .count {
++    display: none;
++  }
++
++  .menu {
++    right: 0;
++    left: auto;
++    width: min(336px, calc(100vw - 80px));
++    max-width: calc(100vw - 80px);
++  }
++}
+diff --git a/packages/client/ui-jobs/src/client/JobListAction.tsx b/packages/client/ui-jobs/src/client/JobListAction.tsx
+index bf15074079..1801b91ffc 100644
+--- a/packages/client/ui-jobs/src/client/JobListAction.tsx
++++ b/packages/client/ui-jobs/src/client/JobListAction.tsx
+@@ -1,6 +1,6 @@
+ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+ import type { SessionJob as JobView } from '@deepseek-ai/dsh-api-session-controller/types'
+-import { IconChevronDownOutline14, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
++import { IconChevronDownOutline14, IconCodeOutline16, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
+ import { NS } from './locales.ts'
+ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -137,8 +137,10 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
+         ref={triggerRef}
+         type="button"
+         className={css.trigger}
++        data-job-list-trigger
+         aria-expanded={open}
+         aria-label={countLabel}
++        title={countLabel}
+         onClick={() => {
+           // Sample the clock in the same commit that opens the list: the
+           // mount-time value predates every job, so the first painted frame
+@@ -148,6 +150,7 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
+           setOpen(current => !current)
+         }}
+       >
++        <span className={css.compactIcon} aria-hidden><IconCodeOutline16 size={14} /></span>
+         {liveCount > 0 ? <StateDot state="ongoing" className={css.triggerDot} /> : null}
+         <span className={css.count}>{countLabel}</span>
+         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
 diff --git a/packages/client/ui-layout/src/client/AppFrame.tsx b/packages/client/ui-layout/src/client/AppFrame.tsx
 index cbef893aed..36c6a3ae1a 100644
 --- a/packages/client/ui-layout/src/client/AppFrame.tsx
@@ -74,460 +524,12 @@ index 374ce64703..1f8d94a640 100644
  /**
   * Solve the three column widths for one viewport frame. Pure: no hysteresis —
   * the output is a function of (viewport, preferences) only, so recovery on
-diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-index b40453e..3a42c74 100644
---- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-+++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-@@ -31,7 +31,7 @@ export interface AgentPresetLabelInjected {
- 
- /** Full component props. */
- export type AgentPresetLabelProps =
--  PropsRuntime<'conversation.session.header.actions'>
-+  PropsRuntime<'conversation.session.header.context'>
-   & PropsLocale<'settings.agentPreset'>
-   & InjectFace<AgentPresetLabelInjected>
- 
-diff --git a/packages/client/ui-agent-preset/src/client/index.ts b/packages/client/ui-agent-preset/src/client/index.ts
-index d3b8b34..5fb7896 100644
---- a/packages/client/ui-agent-preset/src/client/index.ts
-+++ b/packages/client/ui-agent-preset/src/client/index.ts
-@@ -156,7 +156,7 @@ export function apply(ctx: ClientContext): void {
-         inject: seatInjected,
-       }, AgentPresetSeat)
-       const label = scope.slots.register({
--        name: 'conversation.session.header.actions',
-+        name: 'conversation.session.header.context',
-         id: 'agent-preset',
-         // Static session context occupies the header's leading negative-order band.
-         order: -10,
-diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
-index b154e73..46cc5d7 100644
---- a/packages/client/ui-conversation/src/client/apply.ts
-+++ b/packages/client/ui-conversation/src/client/apply.ts
-@@ -229,6 +229,7 @@ export function apply(ctx: Context): void {
-     locale: NS,
-     children: {
-       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
-+      'conversation.session.header.context': { kind: 'list', scope: 'session' },
-       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
-       'conversation.session.header.utilities': { kind: 'list', scope: 'session' },
-     },
-diff --git a/packages/client/ui-conversation/src/client/contract/slots.ts b/packages/client/ui-conversation/src/client/contract/slots.ts
-index 377a75e..071864a 100644
---- a/packages/client/ui-conversation/src/client/contract/slots.ts
-+++ b/packages/client/ui-conversation/src/client/contract/slots.ts
-@@ -101,7 +101,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
-       scope: 'session'
-       owner: ConversationHeaderLineageOwnerProps
-     }
--    /** Title-adjacent Session actions in ascending order. */
-+    /** Immutable Session context kept beside the title on every layout. */
-+    'conversation.session.header.context': {
-+      kind: 'list'
-+      scope: 'session'
-+      owner: ConversationHeaderActionOwnerProps
-+    }
-+    /** Title-adjacent desktop actions; mobile layouts place them beside the View tabs. */
-     'conversation.session.header.actions': {
-       kind: 'list'
-       scope: 'session'
-@@ -346,6 +352,7 @@ export type ConversationSessionHeaderSlotProps =
-   PropsRuntime<'conversation.session.header'>
-   & PropsRenderSlots<
-     'conversation.session.header.lineage'
-+    | 'conversation.session.header.context'
-     | 'conversation.session.header.actions'
-     | 'conversation.session.header.utilities'
-   >
-diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
-index 73c5fcc..912c0af 100644
---- a/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
-+++ b/packages/client/ui-conversation/src/client/skeleton/ConversationRoot.module.css
-@@ -127,10 +127,19 @@
-   cursor: default;
- }
- 
--.headerActions {
-+.headerContext,
-+.headerActions,
-+.headerUtilities {
-   display: flex;
-   flex: none;
-   align-items: center;
-+}
-+
-+.headerContext {
-+  gap: 4px;
-+}
-+
-+.headerActions {
-   gap: 8px;
- }
- 
-@@ -450,3 +459,43 @@
- .root[data-phase='settling'] .composerSeat {
-   visibility: hidden;
- }
-+
-+@media (max-width: 800px) {
-+  .header {
-+    padding-right: 12px;
-+    padding-left: 12px;
-+  }
-+
-+  .titleCluster {
-+    gap: 6px;
-+  }
-+
-+  .headerContext {
-+    max-width: min(120px, 34vw);
-+    overflow: hidden;
-+  }
-+
-+  .headerActions {
-+    position: absolute;
-+    right: 8px;
-+    bottom: 0;
-+    z-index: 2;
-+    gap: 2px;
-+  }
-+
-+  .headerUtilities {
-+    gap: 2px;
-+    margin-left: 6px;
-+  }
-+
-+  .tabs {
-+    gap: 16px;
-+    padding-right: min(112px, 32vw);
-+  }
-+
-+  .tab {
-+    writing-mode: horizontal-tb;
-+    white-space: nowrap;
-+  }
-+}
-+
-diff --git a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
-index ce989f0..569d5d1 100644
---- a/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
-+++ b/packages/client/ui-conversation/src/client/skeleton/ConversationSession.tsx
-@@ -84,7 +84,7 @@ export function ConversationSessionHeader({
-       {!hideChrome && (
-         <>
-           <div className={css.titleRow}>
--            <div className={css.titleCluster}>
-+            <div className={css.titleCluster} data-session-title-cluster>
-               <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
-                 {ancestry.map((summary, index) => {
-                   const last = index === ancestry.length - 1
-@@ -134,16 +134,19 @@ export function ConversationSessionHeader({
-                 })}
-                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
-               </nav>
--              <div className={css.headerActions}>
-+              <div className={css.headerContext} data-session-header-context>
-+                {renderSlot('conversation.session.header.context', {})}
-+              </div>
-+              <div className={css.headerActions} data-session-header-actions>
-                 {renderSlot('conversation.session.header.actions', {})}
-               </div>
-             </div>
--            <div className={css.headerUtilities}>
-+            <div className={css.headerUtilities} data-session-header-utilities>
-               {renderSlot('conversation.session.header.utilities', {})}
-             </div>
-           </div>
-           {tabs.length > 1 && (
--            <div className={css.tabs} role="tablist">
-+            <div className={css.tabs} data-session-tabs role="tablist">
-               {tabs.map(viewTab => (
-                 <button
-                   key={viewTab.id}
-diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
-index 6576608916..9497eda024 100644
---- a/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
-+++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.module.css
-@@ -211,7 +211,7 @@
-    (figma Input_Bottom chrome). */
- .row {
-   display: flex;
--  flex-wrap: wrap;
-+  flex-wrap: nowrap;
-   align-items: center;
-   justify-content: space-between;
-   gap: 12px;
-@@ -239,6 +239,7 @@
-    Read-only; the chip gap widened to 12 so the pill chips read as separate
-    controls. */
- .tools {
-+  flex: 1 1 auto;
-   gap: 16px;
- }
- 
-@@ -247,16 +248,32 @@
- }
- 
- .trailing {
--  flex: none;
--  /* Wrap keeps the left mode chips and the right controls apart when the card
--     runs out of row width: the trailing group (model + send) moves to its own
--     line instead of the left group shrinking until its chip overlaps the
--     model trigger (external:107). The auto margin re-anchors it right on the
--     wrapped line; on a single line space-between already pins it right. */
-+  flex: 0 1 auto;
-+  /* The model trigger progressively collapses before this trailing group can
-+     push the send action off the toolbar. The auto margin pins
-+     model/context/send to the right while this group and its model seat retain
-+     the ability to shrink on narrow composers. */
-   margin-left: auto;
-   gap: 12px;
- }
- 
-+@container (max-width: 460px) {
-+  .tools,
-+  .modes,
-+  .trailing {
-+    gap: 8px;
-+  }
-+}
-+
-+@container (max-width: 340px) {
-+  .row,
-+  .tools,
-+  .modes,
-+  .trailing {
-+    gap: 2px;
-+  }
-+}
-+
- /* Attach circle (figma + control): 28px, selector fill, primary glyph. */
- .add {
-   display: grid;
-@@ -354,3 +371,14 @@
-   font-size: 12px;
-   cursor: pointer;
- }
-+
-+@container (max-width: 240px) {
-+  .row {
-+    padding-right: 6px;
-+    padding-left: 6px;
-+  }
-+
-+  .trailing > [data-context-meter] {
-+    display: none;
-+  }
-+}
-diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-index d4c06d8..5c74017 100644
---- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-+++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
-@@ -434,8 +434,8 @@ export function InputBar({
-             <DecoratorPortals editor={workspaceTrigger ? null : editor} />
-           </div>
-         </div>
--        <div className={css.row}>
--          <div className={css.tools}>
-+        <div className={css.row} data-composer-toolbar>
-+          <div className={css.tools} data-composer-tools>
-             <Tooltip label={t('input.commands')} side="top" delayMs={500}>
-               <button
-                 type="button"
-@@ -456,7 +456,7 @@ export function InputBar({
-             </div>
-             {leftItems}
-           </div>
--          <div className={css.trailing}>
-+          <div className={css.trailing} data-composer-trailing>
-             {rightItems}
-             {sessionId === undefined ? null : renderSlot('conversation.input.model', { locked: modelSeatLocked })}
-             <ContextMeter useProjection={useProjection} t={t} />
-diff --git a/packages/client/ui-jobs/src/client/JobListAction.module.css b/packages/client/ui-jobs/src/client/JobListAction.module.css
-index 2f475bd..1f5b092 100644
---- a/packages/client/ui-jobs/src/client/JobListAction.module.css
-+++ b/packages/client/ui-jobs/src/client/JobListAction.module.css
-@@ -34,6 +34,11 @@
-   flex: none;
- }
- 
-+.compactIcon {
-+  display: none;
-+  flex: none;
-+}
-+
- .count {
-   margin: 0 5px;
- }
-@@ -123,3 +128,31 @@
- .duration {
-   font-variant-numeric: tabular-nums;
- }
-+
-+@media (max-width: 800px) {
-+  .trigger {
-+    justify-content: center;
-+    gap: 2px;
-+    width: 34px;
-+    min-width: 34px;
-+    padding: 0 2px;
-+  }
-+
-+  .compactIcon {
-+    display: block;
-+    width: 14px;
-+    height: 14px;
-+  }
-+
-+  .count {
-+    display: none;
-+  }
-+
-+  .menu {
-+    right: 0;
-+    left: auto;
-+    width: min(336px, calc(100vw - 80px));
-+    max-width: calc(100vw - 80px);
-+  }
-+}
-+
-diff --git a/packages/client/ui-jobs/src/client/JobListAction.tsx b/packages/client/ui-jobs/src/client/JobListAction.tsx
-index bf15074..1801b91 100644
---- a/packages/client/ui-jobs/src/client/JobListAction.tsx
-+++ b/packages/client/ui-jobs/src/client/JobListAction.tsx
-@@ -1,6 +1,6 @@
- import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
- import type { SessionJob as JobView } from '@deepseek-ai/dsh-api-session-controller/types'
--import { IconChevronDownOutline14, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
-+import { IconChevronDownOutline14, IconCodeOutline16, StateDot, useDismissOnOutsidePointer, type StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
- import type { PropsLocale, PropsRuntime, TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
- import { NS } from './locales.ts'
- import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
-@@ -137,8 +137,10 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
-         ref={triggerRef}
-         type="button"
-         className={css.trigger}
-+        data-job-list-trigger
-         aria-expanded={open}
-         aria-label={countLabel}
-+        title={countLabel}
-         onClick={() => {
-           // Sample the clock in the same commit that opens the list: the
-           // mount-time value predates every job, so the first painted frame
-@@ -148,6 +150,7 @@ export function JobListAction({ sessionId, useSessions, t }: JobListActionProps)
-           setOpen(current => !current)
-         }}
-       >
-+        <span className={css.compactIcon} aria-hidden><IconCodeOutline16 size={14} /></span>
-         {liveCount > 0 ? <StateDot state="ongoing" className={css.triggerDot} /> : null}
-         <span className={css.count}>{countLabel}</span>
-         <IconChevronDownOutline14 className={open ? css.triggerOpen : undefined} />
-diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
-index 3f4d6c5..d38bb9b 100644
---- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
-+++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
-@@ -125,3 +125,22 @@
- .relativeOverdue {
-   color: var(--dsw-alias-state-warn-label);
- }
-+
-+@media (max-width: 800px) {
-+  .trigger {
-+    width: 32px;
-+    min-width: 32px;
-+    padding: 0 1px;
-+    gap: 2px;
-+  }
-+
-+  .count {
-+    display: none;
-+  }
-+
-+  .menu {
-+    width: min(336px, calc(100vw - 80px));
-+    max-width: calc(100vw - 80px);
-+  }
-+}
-+
-diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
-index 34d071f..2a976e9 100644
---- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
-+++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
-@@ -141,8 +141,10 @@ export function ScheduleCatalogAction({ useSession, useProjection, t }: Schedule
-       ref={triggerRef}
-       type="button"
-       className={css.trigger}
-+      data-schedule-trigger
-       aria-expanded={open}
-       aria-label={countLabel}
-+      title={countLabel}
-       onClick={toggleCatalog}
-     >
-       <IconAlarmClockOutline16 size={14} />
-diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-index b54049e..85ad9d8 100644
---- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-+++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-@@ -1,4 +1,4 @@
--import { useEffect, useState } from 'react'
-+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
- import type { ReactNode } from 'react'
- import clsx from 'clsx'
- import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
-@@ -88,6 +88,31 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
-   const [open, setOpen] = useState(false)
-   const [confirmation, setConfirmation] = useState<string | null>(null)
-   const [acknowledged, setAcknowledged] = useState(false)
-+  const [compactMenu, setCompactMenu] = useState(() => typeof window.matchMedia === 'function'
-+    ? window.matchMedia('(max-width: 800px)').matches
-+    : window.innerWidth <= 800)
-+  const triggerRef = useRef<HTMLButtonElement | null>(null)
-+
-+  useLayoutEffect(() => {
-+    const toolbar = triggerRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
-+    const query = typeof window.matchMedia === 'function'
-+      ? window.matchMedia('(max-width: 800px)')
-+      : undefined
-+    const update = (): void => {
-+      const width = toolbar?.clientWidth ?? 0
-+      setCompactMenu((query?.matches ?? window.innerWidth <= 800) || (width > 0 && width <= 460))
-+    }
-+    update()
-+    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
-+    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
-+    query?.addEventListener('change', update)
-+    window.addEventListener('resize', update)
-+    return () => {
-+      observer?.disconnect()
-+      query?.removeEventListener('change', update)
-+      window.removeEventListener('resize', update)
-+    }
-+  }, [])
- 
-   useEffect(() => {
-     if (!locked && value !== undefined) return
-@@ -155,10 +180,15 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
-         onSelect={choose}
-         onClose={() => { setOpen(false) }}
-         side="top"
-+        align={compactMenu ? 'end' : 'start'}
-+        portal={compactMenu}
-+        compact={compactMenu}
-         anchor={
-           <button
-+            ref={triggerRef}
-             type="button"
-             className={css.trigger}
-+            data-permission-trigger
-             aria-label={t('input.accessMode', { name: currentLabel })}
-             title={current?.description}
-             disabled={locked || busy}
 diff --git a/packages/client/ui-model-selection/package.json b/packages/client/ui-model-selection/package.json
-index b5b4e63f52..64faef859b 100644
+index 4bd090aa3a..174911d285 100644
 --- a/packages/client/ui-model-selection/package.json
 +++ b/packages/client/ui-model-selection/package.json
-@@ -61,8 +61,10 @@
-     "@deepseek-ai/dsh-invariants": "workspace:^",
+@@ -56,8 +56,10 @@
+     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
      "@deepseek-ai/dsh-typert-protocol": "workspace:^",
      "@types/react": "~18.3.1",
 +    "@types/react-dom": "~18.3.0",
@@ -538,7 +540,7 @@ index b5b4e63f52..64faef859b 100644
      "@deepseek-ai/dsh-session": "workspace:^",
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index 492fb12f8c..f3b492d9ff 100644
+index 85b67ba496..24b29e4319 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 @@ -1,6 +1,8 @@
@@ -627,26 +629,32 @@ index 492fb12f8c..f3b492d9ff 100644
  .menu {
    position: absolute;
    right: 0;
-@@ -259,3 +307,43 @@
+@@ -260,3 +308,49 @@
    flex: 0 0 auto;
    color: var(--dsw-alias-label-tertiary);
  }
 +
-+/* Applied only while the mobile menu is portaled outside composer clips. */
++/* Portaled menus use measured fixed coordinates at every width, so ancestor
++   clipping and viewport edges follow one positioning contract. */
 +.portalMenu {
 +  position: fixed;
 +  right: auto;
 +  bottom: auto;
 +  z-index: 100;
 +  box-sizing: border-box;
++}
++
++/* Narrow composer rows keep a predictable card width while the positioning
++   hook independently preserves the viewport margin. */
++.compactMenu {
 +  width: min(240px, calc(100vw - 24px));
 +  min-width: 0;
 +  max-width: calc(100vw - 24px);
 +  max-height: min(300px, calc(100dvh - 80px));
 +}
 +
-+.portalMenu .cell,
-+.portalMenu .option {
++.compactMenu .cell,
++.compactMenu .option {
 +  width: 100%;
 +  min-width: 0;
 +}
@@ -672,7 +680,7 @@ index 492fb12f8c..f3b492d9ff 100644
 +  }
 +}
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index e910651e86..111b614cb5 100644
+index e910651e86..b42621d310 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 @@ -9,17 +9,21 @@
@@ -697,7 +705,7 @@ index e910651e86..111b614cb5 100644
  import {
    IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
 -  IconWarningOutline16, Toast,
-+  IconThinkOutline16, IconWarningOutline16, Toast,
++  IconThinkOutline16, IconWarningOutline16, Toast, useAnchoredPosition,
  } from '@deepseek-ai/dsh-client-ui-primitives'
  import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
  import type { ModelSelectInjected } from './slots.ts'
@@ -711,24 +719,24 @@ index e910651e86..111b614cb5 100644
  /**
   * Render the composer model seat.
   * @param props - owner share (locked) + injected face (shared directory
-@@ -51,6 +58,8 @@ export function ModelSelect(
+@@ -51,6 +58,7 @@ export function ModelSelect(
    )
    const [open, setOpen] = useState(false)
    const [pane, setPane] = useState<Pane>('root')
-+  const [portalMode, setPortalMode] = useState(false)
-+  const [portalPosition, setPortalPosition] = useState<CSSProperties | null>(null)
++  const [compactMenu, setCompactMenu] = useState(false)
    // The in-menu error strip serves catalog loads (its Retry re-runs the
    // load); a rejected SELECTION announces through the transient toast
    // instead, so the strip renders only while the latest failure-capable
-@@ -60,6 +69,7 @@ export function ModelSelect(
+@@ -60,6 +68,8 @@ export function ModelSelect(
    const toastSeq = useRef(0)
    const rootRef = useRef<HTMLDivElement | null>(null)
    const triggerRef = useRef<HTMLButtonElement | null>(null)
 +  const menuRef = useRef<HTMLDivElement | null>(null)
++  const boundaryRef = useRef<HTMLElement | null>(null)
    const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
    const id = useId()
  
-@@ -108,12 +118,72 @@ export function ModelSelect(
+@@ -108,12 +118,52 @@ export function ModelSelect(
    useEffect(() => {
      if (!open) return
      const closeOutside = (event: MouseEvent): void => {
@@ -743,9 +751,9 @@ index e910651e86..111b614cb5 100644
 +  // Use the actual composer width as the primary constraint: a wide desktop
 +  // viewport can still have a phone-width conversation column beside panels.
 +  useLayoutEffect(() => {
++    boundaryRef.current = rootRef.current?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
 +    if (!open) {
-+      setPortalMode(false)
-+      setPortalPosition(null)
++      setCompactMenu(false)
 +      return
 +    }
 +    const toolbar = rootRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
@@ -754,7 +762,7 @@ index e910651e86..111b614cb5 100644
 +      : undefined
 +    const update = (): void => {
 +      const width = toolbar?.clientWidth ?? 0
-+      setPortalMode((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
++      setCompactMenu((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
 +    }
 +    update()
 +    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
@@ -768,41 +776,21 @@ index e910651e86..111b614cb5 100644
 +    }
 +  }, [open])
 +
-+  // Keep vertical placement tied to the trigger and horizontal placement tied
-+  // to the composer card. This avoids both the trigger-seat clipping and the
-+  // large vertical gap caused by using one ancestor for both axes.
-+  useLayoutEffect(() => {
-+    if (!open || !portalMode) {
-+      setPortalPosition(null)
-+      return
-+    }
-+    const place = (): void => {
-+      const trigger = triggerRef.current
-+      const menu = menuRef.current
-+      const card = rootRef.current?.closest<HTMLElement>('[data-composer-card]')
-+      if (trigger === null || menu === null || card === null || card === undefined) return
-+      const triggerRect = trigger.getBoundingClientRect()
-+      const cardRect = card.getBoundingClientRect()
-+      const width = menu.offsetWidth
-+      const height = menu.offsetHeight
-+      const margin = 12
-+      const left = Math.min(Math.max(cardRect.right - width, margin), window.innerWidth - width - margin)
-+      const top = Math.max(margin, triggerRect.top - height - 8)
-+      setPortalPosition({ left, top })
-+    }
-+    place()
-+    window.addEventListener('scroll', place, true)
-+    window.addEventListener('resize', place)
-+    return () => {
-+      window.removeEventListener('scroll', place, true)
-+      window.removeEventListener('resize', place)
-+    }
-+  }, [open, pane, portalMode, state.groups.length, state.status, effortChoices.length])
++  const menuPosition = useAnchoredPosition({
++    open,
++    anchorRef: triggerRef,
++    panelRef: menuRef,
++    boundaryRef,
++    side: 'top',
++    align: 'end',
++    gap: 8,
++    margin: 12,
++  })
 +
    if (!available) return null
  
    const show = (): void => {
-@@ -152,7 +222,8 @@ export function ModelSelect(
+@@ -152,7 +202,8 @@ export function ModelSelect(
    }
  
    const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
@@ -812,7 +800,7 @@ index e910651e86..111b614cb5 100644
      close()
    }
  
-@@ -218,6 +289,7 @@ export function ModelSelect(
+@@ -218,6 +269,7 @@ export function ModelSelect(
          ref={triggerRef}
          type="button"
          className={css.trigger}
@@ -820,7 +808,7 @@ index e910651e86..111b614cb5 100644
          aria-label={triggerAria}
          aria-haspopup="menu"
          aria-expanded={open}
-@@ -232,125 +304,131 @@ export function ModelSelect(
+@@ -232,125 +284,131 @@ export function ModelSelect(
            }
          }}
        >
@@ -854,8 +842,8 @@ index e910651e86..111b614cb5 100644
 +          <div
 +            ref={menuRef}
 +            id={`${id}-menu`}
-+            className={clsx(css.menu, portalMode && css.portalMenu)}
-+            style={portalMode ? portalPosition ?? PORTAL_MEASURE_STYLE : undefined}
++            className={clsx(css.menu, css.portalMenu, compactMenu && css.compactMenu)}
++            style={menuPosition ?? PORTAL_MEASURE_STYLE}
 +            role="menu"
 +            aria-label={t('menu.aria')}
 +            aria-busy={state.status === 'loading' || busy}
@@ -1056,7 +1044,7 @@ index e910651e86..111b614cb5 100644
 +            )}
 +          </div>
 +        )
-+        return portalMode ? createPortal(menu, document.body) : menu
++        return createPortal(menu, document.body)
 +      })()}
        {toast !== null && (
          <Toast
@@ -1074,58 +1062,218 @@ index f30c3f7f3e..286aa692d7 100644
      fireEvent.click(trigger)
      fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
      expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
-diff --git a/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
-new file mode 100644
-index 0000000000..7621f3013f
---- /dev/null
-+++ b/packages/client/ui-model-selection/tests/responsive-styles.client.spec.ts
-@@ -0,0 +1,40 @@
-+import { readFileSync } from 'node:fs'
-+import { fileURLToPath } from 'node:url'
-+import { describe, expect, it } from 'vitest'
+diff --git a/packages/client/ui-primitives/src/Menu.module.css b/packages/client/ui-primitives/src/Menu.module.css
+index 72210cffbc..279a6566df 100644
+--- a/packages/client/ui-primitives/src/Menu.module.css
++++ b/packages/client/ui-primitives/src/Menu.module.css
+@@ -46,6 +46,8 @@
+   top: auto;
+   left: auto;
+   z-index: 1100;
++  min-width: min(218px, calc(100vw - 24px));
++  max-width: min(360px, calc(100vw - 24px));
+ }
+ 
+ /* Open above the anchor (empty-state workspace chip: figma 122:9481). */
+diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
+index 0360ddf9af..118fcf886c 100644
+--- a/packages/client/ui-primitives/src/Menu.tsx
++++ b/packages/client/ui-primitives/src/Menu.tsx
+@@ -1,5 +1,5 @@
+ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+-import type { CSSProperties, ReactNode } from 'react'
++import type { CSSProperties, ReactNode, RefObject } from 'react'
+ import { createPortal } from 'react-dom'
+ import clsx from 'clsx'
+ import { IconCheckOutline16 } from './icons/index.tsx'
+@@ -77,7 +77,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * by a hairline; they stay visible while the items above scroll.
+  * @returns anchor wrapper with the conditional list.
+  */
+-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, footer, className }: {
++export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, boundaryRef, footer, className }: {
+   open: boolean
+   anchor: ReactNode
+   items: readonly MenuEntry[]
+@@ -93,6 +93,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+   dense?: boolean
+   compact?: boolean
+   getAnchorRect?: () => DOMRect | null
++  boundaryRef?: RefObject<HTMLElement | null>
+   className?: string
+ }) {
+   const rootRef = useRef<HTMLSpanElement>(null)
+@@ -123,6 +124,11 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+       const listEl = listRef.current
+       const lw = listEl?.offsetWidth ?? 0
+       const lh = listEl?.offsetHeight ?? 0
++      const boundary = boundaryRef?.current?.getBoundingClientRect()
++      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
++      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
++      const availableWidth = Math.max(0, maxX - minX)
++      const placedWidth = Math.min(lw, availableWidth)
+ 
+       let x: number
+       let y: number
+@@ -133,14 +139,21 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+         x = r.left
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       } else {
+-        x = r.right - lw
++        x = r.right - placedWidth
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       }
+ 
+-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
++      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
+       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
+ 
+-      setFixedPos({ left: x, top: y })
++      setFixedPos({
++        left: x,
++        top: y,
++        ...boundary === undefined ? {} : {
++          minWidth: Math.min(218, availableWidth),
++          maxWidth: availableWidth,
++        },
++      })
+     }
+     // First run measures the hidden pre-render (same commit as `open`), so
+     // end/top alignment and clamping use real dimensions before anything
+@@ -148,11 +161,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+     place()
+     window.addEventListener('scroll', place, true)
+     window.addEventListener('resize', place)
++    const observer = typeof ResizeObserver === 'undefined' || boundaryRef?.current === null || boundaryRef?.current === undefined
++      ? undefined
++      : new ResizeObserver(place)
++    if (observer !== undefined && boundaryRef?.current !== null && boundaryRef?.current !== undefined) {
++      observer.observe(boundaryRef.current)
++    }
+     return () => {
++      observer?.disconnect()
+       window.removeEventListener('scroll', place, true)
+       window.removeEventListener('resize', place)
+     }
+-  }, [open, portal, align, side, getAnchorRect])
++  }, [open, portal, align, side, getAnchorRect, boundaryRef])
+ 
+   useEffect(() => {
+     if (!open) {
+diff --git a/packages/client/ui-primitives/src/useAnchoredPosition.ts b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+index 90404bd639..5280cc6a1e 100644
+--- a/packages/client/ui-primitives/src/useAnchoredPosition.ts
++++ b/packages/client/ui-primitives/src/useAnchoredPosition.ts
+@@ -20,8 +20,12 @@ export interface AnchoredPositionOptions {
+   anchorRef: RefObject<HTMLElement | null>
+   /** The floating element, measured so the clamp uses real dimensions. */
+   panelRef: RefObject<HTMLElement | null>
++  /** Optional horizontal boundary; viewport and boundary margins are intersected. */
++  boundaryRef?: RefObject<HTMLElement | null>
+   /** Which anchor edge the panel hangs from: below it (`bottom`, the default) or above it (`top`). */
+   side?: 'top' | 'bottom'
++  /** Align the panel's inline start or end edge with the matching anchor edge. */
++  align?: 'start' | 'end'
+   /** Distance kept between the anchor edge named by `side` and the panel. */
+   gap: number
+   /** Distance kept between the panel and each viewport edge. */
+@@ -30,11 +34,11 @@ export interface AnchoredPositionOptions {
+ 
+ /**
+  * Track an anchor and return the panel's fixed coordinates.
+- * @param options - the open state, the two refs, the placement side, and the gap/margin distances.
++ * @param options - the open state, refs, side/alignment, and gap/margin distances.
+  * @returns `left`/`top` for the panel, or `null` before the first measurement.
+  */
+ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProperties | null {
+-  const { open, anchorRef, panelRef, side = 'bottom', gap, margin } = options
++  const { open, anchorRef, panelRef, boundaryRef, side = 'bottom', align = 'start', gap, margin } = options
+   const [position, setPosition] = useState<CSSProperties | null>(null)
+   useLayoutEffect(() => {
+     if (!open) {
+@@ -50,12 +54,17 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
+       const panel = panelRef.current
+       const width = panel?.offsetWidth ?? 0
+       const height = panel?.offsetHeight ?? 0
+-      let left = rect.left
++      const boundary = boundaryRef?.current?.getBoundingClientRect()
++      const minLeft = Math.max(margin, (boundary?.left ?? 0) + margin)
++      const maxRight = Math.min(window.innerWidth - margin, (boundary?.right ?? window.innerWidth) - margin)
++      const availableWidth = Math.max(0, maxRight - minLeft)
++      const placedWidth = Math.min(width, availableWidth)
++      let left = align === 'start' ? rect.left : rect.right - placedWidth
+       let top = side === 'top' ? rect.top - gap - height : rect.bottom + gap
+-      if (width > 0) left = Math.min(Math.max(left, margin), window.innerWidth - width - margin)
++      if (width > 0) left = Math.min(Math.max(left, minLeft), maxRight - placedWidth)
+       if (height > 0) top = Math.min(Math.max(top, margin), window.innerHeight - height - margin)
+       /* v8 ignore stop */
+-      setPosition({ left, top })
++      setPosition({ left, top, maxWidth: availableWidth })
+     }
+     // The first run measures the panel in the same commit that opened it, so
+     // the clamp uses real dimensions before anything paints.
+@@ -72,12 +81,13 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
+     if (typeof ResizeObserver !== 'undefined' && panel !== null) {
+       observer = new ResizeObserver(place)
+       observer.observe(panel)
++      if (boundaryRef?.current !== null && boundaryRef?.current !== undefined) observer.observe(boundaryRef.current)
+     }
+     return () => {
+       observer?.disconnect()
+       window.removeEventListener('scroll', place, true)
+       window.removeEventListener('resize', place)
+     }
+-  }, [open, anchorRef, panelRef, side, gap, margin])
++  }, [open, anchorRef, panelRef, boundaryRef, side, align, gap, margin])
+   return position
+ }
+diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
+index c768861cea..224f0e5303 100644
+--- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
++++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.module.css
+@@ -125,3 +125,21 @@
+ .relativeOverdue {
+   color: var(--dsw-alias-state-warn-label);
+ }
 +
-+const modelCss = readFileSync(fileURLToPath(new URL('../src/client/ModelSelect.module.css', import.meta.url)), 'utf8')
-+const inputCss = readFileSync(fileURLToPath(new URL('../../ui-conversation/src/client/skeleton/InputBar.module.css', import.meta.url)), 'utf8')
++@media (max-width: 800px) {
++  .trigger {
++    width: 32px;
++    min-width: 32px;
++    padding: 0 1px;
++    gap: 2px;
++  }
 +
-+describe('responsive composer model trigger styles', () => {
-+  it('keeps the toolbar on one line and lets the trailing group shrink', () => {
-+    const row = inputCss.slice(inputCss.indexOf('.row {'), inputCss.indexOf('.tools,'))
-+    expect(row).toContain('flex-wrap: nowrap;')
-+    expect(inputCss).toContain('.trailing {\n  flex: 0 1 auto;')
-+  })
++  .count {
++    display: none;
++  }
 +
-+  it('drops effort before replacing the model label with an icon', () => {
-+    const compact = modelCss.slice(modelCss.indexOf('@container (max-width: 560px)'), modelCss.indexOf('@container (max-width: 420px)'))
-+    const iconOnly = modelCss.slice(modelCss.indexOf('@container (max-width: 420px)'), modelCss.indexOf('.menu {'))
-+    expect(compact).toContain('.triggerEffort')
-+    expect(compact).toContain('display: none;')
-+    expect(iconOnly).toContain('.triggerIcon')
-+    expect(iconOnly).toContain('display: inline-flex;')
-+    expect(iconOnly).toContain('.triggerLabel,')
-+  })
-+
-+  it('constrains only the mobile menu while preserving the desktop content-sized menu', () => {
-+    const desktopMenu = modelCss.slice(modelCss.indexOf('.menu {'), modelCss.indexOf('.status,'))
-+    const mobileMenu = modelCss.slice(modelCss.indexOf('.portalMenu {'))
-+    expect(desktopMenu).toContain('width: max-content;')
-+    expect(desktopMenu).toContain('max-width: min(420px, calc(100vw - 32px));')
-+    expect(mobileMenu).toContain('box-sizing: border-box;')
-+    expect(mobileMenu).toContain('width: min(240px, calc(100vw - 24px));')
-+    expect(mobileMenu).toContain('max-height: min(300px, calc(100dvh - 80px));')
-+  })
-+
-+  it('keeps the full model label available to ellipsis and hover surfaces', () => {
-+    const label = modelCss.slice(modelCss.indexOf('.triggerLabel {'), modelCss.indexOf('.triggerEffort {'))
-+    expect(label).toContain('text-overflow: ellipsis;')
-+    expect(label).toContain('white-space: nowrap;')
-+  })
-+})
++  .menu {
++    width: min(336px, calc(100vw - 80px));
++    max-width: calc(100vw - 80px);
++  }
++}
+diff --git a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
+index 64b57d7e2a..7648793192 100644
+--- a/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
++++ b/packages/client/ui-schedule/src/client/ScheduleCatalogAction.tsx
+@@ -155,8 +155,10 @@ export function ScheduleCatalogAction({ useSession, useProjection, t }: Schedule
+       ref={triggerRef}
+       type="button"
+       className={css.trigger}
++      data-schedule-trigger
+       aria-expanded={open}
+       aria-label={countLabel}
++      title={countLabel}
+       onClick={toggleCatalog}
+     >
+       <IconAlarmClockOutline16 size={14} />
 diff --git a/packages/client/ui-settings-general/package.json b/packages/client/ui-settings-general/package.json
-index a601a425fe..36f89fda4d 100644
+index 1eea375c47..f6d305aa3f 100644
 --- a/packages/client/ui-settings-general/package.json
 +++ b/packages/client/ui-settings-general/package.json
-@@ -66,7 +66,9 @@
-     "@deepseek-ai/dsh-invariants": "workspace:^",
+@@ -61,7 +61,9 @@
+     "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
      "@deepseek-ai/cordis": "workspace:^",
      "@types/react": "~18.3.1",
 +    "@types/react-dom": "~18.3.0",
@@ -1135,19 +1283,19 @@ index a601a425fe..36f89fda4d 100644
      "@deepseek-ai/dsh-client-ui-session": "workspace:^",
      "@deepseek-ai/dsh-settings": "workspace:^"
 diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
-index f68b7a5d4e..d46ba8ac11 100644
+index 95de406381..cb216b6926 100644
 --- a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
 +++ b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
-@@ -84,7 +84,7 @@
+@@ -85,7 +85,7 @@
    z-index: 1;
    display: flex;
    width: 800px;
 -  height: min(800px, calc(100vh - 48px));
 +  height: min(800px, calc(100dvh - 48px));
    max-width: calc(100vw - 48px);
-   border-radius: 24px;
+   border-radius: 32px;
    overflow: hidden;
-@@ -184,10 +184,15 @@
+@@ -185,10 +185,15 @@
    justify-content: space-between;
    gap: 8px;
    height: 54px;
@@ -1164,7 +1312,7 @@ index f68b7a5d4e..d46ba8ac11 100644
  .actions {
    min-width: 0;
    display: flex;
-@@ -199,6 +204,10 @@
+@@ -200,6 +205,10 @@
  
  /* Close button (figma .Icon_container 501:29982): 28x28, r28, 14px glyph. */
  .close {
@@ -1175,7 +1323,7 @@ index f68b7a5d4e..d46ba8ac11 100644
    display: inline-flex;
    align-items: center;
    justify-content: center;
-@@ -212,6 +221,10 @@
+@@ -213,6 +222,10 @@
    color: var(--dsw-alias-label-primary);
  }
  
@@ -1186,7 +1334,7 @@ index f68b7a5d4e..d46ba8ac11 100644
  .close:hover {
    background: var(--dsw-alias-interactive-bg-hover);
  }
-@@ -233,3 +246,126 @@
+@@ -234,3 +247,126 @@
    clip: rect(0 0 0 0);
    white-space: nowrap;
  }
@@ -1419,46 +1567,3 @@ index d5b1df190a..4935955e48 100644
  }
  
  /**
-diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
-index 22f64d6e61..cc2d3adae6 100644
---- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
-+++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.module.css
-@@ -74,3 +74,25 @@
- .chevronOpen {
-   transform: rotate(180deg);
- }
-+
-+@container (max-width: 240px) {
-+  .root,
-+  .trigger {
-+    width: 28px;
-+    max-width: 28px;
-+  }
-+
-+  .root {
-+    flex: 0 0 28px;
-+  }
-+
-+  .trigger {
-+    justify-content: center;
-+    gap: 0;
-+    padding: 0;
-+  }
-+
-+  .chevron {
-+    display: none;
-+  }
-+}
-diff --git a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
-index 0caaf28cb8..92883c2792 100644
---- a/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
-+++ b/packages/client/ui-conversation/src/client/skeleton/ContextMeter.tsx
-@@ -104,7 +104,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
-   const segments = parts.filter(part => part.width > 0)
- 
-   return (
--    <span ref={rootRef} className={css.root}>
-+    <span ref={rootRef} className={css.root} data-context-meter>
-       <Tooltip label={t('context.aria', { percent: reading })} side="top" delayMs={200} disabled={open}>
-         <button
-           type="button"

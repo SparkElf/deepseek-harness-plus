@@ -1,0 +1,41 @@
+{
+  "name": "@sparkelf/dsh-patch-session-history-search",
+  "version": "0.1.0-rc.22",
+  "description": "Data-only exact official-source patch for searchable historical Session migration at production scale",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/session-history-search"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "session-history-search",
+        "dsh": ">=0.1.3-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+          "paths": [
+            "packages/api/session-controller/",
+            "packages/session/session-format/",
+            "packages/session/session-format-v0-to-v1/",
+            "packages/session/session-format-v1-to-v2/",
+            "packages/session/session-persistence-jsonl/",
+            "packages/session/session-projection-cache/",
+            "packages/session-query/session-query-sqlite/"
+          ]
+        },
+        "file": "./patches/session-history-search.patch"
+      }
+    ]
+  }
+}

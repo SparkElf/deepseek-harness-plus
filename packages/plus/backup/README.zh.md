@@ -66,5 +66,6 @@ authenticated routes为POST `/api/backup.export.prepare?scope=all|configuration|
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
 - [Backup Agent Note](../../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.zh.md)持有archive、route、restore及progress decisions；`src/index.ts`和`src/client/BackupSection.tsx`持有current behavior。
+- 该package不发布`./invariant` companion，因为WebServer持有route registration，Workspace持有filesystem state；Backup没有对任一relation的independent second observation。
 
 </details>

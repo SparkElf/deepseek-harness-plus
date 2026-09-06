@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/workspace-storage-restore/README.md
-README.md: 1c1721798ac5cc3664dfcde8c9589a83cd04b7a2
-README.zh.md: d205997a1406f7335d4d01c7b76e64b99ef53b5a
+README.md: c6f0695ad71a12799e8ddf2c70493f988ebc09ff
+README.zh.md: 4d74acaadab9aa24f72e5c728fccd029206f9c16

@@ -13,7 +13,10 @@ afterEach(() => { for (const fixture of fixtures.splice(0)) rmSync(fixture, { re
 function profile(name: string, packages: Record<string, Record<string, string>>, bundles = ['@sparkelf/dsh-plus']): string {
   const root = mkdtempSync(join(tmpdir(), name))
   fixtures.push(root)
-  writeFileSync(join(root, 'package.json'), JSON.stringify({ dsh: { profile: { bundles } } }))
+  writeFileSync(join(root, 'package.json'), JSON.stringify({
+    dependencies: Object.fromEntries(Object.keys(packages).map(packageName => [packageName, '1.0.0'])),
+    dsh: { profile: { bundles } },
+  }))
   for (const [packageName, files] of Object.entries(packages)) {
     const directory = join(root, 'node_modules', ...packageName.split('/'))
     mkdirSync(join(directory, 'lib'), { recursive: true })
@@ -59,6 +62,43 @@ describe('Plus production profile closure gate', () => {
     const candidate = profile('plus-candidate-', { '@fixture/ui': { 'lib/client.js': 'kept replacement' } })
     expect(verifyProfileUpgrade(inspectProfile(baseline), inspectProfile(candidate), policy(baseline, candidate, 'replace')).changed)
       .toEqual(['@fixture/ui'])
+  })
+
+  it('accepts exact declared package additions and removals', () => {
+    const baseline = profile('plus-baseline-', { '@fixture/removed': { 'lib/index.js': 'old' } })
+    const candidate = profile('plus-candidate-', { '@fixture/added': { 'lib/index.js': 'new' } })
+    const before = inspectProfile(baseline).packages['@fixture/removed']!
+    const after = inspectProfile(candidate).packages['@fixture/added']!
+    const upgrade: PlusProfileUpgradePolicy = {
+      formatVersion: 1,
+      name: 'fixture production closure',
+      requiredBundles: ['@sparkelf/dsh-plus'],
+      packages: {
+        '@fixture/added': {
+          mode: 'add',
+          candidateVersion: '1.0.0',
+          candidateSha256: after.fingerprint,
+          probes: [{ file: 'lib/index.js', contains: ['new'] }],
+        },
+        '@fixture/removed': {
+          mode: 'remove',
+          baselineVersion: '1.0.0',
+          baselineSha256: before.fingerprint,
+        },
+      },
+    }
+    expect(verifyProfileUpgrade(inspectProfile(baseline), inspectProfile(candidate), upgrade).changed)
+      .toEqual(['@fixture/added', '@fixture/removed'])
+  })
+
+  it('ignores hoisted transitive links outside profile dependencies', () => {
+    const baseline = profile('plus-baseline-', { '@fixture/ui': { 'lib/client.js': 'kept' } })
+    const candidate = profile('plus-candidate-', { '@fixture/ui': { 'lib/client.js': 'kept' } })
+    const transitive = join(baseline, 'node_modules/@fixture/transitive')
+    mkdirSync(join(transitive, 'lib'), { recursive: true })
+    writeFileSync(join(transitive, 'package.json'), JSON.stringify({ name: '@fixture/transitive', version: '1.0.0' }))
+    writeFileSync(join(transitive, 'lib/index.js'), 'hoisted layout only')
+    expect(profileDiff(inspectProfile(baseline), inspectProfile(candidate))).toEqual([])
   })
 
 

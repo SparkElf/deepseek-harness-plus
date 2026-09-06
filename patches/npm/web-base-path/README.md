@@ -6,4 +6,4 @@ This data-only package adds complete reverse-proxy mount-prefix support to the e
 
 The payload intentionally spans the WebServer, frontend static owner, Web app startup and shell, Connection browser transport, Session export, and Web source assets. Splitting those files would permit partially mounted deployments, so they share one patch lifecycle. Default empty-prefix behavior remains byte-for-byte root-relative from the user's perspective.
 
-The target is official source base `0a53fb55bea101816fa226bb964ae2bed71c343b`; the package has no JavaScript entry, lifecycle script, compatibility fallback, or credential data. Retire it when official DSH ships equivalent end-to-end base-path behavior.
+The target is official source base `d347e703908d0406b7a7ef80e3a0e594d86b2215`; the package has no JavaScript entry, lifecycle script, compatibility fallback, or credential data. Retire it when official DSH ships equivalent end-to-end base-path behavior.

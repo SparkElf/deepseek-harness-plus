@@ -59,5 +59,6 @@ Credential rotation不改变model-visible schemas。Tool discovery或connection 
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
 - `src/index.ts`持有credential resolution及MCP transport composition。[Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)记录它作为complete internal DataOps dependency的原因。
+- 该package不发布`./invariant` companion，因为MCP generation与tool contributions由MCP Client和tool registry观测；该adapter没有independent generation view。
 
 </details>

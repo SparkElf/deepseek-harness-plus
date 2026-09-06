@@ -41,10 +41,10 @@ index 20a428fee6..a7cc973d9e 100644
        "type": "image/svg+xml",
        "purpose": "any"
 diff --git a/packages/bundle/web-app/cordis.patch.yml b/packages/bundle/web-app/cordis.patch.yml
-index 9ee698044e..57757915ba 100644
+index ee0217066d..84a75967f3 100644
 --- a/packages/bundle/web-app/cordis.patch.yml
 +++ b/packages/bundle/web-app/cordis.patch.yml
-@@ -114,6 +114,7 @@
+@@ -119,6 +119,7 @@
        config:
          host: !!js ctx.webStartup.host ?? '127.0.0.1'
          port: !!js ctx.webStartup.port ?? 3080
@@ -53,10 +53,10 @@ index 9ee698044e..57757915ba 100644
          compressionLevel: 1
          compressionThresholdBytes: 1024
 diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
-index d0b2635f8e..669dc756ea 100644
+index 4f0367a44f..32123ddf2c 100644
 --- a/packages/bundle/web-app/src/index.ts
 +++ b/packages/bundle/web-app/src/index.ts
-@@ -157,9 +157,9 @@ function webSurfacePrompt(webUrl: string): string {
+@@ -156,9 +156,9 @@ function webSurfacePrompt(webUrl: string): string {
  
  /** Resolve the canonical loopback URL from the active Web server. */
  function localWebUrl(ctx: Context): string {
@@ -69,7 +69,7 @@ index d0b2635f8e..669dc756ea 100644
  }
  
  /**
-@@ -275,7 +275,7 @@ export function apply(ctx: Context, config: Config): void {
+@@ -274,7 +274,7 @@ export function apply(ctx: Context, config: Config): void {
          const port = connectionCtx.webServer.port
          const lanUrl = lanCandidate === undefined
            ? undefined

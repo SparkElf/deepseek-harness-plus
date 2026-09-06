@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
-index aa38650..6f6c534 100644
+index c286665666..66365f0adc 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
-@@ -164,13 +164,19 @@
+@@ -165,13 +165,19 @@
    font: 14px/14px var(--ds-font-family-code);
  }
  
@@ -22,9 +22,9 @@ index aa38650..6f6c534 100644
 -  margin-left: auto;
    padding: 0 6px;
    gap: 4px;
-   border: 1px solid var(--dsw-alias-border-l2);
+   border: 0.5px solid var(--dsw-alias-border-l4);
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
-index 92d7ce9..dfbc88f 100644
+index 92d7ce9ab0..dfbc88f1e3 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 @@ -1,5 +1,6 @@
@@ -62,10 +62,10 @@ index 92d7ce9..dfbc88f 100644
            <input
              type="search"
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-index 2ac0d5d..ace4e58 100644
+index a9f1df1b36..b7fbd52a80 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-@@ -121,7 +121,9 @@ export function TrajectoryView({
+@@ -130,7 +130,9 @@ export function TrajectoryView({
    useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
    viewRequest, completeViewRequest, renderSlot, t,
  }: ConvViewProps
@@ -76,7 +76,7 @@ index 2ac0d5d..ace4e58 100644
    & InjectFace<TrajectoryViewInjected>
    & PropsLocale<'trajectory'>) {
    const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
-@@ -471,6 +473,7 @@ export function TrajectoryView({
+@@ -522,6 +524,7 @@ export function TrajectoryView({
          onToggleAllAssistants={toggleAllAssistants}
          searchQuery={searchQuery}
          onSearchQueryChange={setSearchQuery}
@@ -85,7 +85,7 @@ index 2ac0d5d..ace4e58 100644
        />
        <TrajectoryTimeline
 diff --git a/packages/client/ui-trajectory/src/client/index.ts b/packages/client/ui-trajectory/src/client/index.ts
-index 118f3b2..a8c71cf 100644
+index 118f3b2c28..a8c71cf9ee 100644
 --- a/packages/client/ui-trajectory/src/client/index.ts
 +++ b/packages/client/ui-trajectory/src/client/index.ts
 @@ -36,6 +36,13 @@ export type {
@@ -111,18 +111,18 @@ index 118f3b2..a8c71cf 100644
      inject: (sessionId: SessionId): TrajectoryViewInjected => {
        const session = ctx.sessions.binding(sessionId)?.session
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index 60cba7e..a717c25 100644
+index ce12787db0..2497520511 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
-@@ -60,6 +60,7 @@
-     "@deepseek-ai/dsh-client-ui-conversation": "workspace:^",
+@@ -59,6 +59,7 @@
+     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
      "@deepseek-ai/dsh-client-ui-renderer": "workspace:^",
      "@deepseek-ai/dsh-client-ui-session": "workspace:^",
 +    "@deepseek-ai/dsh-client-ui-trajectory": "workspace:^",
-     "@deepseek-ai/dsh-client-ui-primitives": "workspace:^",
      "@deepseek-ai/dsh-client-ui-slots": "workspace:^",
      "@deepseek-ai/dsh-commands": "workspace:^",
-@@ -77,7 +78,8 @@
+     "@deepseek-ai/dsh-session": "workspace:^",
+@@ -74,7 +75,8 @@
          "@deepseek-ai/dsh-client-ui-commands",
          "@deepseek-ai/dsh-client-ui-conversation",
          "@deepseek-ai/dsh-client-ui-renderer",
@@ -133,7 +133,7 @@ index 60cba7e..a717c25 100644
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index 288e7f9..39ec1bd 100644
+index ef6f6cfdf3..fb4ebe7221 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 @@ -34,3 +34,72 @@
@@ -210,7 +210,7 @@ index 288e7f9..39ec1bd 100644
 +  }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index 7adc40a..f0ebd2a 100644
+index 7adc40aa5c..f0ebd2a71e 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 @@ -1,8 +1,16 @@
@@ -271,7 +271,7 @@ index 7adc40a..f0ebd2a 100644
 +  )
 +}
 diff --git a/packages/session-query/session-log-export/src/client/index.ts b/packages/session-query/session-log-export/src/client/index.ts
-index 9718731..a6ca23e 100644
+index 97187311fa..a6ca23e3b3 100644
 --- a/packages/session-query/session-log-export/src/client/index.ts
 +++ b/packages/session-query/session-log-export/src/client/index.ts
 @@ -7,9 +7,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-commands/client'
@@ -321,7 +321,7 @@ index 9718731..a6ca23e 100644
  
  export type { SessionLogDownloadDialogInjected, SessionLogDownloadDialogProps } from './Dialog.tsx'
 diff --git a/packages/session-query/session-log-export/tsconfig.client.json b/packages/session-query/session-log-export/tsconfig.client.json
-index 6e3e746..c5e2c7b 100644
+index 6e3e746c4c..c5e2c7b69c 100644
 --- a/packages/session-query/session-log-export/tsconfig.client.json
 +++ b/packages/session-query/session-log-export/tsconfig.client.json
 @@ -23,6 +23,7 @@

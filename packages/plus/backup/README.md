@@ -66,5 +66,6 @@ Independent. Export, import, progress, and reload do not change a model request 
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
 - The [Backup Agent Note](../../../.agents/notes/proposed/architecture/2026-08-30-plus-backup-plugin.md) owns archive, route, restore, and progress decisions; `src/index.ts` and `src/client/BackupSection.tsx` own current behavior.
+- No runtime invariant companion is published because WebServer owns route registration and Workspace owns filesystem state; Backup has no independent second observation of either relationship.
 
 </details>

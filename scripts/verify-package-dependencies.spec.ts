@@ -155,9 +155,7 @@ describe('package dependency scope', () => {
     expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-scope']).toEqual([
       'carrierKeyOf', 'scopeOf', 'scopeTarget',
     ])
-    expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-attachment']).toEqual([
-      'AttachmentError', 'admitEncodedImages',
-    ])
+    expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-attachment']).toBeUndefined()
     expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@sparkelf/dsh-plugin-mcp-credentials'])
       .toEqual(['Config', 'apply', 'inject', 'name'])
     expect(PACKAGE_DEPENDENCY_POLICY.peerRequiredHostExports['@deepseek-ai/dsh-typert-protocol']).toBeUndefined()

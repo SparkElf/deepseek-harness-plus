@@ -53,6 +53,10 @@ describe('npm install layout verifier', () => {
         name: '@deepseek-ai/cordis',
         version: '4.0.1',
       }]])],
+      ['@deepseek-ai/dsh-external', new Map([['9.0.0', {
+        name: '@deepseek-ai/dsh-external',
+        version: '9.0.0',
+      }]])],
     ])
 
     const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
@@ -68,10 +72,24 @@ describe('npm install layout verifier', () => {
       dependencies: { '@deepseek-ai/dsh-child': '^0.2.0' },
     })
     expect(dual.get('@deepseek-ai/cordis')).toBe(index.get('@deepseek-ai/cordis'))
+    expect(dual.get('@deepseek-ai/dsh-external')).toBe(index.get('@deepseek-ai/dsh-external'))
   })
 
   it('accepts isolated DSH releases with one shared Cordis installation', () => {
     expect(assertDualDshInstallLayout(validLayout())).toEqual({
+      dshPackagesPerVersion: 3,
+      checkedDshEdges: 4,
+    })
+  })
+
+  it('ignores separately released DSH-prefixed packages', () => {
+    const layout = validLayout()
+    const packages = {
+      ...layout.packages,
+      'node_modules/@deepseek-ai/dsh-external': { version: '9.0.0' },
+    }
+
+    expect(assertDualDshInstallLayout({ ...layout, packages })).toEqual({
       dshPackagesPerVersion: 3,
       checkedDshEdges: 4,
     })

@@ -6,6 +6,6 @@
 
 payload增加一个typed Trajectory toolbar utility slot，并把既有会话日志操作的第二个presentation注册进该slot。两个presentation共用同一个download controller、request、state与dialog；本package不增加第二条export path或archive implementation。
 
-target是exact official source revision `0a53fb55bea101816fa226bb964ae2bed71c343b`，payload在该source tree build前应用。本package没有JavaScript entry、lifecycle script、Cordis plugin、compatibility adapter或alternate variant。
+target是exact official source revision `d347e703908d0406b7a7ef80e3a0e594d86b2215`，payload在该source tree build前应用。本package没有JavaScript entry、lifecycle script、Cordis plugin、compatibility adapter或alternate variant。
 
 official DSH暴露等价Trajectory toolbar utility slot，并在桌面端把Session export放到搜索框前、同时在手机上保留Header操作后，retire本package。

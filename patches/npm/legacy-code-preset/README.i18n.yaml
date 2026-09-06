@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/legacy-code-preset/README.md
-README.md: dd7d80a595574e0c3b0d63379221ce7d53676976
-README.zh.md: 80834862a9a18ca6cda3330f7772c5264ad168c3
+README.md: 6712a45e235c81b0c47cbd060bf2951ca75e5d43
+README.zh.md: 6b217f80df7e2c349ff0a43649b108049c5041b1

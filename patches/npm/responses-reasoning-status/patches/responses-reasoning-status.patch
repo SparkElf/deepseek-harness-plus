@@ -1,46 +1,46 @@
 diff --git a/packages/client/ui-settings-models/README.i18n.yaml b/packages/client/ui-settings-models/README.i18n.yaml
-index 1977fc9620..0822ab8417 100644
+index 2d8accc664..47754f1f60 100644
 --- a/packages/client/ui-settings-models/README.i18n.yaml
 +++ b/packages/client/ui-settings-models/README.i18n.yaml
 @@ -2,5 +2,5 @@
  # side as of the last confirmed-consistent state. Both languages carry equal authority;
  # after editing either side, bring the other along and re-record with:
  #   pnpm run verify-translation-pairing --write packages/client/ui-settings-models/README.md
--README.md: 920780b2193d6165a10967cc49afcb5b7e193105
--README.zh.md: 4ec9ae43eef9a13ffde22e2a3de0e44d3b6cb51d
-+README.md: c68a0defc3ad882f66f81afbe61cfad4c912a4fa
-+README.zh.md: e161a26112080d24455c5c541e501fe1fd0b7cf1
+-README.md: cac2785886346a0c1e81009404fdb0da238bbe40
+-README.zh.md: 7df96a9a1b9474b5e88d8f9814f353f92eb1a31d
++README.md: f4564af49361439a74abdf6cc7e08c7f700904fd
++README.zh.md: ad303968d99880b64c63bf5d3e6ccca9de019f1b
 diff --git a/packages/client/ui-settings-models/README.md b/packages/client/ui-settings-models/README.md
-index 920780b219..c68a0defc3 100644
+index cac2785886..f4564af493 100644
 --- a/packages/client/ui-settings-models/README.md
 +++ b/packages/client/ui-settings-models/README.md
 @@ -33,7 +33,7 @@ The primary field on an editor card is a single **API key** input — the page n
  
  ### Editing a provider
  
--The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
-+The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. A pi-ai route whose effective protocol is `openai-responses` also shows **Gateway compatibility mode**, which writes `responsesCompatibility.omitReasoningInputStatus`; disabling it deletes the user leaf unless an inherited true requires an explicit false, and changing protocol removes or masks the incompatible setting while preserving sibling fields. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
+-The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
++The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. A pi-ai route whose effective protocol is `openai-responses` also shows **Gateway compatibility mode**, which writes `responsesCompatibility.omitReasoningInputStatus`; disabling it deletes the user leaf unless an inherited true requires an explicit false, and changing protocol removes or masks the incompatible setting while preserving sibling fields. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
  
  ### Adding and deleting providers
  
 diff --git a/packages/client/ui-settings-models/README.zh.md b/packages/client/ui-settings-models/README.zh.md
-index 4ec9ae43ee..e161a26112 100644
+index 7df96a9a1b..ad303968d9 100644
 --- a/packages/client/ui-settings-models/README.zh.md
 +++ b/packages/client/ui-settings-models/README.zh.md
 @@ -33,7 +33,7 @@ kind: "package-reference"
  
  ### 编辑提供方
  
--收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
-+收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。effective protocol为 `openai-responses` 的pi-ai路由还会显示**中转站兼容模式**，写入 `responsesCompatibility.omitReasoningInputStatus`；关闭时，若没有继承的true则删除user leaf，否则写入显式false，切换协议也会删除或遮蔽不兼容设置，并保留sibling fields。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
+-收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。Profile `headers` 仍是 `settings.yaml` 或 Cordis 配置中的部署配置，Models 页面不提供编辑器。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
++收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。effective protocol为 `openai-responses` 的pi-ai路由还会显示**中转站兼容模式**，写入 `responsesCompatibility.omitReasoningInputStatus`；关闭时，若没有继承的true则删除user leaf，否则写入显式false，切换协议也会删除或遮蔽不兼容设置，并保留sibling fields。Profile `headers` 仍是 `settings.yaml` 或 Cordis 配置中的部署配置，Models 页面不提供编辑器。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
  
  ### 新增与删除提供方
  
 diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-index fe2fe87d3a..a0e3103270 100644
+index 2dc72373ea..f0a9ab95fb 100644
 --- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 +++ b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-@@ -396,6 +396,31 @@
+@@ -397,6 +397,31 @@
    padding-top: 12px;
  }
  
@@ -162,10 +162,10 @@ index ffa8c2e1fe..3c3e7729b4 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index f1b0718ba5..7d664492a5 100644
+index 6c71b3b6d6..d1deeab5dd 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
-@@ -83,6 +83,7 @@ export const en = {
+@@ -85,6 +85,7 @@ export const en = {
    customDisplayName: 'Display name',
    customApi: 'API protocol',
    customApiUnset: 'Not selected',
@@ -173,7 +173,7 @@ index f1b0718ba5..7d664492a5 100644
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
    customBaseUrlPlaceholder: 'https://gateway.example/v1',
-@@ -187,6 +188,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
+@@ -191,6 +192,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
    customDisplayName: '显示名称',
    customApi: 'API 协议',
    customApiUnset: '未选择',
@@ -182,19 +182,19 @@ index f1b0718ba5..7d664492a5 100644
    customNeedsModels: '自定义提供方至少需要一个模型。',
    customBaseUrlPlaceholder: 'https://gateway.example/v1',
 diff --git a/packages/llm/llm-pi-ai/README.i18n.yaml b/packages/llm/llm-pi-ai/README.i18n.yaml
-index 38b01bcd52..43d8e199ba 100644
+index 656439bf24..7078d9bc6d 100644
 --- a/packages/llm/llm-pi-ai/README.i18n.yaml
 +++ b/packages/llm/llm-pi-ai/README.i18n.yaml
 @@ -2,5 +2,5 @@
  # side as of the last confirmed-consistent state. Both languages carry equal authority;
  # after editing either side, bring the other along and re-record with:
  #   pnpm run verify-translation-pairing --write packages/llm/llm-pi-ai/README.md
--README.md: dcafde78e176bd0acd142145d651d6d5b5539626
--README.zh.md: a7292638b8449d7192d3e003f0377967d11ef94d
-+README.md: 5db7b2fecd77bcdc27f55851fcbaa32401326adf
-+README.zh.md: 319059c93916e87f127bf56ba5d1b9c6f81c006c
+-README.md: c0aacbe3e0b727cd7b6b163814dc96859b954b9c
+-README.zh.md: 7b8cef7db2ba5cebe3e42345b308716ae0099c03
++README.md: 9ce3f4af2078753d1416155d4b84e14095297491
++README.zh.md: 4cad5156153b3eee5488b45cc4c69935c3d3a9cb
 diff --git a/packages/llm/llm-pi-ai/README.md b/packages/llm/llm-pi-ai/README.md
-index dcafde78e1..5db7b2fecd 100644
+index c0aacbe3e0..9ce3f4af20 100644
 --- a/packages/llm/llm-pi-ai/README.md
 +++ b/packages/llm/llm-pi-ai/README.md
 @@ -79,6 +79,7 @@ Each profile may set a `retryPolicy`; omission uses normal mode with five retrie
@@ -215,7 +215,7 @@ index dcafde78e1..5db7b2fecd 100644
  ### Change configuration at runtime
  
 diff --git a/packages/llm/llm-pi-ai/README.zh.md b/packages/llm/llm-pi-ai/README.zh.md
-index a7292638b8..319059c939 100644
+index 7b8cef7db2..4cad515615 100644
 --- a/packages/llm/llm-pi-ai/README.zh.md
 +++ b/packages/llm/llm-pi-ai/README.zh.md
 @@ -79,6 +79,7 @@ kind: "package-reference"
@@ -236,22 +236,10 @@ index a7292638b8..319059c939 100644
  ### 运行时更改配置
  
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index e20b8e0072..058e8f2824 100644
+index e20b8e0072..d392ab7c72 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
-@@ -40,9 +40,11 @@ import type {
- } from '@earendil-works/pi-ai'
- import {
-   attributionHeaders,
-+  contentHasDocument,
-   contentHasImage,
-   LlmAdapter,
-   LlmError,
-+  projectRequestDocumentsWithAttachments,
-   ReasoningEffortId,
- } from '@deepseek-ai/dsh-llm'
- import type {
-@@ -111,6 +113,24 @@ export interface PiAiAuthInjection {
+@@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
    authContext: AuthContext
  }
  
@@ -276,7 +264,7 @@ index e20b8e0072..058e8f2824 100644
  /** Copy profile stream knobs into pi-ai's common option vocabulary. */
  function profileOptions(
    profile: ResolvedPiAiProviderProfile,
-@@ -126,6 +146,7 @@ function profileOptions(
+@@ -126,6 +144,7 @@ function profileOptions(
      ...profile.transport === undefined ? {} : { transport: profile.transport },
      ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
      ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
@@ -284,38 +272,8 @@ index e20b8e0072..058e8f2824 100644
      // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
      maxRetries: 0,
    }
-@@ -350,20 +371,24 @@ export class PiAiAdapter extends LlmAdapter {
-     using watchdog = idleWatchdog(upstream, streamIdleTimeoutMs, 'LLM_STREAM_IDLE_TIMEOUT')
- 
-     try {
-+      const containsDocument = options.messages.some(message => contentHasDocument(message.content))
-       const containsImage = options.messages.some(message => contentHasImage(message.content))
-       if (containsImage && !model.input.includes('image')) {
-         throw new LlmError(`pi-ai model "${model.id}" does not support image input`, 'UNSUPPORTED_CONTENT')
-       }
--      const attachments = containsImage ? this.config.resolveAttachments?.() : undefined
--      if (containsImage && attachments === undefined) {
--        throw new LlmError('pi-ai image input requires the durable attachment service', 'UNSUPPORTED_CONTENT')
-+      const attachments = containsDocument || containsImage ? this.config.resolveAttachments?.() : undefined
-+      if ((containsDocument || containsImage) && attachments === undefined) {
-+        throw new LlmError('pi-ai document and image input requires the durable attachment service', 'UNSUPPORTED_CONTENT')
-       }
-+      const requestOptions = containsDocument
-+        ? { ...options, messages: await projectRequestDocumentsWithAttachments(options.messages, attachments as AttachmentStore, watchdog.signal) }
-+        : options
-       const onReplayDegrade = (reason: string): void => {
-         this.config.onReplayDegrade?.({ provider: options.provider, model: options.model, reason })
-       }
-       const context = attachments === undefined
--        ? toPiContext(options, undefined, onReplayDegrade)
--        : await toPiContext({ ...options, signal: watchdog.signal }, {
-+        ? toPiContext(requestOptions, undefined, onReplayDegrade)
-+        : await toPiContext({ ...requestOptions, signal: watchdog.signal }, {
-           attachments,
-           resolveImageAccess: ref => this.config.resolveImageAccess?.(attachments, ref),
-           maxRequestImageBytes: profile.maxRequestImageBytes,
 diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
-index e5a7e608b9..ce8192bf28 100644
+index 8da589cc39..2031e973f3 100644
 --- a/packages/llm/llm-pi-ai/src/config.ts
 +++ b/packages/llm/llm-pi-ai/src/config.ts
 @@ -84,6 +84,12 @@ export type {
@@ -359,10 +317,10 @@ index e5a7e608b9..ce8192bf28 100644
    defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
    defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
    defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
-@@ -400,6 +413,11 @@ export function resolveProfiles(
-     if (source.displayName !== undefined && source.displayName.length === 0) {
+@@ -415,6 +428,11 @@ export function resolveProfiles(
        throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
      }
+     assertValidHeaders(provider, source.headers)
 +    if (source.responsesCompatibility?.omitReasoningInputStatus === true && source.api !== 'openai-responses') {
 +      throw new Error(
 +        `llm-pi-ai: provider "${provider}" responsesCompatibility.omitReasoningInputStatus requires api "openai-responses"`,

@@ -1,25 +1,25 @@
 diff --git a/packages/client/connection/README.i18n.yaml b/packages/client/connection/README.i18n.yaml
-index 528a378161..8baa29134d 100644
+index e1e4ff6e1c..36cdef1d32 100644
 --- a/packages/client/connection/README.i18n.yaml
 +++ b/packages/client/connection/README.i18n.yaml
 @@ -2,5 +2,5 @@
  # side as of the last confirmed-consistent state. Both languages carry equal authority;
  # after editing either side, bring the other along and re-record with:
  #   pnpm run verify-translation-pairing --write packages/client/connection/README.md
--README.md: ee0566bf811a0bad32f7d59b4c8849e26efea613
--README.zh.md: 48425a428247b7749bf0dd75f592b5f7e4088ef2
-+README.md: 6454dfa7d8d69a10480f9bd310325300f7c9cec0
-+README.zh.md: 9fd600d1fcf3d9ade970436e544a7d9c3b67fac4
+-README.md: 91e96a34d15463fd4246bf8fd8aee6112aaa54c4
+-README.zh.md: fc6686e688170427528cb51db51e166f3c447f26
++README.md: 4abcf01ffc9a4bed9e6b8499e7fe6ea7f8efd2f7
++README.zh.md: 8584c9063d1fd941a13ae9bd14c5ff58067e0778
 diff --git a/packages/client/connection/README.md b/packages/client/connection/README.md
-index ee0566bf81..6454dfa7d8 100644
+index 91e96a34d1..4abcf01ffc 100644
 --- a/packages/client/connection/README.md
 +++ b/packages/client/connection/README.md
 @@ -25,18 +25,18 @@ The package carries browser-to-Host Remote calls, exact Fetch responses, and con
  <a id="use-this-package"></a>
  ## Use this package
  
--The browser uses HTTP POST for Remote unary calls. API Gateway owns the `/api/remote.mux` WebSocket and its logical streams; in-process compositions provide equivalent Remote streams through `connection.rpc.open` without opening a WebSocket. The Host half owns the sole `/api` route, Fetch bridge, browser authentication, Host/Origin checks, and exact `GET`/`HEAD` route registry. Typert Gateway claims generated Remote endpoints, feature packages register non-JSON responses such as Session-log downloads, and unclaimed requests return 404. Loopback hostname classification remains package-internal to the browser-facing Client state.
-+The browser uses HTTP POST for Remote unary calls. API Gateway owns the `/api/remote.mux` WebSocket and its logical streams; in-process compositions provide equivalent Remote streams through `connection.rpc.open` without opening a WebSocket. The Host half owns the sole `/api` route, Fetch bridge, browser-authentication policy, Host/Origin checks, and exact `GET`/`HEAD` route registry. Typert Gateway claims generated Remote endpoints, feature packages register non-JSON responses such as Session-log downloads, and unclaimed requests return 404. Loopback hostname classification remains package-internal to the browser-facing Client state.
+-The browser uses HTTP POST for Remote unary calls. API Gateway owns the `/api/remote.mux` WebSocket and its logical streams; in-process compositions provide equivalent Remote streams through `connection.rpc.open` without opening a WebSocket. The Host half owns the sole `/api` route, Fetch bridge, browser authentication, Host/Origin checks, and exact `GET`/`HEAD`/`POST` route registry. Each exact route declares buffered or streaming request-body handling before the bridge reads any bytes. Typert Gateway claims generated Remote endpoints, feature packages register non-JSON responses such as Session-log downloads and raw file uploads, and unclaimed requests return 404. Loopback hostname classification remains package-internal to the browser-facing Client state. Browser raw-body transfer is provided by [`dsh-client-file-upload`](../file-upload/README.md).
++The browser uses HTTP POST for Remote unary calls. API Gateway owns the `/api/remote.mux` WebSocket and its logical streams; in-process compositions provide equivalent Remote streams through `connection.rpc.open` without opening a WebSocket. The Host half owns the sole `/api` route, Fetch bridge, browser-authentication policy, Host/Origin checks, and exact `GET`/`HEAD`/`POST` route registry. Each exact route declares buffered or streaming request-body handling before the bridge reads any bytes. Typert Gateway claims generated Remote endpoints, feature packages register non-JSON responses such as Session-log downloads and raw file uploads, and unclaimed requests return 404. Loopback hostname classification remains package-internal to the browser-facing Client state. Browser raw-body transfer is provided by [`dsh-client-file-upload`](../file-upload/README.md).
  
  -----
  
@@ -38,15 +38,15 @@ index ee0566bf81..6454dfa7d8 100644
  <a id="connection-generation"></a>
  ## Connection generation
 diff --git a/packages/client/connection/README.zh.md b/packages/client/connection/README.zh.md
-index 48425a4282..9fd600d1fc 100644
+index fc6686e688..8584c9063d 100644
 --- a/packages/client/connection/README.zh.md
 +++ b/packages/client/connection/README.zh.md
 @@ -25,18 +25,18 @@ kind: "package-reference"
  <a id="use-this-package"></a>
  ## 使用本包
  
--浏览器通过 HTTP POST 执行 Remote 一元调用；API Gateway 自己拥有 `/api/remote.mux` WebSocket 及其逻辑流。进程内组合通过 `connection.rpc.open` 提供等价的 Remote 流，不打开 WebSocket。Host half 拥有唯一 `/api` route、Fetch bridge、浏览器认证、Host/Origin 校验与精确 `GET`/`HEAD` 路由注册表。Typert Gateway 认领生成的 Remote endpoint，功能包注册 Session 日志下载等非 JSON 响应，未认领的请求返回 404。Loopback hostname 判定只供浏览器侧当前页面状态使用，留在包内。
-+浏览器通过 HTTP POST 执行 Remote 一元调用；API Gateway 自己拥有 `/api/remote.mux` WebSocket 及其逻辑流。进程内组合通过 `connection.rpc.open` 提供等价的 Remote 流，不打开 WebSocket。Host half 拥有唯一 `/api` route、Fetch bridge、浏览器认证策略、Host/Origin 校验与精确 `GET`/`HEAD` 路由注册表。Typert Gateway 认领生成的 Remote endpoint，功能包注册 Session 日志下载等非 JSON 响应，未认领的请求返回 404。Loopback hostname 判定只供浏览器侧当前页面状态使用，留在包内。
+-浏览器通过 HTTP POST 执行 Remote 一元调用。API Gateway 自己拥有 `/api/remote.mux` WebSocket 及其逻辑流。进程内组合通过 `connection.rpc.open` 提供等价的 Remote 流，不打开 WebSocket。Host half 拥有唯一 `/api` route、Fetch bridge、浏览器认证、Host/Origin 校验与精确 `GET`/`HEAD`/`POST` 路由注册表。每条精确路由会在 bridge 读取任何字节前声明缓冲或流式请求体处理方式。Typert Gateway 认领生成的 Remote endpoint，功能包注册 Session 日志下载、原始文件上传等非 JSON 响应，未认领的请求返回 404。Loopback hostname 判定只供浏览器侧当前页面状态使用，留在包内。浏览器原始请求体传输由 [`dsh-client-file-upload`](../file-upload/README.zh.md) 提供。
++浏览器通过 HTTP POST 执行 Remote 一元调用。API Gateway 自己拥有 `/api/remote.mux` WebSocket 及其逻辑流。进程内组合通过 `connection.rpc.open` 提供等价的 Remote 流，不打开 WebSocket。Host half 拥有唯一 `/api` route、Fetch bridge、浏览器认证策略、Host/Origin 校验与精确 `GET`/`HEAD`/`POST` 路由注册表。每条精确路由会在 bridge 读取任何字节前声明缓冲或流式请求体处理方式。Typert Gateway 认领生成的 Remote endpoint，功能包注册 Session 日志下载、原始文件上传等非 JSON 响应，未认领的请求返回 404。Loopback hostname 判定只供浏览器侧当前页面状态使用，留在包内。浏览器原始请求体传输由 [`dsh-client-file-upload`](../file-upload/README.zh.md) 提供。
  
  -----
  
@@ -100,7 +100,7 @@ index 10353d9a06..dbeb256022 100644
    private readonly maxAgeMilliseconds: number
  
 diff --git a/packages/client/connection/src/index.ts b/packages/client/connection/src/index.ts
-index 34cf79bd65..6bed1e1c9a 100644
+index a274cef190..b4ff8cfda6 100644
 --- a/packages/client/connection/src/index.ts
 +++ b/packages/client/connection/src/index.ts
 @@ -8,7 +8,7 @@ import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -112,7 +112,7 @@ index 34cf79bd65..6bed1e1c9a 100644
  import { HostConnectionService } from './rpc-host.ts'
  
  export type {
-@@ -77,6 +77,8 @@ export interface ConnectionConfig {
+@@ -78,6 +78,8 @@ export interface ConnectionConfig {
     * bind. An entry that is not a bare, canonical authority fails plugin load.
     */
    trustedHosts?: string[]
@@ -121,7 +121,7 @@ index 34cf79bd65..6bed1e1c9a 100644
    /** Absolute browser-session lifetime in days. Default: 30. */
    cookieMaxAgeDays?: number
    /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
-@@ -85,6 +87,7 @@ export interface ConnectionConfig {
+@@ -86,6 +88,7 @@ export interface ConnectionConfig {
  
  export const Config: z<ConnectionConfig> = z.object({
    trustedHosts: z.array(String).default([]),
@@ -129,7 +129,7 @@ index 34cf79bd65..6bed1e1c9a 100644
    cookieMaxAgeDays: z.natural().min(1).default(30),
    maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
  })
-@@ -99,16 +102,21 @@ export const Config: z<ConnectionConfig> = z.object({
+@@ -100,16 +103,21 @@ export const Config: z<ConnectionConfig> = z.object({
  export async function apply(ctx: Context, config?: ConnectionConfig): Promise<void> {
    // The Loader resolves schema defaults; hand-built test contexts may pass none.
    const trustedHosts = config?.trustedHosts ?? []
@@ -153,11 +153,11 @@ index 34cf79bd65..6bed1e1c9a 100644
    const fetchHandler = connection.createSharedFetchHandler(API_PATH)
    const route: WebRoute = {
 diff --git a/packages/client/connection/src/rpc-host.ts b/packages/client/connection/src/rpc-host.ts
-index a9bbc72954..486c669ea2 100644
+index d74734e132..df5dc854fb 100644
 --- a/packages/client/connection/src/rpc-host.ts
 +++ b/packages/client/connection/src/rpc-host.ts
 @@ -11,7 +11,7 @@ import { clientRequestSchema } from './rpc-schema.ts'
- import { bridge, type FetchHandler } from './http-bridge.ts'
+ import { bridge } from './http-bridge.ts'
  import { isTrustedApiRequest } from './api-request-trust.ts'
  import { API_PATH } from './api-path.ts'
 -import type { BrowserAuth } from './browser-auth.ts'
@@ -165,7 +165,7 @@ index a9bbc72954..486c669ea2 100644
  import type {
    ConnectionIndexRequest,
    ConnectionIndexResponse,
-@@ -64,12 +64,12 @@ export class HostConnectionService extends Service implements HostConnectionHand
+@@ -65,12 +65,12 @@ export class HostConnectionService extends Service implements HostConnectionHand
     * Provide the Host half over the active HTTP server.
     * @param ctx - owning Connection plugin context.
     * @param trustedHosts - deployment authorities accepted by the Host/Origin fence.

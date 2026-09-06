@@ -7,8 +7,8 @@ This runbook is mandatory for a production Plus profile promotion. Package versi
 - Treat the currently accepted production profile as the baseline.
 - Build patched packages from the completed `dsh-plus apply` source tree, or preserve the baseline package byte-for-byte.
 - Never replace a Plus-applied package with a clean-master build solely because their versions match.
-- Every added, removed, or runtime-changed package must be declared in `packages/bundle/plus/production-profile-policy.json`.
-- A `preserve` entry must retain its runtime fingerprint. A `replace` entry must name the exact reviewed candidate fingerprint.
+- Every added, removed, or runtime-changed direct profile dependency or explicit `@deepseek-ai/*` source package must be declared in `packages/bundle/plus/production-profile-policy.json`; hoisted transitive links are installation layout, not profile ownership.
+- A `preserve` entry must retain its runtime fingerprint. A `replace` entry names both exact fingerprints, `add` names the candidate, and `remove` names the baseline.
 - Promotion and release publication stop on any undeclared change, fingerprint drift, missing capability marker, or missing profile bundle.
 
 ## Required Sequence
