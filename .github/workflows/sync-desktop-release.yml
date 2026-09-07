@@ -1,0 +1,40 @@
+name: Sync Desktop Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      desktop_tag:
+        description: Desktop release tag to download
+        required: true
+        type: string
+      plus_tag:
+        description: Plus release tag to update
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Desktop installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DESKTOP_TAG: ${{ inputs.desktop_tag }}
+        run: |
+          mkdir desktop-assets
+          gh release download "$DESKTOP_TAG" --repo SparkElf/dsh-plus-desktop --dir desktop-assets --pattern "*.exe" --pattern "*.AppImage" --pattern "*.deb"
+          test "$(find desktop-assets -maxdepth 1 -type f | wc -l)" -eq 3
+      - name: Verify installer inventory and write checksums
+        run: |
+          test "$(find desktop-assets -maxdepth 1 -type f -name '*.exe' | wc -l)" -eq 1
+          test "$(find desktop-assets -maxdepth 1 -type f -name '*.AppImage' | wc -l)" -eq 1
+          test "$(find desktop-assets -maxdepth 1 -type f -name '*.deb' | wc -l)" -eq 1
+          (cd desktop-assets && sha256sum * > DESKTOP-SHA256SUMS)
+      - name: Upload installers to Plus Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUS_TAG: ${{ inputs.plus_tag }}
+        run: gh release upload "$PLUS_TAG" desktop-assets/* --repo "$GITHUB_REPOSITORY" --clobber
