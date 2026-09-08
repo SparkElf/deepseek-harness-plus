@@ -27,9 +27,19 @@ This runbook is mandatory for a production Plus profile promotion. Package versi
 6. Verify Session Log placement, background job count/icon behavior, Composer row geometry, attachment rendering, Settings navigation, model-menu bounds, and browser errors.
 7. Capture active Sessions, atomically switch the profile, restart through Supervisor, and recover only the captured Session ids.
 8. Run the same closure gate against the active profile and repeat desktop/mobile browser acceptance on port 3080.
-9. Update release assets, checksums, image overlay metadata, and tags only after active verification succeeds.
+9. Publish the user-facing product Release only after active verification succeeds, following the asset policy below.
 
 The verifier fingerprints runtime JavaScript, CSS, JSON, YAML, WebAssembly, and package manifests while ignoring source maps and declarations. This makes same-version payload drift a blocking production change.
+
+## User-facing GitHub Release
+
+- Use a `plus-vX.Y.Z` product tag. A `plus-npm-v*` tag may identify an npm sequence, but it must not create a user-facing GitHub Release.
+- Start from an empty GitHub Release and upload exactly one manual asset: the Windows Desktop installer named `DeepSeek.Harness.Plus.Setup.<desktop-version>.exe`.
+- GitHub owns the automatic `Source code (tar.gz)` and `Source code (zip)` links. Do not upload another source archive.
+- Never upload npm package tarballs, profile closure files, screenshots, configuration files, block maps, checksums, evidence bundles, AppImage files, or Debian packages to the Plus product Release unless the user explicitly changes this policy for that release.
+- Keep npm packages in the npm registry and CI package output in Actions artifacts. The Desktop installer embeds the reviewed Plus closure; exposing that closure as individual Release assets is not an installation requirement.
+- Before publication, verify the Desktop installer against the exact Plus profile and official source revision, then run `Sync Desktop Installer`. The workflow rejects a non-empty target Release and rejects any local inventory other than one `.exe`.
+- Release notes state the product version, Desktop version, Plus profile version, official source revision, installation prerequisites, signing status, and the installer SHA-256. Internal profile paths, CI screenshots, and package-by-package inventories do not belong in the user-facing notes.
 
 ## Rebuild And Restart Enforcement
 
