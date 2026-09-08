@@ -13,12 +13,12 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSyn
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { afterAll, afterEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, describe, expect, it, onTestFinished } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { PwshLocalExecutor, ENCODING_PREAMBLE, candidatePwshPaths, resolvePwshPath } from '@deepseek-ai/dsh-pwsh-local'
 import LocalSubprocessRuntime from '@deepseek-ai/dsh-subprocess-local'
 import SubprocessRuntime from '@deepseek-ai/dsh-subprocess'
-import type { SubprocessHandle, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
+import type { SubprocessHandle, SubprocessOutcome, SubprocessOutputReader, SubprocessSpawnSpec } from '@deepseek-ai/dsh-subprocess'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import type { ShellProcess } from '@deepseek-ai/dsh-shell'
 
@@ -30,8 +30,14 @@ afterAll(() => {
 
 /** Per-test temp dirs, removed after each test. */
 const tempDirs: string[] = []
-afterEach(() => {
-  for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+const contexts: Context[] = []
+afterEach(async () => {
+  const ownedContexts = contexts.splice(0)
+  const directories = tempDirs.splice(0)
+  const results = await Promise.allSettled(ownedContexts.map(ctx => ctx.fiber.dispose()))
+  for (const dir of directories) rmSync(dir, { recursive: true, force: true })
+  const failures: unknown[] = results.flatMap((result): unknown[] => result.status === 'rejected' ? [result.reason] : [])
+  if (failures.length > 0) throw new AggregateError(failures, 'PowerShell fixture cleanup failed')
 })
 
 // The probe follows the executor's own resolution (Program Files installs on
@@ -51,6 +57,7 @@ function samePath(actual: string, expected: string): boolean {
 
 async function setup(config: ConstructorParameters<typeof PwshLocalExecutor>[1] = {}) {
   const ctx = new Context()
+  contexts.push(ctx)
   await ctx.plugin(LocalSubprocessRuntime)
   ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
   // A short kill grace via the REAL config path, so escalation tests stay fast.
@@ -64,15 +71,13 @@ async function setup(config: ConstructorParameters<typeof PwshLocalExecutor>[1] 
  * `expected`; returns the accumulation (reads never re-deliver, so the caller
  * gets everything produced up to the match).
  */
-async function readUntil(proc: ShellProcess, expected: string, timeoutMs = 5_000): Promise<string> {
-  const deadline = Date.now() + timeoutMs
+async function readUntil(proc: ShellProcess, expected: string, timeoutMs: number): Promise<string> {
   let all = ''
-  while (Date.now() < deadline) {
+  await expect.poll(() => {
     all += proc.readOutput().delta
-    if (lf(all).includes(expected)) return lf(all)
-    await new Promise(resolve => setTimeout(resolve, 20))
-  }
-  throw new Error(`process output did not include ${JSON.stringify(expected)}; accumulated ${JSON.stringify(lf(all))}`)
+    return lf(all)
+  }, { timeout: timeoutMs }).toContain(expected)
+  return lf(all)
 }
 
 describe('resolvePwshPath and candidatePwshPaths (pure, every platform)', () => {
@@ -168,20 +173,28 @@ describe('spawn construction (pure, every platform)', () => {
   /** A subprocess service that records spawn specs and settles instantly. */
   class CapturingSubprocessRuntime extends SubprocessRuntime {
     specs: SubprocessSpawnSpec[] = []
+    done: Promise<SubprocessOutcome> = Promise.resolve({ exitCode: 0, signal: null })
+    stderrText = ''
     override async resolveExecutable(command: string): Promise<string> { return command }
     override spawnTerminal(): Promise<never> { throw new Error('pwsh spawns pipes, never terminals') }
-    private readonly reader: SubprocessOutputReader = {
+    private readonly stdoutReader: SubprocessOutputReader = {
       readFrom: () => ({ text: '', lossy: false, nextOffset: 0 }),
+    }
+    private readonly stderrReader: SubprocessOutputReader = {
+      readFrom: offset => ({
+        text: this.stderrText.slice(offset),
+        lossy: false,
+        nextOffset: this.stderrText.length,
+      }),
     }
     override spawn(spec: SubprocessSpawnSpec): SubprocessHandle {
       this.specs.push(spec)
       return {
-        pid: -1,
         stdin: undefined,
         stdout: undefined,
         stderr: undefined,
-        collected: { stdout: this.reader, stderr: this.reader },
-        done: Promise.resolve({ exitCode: 0, signal: null }),
+        collected: { stdout: this.stdoutReader, stderr: this.stderrReader },
+        done: this.done,
         terminate: () => {},
         waitForExit: async () => true,
       }
@@ -199,6 +212,67 @@ describe('spawn construction (pure, every platform)', () => {
     expect(argv[5]).toBe(`${ENCODING_PREAMBLE}Write-Output 你好`)
     expect(ENCODING_PREAMBLE).toContain('[Console]::OutputEncoding')
     expect(ENCODING_PREAMBLE).toContain('$OutputEncoding')
+  })
+
+  it('reports both unread stderr and an asynchronous provider rejection exactly once', async () => {
+    const ctx = new Context()
+    const subprocess = new CapturingSubprocessRuntime(ctx)
+    await ctx.plugin(PwshLocalExecutor)
+    subprocess.stderrText = 'target stderr'
+    subprocess.done = Promise.reject(new Error('provider lost the direct outcome'))
+
+    const proc = ctx.shell.start(ctx.shell.resolve({ command: 'Write-Output maybe-ran' }))
+    await expect(proc.done).resolves.toBeUndefined()
+    expect(proc.status).toBe('killed')
+    const output = proc.readOutput().delta
+    expect(output).toContain('target stderr')
+    expect(output).toContain('subprocess failed before reporting an outcome:')
+    expect(output).not.toContain('spawn failed:')
+    expect(proc.readOutput().delta).toBe('')
+  })
+
+  it('settles an unprintable provider rejection instead of rejecting done', async () => {
+    const ctx = new Context()
+    const subprocess = new CapturingSubprocessRuntime(ctx)
+    await ctx.plugin(PwshLocalExecutor)
+    const providerError = new Error('unprintable provider error')
+    Object.defineProperty(providerError, Symbol.toPrimitive, {
+      value: () => { throw new Error('provider formatting must not escape') },
+    })
+    subprocess.done = Promise.reject(providerError)
+
+    const proc = ctx.shell.start(ctx.shell.resolve({ command: 'Write-Output maybe-ran' }))
+    await expect(proc.done).resolves.toBeUndefined()
+    expect(proc.status).toBe('killed')
+    expect(proc.readOutput().delta).toContain('unprintable provider failure')
+    expect(proc.readOutput().delta).toBe('')
+  })
+
+  it('preserves an explicit kill stamp and maps an aborted direct outcome to killed', async () => {
+    const ctx = new Context()
+    const subprocess = new CapturingSubprocessRuntime(ctx)
+    await ctx.plugin(PwshLocalExecutor)
+
+    const killedOutcome = Promise.withResolvers<SubprocessOutcome>()
+    subprocess.done = killedOutcome.promise
+    const killed = ctx.shell.start(ctx.shell.resolve({ command: 'Write-Output maybe-ran' }))
+    expect(killed.kill()).toBe(true)
+    killedOutcome.resolve({ exitCode: 0, signal: null })
+    await killed.done
+    expect(killed.status).toBe('killed')
+    expect(killed.exitCode).toBe(0)
+
+    const abortedOutcome = Promise.withResolvers<SubprocessOutcome>()
+    subprocess.done = abortedOutcome.promise
+    const controller = new AbortController()
+    const aborted = ctx.shell.start(ctx.shell.resolve({
+      command: 'Write-Output maybe-ran',
+      signal: controller.signal,
+    }))
+    controller.abort()
+    abortedOutcome.resolve({ exitCode: 0, signal: null })
+    await aborted.done
+    expect(aborted.status).toBe('killed')
   })
 })
 
@@ -345,7 +419,7 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.start (background process handles)'
     expect(proc.exitCode).toBe(0)
   })
 
-  it('threads stdin and extra env into a background process', async () => {
+  it('threads stdin and extra env into a background process', async ({ task }) => {
     const { bash } = await setup()
     const proc = bash.start(bash.resolve({
       command: '$s = ([Console]::In.ReadToEnd()).TrimEnd(); Write-Output $s; Write-Output "[$env:BG_VAR][$env:DSH_BG_VAR]"',
@@ -353,19 +427,35 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.start (background process handles)'
       env: { BG_VAR: 'bg-env' },
       dshEnv: { DSH_BG_VAR: 'bg-dsh-env' },
     }))
-    const partialOutput = await readUntil(proc, '[bg-env][bg-dsh-env]')
+    const partialOutput = await readUntil(proc, '[bg-env][bg-dsh-env]', task.timeout)
     await proc.done
+    expect(proc.status).toBe('completed')
     const output = partialOutput + lf(proc.readOutput().delta)
     expect(output).toBe('bg-stdin\n[bg-env][bg-dsh-env]\n')
     expect(proc.exitCode).toBe(0)
   })
 
-  it('readOutput is consuming: increments are never re-delivered, and reads stay valid after exit', async () => {
-    const { bash } = await setup()
-    const proc = bash.start(bash.resolve({ command: 'Write-Output first; Start-Sleep -Seconds 1; Write-Output second' }))
-    const first = await readUntil(proc, 'first\n')
+  it('readOutput is consuming: increments are never re-delivered, and reads stay valid after exit', async ({ task }) => {
+    const { ctx, bash } = await setup()
+    const dir = mkdtempSync(join(tmpdir(), 'dsh-pwsh-read-'))
+    onTestFinished(async () => {
+      await ctx.fiber.dispose()
+      rmSync(dir, { recursive: true, force: true })
+    })
+    const releasePath = join(dir, 'release')
+    // The second write cannot race the host's first consuming read.
+    const proc = bash.start(bash.resolve({
+      command: 'Write-Output first; [Console]::Out.Flush(); while (-not [System.IO.File]::Exists($env:DSH_PWSH_RELEASE)) { Start-Sleep -Milliseconds 20 }; Write-Output second',
+      env: { DSH_PWSH_RELEASE: releasePath },
+    }))
+    const first = await readUntil(proc, 'first\n', task.timeout)
     expect(lf(first)).toBe('first\n')
+    expect(proc.status).toBe('running')
+    expect(proc.readOutput().delta).toBe('')
+    writeFileSync(releasePath, '')
     await proc.done
+    expect(proc.status).toBe('completed')
+    expect(proc.exitCode).toBe(0)
     // Read-after-exit returns the remaining buffered output — once.
     const second = proc.readOutput()
     expect(lf(second.delta)).toBe('second\n')
@@ -414,7 +504,7 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.start (background process handles)'
     expect(lf(read.delta)).toContain('[stderr]')
   })
 
-  it('kill() terminates the process tree: true once, false after settlement', async () => {
+  it('kill() requests managed-range termination: true once, false after settlement', async () => {
     const { bash } = await setup()
     const proc = bash.start(bash.resolve({ command: 'Start-Sleep -Seconds 60' }))
     expect(proc.kill()).toBe(true)
@@ -450,18 +540,18 @@ describe.skipIf(!hasPwsh)('PwshLocalExecutor.start (background process handles)'
     expect(['SIGTERM', 'SIGKILL']).toContain(proc.signal)
   })
 
-  it('a background spawn failure settles as killed with the error readable on stderr', async () => {
+  it('an asynchronous creation failure settles as killed with a stage-neutral note', async () => {
     const { bash } = await setup()
     const proc = bash.start(bash.resolve({ command: 'Write-Output ok', workdir: '/nonexistent-dsh' }))
     // done resolves (never rejects) even though the process never ran.
     await expect(proc.done).resolves.toBeUndefined()
     expect(proc.status).toBe('killed')
-    expect(proc.readOutput().delta).toContain('spawn failed:')
+    expect(proc.readOutput().delta).toContain('subprocess failed before reporting an outcome:')
   })
 })
 
 describe.skipIf(!hasPwsh)('process lifecycle ownership (the subprocess service, not the executor)', () => {
-  it('a background process survives executor-fiber disposal and dies with the subprocess service', async () => {
+  it('a background process survives executor-fiber disposal and dies with the subprocess service', async ({ task }) => {
     const ctx = new Context()
     const managerFiber = await ctx.plugin(LocalSubprocessRuntime)
     ;(ctx.subprocess as LocalSubprocessRuntime).internals = { spillDir }
@@ -471,7 +561,7 @@ describe.skipIf(!hasPwsh)('process lifecycle ownership (the subprocess service, 
     // The child prints its own pid so the test can probe liveness through the
     // public read surface alone.
     const proc = bash.start(bash.resolve({ command: 'Write-Output $PID; Start-Sleep -Seconds 60' }))
-    const pid = Number((await readUntil(proc, '\n')).trim())
+    const pid = Number((await readUntil(proc, '\n', task.timeout)).trim())
     expect(Number.isInteger(pid) && pid > 0).toBe(true)
 
     // Executor reload/disposal leaves background work running — the

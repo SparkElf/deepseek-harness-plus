@@ -9,10 +9,7 @@
  * /model popup; exact-model reasoning metadata and the selected effort come
  * from the Host rather than a client-owned vocabulary. A rejected selection
  * announces through the shared transient Toast anchored to the composer
- * card; the in-menu strip with Retry remains the catalog-load surface. The
- * closed trigger progressively drops effort, ellipsizes the model name, then
- * uses the shared model glyph on narrow composer rows without changing its
- * accessible name or menu behavior.
+ * card; the in-menu strip with Retry remains the catalog-load surface.
  */
 import {
   useEffect, useId, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore,
@@ -23,7 +20,7 @@ import clsx from 'clsx'
 import type { ModelReasoningEffort, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import {
   IconCheckOutline16, IconChevronDownOutline14, IconChevronRightOutline14,
-  IconThinkOutline16, IconWarningOutline16, Toast,
+  IconDataOutline16, IconWarningOutline16, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelSelectInjected } from './slots.ts'
@@ -39,8 +36,8 @@ interface EffortChoice {
   label: string
 }
 
-/** Hidden fixed placement used while the portaled menu measures its real size. */
-const PORTAL_MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+/** Unplaced portal card: hidden but laid out at a fixed origin so offsetWidth/offsetHeight are real (Menu primitive's measure pass). */
+const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
 
 /**
  * Render the composer model seat.
@@ -58,8 +55,6 @@ export function ModelSelect(
   )
   const [open, setOpen] = useState(false)
   const [pane, setPane] = useState<Pane>('root')
-  const [portalMode, setPortalMode] = useState(false)
-  const [portalPosition, setPortalPosition] = useState<CSSProperties | null>(null)
   // The in-menu error strip serves catalog loads (its Retry re-runs the
   // load); a rejected SELECTION announces through the transient toast
   // instead, so the strip renders only while the latest failure-capable
@@ -70,6 +65,7 @@ export function ModelSelect(
   const rootRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
+  const [menuPos, setMenuPos] = useState<CSSProperties | null>(null)
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
   const id = useId()
 
@@ -118,63 +114,39 @@ export function ModelSelect(
   useEffect(() => {
     if (!open) return
     const closeOutside = (event: MouseEvent): void => {
-      const target = event.target as Node
-      if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false)
+      // The portaled card is outside the trigger subtree; check both.
+      if (rootRef.current?.contains(event.target as Node) === true) return
+      if (menuRef.current?.contains(event.target as Node) === true) return
+      setOpen(false)
     }
     document.addEventListener('mousedown', closeOutside)
     return () => { document.removeEventListener('mousedown', closeOutside) }
   }, [open])
 
-  // Use the actual composer width as the primary constraint: a wide desktop
-  // viewport can still have a phone-width conversation column beside panels.
+  // Portaled placement (the Menu primitive's portal rules: fixed from the
+  // anchor rect, measured before paint, clamped inside the viewport): above
+  // the trigger, right edges aligned. Depends on pane and directory state
+  // because pane switches and async catalog loads resize the card.
+  /* jscpd:ignore-start -- deliberate mirror of ui-primitives useAnchoredPosition:
+     that hook only places from the anchor's LEFT edge, while this card aligns
+     right edges (x = rect.right - width), so the measure-and-clamp plumbing repeats. */
   useLayoutEffect(() => {
-    if (!open) {
-      setPortalMode(false)
-      setPortalPosition(null)
-      return
-    }
-    const toolbar = rootRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
-    const query = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 640px)')
-      : undefined
-    const update = (): void => {
-      const width = toolbar?.clientWidth ?? 0
-      setPortalMode((query?.matches ?? window.innerWidth <= 640) || (width > 0 && width <= 420))
-    }
-    update()
-    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
-    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
-    query?.addEventListener('change', update)
-    window.addEventListener('resize', update)
-    return () => {
-      observer?.disconnect()
-      query?.removeEventListener('change', update)
-      window.removeEventListener('resize', update)
-    }
-  }, [open])
-
-  // Keep vertical placement tied to the trigger and horizontal placement tied
-  // to the composer card. This avoids both the trigger-seat clipping and the
-  // large vertical gap caused by using one ancestor for both axes.
-  useLayoutEffect(() => {
-    if (!open || !portalMode) {
-      setPortalPosition(null)
-      return
-    }
+    if (!open) { setMenuPos(null); return }
     const place = (): void => {
-      const trigger = triggerRef.current
-      const menu = menuRef.current
-      const card = rootRef.current?.closest<HTMLElement>('[data-composer-card]')
-      if (trigger === null || menu === null || card === null || card === undefined) return
-      const triggerRect = trigger.getBoundingClientRect()
-      const cardRect = card.getBoundingClientRect()
-      const width = menu.offsetWidth
-      const height = menu.offsetHeight
-      const margin = 12
-      const left = Math.min(Math.max(cardRect.right - width, margin), window.innerWidth - width - margin)
-      const top = Math.max(margin, triggerRect.top - height - 8)
-      setPortalPosition({ left, top })
+      /* v8 ignore next 2 -- the trigger ref is attached whenever the menu is open. */
+      const rect = triggerRef.current?.getBoundingClientRect()
+      if (rect === undefined) return
+      const MARGIN = 12
+      const lw = menuRef.current?.offsetWidth ?? 0
+      const lh = menuRef.current?.offsetHeight ?? 0
+      let x = rect.right - lw
+      let y = rect.top - 8 - lh
+      if (lw > 0) x = Math.min(Math.max(x, MARGIN), window.innerWidth - lw - MARGIN)
+      if (lh > 0) y = Math.min(Math.max(y, MARGIN), window.innerHeight - lh - MARGIN)
+      setMenuPos({ left: x, top: y })
     }
+    // First run measures the hidden pre-render (same commit as `open`), so
+    // the card lands placed before anything paints.
     place()
     window.addEventListener('scroll', place, true)
     window.addEventListener('resize', place)
@@ -182,7 +154,8 @@ export function ModelSelect(
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, pane, portalMode, state.groups.length, state.status, effortChoices.length])
+  }, [open, pane, state])
+  /* jscpd:ignore-end */
 
   if (!available) return null
 
@@ -222,8 +195,10 @@ export function ModelSelect(
   }
 
   const onBlur = (event: FocusEvent<HTMLDivElement>): void => {
-    if (event.relatedTarget instanceof Node
-      && (rootRef.current?.contains(event.relatedTarget) || menuRef.current?.contains(event.relatedTarget))) return
+    if (event.relatedTarget instanceof Node && (
+      rootRef.current?.contains(event.relatedTarget) === true
+      || menuRef.current?.contains(event.relatedTarget) === true
+    )) return
     close()
   }
 
@@ -289,7 +264,6 @@ export function ModelSelect(
         ref={triggerRef}
         type="button"
         className={css.trigger}
-        data-model-trigger
         aria-label={triggerAria}
         aria-haspopup="menu"
         aria-expanded={open}
@@ -304,131 +278,132 @@ export function ModelSelect(
           }
         }}
       >
-        <span className={css.triggerIcon} data-model-trigger-icon aria-hidden><IconThinkOutline16 /></span>
+        <IconDataOutline16 className={css.triggerIcon} size={16} />
         <span className={css.triggerLabel}>{modelLabel}</span>
         {effortLabel !== undefined && <span className={css.triggerEffort}>{effortLabel}</span>}
         <IconChevronDownOutline14 className={clsx(css.chevron, open && css.chevronOpen)} />
       </button>
 
-      {open && (() => {
-        const menu = (
-          <div
-            ref={menuRef}
-            id={`${id}-menu`}
-            className={clsx(css.menu, portalMode && css.portalMenu)}
-            style={portalMode ? portalPosition ?? PORTAL_MEASURE_STYLE : undefined}
-            role="menu"
-            aria-label={t('menu.aria')}
-            aria-busy={state.status === 'loading' || busy}
-          >
-            {pane === 'root' && (
-              <>
-                <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model') }}>
-                  <span className={css.cellLabel}>{t('menu.model')}</span>
-                  <span className={css.cellValue}>{modelLabel}</span>
+      {/* Portaled to body (Menu primitive's portal mode) so the sidebar and
+          column overflow clips cannot crop the card; synthetic events still
+          bubble through this React subtree, keeping onKeyDown/onBlur live. */}
+      {open && createPortal(
+        <div
+          ref={menuRef}
+          id={`${id}-menu`}
+          className={css.menu}
+          style={menuPos ?? MEASURE_STYLE}
+          role="menu"
+          aria-label={t('menu.aria')}
+          aria-busy={state.status === 'loading' || busy}
+        >
+          {pane === 'root' && (
+            <>
+              <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('model') }}>
+                <span className={css.cellLabel}>{t('menu.model')}</span>
+                <span className={css.cellValue}>{modelLabel}</span>
+                <IconChevronRightOutline14 className={css.cellChevron} />
+              </button>
+              {reasoning !== undefined && (
+                <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
+                  <span className={css.cellLabel}>{t('menu.effort')}</span>
+                  <span className={css.cellValue}>{effortLabel}</span>
                   <IconChevronRightOutline14 className={css.cellChevron} />
                 </button>
-                {reasoning !== undefined && (
-                  <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { setPane('effort') }}>
-                    <span className={css.cellLabel}>{t('menu.effort')}</span>
-                    <span className={css.cellValue}>{effortLabel}</span>
-                    <IconChevronRightOutline14 className={css.cellChevron} />
-                  </button>
-                )}
-              </>
-            )}
+              )}
+            </>
+          )}
 
-            {pane === 'model' && (
-              <>
-                {state.status === 'loading' && (
-                  <div className={css.status}>{t('status.loading')}</div>
-                )}
-                {state.error !== null && lastActionRef.current === 'load' && (
-                  <div className={css.error}>
-                    <span>{t('error.action', { message: state.error })}</span>
-                    <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
-                  </div>
-                )}
-                {state.failures.map(failure => (
-                  <div className={css.warning} key={failure.id}>
-                    <span>{t('warning.groupLoad', { name: failure.name, message: failure.message })}</span>
-                    <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
-                  </div>
-                ))}
-                <div className={clsx(css.groups, 'scrollable')}>
-                  {state.groups.map((group) => {
-                    const headingId = `${id}-${group.id}`
-                    return (
-                      <section role="group" aria-labelledby={headingId} className={css.group} key={group.id}>
-                        <div className={css.groupTitle} id={headingId}>{group.name}</div>
-                        {group.models.map((model) => {
-                          const selected = state.current?.provider === group.id && state.current.model === model.id
-                          return (
-                            <button
-                              ref={itemRef()}
-                              type="button"
-                              role="menuitemradio"
-                              aria-checked={selected}
-                              className={clsx(css.option, selected && css.selected)}
-                              key={model.id}
-                              title={model.name}
-                              disabled={busy}
-                              onClick={() => { choose({ provider: group.id, model: model.id }) }}
-                            >
-                              <span className={css.optionCopy}>
-                                <span className={css.modelName}>{model.name}</span>
-                              </span>
-                              <span className={css.check}>
-                                {selected ? <IconCheckOutline16 /> : null}
-                              </span>
-                            </button>
-                          )
-                        })}
-                      </section>
-                    )
-                  })}
+          {pane === 'model' && (
+            <>
+              {state.status === 'loading' && (
+                <div className={css.status}>{t('status.loading')}</div>
+              )}
+              {state.error !== null && lastActionRef.current === 'load' && (
+                <div className={css.error}>
+                  <span>{t('error.action', { message: state.error })}</span>
+                  <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
                 </div>
-                {state.status === 'ready' && choices.length === 0 && (
-                  <div className={css.empty}>{t('empty.models')}</div>
-                )}
-              </>
-            )}
+              )}
+              {state.failures.map(failure => (
+                <div className={css.warning} key={failure.id}>
+                  <span>{t('warning.groupLoad', { name: failure.name, message: failure.message })}</span>
+                  <button type="button" className={css.retry} onClick={reload}>{t('retry')}</button>
+                </div>
+              ))}
+              <div className={clsx(css.groups, 'scrollable')}>
+                {state.groups.map((group) => {
+                  const headingId = `${id}-${group.id}`
+                  return (
+                    <section role="group" aria-labelledby={headingId} className={css.group} key={group.id}>
+                      <div className={css.groupTitle} id={headingId}>{group.name}</div>
+                      {group.models.map((model) => {
+                        const selected = state.current?.provider === group.id && state.current.model === model.id
+                        return (
+                          <button
+                            ref={itemRef()}
+                            type="button"
+                            role="menuitemradio"
+                            aria-checked={selected}
+                            className={clsx(css.option, selected && css.selected)}
+                            key={model.id}
+                            title={model.name}
+                            disabled={busy}
+                            onClick={() => { choose({ provider: group.id, model: model.id }) }}
+                          >
+                            <span className={css.optionCopy}>
+                              <span className={css.modelName}>{model.name}</span>
+                            </span>
+                            <span className={css.check}>
+                              {selected ? <IconCheckOutline16 /> : null}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </section>
+                  )
+                })}
+              </div>
+              {state.status === 'ready' && choices.length === 0 && (
+                <div className={css.empty}>{t('empty.models')}</div>
+              )}
+            </>
+          )}
 
-            {pane === 'effort' && (
-              <>
-                {state.error !== null && lastActionRef.current === 'load' && (
-                  <div className={css.error}>
-                    <span>{t('error.action', { message: state.error })}</span>
-                    <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
-                  </div>
-                )}
-                {effortChoices.length === 0
-                  ? <div className={css.empty}>{t('empty.efforts')}</div>
-                  : effortChoices.map(level => (
-                    <button
-                      ref={itemRef()}
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={effectiveEffort === level.effort}
-                      className={clsx(css.option, effectiveEffort === level.effort && css.selected)}
-                      key={level.key}
-                      disabled={busy}
-                      onClick={() => { chooseEffort(level.effort) }}
-                    >
-                      <span className={css.optionCopy}>
-                        <span className={css.modelName}>{level.label}</span>
-                      </span>
-                      <span className={css.check}>
-                        {effectiveEffort === level.effort ? <IconCheckOutline16 /> : null}
-                      </span>
-                    </button>
-                  ))}
-              </>
-            )}
-          </div>
-        )
-        return portalMode ? createPortal(menu, document.body) : menu
-      })()}
+          {pane === 'effort' && (
+            <>
+              {state.error !== null && lastActionRef.current === 'load' && (
+                <div className={css.error}>
+                  <span>{t('error.action', { message: state.error })}</span>
+                  <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
+                </div>
+              )}
+              {effortChoices.length === 0
+                ? <div className={css.empty}>{t('empty.efforts')}</div>
+                : effortChoices.map(level => (
+                  <button
+                    ref={itemRef()}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={effectiveEffort === level.effort}
+                    className={clsx(css.option, effectiveEffort === level.effort && css.selected)}
+                    key={level.key}
+                    disabled={busy}
+                    onClick={() => { chooseEffort(level.effort) }}
+                  >
+                    <span className={css.optionCopy}>
+                      <span className={css.modelName}>{level.label}</span>
+                    </span>
+                    <span className={css.check}>
+                      {effectiveEffort === level.effort ? <IconCheckOutline16 /> : null}
+                    </span>
+                  </button>
+                ))}
+            </>
+          )}
+        </div>,
+        document.body,
+      )}
       {toast !== null && (
         <Toast
           key={toast.seq}
