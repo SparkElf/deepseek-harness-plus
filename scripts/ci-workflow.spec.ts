@@ -807,6 +807,30 @@ describe('npm release workflows', () => {
   })
 })
 
+describe('Plus product release publication', () => {
+  it('publishes exactly one Windows Desktop installer to an empty product Release', () => {
+    const workflow = loadWorkflow('.github/workflows/sync-desktop-release.yml')
+    const sync = workflowJob(workflow, 'sync')
+    if (!isRecord(workflow.on) || !Array.isArray(sync.steps)) {
+      throw new TypeError('Desktop installer sync must define workflow_dispatch and sync steps')
+    }
+    expect(Object.keys(workflow.on)).toEqual(['workflow_dispatch'])
+
+    const steps = sync.steps.filter(isRecord)
+    const download = steps.find(step => step.name === 'Download the Windows Desktop installer')
+    const emptyRelease = steps.find(step => step.name === 'Require an empty Plus product Release')
+    const upload = steps.find(step => step.name === 'Upload the Windows Desktop installer')
+    const verify = steps.find(step => step.name === 'Verify the published asset inventory')
+    expect(download?.run).toContain('--pattern "*.exe"')
+    expect(download?.run).not.toContain('AppImage')
+    expect(download?.run).not.toContain('*.deb')
+    expect(emptyRelease?.run).toContain('.assets | length')
+    expect(upload?.run).toBe('gh release upload "$PLUS_TAG" desktop-assets/*.exe --repo "$GITHUB_REPOSITORY"')
+    expect(upload?.run).not.toContain('--clobber')
+    expect(verify?.run).toContain('DeepSeek\\.Harness\\.Plus\\.Setup')
+  })
+})
+
 describe('Documentation site publication', () => {
   it('keeps Pages deployment dispatch-only from a dsh-v* tag', () => {
     const workflow = loadWorkflow('.github/workflows/docs-pages.yml')
