@@ -201,7 +201,7 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.9.8',
+    '@changfenhuang/dsh-genui': '0.9.9',
     '@sparkelf/dsh-mineru': '0.1.1',
     '@sparkelf/dsh-officecli': '0.1.1',
     '@sparkelf/dsh-plugin-supervisor': '0.1.4',

@@ -59,7 +59,7 @@
         "@sparkelf/dsh-api-client"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.9.8",
+        "@changfenhuang/dsh-genui": "0.9.9",
         "@sparkelf/dsh-mineru": "0.1.1",
         "@sparkelf/dsh-officecli": "0.1.1",
         "@sparkelf/dsh-plugin-supervisor": "0.1.4",
@@ -121,7 +121,7 @@
     "@deepseek-ai/cordis": ">=4.0.1"
   },
   "devDependencies": {
-    "@changfenhuang/dsh-genui": "0.9.8",
+    "@changfenhuang/dsh-genui": "0.9.9",
     "@deepseek-ai/cordis": "workspace:^",
     "@types/semver": ">=7.7.1"
   },

@@ -65,7 +65,7 @@ minimumReleaseAgeExclude:
   - '@sparkelf/dsh-plugin-supervisor@0.1.4'
   - '@sparkelf/dsh-ssh-manager@0.7.0'
   - '@sparkelf/dsh-workbench-vault@0.1.1'
-  - '@changfenhuang/dsh-genui@0.9.8'
+  - '@changfenhuang/dsh-genui@0.9.9'
   - dshmarket@1.45.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.
