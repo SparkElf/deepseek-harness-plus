@@ -124,7 +124,7 @@ index ffa8c2e1fe..3c3e7729b4 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index 6c71b3b6d6..d1deeab5dd 100644
+index 3a3190416f..49aac02f68 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
 @@ -85,6 +85,7 @@ export const en = {
@@ -133,18 +133,18 @@ index 6c71b3b6d6..d1deeab5dd 100644
    customApiUnset: 'Not selected',
 +  omitReasoningInputStatus: 'Gateway compatibility mode',
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
+   customBaseUrlInvalid: 'Enter a valid HTTP or HTTPS URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
-   customBaseUrlPlaceholder: 'https://gateway.example/v1',
-@@ -191,6 +192,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
+@@ -192,6 +193,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
    customDisplayName: '显示名称',
    customApi: 'API 协议',
    customApiUnset: '未选择',
 +  omitReasoningInputStatus: '中转站兼容模式',
    customNeedsBaseUrl: '自定义提供方需要填写 API 地址。',
+   customBaseUrlInvalid: '请输入有效的 HTTP 或 HTTPS 地址。',
    customNeedsModels: '自定义提供方至少需要一个模型。',
-   customBaseUrlPlaceholder: 'https://gateway.example/v1',
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index 41a2171752..45a2a4f375 100644
+index 8dba978c31..5bd80331c5 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
 @@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
@@ -181,10 +181,10 @@ index 41a2171752..45a2a4f375 100644
      maxRetries: 0,
    }
 diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
-index b50c448af5..41cc3b13d5 100644
+index 2f9e563008..7eda300bad 100644
 --- a/packages/llm/llm-pi-ai/src/config.ts
 +++ b/packages/llm/llm-pi-ai/src/config.ts
-@@ -85,6 +85,12 @@ export type {
+@@ -87,6 +87,12 @@ export type {
    PiAiThinkingFormat,
  } from './catalog.ts'
  
@@ -197,7 +197,7 @@ index b50c448af5..41cc3b13d5 100644
  /** Configuration for one pi-ai provider route; the `providers` dict key IS the route. */
  export interface PiAiProviderProfile {
    /** Credential reference (environment-variable name) resolved per request through `ctx.credentials`. */
-@@ -122,6 +128,8 @@ export interface PiAiProviderProfile {
+@@ -124,6 +130,8 @@ export interface PiAiProviderProfile {
     * refused rather than left looking applied.
     */
    compat?: PiAiCompatProfile
@@ -206,7 +206,7 @@ index b50c448af5..41cc3b13d5 100644
    /**
     * Context capacity for a model this route lists that neither the entry nor
     * the installed catalog sizes (default 262,144). A guess by construction, so
-@@ -315,6 +323,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
+@@ -319,6 +327,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
  /** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
  const modelOverride: z<PiAiModelOverride> = z.object(modelFields)
  
@@ -217,7 +217,7 @@ index b50c448af5..41cc3b13d5 100644
  const profile = z.object({
    apiKeyEnv: z.string().role('credential-ref'),
    displayName: z.string(),
-@@ -323,6 +335,7 @@ const profile = z.object({
+@@ -327,6 +339,7 @@ const profile = z.object({
    models: z.array(modelProfile),
    modelOverrides: z.dict(modelOverride),
    compat: compatProfile,
@@ -225,7 +225,7 @@ index b50c448af5..41cc3b13d5 100644
    defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
    defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
    defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
-@@ -419,6 +432,11 @@ export function resolveProfiles(
+@@ -422,6 +435,11 @@ export function resolveProfiles(
        throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
      }
      assertValidHeaders(provider, source.headers)

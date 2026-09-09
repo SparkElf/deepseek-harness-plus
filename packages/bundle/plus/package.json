@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.1.0-rc.23",
+  "version": "0.1.0-rc.24",
   "publishConfig": {
     "access": "public"
   },
@@ -41,7 +41,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.1.5-alpha.1"
+      "dsh": ">=0.1.5-alpha.2"
     },
     "profile": {
       "bundles": [
@@ -92,30 +92,30 @@
       "@sparkelf/dsh-patch-mobile-journal-generation"
     ],
     "sourceBase": {
-      "revision": "5dda764ed3aa172535a7967b06ff95d9cbfe536a"
+      "revision": "b2e3b2a0125854567a4a5fcba75782e42fe84901"
     }
   },
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
-    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.1.0-rc.23",
+    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.1.0-rc.24",
     "dshmarket": ">=1.45.1",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.1.0-rc.23",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.1.0-rc.24",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-plugin-dataops": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.1.0-rc.23",
-    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.1.0-rc.23"
+    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-plugin-dataops": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.1.0-rc.24",
+    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.1.0-rc.24"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

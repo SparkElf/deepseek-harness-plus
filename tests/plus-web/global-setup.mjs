@@ -26,7 +26,7 @@ const webPort = Number(process.env.DSH_PLUS_TEST_PORT ?? '3081')
 const supervisorPort = Number(process.env.DSH_PLUS_TEST_SUPERVISOR_PORT ?? '3083')
 const baseURL = `http://127.0.0.1:${String(webPort)}`
 const supervisorURL = `http://127.0.0.1:${String(supervisorPort)}`
-const officialRevision = '5dda764ed3aa172535a7967b06ff95d9cbfe536a'
+const officialRevision = 'b2e3b2a0125854567a4a5fcba75782e42fe84901'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -348,10 +348,7 @@ export default async function globalSetup() {
         const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
         return [manifest.name, `file:${archives.get(directory)}`]
       })),
-      '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
-      'dsh-video-preview': '0.1.4',
       ...Object.fromEntries(Object.entries(externalArchives).map(([name, archive]) => [name, `file:${archive}`])),
-      '@sparkelf/dsh-mobile-bridge': '0.2.10',
     }
     writeFileSync(
       join(profileRoot, 'pnpm-workspace.yaml'),

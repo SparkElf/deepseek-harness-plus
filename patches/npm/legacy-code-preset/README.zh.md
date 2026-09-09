@@ -4,6 +4,6 @@
 
 该data-only package让official `code` agent preset改名为`ptc`之前创建的会话仍可恢复。恢复时先解析真实存在的`code` preset；只有`code`不存在时才回退到`ptc`。浏览器把该持久化旧id显示为本地化PTC preset，Session日志保持原样。
 
-target是exact official source revision `5dda764ed3aa172535a7967b06ff95d9cbfe536a`，payload在该source tree build前应用。本package没有JavaScript entry、lifecycle script、Cordis plugin、accepted-fork fallback或alternate variant。
+target是exact official source revision `b2e3b2a0125854567a4a5fcba75782e42fe84901`，payload在该source tree build前应用。本package没有JavaScript entry、lifecycle script、Cordis plugin、accepted-fork fallback或alternate variant。
 
 official DSH提供同等legacy preset解析与显示行为后，retire本package。

@@ -6,4 +6,4 @@
 
 official Models editor只在effective protocol为`openai-responses`的pi-ai routes中显示localized **中转站兼容模式** checkbox。user-layer关闭操作在没有inherited true时删除该leaf；存在inherited true时写入显式false。切换protocol会删除或遮蔽不兼容设置，而不会替换sibling fields。
 
-target是exact official source revision `5dda764ed3aa172535a7967b06ff95d9cbfe536a`。本package没有JavaScript entry、lifecycle script、Cordis plugin、fallback或alternate variant。official DSH提供等价pi-ai Responses input adjustment与Models editor behavior后，retire本package。
+target是exact official source revision `b2e3b2a0125854567a4a5fcba75782e42fe84901`。本package没有JavaScript entry、lifecycle script、Cordis plugin、fallback或alternate variant。official DSH提供等价pi-ai Responses input adjustment与Models editor behavior后，retire本package。
