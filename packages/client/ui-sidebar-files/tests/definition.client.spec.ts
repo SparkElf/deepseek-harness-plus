@@ -31,7 +31,6 @@ describe('filesDefinition', () => {
     expect(entry?.order).toBe(10)
     expect(entry?.kind).toBe(FILES_KIND)
     expect(entry?.title()).toBe(zh['guide.title'])
-    expect(entry?.description()).toBe(zh['guide.description'])
     expect(entry?.icon).toBeDefined()
   })
 

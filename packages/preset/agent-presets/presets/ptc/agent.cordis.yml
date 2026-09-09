@@ -268,3 +268,6 @@
   name: '@deepseek-ai/dsh-agent-tool-presentation'
   config:
     mode: ptc
+
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'

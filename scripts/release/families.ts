@@ -1,8 +1,7 @@
 /**
- * The four independent publish sequences this repository releases from
- * (official `packages/` + `apps/`, Plus packages and patches, `vendor/`, and
- * `native/`) and the three this module owns: `dsh`, `plus`, and `vendor`.
- * Each family carries its own version baseline, tag
+ * The three independent publish sequences this repository releases from
+ * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
+ * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -16,6 +15,7 @@ import {
   officialClientBuildEnvironment,
   readClientBuildRecord,
 } from '../client-build-environment.ts'
+import { PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES } from '../experimental-package-policy.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
 /**
@@ -115,12 +115,6 @@ export abstract class ReleaseFamily {
    */
   verifyBuildArtifacts(_root: string): void {}
 
-  /** Whether this family owns a package selected by its path patterns. */
-  protected ownsPackage(_name: string): boolean { return true }
-
-  /** Whether an owned manifest name belongs to this release authority. */
-  protected acceptsPackageName(name: string): boolean { return name.startsWith('@deepseek-ai/') }
-
   /**
    * Discover this family's members.
    * @param root - repository root.
@@ -139,8 +133,7 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!this.ownsPackage(name)) continue
-      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} names a package outside release family ${this.id}`)
+      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -328,11 +321,13 @@ export abstract class ReleaseFamily {
 
 /** Release packages and apps: one shared version across the whole family. */
 class DshFamily extends ReleaseFamily {
-  readonly id: string = 'dsh'
-  readonly patterns: readonly string[] = ['packages/!(experimental)/*/package.json', 'apps/*/package.json']
-  readonly tagPrefix: string = 'dsh-v'
-
-  protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
+  readonly id = 'dsh'
+  readonly patterns = [
+    'packages/!(experimental)/*/package.json',
+    'apps/*/package.json',
+    ...PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES.map(directory => `${directory}/package.json`),
+  ] as const
+  readonly tagPrefix = 'dsh-v'
 
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
@@ -347,7 +342,7 @@ class DshFamily extends ReleaseFamily {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
       const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
-      throw new Error(`${this.id} release members must share one version:\n${detail}`)
+      throw new Error(`dsh release members must share one version:\n${detail}`)
     }
   }
 
@@ -376,26 +371,7 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry: InstalledEntry | undefined = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
-}
-
-/** Plus-owned npm artifacts share an independent version and tag. */
-class PlusFamily extends DshFamily {
-  override readonly id = 'plus'
-  override readonly patterns = [
-    'packages/!(experimental)/*/package.json',
-    'patches/npm/*/package.json',
-  ] as const
-  override readonly tagPrefix = 'plus-npm-v'
-
-  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
-
-  protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
-
-  /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
-  override verifyBuildArtifacts(): void {}
-
-  override readonly installedEntry = undefined
+  readonly installedEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
 }
 
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
@@ -447,7 +423,7 @@ class VendorFamily extends ReleaseFamily {
 
 /** Every release family this module owns, in workflow order. */
 function releaseFamilies(): readonly ReleaseFamily[] {
-  return [new DshFamily(), new PlusFamily(), new VendorFamily()]
+  return [new DshFamily(), new VendorFamily()]
 }
 
 /**

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/officecli-deliverables/README.md
-README.md: a6dc365e7da5d086cc566b1580c974207f249a5c
-README.zh.md: 883c724da171656cf33e1b7ab26df05d957d545b
+README.md: e29966a8012111fbf68d69656bed05affdc61a39
+README.zh.md: a7037764d8f6030cc0d9f97f032c361264360ab6

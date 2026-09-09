@@ -2,7 +2,7 @@
 /**
  * The guide tab's body: the chain seam, and the shipped guide behind it.
  *
- * The contract a type relies on is the entry box: one per guide entry every
+ * The contract a type relies on is the entry capsule: one per guide entry every
  * registered type contributed, in the registry's order, and picking one opens
  * that type as a page in the guide's own tab. The chain is asserted through
  * what the body hands it — the tab and the shipped guide as the fallback.
@@ -26,13 +26,12 @@ function Glyph({ size }: IconProps): ReactNode {
   return <span data-guide-glyph={size} />
 }
 
-/** One entry box as the registry lists it. */
+/** One entry capsule as the registry lists it. */
 function box(kind: string, order: number, icon?: SidebarRightGuideBox['icon']): SidebarRightGuideBox {
   return {
     kind,
     order,
     title: () => `${kind} title`,
-    description: () => `${kind} description`,
     ...icon === undefined ? {} : { icon },
   }
 }
@@ -49,8 +48,6 @@ function mountGuide(entries: readonly SidebarRightGuideBox[]) {
     useTabInfo: () => ({ tab: { ...TAB, actions: { openResource: vi.fn(), openTab, close: vi.fn() } } }),
     useGuideEntries: bindSnapshotSelector(guideEntries),
     renderSlotChain: renderSlot,
-    // Copy is the dictionary's contract; the key stands in for the translation.
-    t: (key: string) => key,
   } as unknown as GuideBodyProps
   const view = render(<GuideBody {...props} />)
   const boxes = (): string[] =>
@@ -64,13 +61,13 @@ describe('GuideBody', () => {
     expect(renderSlot).toHaveBeenCalledWith('sidebar.right.tab.guide', {}, {
       hookContext: useTabInfo, fallback: expect.anything() as ReactNode,
     })
+    // The guide says nothing of its own: its words are the capsules'.
     const guide = view.container.querySelector('[data-sidebar-right-guide]')
-    expect(guide?.textContent).toContain('guide.lead')
-    expect(guide?.textContent).toContain('guide.body')
-    // One box per entry, in the registry's order, each with its own words; only the first brought a glyph.
+    expect(guide?.textContent).toBe('files titleterminal title')
+    // One capsule per entry, in the registry's order, each with its own title; only the first brought a glyph.
     expect(boxes()).toEqual(['files', 'terminal'])
     const [files, terminal] = [...view.container.querySelectorAll('[data-sidebar-right-guide-entry]')]
-    expect(files?.textContent).toBe('files titlefiles description')
+    expect(files?.textContent).toBe('files title')
     expect(files?.querySelector('[data-guide-glyph]')?.getAttribute('data-guide-glyph')).toBe('16')
     expect(terminal?.querySelector('[data-guide-glyph]')).toBeNull()
     cleanup()
@@ -85,7 +82,7 @@ describe('GuideBody', () => {
     cleanup()
   })
 
-  it('draws the words alone while no type contributed an entry, and follows the registry when one does', () => {
+  it('draws an empty guide while no type contributed an entry, and follows the registry when one does', () => {
     const { view, guideEntries, boxes } = mountGuide([])
     expect(view.container.querySelector('[data-sidebar-right-guide]')).not.toBeNull()
     expect(boxes()).toEqual([])
