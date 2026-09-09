@@ -145,7 +145,7 @@ function packageDirectories() {
 }
 
 function packCandidateArchives(directories) {
-  run('pnpm', ['exec', 'tsx', 'scripts/release/pack.ts', '--family', 'plus', '--out', packagesDir], repoRoot)
+  run('pnpm', ['run', 'release:pack', '--family=plus', '--out=' + packagesDir], repoRoot)
   const archivesByName = new Map()
   for (const file of readdirSync(packagesDir).filter(file => file.endsWith('.tgz')).sort()) {
     const archive = join(packagesDir, file)
@@ -371,13 +371,13 @@ export default async function globalSetup() {
     '@sparkelf/dsh-mobile-bridge': { spec: '0.2.11', version: '0.2.11' },
     '@sparkelf/dsh-plugin-supervisor': { spec: '0.1.4', version: '0.1.4' },
     'dsh-sql-workbench': { spec: '0.5.0', version: '0.5.0' },
-    '@sparkelf/dsh-workbench-vault': { spec: '0.1.1', version: '0.1.1' },
+    '@sparkelf/dsh-workbench-vault': { spec: '0.1.1', version: '0.1.1', bundle: false },
     '@sparkelf/dsh-ssh-manager': { spec: '0.7.0', version: '0.7.0' },
     '@sparkelf/dsh-api-client': { spec: '0.5.0', version: '0.5.0' },
   }
   for (const [packageName, expected] of Object.entries(externalBundles)) {
     if (profileManifest.dependencies?.[packageName] !== expected.spec
-      || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
+      || (expected.bundle !== false && !profileManifest.dsh?.profile?.bundles?.includes(packageName))) {
       throw new Error(`Plus profile did not materialize ${packageName}@${expected.spec}`)
     }
     const installedManifest = JSON.parse(readFileSync(join(profileRoot, 'node_modules', packageName, 'package.json'), 'utf8'))

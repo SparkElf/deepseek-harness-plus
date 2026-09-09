@@ -115,6 +115,9 @@ export abstract class ReleaseFamily {
    */
   verifyBuildArtifacts(_root: string): void {}
 
+  /** Package scope accepted by this release family. */
+  protected acceptsPackageName(name: string): boolean { return name.startsWith('@deepseek-ai/') }
+
   /**
    * Discover this family's members.
    * @param root - repository root.
@@ -133,7 +136,7 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
-      if (!name.startsWith('@deepseek-ai/')) throw new Error(`${normalized} must name an @deepseek-ai package`)
+      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} has a package name outside release family ${this.id}`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -374,6 +377,26 @@ class DshFamily extends ReleaseFamily {
   readonly installedEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
 }
 
+/** Plus-owned npm artifacts share an independent version and tag. */
+class PlusFamily extends DshFamily {
+  override readonly id = 'plus'
+  override readonly patterns = [
+    'packages/plus/*/package.json',
+    'packages/bundle/plus/package.json',
+    'patches/npm/*/package.json',
+  ] as const
+  override readonly tagPrefix = 'plus-npm-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
+
+  /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
+  override verifyBuildArtifacts(): void {}
+
+  override readonly installedEntry = undefined
+}
+
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */
 class VendorFamily extends ReleaseFamily {
   readonly id = 'vendor'
@@ -423,7 +446,7 @@ class VendorFamily extends ReleaseFamily {
 
 /** Every release family this module owns, in workflow order. */
 function releaseFamilies(): readonly ReleaseFamily[] {
-  return [new DshFamily(), new VendorFamily()]
+  return [new DshFamily(), new PlusFamily(), new VendorFamily()]
 }
 
 /**
