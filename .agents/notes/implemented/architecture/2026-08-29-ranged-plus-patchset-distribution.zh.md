@@ -14,7 +14,7 @@ Plus使用四种delivery form。完整capability是包含所需全部Host与Clie
 
 rc.23 distribution以official DSH 0.1.5-alpha.1 revision 5dda764ed3aa172535a7967b06ff95d9cbfe536a为target。dsh-plus apply要求该exact checkout，在isolated Git index中验证全部source patch，安装profile dependencies，应用pending payload，构建official source，把official workspace packages链接到profile，并写credential-free .dsh-plus/patchset.lock.json。
 
-Profile installation不自动安装official peer packages，因为selected source checkout提供这些package。Reviewed SparkElf release assets同时是direct dependencies与authoritative pnpm overrides，使transitive references解析到同一tarball；profile允许这些已声明exotic subdependencies，不允许unowned URL。Production upgrade policy为accepted profile与candidate之间每个runtime file变化记录fingerprint。
+Profile installation不自动安装official peer packages，因为selected source checkout提供这些package。普通Plus capability package（包括SQL Workbench 0.5.0）从npm解析；profile不再包含普通GitHub tarball closure或source-owned package override。Production upgrade policy为accepted profile与candidate之间每个runtime file变化记录fingerprint。
 
 ## Official ownership and patch retirement
 
@@ -38,4 +38,4 @@ Plus升级需要exact official revision与fresh profile证明。未发布npm的e
 
 ## Verification
 
-Candidate verification从exact official checkout开始，在没有historical cache ownership的情况下安装rc.23 profile，运行explicit apply，完成official Host/Client/Web build，并验证生成的production profile policy。既有Plus Playwright suite通过真实browser验收official Sidebar与Session search、Backup、Subagent Settings、OfficeCLI、MinerU、DataOps、market与Supervisor integrations、Session export placement及composer Permission/Model boundaries。Platform CI负责Windows、Linux与macOS package behavior；Desktop只打包需要编译环境的native dependency。
+Candidate verification从exact official checkout开始，在没有historical cache ownership的情况下安装rc.23 profile，运行explicit apply，完成official Host/Client/Web build，并验证生成的production profile policy。每次profile修改后都必须重新打包distribution，并在clean checkout重新运行apply；安装失败后的重试必须重新执行幂等pnpm install，不能因为requirements未变而跳过恢复。源码同步使用完整文件读取或Git index校验，禁止用截断输出覆盖源码；clean build aggregate必须显式引用每个有clientBundle配置的Plus package。既有Plus Playwright suite通过真实browser验收official Sidebar与Session search、Backup、Subagent Settings、OfficeCLI、MinerU、DataOps、market与Supervisor integrations、Session export placement及composer Permission/Model boundaries。Platform CI负责Windows、Linux与macOS package behavior；Desktop只打包需要编译环境的native dependency。
