@@ -127,13 +127,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       scope: 'session'
       owner: ConversationHeaderLineageOwnerProps
     }
-    /** Immutable Session context kept beside the title on every layout. */
-    'conversation.session.header.context': {
-      kind: 'list'
-      scope: 'session'
-      owner: ConversationHeaderActionOwnerProps
-    }
-    /** Title-adjacent desktop actions; mobile layouts place them beside the View tabs. */
+    /** Title-adjacent Session actions in ascending order. */
     'conversation.session.header.actions': {
       kind: 'list'
       scope: 'session'
@@ -165,10 +159,6 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'conversation.hero.workspace': { kind: 'single'; scope: 'root'; owner: EmptyWorkspaceOwnerProps }
     /** Brand mark shown before the blank-session headline. */
     'conversation.hero.brand.mark': { kind: 'single'; scope: 'root'; owner: HeroBrandMarkOwnerProps }
-    /** Optional brand-name artwork replacing the blank-session headline text. */
-    'conversation.hero.brand.name': { kind: 'single'; scope: 'root' }
-    /** Optional replacement for the blank-session brand-adjacent badge. */
-    'conversation.hero.brand.badge': { kind: 'single'; scope: 'root' }
     /** Agent-preset control staged for a New Session. */
     'conversation.hero.agentPreset': { kind: 'single'; scope: 'root'; owner: HeroAgentPresetOwnerProps }
     /** Full-width entries above the composer card. */
@@ -379,7 +369,7 @@ export type ConversationSlotProps =
     | 'conversation.session' | 'conversation.session.header'
     | 'conversation.composer' | 'conversation.composer.bar'
     | 'conversation.input.dock'
-    | 'conversation.hero.brand.mark' | 'conversation.hero.brand.name' | 'conversation.hero.brand.badge'
+    | 'conversation.hero.brand.mark'
     | 'conversation.hero.workspace'
     | 'conversation.hero.agentPreset'
   >
@@ -401,7 +391,6 @@ export type ConversationSessionHeaderSlotProps =
   PropsRuntime<'conversation.session.header'>
   & PropsRenderSlots<
     'conversation.session.header.lineage'
-    | 'conversation.session.header.context'
     | 'conversation.session.header.actions'
     | 'conversation.session.header.utilities'
     | 'conversation.session.header.corner'

@@ -34,7 +34,7 @@ export type AppFrameProps =
 
 /** Center column grid item (session-body building block). */
 function CenterColumn(props: { children?: ReactNode }) {
-  return <div className={css.centerCol}>{props.children}</div>
+  return <div className={css.centerCol} data-dsh-center-col>{props.children}</div>
 }
 
 /**

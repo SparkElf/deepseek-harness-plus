@@ -41,10 +41,10 @@ index 20a428fee6..a7cc973d9e 100644
        "type": "image/svg+xml",
        "purpose": "any"
 diff --git a/packages/bundle/web-app/cordis.patch.yml b/packages/bundle/web-app/cordis.patch.yml
-index ee0217066d..84a75967f3 100644
+index 346abe5347..62b69153d1 100644
 --- a/packages/bundle/web-app/cordis.patch.yml
 +++ b/packages/bundle/web-app/cordis.patch.yml
-@@ -119,6 +119,7 @@
+@@ -138,6 +138,7 @@
        config:
          host: !!js ctx.webStartup.host ?? '127.0.0.1'
          port: !!js ctx.webStartup.port ?? 3080
@@ -53,10 +53,10 @@ index ee0217066d..84a75967f3 100644
          compressionLevel: 1
          compressionThresholdBytes: 1024
 diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
-index 4f0367a44f..32123ddf2c 100644
+index 63edf46529..dab7e416b5 100644
 --- a/packages/bundle/web-app/src/index.ts
 +++ b/packages/bundle/web-app/src/index.ts
-@@ -156,9 +156,9 @@ function webSurfacePrompt(webUrl: string): string {
+@@ -147,9 +147,9 @@ function webSurfacePrompt(webUrl: string): string {
  
  /** Resolve the canonical loopback URL from the active Web server. */
  function localWebUrl(ctx: Context): string {
@@ -69,7 +69,7 @@ index 4f0367a44f..32123ddf2c 100644
  }
  
  /**
-@@ -274,7 +274,7 @@ export function apply(ctx: Context, config: Config): void {
+@@ -265,7 +265,7 @@ export function apply(ctx: Context, config: Config): void {
          const port = connectionCtx.webServer.port
          const lanUrl = lanCandidate === undefined
            ? undefined
@@ -197,7 +197,7 @@ index 3d218f31e6..4f717338a7 100644
    ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
      // Non-GET/HEAD without a matching named route is 405 (fallback-only
 diff --git a/packages/host/webserver/src/index.ts b/packages/host/webserver/src/index.ts
-index bc41100de9..205f170baa 100644
+index bc41100de9..cfcb667bb4 100644
 --- a/packages/host/webserver/src/index.ts
 +++ b/packages/host/webserver/src/index.ts
 @@ -61,6 +61,8 @@ export interface Config {
@@ -209,11 +209,15 @@ index bc41100de9..205f170baa 100644
    /** Response compression for socket-backed HTTP requests. @default 'none' */
    compression?: 'none' | 'gzip'
    /** Gzip DEFLATE level from 0 through 9. @default 1 */
-@@ -69,6 +71,20 @@ export interface Config {
+@@ -69,6 +71,24 @@ export interface Config {
    compressionThresholdBytes?: number
  }
  
-+/** Validate and canonicalize the external reverse-proxy mount prefix. */
++/**
++ * Validate and canonicalize the external reverse-proxy mount prefix.
++ * @param value - configured external URL prefix.
++ * @returns the empty root prefix or one absolute path without a trailing slash.
++ */
 +export function normalizeWebBasePath(value: string | undefined): string {
 +  const candidate = value?.trim() ?? ''
 +  if (candidate === '' || candidate === '/') return ''
@@ -230,7 +234,7 @@ index bc41100de9..205f170baa 100644
  const DEFAULT_COMPRESSION = 'none' as const
  const DEFAULT_COMPRESSION_LEVEL = 1
  const DEFAULT_COMPRESSION_THRESHOLD_BYTES = 1024
-@@ -125,6 +141,7 @@ export class WebServer extends Service {
+@@ -125,6 +145,7 @@ export class WebServer extends Service {
    static Config: z<Config> = z.object({
      host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
      port: z.natural().max(65535).required(),
@@ -238,7 +242,7 @@ index bc41100de9..205f170baa 100644
      compression: z.union([z.const('none'), z.const('gzip')]).default(DEFAULT_COMPRESSION),
      compressionLevel: z.number().step(1).min(0).max(9).default(DEFAULT_COMPRESSION_LEVEL),
      compressionThresholdBytes: z.natural().default(DEFAULT_COMPRESSION_THRESHOLD_BYTES),
-@@ -138,11 +155,13 @@ export class WebServer extends Service {
+@@ -138,11 +159,13 @@ export class WebServer extends Service {
    private fallback: WebRoute['handler'] | undefined
    private server!: Server
    private listenedPort!: number
@@ -252,7 +256,7 @@ index bc41100de9..205f170baa 100644
      this.gzip = resolved.compression === 'gzip' ? createGzipMiddleware(resolved) : undefined
    }
  
-@@ -156,6 +175,11 @@ export class WebServer extends Service {
+@@ -156,6 +179,11 @@ export class WebServer extends Service {
      return this.config.host
    }
  
@@ -264,7 +268,7 @@ index bc41100de9..205f170baa 100644
    /**
     * Register a named route. Duplicate (kind, path) throws — route patterns are
     * a composition-level contract, so a collision is a misconfiguration.
-@@ -240,6 +264,13 @@ export class WebServer extends Service {
+@@ -240,6 +268,13 @@ export class WebServer extends Service {
      // client dropping mid-body). Per-request failures log and answer 400 —
      // never a process exit.
      this.server = createServer((req, res) => {
@@ -278,7 +282,7 @@ index bc41100de9..205f170baa 100644
        const next = (): void => {
          void handle(req, res).catch((err: unknown) => {
            this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
-@@ -266,8 +297,13 @@ export class WebServer extends Service {
+@@ -266,8 +301,13 @@ export class WebServer extends Service {
        })
        let route: WebUpgradeRoute | undefined
        try {
@@ -294,7 +298,7 @@ index bc41100de9..205f170baa 100644
        } catch (error) {
          this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
          socket.destroy()
-@@ -314,6 +350,16 @@ export class WebServer extends Service {
+@@ -314,6 +354,16 @@ export class WebServer extends Service {
      }, 'webServer.listen')
    }
  

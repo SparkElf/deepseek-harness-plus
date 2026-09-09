@@ -1,0 +1,41 @@
+# Agent Note：功能等价的Plus npm发行层
+
+Status: implemented
+
+[English](2026-08-29-ranged-plus-patchset-distribution.md) | 中文
+
+## Problem
+
+DeepSeek Harness Plus组合official DSH、selected external plugins、product defaults与temporary repairs。Fork commit集合或settings-only package无法复原该产品，也可能在official DSH接管功能后继续保留重复实现。Official DSH必须保持唯一source base，每个accepted difference必须有一个current owner与retirement condition。
+
+## Decision
+
+Plus使用四种delivery form。完整capability是包含所需全部Host与Client role的npm-installable Cordis plugin。可选out-of-process application消费这些capability，但不进入DSH process。@sparkelf/dsh-plus拥有dependency closure、ordered profile composition、defaults、exact source compatibility及independent patch package references。经过证明的official或external gap成为一个data-only patch package，只有一个exact payload variant，不包含JavaScript entry、lifecycle hook、Cordis plugin、fuzzy fallback或compatibility adapter。
+
+rc.23 distribution以official DSH 0.1.5-alpha.1 revision 5dda764ed3aa172535a7967b06ff95d9cbfe536a为target。dsh-plus apply要求该exact checkout，在isolated Git index中验证全部source patch，安装profile dependencies，应用pending payload，构建official source，把official workspace packages链接到profile，并写credential-free .dsh-plus/patchset.lock.json。
+
+Profile installation不自动安装official peer packages，因为selected source checkout提供这些package。Reviewed SparkElf release assets同时是direct dependencies与authoritative pnpm overrides，使transitive references解析到同一tarball；profile允许这些已声明exotic subdependencies，不允许unowned URL。Production upgrade policy为accepted profile与candidate之间每个runtime file变化记录fingerprint。
+
+## Official ownership and patch retirement
+
+Official DSH拥有Sidebar navigation、file与text preview、Session search、responsive columns、Settings chrome及Composer结构。Plus不携带Better Sidebar、旧Sidebar Office viewer、video-preview bundle、重复Session-search实现或宽泛mobile-layout patch。聚焦的composer-boundary patch只修改center-column标记与Permission/Model portal定位，并在其upstream贡献发布后retire。
+
+Package manifest是当前plugin与patch inventory。每次review删除重复official behavior或没有accepted Plus workflow的package、patch hunk、profile row、test或document。Patch可以增加、修改或删除target package source；其单位是一个behavior与retirement lifecycle，而不是diff方向或大小。
+
+## Alternatives considered
+
+**把selected fork commits作为产品。** 拒绝，因为fork会成为隐式第二source base，deployment closure无法识别已retire behavior。
+
+**保留宽泛patch并机械修复冲突。** 拒绝，因为clean apply不能证明owner没有重复。DSH 0.1.5迁移直接删除旧Sidebar、Session-search及mobile-layout实现，而不是rebase它们。
+
+**把全部patch放入distribution package。** 拒绝，因为无关repair会共享同一个release与retirement lifecycle。
+
+**让Desktop持有materialization。** 拒绝，因为npm/profile路径是产品合同；Desktop只是可选installer，并且只打包否则需要用户编译环境的native dependency。
+
+## Consequences
+
+Plus升级需要exact official revision与fresh profile证明。未发布npm的external package保持为固定reviewed release asset。Official升级可能改变数百个package fingerprint，因此promotion policy从真实baseline与candidate profile生成，不复制旧policy。删除冗余plugin会缩小dependency graph，并把official UI extension points留给新的focused plugin。
+
+## Verification
+
+Candidate verification从exact official checkout开始，在没有historical cache ownership的情况下安装rc.23 profile，运行explicit apply，完成official Host/Client/Web build，并验证生成的production profile policy。既有Plus Playwright suite通过真实browser验收official Sidebar与Session search、Backup、Subagent Settings、OfficeCLI、MinerU、DataOps、market与Supervisor integrations、Session export placement及composer Permission/Model boundaries。Platform CI负责Windows、Linux与macOS package behavior；Desktop只打包需要编译环境的native dependency。

@@ -12,7 +12,7 @@ Composer的permission与model menu把trigger和browser viewport作为水平定�
 
 Portaled composer menu使用带`data-dsh-center-col`标记的center column作为可选horizontal placement limit。`Menu`与`useAnchoredPosition`将该element rectangle与viewport取交集，在两个水平边缘各保留12px，把measured menu钳制到剩余区间，并把该区间作为menu maximum width。`Menu`还会在必要时降低design minimum width。Permission与model menu始终使用fixed body portal；compact mode只控制dimensions，不决定是否启用collision handling。
 
-未提供horizontal limit时，shared primitives继续使用viewport placement，包括[feedback popover decision](2026-08-13-feedback-note-editor-popover.zh.md)描述的feedback editor behavior。`ResizeObserver`跟踪已提供的limit，因此sidebar或column width变化会重新定位open menu，无需等待window resize。
+未提供horizontal limit时，shared primitives继续使用viewport placement，包括[feedback popover decision](../../archived/bug-fix/2026-08-13-feedback-note-editor-popover.md)描述的feedback editor behavior。`ResizeObserver`跟踪已提供的limit，因此sidebar或column width变化会重新定位open menu，无需等待window resize。
 
 Plus mobile Web source patch拥有相对official revision `d347e703908d0406b7a7ef80e3a0e594d86b2215`所需的`ui-primitives`、`ui-conversation`与`ui-model-selection`改动。
 

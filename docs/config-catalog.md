@@ -357,6 +357,8 @@ export interface ConnectionConfig {
    * bind. An entry that is not a bare, canonical authority fails plugin load.
    */
   trustedHosts?: string[]
+  /** Host API browser identity policy; Host/Origin trust remains independent. Default: `required`. */
+  browserAuthentication?: 'required' | 'disabled'
   /** Absolute browser-session lifetime in days. Default: 30. */
   cookieMaxAgeDays?: number
   /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
@@ -961,6 +963,8 @@ export interface Config {
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /** External URL prefix; empty means site root, otherwise an absolute path without a trailing slash. */
+  basePath?: string
   /** Response compression for socket-backed HTTP requests. @default 'none' */
   compression?: 'none' | 'gzip'
   /** Gzip DEFLATE level from 0 through 9. @default 1 */
@@ -1148,6 +1152,8 @@ export interface PiAiProviderProfile {
    * refused rather than left looking applied.
    */
   compat?: PiAiCompatProfile
+  /** OpenAI Responses input-item adjustments for compatible gateways. */
+  responsesCompatibility?: PiAiResponsesCompatibility
   /**
    * Context capacity for a model this route lists that neither the entry nor
    * the installed catalog sizes (default 262,144). A guess by construction, so
@@ -1345,6 +1351,12 @@ export interface PiAiCompatProfile {
   supportsStrictTools?: boolean
 }
 
+/** OpenAI Responses input-item adjustments for compatible gateways. */
+export interface PiAiResponsesCompatibility {
+  /** Omit response-only status metadata from replayed reasoning input items. */
+  omitReasoningInputStatus?: boolean
+}
+
 /** One request modality a pi-ai model may accept. */
 export type PiAiModality = Model<Api>['input'][number]
 
@@ -1367,7 +1379,7 @@ export type PiAiThinkingTokenBudgetField = NonNullable<OpenAICompletionsCompat['
 
 Depends on: `Api` (`@earendil-works/pi-ai`) · `CacheRetention` (`@earendil-works/pi-ai`) · `Model` (`@earendil-works/pi-ai`) · `ModelThinkingLevel` (`@earendil-works/pi-ai`) · `OpenAICompletionsCompat` (`@earendil-works/pi-ai`) · [`RetryPolicyConfig`](../packages/llm/llm/src/index.ts) · `ThinkingBudgets` (`@earendil-works/pi-ai`) · `Transport` (`@earendil-works/pi-ai`)
 
-Source: [`packages/llm/llm-pi-ai/src/config.ts:217`](../packages/llm/llm-pi-ai/src/config.ts)
+Source: [`packages/llm/llm-pi-ai/src/config.ts:225`](../packages/llm/llm-pi-ai/src/config.ts)
 
 <a id="deepseek-aidsh-llm-replay"></a>
 

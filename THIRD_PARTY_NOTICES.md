@@ -149,7 +149,6 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`@braintree/sanitize-url`](https://github.com/braintree/sanitize-url) | MIT |
 | [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@electron/notarize`](https://github.com/electron/notarize) | MIT |
-| [`@huanlin/dsh-plugin-better-sidebar-plugin-office`](https://github.com/HuanLinOTO/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
 | [`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
@@ -182,8 +181,6 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`cytoscape-cose-bilkent`](https://github.com/cytoscape/cytoscape.js-cose-bilkent) | MIT |
 | [`dayjs`](https://github.com/iamkun/dayjs) | MIT |
 | [`debug`](https://github.com/debug-js/debug) | MIT |
-| [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
-| [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`electron`](https://github.com/electron/electron) | MIT |
 | [`electron-builder`](https://github.com/electron-userland/electron-builder) | MIT |
 | [`esbuild`](https://github.com/evanw/esbuild) | MIT |
@@ -215,7 +212,7 @@ External packages **directly declared** only by repository tooling, test infrast
 | [`vitepress-plugin-mermaid`](https://github.com/emersonbottero/vitepress-plugin-mermaid) | MIT |
 | [`vitest`](https://github.com/vitest-dev/vitest) | MIT |
 
-`@huanlin/dsh-plugin-better-sidebar-plugin-office` (AGPL-3.0), `eslint-plugin-sonarjs` (LGPL-3.0-only) and `lightningcss` (MPL-2.0) run only as development tooling; their code is not linked into or distributed with any DeepSeek Harness artifact.
+`eslint-plugin-sonarjs` (LGPL-3.0-only) and `lightningcss` (MPL-2.0) run only as development tooling; their code is not linked into or distributed with any DeepSeek Harness artifact.
 
 ## Python SDK dependencies (`python/`)
 

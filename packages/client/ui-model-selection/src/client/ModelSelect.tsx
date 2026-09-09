@@ -137,13 +137,22 @@ export function ModelSelect(
       const rect = triggerRef.current?.getBoundingClientRect()
       if (rect === undefined) return
       const MARGIN = 12
+      const boundary = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]')?.getBoundingClientRect()
+      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
+      const maxX = Math.min(window.innerWidth - MARGIN, (boundary?.right ?? window.innerWidth) - MARGIN)
+      const availableWidth = Math.max(0, maxX - minX)
       const lw = menuRef.current?.offsetWidth ?? 0
+      const placedWidth = boundary === undefined ? lw : Math.min(lw, availableWidth)
       const lh = menuRef.current?.offsetHeight ?? 0
-      let x = rect.right - lw
+      let x = rect.right - placedWidth
       let y = rect.top - 8 - lh
-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), window.innerWidth - lw - MARGIN)
+      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
       if (lh > 0) y = Math.min(Math.max(y, MARGIN), window.innerHeight - lh - MARGIN)
-      setMenuPos({ left: x, top: y })
+      setMenuPos({
+        left: x,
+        top: y,
+        ...boundary === undefined ? {} : { minWidth: Math.min(264, availableWidth), maxWidth: availableWidth },
+      })
     }
     // First run measures the hidden pre-render (same commit as `open`), so
     // the card lands placed before anything paints.

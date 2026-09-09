@@ -58,7 +58,7 @@ Connecting, disconnecting, or MCP discovery changes can alter the tool-schema pr
 
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
-- `src/index.ts` owns authorization, credentials, access expiry, and MCP child lifecycle. `src/client/store.ts` and `src/client/controller.ts` own shared browser status and OAuth lifecycle; `src/client/DataOpsExpiryModal.tsx` contributes the shell prompt and `src/client/DataOpsSection.tsx` contributes Settings. The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records the package boundary.
+- `src/index.ts` owns authorization, credentials, access expiry, and MCP child lifecycle. `src/client/store.ts` and `src/client/controller.ts` own shared browser status and OAuth lifecycle; `src/client/DataOpsExpiryModal.tsx` contributes the shell prompt and `src/client/DataOpsSection.tsx` contributes Settings. The [distribution Agent Note](../../../.agents/notes/implemented/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records the package boundary.
 - No runtime invariant companion is published because authorization and MCP child lifecycle are observed by their owning services; DataOps keeps no independent projection of those relationships.
 
 </details>

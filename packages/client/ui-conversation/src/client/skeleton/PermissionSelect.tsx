@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import clsx from 'clsx'
 import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
@@ -88,31 +88,8 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
   const [open, setOpen] = useState(false)
   const [confirmation, setConfirmation] = useState<string | null>(null)
   const [acknowledged, setAcknowledged] = useState(false)
-  const [compactMenu, setCompactMenu] = useState(() => typeof window.matchMedia === 'function'
-    ? window.matchMedia('(max-width: 800px)').matches
-    : window.innerWidth <= 800)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
-
-  useLayoutEffect(() => {
-    const toolbar = triggerRef.current?.closest<HTMLElement>('[data-composer-toolbar]')
-    const query = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(max-width: 800px)')
-      : undefined
-    const update = (): void => {
-      const width = toolbar?.clientWidth ?? 0
-      setCompactMenu((query?.matches ?? window.innerWidth <= 800) || (width > 0 && width <= 460))
-    }
-    update()
-    const observer = typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(update)
-    if (toolbar !== undefined && toolbar !== null) observer?.observe(toolbar)
-    query?.addEventListener('change', update)
-    window.addEventListener('resize', update)
-    return () => {
-      observer?.disconnect()
-      query?.removeEventListener('change', update)
-      window.removeEventListener('resize', update)
-    }
-  }, [])
+  const boundaryRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (!locked && value !== undefined) return
@@ -180,15 +157,16 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
         onSelect={choose}
         onClose={() => { setOpen(false) }}
         side="top"
-        align={compactMenu ? 'end' : 'start'}
-        portal={compactMenu}
-        compact={compactMenu}
+        portal
+        boundaryRef={boundaryRef}
         anchor={
           <button
-            ref={triggerRef}
+            ref={(node) => {
+              triggerRef.current = node
+              boundaryRef.current = node?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
+            }}
             type="button"
             className={css.trigger}
-            data-permission-trigger
             aria-label={t('input.accessMode', { name: currentLabel })}
             title={current?.description}
             disabled={locked || busy}

@@ -1,0 +1,343 @@
+diff --git a/apps/web/tests/access-confirmation.e2e.ts b/apps/web/tests/access-confirmation.e2e.ts
+index cd64d98110..f513b1114a 100644
+--- a/apps/web/tests/access-confirmation.e2e.ts
++++ b/apps/web/tests/access-confirmation.e2e.ts
+@@ -53,6 +53,12 @@ describe('web e2e: Full access confirmation', () => {
+     expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
+ 
+     await access.click()
++    const permissionMenu = await page.getByRole('menu').boundingBox()
++    const permissionCenter = await page.locator('[data-dsh-center-col]').boundingBox()
++    expect(permissionMenu).not.toBeNull()
++    expect(permissionCenter).not.toBeNull()
++    expect(permissionMenu!.x).toBeGreaterThanOrEqual(permissionCenter!.x + 11)
++    expect(permissionMenu!.x + permissionMenu!.width).toBeLessThanOrEqual(permissionCenter!.x + permissionCenter!.width - 11)
+     await page.getByRole('menuitem', { name: '完全权限' }).click()
+     const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
+     await dialog.waitFor({ timeout: 10_000 })
+diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
+index 304bdb97f6..0e820ee757 100644
+--- a/apps/web/tests/default-model.e2e.ts
++++ b/apps/web/tests/default-model.e2e.ts
+@@ -105,6 +105,12 @@ describe('web e2e: the composer model switch is the default for later sessions',
+     const trigger = page.getByRole('button', { name: /^选择模型/ })
+     await trigger.waitFor({ timeout: 15_000 })
+     await trigger.click()
++    const modelMenu = await page.getByRole('menu').boundingBox()
++    const modelCenter = await page.locator('[data-dsh-center-col]').boundingBox()
++    expect(modelMenu).not.toBeNull()
++    expect(modelCenter).not.toBeNull()
++    expect(modelMenu!.x).toBeGreaterThanOrEqual(modelCenter!.x + 11)
++    expect(modelMenu!.x + modelMenu!.width).toBeLessThanOrEqual(modelCenter!.x + modelCenter!.width - 11)
+     await page.getByRole('menuitem', { name: /模型/ }).click()
+     await page.getByRole('menuitemradio', { name: 'Acme Large' }).click()
+ 
+diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
+index b54049efef..6eed9180c0 100644
+--- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
+@@ -1,4 +1,4 @@
+-import { useEffect, useState } from 'react'
++import { useEffect, useRef, useState } from 'react'
+ import type { ReactNode } from 'react'
+ import clsx from 'clsx'
+ import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
+@@ -88,6 +88,8 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+   const [open, setOpen] = useState(false)
+   const [confirmation, setConfirmation] = useState<string | null>(null)
+   const [acknowledged, setAcknowledged] = useState(false)
++  const triggerRef = useRef<HTMLButtonElement | null>(null)
++  const boundaryRef = useRef<HTMLElement | null>(null)
+ 
+   useEffect(() => {
+     if (!locked && value !== undefined) return
+@@ -155,8 +157,14 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+         onSelect={choose}
+         onClose={() => { setOpen(false) }}
+         side="top"
++        portal
++        boundaryRef={boundaryRef}
+         anchor={
+           <button
++            ref={(node) => {
++              triggerRef.current = node
++              boundaryRef.current = node?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
++            }}
+             type="button"
+             className={css.trigger}
+             aria-label={t('input.accessMode', { name: currentLabel })}
+diff --git a/packages/client/ui-layout/README.i18n.yaml b/packages/client/ui-layout/README.i18n.yaml
+index eb1cbebbee..7681b599ee 100644
+--- a/packages/client/ui-layout/README.i18n.yaml
++++ b/packages/client/ui-layout/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-layout/README.md
+-README.md: 0e353e21f39ba8a84e661f1c540db2c2424bcbfa
+-README.zh.md: 16471fdabb46bbfb35158ef85aa2544db4ceae93
++README.md: 7f0d976c91df68af6d49fe7628fa244bd6366e4a
++README.zh.md: 26a6b4832398ac1b5a9cb02a9e3f979438aca3a6
+diff --git a/packages/client/ui-layout/README.md b/packages/client/ui-layout/README.md
+index 0e353e21f3..7f0d976c91 100644
+--- a/packages/client/ui-layout/README.md
++++ b/packages/client/ui-layout/README.md
+@@ -39,7 +39,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
+ <details>
+ <summary>Implementation internals — click to expand</summary>
+ 
+-One registration declares four child slots and binds `ctx.layout` methods `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. The store owns the single frame-width measurement, width preferences, and the occupant's presentation report. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame always mounts the conversation and right columns; a connected Session renders through `SessionProvider`, and without one the right column is an empty zero-width track. It projects the selected Session title over the build-configured product title or the localized `common.brand.localBuild` fallback, so locale revisions update document metadata with the root entry. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
++One registration declares four child slots and binds `ctx.layout` methods `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. The store owns the single frame-width measurement, width preferences, and the occupant's presentation report. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame always mounts the conversation and right columns; the center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds; a connected Session renders through `SessionProvider`, and without one the right column is an empty zero-width track. It projects the selected Session title over the build-configured product title or the localized `common.brand.localBuild` fallback, so locale revisions update document metadata with the root entry. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
+ 
+ </details>
+ 
+diff --git a/packages/client/ui-layout/README.zh.md b/packages/client/ui-layout/README.zh.md
+index 16471fdabb..26a6b48323 100644
+--- a/packages/client/ui-layout/README.zh.md
++++ b/packages/client/ui-layout/README.zh.md
+@@ -39,7 +39,7 @@ kind: "package-reference"
+ <details>
+ <summary>实现细节——点击展开</summary>
+ 
+-一次注册声明四个子slot并绑定 `ctx.layout` 的 `toggleSidebar`、`openRightbar(track, fullscreen)` 与 `closeRightbar`。store持有唯一的frame宽度测量、左右栏偏好及占用方报告的呈现状态。`rightbar` 的owner参数为实际 `width`、`viewportWidth` 与普通呈现的 `canShow`；占用方在空间不足时执行确定性的收起，变宽不自行重新展开。全屏隐藏宽度手柄，但不自行释放占用方要求保留的轨道。AppFrame 始终挂载会话与右栏；已连接 Session 经 `SessionProvider` 渲染，没有 Session 时右栏是一条空的零宽轨道。它把所选 Session 标题投影到构建配置的产品标题或本地化 `common.brand.localBuild` 回退值之上，因此 locale revision 会随根 entry 一起更新文档元数据。主题呈现器是第二个 effect：从解析后的快照做纯 DOM 写入——初始状态经 getter 读取一次，此后仅事件驱动，不经过 React。它先应用调色板、字号与 token 变量，再把渲染出的背景测量为唯一的颜色依据。 全屏呈现禁用网格和手柄过渡；占用方完全覆盖框架后才报告新的列宽。 退出全屏时，框架先保持无过渡并安装目标布局：关闭移除右轨道，恢复保留右轨道。后续普通几何操作恢复正常过渡。
++一次注册声明四个子slot并绑定 `ctx.layout` 的 `toggleSidebar`、`openRightbar(track, fullscreen)` 与 `closeRightbar`。store持有唯一的frame宽度测量、左右栏偏好及占用方报告的呈现状态。`rightbar` 的owner参数为实际 `width`、`viewportWidth` 与普通呈现的 `canShow`；占用方在空间不足时执行确定性的收起，变宽不自行重新展开。全屏隐藏宽度手柄，但不自行释放占用方要求保留的轨道。AppFrame 始终挂载会话与右栏；center column标记其DOM owner，使portal composer菜单保持在其横向边界内；已连接 Session 经 `SessionProvider` 渲染，没有 Session 时右栏是一条空的零宽轨道。它把所选 Session 标题投影到构建配置的产品标题或本地化 `common.brand.localBuild` 回退值之上，因此 locale revision 会随根 entry 一起更新文档元数据。主题呈现器是第二个 effect：从解析后的快照做纯 DOM 写入——初始状态经 getter 读取一次，此后仅事件驱动，不经过 React。它先应用调色板、字号与 token 变量，再把渲染出的背景测量为唯一的颜色依据。 全屏呈现禁用网格和手柄过渡；占用方完全覆盖框架后才报告新的列宽。 退出全屏时，框架先保持无过渡并安装目标布局：关闭移除右轨道，恢复保留右轨道。后续普通几何操作恢复正常过渡。
+ 
+ </details>
+ 
+diff --git a/packages/client/ui-layout/src/client/AppFrame.tsx b/packages/client/ui-layout/src/client/AppFrame.tsx
+index 905341f503..009f605867 100644
+--- a/packages/client/ui-layout/src/client/AppFrame.tsx
++++ b/packages/client/ui-layout/src/client/AppFrame.tsx
+@@ -34,7 +34,7 @@ export type AppFrameProps =
+ 
+ /** Center column grid item (session-body building block). */
+ function CenterColumn(props: { children?: ReactNode }) {
+-  return <div className={css.centerCol}>{props.children}</div>
++  return <div className={css.centerCol} data-dsh-center-col>{props.children}</div>
+ }
+ 
+ /**
+diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
+index e9fc0195ef..637ecb5601 100644
+--- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
++++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
+@@ -137,13 +137,22 @@ export function ModelSelect(
+       const rect = triggerRef.current?.getBoundingClientRect()
+       if (rect === undefined) return
+       const MARGIN = 12
++      const boundary = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]')?.getBoundingClientRect()
++      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
++      const maxX = Math.min(window.innerWidth - MARGIN, (boundary?.right ?? window.innerWidth) - MARGIN)
++      const availableWidth = Math.max(0, maxX - minX)
+       const lw = menuRef.current?.offsetWidth ?? 0
++      const placedWidth = boundary === undefined ? lw : Math.min(lw, availableWidth)
+       const lh = menuRef.current?.offsetHeight ?? 0
+-      let x = rect.right - lw
++      let x = rect.right - placedWidth
+       let y = rect.top - 8 - lh
+-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), window.innerWidth - lw - MARGIN)
++      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
+       if (lh > 0) y = Math.min(Math.max(y, MARGIN), window.innerHeight - lh - MARGIN)
+-      setMenuPos({ left: x, top: y })
++      setMenuPos({
++        left: x,
++        top: y,
++        ...boundary === undefined ? {} : { minWidth: Math.min(264, availableWidth), maxWidth: availableWidth },
++      })
+     }
+     // First run measures the hidden pre-render (same commit as `open`), so
+     // the card lands placed before anything paints.
+diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+index 3b8c92d8bf..53b1f03c39 100644
+--- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
++++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+@@ -206,23 +206,28 @@ describe('ModelSelect reasoning effort', () => {
+     Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
+     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
+     try {
+-      const { container } = render(<ModelSelect
++      const { container } = render(<div data-dsh-center-col><ModelSelect
+         locked={false}
+         available
+         directory={createSnapshotStore(state())}
+         load={vi.fn()}
+         select={vi.fn().mockResolvedValue(true)}
+         t={t}
+-      />)
++      /></div>)
++      Object.defineProperty(container.firstElementChild, 'getBoundingClientRect', {
++        configurable: true,
++        value: () => ({ left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) }),
++      })
+       const trigger = screen.getByRole('button', { name: /选择模型/ })
+       fireEvent.click(trigger)
+       const menu = screen.getByRole('menu')
+       // Outside the composer subtree — column overflow clips cannot crop it.
+       expect(container.contains(menu)).toBe(false)
+       expect(menu.parentElement).toBe(document.body)
+-      // jsdom anchor rects are all zero, so the measured 200x300 card clamps
+-      // to the 12px viewport margin on both axes.
+-      expect(menu.style.left).toBe('12px')
++      // The owner boundary is narrower than the viewport, so the card keeps
++      // the 12px center-column margin rather than spilling over the sidebar.
++      expect(menu.style.left).toBe('292px')
++      expect(menu.style.maxWidth).toBe('216px')
+       expect(menu.style.top).toBe('12px')
+       // Interactions inside the trigger subtree or the portaled card stay open.
+       fireEvent.mouseDown(menu)
+diff --git a/packages/client/ui-primitives/README.i18n.yaml b/packages/client/ui-primitives/README.i18n.yaml
+index 4bda8cc5f7..4a0b23671a 100644
+--- a/packages/client/ui-primitives/README.i18n.yaml
++++ b/packages/client/ui-primitives/README.i18n.yaml
+@@ -2,5 +2,5 @@
+ # side as of the last confirmed-consistent state. Both languages carry equal authority;
+ # after editing either side, bring the other along and re-record with:
+ #   pnpm run verify-translation-pairing --write packages/client/ui-primitives/README.md
+-README.md: 18b136c78539d8ba6da3b17239112967faf63602
+-README.zh.md: f91435e44a5ca79b245fde3dd025a732d35e54e9
++README.md: 9a348b0b31cfc63ecbfecd50823abe411e2abf29
++README.zh.md: 23b9da3e7029afce941c550fea0d29c37ce3da08
+diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
+index 18b136c785..9a348b0b31 100644
+--- a/packages/client/ui-primitives/README.md
++++ b/packages/client/ui-primitives/README.md
+@@ -37,7 +37,7 @@ Check this table before writing a control in a feature package. A plugin cannot
+ | `Button` | Clickable action; `variant` selects `primary`, `ghost`, `outline`, or `toolbar`. |
+ | `Switch` | Two-state toggle, 36×20. `label` is required, so the control cannot ship unnamed. |
+ | `Input` | Single-line text entry for search boxes and inline forms. |
+-| `Menu` | Dropdown of items, separators, and group labels, with nested submenus. |
++| `Menu` | Dropdown of items, separators, and group labels, with nested submenus; portaled menus may intersect viewport clamping with an owner boundary. |
+ | `Pill` | Selectable capsule button for view switchers and filters; takes `active` and `onClick`. |
+ | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
+ | `StateDot` | Status mark: `done`, `warning`, `ongoing`, `error`, or `idle`. `aria-hidden`, so the render site owns the name. |
+diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
+index f91435e44a..23b9da3e70 100644
+--- a/packages/client/ui-primitives/README.zh.md
++++ b/packages/client/ui-primitives/README.zh.md
+@@ -37,7 +37,7 @@ kind: "package-library"
+ | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。 |
+ | `Switch` | 36×20 的双态开关。`label` 必填，控件不可能在没有名称的情况下发布。 |
+ | `Input` | 单行文本输入，用于搜索框与行内表单。 |
+-| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单。 |
++| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；portal菜单可将视口clamp与owner boundary取交集。 |
+ | `Pill` | 可选中的胶囊按钮，用于视图切换与筛选器；接受 `active` 与 `onClick`。 |
+ | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
+ | `StateDot` | 状态标记：`done`、`warning`、`ongoing`、`error` 或 `idle`。它是 `aria-hidden` 的，名称由渲染点提供。 |
+diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
+index 3130086777..edf05166fa 100644
+--- a/packages/client/ui-primitives/src/Menu.tsx
++++ b/packages/client/ui-primitives/src/Menu.tsx
+@@ -1,5 +1,5 @@
+ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+-import type { CSSProperties, ReactNode } from 'react'
++import type { CSSProperties, ReactNode, RefObject } from 'react'
+ import { createPortal } from 'react-dom'
+ import clsx from 'clsx'
+ import { IconCheckOutline16 } from './icons/index.tsx'
+@@ -67,6 +67,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * gap and a brief overshoot survivable; coming back cancels the close.
+  * @param props.dense - reduce vertical row spacing without changing the standard typography or card width.
+  * @param props.compact - use reduced menu typography and spacing.
++ * @param props.boundaryRef - portal mode only: limit horizontal placement to this owner as well as the viewport.
+  * @param props.getAnchorRect - portal mode only: supply the anchor rect
+  * directly (e.g. from a host-owned trigger button) instead of measuring the
+  * Menu's own wrapper span. Required when the wrapper isn't itself laid out at
+@@ -81,7 +82,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * crowds the cell).
+  * @returns anchor wrapper with the conditional list.
+  */
+-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, selection = 'check', getAnchorRect, footer, className }: {
++export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, selection = 'check', getAnchorRect, boundaryRef, footer, className }: {
+   open: boolean
+   anchor: ReactNode
+   items: readonly MenuEntry[]
+@@ -98,6 +99,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+   compact?: boolean
+   selection?: 'check' | 'fill'
+   getAnchorRect?: () => DOMRect | null
++  boundaryRef?: RefObject<HTMLElement | null>
+   className?: string | undefined
+ }) {
+   const rootRef = useRef<HTMLSpanElement>(null)
+@@ -125,8 +127,13 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+       const MARGIN = 12
+       const vw = window.innerWidth
+       const vh = window.innerHeight
++      const boundary = boundaryRef?.current?.getBoundingClientRect()
++      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
++      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
++      const availableWidth = Math.max(0, maxX - minX)
+       const listEl = listRef.current
+       const lw = listEl?.offsetWidth ?? 0
++      const placedWidth = boundary === undefined ? lw : Math.min(lw, availableWidth)
+       const lh = listEl?.offsetHeight ?? 0
+ 
+       let x: number
+@@ -138,14 +145,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+         x = r.left
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       } else {
+-        x = r.right - lw
++        x = r.right - placedWidth
+         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
+       }
+ 
+-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
++      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
+       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
+ 
+-      setFixedPos({ left: x, top: y })
++      setFixedPos({
++        left: x,
++        top: y,
++        ...boundary === undefined ? {} : { minWidth: Math.min(218, availableWidth), maxWidth: availableWidth },
++      })
+     }
+     // First run measures the hidden pre-render (same commit as `open`), so
+     // end/top alignment and clamping use real dimensions before anything
+@@ -157,7 +168,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+       window.removeEventListener('scroll', place, true)
+       window.removeEventListener('resize', place)
+     }
+-  }, [open, portal, align, side, getAnchorRect])
++  }, [open, portal, align, side, getAnchorRect, boundaryRef])
+ 
+   useEffect(() => {
+     if (!open) {
+diff --git a/packages/client/ui-primitives/tests/atoms.client.spec.tsx b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
+index b7927351f8..c83766f751 100644
+--- a/packages/client/ui-primitives/tests/atoms.client.spec.tsx
++++ b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
+@@ -316,6 +316,32 @@ describe('Menu', () => {
+     expect(menu.style.top).toBe('132px')
+   })
+ 
++  it('portal mode intersects viewport clamping with an owner boundary', () => {
++    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!
++    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 300 })
++    const anchor = { left: 480, right: 500, top: 100, bottom: 128, width: 20, height: 28, x: 480, y: 100, toJSON: () => ({}) } as DOMRect
++    const boundary = { left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) } as DOMRect
++    try {
++      render(<Menu
++        portal
++        open
++        align="end"
++        getAnchorRect={() => anchor}
++        boundaryRef={{ current: { getBoundingClientRect: () => boundary } as HTMLElement }}
++        anchor={null}
++        items={items}
++        onSelect={() => {}}
++        onClose={() => {}}
++      />)
++      const menu = screen.getByRole('menu')
++      expect(menu.style.left).toBe('292px')
++      expect(menu.style.minWidth).toBe('216px')
++      expect(menu.style.maxWidth).toBe('216px')
++    } finally {
++      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth)
++    }
++  })
++
+   it('portal mode skips the frame when getAnchorRect returns null (no menu until a rect exists)', () => {
+     render(
+       <Menu

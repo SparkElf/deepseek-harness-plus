@@ -38,6 +38,45 @@
   white-space: nowrap;
 }
 
+.trajectoryButton {
+  display: none;
+  flex: none;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  gap: 4px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.trajectoryButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.trajectoryButton:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.trajectoryButton:disabled {
+  color: var(--dsw-alias-label-dimmed);
+  cursor: wait;
+}
+
+.trajectoryButton span,
+.trajectoryButton svg {
+  flex: none;
+}
+
+.trajectoryButton span {
+  white-space: nowrap;
+}
+
 @media (max-width: 800px) {
   .sessionLogButton {
     width: 28px;
@@ -46,8 +85,8 @@
     padding: 0;
     border: none;
     border-radius: 50%;
+    corner-shape: round;
   }
-
 
   .sessionLogButton span {
     display: none;
@@ -56,5 +95,15 @@
   .sessionLogButton svg {
     width: 16px;
     height: 16px;
+  }
+}
+
+@media (min-width: 768px) {
+  .sessionLogButton {
+    display: none;
+  }
+
+  .trajectoryButton {
+    display: inline-flex;
   }
 }

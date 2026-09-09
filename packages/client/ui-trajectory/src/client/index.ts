@@ -36,6 +36,13 @@ export type {
   UseTrajectory,
 } from './trajectory-contract.ts'
 
+declare module '@deepseek-ai/dsh-client-ui-slots' {
+  interface SlotMap {
+    /** Compact Session utilities immediately before the Trajectory search field. */
+    'conversation.trajectory.toolbar.utilities': { kind: 'list'; scope: 'session' }
+  }
+}
+
 /** Required services: the conversation slot, registries, ordinary Session paging, and the locale service. */
 export const inject = ['slots', 'sessions', 'uiSession', 'uiConversation', 'locale']
 
@@ -82,6 +89,7 @@ export function apply(ctx: Context): void {
     label: () => t('view.trajectory'),
     children: {
       'conversation.trajectory.images': { kind: 'single', scope: 'session' },
+      'conversation.trajectory.toolbar.utilities': { kind: 'list', scope: 'session' },
     },
     inject: (sessionId: SessionId): TrajectoryViewInjected => {
       const session = ctx.sessions.binding(sessionId)?.session

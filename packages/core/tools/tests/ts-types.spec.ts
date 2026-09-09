@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { jsonSchemaToTs, renderToolsSdk } from '@deepseek-ai/dsh-tools/src/ts-types.ts'
 import type { ToolSdkSchema } from '@deepseek-ai/dsh-tools/src/ts-types.ts'
+import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools/src/json-schema.ts'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools/src/json-schema.ts'
 import { parameterSchemaSpecToJsonSchema } from '@deepseek-ai/dsh-tools'
 
@@ -59,6 +60,47 @@ describe('jsonSchemaToTs', () => {
       '  } & Record<string, JsonValue>;',
       '} & Record<string, JsonValue>',
     ].join('\n'))
+  })
+
+  it('projects MCP validation keywords without admitting them to runtime schema enforcement', () => {
+    const schema = {
+      $schema: 'http://json-schema.org/draft-07/schema#',
+      type: 'object',
+      properties: {
+        sources: {
+          type: 'array',
+          minItems: 1,
+          maxItems: 12,
+          items: {
+            type: 'object',
+            properties: {
+              resourceRef: { type: 'string', minLength: 1, maxLength: 1000 },
+              alias: { type: 'string', pattern: '^[A-Za-z_][A-Za-z0-9_]{0,63}$' },
+            },
+            required: ['resourceRef', 'alias'],
+          },
+        },
+        sql: { type: 'string', minLength: 1, maxLength: 20000 },
+      },
+      required: ['sources', 'sql'],
+    }
+
+    expect(() => { assertSupportedJsonSchema(schema) }).toThrow(/not a supported keyword/)
+    const rendered = jsonSchemaToTs(schema)
+    expect(rendered).toContain('sources:')
+    expect(rendered).toContain('resourceRef: string;')
+    expect(rendered).toContain('alias: string;')
+    expect(rendered).toContain('sql: string;')
+    expect(rendered).not.toBe('unknown')
+    const sdk = renderToolsSdk([{
+      name: 'mcp__dataops__execute_sql',
+      description: 'Execute SQL.',
+      parameters: schema,
+      output: {},
+    }])
+    expect(sdk).toContain('mcp__dataops__execute_sql: {')
+    expect(sdk).not.toContain('mcp__dataops__execute_sql: unknown;')
+    expect(jsonSchemaToTs({ type: 'object', allOf: [{ type: 'object' }] })).toBe('unknown')
   })
 
   it('is total: unsupported or hostile constructs degrade to unknown, never throw', () => {

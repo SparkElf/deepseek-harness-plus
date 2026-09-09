@@ -7,8 +7,7 @@ import {
 } from '../rpc.ts'
 import type { ClientConnectionRpc, ConnectionRpcResult } from '../rpc.ts'
 import { randomUuid } from './random-uuid.ts'
-
-const INTERNAL_BASE = 'http://dsh.internal'
+const INTERNAL_BASE = 'http://dsh.internal/'
 const CHANNEL_PATTERN = /^\/[A-Za-z0-9._~-]+$/
 const ENDPOINT_SEGMENT_PATTERN = /^[A-Za-z0-9_$.-]+$/
 
@@ -21,6 +20,15 @@ export type RpcStreamOpen = (
   payload: unknown,
   signal: AbortSignal,
 ) => AsyncIterable<unknown>
+
+/** Resolve one logical route below the runtime-injected document base. */
+function resolveWebUrl(path: string): URL {
+  const documentBase = typeof document === 'undefined' ? undefined : document.baseURI
+  if (documentBase !== undefined) return new URL(path.replace(/^\/+/, ''), documentBase)
+  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
+  const base = origin !== undefined && origin !== 'null' ? `${origin}/` : INTERNAL_BASE
+  return new URL(path.replace(/^\/+/, ''), base)
+}
 
 /**
  * Create the browser-backed generic RPC caller.
@@ -41,7 +49,7 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
         payload,
       }
       const response = await send(
-        new URL(`${channel}/${endpoint}`, resolveBase()),
+        resolveWebUrl(`${channel}/${endpoint}`),
         {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
@@ -103,11 +111,6 @@ function parseConnectionResponse(value: unknown): {
 
 function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function resolveBase(): string {
-  const location = (globalThis as { location?: { origin?: string } }).location
-  return location?.origin !== undefined && location.origin !== 'null' ? location.origin : INTERNAL_BASE
 }
 
 function assertTarget(channel: string, endpoint: string): void {

@@ -316,6 +316,32 @@ describe('Menu', () => {
     expect(menu.style.top).toBe('132px')
   })
 
+  it('portal mode intersects viewport clamping with an owner boundary', () => {
+    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 300 })
+    const anchor = { left: 480, right: 500, top: 100, bottom: 128, width: 20, height: 28, x: 480, y: 100, toJSON: () => ({}) } as DOMRect
+    const boundary = { left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) } as DOMRect
+    try {
+      render(<Menu
+        portal
+        open
+        align="end"
+        getAnchorRect={() => anchor}
+        boundaryRef={{ current: { getBoundingClientRect: () => boundary } as HTMLElement }}
+        anchor={null}
+        items={items}
+        onSelect={() => {}}
+        onClose={() => {}}
+      />)
+      const menu = screen.getByRole('menu')
+      expect(menu.style.left).toBe('292px')
+      expect(menu.style.minWidth).toBe('216px')
+      expect(menu.style.maxWidth).toBe('216px')
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth)
+    }
+  })
+
   it('portal mode skips the frame when getAnchorRect returns null (no menu until a rect exists)', () => {
     render(
       <Menu

@@ -138,6 +138,7 @@
       config:
         host: !!js ctx.webStartup.host ?? '127.0.0.1'
         port: !!js ctx.webStartup.port ?? 3080
+        basePath: !!js ctx.webStartup.basePath ?? process.env.DSH_WEB_BASE_PATH ?? ''
         compression: gzip
         compressionLevel: 1
         compressionThresholdBytes: 1024

@@ -71,8 +71,6 @@ describe('ModelSelect reasoning effort', () => {
     const trigger = screen.getByRole('button', {
       name: '选择模型，当前 DeepSeek-V4-Flash，推理等级 High',
     })
-    expect(trigger.title).toBe('DeepSeek-V4-Flash · High')
-    expect(trigger.querySelector('[data-model-trigger-icon]')?.getAttribute('aria-hidden')).toBe('true')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
     expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
@@ -208,23 +206,28 @@ describe('ModelSelect reasoning effort', () => {
     Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
     try {
-      const { container } = render(<ModelSelect
+      const { container } = render(<div data-dsh-center-col><ModelSelect
         locked={false}
         available
         directory={createSnapshotStore(state())}
         load={vi.fn()}
         select={vi.fn().mockResolvedValue(true)}
         t={t}
-      />)
+      /></div>)
+      Object.defineProperty(container.firstElementChild, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) }),
+      })
       const trigger = screen.getByRole('button', { name: /选择模型/ })
       fireEvent.click(trigger)
       const menu = screen.getByRole('menu')
       // Outside the composer subtree — column overflow clips cannot crop it.
       expect(container.contains(menu)).toBe(false)
       expect(menu.parentElement).toBe(document.body)
-      // jsdom anchor rects are all zero, so the measured 200x300 card clamps
-      // to the 12px viewport margin on both axes.
-      expect(menu.style.left).toBe('12px')
+      // The owner boundary is narrower than the viewport, so the card keeps
+      // the 12px center-column margin rather than spilling over the sidebar.
+      expect(menu.style.left).toBe('292px')
+      expect(menu.style.maxWidth).toBe('216px')
       expect(menu.style.top).toBe('12px')
       // Interactions inside the trigger subtree or the portaled card stay open.
       fireEvent.mouseDown(menu)

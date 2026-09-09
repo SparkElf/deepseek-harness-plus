@@ -62,7 +62,7 @@ index 92d7ce9ab0..dfbc88f1e3 100644
            <input
              type="search"
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-index a9f1df1b36..b7fbd52a80 100644
+index 4f8bc63d9c..cedf2511ea 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 @@ -130,7 +130,9 @@ export function TrajectoryView({
@@ -76,7 +76,7 @@ index a9f1df1b36..b7fbd52a80 100644
    & InjectFace<TrajectoryViewInjected>
    & PropsLocale<'trajectory'>) {
    const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
-@@ -522,6 +524,7 @@ export function TrajectoryView({
+@@ -523,6 +525,7 @@ export function TrajectoryView({
          onToggleAllAssistants={toggleAllAssistants}
          searchQuery={searchQuery}
          onSearchQueryChange={setSearchQuery}
@@ -111,7 +111,7 @@ index 118f3b2c28..a8c71cf9ee 100644
      inject: (sessionId: SessionId): TrajectoryViewInjected => {
        const session = ctx.sessions.binding(sessionId)?.session
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index ce12787db0..2497520511 100644
+index e107281710..a5e0f1cab2 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
 @@ -59,6 +59,7 @@
@@ -133,10 +133,10 @@ index ce12787db0..2497520511 100644
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index ef6f6cfdf3..fb4ebe7221 100644
+index d3989511e8..3d61ea286f 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-@@ -34,3 +34,72 @@
+@@ -37,3 +37,73 @@
  .sessionLogButton span {
    white-space: nowrap;
  }
@@ -188,6 +188,7 @@ index ef6f6cfdf3..fb4ebe7221 100644
 +    padding: 0;
 +    border: none;
 +    border-radius: 50%;
++    corner-shape: round;
 +  }
 +
 +  .sessionLogButton span {
@@ -210,7 +211,7 @@ index ef6f6cfdf3..fb4ebe7221 100644
 +  }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index 7adc40aa5c..f0ebd2a71e 100644
+index faf6d43385..8b0850a175 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 @@ -1,8 +1,16 @@

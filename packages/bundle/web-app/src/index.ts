@@ -147,9 +147,9 @@ function webSurfacePrompt(webUrl: string): string {
 
 /** Resolve the canonical loopback URL from the active Web server. */
 function localWebUrl(ctx: Context): string {
-  const port = ctx.get('webServer')?.port
-  if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
-  return `http://${LOOPBACK_HOST}:${String(port)}`
+  const webServer = ctx.get('webServer')
+  if (webServer === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
+  return `http://${LOOPBACK_HOST}:${String(webServer.port)}${webServer.basePath}`
 }
 
 /**
@@ -265,7 +265,7 @@ export function apply(ctx: Context, config: Config): void {
         const port = connectionCtx.webServer.port
         const lanUrl = lanCandidate === undefined
           ? undefined
-          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}`)
+          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}${connectionCtx.webServer.basePath}`)
         ANNOUNCED_ROOTS.add(connectionCtx.root)
         if (config.printUrl) {
           console.log(`dsh web: ${authenticatedUrl}${lanUrl === undefined ? '' : ` (LAN: ${lanUrl})`}`)

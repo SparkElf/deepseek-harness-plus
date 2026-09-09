@@ -152,7 +152,7 @@ const POSTCONDITIONS: readonly PostCondition[] = [
   { file: 'scripts/cordis-walk.ts', text: '!== \'@deepseek-ai/cordis\'', count: 1 },
   { file: 'scripts/gen-scoped-events.ts', text: '=== \'@deepseek-ai/cordis\'', count: 1 },
   { file: 'packages/typert/generator/src/analyzer.ts', text: '!== \'@deepseek-ai/cordis\'', count: 2 },
-  { file: 'scripts/check-workspace-constraints.ts', text: '?.[\'@deepseek-ai/cordis\']', count: 2 },
+  { file: 'scripts/check-workspace-constraints.ts', text: '?.[\'@deepseek-ai/cordis\']', count: 4 },
   { file: 'packages/boot/app-boot/tsdown.config.ts', text: '[\'@deepseek-ai/cordis-plugin-include\']', count: 1 },
   { file: 'tsconfig.base.json', text: '"@deepseek-ai/cordis-plugin-loader": ["./vendor/loader/src"]', count: 1 },
   // The vendored README owns this required entry; reject its deletion or duplication.
@@ -193,12 +193,8 @@ const EXACT_EDITS: readonly ExactEdit[] = [
 
     if (!peer) errors.push(\`\${label}: @deepseek-ai/cordis must be a peerDependency\`)
     if (!dev) errors.push(\`\${label}: @deepseek-ai/cordis must also be a devDependency\`)
-    if (peer && dev && (isPlusRuntimePackage
-      ? !/^>=\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$/.test(peer) || dev !== 'workspace:^'
-      : peer !== dev)) {
-      errors.push(isPlusRuntimePackage
-        ? \`\${label}: @deepseek-ai/cordis peer must be a minimum-only range and dev must be workspace:^\`
-        : \`\${label}: @deepseek-ai/cordis peer (\${peer}) and dev (\${dev}) ranges must match\`)`,
+    if (peer && dev && peer !== dev) {
+      errors.push(\`\${label}: @deepseek-ai/cordis peer (\${peer}) and dev (\${dev}) ranges must match\`)`,
     expect: 1,
   },
   {

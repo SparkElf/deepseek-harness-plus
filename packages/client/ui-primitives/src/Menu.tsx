@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { IconCheckOutline16 } from './icons/index.tsx'
@@ -67,6 +67,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * gap and a brief overshoot survivable; coming back cancels the close.
  * @param props.dense - reduce vertical row spacing without changing the standard typography or card width.
  * @param props.compact - use reduced menu typography and spacing.
+ * @param props.boundaryRef - portal mode only: limit horizontal placement to this owner as well as the viewport.
  * @param props.getAnchorRect - portal mode only: supply the anchor rect
  * directly (e.g. from a host-owned trigger button) instead of measuring the
  * Menu's own wrapper span. Required when the wrapper isn't itself laid out at
@@ -81,7 +82,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * crowds the cell).
  * @returns anchor wrapper with the conditional list.
  */
-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, selection = 'check', getAnchorRect, footer, className }: {
+export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, selection = 'check', getAnchorRect, boundaryRef, footer, className }: {
   open: boolean
   anchor: ReactNode
   items: readonly MenuEntry[]
@@ -98,6 +99,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
   compact?: boolean
   selection?: 'check' | 'fill'
   getAnchorRect?: () => DOMRect | null
+  boundaryRef?: RefObject<HTMLElement | null>
   className?: string | undefined
 }) {
   const rootRef = useRef<HTMLSpanElement>(null)
@@ -125,8 +127,13 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       const MARGIN = 12
       const vw = window.innerWidth
       const vh = window.innerHeight
+      const boundary = boundaryRef?.current?.getBoundingClientRect()
+      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
+      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
+      const availableWidth = Math.max(0, maxX - minX)
       const listEl = listRef.current
       const lw = listEl?.offsetWidth ?? 0
+      const placedWidth = boundary === undefined ? lw : Math.min(lw, availableWidth)
       const lh = listEl?.offsetHeight ?? 0
 
       let x: number
@@ -138,14 +145,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
         x = r.left
         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
       } else {
-        x = r.right - lw
+        x = r.right - placedWidth
         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
       }
 
-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
+      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
 
-      setFixedPos({ left: x, top: y })
+      setFixedPos({
+        left: x,
+        top: y,
+        ...boundary === undefined ? {} : { minWidth: Math.min(218, availableWidth), maxWidth: availableWidth },
+      })
     }
     // First run measures the hidden pre-render (same commit as `open`), so
     // end/top alignment and clamping use real dimensions before anything
@@ -157,7 +168,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, portal, align, side, getAnchorRect])
+  }, [open, portal, align, side, getAnchorRect, boundaryRef])
 
   useEffect(() => {
     if (!open) {

@@ -386,6 +386,14 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     }
   }
 
+  if (dir.startsWith('packages/') && manifest.name?.startsWith('@sparkelf/')) {
+    const peer = manifest.peerDependencies?.['@deepseek-ai/cordis']
+    const dev = manifest.devDependencies?.['@deepseek-ai/cordis']
+    if (!peer || !/^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(peer) || dev !== 'workspace:^') {
+      errors.push(`${label}: @deepseek-ai/cordis peer must be a minimum-only range and dev must be workspace:^`)
+    }
+  }
+
   if (dir.startsWith('packages/') && manifest.name?.startsWith('@deepseek-ai/dsh-')) {
     const peer = manifest.peerDependencies?.['@deepseek-ai/cordis']
     const dev = manifest.devDependencies?.['@deepseek-ai/cordis']
@@ -510,6 +518,14 @@ function checkWorkspaceProtocol(manifests: readonly WorkspaceManifest[]): string
     for (const section of dependencySections) {
       for (const [name, range] of Object.entries(manifest[section] ?? {})) {
         if (!members.has(name) || range.startsWith('workspace:')) continue
+        const publishedPlusPeer = manifest.name?.startsWith('@sparkelf/') === true
+          && section === 'peerDependencies'
+          && /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)
+        const publishedPlusRuntimeDependency = manifest.name?.startsWith('@sparkelf/') === true
+          && section === 'dependencies'
+          && name === '@deepseek-ai/schemastery'
+          && /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)
+        if (publishedPlusPeer || publishedPlusRuntimeDependency) continue
         errors.push(`${manifest.name ?? dir}: ${section}.${name} must use the workspace: protocol, got ${range}`)
       }
     }

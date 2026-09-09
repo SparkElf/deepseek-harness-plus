@@ -1,6 +1,6 @@
 /**
  * The web app's command-line provider: it parses the `dsh --profile web` flag
- * family (`--host`, `--port`, `--trusted-host`, `--no-open`) and its `--help`
+ * family (`--host`, `--port`, `--base-path`, `--trusted-host`, `--no-open`) and its `--help`
  * text, then provides the immutable values as {@link WEB_STARTUP_SERVICE}.
  * Ordinary rows inject that service before reading it from lazy config.
  * @module @deepseek-ai/dsh-web-app/startup
@@ -27,12 +27,15 @@ export interface WebStartupValues {
   host?: string
   /** `--port`, absent when the invocation did not name one. */
   port?: number
+  /** `--base-path`, absent when the invocation did not name one. */
+  basePath?: string
   /** Explicit `--trusted-host` authorities, in argument order. */
   trustedHosts: string[]
 }
 
 /** The web flag family, as commander parsed it. */
 interface WebOptions {
+  basePath?: string
   host?: string
   open: boolean
   port?: string
@@ -49,12 +52,14 @@ function webCommand(): Command {
     .description('Serve the DeepSeek Harness browser UI.')
     .helpOption('-h, --help', 'show this help')
     .option('--host <host>', 'bind host')
+    .option('--base-path <path>', 'mount the Web UI below a reverse-proxy path prefix (for example /dsh)')
     .option('--no-open', 'do not open the Web UI in the default browser')
     .option('--port <port>', 'listen port; pass 0 to let the OS pick a free one')
     .option('--trusted-host <authority...>', 'extra authority the /api browser-trust fence accepts (host or host:port; repeatable)')
     .addHelpText('after', `
 Examples:
   dsh --profile web                          serve on the composed host and port
+  dsh --profile web --base-path /dsh         serve below a reverse-proxy prefix
   dsh --profile web --no-open                serve without opening a browser
   dsh --profile web --port 8080              serve on another port
 `)
@@ -79,6 +84,7 @@ export function apply(ctx: Context): void {
     }
     ctx.provide(WEB_STARTUP_SERVICE, {
       openBrowser: options.open,
+      ...options.basePath !== undefined && { basePath: options.basePath },
       ...options.host !== undefined && { host: options.host },
       ...options.port !== undefined && { port: Number(options.port) },
       trustedHosts: options.trustedHost ?? [],

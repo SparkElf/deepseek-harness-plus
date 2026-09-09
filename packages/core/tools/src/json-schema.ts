@@ -84,6 +84,14 @@ const CONSTRAINT_KEYWORDS = new Set([
   'const',
 ])
 const ANNOTATION_KEYWORDS = new Set(['description', 'title', 'default', 'examples'])
+const TYPE_PROJECTION_IGNORED_KEYWORDS = new Set([
+  '$schema',
+  'minLength',
+  'maxLength',
+  'pattern',
+  'minItems',
+  'maxItems',
+])
 const SCHEMA_TYPES: readonly JsonSchemaType[] = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null']
 
 /* jscpd:ignore-start -- this realm boundary mirrors the session-owned lossless-JSON intrinsic test */
@@ -224,7 +232,13 @@ function checkObjectSchemaTail(
 }
 
 /** Collect every violation for one raw schema tree without using the JavaScript call stack. */
-function checkSchemaNode(root: unknown, rootPath: string, violations: string[], seen: Set<object>): void {
+function checkSchemaNode(
+  root: unknown,
+  rootPath: string,
+  violations: string[],
+  seen: Set<object>,
+  ignoredKeywords?: ReadonlySet<string>,
+): void {
   const tasks: SchemaWalkTask[] = [{ kind: 'enter', node: root, path: rootPath }]
   for (let task = tasks.pop(); task !== undefined; task = tasks.pop()) {
     if (task.kind === 'leave') {
@@ -256,6 +270,7 @@ function checkSchemaNode(root: unknown, rootPath: string, violations: string[], 
 
     for (const key of Object.keys(node)) {
       if (CONSTRAINT_KEYWORDS.has(key)) continue
+      if (ignoredKeywords?.has(key)) continue
       if (ANNOTATION_KEYWORDS.has(key)) {
         try {
           if (!isJsonValue(node[key])) violations.push(`${path}.${key} annotation must be lossless JSON data`)
@@ -385,6 +400,22 @@ function checkSchemaNode(root: unknown, rootPath: string, violations: string[], 
 export function assertSupportedJsonSchema(schema: unknown): asserts schema is JsonSchemaNode {
   const violations: string[] = []
   checkSchemaNode(schema, 'schema', violations, new Set())
+  if (violations.length > 0) throw new JsonSchemaError(violations)
+}
+
+/**
+ * Assert the JSON Schema structure that a generated TypeScript declaration can represent.
+ *
+ * Validation-only string and array constraints remain outside the enforced ToolRuntime
+ * subset. The PTC declaration omits those constraints while retaining their object,
+ * array, property, required, and scalar types. Structural keywords outside the shared
+ * vocabulary still reject the projection.
+ * @param schema - untrusted raw JSON Schema from a registered tool.
+ * @returns Assertion that the schema structure is safe to render as TypeScript.
+ */
+export function assertTypeProjectableJsonSchema(schema: unknown): asserts schema is JsonSchemaNode {
+  const violations: string[] = []
+  checkSchemaNode(schema, 'schema', violations, new Set(), TYPE_PROJECTION_IGNORED_KEYWORDS)
   if (violations.length > 0) throw new JsonSchemaError(violations)
 }
 

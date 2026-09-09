@@ -477,8 +477,8 @@ export const InputBar = memo(function InputBar({
             <DecoratorPortals editor={workspaceTrigger ? null : editor} />
           </div>
         </div>
-        <div className={css.row} data-composer-toolbar>
-          <div className={css.tools} data-composer-tools>
+        <div className={css.row}>
+          <div className={css.tools}>
             <Tooltip label={t('input.commands')} side="top" delayMs={500}>
               <button
                 type="button"
@@ -521,7 +521,7 @@ export const InputBar = memo(function InputBar({
               ? null
               : renderSlot('conversation.input.left', {})}
           </div>
-          <div className={css.trailing} data-composer-trailing>
+          <div className={css.trailing}>
             {input === undefined || sessionId === undefined
               ? null
               : renderSlot('conversation.input.right', {})}

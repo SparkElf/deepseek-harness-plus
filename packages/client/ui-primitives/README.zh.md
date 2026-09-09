@@ -37,7 +37,7 @@ kind: "package-library"
 | `Button` | 可点击操作；`variant` 选择 `primary`、`ghost`、`outline` 或 `toolbar`。 |
 | `Switch` | 36×20 的双态开关。`label` 必填，控件不可能在没有名称的情况下发布。 |
 | `Input` | 单行文本输入，用于搜索框与行内表单。 |
-| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单。 |
+| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；portal菜单可将视口clamp与owner boundary取交集。 |
 | `Pill` | 可选中的胶囊按钮，用于视图切换与筛选器；接受 `active` 与 `onClick`。 |
 | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
 | `StateDot` | 状态标记：`done`、`warning`、`ongoing`、`error` 或 `idle`。它是 `aria-hidden` 的，名称由渲染点提供。 |

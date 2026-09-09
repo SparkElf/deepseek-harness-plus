@@ -58,7 +58,7 @@ Connecting、disconnecting或MCP discovery change可能改变tool-schema prefix�
 
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
-- `src/index.ts`持有authorization、credentials、access expiry及MCP child lifecycle。`src/client/store.ts`与`src/client/controller.ts`持有shared browser status及OAuth lifecycle；`src/client/DataOpsExpiryModal.tsx`贡献shell prompt，`src/client/DataOpsSection.tsx`贡献Settings。[Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)记录package boundary。
+- `src/index.ts`持有authorization、credentials、access expiry及MCP child lifecycle。`src/client/store.ts`与`src/client/controller.ts`持有shared browser status及OAuth lifecycle；`src/client/DataOpsExpiryModal.tsx`贡献shell prompt，`src/client/DataOpsSection.tsx`贡献Settings。[Distribution Agent Note](../../../.agents/notes/implemented/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)记录package boundary。
 - 该package不发布`./invariant` companion，因为authorization与MCP child lifecycle由各自owner service观测；DataOps不保留这些relation的independent projection。
 
 </details>

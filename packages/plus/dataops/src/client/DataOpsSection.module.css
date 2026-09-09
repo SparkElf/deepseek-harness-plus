@@ -60,6 +60,7 @@
   flex: 0 0 40px;
   place-items: center;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-interactive-bg-hover-solid);
   color: var(--dsw-alias-label-primary);
   font-size: 14px;

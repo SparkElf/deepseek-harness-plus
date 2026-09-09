@@ -307,9 +307,8 @@ function prepareSelection(
   const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
   preflightSourcePatches(dshRoot, pendingSourceFiles)
 
-  if (writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)) {
-    runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install Plus profile dependencies')
-  }
+  writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)
+  runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install Plus profile dependencies')
   const profileDependencies = Object.keys(profileDependencySpecs).sort().map((name) => {
     const installed = resolveInstalledPackage(profileDirectory, name)
     return { name, version: installed.version }
@@ -478,6 +477,32 @@ function writeProfileRequirements(
   const [documentError] = document.errors
   if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
   let workspaceChanged = false
+  const autoInstallPeers = document.get('autoInstallPeers')
+  if (autoInstallPeers !== undefined && autoInstallPeers !== false) {
+    throw new Error('profile autoInstallPeers must be false because official peers come from the selected DSH source')
+  }
+  if (autoInstallPeers === undefined) {
+    document.set('autoInstallPeers', false)
+    workspaceChanged = true
+  }
+  const managedFileAsset = (value: string): boolean => value.startsWith('file:')
+    && (/[\\/]\.dsh[\\/]releases[\\/]plus[\\/].*[\\/]packages[\\/]/u.test(value)
+      || /[\\/]\.dsh-plus[\\/]packages[\\/]/u.test(value))
+  const retiredOverrides = new Set([
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office',
+    '@sparkelf/dsh-office-viewer-fonts',
+    'dsh-better-sidebar',
+    'dsh-video-preview',
+  ])
+  const workspace = requireObject(document.toJS() as unknown, 'Plus profile workspace')
+  const configuredOverrides = workspace.overrides === undefined ? {} : requireObject(workspace.overrides, 'Plus profile overrides')
+  for (const [name, value] of Object.entries(configuredOverrides)) {
+    if (retiredOverrides.has(name)
+      || (typeof value === 'string' && managedFileAsset(value))) {
+      document.deleteIn(['overrides', name])
+      workspaceChanged = true
+    }
+  }
   for (const [name, allowed] of Object.entries(allowBuilds)) {
     const current = document.getIn(['allowBuilds', name])
     if (current !== undefined && current !== allowed) {

@@ -312,6 +312,16 @@ Durable workspace registry. Startup waits for `sessionPersistence`, builds one c
 
 ```ts cordis-catalog
 /**
+ * Replace external durable files while no Workspace storage handle is open.
+ * Existing mutations settle first; the domain always reopens through startup
+ * initialization so records, archive state, and Session indexes share one new
+ * baseline.
+ * @param restore - File replacement operation run while Workspace storage is closed.
+ * @returns the operation result after the new durable baseline is available.
+ */
+async withStorageRestore<T>(restore: () => Promise<T>): Promise<T>
+
+/**
  * Create or reuse a workspace for an existing directory. The fully qualified
  * path is canonicalized through `fs.realpath`; a relative, nonexistent, or
  * non-directory path rejects. Repeated calls for the same canonical path

@@ -58,7 +58,7 @@ Credential rotation does not alter model-visible schemas. Tool discovery or conn
 
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
-- `src/index.ts` owns credential resolution and MCP transport composition. The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records why this is a complete internal DataOps dependency.
+- `src/index.ts` owns credential resolution and MCP transport composition. The [distribution Agent Note](../../../.agents/notes/implemented/architecture/2026-08-29-ranged-plus-patchset-distribution.md) records why this is a complete internal DataOps dependency.
 - No runtime invariant companion is published because MCP generation and tool contributions are observed by the MCP Client and tool registry; this adapter has no independent generation view.
 
 </details>

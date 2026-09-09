@@ -2940,6 +2940,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Durable workspace registry. Startup waits for `sessionPersistence`, builds one canonical-cwd header index, and completes the one-time history bootstrap before the service becomes active. The persistence dependency is mandatory so an unavailable peer can never be mistaken for an empty history and commit the initialized marker.',
     methods: [
       {
+        signature: 'async withStorageRestore<T>(restore: () => Promise<T>): Promise<T>',
+        description: 'Replace external durable files while no Workspace storage handle is open. Existing mutations settle first; the domain always reopens through startup initialization so records, archive state, and Session indexes share one new baseline.',
+        parameters: [{ name: 'restore', description: 'File replacement operation run while Workspace storage is closed.' }],
+        returns: 'the operation result after the new durable baseline is available.',
+      },
+      {
         signature: 'async create(path: string, title?: string): Promise<Workspace>',
         description: 'Create or reuse a workspace for an existing directory. The fully qualified path is canonicalized through `fs.realpath`; a relative, nonexistent, or non-directory path rejects. Repeated calls for the same canonical path return the existing entity without changing its title. A newly created workspace is prepended to the durable registry order. Different canonical paths may share a display title.',
         parameters: [{ name: 'path', description: 'Existing directory to own, in a fully qualified path spelling.' }, { name: 'title', description: 'Display title used only when a new record is created.' }],

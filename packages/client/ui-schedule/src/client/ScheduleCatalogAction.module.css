@@ -125,21 +125,3 @@
 .relativeOverdue {
   color: var(--dsw-alias-state-warn-label);
 }
-
-@media (max-width: 800px) {
-  .trigger {
-    width: 32px;
-    min-width: 32px;
-    padding: 0 1px;
-    gap: 2px;
-  }
-
-  .count {
-    display: none;
-  }
-
-  .menu {
-    width: min(336px, calc(100vw - 80px));
-    max-width: calc(100vw - 80px);
-  }
-}

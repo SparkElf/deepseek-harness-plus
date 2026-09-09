@@ -34,11 +34,6 @@
   flex: none;
 }
 
-.compactIcon {
-  display: none;
-  flex: none;
-}
-
 .count {
   margin: 0 5px;
 }
@@ -128,31 +123,4 @@
 
 .duration {
   font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 800px) {
-  .trigger {
-    justify-content: center;
-    gap: 2px;
-    width: 34px;
-    min-width: 34px;
-    padding: 0 2px;
-  }
-
-  .compactIcon {
-    display: block;
-    width: 14px;
-    height: 14px;
-  }
-
-  .count {
-    display: none;
-  }
-
-  .menu {
-    right: 0;
-    left: auto;
-    width: min(336px, calc(100vw - 80px));
-    max-width: calc(100vw - 80px);
-  }
 }

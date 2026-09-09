@@ -12,7 +12,7 @@ The composer permission and model menus used their trigger and the browser viewp
 
 Portaled composer menus use the center column marked by `data-dsh-center-col` as an optional horizontal placement limit. `Menu` and `useAnchoredPosition` intersect that element's rectangle with the viewport, reserve 12px at both horizontal edges, clamp the measured menu into the remaining interval, and expose that interval as the menu's maximum width. `Menu` also lowers its design minimum width when necessary. Permission and model menus always use fixed body portals; compact mode controls dimensions rather than deciding whether collision handling exists.
 
-The shared primitives continue to use viewport placement when no horizontal limit is supplied, including the feedback editor behavior described by [the feedback popover decision](2026-08-13-feedback-note-editor-popover.md). A `ResizeObserver` tracks a supplied limit so sidebar or column width changes reposition an open menu without waiting for a window resize.
+The shared primitives continue to use viewport placement when no horizontal limit is supplied, including the feedback editor behavior described by [the feedback popover decision](../../archived/bug-fix/2026-08-13-feedback-note-editor-popover.md). A `ResizeObserver` tracks a supplied limit so sidebar or column width changes reposition an open menu without waiting for a window resize.
 
 The Plus mobile Web source patch owns the required `ui-primitives`, `ui-conversation`, and `ui-model-selection` changes relative to official revision `d347e703908d0406b7a7ef80e3a0e594d86b2215`.
 

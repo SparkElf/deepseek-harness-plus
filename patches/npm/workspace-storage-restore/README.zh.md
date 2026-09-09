@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-针对official DSH source revision `d347e703908d0406b7a7ef80e3a0e594d86b2215`的data-only temporary patch。它增加`WorkspaceRegistry.withStorageRestore`，在external file replacement期间关闭Workspace durable domain，并在return前通过正常initialization重开。
+针对official DSH source revision `5dda764ed3aa172535a7967b06ff95d9cbfe536a`的data-only temporary patch。它增加`WorkspaceRegistry.withStorageRestore`，在external file replacement期间关闭Workspace durable domain，并在return前通过正常initialization重开。
 
 target source revision对应`dsh-v0.1.3-alpha.1`。该tag没有匹配的已发布`@deepseek-ai/dsh-workspace` npm artifact，因此该variant不能诚实地指向npm package version。Plus distribution声明这个exact official base revision；materializer验证该base是Plus checkout的ancestor，通过`git apply --check`验证repository-root payload，然后从official source base与selected Plus artifacts build DSH。本package没有alternate revision、fuzzy application或runtime code。
 

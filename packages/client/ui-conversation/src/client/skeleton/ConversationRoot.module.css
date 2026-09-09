@@ -127,23 +127,17 @@
   cursor: default;
 }
 
-.headerContext,
-.headerActions,
-.headerUtilities {
+.headerActions {
   display: flex;
   flex: none;
   align-items: center;
-}
-
-.headerContext {
-  gap: 4px;
-}
-
-.headerActions {
   gap: 8px;
 }
 
 .headerUtilities {
+  display: flex;
+  flex: none;
+  align-items: center;
   gap: 8px;
   margin-left: 20px;
 }
@@ -472,44 +466,4 @@
    mounted but invisible so no wrong layout flashes before the phase lands. */
 .root[data-phase='settling'] .composerSeat {
   visibility: hidden;
-}
-
-@media (max-width: 800px) {
-  /* Context stays with the title; only command/task controls move beside tabs. */
-  .header {
-    padding-right: 12px;
-    padding-left: 12px;
-  }
-
-  .titleCluster {
-    gap: 6px;
-  }
-
-  .headerContext {
-    max-width: min(120px, 34vw);
-    overflow: hidden;
-  }
-
-  .headerActions {
-    position: absolute;
-    right: 8px;
-    bottom: 0;
-    z-index: 2;
-    gap: 2px;
-  }
-
-  .headerUtilities {
-    gap: 2px;
-    margin-left: 6px;
-  }
-
-  .tabs {
-    gap: 16px;
-    padding-right: min(112px, 32vw);
-  }
-
-  .tab {
-    writing-mode: horizontal-tb;
-    white-space: nowrap;
-  }
 }

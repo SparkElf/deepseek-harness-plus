@@ -7,9 +7,12 @@ import type {} from '@deepseek-ai/dsh-client-ui-commands/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-trajectory/client'
 import { SessionLogDownloadController } from './controller.ts'
 import type { SessionLogDownloadDialogInjected } from './Dialog.tsx'
-import { SessionLogDownloadHeaderAction } from './HeaderAction.tsx'
+import {
+  SessionLogDownloadHeaderAction, SessionLogDownloadToolbarAction,
+} from './HeaderAction.tsx'
 import { en, NS, zh, type SessionLogDownloadKey } from './locales.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -34,6 +37,11 @@ export const inject = ['slots', 'locale']
  */
 export function apply(ctx: ClientContext): void {
   const controller = new SessionLogDownloadController()
+  const injectAction = (): SessionLogDownloadDialogInjected => ({
+    hooks: { sessionLogDownload: controller.store },
+    request: (sessionId: SessionId) => controller.download(sessionId),
+    dismiss: (sessionId: SessionId) => { controller.dismiss(sessionId) },
+  })
   ctx.provide('sessionLogDownload', controller)
   ctx.effect(() => async () => { await controller.dispose() }, 'session-log-download: browser download lifecycle')
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'session-log-download: browser dictionaries')
@@ -44,12 +52,14 @@ export function apply(ctx: ClientContext): void {
     name: 'conversation.session.header.utilities',
     id: 'session-log-download',
     locale: NS,
-    inject: (): SessionLogDownloadDialogInjected => ({
-      hooks: { sessionLogDownload: controller.store },
-      request: (sessionId: SessionId) => controller.download(sessionId),
-      dismiss: (sessionId: SessionId) => { controller.dismiss(sessionId) },
-    }),
+    inject: injectAction,
   }, SessionLogDownloadHeaderAction))
+  ctx.slots.inject('conversation.trajectory.toolbar.utilities', () => ctx.slots.register({
+    name: 'conversation.trajectory.toolbar.utilities',
+    id: 'session-log-download',
+    locale: NS,
+    inject: injectAction,
+  }, SessionLogDownloadToolbarAction))
 }
 
 export type { SessionLogDownloadDialogInjected, SessionLogDownloadDialogProps } from './Dialog.tsx'

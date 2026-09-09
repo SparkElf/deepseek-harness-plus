@@ -7,7 +7,7 @@
  */
 
 import type { ToolSchema } from '@deepseek-ai/dsh-llm'
-import { assertSupportedJsonSchema } from './json-schema.ts'
+import { assertTypeProjectableJsonSchema } from './json-schema.ts'
 import type { JsonSchemaNode, JsonSchemaScalar } from './json-schema.ts'
 /** Internal PTC mode projection: the model-facing schema plus the canonical output schema. */
 export interface ToolSdkSchema extends ToolSchema {
@@ -239,7 +239,7 @@ function renderSupportedSchema(schema: JsonSchemaNode, indent: number): TypeDocu
  */
 export function jsonSchemaToTs(schema: unknown, indent = 0): string {
   try {
-    assertSupportedJsonSchema(schema)
+    assertTypeProjectableJsonSchema(schema)
     return flattenTypeDocument(renderSupportedSchema(schema, indent))
   } catch {
     return 'unknown'
