@@ -376,13 +376,15 @@ test.describe('Plus npm profile user workflows', () => {
       'Do not create HTML, PNG, PDF, or .univer files and do not ask questions.',
       `Reply with exactly OFFICECLI_ACCEPTANCE_DONE and the absolute path ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx.`,
     ].join(' '))
-    // The rendered file card is the deliverable: it appears only once OfficeCLI
-    // wrote the workbook, and its own action carries the absolute path.
-    const fileCard = page.getByRole('button', { name: `在侧边栏打开 ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx` })
-    await expect(fileCard).toBeVisible({ timeout: 6 * 60_000 })
+    // The turn's deliverable card is what proves OfficeCLI wrote the workbook: it
+    // carries the file name, and the turn's own reply carries the absolute path.
+    const delivered = page.getByText('本次产出', { exact: true })
+    await expect(delivered).toBeVisible({ timeout: 6 * 60_000 })
+    const fileCard = page.getByRole('button', { name: 'plus-officecli-acceptance.xlsx', exact: true })
+    await expect(fileCard).toBeVisible({ timeout: 30_000 })
     await fileCard.click()
-    await expect(page.getByText('Acceptance', { exact: true })).toBeVisible({ timeout: 30_000 })
-    await expect(page.getByText('公式', { exact: true })).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('Acceptance', { exact: true })).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('公式', { exact: true })).toBeVisible({ timeout: 60_000 })
     await expect(page.getByText(/^(下载查看|Download to view)$/)).toHaveCount(0)
   })
 

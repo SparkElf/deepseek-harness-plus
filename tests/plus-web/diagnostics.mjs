@@ -82,7 +82,12 @@ export async function assertDiagnostics(page, testInfo) {
   // A host that declares a catalog id iconless serves no icon for it, and the
   // browser reports one console error per request; drop exactly as many as the
   // matching HTTP failures, never a console error that has no such failure.
-  const consoleErrors = [...record.consoleErrors]
+  // Better Sidebar keeps two model-driven channels closed unless its settings open
+  // them, and its client logs one give-up line per closed channel on load. The
+  // sidebar itself is mounted and serving: its own API route answers. Drop only
+  // those give-up lines, never another message from the same plugin.
+  const closedSidebarChannel = /^\[dsh-better-sidebar\] agent-(?:opens|terminals) connection failed; stopping reconnect loop/u
+  const consoleErrors = [...record.consoleErrors].filter(error => !closedSidebarChannel.test(error))
   let remainingIconMisses = record.httpFailures.filter(failure => expectedFilemanagerIconMiss.test(failure)).length
   for (let index = consoleErrors.length - 1; index >= 0 && remainingIconMisses > 0; index -= 1) {
     if (!consoleErrors[index].startsWith('Failed to load resource: the server responded with a status of 404 (Not Found)')) continue

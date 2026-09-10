@@ -6,7 +6,7 @@
 
 ## 前置条件
 
-standard command先build candidate，使每个local npm tarball都包含published Host与Client artifacts。runner需要`DSH_PLUS_TEST_MODEL_SEED_HOME`、以`DSH_PLUS_TEST_MODEL_LABEL`提供的当前GPT可见名称、`DSH_MINERU_ENDPOINT`、`DSH_DATAOPS_BASE_URL`，以及`DSH_PLUS_TEST_MOBILE_BRIDGE_ARCHIVE`、`DSH_PLUS_TEST_SUPERVISOR_ARCHIVE`、`DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE`、`DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE`、`DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE`、`DSH_PLUS_TEST_API_CLIENT_ARCHIVE`、`DSH_PLUS_TEST_MINERU_ARCHIVE`及`DSH_PLUS_TEST_OFFICECLI_ARCHIVE`中的local archives。当real DataOps Web要求account login时，`DSH_PLUS_TEST_DATAOPS_USERNAME`与`DSH_PLUS_TEST_DATAOPS_PASSWORD`只由visible browser form消费；其值不写入runtime metadata或repository files。提供password variable时会禁用Playwright tracing，因为action trace会保留form-fill arguments；page、console及network diagnostics仍保持强制。
+standard command先build candidate，使每个local npm tarball都包含published Host与Client artifacts。runner需要`DSH_PLUS_TEST_MODEL_SEED_HOME`、以`DSH_PLUS_TEST_MODEL_LABEL`提供的当前GPT可见名称、`DSH_MINERU_ENDPOINT`（MinerU的parse route本身，例如`http://127.0.0.1:8000/file_parse`，而不是它的origin）、`DSH_DATAOPS_BASE_URL`，以及`DSH_PLUS_TEST_MOBILE_BRIDGE_ARCHIVE`、`DSH_PLUS_TEST_SUPERVISOR_ARCHIVE`、`DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE`、`DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE`、`DSH_PLUS_TEST_SSH_MANAGER_ARCHIVE`、`DSH_PLUS_TEST_API_CLIENT_ARCHIVE`、`DSH_PLUS_TEST_MINERU_ARCHIVE`及`DSH_PLUS_TEST_OFFICECLI_ARCHIVE`中的local archives。当real DataOps Web要求account login时，`DSH_PLUS_TEST_DATAOPS_USERNAME`与`DSH_PLUS_TEST_DATAOPS_PASSWORD`只由visible browser form消费；其值不写入runtime metadata或repository files。提供password variable时会禁用Playwright tracing，因为action trace会保留form-fill arguments；page、console及network diagnostics仍保持强制。
 
 ```bash
 pnpm run test:plus-web
