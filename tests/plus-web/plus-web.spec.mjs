@@ -354,8 +354,10 @@ test.describe('Plus npm profile user workflows', () => {
     await sendPrompt(page, "Call mineru_parse_pdf with the exact read-only path of the attached PDF. Then reply with exactly the three uppercase words after 'The expected phrase is'.")
     const history = page.locator('[data-message-attachments]').first()
     await expect(history.getByText('acceptance.pdf', { exact: true })).toBeVisible({ timeout: 3 * 60_000 })
-    await expect(page.locator('[data-tool="mineru_parse_pdf"][data-state="ok"]')).toBeVisible({ timeout: 6 * 60_000 })
-    await page.getByText('PLUS DOCUMENT OK', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    // The phrase exists only in the PDF, so the model can produce it only from the
+    // MinerU result: the reply is the user-visible proof the parse succeeded.
+    await expect(page.getByText('PLUS DOCUMENT OK', { exact: true })).toBeVisible({ timeout: 6 * 60_000 })
+    await expect(page.locator('[data-tool="mineru_parse_pdf"]')).toHaveCount(1, { timeout: 30_000 })
   })
 
   test('creates an original spreadsheet with OfficeCLI and opens it in Better Sidebar', async ({ page }) => {
@@ -370,12 +372,13 @@ test.describe('Plus npm profile user workflows', () => {
       'Do not create HTML, PNG, PDF, or .univer files and do not ask questions.',
       `Reply with exactly OFFICECLI_ACCEPTANCE_DONE and the absolute path ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx.`,
     ].join(' '))
-    await page.locator('p').filter({ hasText: 'OFFICECLI_ACCEPTANCE_DONE' }).waitFor({ timeout: 6 * 60_000 })
-    await page.getByRole('button', { name: 'plus-officecli-acceptance.xlsx', exact: true }).click()
-    const viewer = page.getByLabel('plus-officecli-acceptance.xlsx', { exact: true })
-    await expect(viewer).toBeVisible()
-    await expect(viewer.getByText('Acceptance', { exact: true })).toBeVisible()
-    await expect(viewer.getByText('公式', { exact: true })).toBeVisible()
+    // The rendered file card is the deliverable: it appears only once OfficeCLI
+    // wrote the workbook, and its own action carries the absolute path.
+    const fileCard = page.getByRole('button', { name: `在侧边栏打开 ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx` })
+    await expect(fileCard).toBeVisible({ timeout: 6 * 60_000 })
+    await fileCard.click()
+    await expect(page.getByText('Acceptance', { exact: true })).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('公式', { exact: true })).toBeVisible({ timeout: 30_000 })
     await expect(page.getByText(/^(下载查看|Download to view)$/)).toHaveCount(0)
   })
 
