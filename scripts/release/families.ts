@@ -115,7 +115,10 @@ export abstract class ReleaseFamily {
    */
   verifyBuildArtifacts(_root: string): void {}
 
-  /** Package scope accepted by this release family. */
+  /** Whether this family owns a package selected by its path patterns. */
+  protected ownsPackage(_name: string): boolean { return true }
+
+  /** Whether an owned manifest name belongs to this release authority. */
   protected acceptsPackageName(name: string): boolean { return name.startsWith('@deepseek-ai/') }
 
   /**
@@ -136,6 +139,7 @@ export abstract class ReleaseFamily {
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
+      if (!this.ownsPackage(name)) continue
       if (!this.acceptsPackageName(name)) throw new Error(`${normalized} has a package name outside release family ${this.id}`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
@@ -332,6 +336,8 @@ class DshFamily extends ReleaseFamily {
   ]
   readonly tagPrefix: string = 'dsh-v'
 
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
+
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
     readClientBuildRecord(root, officialClientBuildEnvironment(root))
@@ -386,6 +392,8 @@ class PlusFamily extends DshFamily {
     'patches/npm/*/package.json',
   ] as const
   override readonly tagPrefix = 'plus-npm-v'
+
+  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
 
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
 
