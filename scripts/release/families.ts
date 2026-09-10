@@ -324,13 +324,13 @@ export abstract class ReleaseFamily {
 
 /** Release packages and apps: one shared version across the whole family. */
 class DshFamily extends ReleaseFamily {
-  readonly id = 'dsh'
-  readonly patterns = [
+  readonly id: string = 'dsh'
+  readonly patterns: readonly string[] = [
     'packages/!(experimental)/*/package.json',
     'apps/*/package.json',
     ...PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES.map(directory => `${directory}/package.json`),
-  ] as const
-  readonly tagPrefix = 'dsh-v'
+  ]
+  readonly tagPrefix: string = 'dsh-v'
 
   /** Require current artifacts from a complete official client build. */
   override verifyBuildArtifacts(root: string): void {
@@ -374,7 +374,7 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+  readonly installedEntry: InstalledEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
 }
 
 /** Plus-owned npm artifacts share an independent version and tag. */
@@ -386,8 +386,6 @@ class PlusFamily extends DshFamily {
     'patches/npm/*/package.json',
   ] as const
   override readonly tagPrefix = 'plus-npm-v'
-
-  protected override ownsPackage(name: string): boolean { return name.startsWith('@sparkelf/') }
 
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
 
