@@ -71,9 +71,18 @@ function currentModelSettings(source, label) {
     && typeof sourceDefault.reasoningEffort === 'string') {
     defaultModel.reasoningEffort = sourceDefault.reasoningEffort
   }
+  // The permission preset comes from the seed home, because a host without a usable
+  // sandbox backend cannot run any sandboxed command and would stall every turn on an
+  // approval the acceptance never answers.
+  const permission = settings.permission
+  const permissionSeed = permission !== null && typeof permission === 'object' && !Array.isArray(permission)
+    && typeof permission.defaultPreset === 'string' && permission.defaultPreset !== ''
+    ? { defaultPreset: permission.defaultPreset }
+    : undefined
   return {
     'llm-pi-ai': { providers: { [providerId]: providerSeed } },
     'agent-default-model': defaultModel,
+    ...permissionSeed === undefined ? {} : { permission: permissionSeed },
   }
 }
 
