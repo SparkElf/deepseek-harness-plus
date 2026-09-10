@@ -562,10 +562,26 @@ test.describe('Plus mobile Web navigation', () => {
     const center = page.locator('[data-dsh-center-col]')
     const margin = 12
     const expectInsideCenter = async (menu) => {
-      const [menuBox, centerBox] = await Promise.all([menu.boundingBox(), center.boundingBox()])
+      const [menuBox, centerBox, style] = await Promise.all([
+        menu.boundingBox(),
+        center.boundingBox(),
+        menu.evaluate(element => {
+          const computed = window.getComputedStyle(element)
+          return { maxWidth: computed.maxWidth, boxSizing: computed.boxSizing }
+        }),
+      ])
       if (menuBox === null || centerBox === null) throw new Error('Composer popover and center column must be visible')
-      expect(menuBox.x).toBeGreaterThanOrEqual(centerBox.x + margin)
-      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(centerBox.x + centerBox.width - margin)
+      const geometry = `menu x=${String(menuBox.x)} w=${String(menuBox.width)} right=${String(menuBox.x + menuBox.width)} | center x=${String(centerBox.x)} w=${String(centerBox.width)} right=${String(centerBox.x + centerBox.width)} | maxWidth=${style.maxWidth} boxSizing=${style.boxSizing}`
+      // A popover caps its own width to the column, so the cap must bound the card's
+      // outer width; a content-box cap lets padding push the card past the boundary.
+      const cap = Number.parseFloat(style.maxWidth)
+      const available = centerBox.width - margin * 2
+      expect(
+        style.maxWidth !== 'none' && cap <= available + 0.5 && style.boxSizing === 'border-box',
+        `the popover must cap its outer width to the ${String(available)}px the center column allows, got maxWidth=${style.maxWidth} boxSizing=${style.boxSizing}`,
+      ).toBe(true)
+      expect(menuBox.x, geometry).toBeGreaterThanOrEqual(centerBox.x + margin)
+      expect(menuBox.x + menuBox.width, geometry).toBeLessThanOrEqual(centerBox.x + centerBox.width - margin)
     }
 
     await page.locator('button[aria-label^="访问模式"]').first().click()

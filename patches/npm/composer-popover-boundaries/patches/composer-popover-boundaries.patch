@@ -105,6 +105,21 @@ index 05bb4b9494..c156255193 100644
  }
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
+diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+index b2cb715287..968d000bc5 100644
+--- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
++++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+@@ -104,7 +104,9 @@
+   display: flex;
+   flex-direction: column;
+   /* Let the visible pane's rows set the card width, but keep pathological ids
+-     and narrow screens inside a bounded card where ellipsis remains. */
++     and narrow screens inside a bounded card where ellipsis remains. The card's
++     own pad is part of that bound, as it is on the Menu primitive's surface. */
++  box-sizing: border-box;
+   width: max-content;
+   min-width: min(240px, calc(100vw - 32px));
+   max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 index e9fc0195ef..637ecb5601 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
@@ -174,7 +189,7 @@ index 3b8c92d8bf..53b1f03c39 100644
        // Interactions inside the trigger subtree or the portaled card stay open.
        fireEvent.mouseDown(menu)
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index aebb0be860..c17f024e4e 100644
+index 1919e923c6..fe35b2a1f4 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -39,7 +39,7 @@ Check this table before writing a control in a feature package. A plugin cannot
@@ -187,7 +202,7 @@ index aebb0be860..c17f024e4e 100644
  | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
  | `StateDot` | Status mark: `done`, `warning`, `ongoing`, `error`, or `idle`. `aria-hidden`, so the render site owns the name. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index a545aff983..d3e9357c9f 100644
+index e0c90fd14a..31011edb72 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
 @@ -39,7 +39,7 @@ kind: "package-library"
