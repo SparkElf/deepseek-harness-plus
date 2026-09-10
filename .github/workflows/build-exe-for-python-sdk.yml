@@ -22,7 +22,7 @@ on:
         required: false
         default: false
       ci:
-        description: Run Python runtime CI validation for the selected targets.
+        description: Run as the required all-target Python runtime pull-request check.
         type: boolean
         required: false
         default: false
@@ -46,8 +46,7 @@ concurrency:
   # github.workflow identifies the caller inside a reusable workflow and keeps
   # an ordinary CI run from cancelling a full release validation on the same ref.
   group: build-single-exe-${{ github.workflow }}-${{ github.ref }}
-  # Release-owned builds are part of an intentional publication transaction.
-  cancel-in-progress: ${{ !inputs.release }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -159,8 +158,6 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v6
-        with:
-          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -197,17 +194,7 @@ jobs:
             pkg-fetch-${{ matrix.target }}-
 
       - name: Install (immutable)
-        # node-gyp fetches Node headers from nodejs.org during install; that
-        # endpoint stalls intermittently (observed 10 s connect timeouts).
-        # Bounded retries mirror the wine lane's transfer policy without a
-        # mirror, since these installs also resolve native addons.
-        shell: bash
-        run: |
-          for attempt in 1 2 3; do
-            if pnpm install --frozen-lockfile; then exit 0; fi
-            [ "$attempt" -lt 3 ] && sleep 10
-          done
-          exit 1
+        run: pnpm install --frozen-lockfile
 
       - name: Rebuild Linux node-pty against manylinux 2.28
         if: runner.os == 'Linux'
