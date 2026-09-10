@@ -374,7 +374,7 @@ class DshFamily extends ReleaseFamily {
     validateTarballPayload(files, member.name)
   }
 
-  readonly installedEntry: InstalledEntry = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
+  readonly installedEntry: InstalledEntry | undefined = { packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }
 }
 
 /** Plus-owned npm artifacts share an independent version and tag. */
