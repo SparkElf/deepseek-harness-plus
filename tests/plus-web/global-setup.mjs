@@ -26,7 +26,7 @@ const webPort = Number(process.env.DSH_PLUS_TEST_PORT ?? '3081')
 const supervisorPort = Number(process.env.DSH_PLUS_TEST_SUPERVISOR_PORT ?? '3083')
 const baseURL = `http://127.0.0.1:${String(webPort)}`
 const supervisorURL = `http://127.0.0.1:${String(supervisorPort)}`
-const officialRevision = 'b2e3b2a0125854567a4a5fcba75782e42fe84901'
+const officialRevision = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')

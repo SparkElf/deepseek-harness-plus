@@ -6,4 +6,4 @@ This data-only package adds one explicit `llm-pi-ai` route option for OpenAI Res
 
 The official Models editor shows a localized **Gateway compatibility mode** checkbox only for pi-ai routes whose effective protocol is `openai-responses`. User-layer disablement deletes the leaf unless an inherited true requires an explicit false, and changing protocol removes or masks the incompatible setting without replacing sibling fields.
 
-The target is exact official source revision `b2e3b2a0125854567a4a5fcba75782e42fe84901`. This package has no JavaScript entry, lifecycle script, Cordis plugin, fallback, or alternate variant. Retire it when official DSH ships equivalent pi-ai Responses input adjustment and Models editor behavior.
+The target is exact official source revision `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`. This package has no JavaScript entry, lifecycle script, Cordis plugin, fallback, or alternate variant. Retire it when official DSH ships equivalent pi-ai Responses input adjustment and Models editor behavior.

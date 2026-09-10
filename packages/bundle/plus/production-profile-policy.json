@@ -2000,25 +2000,25 @@
     "@sparkelf/dsh-patch-browser-auth-mode": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "409b20abd7d818e30b4292522a128273b296a650cfc2d6125451124417e16ed7",
       "candidateSha256": "77643146f180b92668157d1ed11f5fd289e189e5ed3c7f19f3b229bc038fa885"
     },
     "@sparkelf/dsh-patch-composer-popover-boundaries": {
       "mode": "add",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "candidateSha256": "7518a01b693d1608a57c6a700ce6e6a1e540afcee0f0fc96f66b2ae406603603"
     },
     "@sparkelf/dsh-patch-legacy-code-preset": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "7500e3d8018c0e2c867a80f108cbf7a319ee9f09a49ca52f72430724aaa1ec67",
       "candidateSha256": "b3e7fc12e4837dc731d7b9644bbec0c89b8cbd7843db0554b40658909e0cd95c"
     },
     "@sparkelf/dsh-patch-mobile-journal-generation": {
       "mode": "add",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "candidateSha256": "288b3c96f084ed0589b6aee33c71688ae807b4ae3e47befd301262f5b42b539b"
     },
     "@sparkelf/dsh-patch-mobile-web-layout": {
@@ -2029,28 +2029,28 @@
     "@sparkelf/dsh-patch-officecli-deliverables": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "526beea990a24108db0458262b758bfd1fb8e1749693e7eb40964f2fe43b557e",
       "candidateSha256": "9ec0f743403b51720d71ed091c57cbad7903ef2518091cb1710c3b684cd1f043"
     },
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "dd8164558b7180cecd4e2f3510b6b3e7bb73d51bb031190a6163d4e381a2dfec",
       "candidateSha256": "be2f58a233d776df5a4bc406dbe6b5a5dc750a7d193a8d48901d69c98595b751"
     },
     "@sparkelf/dsh-patch-responses-reasoning-status": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "9f62d8f66172c51b874b3ef138ba7adca865e0b84bffe8dc1639df232ca47a69",
       "candidateSha256": "fcc6f8395898e229a4947951d3ca4e643bc705781c4a2e7180a9793ef7f741db"
     },
     "@sparkelf/dsh-patch-session-export-chinese": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "7dd20ab807f5d3a2804007147ba49d46d04da22ad423173e4e749cd06b0be8eb",
       "candidateSha256": "4c7c3197aed7562874f3a854183436b45099cde16c44d25a83921b5c319ed8e7"
     },
@@ -2062,56 +2062,56 @@
     "@sparkelf/dsh-patch-session-log-trajectory-toolbar": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "0e0e1a3626c3fb3272b4e30b63e8b83926e86b5681e8026cda15eaed1e335785",
       "candidateSha256": "e4997f3d5cc0ef274471789009b8a92f99fb05b45295dcbc6f92a226e56e682c"
     },
     "@sparkelf/dsh-patch-subagent-settings-presets": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "38d23de450346d3a1e72f6cbc0694dfd548160469677ecdb09b60d4cd06d13c0",
       "candidateSha256": "b60d7647ef9a6e05474b937d3ecb860bdf43620d2aece3f729189ab974475dc2"
     },
     "@sparkelf/dsh-patch-web-base-path": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "abdce5f8d24c14dd555f4327ab3ac3abe36b0be4905b7b8ec377ef3f38e2dff9",
       "candidateSha256": "98b9faa525f78e359f613ac75746e7a4b2b6046237811aedf75972492b2807a7"
     },
     "@sparkelf/dsh-patch-workspace-storage-restore": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "90cce39e477df852ce7a7ea7ccc7801c53c0f9b55a9bfd59dc26ec3fb383a691",
       "candidateSha256": "011e6801f06275bb262cbf5402613875e26575e2b1b0f51c0eb4e30037abb442"
     },
     "@sparkelf/dsh-plugin-backup": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "81a97e574d5112befcbcdcf6f3c6de2994d420508c2b6a9f25df6c63afd4db99",
       "candidateSha256": "dae5bdb056b4e1a6a2c53b1f09d8080bc3ad0b79001406d55e26adfe46f890e7"
     },
     "@sparkelf/dsh-plugin-dataops": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "881585271a657801c3e7a2b455736fac792e87d0e24530ba588e65e2e1bcea7f",
       "candidateSha256": "bb80b57be4c04d6930eb873f5cf2f815ff6702c0f7e155284e5a489e4d97fcd6"
     },
     "@sparkelf/dsh-plugin-mcp-credentials": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "0f0417bf418a90be86ae8974395b834b1146e7d9936d3ea5cb9153fe70c57837",
       "candidateSha256": "1997b47f0a1f6e19641587df023652153f61da0e809242b9cc257982d4b3086a"
     },
     "@sparkelf/dsh-plugin-subagent-settings": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "6609e429ebceaee8bd6774036a873e816d7f004673e086cd05533966d24b0fc4",
       "candidateSha256": "884371abef6d812b693b4a939c5689485dd50f75b346d990b65ca147618d4a34"
     },
@@ -2125,7 +2125,7 @@
     "@sparkelf/dsh-plus": {
       "mode": "replace",
       "baselineVersion": "0.1.0-rc.22",
-      "candidateVersion": "0.1.0-rc.24",
+      "candidateVersion": "0.1.0-rc.25",
       "baselineSha256": "4a7296faca45bef263f00abaf845ba19c86343d3edae6cd5c1839eb95f894c56",
       "candidateSha256": "ed8f6bb7d6b36f57121ab450f94cd1bad2b175a7a83d43b30f3db5a527e7852b"
     },

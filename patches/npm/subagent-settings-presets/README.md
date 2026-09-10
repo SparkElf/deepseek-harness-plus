@@ -4,6 +4,6 @@ English | [中文](README.zh.md)
 
 This data-only package routes the two built-in delegation rows in each official shipped Agent preset to `@sparkelf/dsh-plugin-subagent-settings`. The continuous row reads `subagent`; the one-shot fork row reads `subagent-fork`. Disabled Codex and Claude Code provider rows remain official and unchanged.
 
-The target is the exact official source base `b2e3b2a0125854567a4a5fcba75782e42fe84901`. The Plus apply command verifies the base ancestry and payload before applying it. This package has no JavaScript entry, Cordis lifecycle, install script, or capability implementation.
+The target is the exact official source base `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`. The Plus apply command verifies the base ancestry and payload before applying it. This package has no JavaScript entry, Cordis lifecycle, install script, or capability implementation.
 
 Retire this package when official Agent presets expose a deployment overlay for shipped row replacement or ship equivalent settings-backed rows.

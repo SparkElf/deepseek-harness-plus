@@ -12,7 +12,7 @@ DeepSeek Harness Plus组合official DSH、selected external plugins、product de
 
 Plus使用四种delivery form。完整capability是包含所需全部Host与Client role的npm-installable Cordis plugin。可选out-of-process application消费这些capability，但不进入DSH process。@sparkelf/dsh-plus拥有dependency closure、ordered profile composition、defaults、exact source compatibility及independent patch package references。经过证明的official或external gap成为一个data-only patch package，只有一个exact payload variant，不包含JavaScript entry、lifecycle hook、Cordis plugin、fuzzy fallback或compatibility adapter。
 
-rc.24 distribution以official DSH 0.1.5-alpha.2 revision b2e3b2a0125854567a4a5fcba75782e42fe84901为target。dsh-plus apply要求该exact checkout，在isolated Git index中验证全部source patch，安装profile dependencies，应用pending payload，构建official source，把official workspace packages链接到profile，并写credential-free .dsh-plus/patchset.lock.json。
+rc.24 distribution以official DSH 0.1.5-alpha.2 revision 183f08e9c6dde7e36cd2318eaee70b0da08fb35e为target。dsh-plus apply要求该exact checkout，在isolated Git index中验证全部source patch，安装profile dependencies，应用pending payload，构建official source，把official workspace packages链接到profile，并写credential-free .dsh-plus/patchset.lock.json。
 
 Profile installation不自动安装official peer packages，因为selected source checkout提供这些package。普通Plus capability package（包括SQL Workbench 0.5.0）从npm解析；profile不再包含普通GitHub tarball closure或source-owned package override。Production upgrade policy为accepted profile与candidate之间每个runtime file变化记录fingerprint。
 
