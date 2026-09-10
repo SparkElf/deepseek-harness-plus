@@ -34,7 +34,7 @@ The package manifest is the current plugin and patch inventory. Every review del
 
 ## Consequences
 
-Plus upgrades require an exact official revision and a fresh profile proof. External packages without npm publication remain fixed reviewed release assets. Official upgrades can change hundreds of package fingerprints, so promotion policy is generated from actual baseline and candidate profiles rather than copied forward. Deleting redundant plugins reduces the dependency graph and leaves official UI extension points available to new focused plugins.
+An official baseline merge takes the upstream release-family source, so every official family keeps its own package-name ownership predicate: the official family owns `@deepseek-ai` names and skips co-located Plus packages, while the Plus family owns `@sparkelf` names under its own path patterns. A family that drops that predicate rejects the other authority's manifests and fails the pack and verify jobs. Plus upgrades require an exact official revision and a fresh profile proof. External packages without npm publication remain fixed reviewed release assets. Official upgrades can change hundreds of package fingerprints, so promotion policy is generated from actual baseline and candidate profiles rather than copied forward. Deleting redundant plugins reduces the dependency graph and leaves official UI extension points available to new focused plugins.
 
 ## Verification
 
