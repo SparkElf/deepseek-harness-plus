@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write patches/npm/composer-popover-boundaries/README.md
-README.md: f1ba94074e489dfa02597274be7ed562e7a54972
-README.zh.md: 83d4a347962efb08d3ea67d43f5d8681e85db08b
+README.md: 680a5d4c6f9a2e9fb294e4f1d0079d719f398065
+README.zh.md: 6bb73909a431f9f229b063fc41437c01851a5c47

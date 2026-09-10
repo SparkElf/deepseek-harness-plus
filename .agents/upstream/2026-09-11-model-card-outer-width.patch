@@ -1,0 +1,73 @@
+From ceb1f5258c92b863b7d83a44d22581405dc89b07 Mon Sep 17 00:00:00 2001
+From: laoyh <laoyh@chinatelecom.cn>
+Date: Fri, 11 Sep 2026 03:59:50 +0800
+Subject: [PATCH] fix(ui-model-selection): bound the model card by its outer
+ width
+
+The model card declares `width: max-content` with `min-width`/`max-width` and its
+own 4px pad, but sets no box-sizing, so those bounds size the content box and the
+pad pushes the outer width past them. The placement clamps the measured outer
+width, so a narrow column left the card a few pixels outside its bound.
+
+The Menu primitive's card already declares border-box for exactly this reason;
+declare it on the model card too, and assert the declaration so removing it fails
+the suite.
+---
+ .../src/client/ModelSelect.module.css               |  4 +++-
+ .../tests/model-select.client.spec.tsx              | 13 +++++++++++++
+ 2 files changed, 16 insertions(+), 1 deletion(-)
+
+diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+index b2cb715287..15c5ba907a 100644
+--- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
++++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
+@@ -104,7 +104,9 @@
+   display: flex;
+   flex-direction: column;
+   /* Let the visible pane's rows set the card width, but keep pathological ids
+-     and narrow screens inside a bounded card where ellipsis remains. */
++     and narrow screens inside a bounded card where ellipsis remains. The card's
++     own pad counts inside those bounds, as it does on the Menu primitive. */
++  box-sizing: border-box;
+   width: max-content;
+   min-width: min(240px, calc(100vw - 32px));
+   max-width: min(420px, calc(100vw - 32px));
+diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+index 3b8c92d8bf..46882bfdb5 100644
+--- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
++++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
+@@ -1,4 +1,7 @@
+ // @vitest-environment jsdom
++import { readFileSync } from 'node:fs'
++import { dirname, join } from 'node:path'
++import { fileURLToPath } from 'node:url'
+ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+ import { afterEach, describe, expect, it, vi } from 'vitest'
+ import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+@@ -9,6 +12,13 @@ import { ModelSelect } from '../src/client/ModelSelect.tsx'
+ import { zh } from '../src/client/locales.ts'
+ import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
+ 
++/** Read one declaration from the card rule the placement bounds. */
++function modelMenuRule(property: string): string | undefined {
++  const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../src/client/ModelSelect.module.css'), 'utf8')
++  const rule = /\.menu \{([^}]*)\}/u.exec(source)?.[1] ?? ''
++  return new RegExp('(?:^|[;\\n])\\s*' + property + '\\s*:\\s*([^;]+)', 'u').exec(rule)?.[1]?.trim()
++}
++
+ // The seat's key domain is model ∪ common; the stub mirrors the real lookup
+ // chain: package dictionary, then common vocabulary, then the key.
+ const t: ComponentProps<typeof ModelSelect>['t'] = (key, params) => {
+@@ -224,6 +234,9 @@ describe('ModelSelect reasoning effort', () => {
+       // to the 12px viewport margin on both axes.
+       expect(menu.style.left).toBe('12px')
+       expect(menu.style.top).toBe('12px')
++      // The placement clamps the measured outer width, so the card's own pad has to
++      // count inside its width bounds the way it does on the Menu primitive card.
++      expect(modelMenuRule('box-sizing')).toBe('border-box')
+       // Interactions inside the trigger subtree or the portaled card stay open.
+       fireEvent.mouseDown(menu)
+       fireEvent.mouseDown(trigger)
+-- 
+2.43.0
+

@@ -18,7 +18,9 @@ Profile installation does not auto-install official peer packages because the se
 
 ## Official ownership and patch retirement
 
-Official DSH owns Sidebar navigation, file and text preview, Session search, responsive columns, Settings chrome, and the Composer structure. Plus carries no Better Sidebar, old Sidebar Office viewer, video-preview bundle, duplicate Session-search implementation, or broad mobile-layout patch. The focused composer-boundary patch changes only the center-column marker and Permission/Model portal placement, and retires when its upstream contribution ships.
+Official DSH owns Sidebar navigation, file and text preview, Session search, responsive columns, Settings chrome, and the Composer structure. Plus carries no duplicate Session-search implementation or broad mobile-layout patch; it does carry Better Sidebar with its Office and video preview bundles, because document preview inside the sidebar is an accepted Plus workflow. The focused composer-boundary patch changes only the center-column marker and Permission/Model portal placement, and retires when its upstream contribution ships.
+
+Upstreaming a retired patch targets the fork at `SparkElf/deepseek-harness`, whose branches can be pushed. The official repository `deepseek-ai/deepseek-harness` reports `has_pull_requests: false`, so it accepts no pull request at all: listing its pull requests answers `404`, the same answer as an attempt to open one. An upstream contribution therefore lands as a pushed fork branch plus a patch file in the Plus repository, never as a pull request against the official repository.
 
 The package manifest is the current plugin and patch inventory. Every review deletes a package, patch hunk, profile row, test, or document that duplicates official behavior or lacks an accepted Plus workflow. A patch may add, modify, or remove target package source; its unit is one behavior and retirement lifecycle, not the direction or size of its diff.
 
