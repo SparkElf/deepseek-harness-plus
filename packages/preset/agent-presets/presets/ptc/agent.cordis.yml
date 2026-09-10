@@ -31,8 +31,9 @@
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    text: >-
-      You are a coding agent powered by the {{model}} model. Your working directory is {{cwd}}.
+    suffix: Your working directory is {{cwd}}.
+    prefix: >-
+      You are a coding agent powered by the {{model}} model.
 
 - id: agent-instructions
   name: '@deepseek-ai/dsh-agent-instructions'
@@ -185,23 +186,21 @@
       name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
     - id: tool-subagent
-      name: '@deepseek-ai/dsh-tool-subagent'
+      name: '@sparkelf/dsh-plugin-subagent-settings'
       config:
         provider: spawn
+        settingsNamespace: subagent
         toolName: subagent
-        modelSelectionSettings: true
         backgroundMode: continuable
 
-    # Fork omits model selection so provider/model stay equal to the parent and
-    # the inherited history remains eligible for KV Cache reuse. This preset
-    # keeps fork continuable; parent and child inherit the same messaging tool,
-    # while the parent id and return guidance follow the inherited history.
+    # One-shot fork preserves inherited history and reads its own settings namespace.
     - id: tool-subagent-fork
-      name: '@deepseek-ai/dsh-tool-subagent'
+      name: '@sparkelf/dsh-plugin-subagent-settings'
       config:
         provider: fork
+        settingsNamespace: subagent-fork
         toolName: subagent_fork
-        backgroundMode: continuable
+        backgroundMode: one-shot
 
     # Production dsh does not install these optional providers. Install the
     # matching Bundle in this Profile and restart the Host, then copy this
@@ -269,3 +268,6 @@
   name: '@deepseek-ai/dsh-agent-tool-presentation'
   config:
     mode: ptc
+
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'

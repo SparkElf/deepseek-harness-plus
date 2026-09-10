@@ -44,10 +44,9 @@ export function downloadUrl(url: string, filename: string): void {
   anchor.click()
 }
 
-/** Resolve the browser's Host base with the connection carrier's null-origin fallback. */
+/** Resolve the browser document base. */
 function hostBase(): string {
-  const origin = (globalThis as { location?: { origin?: string } }).location?.origin
-  return origin !== undefined && origin !== 'null' ? origin : 'http://dsh.internal'
+  return document.baseURI
 }
 
 function messageOf(error: unknown): string {
@@ -112,7 +111,7 @@ export class SessionLogDownloadController {
   private async run(sessionId: SessionId, signal: AbortSignal): Promise<void> {
     this.publish(sessionId, { open: true, status: 'downloading', error: null })
     try {
-      const url = new URL('/api/session.export', hostBase())
+      const url = new URL('api/session.export', hostBase())
       url.searchParams.set('sessionId', sessionId)
       url.searchParams.set('includeDescendants', 'true')
       const response = await this.fetcher(url, { method: 'HEAD', signal })

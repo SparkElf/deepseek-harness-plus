@@ -165,13 +165,19 @@
   font: 14px/14px var(--ds-font-family-code);
 }
 
+.utilities {
+  display: flex;
+  flex: none;
+  align-items: center;
+  margin-left: auto;
+}
+
 .search {
   display: flex;
   flex: 0 1 164px;
   align-items: center;
   min-width: 84px;
   height: 22px;
-  margin-left: auto;
   padding: 0 6px;
   gap: 4px;
   border: 0.5px solid var(--dsw-alias-border-l4);

@@ -23,6 +23,7 @@
     { "path": "../../client/ui-renderer" },
     { "path": "../../client/ui-session" },
     { "path": "../../client/ui-slots" },
+    { "path": "../../client/ui-trajectory" },
     { "path": "../../core/session" }
   ]
 }

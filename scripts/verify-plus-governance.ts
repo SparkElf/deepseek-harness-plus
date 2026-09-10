@@ -50,7 +50,8 @@ function json(path: string): Record<string, unknown> {
 }
 
 function minimumRange(value: unknown, label: string): string {
-  const range = string(value, label)
+  const source = string(value, label)
+  const range = source.startsWith('workspace:') ? source.slice('workspace:'.length) : source
   if (!/^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range) || validRange(range) === null) {
     throw new Error(label + ' must be a minimum-only semantic-version range')
   }
@@ -199,21 +200,15 @@ function main(): void {
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
-  const plusReleaseAsset = (filename: string): string =>
-    'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/' + filename
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.9.8',
-    'dsh-better-sidebar': plusReleaseAsset('dsh-better-sidebar-0.18.1.tgz'),
-    '@sparkelf/dsh-office-viewer-fonts': '>=0.1.0',
-    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
-    'dsh-video-preview': '0.1.4',
-    '@sparkelf/dsh-mineru': '>=0.1.0',
-    '@sparkelf/dsh-officecli': '>=0.1.0',
-    '@sparkelf/dsh-plugin-supervisor': plusReleaseAsset('sparkelf-dsh-plugin-supervisor-0.1.3.tgz'),
-    'dsh-sql-workbench': plusReleaseAsset('dsh-sql-workbench-0.4.0.tgz'),
-    '@sparkelf/dsh-workbench-vault': plusReleaseAsset('sparkelf-dsh-workbench-vault-0.1.0.tgz'),
-    '@sparkelf/dsh-ssh-manager': plusReleaseAsset('sparkelf-dsh-ssh-manager-0.6.0.tgz'),
-    '@sparkelf/dsh-api-client': plusReleaseAsset('sparkelf-dsh-api-client-0.4.2.tgz'),
+    '@changfenhuang/dsh-genui': '0.9.9',
+    '@sparkelf/dsh-mineru': '0.1.1',
+    '@sparkelf/dsh-officecli': '0.1.1',
+    '@sparkelf/dsh-plugin-supervisor': '0.1.4',
+    'dsh-sql-workbench': '0.5.0',
+    '@sparkelf/dsh-workbench-vault': '0.1.1',
+    '@sparkelf/dsh-ssh-manager': '0.7.0',
+    '@sparkelf/dsh-api-client': '0.5.0',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')

@@ -26,7 +26,7 @@ const webPort = Number(process.env.DSH_PLUS_TEST_PORT ?? '3081')
 const supervisorPort = Number(process.env.DSH_PLUS_TEST_SUPERVISOR_PORT ?? '3083')
 const baseURL = `http://127.0.0.1:${String(webPort)}`
 const supervisorURL = `http://127.0.0.1:${String(supervisorPort)}`
-const officialRevision = 'd347e703908d0406b7a7ef80e3a0e594d86b2215'
+const officialRevision = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -145,7 +145,7 @@ function packageDirectories() {
 }
 
 function packCandidateArchives(directories) {
-  run('pnpm', ['exec', 'tsx', 'scripts/release/pack.ts', '--family', 'plus', '--out', packagesDir], repoRoot)
+  run('pnpm', ['run', 'release:pack', '--family=plus', '--out=' + packagesDir], repoRoot)
   const archivesByName = new Map()
   for (const file of readdirSync(packagesDir).filter(file => file.endsWith('.tgz')).sort()) {
     const archive = join(packagesDir, file)
@@ -271,7 +271,7 @@ export default async function globalSetup() {
     'DSH_PLUS_TEST_MODEL_LABEL',
     'DSH_MINERU_ENDPOINT',
     'DSH_DATAOPS_BASE_URL',
-    'DSH_PLUS_TEST_SIDEBAR_ARCHIVE',
+    'DSH_PLUS_TEST_MOBILE_BRIDGE_ARCHIVE',
     'DSH_PLUS_TEST_SUPERVISOR_ARCHIVE',
     'DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE',
     'DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE',
@@ -279,7 +279,6 @@ export default async function globalSetup() {
     'DSH_PLUS_TEST_API_CLIENT_ARCHIVE',
     'DSH_PLUS_TEST_MINERU_ARCHIVE',
     'DSH_PLUS_TEST_OFFICECLI_ARCHIVE',
-    'DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE',
   ]
   const missing = required.filter(name => process.env[name] === undefined || process.env[name] === '')
   if (missing.length > 0) throw new Error(`Plus Web system acceptance requires: ${missing.join(', ')}`)
@@ -309,7 +308,7 @@ export default async function globalSetup() {
   chmodSync(credentialsDestination, 0o600)
   const directories = packageDirectories()
   const externalArchives = {
-    'dsh-better-sidebar': resolve(process.env.DSH_PLUS_TEST_SIDEBAR_ARCHIVE),
+    '@sparkelf/dsh-mobile-bridge': resolve(process.env.DSH_PLUS_TEST_MOBILE_BRIDGE_ARCHIVE),
     '@sparkelf/dsh-plugin-supervisor': resolve(process.env.DSH_PLUS_TEST_SUPERVISOR_ARCHIVE),
     'dsh-sql-workbench': resolve(process.env.DSH_PLUS_TEST_SQL_WORKBENCH_ARCHIVE),
     '@sparkelf/dsh-workbench-vault': resolve(process.env.DSH_PLUS_TEST_WORKBENCH_VAULT_ARCHIVE),
@@ -317,7 +316,6 @@ export default async function globalSetup() {
     '@sparkelf/dsh-api-client': resolve(process.env.DSH_PLUS_TEST_API_CLIENT_ARCHIVE),
     '@sparkelf/dsh-mineru': resolve(process.env.DSH_PLUS_TEST_MINERU_ARCHIVE),
     '@sparkelf/dsh-officecli': resolve(process.env.DSH_PLUS_TEST_OFFICECLI_ARCHIVE),
-    '@sparkelf/dsh-office-viewer-fonts': resolve(process.env.DSH_PLUS_TEST_OFFICE_VIEWER_FONTS_ARCHIVE),
   }
   const distributionDirectory = 'packages/bundle/plus'
   const mcpDirectory = 'packages/plus/mcp-credentials'
@@ -350,10 +348,7 @@ export default async function globalSetup() {
         const manifest = JSON.parse(readFileSync(join(repoRoot, directory, 'package.json'), 'utf8'))
         return [manifest.name, `file:${archives.get(directory)}`]
       })),
-      '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
-      'dsh-video-preview': '0.1.4',
       ...Object.fromEntries(Object.entries(externalArchives).map(([name, archive]) => [name, `file:${archive}`])),
-      '@sparkelf/dsh-mobile-bridge': '0.2.10',
     }
     writeFileSync(
       join(profileRoot, 'pnpm-workspace.yaml'),
@@ -371,20 +366,18 @@ export default async function globalSetup() {
   }
   const profileManifest = JSON.parse(readFileSync(join(profileRoot, 'package.json'), 'utf8'))
   const externalBundles = {
-    'dsh-better-sidebar': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-better-sidebar-0.18.1.tgz', version: '0.18.1' },
-    '@huanlin/dsh-plugin-better-sidebar-plugin-office': { spec: '0.2.0', version: '0.2.0' },
-    'dsh-video-preview': { spec: '0.1.4', version: '0.1.4' },
-    '@sparkelf/dsh-mineru': { spec: '>=0.1.0', version: '0.1.0' },
-    '@sparkelf/dsh-officecli': { spec: '>=0.1.0', version: '0.1.0' },
-    '@sparkelf/dsh-office-viewer-fonts': { spec: '>=0.1.0', version: '0.1.0' },
-    '@sparkelf/dsh-plugin-supervisor': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-plugin-supervisor-0.1.3.tgz', version: '0.1.3' },
-    'dsh-sql-workbench': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/dsh-sql-workbench-0.4.0.tgz', version: '0.4.0' },
-    '@sparkelf/dsh-ssh-manager': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-ssh-manager-0.6.0.tgz', version: '0.6.0' },
-    '@sparkelf/dsh-api-client': { spec: 'https://github.com/SparkElf/deepseek-harness-plus/releases/download/plus-v0.6.0/sparkelf-dsh-api-client-0.4.2.tgz', version: '0.4.2' },
+    '@sparkelf/dsh-mineru': { spec: '0.1.1', version: '0.1.1' },
+    '@sparkelf/dsh-officecli': { spec: '0.1.1', version: '0.1.1' },
+    '@sparkelf/dsh-mobile-bridge': { spec: '0.2.11', version: '0.2.11' },
+    '@sparkelf/dsh-plugin-supervisor': { spec: '0.1.4', version: '0.1.4' },
+    'dsh-sql-workbench': { spec: '0.5.0', version: '0.5.0' },
+    '@sparkelf/dsh-workbench-vault': { spec: '0.1.1', version: '0.1.1', bundle: false },
+    '@sparkelf/dsh-ssh-manager': { spec: '0.7.0', version: '0.7.0' },
+    '@sparkelf/dsh-api-client': { spec: '0.5.0', version: '0.5.0' },
   }
   for (const [packageName, expected] of Object.entries(externalBundles)) {
     if (profileManifest.dependencies?.[packageName] !== expected.spec
-      || !profileManifest.dsh?.profile?.bundles?.includes(packageName)) {
+      || (expected.bundle !== false && !profileManifest.dsh?.profile?.bundles?.includes(packageName))) {
       throw new Error(`Plus profile did not materialize ${packageName}@${expected.spec}`)
     }
     const installedManifest = JSON.parse(readFileSync(join(profileRoot, 'node_modules', packageName, 'package.json'), 'utf8'))

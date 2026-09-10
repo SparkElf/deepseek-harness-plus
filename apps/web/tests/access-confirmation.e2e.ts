@@ -53,6 +53,12 @@ describe('web e2e: Full access confirmation', () => {
     expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
 
     await access.click()
+    const permissionMenu = await page.getByRole('menu').boundingBox()
+    const permissionCenter = await page.locator('[data-dsh-center-col]').boundingBox()
+    expect(permissionMenu).not.toBeNull()
+    expect(permissionCenter).not.toBeNull()
+    expect(permissionMenu!.x).toBeGreaterThanOrEqual(permissionCenter!.x + 11)
+    expect(permissionMenu!.x + permissionMenu!.width).toBeLessThanOrEqual(permissionCenter!.x + permissionCenter!.width - 11)
     await page.getByRole('menuitem', { name: '完全权限' }).click()
     const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
     await dialog.waitFor({ timeout: 10_000 })

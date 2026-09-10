@@ -1,8 +1,7 @@
 /**
- * The four independent publish sequences this repository releases from
- * (official `packages/` + `apps/`, Plus packages and patches, `vendor/`, and
- * `native/`) and the three this module owns: `dsh`, `plus`, and `vendor`.
- * Each family carries its own version baseline, tag
+ * The three independent publish sequences this repository releases from
+ * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
+ * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
  *
@@ -16,6 +15,7 @@ import {
   officialClientBuildEnvironment,
   readClientBuildRecord,
 } from '../client-build-environment.ts'
+import { PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES } from '../experimental-package-policy.ts'
 import { validateTarballPayload } from '../publication-payload.ts'
 
 /**
@@ -124,7 +124,7 @@ export abstract class ReleaseFamily {
   /**
    * Discover this family's members.
    * @param root - repository root.
-   * @returns Members sorted by directory, with names validated and deduplicated.
+   * @returns Publishable members sorted by directory, with names validated and deduplicated.
    */
   members(root: string): ReleaseMember[] {
     const manifestPaths = globSync([...this.patterns], { cwd: root }).sort()
@@ -135,11 +135,12 @@ export abstract class ReleaseFamily {
     for (const manifestPath of manifestPaths) {
       const normalized = manifestPath.replaceAll('\\', '/')
       const manifest = readManifest(resolve(root, manifestPath))
+      if (manifest.private === true) continue
       const name = requireString(manifest, 'name', normalized)
       const version = requireString(manifest, 'version', normalized)
       if (name === WORKSPACE_ROOT_PACKAGE) throw new Error(`${normalized} selected the workspace root`)
       if (!this.ownsPackage(name)) continue
-      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} names a package outside release family ${this.id}`)
+      if (!this.acceptsPackageName(name)) throw new Error(`${normalized} has a package name outside release family ${this.id}`)
       if (seen.has(name)) throw new Error(`${name} appears twice in release family ${this.id}`)
       seen.add(name)
       members.push({
@@ -328,7 +329,11 @@ export abstract class ReleaseFamily {
 /** Release packages and apps: one shared version across the whole family. */
 class DshFamily extends ReleaseFamily {
   readonly id: string = 'dsh'
-  readonly patterns: readonly string[] = ['packages/!(experimental)/*/package.json', 'apps/*/package.json']
+  readonly patterns: readonly string[] = [
+    'packages/!(experimental)/*/package.json',
+    'apps/*/package.json',
+    ...PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES.map(directory => `${directory}/package.json`),
+  ]
   readonly tagPrefix: string = 'dsh-v'
 
   protected override ownsPackage(name: string): boolean { return name.startsWith('@deepseek-ai/') }
@@ -346,7 +351,7 @@ class DshFamily extends ReleaseFamily {
     const versions = new Set(members.map(member => member.version))
     if (versions.size !== 1) {
       const detail = members.map(member => `${member.directory}: ${member.version}`).join('\n')
-      throw new Error(`${this.id} release members must share one version:\n${detail}`)
+      throw new Error(`dsh release members must share one version:\n${detail}`)
     }
   }
 
@@ -382,7 +387,8 @@ class DshFamily extends ReleaseFamily {
 class PlusFamily extends DshFamily {
   override readonly id = 'plus'
   override readonly patterns = [
-    'packages/!(experimental)/*/package.json',
+    'packages/plus/*/package.json',
+    'packages/bundle/plus/package.json',
     'patches/npm/*/package.json',
   ] as const
   override readonly tagPrefix = 'plus-npm-v'

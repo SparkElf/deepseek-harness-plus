@@ -58,7 +58,7 @@ Toggling a mode changes the later-request tool prefix. One-shot mode reuses inhe
 
 This Dev Note is working context for maintainers; shipped behavior, limits, and rationale live in the sections above, the package code, and the linked Agent Note.
 
-- Host behavior lives under `src`, and the Settings UI lives under `src/client`. The [distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md) owns package and patch retirement boundaries.
+- Host behavior lives under `src`, and the Settings UI lives under `src/client`. The [distribution Agent Note](../../../.agents/notes/implemented/architecture/2026-08-29-ranged-plus-patchset-distribution.md) owns package and patch retirement boundaries.
 - No runtime invariant companion is published because delegation execution is observed by the Subagent capability and Session lifecycle; the settings adapter has no independent execution state.
 
 </details>

@@ -10,7 +10,7 @@ import { stat } from 'node:fs/promises'
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-session-persistence'
-import type { DomainGlobal, KvTable } from '@deepseek-ai/dsh-storage-domain'
+import type { Domain, DomainGlobal, KvTable } from '@deepseek-ai/dsh-storage-domain'
 import { WorkspaceEntity } from './entity.ts'
 import type { WorkspaceEntityHost } from './entity.ts'
 
@@ -91,6 +91,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
 export class WorkspaceRegistry extends Service {
   static inject = ['storageDomain', 'sessionPersistence']
 
+  private domain?: Domain<typeof workspaceDomainSpec>
   private table?: KvTable<WorkspaceId, WorkspaceRecord>
   private global?: DomainGlobal<WorkspaceDomainState>
   private state?: WorkspaceDomainState
@@ -116,8 +117,51 @@ export class WorkspaceRegistry extends Service {
 
   /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */
   protected async [Service.init](): Promise<void> {
+    this.ctx.effect(() => () => this.domain?.close(), 'workspace.domainClose')
+    await this.openDomain()
+  }
+
+  /**
+   * Replace external durable files while no Workspace storage handle is open.
+   * Existing mutations settle first; the domain always reopens through startup
+   * initialization so records, archive state, and Session indexes share one new
+   * baseline.
+   * @param restore - File replacement operation run while Workspace storage is closed.
+   * @returns the operation result after the new durable baseline is available.
+   */
+  async withStorageRestore<T>(restore: () => Promise<T>): Promise<T> {
+    // restore替换durable files前必须先退出domain；finally复用startup路径重建全部index。
+    return await this.enqueueOperation(async () => {
+      const domain = this.domain
+      if (domain === undefined) throw new Error('workspace registry is not started yet')
+      const previousArchivedSessions = this.requireState().archivedSessionIds.length
+      await domain.close()
+      delete this.domain
+      delete this.table
+      delete this.global
+      delete this.state
+      this.entities.clear()
+      this.headers.clear()
+      this.sessionPaths.clear()
+      this.invalidSessionPaths.clear()
+      try {
+        return await restore()
+      } finally {
+        await this.openDomain()
+        console.info('[workspace] storage restore baseline loaded', {
+          previousArchivedSessions,
+          restoredArchivedSessions: this.requireState().archivedSessionIds.length,
+          workspaces: this.entities.size,
+          indexedSessionHeaders: this.headers.size,
+        })
+      }
+    })
+  }
+
+  /** Open the durable domain and rebuild every registry cache from its contents. */
+  private async openDomain(): Promise<void> {
     const domain = await this.ctx.storageDomain.open(workspaceDomainSpec)
-    this.ctx.effect(() => () => domain.close(), 'workspace.domainClose')
+    this.domain = domain
     this.table = domain.table('workspaces')
     this.global = domain.global
     this.state = domain.global.get()
@@ -151,7 +195,7 @@ export class WorkspaceRegistry extends Service {
    */
   // TODO: `title` lost its last production caller when the gateway's
   // create-by-name branch was deleted
-  // (.agents/notes/implemented/simplification/2026-07-31-one-route-to-add-a-workspace.md);
+  // (.agents/notes/archived/simplification/2026-07-31-one-route-to-add-a-workspace.md);
   // drop the parameter with its @param clause and the `create(path, title?)`
   // lines in this package's README pair.
   async create(path: string, title?: string): Promise<Workspace> {

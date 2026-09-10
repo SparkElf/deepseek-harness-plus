@@ -397,6 +397,31 @@
   padding-top: 12px;
 }
 
+.settingToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  width: fit-content;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.settingCheckbox {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+  cursor: pointer;
+}
+
+.settingCheckbox:disabled {
+  cursor: not-allowed;
+}
+
 /* Model catalog: a table, not a stack of cards. The column captions are
    written once above the rows, so a row is one line of fields plus its
    delete control; each field still carries the indexed `aria-label` that

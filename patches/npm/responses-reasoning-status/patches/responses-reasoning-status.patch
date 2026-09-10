@@ -1,41 +1,3 @@
-diff --git a/packages/client/ui-settings-models/README.i18n.yaml b/packages/client/ui-settings-models/README.i18n.yaml
-index 2d8accc664..47754f1f60 100644
---- a/packages/client/ui-settings-models/README.i18n.yaml
-+++ b/packages/client/ui-settings-models/README.i18n.yaml
-@@ -2,5 +2,5 @@
- # side as of the last confirmed-consistent state. Both languages carry equal authority;
- # after editing either side, bring the other along and re-record with:
- #   pnpm run verify-translation-pairing --write packages/client/ui-settings-models/README.md
--README.md: cac2785886346a0c1e81009404fdb0da238bbe40
--README.zh.md: 7df96a9a1b9474b5e88d8f9814f353f92eb1a31d
-+README.md: f4564af49361439a74abdf6cc7e08c7f700904fd
-+README.zh.md: ad303968d99880b64c63bf5d3e6ccca9de019f1b
-diff --git a/packages/client/ui-settings-models/README.md b/packages/client/ui-settings-models/README.md
-index cac2785886..f4564af493 100644
---- a/packages/client/ui-settings-models/README.md
-+++ b/packages/client/ui-settings-models/README.md
-@@ -33,7 +33,7 @@ The primary field on an editor card is a single **API key** input — the page n
- 
- ### Editing a provider
- 
--The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
-+The collapsed 自定义设置 fold carries the curated extras: `baseURL` for both families (the deepseek placeholder shows the public endpoint), each adapter's model catalog, and the **display name** and **API protocol** of a pi-ai route the adapter does not ship. A pi-ai route whose effective protocol is `openai-responses` also shows **Gateway compatibility mode**, which writes `responsesCompatibility.omitReasoningInputStatus`; disabling it deletes the user leaf unless an inherited true requires an explicit false, and changing protocol removes or masks the incompatible setting while preserving sibling fields. Profile `headers` remain deployment configuration in `settings.yaml` or Cordis config and have no Models-page editor. The Provider ID stays fixed: it is the settings key, the name every other namespace and every logged session references, and the stem of a credential reference the page cannot read back to move. Reasoning effort is deliberately not among the editable fields: it is a per-model capability, so a provider-scoped control could only be set to a value some models reject. Each DeepSeek row edits `id`, optional display `name`, and optional `contextWindow`/`maxTokens`; existing fields outside that curated set survive edits.
- 
- ### Adding and deleting providers
- 
-diff --git a/packages/client/ui-settings-models/README.zh.md b/packages/client/ui-settings-models/README.zh.md
-index 7df96a9a1b..ad303968d9 100644
---- a/packages/client/ui-settings-models/README.zh.md
-+++ b/packages/client/ui-settings-models/README.zh.md
-@@ -33,7 +33,7 @@ kind: "package-reference"
- 
- ### 编辑提供方
- 
--收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。Profile `headers` 仍是 `settings.yaml` 或 Cordis 配置中的部署配置，Models 页面不提供编辑器。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
-+收起的「自定义设置」折叠区承载精选的额外字段：两个家族都有 `baseURL`（deepseek 的占位符显示公共端点）、各适配器自己的模型目录，以及适配器未提供的 pi-ai 路由的**显示名称**与 **API 协议**。effective protocol为 `openai-responses` 的pi-ai路由还会显示**中转站兼容模式**，写入 `responsesCompatibility.omitReasoningInputStatus`；关闭时，若没有继承的true则删除user leaf，否则写入显式false，切换协议也会删除或遮蔽不兼容设置，并保留sibling fields。Profile `headers` 仍是 `settings.yaml` 或 Cordis 配置中的部署配置，Models 页面不提供编辑器。Provider ID 保持固定：它是 settings 的键、其他每个 namespace 与每一条已记录会话引用的名字，也是页面读不回、因而搬不走的凭据引用词干。推理等级刻意不在可编辑字段之列：它是按模型的能力，提供方级的控件只可能被设成某些模型会拒绝的值。每个 DeepSeek 行编辑 `id`、可选显示 `name` 与可选 `contextWindow`/`maxTokens`；该精选集之外的现有字段在编辑后仍会保留。
- 
- ### 新增与删除提供方
- 
 diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 index 2dc72373ea..f0a9ab95fb 100644
 --- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
@@ -162,7 +124,7 @@ index ffa8c2e1fe..3c3e7729b4 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index 6c71b3b6d6..d1deeab5dd 100644
+index 3a3190416f..49aac02f68 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
 @@ -85,6 +85,7 @@ export const en = {
@@ -171,72 +133,18 @@ index 6c71b3b6d6..d1deeab5dd 100644
    customApiUnset: 'Not selected',
 +  omitReasoningInputStatus: 'Gateway compatibility mode',
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
+   customBaseUrlInvalid: 'Enter a valid HTTP or HTTPS URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
-   customBaseUrlPlaceholder: 'https://gateway.example/v1',
-@@ -191,6 +192,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
+@@ -192,6 +193,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
    customDisplayName: '显示名称',
    customApi: 'API 协议',
    customApiUnset: '未选择',
 +  omitReasoningInputStatus: '中转站兼容模式',
    customNeedsBaseUrl: '自定义提供方需要填写 API 地址。',
+   customBaseUrlInvalid: '请输入有效的 HTTP 或 HTTPS 地址。',
    customNeedsModels: '自定义提供方至少需要一个模型。',
-   customBaseUrlPlaceholder: 'https://gateway.example/v1',
-diff --git a/packages/llm/llm-pi-ai/README.i18n.yaml b/packages/llm/llm-pi-ai/README.i18n.yaml
-index 656439bf24..7078d9bc6d 100644
---- a/packages/llm/llm-pi-ai/README.i18n.yaml
-+++ b/packages/llm/llm-pi-ai/README.i18n.yaml
-@@ -2,5 +2,5 @@
- # side as of the last confirmed-consistent state. Both languages carry equal authority;
- # after editing either side, bring the other along and re-record with:
- #   pnpm run verify-translation-pairing --write packages/llm/llm-pi-ai/README.md
--README.md: c0aacbe3e0b727cd7b6b163814dc96859b954b9c
--README.zh.md: 7b8cef7db2ba5cebe3e42345b308716ae0099c03
-+README.md: 9ce3f4af2078753d1416155d4b84e14095297491
-+README.zh.md: 4cad5156153b3eee5488b45cc4c69935c3d3a9cb
-diff --git a/packages/llm/llm-pi-ai/README.md b/packages/llm/llm-pi-ai/README.md
-index c0aacbe3e0..9ce3f4af20 100644
---- a/packages/llm/llm-pi-ai/README.md
-+++ b/packages/llm/llm-pi-ai/README.md
-@@ -79,6 +79,7 @@ Each profile may set a `retryPolicy`; omission uses normal mode with five retrie
- | `models` | installed catalog | Replaces the route's catalog wholesale; each entry defaults from the installed model |
- | `modelOverrides` | none | Reshapes individual installed-catalog models without replacing the rest |
- | `compat` | catalog detection | Wire-compatibility switches for unrecognized endpoints |
-+| `responsesCompatibility` | absent | OpenAI Responses input-item adjustments for compatible gateways |
- | `defaultContextWindow` | `262,144` | Capacity fallback for undescribed models |
- | `defaultMaxTokens` | `32,768` | Output-cap fallback for undescribed models |
- | `requestImagePixelBudget` | `4,194,304` | Total-pixel budget for each deterministic request image |
-@@ -98,7 +99,7 @@ A profile's `models` list replaces the route's installed catalog rather than ext
- 
- ### Run with reasoning and wire compatibility
- 
--`reasoningEfforts` declares a model's selectable thinking levels: each key is a level selectors offer, its value the spelling dispatch sends on the wire, so `max: ultra` renames a level for a gateway with its own vocabulary. Omitting the field keeps the installed catalog entry's capability; `false` declares a non-reasoning model. `compat` switches reshape the request for endpoints pi-ai cannot recognize — which role carries the system prompt, which field caps output, how a thinking level travels — configurable per route and per model. A model neither the entry nor the installed catalog sizes takes the route's `defaultContextWindow` and `defaultMaxTokens` fallbacks.
-+`reasoningEfforts` declares a model's selectable thinking levels: each key is a level selectors offer, its value the spelling dispatch sends on the wire, so `max: ultra` renames a level for a gateway with its own vocabulary. Omitting the field keeps the installed catalog entry's capability; `false` declares a non-reasoning model. `compat` switches reshape the request for endpoints pi-ai cannot recognize — which role carries the system prompt, which field caps output, how a thinking level travels — configurable per route and per model. An explicit `openai-responses` route may set `responsesCompatibility.omitReasoningInputStatus: true` when its gateway accepts replayed reasoning items but rejects their response-only `status` field; the adapter removes only that field from top-level reasoning input items after pi-ai serializes the request, and every other protocol refuses the option. A model neither the entry nor the installed catalog sizes takes the route's `defaultContextWindow` and `defaultMaxTokens` fallbacks.
- 
- ### Change configuration at runtime
- 
-diff --git a/packages/llm/llm-pi-ai/README.zh.md b/packages/llm/llm-pi-ai/README.zh.md
-index 7b8cef7db2..4cad515615 100644
---- a/packages/llm/llm-pi-ai/README.zh.md
-+++ b/packages/llm/llm-pi-ai/README.zh.md
-@@ -79,6 +79,7 @@ kind: "package-reference"
- | `models` | 已安装目录 | 整体替换路由目录；每个条目从已安装模型取默认值 |
- | `modelOverrides` | 无 | 重塑个别已安装目录模型，而不替换其余模型 |
- | `compat` | 目录检测 | 无法识别端点的协议兼容开关 |
-+| `responsesCompatibility` | 无 | 兼容网关的 OpenAI Responses 输入项调整 |
- | `defaultContextWindow` | `262,144` | 未描述模型的容量回退 |
- | `defaultMaxTokens` | `32,768` | 未描述模型的输出上限回退 |
- | `requestImagePixelBudget` | `4,194,304` | 每张确定性请求图片的总像素预算 |
-@@ -98,7 +99,7 @@ profile 的 `models` 列表会替换而非扩展路由的已安装目录；每
- 
- ### 带推理与协议兼容运行
- 
--`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。
-+`reasoningEfforts` 声明模型可选择的 thinking 等级：每个键都是选择器提供的等级，其值是该等级过线的拼写，因此 `max: ultra` 可以为拥有自有词汇的网关重命名等级。省略该字段时保留已安装目录条目的能力；`false` 声明非推理模型。对于 pi-ai 无法识别的端点，`compat` 开关重塑请求——哪个角色携带系统提示词、哪个字段限制输出、thinking 等级如何传递——可逐路由、逐模型配置。显式使用 `openai-responses` 的路由可在网关接受历史 reasoning 项、但拒绝其中响应侧专用 `status` 字段时设置 `responsesCompatibility.omitReasoningInputStatus: true`；适配器在 pi-ai 序列化请求后，仅从顶层 reasoning 输入项删除该字段，其他协议会拒绝此选项。条目与已安装目录都没有尺寸的模型，会采用路由的 `defaultContextWindow` 与 `defaultMaxTokens` 回退值。
- 
- ### 运行时更改配置
- 
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index e20b8e0072..d392ab7c72 100644
+index 8dba978c31..5bd80331c5 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
 @@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
@@ -273,10 +181,10 @@ index e20b8e0072..d392ab7c72 100644
      maxRetries: 0,
    }
 diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
-index 8da589cc39..2031e973f3 100644
+index 2f9e563008..7eda300bad 100644
 --- a/packages/llm/llm-pi-ai/src/config.ts
 +++ b/packages/llm/llm-pi-ai/src/config.ts
-@@ -84,6 +84,12 @@ export type {
+@@ -87,6 +87,12 @@ export type {
    PiAiThinkingFormat,
  } from './catalog.ts'
  
@@ -289,7 +197,7 @@ index 8da589cc39..2031e973f3 100644
  /** Configuration for one pi-ai provider route; the `providers` dict key IS the route. */
  export interface PiAiProviderProfile {
    /** Credential reference (environment-variable name) resolved per request through `ctx.credentials`. */
-@@ -121,6 +127,8 @@ export interface PiAiProviderProfile {
+@@ -124,6 +130,8 @@ export interface PiAiProviderProfile {
     * refused rather than left looking applied.
     */
    compat?: PiAiCompatProfile
@@ -298,7 +206,7 @@ index 8da589cc39..2031e973f3 100644
    /**
     * Context capacity for a model this route lists that neither the entry nor
     * the installed catalog sizes (default 262,144). A guess by construction, so
-@@ -311,6 +319,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
+@@ -319,6 +327,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
  /** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
  const modelOverride: z<PiAiModelOverride> = z.object(modelFields)
  
@@ -309,7 +217,7 @@ index 8da589cc39..2031e973f3 100644
  const profile = z.object({
    apiKeyEnv: z.string().role('credential-ref'),
    displayName: z.string(),
-@@ -319,6 +331,7 @@ const profile = z.object({
+@@ -327,6 +339,7 @@ const profile = z.object({
    models: z.array(modelProfile),
    modelOverrides: z.dict(modelOverride),
    compat: compatProfile,
@@ -317,7 +225,7 @@ index 8da589cc39..2031e973f3 100644
    defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
    defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
    defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
-@@ -415,6 +428,11 @@ export function resolveProfiles(
+@@ -422,6 +435,11 @@ export function resolveProfiles(
        throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
      }
      assertValidHeaders(provider, source.headers)

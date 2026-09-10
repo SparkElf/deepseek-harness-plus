@@ -17,8 +17,9 @@
 - id: persona
   name: '@deepseek-ai/dsh-persona'
   config:
-    text: |-
-      You are a coding agent powered by the {{model}} model, running on the DeepSeek Harness. Your working directory is {{cwd}}.
+    suffix: Your working directory is {{cwd}}.
+    prefix: |-
+      You are a coding agent powered by the {{model}} model, running on the DeepSeek Harness.
 
       You can read and modify the harness you run on. Its composition is Cordis: every capability is a plugin row in a `cordis.yml`, and an agent preset is one such file mounted for a single session.
 
@@ -166,23 +167,21 @@
       name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
 
     - id: tool-subagent
-      name: '@deepseek-ai/dsh-tool-subagent'
+      name: '@sparkelf/dsh-plugin-subagent-settings'
       config:
         provider: spawn
+        settingsNamespace: subagent
         toolName: subagent
-        modelSelectionSettings: true
         backgroundMode: continuable
 
-    # Fork omits model selection so provider/model stay equal to the parent and
-    # the inherited history remains eligible for KV Cache reuse. This preset
-    # keeps fork continuable; parent and child inherit the same messaging tool,
-    # while the parent id and return guidance follow the inherited history.
+    # One-shot fork preserves inherited history and reads its own settings namespace.
     - id: tool-subagent-fork
-      name: '@deepseek-ai/dsh-tool-subagent'
+      name: '@sparkelf/dsh-plugin-subagent-settings'
       config:
         provider: fork
+        settingsNamespace: subagent-fork
         toolName: subagent_fork
-        backgroundMode: continuable
+        backgroundMode: one-shot
 
     # Production dsh does not install these optional providers. Install the
     # matching Bundle in this Profile and restart the Host, then copy this
@@ -260,3 +259,6 @@
 
 - id: tool-skill
   name: '@deepseek-ai/dsh-tool-skill'
+
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'

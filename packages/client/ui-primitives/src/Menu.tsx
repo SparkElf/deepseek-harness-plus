@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { CSSProperties, ReactNode } from 'react'
+import type { CSSProperties, ReactNode, RefObject } from 'react'
 import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import { IconCheckOutline16 } from './icons/index.tsx'
@@ -48,13 +48,16 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
 
 /**
  * Render an anchored dropdown menu.
+ * @param props.autoFocus - focus the first item on open and enable arrow-key navigation; Escape focuses the anchor's first button.
  * @param props.open - whether the list is showing (owner-controlled).
  * @param props.anchor - the trigger element (rendered in place).
  * @param props.items - selectable rows and optional separators.
  * @param props.selectedId - row shown as selected.
  * @param props.selectedIds - rows shown as selected when a menu contains independent option groups.
  * @param props.onSelect - row click callback (not called for disabled rows or submenu parents that only open children).
- * @param props.onClose - invoked on outside click or Escape.
+ * @param props.onClose - invoked on outside click, Escape, or a window blur
+ * that moved focus into an iframe (the only signal a pointerdown inside a
+ * cross-origin iframe leaves).
  * @param props.align - list alignment against the anchor (default 'start').
  * @param props.side - open below (`bottom`, default) or above (`top`) the anchor.
  * @param props.portal - render the list into document.body, fixed-positioned
@@ -67,6 +70,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * gap and a brief overshoot survivable; coming back cancels the close.
  * @param props.dense - reduce vertical row spacing without changing the standard typography or card width.
  * @param props.compact - use reduced menu typography and spacing.
+ * @param props.boundaryRef - portal mode only: limit horizontal placement to this owner as well as the viewport.
  * @param props.getAnchorRect - portal mode only: supply the anchor rect
  * directly (e.g. from a host-owned trigger button) instead of measuring the
  * Menu's own wrapper span. Required when the wrapper isn't itself laid out at
@@ -75,10 +79,15 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
  * scroll/resize; return null to skip placement for that frame.
  * @param props.footer - rows pinned below the scrolling items area, separated
  * by a hairline; they stay visible while the items above scroll.
+ * @param props.selection - how a selected row is marked: a trailing check
+ * (`'check'`, default — figma .Menu_cell) or the hover fill held on the row
+ * with no check (`'fill'`, for icon-labelled rows where a trailing glyph
+ * crowds the cell).
  * @returns anchor wrapper with the conditional list.
  */
-export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, getAnchorRect, footer, className }: {
+export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, boundaryRef, footer, className }: {
   open: boolean
+  autoFocus?: boolean
   anchor: ReactNode
   items: readonly MenuEntry[]
   footer?: readonly MenuEntry[]
@@ -92,8 +101,10 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
   closeOnPointerLeave?: boolean
   dense?: boolean
   compact?: boolean
+  selection?: 'check' | 'fill'
   getAnchorRect?: () => DOMRect | null
-  className?: string
+  boundaryRef?: RefObject<HTMLElement | null>
+  className?: string | undefined
 }) {
   const rootRef = useRef<HTMLSpanElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -120,8 +131,13 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       const MARGIN = 12
       const vw = window.innerWidth
       const vh = window.innerHeight
+      const boundary = boundaryRef?.current?.getBoundingClientRect()
+      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
+      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
+      const availableWidth = Math.max(0, maxX - minX)
       const listEl = listRef.current
       const lw = listEl?.offsetWidth ?? 0
+      const placedWidth = boundary === undefined ? lw : Math.min(lw, availableWidth)
       const lh = listEl?.offsetHeight ?? 0
 
       let x: number
@@ -133,14 +149,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
         x = r.left
         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
       } else {
-        x = r.right - lw
+        x = r.right - placedWidth
         y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
       }
 
-      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
+      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
 
-      setFixedPos({ left: x, top: y })
+      setFixedPos({
+        left: x,
+        top: y,
+        ...boundary === undefined ? {} : { minWidth: Math.min(218, availableWidth), maxWidth: availableWidth },
+      })
     }
     // First run measures the hidden pre-render (same commit as `open`), so
     // end/top alignment and clamping use real dimensions before anything
@@ -152,7 +172,11 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       window.removeEventListener('scroll', place, true)
       window.removeEventListener('resize', place)
     }
-  }, [open, portal, align, side, getAnchorRect])
+  }, [open, portal, align, side, getAnchorRect, boundaryRef])
+
+  useEffect(() => {
+    if (open && autoFocus) listRef.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus()
+  }, [open, autoFocus])
 
   useEffect(() => {
     if (!open) {
@@ -167,15 +191,35 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
       onClose()
     }
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        onClose()
+        if (autoFocus) rootRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+      }
+      if (!autoFocus || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) return
+      const buttons = Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])
+      const index = buttons.indexOf(document.activeElement as HTMLButtonElement)
+      if (index < 0) return
+      e.preventDefault()
+      const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1
+        : (index + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length
+      buttons[next]?.focus()
+    }
+    // A pointerdown inside a cross-origin iframe (a sandboxed HTML preview)
+    // never reaches this document; the focus move it causes blurs the window
+    // instead. Only that case closes: an app or tab switch leaves the
+    // document's focus where it was, so activeElement is not an iframe.
+    const onWindowBlur = () => {
+      if (document.activeElement instanceof HTMLIFrameElement) onClose()
     }
     document.addEventListener('pointerdown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
+    window.addEventListener('blur', onWindowBlur)
     return () => {
       document.removeEventListener('pointerdown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('blur', onWindowBlur)
     }
-  }, [open, onClose])
+  }, [open, onClose, autoFocus])
 
   // A close from selection/Escape/outside click outruns a pending grace close;
   // left armed it would shut a list reopened inside the grace window. Its own
@@ -209,7 +253,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
         <button
           type="button"
           role="menuitem"
-          className={clsx(css.item, selected && css.selected, entry.danger === true && css.danger)}
+          className={clsx(css.item, selected && (selection === 'fill' ? css.selectedFill : css.selected), entry.danger === true && css.danger)}
           disabled={entry.disabled}
           aria-haspopup={hasSub ? 'menu' : undefined}
           aria-expanded={hasSub ? subOpen : undefined}
@@ -224,8 +268,8 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
         >
           {entry.icon !== undefined && <span className={css.itemIcon}>{entry.icon}</span>}
           <span className={css.itemLabel}>{entry.label}</span>
-          {/* Selection marker is a trailing check (figma .Menu_cell), not a fill. */}
-          {selected && <IconCheckOutline16 className={css.check} />}
+          {/* Selection marker is a trailing check (figma .Menu_cell) unless the fill mode carries it. */}
+          {selected && selection === 'check' && <IconCheckOutline16 className={css.check} />}
         </button>
         {subOpen && entry.submenu !== undefined && (
           <div className={clsx(css.submenu, compact && css.compactList)} role="menu">

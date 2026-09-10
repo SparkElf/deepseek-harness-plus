@@ -130,7 +130,9 @@ export function TrajectoryView({
   useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
   viewRequest, completeViewRequest, renderSlot, t,
 }: ConvViewProps
-  & PropsRenderSlots<'conversation.trajectory.images'>
+  & PropsRenderSlots<
+    'conversation.trajectory.images' | 'conversation.trajectory.toolbar.utilities'
+  >
   & InjectFace<TrajectoryViewInjected>
   & PropsLocale<'trajectory'>) {
   const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
@@ -319,12 +321,13 @@ export function TrajectoryView({
         : { turn: partialTurn, step: partialStep, blocks: [] },
       runningCalls,
       requests,
+      systemPrompts: inspection.systemPrompts,
       callSchemas,
     }, t)
     return { turns, lastIndex: lastCellIndex(turns) }
   }, [
     nodes, eventLocations, partialTurn, partialStep,
-    runningCalls, requests, callSchemas, t,
+    runningCalls, requests, inspection.systemPrompts, callSchemas, t,
   ])
   const timelinePartialSignature = partialStructureSignature(partial)
   const timelinePartial = useMemo<TrajectorySnapshot['partial']>(() => partial === null
@@ -522,6 +525,7 @@ export function TrajectoryView({
         onToggleAllAssistants={toggleAllAssistants}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
+        utilities={renderSlot('conversation.trajectory.toolbar.utilities', {})}
         t={t}
       />
       <TrajectoryTimeline

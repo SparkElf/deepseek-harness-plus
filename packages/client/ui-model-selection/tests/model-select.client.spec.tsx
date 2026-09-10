@@ -71,8 +71,6 @@ describe('ModelSelect reasoning effort', () => {
     const trigger = screen.getByRole('button', {
       name: '选择模型，当前 DeepSeek-V4-Flash，推理等级 High',
     })
-    expect(trigger.title).toBe('DeepSeek-V4-Flash · High')
-    expect(trigger.querySelector('[data-model-trigger-icon]')?.getAttribute('aria-hidden')).toBe('true')
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
     expect(screen.getAllByRole('menuitemradio').map(item => item.textContent))
@@ -200,6 +198,48 @@ describe('ModelSelect reasoning effort', () => {
     expect(toast.textContent).toContain('模型操作失败：session/model-unavailable: session already contains images')
     // The selection failure does not render the in-menu load strip (no Retry).
     expect(screen.queryByRole('button', { name: '重试' })).toBeNull()
+  })
+
+  it('portals the placed menu card to body and closes only on truly-outside mousedown', () => {
+    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!
+    const offsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight')!
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
+    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
+    try {
+      const { container } = render(<div data-dsh-center-col><ModelSelect
+        locked={false}
+        available
+        directory={createSnapshotStore(state())}
+        load={vi.fn()}
+        select={vi.fn().mockResolvedValue(true)}
+        t={t}
+      /></div>)
+      Object.defineProperty(container.firstElementChild, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) }),
+      })
+      const trigger = screen.getByRole('button', { name: /选择模型/ })
+      fireEvent.click(trigger)
+      const menu = screen.getByRole('menu')
+      // Outside the composer subtree — column overflow clips cannot crop it.
+      expect(container.contains(menu)).toBe(false)
+      expect(menu.parentElement).toBe(document.body)
+      // The owner boundary is narrower than the viewport, so the card keeps
+      // the 12px center-column margin rather than spilling over the sidebar.
+      expect(menu.style.left).toBe('292px')
+      expect(menu.style.maxWidth).toBe('216px')
+      expect(menu.style.top).toBe('12px')
+      // Interactions inside the trigger subtree or the portaled card stay open.
+      fireEvent.mouseDown(menu)
+      fireEvent.mouseDown(trigger)
+      fireEvent.blur(trigger, { relatedTarget: menu })
+      expect(screen.getByRole('menu')).toBeTruthy()
+      fireEvent.mouseDown(document.body)
+      expect(screen.queryByRole('menu')).toBeNull()
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth)
+      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', offsetHeight)
+    }
   })
 
   it('renders no Agent-bound control for an addressed subagent session', () => {

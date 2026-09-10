@@ -21,7 +21,7 @@ import z from '@deepseek-ai/schemastery'
 import { addHarnessSourceSection } from '@deepseek-ai/dsh-app-boot'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import * as FrontendStatic from '@deepseek-ai/dsh-host-frontend-static'
-import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
+import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -80,15 +80,6 @@ const DSH_WEB_URL = 'DSH_WEB_URL' as const
 const LOOPBACK_HOST = '127.0.0.1'
 /** The webserver schema's all-interfaces bind literal. */
 const ALL_INTERFACES_HOST = '0.0.0.0'
-
-/** Whether this process was launched through SSH, including a forwarded-port session. */
-function launchedThroughSsh(ctx: Context): boolean {
-  const environment = launchEnvironmentOf(ctx)
-  return ['SSH_CONNECTION', 'SSH_TTY'].some((name) => {
-    const value = environment.getFrom(name, ['process'])?.value
-    return value !== undefined && value !== ''
-  })
-}
 
 const BROWSER_OPENER_MODULE = import.meta.resolve('open')
 
@@ -156,9 +147,9 @@ function webSurfacePrompt(webUrl: string): string {
 
 /** Resolve the canonical loopback URL from the active Web server. */
 function localWebUrl(ctx: Context): string {
-  const port = ctx.get('webServer')?.port
-  if (port === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
-  return `http://${LOOPBACK_HOST}:${String(port)}`
+  const webServer = ctx.get('webServer')
+  if (webServer === undefined) throw new Error('web-app: webServer service missing while resolving Web runtime')
+  return `http://${LOOPBACK_HOST}:${String(webServer.port)}${webServer.basePath}`
 }
 
 /**
@@ -235,7 +226,7 @@ export function apply(ctx: Context, config: Config): void {
   const runtime = resolveLanTrust(ctx.webServer.host, config.trustedHosts)
   // The loopback URL belongs to this host. Under SSH, the operator reaches it
   // through a local forwarding address that this process cannot derive.
-  const handoffBrowser = config.openBrowser && !launchedThroughSsh(ctx)
+  const handoffBrowser = config.openBrowser && !launchedThroughSsh(launchEnvironmentOf(ctx))
   // Release dependent rows only after bind-dependent trust has been sampled once.
   ctx.provide(WEB_RUNTIME_SERVICE, runtime)
   ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
@@ -274,7 +265,7 @@ export function apply(ctx: Context, config: Config): void {
         const port = connectionCtx.webServer.port
         const lanUrl = lanCandidate === undefined
           ? undefined
-          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}`)
+          : connectionCtx.connection.authenticatedUrl(`http://${lanCandidate}:${String(port)}${connectionCtx.webServer.basePath}`)
         ANNOUNCED_ROOTS.add(connectionCtx.root)
         if (config.printUrl) {
           console.log(`dsh web: ${authenticatedUrl}${lanUrl === undefined ? '' : ` (LAN: ${lanUrl})`}`)

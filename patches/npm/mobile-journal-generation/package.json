@@ -1,0 +1,36 @@
+{
+  "name": "@sparkelf/dsh-patch-mobile-journal-generation",
+  "description": "Wait for a replacement mobile journal generation opening snapshot before consuming its buffered live entries",
+  "version": "0.1.0-rc.25",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/mobile-journal-generation"
+  },
+  "license": "MIT",
+  "files": [
+    "patches/*.patch"
+  ],
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "mobile-journal-opening-generation",
+        "dsh": ">=0.1.5-rc.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e",
+          "paths": [
+            "packages/api/gateway/src/client/",
+            "packages/api/gateway/tests/"
+          ]
+        },
+        "file": "./patches/mobile-journal-generation.patch"
+      }
+    ]
+  },
+  "type": "module"
+}

@@ -105,6 +105,12 @@ describe('web e2e: the composer model switch is the default for later sessions',
     const trigger = page.getByRole('button', { name: /^选择模型/ })
     await trigger.waitFor({ timeout: 15_000 })
     await trigger.click()
+    const modelMenu = await page.getByRole('menu').boundingBox()
+    const modelCenter = await page.locator('[data-dsh-center-col]').boundingBox()
+    expect(modelMenu).not.toBeNull()
+    expect(modelCenter).not.toBeNull()
+    expect(modelMenu!.x).toBeGreaterThanOrEqual(modelCenter!.x + 11)
+    expect(modelMenu!.x + modelMenu!.width).toBeLessThanOrEqual(modelCenter!.x + modelCenter!.width - 11)
     await page.getByRole('menuitem', { name: /模型/ }).click()
     await page.getByRole('menuitemradio', { name: 'Acme Large' }).click()
 

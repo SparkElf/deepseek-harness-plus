@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-09-06-composer-popovers-stay-inside-center-column.md
-2026-09-06-composer-popovers-stay-inside-center-column.md: 8c83f1dcdd4fc9358ffaf35de6222791188a9c33
-2026-09-06-composer-popovers-stay-inside-center-column.zh.md: 2bb902237fa72fab27d4d04235e3abb207da0de9
+2026-09-06-composer-popovers-stay-inside-center-column.md: abe83db0ea9d522e937be3642607f23f79c26567
+2026-09-06-composer-popovers-stay-inside-center-column.zh.md: 3560cc354c1d60784d6c3a75002b58a9206c724c

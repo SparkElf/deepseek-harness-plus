@@ -1,0 +1,39 @@
+{
+  "name": "@sparkelf/dsh-patch-composer-popover-boundaries",
+  "description": "Keep composer permission and model popovers inside the DSH center column",
+  "version": "0.1.0-rc.25",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/composer-popover-boundaries"
+  },
+  "license": "MIT",
+  "files": [
+    "patches/*.patch"
+  ],
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "composer-popover-center-boundaries",
+        "dsh": ">=0.1.5-rc.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e",
+          "paths": [
+            "apps/web/tests/",
+            "packages/client/ui-layout/",
+            "packages/client/ui-primitives/",
+            "packages/client/ui-conversation/",
+            "packages/client/ui-model-selection/"
+          ]
+        },
+        "file": "./patches/composer-popover-boundaries.patch"
+      }
+    ]
+  },
+  "type": "module"
+}

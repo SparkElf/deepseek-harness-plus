@@ -76,7 +76,7 @@ export function ConversationSessionHeader({
       {!hideChrome && (
         <>
           <div className={css.titleRow}>
-            <div className={css.titleCluster} data-session-title-cluster>
+            <div className={css.titleCluster}>
               <nav className={css.crumbs} aria-label={t('session.hierarchy')}>
                 {ancestry.map((summary, index) => {
                   const last = index === ancestry.length - 1
@@ -126,19 +126,19 @@ export function ConversationSessionHeader({
                 })}
                 {ancestry.length === 0 && <span className={css.crumbCurrent}>{sessionId}</span>}
               </nav>
-              <div className={css.headerContext} data-session-header-context>
-                {renderSlot('conversation.session.header.context', {})}
-              </div>
-              <div className={css.headerActions} data-session-header-actions>
+              <div className={css.headerActions}>
                 {renderSlot('conversation.session.header.actions', {})}
               </div>
             </div>
-            <div className={css.headerUtilities} data-session-header-utilities>
+            <div className={css.headerUtilities}>
               {renderSlot('conversation.session.header.utilities', {})}
+            </div>
+            <div className={css.headerCorner} data-conversation-header-corner="">
+              {renderSlot('conversation.session.header.corner', {})}
             </div>
           </div>
           {tabs.length > 1 && (
-            <div className={css.tabs} data-session-tabs role="tablist">
+            <div className={css.tabs} role="tablist">
               {tabs.map(viewTab => (
                 <button
                   key={viewTab.id}

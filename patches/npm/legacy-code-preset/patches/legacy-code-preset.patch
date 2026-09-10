@@ -1,5 +1,5 @@
 diff --git a/packages/api/session-controller/src/agent.ts b/packages/api/session-controller/src/agent.ts
-index b1f1872662..0dbc14092a 100644
+index dd41090c22..8c2cd5029b 100644
 --- a/packages/api/session-controller/src/agent.ts
 +++ b/packages/api/session-controller/src/agent.ts
 @@ -12,10 +12,13 @@ import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
@@ -17,10 +17,10 @@ index b1f1872662..0dbc14092a 100644
  /** Cold Session identity absent from persistence. */
  export class ApiSessionNotFound extends Error {}
  
-@@ -377,7 +380,15 @@ export class ApiSessionAgentController {
-   }> {
-     const presets = this.ctx.get('agentPresets')
-     if (presets === undefined) return { setup: (agentCtx) => { this.installSelection(agentCtx) } }
+@@ -379,7 +382,15 @@ export class ApiSessionAgentController {
+     if (presets === undefined) {
+       return { setup: (_agentCtx, agent) => { this.installSelection(agent) } }
+     }
 -    const resolvedId = (await presets.resolve(presetId)).id
 +    let resolved
 +    try {
@@ -33,9 +33,9 @@ index b1f1872662..0dbc14092a 100644
 +    const resolvedId = resolved.id
      return {
        agentPreset: resolvedId,
-       setup: async (agentCtx) => {
+       setup: async (agentCtx, agent) => {
 diff --git a/packages/api/session-controller/tests/agent.host.spec.ts b/packages/api/session-controller/tests/agent.host.spec.ts
-index d5b569aa49..7ddb1a931f 100644
+index 586d7b4e7b..8f3d42a404 100644
 --- a/packages/api/session-controller/tests/agent.host.spec.ts
 +++ b/packages/api/session-controller/tests/agent.host.spec.ts
 @@ -8,6 +8,7 @@ import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-presets'
@@ -85,9 +85,9 @@ index d5b569aa49..7ddb1a931f 100644
    it('rejects an ownership race before resume and a persisted cwd conflict', async () => {
      const child = await harness()
      const childMeta = header('resume-child-race')
-@@ -455,4 +488,29 @@ describe('ApiSession create or adoption', () => {
-     const composition = await agents.composeAgent(undefined)
-     expect(() => composition.setup(new Context())).toThrow('Agent setup has no scoped Agent')
+@@ -452,4 +485,29 @@ describe('ApiSession create or adoption', () => {
+     await expect(agents.ensureSession(SessionId('mkdir-failure'), join(file, 'child'), false))
+       .rejects.toThrow('failed to ensure project directory')
    })
 +
 +  it('falls back from a missing legacy code preset to ptc', async () => {

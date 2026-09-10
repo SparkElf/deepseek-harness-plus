@@ -119,7 +119,10 @@ export function apply(ctx: Context, config: Config): void {
   // served form anchors them at the site root ahead of every URL-bearing tag.
   const renderIndex = async (): Promise<string> => {
     const body = ctx.webServer.renderIndex(await readFile(distIndex, 'utf8'))
-    return body.replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="/">`)
+    const href = `${ctx.webServer.basePath}/`
+    return body
+      .replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="${href}">`)
+      .replaceAll('src="/plugins/', 'src="plugins/')
   }
   ctx.effect(() => ctx.webServer.registerFallback(async (req, res) => {
     // Non-GET/HEAD without a matching named route is 405 (fallback-only

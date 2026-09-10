@@ -61,12 +61,32 @@ export interface Config {
   host: '127.0.0.1' | '0.0.0.0'
   /** Listen port; zero requests an OS-assigned port. */
   port: number
+  /** External URL prefix; empty means site root, otherwise an absolute path without a trailing slash. */
+  basePath?: string
   /** Response compression for socket-backed HTTP requests. @default 'none' */
   compression?: 'none' | 'gzip'
   /** Gzip DEFLATE level from 0 through 9. @default 1 */
   compressionLevel?: number
   /** Minimum known response length eligible for gzip; unknown-length streams are eligible. @default 1024 */
   compressionThresholdBytes?: number
+}
+
+/**
+ * Validate and canonicalize the external reverse-proxy mount prefix.
+ * @param value - configured external URL prefix.
+ * @returns the empty root prefix or one absolute path without a trailing slash.
+ */
+export function normalizeWebBasePath(value: string | undefined): string {
+  const candidate = value?.trim() ?? ''
+  if (candidate === '' || candidate === '/') return ''
+  if (!candidate.startsWith('/') || candidate.endsWith('/') || candidate.includes('?') || candidate.includes('#')) {
+    throw new Error('webserver: basePath must be empty or an absolute path without query, fragment, or trailing slash')
+  }
+  const segments = candidate.slice(1).split('/')
+  if (segments.some(segment => segment === '' || segment === '.' || segment === '..')) {
+    throw new Error('webserver: basePath must contain only non-empty path segments and no dot segments')
+  }
+  return candidate
 }
 
 const DEFAULT_COMPRESSION = 'none' as const
@@ -125,6 +145,7 @@ export class WebServer extends Service {
   static Config: z<Config> = z.object({
     host: z.union([z.const('127.0.0.1'), z.const('0.0.0.0')]).required(),
     port: z.natural().max(65535).required(),
+    basePath: z.string().default(''),
     compression: z.union([z.const('none'), z.const('gzip')]).default(DEFAULT_COMPRESSION),
     compressionLevel: z.number().step(1).min(0).max(9).default(DEFAULT_COMPRESSION_LEVEL),
     compressionThresholdBytes: z.natural().default(DEFAULT_COMPRESSION_THRESHOLD_BYTES),
@@ -138,11 +159,13 @@ export class WebServer extends Service {
   private fallback: WebRoute['handler'] | undefined
   private server!: Server
   private listenedPort!: number
+  private readonly mountedBasePath: string
   private readonly gzip: NodeMiddleware | undefined
 
   constructor(ctx: Context, private config: Config) {
     super(ctx, 'webServer')
     const resolved = config as ResolvedConfig
+    this.mountedBasePath = normalizeWebBasePath(config.basePath)
     this.gzip = resolved.compression === 'gzip' ? createGzipMiddleware(resolved) : undefined
   }
 
@@ -154,6 +177,11 @@ export class WebServer extends Service {
   /** The configured bind host (the loopback or all-interfaces literal). */
   get host(): Config['host'] {
     return this.config.host
+  }
+
+  /** External reverse-proxy mount prefix; empty means the site root. */
+  get basePath(): string {
+    return this.mountedBasePath
   }
 
   /**
@@ -240,6 +268,13 @@ export class WebServer extends Service {
     // client dropping mid-body). Per-request failures log and answer 400 —
     // never a process exit.
     this.server = createServer((req, res) => {
+      const logicalUrl = this.logicalUrl(req.url ?? '/')
+      if (logicalUrl === null) {
+        res.writeHead(404)
+        res.end()
+        return
+      }
+      req.url = logicalUrl
       const next = (): void => {
         void handle(req, res).catch((err: unknown) => {
           this.ctx.logger.warn(err instanceof Error ? err : new Error(String(err)))
@@ -266,8 +301,13 @@ export class WebServer extends Service {
       })
       let route: WebUpgradeRoute | undefined
       try {
-        /* v8 ignore next -- node:http always sets url on server requests. */
-        route = this.upgrades.get(new URL(req.url ?? '/', 'http://x').pathname)
+        const logicalUrl = this.logicalUrl(req.url ?? '/')
+        if (logicalUrl === null) {
+          socket.destroy()
+          return
+        }
+        req.url = logicalUrl
+        route = this.upgrades.get(new URL(logicalUrl, 'http://x').pathname)
       } catch (error) {
         this.ctx.logger.warn(error instanceof Error ? error : new Error(String(error)))
         socket.destroy()
@@ -312,6 +352,16 @@ export class WebServer extends Service {
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
     }, 'webServer.listen')
+  }
+
+  /** Strip the external mount prefix while retaining query text. */
+  private logicalUrl(rawUrl: string): string | null {
+    const parsed = new URL(rawUrl, 'http://x')
+    const basePath = this.mountedBasePath
+    if (basePath === '') return `${parsed.pathname}${parsed.search}`
+    if (parsed.pathname === basePath) return `/${parsed.search}`
+    if (!parsed.pathname.startsWith(`${basePath}/`)) return null
+    return `${parsed.pathname.slice(basePath.length)}${parsed.search}`
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */

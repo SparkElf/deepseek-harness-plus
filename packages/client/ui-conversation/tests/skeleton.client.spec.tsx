@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ComponentProps, ReactNode } from 'react'
 import { act, cleanup, fireEvent, render } from '@testing-library/react'
@@ -32,11 +33,15 @@ import type {
 } from '../src/client/contract/slots.ts'
 import type { ViewTab } from '../src/client/contract/views.ts'
 
+// Every session-scope fixture carries the resource hook the resources plugin merges into GlobalStandardProps.
+const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined })) as GlobalStandardProps['useResource']
+
 // jsdom implements no Range geometry (Lexical's scroll-into-view measures the
 // caret with one once the surface is genuinely contenteditable).
 Range.prototype.getBoundingClientRect = () => ({
   top: 0, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}),
 })
+
 
 function fakeWiring() {
   const sink = vi.fn(() => Promise.resolve({ kind: 'success' as const }))
@@ -179,7 +184,6 @@ function mount(
       seatOwners.push({ key, owner })
     }
     if (key === 'conversation.hero.workspace') { pickerOwner = owner; return null }
-    if (key === 'conversation.hero.brand.name' || key === 'conversation.hero.brand.badge') return opts?.fallback ?? null
     if (key === 'conversation.session.header.lineage') {
       lineageOwners.push(owner as ConversationHeaderLineageOwnerProps)
       return opts?.fallback ?? null
@@ -195,6 +199,8 @@ function mount(
           useChat={useChat}
           useTrajectory={useTrajectory}
           useSessions={props.useSessions}
+          usePanelInfo={props.usePanelInfo}
+          useResource={useResource}
           useSessionPendingInteraction={useSessionPendingInteraction}
           useWorkspaces={props.useWorkspaces}
           useProjection={(() => undefined)}
@@ -220,6 +226,8 @@ function mount(
           useChat={useChat}
           useTrajectory={useTrajectory}
           useSessions={props.useSessions}
+          usePanelInfo={props.usePanelInfo}
+          useResource={useResource}
           useSessionPendingInteraction={useSessionPendingInteraction}
           useWorkspaces={props.useWorkspaces}
           useProjection={(() => undefined)}
@@ -241,9 +249,11 @@ function mount(
         <InputBar
           sessionId={SID}
           SessionProvider={({ children }) => children}
+          useResource={useResource}
           useSession={useSession}
           useConversation={useConversation}
           useSessions={props.useSessions}
+          usePanelInfo={props.usePanelInfo}
           useSessionPendingInteraction={useSessionPendingInteraction}
           useWorkspaces={props.useWorkspaces}
           useProjection={(() => undefined)}
@@ -255,8 +265,8 @@ function mount(
           retryFileUpload={undefined}
           removeAttachment={() => {}}
           resolveDraftAttachments={() => []}
-          resolveSubmitMode={() => 'queue'}
           toggleCommandMenu={vi.fn()}
+          useBusyEnter={bindSnapshotSelector(createSnapshotStore<'queue' | 'steer'>('queue'))}
           useNotices={bindSnapshotSelector(wiring.notices)}
           useLexicon={bindSnapshotSelector(wiring.lexicon)}
           useMenuLauncher={bindSnapshotSelector(createSnapshotStore<string | null>(null))}
@@ -288,12 +298,14 @@ function mount(
       : (opts?.fallback ?? null)
   )) as ConversationRootProps['renderSlotChain']
   const props: ConversationRootProps = {
+    usePanelInfo: selector => selector({ activePanelId: null }),
     sessionId: SID,
     SessionProvider: ({ children }) => children,
     useSession,
     useConversation,
     useSessions: bindSnapshotSelector(sessions),
     useSessionPendingInteraction,
+    useResource,
     useWorkspaces: bindSnapshotSelector(workspaces),
     useProjection: (() => undefined),
     useComposerBlock: select => select(options.composerBlock),
@@ -314,16 +326,12 @@ function mount(
 
 describe('Hero chrome', () => {
   it('renders the English preview badge through the hero locale seat', () => {
-    const renderSlot = vi.fn<HeroShellProps['renderSlot']>((_key, _owner, options) => options?.fallback ?? null)
+    const renderSlot = vi.fn<HeroShellProps['renderSlot']>(() => null)
     const view = render(<HeroShell t={makeTranslate(en, commonEn)} renderSlot={renderSlot} />)
     expect(view.getByText('Into the Unknown')).toBeTruthy()
     expect(view.getByText('Preview')).toBeTruthy()
-    expect(renderSlot).toHaveBeenCalledTimes(3)
-    expect(renderSlot.mock.calls.map(call => call[0])).toEqual([
-      'conversation.hero.brand.mark',
-      'conversation.hero.brand.name',
-      'conversation.hero.brand.badge',
-    ])
+    expect(renderSlot).toHaveBeenCalledOnce()
+    expect(renderSlot.mock.calls[0]?.[0]).toBe('conversation.hero.brand.mark')
     const brandMarkOwner = renderSlot.mock.calls[0]?.[1]
     if (brandMarkOwner === undefined || !('size' in brandMarkOwner) || !('className' in brandMarkOwner)) {
       throw new Error('hero brand-mark owner must provide size and className')
@@ -331,8 +339,6 @@ describe('Hero chrome', () => {
     expect(brandMarkOwner.size).toBe(34)
     expect(brandMarkOwner.className).toBeTypeOf('string')
     expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
-    expect(renderSlot.mock.calls[1]?.[2]?.fallback).toBe('Into the Unknown')
-    expect(renderSlot.mock.calls[2]?.[2]?.fallback).toBeTruthy()
   })
 })
 
@@ -442,9 +448,9 @@ describe('ConversationRoot resident composer', () => {
     expect(host?.contains(seat)).toBe(true)
     expect(seat?.contains(textarea)).toBe(true)
     expect(b.slotCalls).toContain('conversation.session.header.lineage')
-    expect(b.slotCalls).toContain('conversation.session.header.context')
     expect(b.slotCalls).toContain('conversation.session.header.actions')
     expect(b.slotCalls).toContain('conversation.session.header.utilities')
+    expect(b.slotCalls).toContain('conversation.session.header.corner')
   })
 
   it('sticky composer seat wraps the whole overlay chain, not only the fallback stack', () => {

@@ -1,57 +1,63 @@
-.sessionLogButton {
+/* The right Sidebar's 28px round header icon button: a 28px circle around a
+   15px glyph, level with the header's corner controls. */
+.moreButton {
   display: inline-flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  min-width: 111px;
-  height: 32px;
-  padding: 6px 12px;
-  gap: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: 18px;
-  color: var(--dsw-alias-label-primary);
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  color: var(--dsw-alias-label-secondary);
   background: transparent;
-  font-family: var(--dsw-font-family);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 20px;
+  border: none;
+  border-radius: 28px;
   cursor: pointer;
 }
 
-.sessionLogButton:hover:not(:disabled) {
+.moreButton svg {
+  width: 15px;
+  height: 15px;
+}
+
+.moreButton:hover {
   background: var(--dsw-alias-interactive-bg-hover);
 }
 
-.sessionLogButton:disabled {
+.trajectoryButton {
+  display: none;
+  flex: none;
+  align-items: center;
+  height: 22px;
+  padding: 0 6px;
+  gap: 4px;
+  border: 0;
+  border-radius: 3px;
+  color: var(--dsw-alias-label-tertiary);
+  background: transparent;
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.trajectoryButton:hover:not(:disabled) {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.trajectoryButton:focus-visible {
+  outline: 1px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.trajectoryButton:disabled {
   color: var(--dsw-alias-label-dimmed);
   cursor: wait;
 }
 
-.sessionLogButton span,
-.sessionLogButton svg {
-  flex: none;
-}
+.trajectoryButton span,
+.trajectoryButton svg { flex: none; }
+.trajectoryButton span { white-space: nowrap; }
 
-.sessionLogButton span {
-  white-space: nowrap;
-}
-
-@media (max-width: 800px) {
-  .sessionLogButton {
-    width: 28px;
-    min-width: 28px;
-    height: 28px;
-    padding: 0;
-    border: none;
-    border-radius: 50%;
-  }
-
-
-  .sessionLogButton span {
-    display: none;
-  }
-
-  .sessionLogButton svg {
-    width: 16px;
-    height: 16px;
-  }
+@media (min-width: 768px) {
+  .trajectoryButton { display: inline-flex; }
 }

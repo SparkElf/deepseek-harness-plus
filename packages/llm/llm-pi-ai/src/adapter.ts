@@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
   authContext: AuthContext
 }
 
+/** Whether one Responses input item is replayed reasoning with response status metadata. */
+function hasReasoningInputStatus(item: unknown): boolean {
+  const inputItem = item as Record<string, unknown>
+  return inputItem.type === 'reasoning' && Object.hasOwn(inputItem, 'status')
+}
+
+/** Remove response-only status metadata from replayed reasoning input items. */
+function omitReasoningInputStatus(payload: unknown): unknown {
+  const request = payload as Record<string, unknown> & { input: unknown[] }
+  if (!request.input.some(hasReasoningInputStatus)) return undefined
+  const input = request.input.map((item) => {
+    if (!hasReasoningInputStatus(item)) return item
+    const { status: _status, ...withoutStatus } = item as Record<string, unknown>
+    return withoutStatus
+  })
+  return { ...request, input }
+}
+
 /** Copy profile stream knobs into pi-ai's common option vocabulary. */
 function profileOptions(
   profile: ResolvedPiAiProviderProfile,
@@ -126,6 +144,7 @@ function profileOptions(
     ...profile.transport === undefined ? {} : { transport: profile.transport },
     ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
     ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
+    ...profile.responsesCompatibility?.omitReasoningInputStatus === true ? { onPayload: omitReasoningInputStatus } : {},
     // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
     maxRetries: 0,
   }
@@ -233,7 +252,9 @@ export class PiAiAdapter extends LlmAdapter {
     const profiles = this.config.profiles()
     if (this.snapshot?.profiles === profiles) return this.snapshot
     const models: MutableModels = createModels(this.config.auth)
-    for (const profile of profiles.values()) models.setProvider(profile.piProvider)
+    for (const profile of profiles.values()) {
+      if (profile.piProvider !== undefined) models.setProvider(profile.piProvider)
+    }
     this.snapshot = { profiles, models }
     return this.snapshot
   }
@@ -249,7 +270,10 @@ export class PiAiAdapter extends LlmAdapter {
 
   /** The configured descriptor for one exact route/model pair within one snapshot. */
   private modelOf(snapshot: PiAiSnapshot, provider: string, model: string): Model<Api> {
-    this.profileOf(snapshot, provider)
+    const profile = this.profileOf(snapshot, provider)
+    const failure = profile.modelErrors.get(model)
+      ?? (profile.piProvider === undefined ? profile.catalogError : undefined)
+    if (failure !== undefined) throw new LlmError(failure, 'INVALID_CONFIG')
     const resolved = snapshot.models.getModel(provider, model)
     if (resolved === undefined) {
       throw new LlmError(`pi-ai provider "${provider}" has no configured model "${model}"`, 'UNKNOWN_MODEL')
@@ -382,7 +406,7 @@ export class PiAiAdapter extends LlmAdapter {
         // Harness-owned and therefore win collisions.
         headers: requestHeaders(profile.headers),
       })
-      const iterator = toStreamChunks(events, model.contextWindow, options.signal)[Symbol.asyncIterator]()
+      const iterator = toStreamChunks(events, model.contextWindow, options.signal, model.id)[Symbol.asyncIterator]()
       let exhausted = false
       try {
         while (true) {

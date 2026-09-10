@@ -62,7 +62,7 @@ index 92d7ce9ab0..dfbc88f1e3 100644
            <input
              type="search"
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-index a9f1df1b36..b7fbd52a80 100644
+index 4f8bc63d9c..cedf2511ea 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 @@ -130,7 +130,9 @@ export function TrajectoryView({
@@ -76,7 +76,7 @@ index a9f1df1b36..b7fbd52a80 100644
    & InjectFace<TrajectoryViewInjected>
    & PropsLocale<'trajectory'>) {
    const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
-@@ -522,6 +524,7 @@ export function TrajectoryView({
+@@ -523,6 +525,7 @@ export function TrajectoryView({
          onToggleAllAssistants={toggleAllAssistants}
          searchQuery={searchQuery}
          onSearchQueryChange={setSearchQuery}
@@ -111,7 +111,7 @@ index 118f3b2c28..a8c71cf9ee 100644
      inject: (sessionId: SessionId): TrajectoryViewInjected => {
        const session = ctx.sessions.binding(sessionId)?.session
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index ce12787db0..2497520511 100644
+index 91966f3773..0a7eceebb9 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
 @@ -59,6 +59,7 @@
@@ -133,12 +133,12 @@ index ce12787db0..2497520511 100644
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index ef6f6cfdf3..fb4ebe7221 100644
+index cc13d3f49d..df666e546c 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-@@ -34,3 +34,72 @@
- .sessionLogButton span {
-   white-space: nowrap;
+@@ -23,3 +23,41 @@
+ .moreButton:hover {
+   background: var(--dsw-alias-interactive-bg-hover);
  }
 +
 +.trajectoryButton {
@@ -172,54 +172,24 @@ index ef6f6cfdf3..fb4ebe7221 100644
 +}
 +
 +.trajectoryButton span,
-+.trajectoryButton svg {
-+  flex: none;
-+}
-+
-+.trajectoryButton span {
-+  white-space: nowrap;
-+}
-+
-+@media (max-width: 800px) {
-+  .sessionLogButton {
-+    width: 28px;
-+    min-width: 28px;
-+    height: 28px;
-+    padding: 0;
-+    border: none;
-+    border-radius: 50%;
-+  }
-+
-+  .sessionLogButton span {
-+    display: none;
-+  }
-+
-+  .sessionLogButton svg {
-+    width: 16px;
-+    height: 16px;
-+  }
-+}
++.trajectoryButton svg { flex: none; }
++.trajectoryButton span { white-space: nowrap; }
 +
 +@media (min-width: 768px) {
-+  .sessionLogButton {
-+    display: none;
-+  }
-+
-+  .trajectoryButton {
-+    display: inline-flex;
-+  }
++  .trajectoryButton { display: inline-flex; }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index 7adc40aa5c..f0ebd2a71e 100644
+index cb20cb9f9d..5f1d654f01 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-@@ -1,8 +1,16 @@
+@@ -1,9 +1,16 @@
+ import { useState } from 'react'
  import type { ReactNode } from 'react'
- import { IconDownloadOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+ import { IconDownloadOutline16, IconEllipsisOutline16, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
+-import { SessionLogDownloadDialog, type SessionLogDownloadDialogProps } from './Dialog.tsx'
 +import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
- import { SessionLogDownloadDialog, type SessionLogDownloadDialogProps } from './Dialog.tsx'
-+import type { SessionLogDownloadDialogInjected } from './Dialog.tsx'
 +import { NS } from './locales.ts'
++import { SessionLogDownloadDialog, type SessionLogDownloadDialogInjected, type SessionLogDownloadDialogProps } from './Dialog.tsx'
  import css from './HeaderAction.module.css'
  
 +type SessionLogDownloadToolbarActionProps =
@@ -228,17 +198,9 @@ index 7adc40aa5c..f0ebd2a71e 100644
 +  & InjectFace<SessionLogDownloadDialogInjected>
 +
  /**
-  * Render the Session Header export capsule and its shared result dialog.
-  * @param props - Session runtime, download controller, and localized dialog copy.
-@@ -18,6 +26,7 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
-       <button
-         type="button"
-         className={css.sessionLogButton}
-+        data-session-log-header
-         disabled={busy}
-         aria-busy={busy}
-         onClick={() => { void request(sessionId) }}
-@@ -29,3 +38,31 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+  * Render the Session Header more-actions icon button, its download menu, and the shared result dialog.
+  * @param props - Session runtime, download controller, and localized copy.
+@@ -45,3 +52,31 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
      </>
    )
  }

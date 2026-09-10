@@ -42,35 +42,35 @@ afterEach(() => {
 })
 
 describe('release families', () => {
-  it('discovers the complete Plus npm closure without official or experimental packages', () => {
-    const members = releaseFamily('plus').members(resolve(import.meta.dirname, '../..'))
-    const names = members.map(member => member.name)
-
-    expect(names).toHaveLength(17)
-    expect(names).toContain('@sparkelf/dsh-plus')
-    expect(names).toContain('@sparkelf/dsh-plugin-backup')
-    expect(names).toContain('@sparkelf/dsh-plugin-dataops')
-    expect(names).toContain('@sparkelf/dsh-plugin-mcp-credentials')
-    expect(names).toContain('@sparkelf/dsh-plugin-subagent-settings')
-    expect(names).toContain('@sparkelf/dsh-patch-browser-auth-mode')
-    expect(names).toContain('@sparkelf/dsh-patch-better-sidebar-office-viewer')
-    expect(names).toContain('@sparkelf/dsh-patch-officecli-deliverables')
-    expect(names).toContain('@sparkelf/dsh-patch-legacy-code-preset')
-    expect(names).toContain('@sparkelf/dsh-patch-session-export-chinese')
-    expect(names.every(name => name.startsWith('@sparkelf/'))).toBe(true)
-  })
-
-  it('excludes private experimental packages from the dsh release', () => {
+  it('publishes Agent Teams while excluding private experimental packages', () => {
     const members = releaseFamily('dsh').members(resolve(import.meta.dirname, '../..'))
 
-    expect(members.some(member => member.directory.startsWith('packages/experimental/'))).toBe(false)
-    expect(members.map(member => member.name)).not.toContain('@deepseek-ai/dsh-experimental-agent-team')
+    expect(members
+      .filter(member => member.directory.startsWith('packages/experimental/'))
+      .map(member => member.name)).toEqual([
+      '@deepseek-ai/dsh-experimental-agent-team-profile',
+      '@deepseek-ai/dsh-experimental-agent-team-web-profile',
+      '@deepseek-ai/dsh-experimental-agent-team',
+      '@deepseek-ai/dsh-experimental-client-ui-agent-team',
+      '@deepseek-ai/dsh-experimental-tool-agent-team',
+    ])
+    expect(members.map(member => member.name)).not.toContain('@deepseek-ai/dsh-experimental-inspector')
   })
 
-  it('bumps private dsh packages without adding release tags', () => {
+  it('excludes private applications from the publish set', () => {
+    const root = mkdtempSync(join(tmpdir(), 'dsh-release-private-'))
+    roots.push(root)
+    write(join(root, 'apps/public/package.json'), '{"name":"@deepseek-ai/dsh-public","version":"0.0.1"}\n')
+    write(join(root, 'apps/private/package.json'), '{"name":"@deepseek-ai/dsh-private","version":"0.0.1","private":true}\n')
+
+    expect(releaseFamily('dsh').members(root).map(entry => entry.name)).toEqual(['@deepseek-ai/dsh-public'])
+  })
+
+  it('bumps private dsh workspaces without adding release tags', () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-release-version-'))
     roots.push(root)
     write(join(root, 'package.json'), '{"version":"0.0.1"}\n')
+    write(join(root, 'apps/desktop/package.json'), '{"version":"0.0.1","private":true}\n')
     write(join(root, 'packages/experimental/prototype/package.json'), '{"version":"0.0.1","private":true}\n')
     write(join(root, 'packages/core/unselected/package.json'), '{"version":"0.0.1"}\n')
 
@@ -81,6 +81,7 @@ describe('release families', () => {
     expect(planned.map(entry => ({ path: entry.manifestPath, tag: entry.tag }))).toEqual([
       { path: 'package.json', tag: undefined },
       { path: 'packages/core/published/package.json', tag: 'dsh-v0.0.2' },
+      { path: 'apps/desktop/package.json', tag: undefined },
       { path: 'packages/experimental/prototype/package.json', tag: undefined },
     ])
   })
@@ -101,16 +102,13 @@ describe('release families', () => {
     },
   )
 
-  it('names shared tags for dsh and Plus and one tag per vendored package', () => {
+  it('names one tag for the whole dsh family and one per vendored package', () => {
     const dsh = releaseFamily('dsh')
-    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const cli = member('apps/cli', '@deepseek-ai/dsh')
-    const profile = member('packages/bundle/plus', '@sparkelf/dsh-plus')
     const cordis = { ...member('vendor/cordis', '@deepseek-ai/cordis'), version: '4.0.1' }
 
     expect(dsh.tagFor(cli)).toBe('dsh-v0.0.1')
-    expect(plus.tagFor(profile)).toBe('plus-npm-v0.0.1')
     expect(vendor.tagFor(cordis)).toBe('vendor-cordis-v4.0.1')
     // The prefix is constructed, not recovered from a tag: a version with a
     // hyphen would defeat any suffix-stripping.
@@ -151,7 +149,6 @@ describe('release families', () => {
 
   it('requires a current official client build only for dsh artifacts', () => {
     const dsh = releaseFamily('dsh')
-    const plus = releaseFamily('plus')
     const vendor = releaseFamily('vendor')
     const officialEnvironment = officialClientBuildEnvironment(resolve(import.meta.dirname, '../..'))
     vi.stubEnv('DSH_CLIENT_COMMIT_HASH', officialEnvironment.DSH_CLIENT_COMMIT_HASH)
@@ -163,7 +160,6 @@ describe('release families', () => {
     expect(() => { dsh.verifyBuildArtifacts(official) }).not.toThrow()
     expect(() => { dsh.verifyBuildArtifacts(defaultBuild) }).toThrow(/DSH_CLIENT_TITLE/)
     expect(() => { dsh.verifyBuildArtifacts(missing) }).toThrow(/record.*missing/)
-    expect(() => { plus.verifyBuildArtifacts(missing) }).not.toThrow()
     expect(() => { vendor.verifyBuildArtifacts(missing) }).not.toThrow()
 
     write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')

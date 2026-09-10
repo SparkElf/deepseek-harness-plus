@@ -104,7 +104,7 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
   const segments = parts.filter(part => part.width > 0)
 
   return (
-    <span ref={rootRef} className={css.root} data-context-meter>
+    <span ref={rootRef} className={css.root}>
       <Tooltip label={t('context.aria', { percent: reading })} side="top" delayMs={200} disabled={open}>
         <button
           type="button"
@@ -135,6 +135,8 @@ export function ContextMeter({ useProjection, t }: ContextMeterProps) {
             <span className={css.headline}>{headBefore}</span>
             <span className={css.percent}>{reading}</span>
             <span className={css.headline}>{headAfter}</span>
+            {/* `~`: usedTokens prefers projectedTokens, whose surface delta is
+                heuristically repriced on top of the provider-anchored sample. */}
             <span className={css.figures}>
               {`~${formatTokens(context.usedTokens, t)} / ${formatTokens(context.contextWindow, t)}`}
             </span>

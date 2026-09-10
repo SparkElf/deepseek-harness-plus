@@ -58,7 +58,7 @@ disabled mode不贡献schema或prompt section。Continuous mode增加`subagent` 
 
 该开发备注是maintainer working context；shipped behavior、limits及rationale以以上sections、package code及linked Agent Note为准。
 
-- Host behavior位于`src`，Settings UI位于`src/client`。[Distribution Agent Note](../../../.agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)持有package及patch retirement boundaries。
+- Host behavior位于`src`，Settings UI位于`src/client`。[Distribution Agent Note](../../../.agents/notes/implemented/architecture/2026-08-29-ranged-plus-patchset-distribution.zh.md)持有package及patch retirement boundaries。
 - 该package不发布`./invariant` companion，因为delegation execution由Subagent capability和Session lifecycle观测；settings adapter没有independent execution state。
 
 </details>

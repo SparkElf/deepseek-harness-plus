@@ -97,6 +97,27 @@ describe('Menu', () => {
     expect(onClose).not.toHaveBeenCalled()
   })
 
+  it('window blur closes only when focus moved into an iframe', () => {
+    const onClose = vi.fn()
+    render(
+      <Menu open anchor={<span>trigger</span>} items={items} onSelect={() => {}} onClose={onClose} />)
+    // An app or tab switch blurs the window without focusing an iframe: stays open.
+    fireEvent.blur(window)
+    expect(onClose).not.toHaveBeenCalled()
+    // A pointerdown inside a cross-origin iframe never reaches this document;
+    // the focus move it causes is the one signal left, and it closes.
+    const iframe = document.createElement('iframe')
+    document.body.appendChild(iframe)
+    try {
+      iframe.focus()
+      expect(document.activeElement).toBe(iframe)
+      fireEvent.blur(window)
+      expect(onClose).toHaveBeenCalledTimes(1)
+    } finally {
+      iframe.remove()
+    }
+  })
+
   it('selected item shows the trailing check; align=end, side=top, and className apply', () => {
     const { container } = render(
       <Menu
@@ -118,6 +139,24 @@ describe('Menu', () => {
     const other = screen.getByRole('menuitem', { name: 'Beta' })
     expect(other.querySelector('svg')).toBeNull()
     fireEvent.keyDown(document, { key: 'a' })
+  })
+
+  it('fill selection holds the row fill instead of a trailing check', () => {
+    render(
+      <Menu
+        open
+        selection="fill"
+        anchor={<span>trigger</span>}
+        items={items}
+        selectedId="a"
+        onSelect={() => {}}
+        onClose={() => {}}
+      />)
+    const selected = screen.getByRole('menuitem', { name: 'Alpha' })
+    expect(selected.querySelector('svg')).toBeNull()
+    expect(selected.className).toMatch(/selectedFill/)
+    const other = screen.getByRole('menuitem', { name: 'Beta' })
+    expect(other.className).not.toMatch(/selectedFill/)
   })
 
   it('renders a leading icon and a separator between groups', () => {
@@ -296,6 +335,32 @@ describe('Menu', () => {
     // side=bottom, align=start: below the host-supplied rect, left-aligned.
     expect(menu.style.left).toBe('40px')
     expect(menu.style.top).toBe('132px')
+  })
+
+  it('portal mode intersects viewport clamping with an owner boundary', () => {
+    const offsetWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetWidth')!
+    Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 300 })
+    const anchor = { left: 480, right: 500, top: 100, bottom: 128, width: 20, height: 28, x: 480, y: 100, toJSON: () => ({}) } as DOMRect
+    const boundary = { left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) } as DOMRect
+    try {
+      render(<Menu
+        portal
+        open
+        align="end"
+        getAnchorRect={() => anchor}
+        boundaryRef={{ current: { getBoundingClientRect: () => boundary } as HTMLElement }}
+        anchor={null}
+        items={items}
+        onSelect={() => {}}
+        onClose={() => {}}
+      />)
+      const menu = screen.getByRole('menu')
+      expect(menu.style.left).toBe('292px')
+      expect(menu.style.minWidth).toBe('216px')
+      expect(menu.style.maxWidth).toBe('216px')
+    } finally {
+      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', offsetWidth)
+    }
   })
 
   it('portal mode skips the frame when getAnchorRect returns null (no menu until a rect exists)', () => {

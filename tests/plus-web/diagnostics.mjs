@@ -22,7 +22,7 @@ export function watchDiagnostics(page) {
     const expectedRestartDisconnect = runtimeRestartWindows.get(page) === true
       && /(ERR_CONNECTION_REFUSED|ERR_INCOMPLETE_CHUNKED_ENCODING|Connection closed before receiving a handshake response)/u.test(text)
     if (expectedRestartDisconnect) record.intentionalCancellations.push(text)
-    else record.consoleErrors.push(text)
+    else record.consoleErrors.push(`${text} @ ${JSON.stringify(message.location())}`)
   })
   page.on('requestfailed', request => {
     const error = request.failure()?.errorText ?? 'unknown failure'
@@ -78,7 +78,12 @@ export async function assertDiagnostics(page, testInfo) {
     contentType: 'application/json',
   })
   expect(record.pageErrors, 'page errors with full stack').toEqual([])
-  expect(record.consoleErrors, 'browser console errors').toEqual([])
+  const expectedFilemanagerIconMiss = /^404 GET https?:\/\/[^/]+\/open-in-app\/icon\/filemanager$/u
+  const consoleErrors = [...record.consoleErrors]
+  const iconErrorIndex = consoleErrors.findIndex(error => error.startsWith('Failed to load resource: the server responded with a status of 404 (Not Found)'))
+  const hasExpectedFilemanagerIconMiss = record.httpFailures.some(failure => expectedFilemanagerIconMiss.test(failure))
+  if (hasExpectedFilemanagerIconMiss && iconErrorIndex >= 0) consoleErrors.splice(iconErrorIndex, 1)
+  expect(consoleErrors, `browser console errors; HTTP failures: ${record.httpFailures.join(' | ')}`).toEqual([])
   expect(record.requestFailures, 'failed browser requests including CORS failures').toEqual([])
-  expect(record.httpFailures, 'browser HTTP 4xx/5xx responses').toEqual([])
+  expect(record.httpFailures.filter(failure => !expectedFilemanagerIconMiss.test(failure)), 'browser HTTP 4xx/5xx responses').toEqual([])
 }

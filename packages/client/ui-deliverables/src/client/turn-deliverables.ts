@@ -7,6 +7,14 @@ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
 import type { TurnTailOwnerProps } from '@deepseek-ai/dsh-client-ui-chat/client'
 import type { ConversationNodeDefinition } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { MarkdownFileMentions } from '@deepseek-ai/dsh-client-ui-primitives'
+import type { PresentedFile } from '@deepseek-ai/dsh-tool-present/types'
+import { basename, isPresentedData, isPresentedFile } from '../presented.ts'
+
+/** A declared file with its authorized open coordinates. */
+export interface PresentedPath extends PresentedFile {
+  readonly seq: number
+  readonly index: number
+}
 
 interface ProducedPath {
   readonly seq: number
@@ -16,6 +24,7 @@ interface ProducedPath {
 /** Immutable produced-file facts published against one Turn. */
 export interface DeliverablesTurnData {
   readonly produced: readonly ProducedPath[]
+  readonly presented?: readonly PresentedPath[]
 }
 
 declare module '@deepseek-ai/dsh-client-ui-conversation/client' {
@@ -53,9 +62,34 @@ function mutationPath(name: string, argsRaw: string): string | null {
       return validEditArgs(args) ? pathValue(args.file_path) : null
     case 'str_replace_editor':
       return editorMutationPath(args)
+    case 'officecli':
+      return officeCliMutationPath(args)
     default:
       return null
   }
+}
+
+const OFFICECLI_MUTATIONS = new Set([
+  'create',
+  'set',
+  'add',
+  'remove',
+  'move',
+  'swap',
+  'batch',
+  'refresh',
+  'merge',
+  'raw-set',
+  'add-part',
+  'save',
+  'close',
+])
+
+/** 读取 OfficeCLI 写命令的原件路径；命令 argv 是该工具的唯一文件合同。 */
+function officeCliMutationPath(args: Readonly<Record<string, unknown>>): string | null {
+  if (!Array.isArray(args.command) || !args.command.every(value => typeof value === 'string')) return null
+  const [operation, file] = args.command
+  return operation !== undefined && OFFICECLI_MUTATIONS.has(operation) ? pathValue(file) : null
 }
 
 /** Validate the fields that an `edit` execution requires. */
@@ -150,6 +184,7 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
   match: (event) => {
     if (event.type === 'turn/start') return { id: String(event.data.turn), role: 'start' }
     if (event.type === 'tool/call') return { id: String(event.data.turn), role: 'update' }
+    if (event.type === 'deliverables/presented') return isPresentedData(event.data) ? { id: String(event.data.turn), role: 'update' } : null
     if (event.type === 'tool/result' && isAppendSurfaceEvent(event)) {
       return { id: String(event.data.turn), role: 'update' }
     }
@@ -160,6 +195,17 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
     return { turn: match.event.data.turn, calls: new Map(), produced: [] }
   },
   update: (context, match) => {
+    if (match.event.type === 'deliverables/presented') {
+      const { files } = match.event.data
+      const seq = match.event.seq
+      const presented: PresentedPath[] = []
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index]
+        if (isPresentedFile(file)) presented.push({ ...file, seq, index })
+      }
+      if (presented.length === 0) return context.state
+      return { ...context.state, presented: [...context.state.presented ?? [], ...presented] }
+    }
     if (match.event.type === 'tool/call') {
       const calls = new Map(context.state.calls)
       calls.set(
@@ -182,25 +228,31 @@ export const deliverablesDefinition: ConversationNodeDefinition<DeliverablesStat
     if (previous?.kind === 'turn'
       && previous.turn === context.state.turn
       && previous.key === 'deliverables'
-      && previous.value.produced === context.state.produced) return previous
+      && previous.value.produced === context.state.produced
+      && previous.value.presented === context.state.presented) return previous
     return {
       kind: 'turn',
       turn: context.state.turn,
       key: 'deliverables',
-      value: { produced: context.state.produced },
+      value: { produced: context.state.produced, ...context.state.presented === undefined ? {} : { presented: context.state.presented } },
     }
   },
 }
 
 /**
- * Trailing path segment, the part that identifies the file at a glance.
- * @param path - Slash- or backslash-separated path.
- * @returns The final segment, or the whole string when separator-free.
+ * Select the latest declaration of each path before the closing reply.
+ * @param owner - closing turn and sequence.
+ * @returns replayable deliveries in first-seen path order.
  */
-export function basename(path: string): string {
-  const at = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'))
-  return at === -1 ? path : path.slice(at + 1)
+export function presentedForClosing(owner: TurnTailOwnerProps): PresentedPath[] {
+  const files = new Map<string, PresentedPath>()
+  for (const file of owner.turn.data.get('deliverables')?.presented ?? []) {
+    if (file.seq < owner.seq) files.set(file.path, file)
+  }
+  return [...files.values()]
 }
+
+export { basename } from '../presented.ts'
 
 /**
  * File-mention vocabulary over one turn's produced paths, for the closing

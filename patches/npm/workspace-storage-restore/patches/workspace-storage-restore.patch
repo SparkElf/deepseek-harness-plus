@@ -1,43 +1,5 @@
-diff --git a/packages/workspace/workspace/README.i18n.yaml b/packages/workspace/workspace/README.i18n.yaml
-index 5d98564e58..fbeef8cd3a 100644
---- a/packages/workspace/workspace/README.i18n.yaml
-+++ b/packages/workspace/workspace/README.i18n.yaml
-@@ -2,5 +2,5 @@
- # side as of the last confirmed-consistent state. Both languages carry equal authority;
- # after editing either side, bring the other along and re-record with:
- #   pnpm run verify-translation-pairing --write packages/workspace/workspace/README.md
--README.md: eb3d2a4f89b6023d8a916a41723500186cc10d93
--README.zh.md: 5059a6edd69a82bd8b0a364793ca1b5c941d67e2
-+README.md: b37eed59f23cda27244c0eb0605b08b0711b0846
-+README.zh.md: 3c0c56969c14b5404b52a16fffe49e674a6f1332
-diff --git a/packages/workspace/workspace/README.md b/packages/workspace/workspace/README.md
-index eb3d2a4f89..b37eed59f2 100644
---- a/packages/workspace/workspace/README.md
-+++ b/packages/workspace/workspace/README.md
-@@ -89,6 +89,8 @@ This section explains the design decisions behind the feature and points at the
- 
- The API is one small family with two owners: `WorkspaceRegistry` creates, orders, and deletes projects and manages their session accounting; the `Workspace` entity exposes the display title, directory status, and the session projection. Per-method contracts live in the code, not this README — see [src/index.ts](src/index.ts) and [src/entity.ts](src/entity.ts).
- 
-+`WorkspaceRegistry.withStorageRestore` waits for current registry mutations, closes the durable domain while its caller replaces external files, and always reopens through the startup initialization path before resolving so records, archive state, and Session indexes share the restored baseline.
-+
- ### Source map
- 
- | File | Role |
-diff --git a/packages/workspace/workspace/README.zh.md b/packages/workspace/workspace/README.zh.md
-index 5059a6edd6..3c0c56969c 100644
---- a/packages/workspace/workspace/README.zh.md
-+++ b/packages/workspace/workspace/README.zh.md
-@@ -89,6 +89,8 @@ ctx.workspaceRegistry.list() // shows the project, newest first
- 
- 该 API 是一个由两个所有者构成的小家族：`WorkspaceRegistry` 负责创建、排序与删除项目并管理其会话记账；`Workspace` 实体暴露显示标题、目录状态与会话投影。各方法的精确约定在代码中，而非本 README——参见 [src/index.ts](src/index.ts) 与 [src/entity.ts](src/entity.ts)。
- 
-+`WorkspaceRegistry.withStorageRestore` 会等待当前 registry mutations，在caller替换external files期间关闭durable domain，并始终在resolve前通过startup initialization path重开，使records、archive state与Session indexes共享恢复后的baseline。
-+
- ### 源码地图
- 
- | 文件 | 职责 |
 diff --git a/packages/workspace/workspace/src/index.ts b/packages/workspace/workspace/src/index.ts
-index 5f149adac1..e0e6942b4c 100644
+index 037344fce4..7b6d915807 100644
 --- a/packages/workspace/workspace/src/index.ts
 +++ b/packages/workspace/workspace/src/index.ts
 @@ -10,7 +10,7 @@ import { stat } from 'node:fs/promises'

@@ -53,10 +53,6 @@ describe('npm install layout verifier', () => {
         name: '@deepseek-ai/cordis',
         version: '4.0.1',
       }]])],
-      ['@deepseek-ai/dsh-external', new Map([['9.0.0', {
-        name: '@deepseek-ai/dsh-external',
-        version: '9.0.0',
-      }]])],
     ])
 
     const dual = buildDualDshRegistry(index, '0.1.1-rc.2')
@@ -72,7 +68,6 @@ describe('npm install layout verifier', () => {
       dependencies: { '@deepseek-ai/dsh-child': '^0.2.0' },
     })
     expect(dual.get('@deepseek-ai/cordis')).toBe(index.get('@deepseek-ai/cordis'))
-    expect(dual.get('@deepseek-ai/dsh-external')).toBe(index.get('@deepseek-ai/dsh-external'))
   })
 
   it('accepts isolated DSH releases with one shared Cordis installation', () => {
@@ -82,17 +77,17 @@ describe('npm install layout verifier', () => {
     })
   })
 
-  it('ignores separately released DSH-prefixed packages', () => {
+  it.each([
+    ['react', 'node_modules/react'],
+    ['react-dom', 'node_modules/react-dom'],
+    ['react', 'node_modules/dsh-previous/node_modules/react'],
+    ['react-dom', 'node_modules/dsh-previous/node_modules/react-dom'],
+  ])('rejects browser runtime %s installed at %s in the DSH-only consumer', (name, path) => {
     const layout = validLayout()
-    const packages = {
-      ...layout.packages,
-      'node_modules/@deepseek-ai/dsh-external': { version: '9.0.0' },
-    }
-
-    expect(assertDualDshInstallLayout({ ...layout, packages })).toEqual({
-      dshPackagesPerVersion: 3,
-      checkedDshEdges: 4,
-    })
+    const packages = { ...layout.packages, [path]: { version: '18.3.1' } }
+    expect(() => assertDualDshInstallLayout({ ...layout, packages })).toThrow(
+      `${path}: ${name} is a browser build input`,
+    )
   })
 
   it('rejects an internal edge that crosses release versions', () => {

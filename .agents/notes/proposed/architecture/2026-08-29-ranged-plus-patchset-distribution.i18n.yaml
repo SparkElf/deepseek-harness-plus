@@ -1,6 +1,0 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
-#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-29-ranged-plus-patchset-distribution.md
-2026-08-29-ranged-plus-patchset-distribution.md: 1b49f26494734a1a3c8e6649f7d4dce2c8ba4c47
-2026-08-29-ranged-plus-patchset-distribution.zh.md: a258fb7a4640cadf80df11d24668cd698a44e196

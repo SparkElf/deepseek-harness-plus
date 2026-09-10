@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-web-base-path",
-  "version": "0.1.0-rc.22",
+  "version": "0.1.0-rc.25",
   "description": "Data-only exact official-source patch for complete reverse-proxy Web base-path support",
   "publishConfig": {
     "access": "public"
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "web-reverse-proxy-base-path",
-        "dsh": ">=0.1.3-alpha.1",
+        "dsh": ">=0.1.5-rc.1",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "d347e703908d0406b7a7ef80e3a0e594d86b2215",
+          "baseRevision": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e",
           "paths": [
             "apps/web/",
             "packages/bundle/web-app/",
