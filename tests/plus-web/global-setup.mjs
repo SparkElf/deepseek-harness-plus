@@ -374,6 +374,7 @@ export default async function globalSetup() {
     '@sparkelf/dsh-workbench-vault': { spec: '0.1.1', version: '0.1.1', bundle: false },
     '@sparkelf/dsh-ssh-manager': { spec: '0.7.0', version: '0.7.0' },
     '@sparkelf/dsh-api-client': { spec: '0.5.0', version: '0.5.0' },
+    '@huanlin/dsh-plugin-better-locale': { spec: '0.4.1', version: '0.4.1' },
     'dsh-better-sidebar': { spec: '0.19.0', version: '0.19.0' },
     '@huanlin/dsh-plugin-better-sidebar-plugin-office': { spec: '0.2.0', version: '0.2.0' },
     'dsh-video-preview': { spec: '0.1.4', version: '0.1.4' },
