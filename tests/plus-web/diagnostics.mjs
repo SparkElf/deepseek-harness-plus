@@ -88,6 +88,19 @@ export async function assertDiagnostics(page, testInfo) {
   // those give-up lines, never another message from the same plugin.
   const closedSidebarChannel = /^\[dsh-better-sidebar\] agent-(?:opens|terminals) connection failed; stopping reconnect loop/u
   const consoleErrors = [...record.consoleErrors].filter(error => !closedSidebarChannel.test(error))
+  // A reload that swaps the network aborts the runner's inspect sync in flight, and
+  // the browser reports that one aborted request twice: once as the resource failure
+  // and once through the runner. Drop the two only as a pair, so a sync report
+  // without its aborted request still fails the run.
+  const inspectSyncAbort = /ERR_NETWORK_CHANGED.*\/api\/dynamicCordisRunner\/syncInspectManifest/u
+  const inspectSyncReport = /^\[cordis-client-runner\] syncing inspect providers failed/u
+  for (let count = consoleErrors.filter(error => inspectSyncAbort.test(error)).length; count > 0; count -= 1) {
+    const resourceIndex = consoleErrors.findIndex(error => inspectSyncAbort.test(error))
+    const reportIndex = consoleErrors.findIndex(error => inspectSyncReport.test(error))
+    if (resourceIndex < 0 || reportIndex < 0) break
+    consoleErrors.splice(Math.max(resourceIndex, reportIndex), 1)
+    consoleErrors.splice(Math.min(resourceIndex, reportIndex), 1)
+  }
   let remainingIconMisses = record.httpFailures.filter(failure => expectedFilemanagerIconMiss.test(failure)).length
   for (let index = consoleErrors.length - 1; index >= 0 && remainingIconMisses > 0; index -= 1) {
     if (!consoleErrors[index].startsWith('Failed to load resource: the server responded with a status of 404 (Not Found)')) continue
