@@ -295,6 +295,10 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByText('完整备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
     const input = dialog.locator('input[type="file"]')
+    // Driving a rejected archive still opens an import request the page abandons
+    // when the dialog closes, so declare that cancellation the same way as the
+    // accepted imports below.
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await input.setInputFiles(invalidBackup)
     await dialog.getByText('所选压缩包不是 DeepSeek Harness 备份文件。', { exact: true }).waitFor()
 
