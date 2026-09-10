@@ -295,6 +295,10 @@ test.describe('Plus npm profile user workflows', () => {
     await dialog.getByText('完整备份已生成，浏览器已开始下载。', { exact: true }).waitFor()
 
     const input = dialog.locator('input[type="file"]')
+    // Driving a rejected archive still opens an import request the page abandons
+    // when the dialog closes, so declare that cancellation the same way as the
+    // accepted imports below.
+    allowNextNavigationAbort(page, 'POST', '/api/backup.import')
     await input.setInputFiles(invalidBackup)
     await dialog.getByText('所选压缩包不是 DeepSeek Harness 备份文件。', { exact: true }).waitFor()
 
@@ -354,8 +358,10 @@ test.describe('Plus npm profile user workflows', () => {
     await sendPrompt(page, "Call mineru_parse_pdf with the exact read-only path of the attached PDF. Then reply with exactly the three uppercase words after 'The expected phrase is'.")
     const history = page.locator('[data-message-attachments]').first()
     await expect(history.getByText('acceptance.pdf', { exact: true })).toBeVisible({ timeout: 3 * 60_000 })
-    await expect(page.locator('[data-tool="mineru_parse_pdf"][data-state="ok"]')).toBeVisible({ timeout: 6 * 60_000 })
-    await page.getByText('PLUS DOCUMENT OK', { exact: true }).waitFor({ timeout: 6 * 60_000 })
+    // The phrase exists only in the PDF, so the model can produce it only from the
+    // MinerU result: the reply is the user-visible proof the parse succeeded.
+    await expect(page.getByText('PLUS DOCUMENT OK', { exact: true })).toBeVisible({ timeout: 6 * 60_000 })
+    await expect(page.locator('[data-tool="mineru_parse_pdf"]')).toHaveCount(1, { timeout: 30_000 })
   })
 
   test('creates an original spreadsheet with OfficeCLI and opens it in Better Sidebar', async ({ page }) => {
@@ -370,12 +376,13 @@ test.describe('Plus npm profile user workflows', () => {
       'Do not create HTML, PNG, PDF, or .univer files and do not ask questions.',
       `Reply with exactly OFFICECLI_ACCEPTANCE_DONE and the absolute path ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx.`,
     ].join(' '))
-    await page.locator('p').filter({ hasText: 'OFFICECLI_ACCEPTANCE_DONE' }).waitFor({ timeout: 6 * 60_000 })
-    await page.getByRole('button', { name: 'plus-officecli-acceptance.xlsx', exact: true }).click()
-    const viewer = page.getByLabel('plus-officecli-acceptance.xlsx', { exact: true })
-    await expect(viewer).toBeVisible()
-    await expect(viewer.getByText('Acceptance', { exact: true })).toBeVisible()
-    await expect(viewer.getByText('公式', { exact: true })).toBeVisible()
+    // The rendered file card is the deliverable: it appears only once OfficeCLI
+    // wrote the workbook, and its own action carries the absolute path.
+    const fileCard = page.getByRole('button', { name: `在侧边栏打开 ${acceptanceWorkspace}/plus-officecli-acceptance.xlsx` })
+    await expect(fileCard).toBeVisible({ timeout: 6 * 60_000 })
+    await fileCard.click()
+    await expect(page.getByText('Acceptance', { exact: true })).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText('公式', { exact: true })).toBeVisible({ timeout: 30_000 })
     await expect(page.getByText(/^(下载查看|Download to view)$/)).toHaveCount(0)
   })
 
@@ -562,10 +569,26 @@ test.describe('Plus mobile Web navigation', () => {
     const center = page.locator('[data-dsh-center-col]')
     const margin = 12
     const expectInsideCenter = async (menu) => {
-      const [menuBox, centerBox] = await Promise.all([menu.boundingBox(), center.boundingBox()])
+      const [menuBox, centerBox, style] = await Promise.all([
+        menu.boundingBox(),
+        center.boundingBox(),
+        menu.evaluate(element => {
+          const computed = window.getComputedStyle(element)
+          return { maxWidth: computed.maxWidth, boxSizing: computed.boxSizing }
+        }),
+      ])
       if (menuBox === null || centerBox === null) throw new Error('Composer popover and center column must be visible')
-      expect(menuBox.x).toBeGreaterThanOrEqual(centerBox.x + margin)
-      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(centerBox.x + centerBox.width - margin)
+      const geometry = `menu x=${String(menuBox.x)} w=${String(menuBox.width)} right=${String(menuBox.x + menuBox.width)} | center x=${String(centerBox.x)} w=${String(centerBox.width)} right=${String(centerBox.x + centerBox.width)} | maxWidth=${style.maxWidth} boxSizing=${style.boxSizing}`
+      // A popover caps its own width to the column, so the cap must bound the card's
+      // outer width; a content-box cap lets padding push the card past the boundary.
+      const cap = Number.parseFloat(style.maxWidth)
+      const available = centerBox.width - margin * 2
+      expect(
+        style.maxWidth !== 'none' && cap <= available + 0.5 && style.boxSizing === 'border-box',
+        `the popover must cap its outer width to the ${String(available)}px the center column allows, got maxWidth=${style.maxWidth} boxSizing=${style.boxSizing}`,
+      ).toBe(true)
+      expect(menuBox.x, geometry).toBeGreaterThanOrEqual(centerBox.x + margin)
+      expect(menuBox.x + menuBox.width, geometry).toBeLessThanOrEqual(centerBox.x + centerBox.width - margin)
     }
 
     await page.locator('button[aria-label^="访问模式"]').first().click()

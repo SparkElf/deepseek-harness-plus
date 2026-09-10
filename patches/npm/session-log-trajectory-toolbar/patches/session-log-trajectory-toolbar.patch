@@ -111,7 +111,7 @@ index 118f3b2c28..a8c71cf9ee 100644
      inject: (sessionId: SessionId): TrajectoryViewInjected => {
        const session = ctx.sessions.binding(sessionId)?.session
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index 91966f3773..0a7eceebb9 100644
+index 8992ab79e9..7d9f7763f9 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
 @@ -59,6 +59,7 @@
@@ -133,10 +133,10 @@ index 91966f3773..0a7eceebb9 100644
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index cc13d3f49d..df666e546c 100644
+index cc13d3f49d..1d22e64cfd 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-@@ -23,3 +23,41 @@
+@@ -23,3 +23,44 @@
  .moreButton:hover {
    background: var(--dsw-alias-interactive-bg-hover);
  }
@@ -175,11 +175,14 @@ index cc13d3f49d..df666e546c 100644
 +.trajectoryButton svg { flex: none; }
 +.trajectoryButton span { white-space: nowrap; }
 +
++/* Wider layouts replace the Header action with the compact Trajectory one. */
 +@media (min-width: 768px) {
++  .moreButton { display: none; }
++
 +  .trajectoryButton { display: inline-flex; }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index cb20cb9f9d..5f1d654f01 100644
+index cb20cb9f9d..6f5eefab95 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 @@ -1,9 +1,16 @@
@@ -200,7 +203,15 @@ index cb20cb9f9d..5f1d654f01 100644
  /**
   * Render the Session Header more-actions icon button, its download menu, and the shared result dialog.
   * @param props - Session runtime, download controller, and localized copy.
-@@ -45,3 +52,31 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+@@ -31,6 +38,7 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
+           <button
+             type="button"
+             className={css.moreButton}
++            data-session-log-header
+             aria-label={t('header.more')}
+             aria-haspopup="menu"
+             aria-expanded={open}
+@@ -45,3 +53,31 @@ export function SessionLogDownloadHeaderAction(props: SessionLogDownloadDialogPr
      </>
    )
  }
