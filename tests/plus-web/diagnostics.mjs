@@ -79,10 +79,16 @@ export async function assertDiagnostics(page, testInfo) {
   })
   expect(record.pageErrors, 'page errors with full stack').toEqual([])
   const expectedFilemanagerIconMiss = /^404 GET https?:\/\/[^/]+\/open-in-app\/icon\/filemanager$/u
+  // A host that declares a catalog id iconless serves no icon for it, and the
+  // browser reports one console error per request; drop exactly as many as the
+  // matching HTTP failures, never a console error that has no such failure.
   const consoleErrors = [...record.consoleErrors]
-  const iconErrorIndex = consoleErrors.findIndex(error => error.startsWith('Failed to load resource: the server responded with a status of 404 (Not Found)'))
-  const hasExpectedFilemanagerIconMiss = record.httpFailures.some(failure => expectedFilemanagerIconMiss.test(failure))
-  if (hasExpectedFilemanagerIconMiss && iconErrorIndex >= 0) consoleErrors.splice(iconErrorIndex, 1)
+  let remainingIconMisses = record.httpFailures.filter(failure => expectedFilemanagerIconMiss.test(failure)).length
+  for (let index = consoleErrors.length - 1; index >= 0 && remainingIconMisses > 0; index -= 1) {
+    if (!consoleErrors[index].startsWith('Failed to load resource: the server responded with a status of 404 (Not Found)')) continue
+    consoleErrors.splice(index, 1)
+    remainingIconMisses -= 1
+  }
   expect(consoleErrors, `browser console errors; HTTP failures: ${record.httpFailures.join(' | ')}`).toEqual([])
   expect(record.requestFailures, 'failed browser requests including CORS failures').toEqual([])
   expect(record.httpFailures.filter(failure => !expectedFilemanagerIconMiss.test(failure)), 'browser HTTP 4xx/5xx responses').toEqual([])
