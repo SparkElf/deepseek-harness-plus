@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Data-only temporary patch for the official DSH source revision `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`. It adds `WorkspaceRegistry.withStorageRestore`, which closes the Workspace durable domain around an external file replacement and reopens through normal initialization before returning.
+Data-only temporary patch for the official DSH source revision `fb2c4b9e698e30edb738bca4cf0618587db7d203`. It adds `WorkspaceRegistry.withStorageRestore`, which closes the Workspace durable domain around an external file replacement and reopens through normal initialization before returning.
 
 The target source revision identifies `dsh-v0.1.3-alpha.1`. That tag has no matching published `@deepseek-ai/dsh-workspace` npm artifact, so this variant cannot truthfully target an npm package version. The Plus distribution declares this exact official base revision; the materializer verifies that base is an ancestor of the Plus checkout, verifies the repository-root payload with `git apply --check`, and then builds DSH from that official source base plus the selected Plus artifacts. There is no alternate revision, fuzzy application, or runtime code in this package.
 

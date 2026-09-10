@@ -6,4 +6,4 @@ This data-only package adds one explicit `browserAuthentication: required | disa
 
 Plus selects `disabled` because its accepted local Web workflow prioritizes direct access over browser identity. This exposes the complete Host API, including Shell, files, and Sessions, to every process that can reach an accepted authority; it does not only affect DataOps. The shipped CLI still binds loopback and rejects `--host 0.0.0.0`, while custom trusted authorities remain a deployment responsibility.
 
-The target is exact official source base `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`. The package has no JavaScript entry, lifecycle script, credential material, or fallback variant. Retire it when official DSH exposes an equivalent profile-selected browser-authentication policy.
+The target is exact official source base `fb2c4b9e698e30edb738bca4cf0618587db7d203`. The package has no JavaScript entry, lifecycle script, credential material, or fallback variant. Retire it when official DSH exposes an equivalent profile-selected browser-authentication policy.

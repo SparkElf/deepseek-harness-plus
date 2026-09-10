@@ -26,7 +26,7 @@ const webPort = Number(process.env.DSH_PLUS_TEST_PORT ?? '3081')
 const supervisorPort = Number(process.env.DSH_PLUS_TEST_SUPERVISOR_PORT ?? '3083')
 const baseURL = `http://127.0.0.1:${String(webPort)}`
 const supervisorURL = `http://127.0.0.1:${String(supervisorPort)}`
-const officialRevision = '183f08e9c6dde7e36cd2318eaee70b0da08fb35e'
+const officialRevision = 'fb2c4b9e698e30edb738bca4cf0618587db7d203'
 
 function requireRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -71,9 +71,18 @@ function currentModelSettings(source, label) {
     && typeof sourceDefault.reasoningEffort === 'string') {
     defaultModel.reasoningEffort = sourceDefault.reasoningEffort
   }
+  // The permission preset comes from the seed home, because a host without a usable
+  // sandbox backend cannot run any sandboxed command and would stall every turn on an
+  // approval the acceptance never answers.
+  const permission = settings.permission
+  const permissionSeed = permission !== null && typeof permission === 'object' && !Array.isArray(permission)
+    && typeof permission.defaultPreset === 'string' && permission.defaultPreset !== ''
+    ? { defaultPreset: permission.defaultPreset }
+    : undefined
   return {
     'llm-pi-ai': { providers: { [providerId]: providerSeed } },
     'agent-default-model': defaultModel,
+    ...permissionSeed === undefined ? {} : { permission: permissionSeed },
   }
 }
 
@@ -374,6 +383,10 @@ export default async function globalSetup() {
     '@sparkelf/dsh-workbench-vault': { spec: '0.1.1', version: '0.1.1', bundle: false },
     '@sparkelf/dsh-ssh-manager': { spec: '0.7.0', version: '0.7.0' },
     '@sparkelf/dsh-api-client': { spec: '0.5.0', version: '0.5.0' },
+    '@huanlin/dsh-plugin-better-locale': { spec: '0.4.1', version: '0.4.1' },
+    'dsh-better-sidebar': { spec: '0.19.0', version: '0.19.0' },
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': { spec: '0.2.0', version: '0.2.0' },
+    'dsh-video-preview': { spec: '0.1.4', version: '0.1.4' },
   }
   for (const [packageName, expected] of Object.entries(externalBundles)) {
     if (profileManifest.dependencies?.[packageName] !== expected.spec

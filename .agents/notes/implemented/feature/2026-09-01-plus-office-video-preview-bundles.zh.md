@@ -10,7 +10,7 @@ Better Sidebar把重量级Office rendering与video streaming保留在独立exten
 
 ## 决策
 
-Plus profile在`dsh-better-sidebar@0.17.1`之后紧接安装`@huanlin/dsh-plugin-better-sidebar-plugin-office@0.1.2`与`dsh-video-preview@0.1.4`。发行版把三个包都作为exact profile dependencies安装，并在deployment lock中把两个preview packages记录为runtime bundles。
+Plus profile在`dsh-better-sidebar@0.19.0`之后紧接安装`@huanlin/dsh-plugin-better-sidebar-plugin-office@0.2.0`与`dsh-video-preview@0.1.4`。发行版把三个包都作为exact profile dependencies安装，并在deployment lock中把两个preview packages记录为runtime bundles。
 
 本机Plus与DataOps workspace image消费同一份materialized profile。两个deployment都不执行独立plugin installation。
 

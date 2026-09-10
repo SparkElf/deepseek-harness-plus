@@ -6,6 +6,6 @@ This data-only package places the official Session-log download action immediate
 
 The payload adds one typed Trajectory toolbar utility slot and registers a second presentation of the existing Session-log action into it. Both presentations use the same download controller, request, state, and dialog; the package does not add another export path or archive implementation.
 
-The target is exact official source revision `183f08e9c6dde7e36cd2318eaee70b0da08fb35e`. The payload is applied before that source tree is built. The package has no JavaScript entry, lifecycle script, Cordis plugin, compatibility adapter, or alternate variant.
+The target is exact official source revision `fb2c4b9e698e30edb738bca4cf0618587db7d203`. The payload is applied before that source tree is built. The package has no JavaScript entry, lifecycle script, Cordis plugin, compatibility adapter, or alternate variant.
 
 Retire this package when official DSH exposes an equivalent Trajectory toolbar utility slot and places Session export before search on desktop while retaining the Header action on phones.

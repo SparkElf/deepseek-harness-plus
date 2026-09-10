@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.1.0-rc.25",
+  "version": "0.1.0-rc.26",
   "publishConfig": {
     "access": "public"
   },
@@ -41,7 +41,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.1.5-rc.1"
+      "dsh": ">=0.1.5-rc.2"
     },
     "profile": {
       "bundles": [
@@ -51,6 +51,10 @@
         "@sparkelf/dsh-officecli",
         "@sparkelf/dsh-mobile-bridge",
         "dshmarket",
+        "@huanlin/dsh-plugin-better-locale",
+        "dsh-better-sidebar",
+        "@huanlin/dsh-plugin-better-sidebar-plugin-office",
+        "dsh-video-preview",
         "@changfenhuang/dsh-genui",
         "@sparkelf/dsh-plugin-supervisor",
         "@sparkelf/dsh-plus",
@@ -66,7 +70,11 @@
         "dsh-sql-workbench": "0.5.0",
         "@sparkelf/dsh-workbench-vault": "0.1.1",
         "@sparkelf/dsh-ssh-manager": "0.7.0",
-        "@sparkelf/dsh-api-client": "0.5.0"
+        "@sparkelf/dsh-api-client": "0.5.0",
+        "@huanlin/dsh-plugin-better-locale": "0.4.1",
+        "dsh-better-sidebar": "0.19.0",
+        "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.2.0",
+        "dsh-video-preview": "0.1.4"
       },
       "allowBuilds": {
         "@officecli/officecli": true,
@@ -92,30 +100,30 @@
       "@sparkelf/dsh-patch-mobile-journal-generation"
     ],
     "sourceBase": {
-      "revision": "183f08e9c6dde7e36cd2318eaee70b0da08fb35e"
+      "revision": "fb2c4b9e698e30edb738bca4cf0618587db7d203"
     }
   },
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
-    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.1.0-rc.25",
+    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.1.0-rc.26",
     "dshmarket": ">=1.45.1",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.1.0-rc.25",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.1.0-rc.26",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-plugin-dataops": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.1.0-rc.25",
-    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.1.0-rc.25"
+    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-plugin-dataops": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.1.0-rc.26"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

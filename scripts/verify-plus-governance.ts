@@ -209,6 +209,10 @@ function main(): void {
     '@sparkelf/dsh-workbench-vault': '0.1.1',
     '@sparkelf/dsh-ssh-manager': '0.7.0',
     '@sparkelf/dsh-api-client': '0.5.0',
+    '@huanlin/dsh-plugin-better-locale': '0.4.1',
+    'dsh-better-sidebar': '0.19.0',
+    '@huanlin/dsh-plugin-better-sidebar-plugin-office': '0.2.0',
+    'dsh-video-preview': '0.1.4',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
