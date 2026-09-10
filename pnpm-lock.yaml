@@ -1656,52 +1656,52 @@ importers:
         specifier: '>=0.2.11'
         version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-composer-popover-boundaries':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/composer-popover-boundaries
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-journal-generation':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/mobile-journal-generation
       '@sparkelf/dsh-patch-officecli-deliverables':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/officecli-deliverables
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: workspace:>=0.1.0-rc.25
+        specifier: workspace:>=0.1.0-rc.26
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.45.1'

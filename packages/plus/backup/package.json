@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-backup",
   "description": "Full-stack Plus user-data Backup plugin with streamed Host archive routes and Settings UI",
-  "version": "0.1.0-rc.25",
+  "version": "0.1.0-rc.26",
   "publishConfig": {
     "access": "public"
   },
@@ -41,13 +41,13 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1",
-    "@deepseek-ai/dsh-client-locale": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-host-webserver": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-settings": ">=0.1.5-rc.1",
-    "@deepseek-ai/dsh-workspace": ">=0.1.5-rc.1"
+    "@deepseek-ai/dsh-client-locale": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-settings": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-workspace": ">=0.1.5-rc.2"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
