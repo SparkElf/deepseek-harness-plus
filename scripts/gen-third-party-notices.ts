@@ -50,6 +50,20 @@ const FIRST_PARTY = new Set([
 
 /** Official SDK identity covered by the project's narrow owner authorization. */
 export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
+
+/**
+ * Third-party plugins the distribution ships under their own copyleft terms.
+ *
+ * Both are AGPL-3.0: they carry no repository or license field of their own, and the
+ * publisher offers no other terms. The distribution is itself public source, so the
+ * network-use source obligation these licenses impose is met by publishing this
+ * repository; the distribution owner accepted that arrangement rather than dropping
+ * the sidebar Office preview and its locale peer.
+ */
+export const COPYLEFT_RUNTIME_PACKAGES: readonly string[] = [
+  '@huanlin/dsh-plugin-better-locale',
+  '@huanlin/dsh-plugin-better-sidebar-plugin-office',
+]
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
 
@@ -57,10 +71,10 @@ const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
  * Whether a non-permissive runtime declaration has an identity-scoped owner
  * authorization. This does not reclassify its terms as permissive.
  * @param name - exact npm package identity.
- * @returns true only for the official Claude Agent SDK package.
+ * @returns true for the official Claude Agent SDK package and the reviewed copyleft plugins.
  */
 export function isOwnerAuthorizedRuntime(name: string): boolean {
-  return name === CLAUDE_AGENT_SDK_PACKAGE
+  return name === CLAUDE_AGENT_SDK_PACKAGE || COPYLEFT_RUNTIME_PACKAGES.includes(name)
 }
 
 /**
@@ -78,6 +92,8 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   // No repository field in the published manifest.
   'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
   '@huanlin/dsh-plugin-better-sidebar-plugin-office': { repo: 'https://github.com/HuanLinOTO/dsh-plugin-better-sidebar-plugin-office' },
+  '@huanlin/dsh-plugin-better-locale': { repo: 'https://github.com/HuanLinOTO/dsh-plugin-better-locale' },
+  'dsh-sql-workbench': { repo: 'https://github.com/SparkElf/dsh-sql-workbench' },
   // No `license` field in the published manifest; the tarball's LICENSE.txt is the MIT text.
 }
 

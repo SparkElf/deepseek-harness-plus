@@ -1,0 +1,109 @@
+{
+  "name": "@sparkelf/dsh-plus-standalone",
+  "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
+  "version": "0.1.0-rc.26",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/standalone/plus-standalone"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "README.md",
+    "README.zh.md",
+    "README.i18n.yaml"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/dsh": "workspace:>=0.1.5-rc.2",
+    "@changfenhuang/dsh-genui": "0.9.9",
+    "@sparkelf/dsh-mineru": "0.1.2",
+    "@sparkelf/dsh-officecli": "0.1.2",
+    "@sparkelf/dsh-plugin-supervisor": "0.1.5",
+    "dsh-sql-workbench": "0.5.1",
+    "@sparkelf/dsh-workbench-vault": "0.1.2",
+    "@sparkelf/dsh-ssh-manager": "0.7.2",
+    "@sparkelf/dsh-api-client": "0.5.1",
+    "@huanlin/dsh-plugin-better-locale": "0.4.1",
+    "dsh-better-sidebar": "0.19.1",
+    "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.2.0",
+    "dsh-video-preview": "0.1.4",
+    "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
+    "dshmarket": ">=1.45.1",
+    "semver": ">=7.7.3",
+    "yaml": ">=2.9.0"
+  },
+  "dshPlusStandalone": {
+    "formatVersion": 1,
+    "profile": "plus",
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "@sparkelf/dsh-mineru",
+      "@sparkelf/dsh-officecli",
+      "@sparkelf/dsh-mobile-bridge",
+      "dshmarket",
+      "@huanlin/dsh-plugin-better-locale",
+      "dsh-better-sidebar",
+      "@huanlin/dsh-plugin-better-sidebar-plugin-office",
+      "dsh-video-preview",
+      "@changfenhuang/dsh-genui",
+      "@sparkelf/dsh-plugin-supervisor",
+      "@sparkelf/dsh-plus",
+      "dsh-sql-workbench",
+      "@sparkelf/dsh-ssh-manager",
+      "@sparkelf/dsh-api-client"
+    ],
+    "allowBuilds": {
+      "@officecli/officecli": true,
+      "cpu-features": false,
+      "node-pty": true,
+      "oracledb": true,
+      "protobufjs": false,
+      "ssh2": true
+    },
+    "peerOverrides": [
+      {
+        "name": "@huanlin/dsh-plugin-better-locale",
+        "version": "0.4.1",
+        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.0, which 0.1.5-rc.2 does not satisfy"
+      },
+      {
+        "name": "dsh-better-sidebar",
+        "version": "0.19.1",
+        "reason": "@huanlin/dsh-plugin-better-sidebar-plugin-office@0.2.0 declares ^0.17.0, which 0.1.5-rc.2 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-settings",
+        "version": "0.1.5-rc.2",
+        "reason": "dshmarket@>=1.45.1 declares ^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2, which 0.1.5-rc.2 does not satisfy"
+      }
+    ]
+  },
+  "private": false,
+  "overrides": {
+    "@huanlin/dsh-plugin-better-locale": "0.4.1",
+    "dsh-better-sidebar": "0.19.1",
+    "@deepseek-ai/dsh-settings": "0.1.5-rc.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  }
+}

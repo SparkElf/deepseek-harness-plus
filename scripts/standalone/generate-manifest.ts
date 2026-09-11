@@ -13,7 +13,7 @@
  * Usage: tsx scripts/standalone/generate-manifest.ts --distribution <dir> --out <file>
  */
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { resolvePeerOverrides } from './peer-overrides.ts'
@@ -119,8 +119,15 @@ function main(): void {
       peerOverrides: overrides.map(entry => ({ name: entry.name, version: entry.version, reason: entry.reason })),
     },
   }
-  writeFileSync(resolve(values.out), JSON.stringify(manifest, null, 2) + '\n')
-  console.info('generate-manifest: wrote ' + resolve(values.out) + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s), ' + String(distribution.bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).')
+  const out = resolve(values.out)
+  // An existing manifest already owns its identity fields; regenerating rewrites only the
+  // facts this generator derives, so a hand-edited description or license survives.
+  const previous = existsSync(out)
+    ? JSON.parse(readFileSync(out, 'utf8')) as Record<string, unknown>
+    : {}
+  const merged = { ...previous, ...manifest }
+  writeFileSync(out, JSON.stringify(merged, null, 2) + '\n')
+  console.info('generate-manifest: wrote ' + out + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s), ' + String(distribution.bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).')
   for (const entry of overrides) console.info('  override ' + entry.name + '@' + entry.version + ' because ' + entry.reason)
 }
 

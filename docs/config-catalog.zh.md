@@ -3806,3 +3806,4 @@ Depends on: [`AgentOptions`](subsystems/core.zh.md)
 - `@deepseek-ai/dsh-util-workspace-path`（[`packages/util/workspace-path/src/index.ts`](../packages/util/workspace-path/src/index.ts)）
 - `@deepseek-ai/dsh-win32-process`（[`packages/subprocess/win32-process/src/index.ts`](../packages/subprocess/win32-process/src/index.ts)）
 - `@sparkelf/dsh-plus`（[`packages/bundle/plus/src/index.ts`](../packages/bundle/plus/src/index.ts)）
+- `@sparkelf/dsh-plus-standalone`（[`packages/standalone/plus-standalone/src/index.ts`](../packages/standalone/plus-standalone/src/index.ts)）
