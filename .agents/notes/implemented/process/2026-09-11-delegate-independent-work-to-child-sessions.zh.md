@@ -19,6 +19,12 @@ Status: implemented
 
 当工作会超出单次tool call时，把它作为background job执行。`ralph`是foreground的：一轮若超出外层调用的ceiling，仍会在child中完成，因此要通过child写入的文件确认其产出，而不要假定该调用的timeout取消了它。
 
+## Alternatives considered
+
+**内联执行该工作。** 对另一个项目中的工作而言被拒绝：它把第二个问题串行排在当前objective之后，并为此消耗本session的context。当工作只是当前objective内部的一处小改动时，内联仍然正确。
+
+**报告该能力不可用。** 被拒绝，因为该机制存在且本session拥有它；把不可用作为结论会把一次usage gap变成虚假的blocker。
+
 ## Consequences
 
 另一个项目的defect得以修复，而不消耗primary objective的context，primary session同时继续工作。代价是child是盲启动的：objective若缺少target path、evidence或constraint，就会在错误的位置产出一个看似合理的改动。属于本session的决策仍留在本session。

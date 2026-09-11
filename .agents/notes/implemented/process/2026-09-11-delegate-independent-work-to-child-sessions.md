@@ -19,6 +19,12 @@ Reach for a child session before serializing independent work.
 
 Do it as a background job when the work outlasts one tool call. `ralph` is foreground: a round that outlives the enclosing call's ceiling still completes in the child, so confirm the child's output through the files it wrote rather than assuming the call's timeout cancelled it.
 
+## Alternatives considered
+
+**Run the work inline.** Rejected for work in another project: it serializes a second problem behind the current objective and spends this session's context on it. It stays correct when the work is a small edit inside the current objective.
+
+**Report the capability as unavailable.** Rejected because the mechanism exists and this session owns it; reporting it unavailable turns a usage gap into a false blocker.
+
 ## Consequences
 
 A second project's defect gets fixed without consuming the primary objective's context, and the primary session keeps working meanwhile. The cost is that the child starts blind: an objective that omits the target path, the evidence, or the constraint produces a plausible change in the wrong place. A decision that belongs to this session stays in this session.

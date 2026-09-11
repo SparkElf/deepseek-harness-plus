@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-11-delegate-independent-work-to-child-sessions.md
-2026-09-11-delegate-independent-work-to-child-sessions.md: 92d24caecca1b0cf1a3dccce6431fdcc6f696507
-2026-09-11-delegate-independent-work-to-child-sessions.zh.md: 07f241c3e6b6d6784c2b2b18f28a4ee4a2c44219
+2026-09-11-delegate-independent-work-to-child-sessions.md: 822322563339bb77dae993f6f8fe8c3194b6b009
+2026-09-11-delegate-independent-work-to-child-sessions.zh.md: 93e376c9c31907cb9ab687d8220459e2cbfb1d32
