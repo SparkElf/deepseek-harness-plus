@@ -9,7 +9,7 @@
  * bundle's own list.
  */
 
-import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -111,6 +111,11 @@ export function readDistributionProfile(distributionDirectory: string): {
  * `node_modules` cannot see packages the consumer installed beside it. One link to
  * the consumer's directory keeps a single installed copy as the only authority.
  *
+ * npm hoists what it can and nests the rest, so a bundle can sit at the consumer's
+ * top level or inside the package that depends on it. The profile reaches the first
+ * through one link and the second through the distribution's own `node_modules`, and
+ * a bundle found in neither is one the installation does not carry at all.
+ *
  * @param paths - resolved standalone paths.
  * @param consumerDirectory - directory whose `node_modules` holds the packages.
  */
@@ -121,8 +126,45 @@ export function linkConsumerPackages(paths: StandalonePaths, consumerDirectory: 
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
   const link = join(paths.profileDirectory, 'node_modules')
-  if (existsSync(link)) return
-  symlinkSync(target, link, 'junction')
+  if (!existsSync(link)) symlinkSync(target, link, 'junction')
+  // A profile created before the installation changed must still reach what npm nested
+  // afterwards, so this runs on every start rather than only when the profile is new.
+  linkNestedBundles(paths, target)
+}
+
+/**
+ * Expose the distribution's nested packages at the top level the profile searches.
+ *
+ * The profile resolves a bundle from one directory, so a package npm nested under the
+ * distribution is invisible there even though the installation carries it. Linking each
+ * one beside the hoisted packages keeps a single installed copy and needs no reinstall.
+ *
+ * @param paths - resolved standalone paths.
+ * @param consumerModules - the consumer's `node_modules` directory.
+ */
+function linkNestedBundles(paths: StandalonePaths, consumerModules: string): void {
+  const nested = join(paths.distributionDirectory, 'node_modules')
+  if (!existsSync(nested)) return
+  for (const entry of readdirSync(nested)) {
+    if (entry.startsWith('@')) {
+      for (const scoped of readdirSync(join(nested, entry))) {
+        linkBundle(consumerModules, join(entry, scoped), join(nested, entry, scoped))
+      }
+      continue
+    }
+    linkBundle(consumerModules, entry, join(nested, entry))
+  }
+}
+
+/** Link one nested bundle into the consumer's top level when it is not already there. */
+function linkBundle(consumerModules: string, name: string, source: string): void {
+  const destination = join(consumerModules, name)
+  if (existsSync(destination)) return
+  try {
+    symlinkSync(source, destination, 'junction')
+  } catch {
+    // A concurrent start may have created the same link; the existing one is equivalent.
+  }
 }
 
 /** Resolve every path a command needs, without creating anything. */
