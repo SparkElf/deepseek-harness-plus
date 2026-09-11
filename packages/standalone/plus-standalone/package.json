@@ -79,7 +79,7 @@
     "peerOverrides": [
       {
         "name": "@huanlin/dsh-plugin-better-locale",
-        "version": "0.4.3",
+        "version": "0.4.1",
         "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.0, which 0.1.5-rc.2 does not satisfy"
       },
       {
@@ -96,7 +96,7 @@
   },
   "private": false,
   "overrides": {
-    "@huanlin/dsh-plugin-better-locale": "0.4.3",
+    "@huanlin/dsh-plugin-better-locale": "0.4.1",
     "dsh-better-sidebar": "0.19.1",
     "@deepseek-ai/dsh-settings": "0.1.5-rc.2"
   },

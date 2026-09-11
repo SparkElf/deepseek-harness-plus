@@ -97,6 +97,8 @@ function main(): void {
     : resolvePeerOverrides(
       distribution.dependencies.map(entry => entry.name + '@' + entry.spec),
       runtimeVersion,
+      'https://registry.npmjs.org',
+      Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
     )
   const manifest = {
     name: '@sparkelf/dsh-plus-standalone',
