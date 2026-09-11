@@ -41,4 +41,10 @@ A new package @sparkelf/dsh-plus-standalone declares every reviewed plugin as a 
 
 ## Verification
 
-The `dsh-plus` CLI resolves its distribution from the consumer tree, creates the profile with the distribution's bundle order, and moves to the next free port when the preferred one is taken; a distribution resolved outside the consumer tree fails `doctor` rather than reporting health. The plugins repository gates new peer drift against a recorded baseline.
+The `dsh-plus` CLI resolves its distribution from the consumer tree, creates the profile with the distribution's bundle order, and moves to the next free port when the preferred one is taken; a distribution resolved outside the consumer tree fails `doctor` rather than reporting health.
+
+A real install of the generated manifest (982 packages) served `http://127.0.0.1:3511/` from `dsh-plus start` with no source checkout and no build. `dsh-plus update` reports a newer published release and moves the profile to it; upgrade detection was checked against the republished plugin versions (`0.1.4 → 0.1.5`, `0.1.1 → 0.1.2`, `0.7.1 → 0.7.2`, and a current version reporting none).
+
+Three published plugins declare peer ranges that cannot match the shipped runtime, and npm installs nothing at all rather than warning. The generator derives one override per unsatisfiable range and drops it once the plugin fixes its range, so the workaround cannot accumulate. Deriving it also exposed stale pins of ours: the first run reported thirteen overrides and eleven were false positives from outdated pins.
+
+The manifest is generated from the distribution and gated: a plugin the distribution reviews but the manifest omits is a bundle the profile cannot resolve, and npm installs the set either way, so the static gate fails on the difference.

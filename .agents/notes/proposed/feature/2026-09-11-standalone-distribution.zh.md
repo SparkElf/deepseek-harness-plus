@@ -41,4 +41,10 @@ plugins 精确 pin 其 DSH peers，因此 runtime bump 必须先重新发布，s
 
 ## Verification
 
-`dsh-plus` CLI 从 consumer tree 解析其 distribution，按 distribution 的 bundle order 创建 profile，并在首选端口被占用时移到下一个空闲端口；解析到 consumer tree 之外的 distribution 会让 `doctor` 失败，而不是报告健康。plugins repository 以记录基线的方式对新 peer 漂移做门禁。
+`dsh-plus` CLI 从 consumer tree 解析其 distribution，按 distribution 的 bundle order 创建 profile，并在首选端口被占用时移到下一个空闲端口；解析到 consumer tree 之外的 distribution 会让 `doctor` 失败，而不是报告健康。
+
+对生成的 manifest 做真实安装（982 个包）后，`dsh-plus start` 在无 source checkout、无构建的情况下服务了 `http://127.0.0.1:3511/`。`dsh-plus update` 报告更新的已发布 release 并把 profile 移到该版本；升级探测以重发的 plugin 版本验证（`0.1.4 → 0.1.5`、`0.1.1 → 0.1.2`、`0.7.1 → 0.7.2`，以及当前版本报告无更新）。
+
+三个已发布 plugin 声明的 peer 范围无法匹配所交付的 runtime，而 npm 在这种情况下什么都不安装、也不给警告。生成器为每个无法满足的范围推导一个 override，并在该 plugin 修正范围后将其移除，因此该权宜手段不会累积。推导过程还暴露了我们自己的过期 pin：首次运行报告十三个 override，其中十一个是由过期 pin 造成的假阳性。
+
+manifest 由 distribution 生成并受门禁约束：distribution 审阅了某个 plugin 而 manifest 漏掉它，就是一个 profile 无法解析的 bundle，而 npm 两种情况都会照常安装，因此 static gate 会对该差异失败。
