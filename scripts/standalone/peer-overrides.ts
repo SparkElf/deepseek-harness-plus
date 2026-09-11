@@ -74,6 +74,7 @@ export function resolvePeerOverrides(
   plugins: readonly string[],
   runtimeVersion: string,
   registry = 'https://registry.npmjs.org',
+  pinned: Readonly<Record<string, string>> = {},
 ): PeerOverride[] {
   const overrides = new Map<string, PeerOverride>()
   for (const plugin of plugins) {
@@ -82,10 +83,13 @@ export function resolvePeerOverrides(
       if (semver.satisfies(runtimeVersion, range)) continue
       if (semver.valid(semver.coerce(range) ?? '') !== null && semver.satisfies(runtimeVersion, range)) continue
       if (overrides.has(name)) continue
-      // 对 DSH 运行时包直接钉到运行时版本；对第三方包取满足该 peer 族的最高版本。
-      const version = name.startsWith('@deepseek-ai/')
-        ? runtimeVersion
-        : resolveVersion(name, undefined, registry)
+      // A package the manifest already depends on directly must be overridden to the
+      // version that dependency pins: npm rejects an override that names any other
+      // version, and a different one would install a second copy besides.
+      const version = pinned[name]
+        ?? (name.startsWith('@deepseek-ai/')
+          ? runtimeVersion
+          : resolveVersion(name, undefined, registry))
       if (version === undefined) continue
       overrides.set(name, {
         name,
