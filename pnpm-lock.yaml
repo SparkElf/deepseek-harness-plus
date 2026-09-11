@@ -9429,7 +9429,7 @@ importers:
         specifier: 0.1.5
         version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.1.0-rc.26
+        specifier: workspace:0.1.0-rc.27
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
