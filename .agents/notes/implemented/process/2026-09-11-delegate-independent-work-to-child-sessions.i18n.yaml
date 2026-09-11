@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-09-11-delegate-independent-work-to-child-sessions.md
+2026-09-11-delegate-independent-work-to-child-sessions.md: 822322563339bb77dae993f6f8fe8c3194b6b009
+2026-09-11-delegate-independent-work-to-child-sessions.zh.md: 93e376c9c31907cb9ab687d8220459e2cbfb1d32

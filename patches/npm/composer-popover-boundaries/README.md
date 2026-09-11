@@ -6,4 +6,4 @@ This data-only package keeps the official composer Permission and Model portal m
 
 The target is exact official source revision `fb2c4b9e698e30edb738bca4cf0618587db7d203`. The payload contains only the focused production changes, owning package contracts, and existing component and Web user-path coverage; it does not restore the retired Plus mobile layout, Sidebar, Settings, Jobs, Schedule, or responsive-column changes.
 
-Retire this package when an official DSH release contains the center-boundary behavior from the corresponding upstream contribution. The card-width half of that contribution is `.agents/upstream/2026-09-11-model-card-outer-width.patch`, pushed to the fork branch `fix/model-menu-outer-width`; the official repository accepts no pull request, so the branch and this patch file are the contribution.
+Retire this package when an official DSH release contains the center-boundary behavior, including the model card's outer-width bound.

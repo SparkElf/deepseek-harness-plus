@@ -6,4 +6,4 @@
 
 target是exact official source revision `fb2c4b9e698e30edb738bca4cf0618587db7d203`。payload只包含聚焦的生产修改、所属package合同及既有component与Web用户路径覆盖；不会恢复已retire的Plus mobile layout、Sidebar、Settings、Jobs、Schedule或responsive-column改动。
 
-对应upstream贡献进入official DSH release后，retire本package。该contribution中card-width这一半是`.agents/upstream/2026-09-11-model-card-outer-width.patch`，已push到fork分支`fix/model-menu-outer-width`；官方仓库不接受pull request，因此该分支与该patch文件即为该contribution。
+当official DSH release包含center-boundary behavior（含model card的outer-width bound）后，retire本package。
