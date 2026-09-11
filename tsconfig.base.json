@@ -459,7 +459,8 @@
       "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
       "@sparkelf/dsh-plugin-mcp-credentials": ["./packages/plus/mcp-credentials/src"],
       "@sparkelf/dsh-plugin-subagent-settings": ["./packages/plus/subagent-settings/src"],
-      "@sparkelf/dsh-plus": ["./packages/bundle/plus/src"]
+      "@sparkelf/dsh-plus": ["./packages/bundle/plus/src"],
+      "@sparkelf/dsh-plus-standalone": ["./packages/standalone/plus-standalone/src"]
       // END generated package aliases
     }
   }

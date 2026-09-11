@@ -194,6 +194,7 @@
     { "path": "./packages/plus/dataops/tsconfig.host.json" },
     { "path": "./packages/plus/mcp-credentials" },
     { "path": "./packages/plus/subagent-settings/tsconfig.host.json" },
+    { "path": "./packages/standalone/plus-standalone" },
     { "path": "./packages/settings/settings" },
     { "path": "./packages/settings/settings-file" },
     { "path": "./packages/credentials/credentials" },
