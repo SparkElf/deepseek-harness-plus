@@ -9428,6 +9428,9 @@ importers:
       '@sparkelf/dsh-plugin-supervisor':
         specifier: 0.1.5
         version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)
+      '@sparkelf/dsh-plus':
+        specifier: workspace:0.1.0-rc.26
+        version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
         version: 0.7.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-credentials@packages+credentials+credentials)(@deepseek-ai/dsh-user-approval@packages+interaction+user-approval)(react@18.3.1)

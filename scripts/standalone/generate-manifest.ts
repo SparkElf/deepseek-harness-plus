@@ -111,6 +111,10 @@ function main(): void {
       // so the repository convention for a workspace member is the workspace protocol
       // over the minimum range.
       '@deepseek-ai/dsh': 'workspace:' + distribution.dshRange,
+      // The distribution is itself a mounted bundle and carries the launcher command.
+      // It appears in the bundle order but in none of the dependency lists it declares,
+      // so an installation that omits it mounts nothing and has no command to run.
+      [distribution.name]: 'workspace:' + distribution.version,
       ...Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
     },
     ...overrides.length === 0 ? {} : {
