@@ -20,7 +20,7 @@ Profile installation不自动安装official peer packages，因为selected sourc
 
 Official DSH拥有Sidebar navigation、file与text preview、Session search、responsive columns、Settings chrome及Composer结构。Plus不携带重复Session-search实现或宽泛mobile-layout patch；它携带Better Sidebar及其Office与video preview bundle，因为sidebar内的document preview是一项accepted Plus workflow。聚焦的composer-boundary patch只修改center-column标记与Permission/Model portal定位，并在其upstream贡献发布后retire。
 
-上游化一个retired patch的目标是fork仓库`SparkElf/deepseek-harness`，其分支可以push。官方仓库`deepseek-ai/deepseek-harness`报告`has_pull_requests: false`，因此完全不接受pull request：列出其pull request返回`404`，与尝试创建一个得到的响应相同。因此upstream贡献以"push到fork的分支 + Plus仓库中的patch文件"形式落地，而不会成为针对官方仓库的pull request。
+Plus不寻求对官方仓库的pull request：该仓库报告`has_pull_requests: false`，distribution只通过跟进其released revisions、并在released source已包含该behavior时retire对应patch来达成official behavior。
 
 Package manifest是当前plugin与patch inventory。每次review删除重复official behavior或没有accepted Plus workflow的package、patch hunk、profile row、test或document。Patch可以增加、修改或删除target package source；其单位是一个behavior与retirement lifecycle，而不是diff方向或大小。
 
