@@ -83,6 +83,7 @@ function main(): void {
       out: { type: 'string' },
       'runtime-version': { type: 'string' },
       'skip-overrides': { type: 'boolean' },
+      check: { type: 'boolean' },
     },
   })
   if (values.distribution === undefined || values.out === undefined) throw new Error('--distribution and --out are required')
@@ -104,8 +105,10 @@ function main(): void {
     type: 'module',
     dependencies: {
       // The official launcher carries its own peer tree, which supplies every
-      // service-definition package the bundles mount.
-      '@deepseek-ai/dsh': distribution.dshRange,
+      // service-definition package the bundles mount. It resolves inside the workspace,
+      // so the repository convention for a workspace member is the workspace protocol
+      // over the minimum range.
+      '@deepseek-ai/dsh': 'workspace:' + distribution.dshRange,
       ...Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
     },
     ...overrides.length === 0 ? {} : {
@@ -125,8 +128,22 @@ function main(): void {
   const previous = existsSync(out)
     ? JSON.parse(readFileSync(out, 'utf8')) as Record<string, unknown>
     : {}
-  const merged = { ...previous, ...manifest }
-  writeFileSync(out, JSON.stringify(merged, null, 2) + '\n')
+  // Compare only the fields this generator owns: the manifest also carries identity and
+  // packaging fields a maintainer sets, and those must not read as drift.
+  const owned = Object.keys(manifest)
+  if (values.check === true) {
+    // Reachability is what the check protects: a plugin the distribution reviews but the
+    // manifest omits is a bundle the profile cannot resolve, and npm installs the set
+    // without complaint either way.
+    if (!existsSync(out)) throw new Error('generate-manifest: ' + out + ' does not exist; run the generator')
+    const stale = owned.filter(key => JSON.stringify(previous[key]) !== JSON.stringify(manifest[key as keyof typeof manifest]))
+    if (stale.length > 0) {
+      throw new Error('generate-manifest: ' + out + ' is stale in ' + stale.join(', ') + '; run the generator and commit the result')
+    }
+    console.info('generate-manifest: ' + out + ' matches the distribution.')
+    return
+  }
+  writeFileSync(out, JSON.stringify({ ...previous, ...manifest }, null, 2) + '\n')
   console.info('generate-manifest: wrote ' + out + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s), ' + String(distribution.bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).')
   for (const entry of overrides) console.info('  override ' + entry.name + '@' + entry.version + ' because ' + entry.reason)
 }
