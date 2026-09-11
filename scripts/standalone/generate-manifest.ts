@@ -16,6 +16,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { resolvePeerOverrides } from './peer-overrides.ts'
 
 /** One reviewed runtime package the distribution pins exactly. */
 interface ProfileDependency {
@@ -57,20 +58,45 @@ export function readDistribution(directory: string): {
     if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.dependencies.' + name + ' must be a non-empty string')
     return { name, spec }
   })
+  // The distribution also declares external runtime packages as ordinary dependencies,
+  // and a bundle the standalone manifest omits cannot be resolved from the profile at
+  // all, so every published external dependency has to reach the manifest.
+  const runtimeDependencies = Object.entries(requireRecord(manifest.dependencies, 'distribution dependencies'))
+    .filter(([name, spec]) => !String(spec).startsWith('workspace:') && !name.startsWith('@sparkelf/dsh-patch-'))
+    .map(([name, spec]) => ({ name, spec: String(spec) }))
+  const merged = new Map<string, ProfileDependency>()
+  for (const entry of [...dependencies, ...runtimeDependencies]) merged.set(entry.name, entry)
   return {
     name: String(manifest.name),
     version: String(manifest.version),
     dshRange: String(compatibility.dsh),
     bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
-    dependencies,
+    dependencies: [...merged.values()],
     allowBuilds,
   }
 }
 
 function main(): void {
-  const { values } = parseArgs({ options: { distribution: { type: 'string' }, out: { type: 'string' } } })
+  const { values } = parseArgs({
+    options: {
+      distribution: { type: 'string' },
+      out: { type: 'string' },
+      'runtime-version': { type: 'string' },
+      'skip-overrides': { type: 'boolean' },
+    },
+  })
   if (values.distribution === undefined || values.out === undefined) throw new Error('--distribution and --out are required')
   const distribution = readDistribution(resolve(values.distribution))
+  const runtimeVersion = values['runtime-version'] ?? distribution.dshRange.replace(/^[^\d]*/u, '')
+  // A published plugin whose peer range cannot match this runtime installs nothing at
+  // all, so the override is what makes the dependency set installable rather than a
+  // convenience. Deriving it keeps it truthful: a fixed third party loses its entry.
+  const overrides = values['skip-overrides'] === true
+    ? []
+    : resolvePeerOverrides(
+      distribution.dependencies.map(entry => entry.name + '@' + entry.spec),
+      runtimeVersion,
+    )
   const manifest = {
     name: '@sparkelf/dsh-plus-standalone',
     version: distribution.version,
@@ -82,15 +108,20 @@ function main(): void {
       '@deepseek-ai/dsh': distribution.dshRange,
       ...Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
     },
+    ...overrides.length === 0 ? {} : {
+      overrides: Object.fromEntries(overrides.map(entry => [entry.name, entry.version])),
+    },
     dshPlusStandalone: {
       formatVersion: 1,
       profile: 'plus',
       bundles: distribution.bundles,
       allowBuilds: distribution.allowBuilds,
+      peerOverrides: overrides.map(entry => ({ name: entry.name, version: entry.version, reason: entry.reason })),
     },
   }
   writeFileSync(resolve(values.out), JSON.stringify(manifest, null, 2) + '\n')
-  console.info('generate-manifest: wrote ' + resolve(values.out) + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s) and ' + String(distribution.bundles.length) + ' bundle(s).')
+  console.info('generate-manifest: wrote ' + resolve(values.out) + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s), ' + String(distribution.bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).')
+  for (const entry of overrides) console.info('  override ' + entry.name + '@' + entry.version + ' because ' + entry.reason)
 }
 
 if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) main()
