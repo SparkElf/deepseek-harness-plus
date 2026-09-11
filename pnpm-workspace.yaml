@@ -54,6 +54,15 @@ allowBuilds:
   electron-winstaller: false
   # Store-index rewriting only needs msgpackr's portable JavaScript codec.
   msgpackr-extract: false
+  # The standalone package installs the plugin set as real dependencies, so the
+  # native builds those plugins declare must be decided here too. These four repeat
+  # the reviewed production values in packages/bundle/plus: OfficeCLI needs its
+  # engine, the Oracle and SSH clients need their binding, and cpu-features is
+  # optional acceleration whose absence is supported.
+  '@officecli/officecli': true
+  oracledb: true
+  ssh2: true
+  cpu-features: false
 
 minimumReleaseAgeExclude:
   # Plus acceptance may consume reviewed same-day external releases, but only
