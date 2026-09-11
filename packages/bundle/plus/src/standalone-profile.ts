@@ -9,7 +9,7 @@
  * bundle's own list.
  */
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -71,6 +71,7 @@ export function resolveDistributionDirectory(anchor: string): string {
 
 /** The reviewed bundle order and pins the installed distribution declares. */
 export function readDistributionProfile(distributionDirectory: string): {
+  readonly name: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
@@ -95,11 +96,33 @@ export function readDistributionProfile(distributionDirectory: string): {
     allowBuilds[name] = allowed
   }
   return {
+    name: String(manifest.name),
     bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies,
     allowBuilds,
     version: String(manifest.version),
   }
+}
+
+/**
+ * Point the profile at the consumer's installed packages.
+ *
+ * The launcher resolves a bundle from the profile directory, so a profile with no
+ * `node_modules` cannot see packages the consumer installed beside it. One link to
+ * the consumer's directory keeps a single installed copy as the only authority.
+ *
+ * @param paths - resolved standalone paths.
+ * @param consumerDirectory - directory whose `node_modules` holds the packages.
+ */
+export function linkConsumerPackages(paths: StandalonePaths, consumerDirectory: string): void {
+  const target = join(consumerDirectory, 'node_modules')
+  if (!existsSync(target)) {
+    throw new Error('no node_modules in ' + consumerDirectory + '; run npm install there first')
+  }
+  mkdirSync(paths.profileDirectory, { recursive: true })
+  const link = join(paths.profileDirectory, 'node_modules')
+  if (existsSync(link)) return
+  symlinkSync(target, link, 'junction')
 }
 
 /** Resolve every path a command needs, without creating anything. */
@@ -120,10 +143,16 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * resolve fails activation with a module-resolution error, and no step in the
  * launcher expands the distribution's bundle list on its own.
  *
+ * The profile also links the consumer's installed packages, because the launcher
+ * resolves each bundle from the profile directory rather than from the directory
+ * that installed them.
+ *
  * @param paths - resolved standalone paths.
+ * @param consumerDirectory - directory whose `node_modules` holds the installed packages.
  * @returns whether this call created the manifest.
  */
-export function ensureProfile(paths: StandalonePaths): boolean {
+export function ensureProfile(paths: StandalonePaths, consumerDirectory: string): boolean {
+  linkConsumerPackages(paths, consumerDirectory)
   const manifestPath = join(paths.profileDirectory, 'package.json')
   if (existsSync(manifestPath)) return false
   const distribution = readDistributionProfile(paths.distributionDirectory)

@@ -9,9 +9,10 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
+import { newerVersion } from './registry-versions.ts'
 import {
   DEFAULT_PORT,
   STOP_GRACE_MILLISECONDS,
@@ -25,7 +26,12 @@ import {
   waitForServer,
   writeState,
 } from './standalone-server.ts'
-import { STANDALONE_PROFILE, ensureProfile, resolvePaths } from './standalone-profile.ts'
+import {
+  STANDALONE_PROFILE,
+  ensureProfile,
+  readDistributionProfile,
+  resolvePaths,
+} from './standalone-profile.ts'
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
@@ -82,7 +88,7 @@ async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
   const anchor = join(process.cwd(), 'package.json')
   const paths = resolvePaths(anchor)
-  const created = ensureProfile(paths)
+  const created = ensureProfile(paths, process.cwd())
   console.log(created
     ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory
     : 'Using the existing ' + STANDALONE_PROFILE + ' profile')
@@ -163,6 +169,70 @@ function status(): number {
   return 0
 }
 
+/**
+ * Move the installation to a newer published release.
+ *
+ * The profile pins the distribution exactly, so the new version is written into the
+ * profile manifest and reinstalled there. A running server keeps the version it
+ * started with, so the command reports that a restart is what makes the change take
+ * effect rather than pretending the running process changed underneath the user.
+ */
+async function update(argv: readonly string[]): Promise<number> {
+  const checkOnly = argv.includes('--check')
+  const assumeYes = argv.includes('--yes')
+  const anchor = join(process.cwd(), 'package.json')
+  const paths = resolvePaths(anchor)
+  const distribution = readDistributionProfile(paths.distributionDirectory)
+  const installed = distribution.version
+  const newer = newerVersion(distribution.name, installed)
+  if (newer === undefined) {
+    console.log('Plus ' + installed + ' is the newest published release.')
+    return 0
+  }
+  console.log('Installed: ' + installed)
+  console.log('Available: ' + newer.version + (newer.publishedAt === undefined ? '' : ' (' + newer.publishedAt + ')'))
+  if (checkOnly) return 0
+  if (!assumeYes && !(await confirm('Install ' + newer.version + '?'))) {
+    console.log('Nothing changed.')
+    return 0
+  }
+  const profilePath = join(paths.profileDirectory, 'package.json')
+  const profile = JSON.parse(readFileSync(profilePath, 'utf8')) as Record<string, unknown>
+  const dependencies = profile.dependencies
+  if (dependencies === null || typeof dependencies !== 'object' || Array.isArray(dependencies)) {
+    throw new Error('the profile manifest has no dependencies to update')
+  }
+  ;(dependencies as Record<string, string>)['@sparkelf/dsh-plus'] = newer.version
+  writeFileSync(profilePath, JSON.stringify(profile, null, 2) + '\n')
+  console.log('Updated the profile to ' + newer.version + '; installing...')
+  const result = spawnSync('npm', ['install', '--no-audit', '--no-fund'], {
+    cwd: paths.profileDirectory,
+    stdio: 'inherit',
+    env: { ...process.env, DSH_HOME: paths.home },
+  })
+  if (result.status !== 0) {
+    console.error('The install failed; the profile still requests ' + newer.version + '.')
+    return 1
+  }
+  console.log('Plus is now ' + newer.version + '.')
+  const running = readState(paths.home)
+  if (running !== undefined) {
+    console.log('The running server still serves ' + installed + '; run dsh-plus restart to load the new release.')
+  }
+  return 0
+}
+
+/** Ask one yes/no question on the terminal. */
+function confirm(question: string): Promise<boolean> {
+  return new Promise((resolveAnswer) => {
+    process.stdout.write(question + ' [y/N] ')
+    process.stdin.once('data', (chunk) => {
+      const answer = String(chunk).trim().toLowerCase()
+      resolveAnswer(answer === 'y' || answer === 'yes')
+    })
+  })
+}
+
 async function doctor(): Promise<number> {
   const anchor = join(process.cwd(), 'package.json')
   const paths = resolvePaths(anchor)
@@ -188,6 +258,7 @@ const USAGE = [
   '  start     start the server (first run creates the profile)',
   '  stop      stop the server',
   '  status    report whether the server is running',
+  '  update    move to a newer distribution release',
   '  doctor    check this installation',
   '',
   'start options:',
@@ -195,6 +266,10 @@ const USAGE = [
   '  --host <h>     interface to bind (default 127.0.0.1)',
   '  --no-open      do not open a browser',
   '  --foreground   run in this terminal instead of in the background',
+  '',
+  'update options:',
+  '  --check        report the available release without installing it',
+  '  --yes          install without asking',
 ].join('\n')
 
 /**
@@ -212,6 +287,7 @@ export async function runStandaloneCli(argv: readonly string[]): Promise<number>
   if (command === 'start') return await start(rest)
   if (command === 'stop') return stop()
   if (command === 'status') return status()
+  if (command === 'update') return await update(rest)
   if (command === 'doctor') return doctor()
   console.error('unknown command: ' + command)
   console.error(USAGE)
