@@ -312,6 +312,9 @@ function ciSharedStaticGates(): Gate[] {
     pnpmScript('no-bare-dispatcher', 'verify-no-bare-dispatcher', { label: 'proxy-aware dispatchers' }),
     pnpmScript('approval-policy', 'test:approval-policy', { label: 'Weighted approval policy' }),
     pnpmScript('issue-management', 'test:issue-management', { label: 'Issue management policy' }),
+    // A plugin the distribution reviews but the standalone manifest omits is a bundle the
+    // profile cannot resolve, and npm installs the set either way.
+    pnpmScript('standalone-manifest', 'verify:standalone-manifest', { label: 'standalone manifest' }),
   ]
 }
 
