@@ -58,14 +58,17 @@ allowBuilds:
 minimumReleaseAgeExclude:
   # Plus acceptance may consume reviewed same-day external releases, but only
   # at the exact versions pinned by distribution governance and curation.
-  - '@sparkelf/dsh-api-client@0.5.0'
-  - '@sparkelf/dsh-mineru@0.1.1'
+  - '@sparkelf/dsh-api-client@0.5.1'
+  - '@sparkelf/dsh-mineru@0.1.2'
   - '@sparkelf/dsh-mobile-bridge@0.2.11'
-  - '@sparkelf/dsh-officecli@0.1.1'
-  - '@sparkelf/dsh-plugin-supervisor@0.1.4'
-  - '@sparkelf/dsh-ssh-manager@0.7.0'
-  - '@sparkelf/dsh-workbench-vault@0.1.1'
+  - '@sparkelf/dsh-officecli@0.1.2'
+  - '@sparkelf/dsh-plugin-supervisor@0.1.5'
+  - '@sparkelf/dsh-ssh-manager@0.7.2'
+  - '@sparkelf/dsh-workbench-vault@0.1.2'
   - '@changfenhuang/dsh-genui@0.9.9'
+  - 'dsh-sql-workbench@0.5.1'
+  - 'dsh-better-sidebar@0.19.1'
+  - '@huanlin/dsh-plugin-better-locale@0.4.1'
   - dshmarket@1.45.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.
