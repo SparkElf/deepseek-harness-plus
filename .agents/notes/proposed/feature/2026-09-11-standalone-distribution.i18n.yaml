@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-11-standalone-distribution.md
-2026-09-11-standalone-distribution.md: 1508a26ab2fc921d668cdca2be1a7dee3be1015b
-2026-09-11-standalone-distribution.zh.md: d55d5ac492ce553399c57ef3c8ad01d873e1d032
+2026-09-11-standalone-distribution.md: 06656cb495c8fd9505b44cf2b2d0f52bedbef5bd
+2026-09-11-standalone-distribution.zh.md: 092f2ed99e01ebf1db28d47a6cc3c5963943aad3
