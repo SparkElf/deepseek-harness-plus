@@ -328,14 +328,18 @@ jobs:
         run: uv run --python 3.10 --group test --project python/sdk pytest
 
   # The reusable builder owns each published executable, wheel, clean-install,
-  # keyless black-box, and trusted real-API path. All native release targets are
-  # required because a platform wheel cannot be validated by another carrier.
+  # keyless black-box, and trusted real-API path. This lane answers the question a
+  # pull request asks — did the change break the packaging — on one Linux target per
+  # architecture, and leaves the cross-platform claim to the publication workflow,
+  # which builds all five before any wheel is offered. A platform wheel cannot be
+  # validated by another carrier, so covering macOS and Windows is deferred to the
+  # gate that publishes them rather than dropped.
   python-runtime:
     if: github.event_name == 'pull_request'
     name: python runtime / release-shaped matrix
     uses: ./.github/workflows/build-exe-for-python-sdk.yml
     with:
-      targets: node24-linux-x64,node24-linux-arm64,node24-macos-arm64,node24-macos-x64,node24-win-x64
+      targets: node24-linux-x64,node24-linux-arm64
       ci: true
     secrets:
       DEEPSEEK_API_KEY_EXTERNAL: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}

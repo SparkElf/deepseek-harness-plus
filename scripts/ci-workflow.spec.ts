@@ -365,7 +365,7 @@ describe('CI workflow', () => {
     expect(config).not.toContain('packages/lsp/lsp-stdio/src/instance.ts')
   })
 
-  it('requires release-shaped Python runtime validation on every published target', () => {
+  it('validates the Python packaging on Linux at pull-request time', () => {
     const workflow = loadWorkflow('.github/workflows/ci.yml')
     const pythonRuntime = workflowJob(workflow, 'python-runtime')
     const aggregate = workflowJob(workflow, 'all-checks-passed')
@@ -373,12 +373,15 @@ describe('CI workflow', () => {
       throw new TypeError('CI aggregate must define required job dependencies')
     }
 
+    // A pull request answers whether its change breaks the packaging, on one target
+    // per Linux architecture. The cross-platform claim belongs to publication, whose
+    // matrix builds every published target; the companion test below holds that link.
     expect(pythonRuntime).toMatchObject({
       if: "github.event_name == 'pull_request'",
       name: 'python runtime / release-shaped matrix',
       uses: './.github/workflows/build-exe-for-python-sdk.yml',
       with: {
-        targets: 'node24-linux-x64,node24-linux-arm64,node24-macos-arm64,node24-macos-x64,node24-win-x64',
+        targets: 'node24-linux-x64,node24-linux-arm64',
         ci: true,
       },
       secrets: {
@@ -388,6 +391,26 @@ describe('CI workflow', () => {
     expect(aggregate.needs).toContain('python-runtime')
   })
 
+  it('leaves every published Python target to the workflow that publishes them', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const pullRequestInputs = workflowJob(workflow, 'python-runtime').with as { targets?: unknown }
+    const pullRequestTargets = String(pullRequestInputs.targets).split(',')
+    const release = loadWorkflow('.github/workflows/python-release.yml')
+    const releaseInputs = workflowJob(release, 'build').with as { targets?: unknown }
+    const releaseTargets = String(releaseInputs.targets).split(',')
+
+    // Deferring a platform is only safe while the publisher still builds it: a wheel
+    // cannot be validated by a carrier other than its own, so the publication matrix
+    // is what keeps the deferral from becoming a gap.
+    expect(releaseTargets).toEqual([
+      'node24-linux-x64',
+      'node24-linux-arm64',
+      'node24-macos-arm64',
+      'node24-macos-x64',
+      'node24-win-x64',
+    ])
+    expect(pullRequestTargets).toEqual(['node24-linux-x64', 'node24-linux-arm64'])
+  })
   it('keeps every Vitest project process-isolated on native Windows', () => {
     const config = readFileSync(resolve(root, 'vitest.config.ts'), 'utf8')
 

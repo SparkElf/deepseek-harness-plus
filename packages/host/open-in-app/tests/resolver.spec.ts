@@ -121,7 +121,7 @@ describe('resolveOpenInAppApps', () => {
     const home = await tempRoot()
     const run = vi.fn<NativeCommandRunner>()
     const map = await resolveOpenInAppApps(TIMEOUT_MS, {
-      platform: 'linux', home, env: { ...linuxEnv(home), DISPLAY: ':0' }, run,
+      platform: 'linux', osRelease: '6.8.0-generic', home, env: { ...linuxEnv(home), DISPLAY: ':0' }, run,
       resolveExecutable: pathTable({ 'xdg-open': '/usr/bin/xdg-open', code: '/usr/bin/code', ghostty: '/usr/bin/ghostty' }),
     })
     expect([...map.keys()]).toEqual(['filemanager', 'vscode', 'ghostty'])
@@ -133,10 +133,10 @@ describe('resolveOpenInAppApps', () => {
     const home = await tempRoot()
     const resolveExecutable = pathTable({ 'xdg-open': '/usr/bin/xdg-open' })
     await expect(resolveLaunch(byId('filemanager'), TIMEOUT_MS, bare({
-      platform: 'linux', home, env: linuxEnv(home), resolveExecutable,
+      platform: 'linux', osRelease: '6.8.0-generic', home, env: linuxEnv(home), resolveExecutable,
     }))).resolves.toBeNull()
     await expect(resolveLaunch(byId('filemanager'), TIMEOUT_MS, bare({
-      platform: 'linux', home, env: { ...linuxEnv(home), WAYLAND_DISPLAY: 'wayland-0' }, resolveExecutable,
+      platform: 'linux', osRelease: '6.8.0-generic', home, env: { ...linuxEnv(home), WAYLAND_DISPLAY: 'wayland-0' }, resolveExecutable,
     }))).resolves.toEqual({ launch: { kind: 'argv', command: '/usr/bin/xdg-open', args: [] }, icon: undefined })
   })
 
@@ -248,7 +248,7 @@ describe('resolveLaunch locators', () => {
     const script = join(home, '.local', 'share', 'JetBrains', 'Toolbox', 'scripts', 'idea')
     await mkdir(join(home, '.local', 'share', 'JetBrains', 'Toolbox', 'scripts'), { recursive: true })
     await writeFile(script, '#!/bin/sh')
-    await expect(resolveLaunch(byId('intellij'), TIMEOUT_MS, bare({ platform: 'linux', home, env: linuxEnv(home) })))
+    await expect(resolveLaunch(byId('intellij'), TIMEOUT_MS, bare({ platform: 'linux', osRelease: '6.8.0-generic', home, env: linuxEnv(home) })))
       .resolves.toEqual({ launch: { kind: 'argv', command: script, args: [] }, icon: undefined })
   })
 
@@ -406,7 +406,7 @@ describe('resolveLaunch locators', () => {
       'Icon=kitty',
       '',
     ].join('\n'))
-    const found = await resolveLaunch(byId('kitty'), TIMEOUT_MS, bare({ platform: 'linux', home, env: linuxEnv(home) }))
+    const found = await resolveLaunch(byId('kitty'), TIMEOUT_MS, bare({ platform: 'linux', osRelease: '6.8.0-generic', home, env: linuxEnv(home) }))
     expect(found?.launch).toEqual({ kind: 'argv', command: kittyBin, args: ['--directory'] })
 
     // A quoted absolute Exec command verifies on disk through its first token.
@@ -418,7 +418,7 @@ describe('resolveLaunch locators', () => {
       '',
     ].join('\n'))
     const viaExec = await resolveLaunch(byId('gnometerminal'), TIMEOUT_MS, bare({
-      platform: 'linux', home, env: linuxEnv(home),
+      platform: 'linux', osRelease: '6.8.0-generic', home, env: linuxEnv(home),
     }))
     expect(viaExec?.launch).toEqual({ kind: 'argv', command: gnomeBin, args: ['--working-directory={path}'] })
 
@@ -432,7 +432,7 @@ describe('resolveLaunch locators', () => {
       '',
     ].join('\n'))
     const viaPath = await resolveLaunch(byId('konsole'), TIMEOUT_MS, bare({
-      platform: 'linux', home, env: { ...linuxEnv(home), XDG_DATA_HOME: dataHome },
+      platform: 'linux', osRelease: '6.8.0-generic', home, env: { ...linuxEnv(home), XDG_DATA_HOME: dataHome },
       resolveExecutable: pathTable({ 'konsole-launcher': '/usr/bin/konsole-launcher' }),
     }))
     expect(viaPath?.launch).toEqual({ kind: 'argv', command: '/usr/bin/konsole-launcher', args: ['--workdir'] })
@@ -442,7 +442,7 @@ describe('resolveLaunch locators', () => {
     const home = await tempRoot()
     const applications = join(home, '.local', 'share', 'applications')
     await mkdir(applications, { recursive: true })
-    const internals = bare({ platform: 'linux', home, env: linuxEnv(home) })
+    const internals = bare({ platform: 'linux', osRelease: '6.8.0-generic', home, env: linuxEnv(home) })
     // No desktop entry at all.
     await expect(resolveLaunch(byId('konsole'), TIMEOUT_MS, internals)).resolves.toBeNull()
     // A TryExec absent from disk.

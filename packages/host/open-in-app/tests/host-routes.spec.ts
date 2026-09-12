@@ -405,7 +405,7 @@ describe('open-in-app host routes (real Loader composition)', () => {
       return Promise.resolve()
     }
     internals.catalog = {
-      platform: 'linux',
+      platform: 'linux', osRelease: '6.8.0-generic',
       home,
       env: { XDG_DATA_DIRS: join(home, 'xdg-empty'), DISPLAY: ':0' },
       run: () => Promise.reject(new Error('fixture rejects')),
@@ -466,7 +466,7 @@ describe('open-in-app host routes (real Loader composition)', () => {
 
   it('resolves PATH names through the composition subprocess capability when the seam does not override it', async () => {
     internals.catalog = {
-      platform: 'linux',
+      platform: 'linux', osRelease: '6.8.0-generic',
       env: { XDG_DATA_DIRS: '/nonexistent-xdg' },
       home: '/nonexistent-home',
       run: () => Promise.reject(new Error('fixture rejects')),

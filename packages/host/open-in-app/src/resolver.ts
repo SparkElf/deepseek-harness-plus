@@ -14,10 +14,10 @@
 
 import { spawn } from 'node:child_process'
 import { readdir, readFile, stat } from 'node:fs/promises'
-import { homedir, platform as osPlatform } from 'node:os'
+import { homedir, release as osRelease, platform as osPlatform } from 'node:os'
 import { dirname, isAbsolute, join } from 'node:path'
 import {
-  canOpenNativePath, openNativePath, runNativeCommand, type NativeCommandRunner,
+  canOpenLinuxDesktop, openNativePath, runNativeCommand, type NativeCommandRunner,
 } from '@deepseek-ai/dsh-native-command'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import {
@@ -98,6 +98,8 @@ export const launchDetachedApp: OpenInAppLauncher = (command, args, options) =>
 /** Injectable platform facts for deterministic tests. */
 export interface OpenInAppInternals {
   platform?: NodeJS.Platform
+  /** Kernel release override; distinguishes WSL from desktop Linux without a probe. */
+  osRelease?: string
   /** SSH launch fact from the inherited process layer, independent of `.env` values. */
   ssh?: boolean
   /** Bundle-directory roots replacing `/Applications` and `~/Applications`. */
@@ -115,6 +117,7 @@ export interface OpenInAppInternals {
 /** Platform facts after the one explicit defaulting step at each public entry. */
 export interface ResolvedInternals {
   platform: NodeJS.Platform
+  osRelease: string
   ssh: boolean
   applicationRoots: readonly string[]
   env: Readonly<Record<string, string | undefined>>
@@ -140,6 +143,7 @@ export function resolveInternals(internals: OpenInAppInternals): ResolvedInterna
   }
   return {
     platform: internals.platform ?? osPlatform(),
+    osRelease: internals.osRelease ?? osRelease(),
     ssh: internals.ssh ?? false,
     applicationRoots: internals.applicationRoots ?? ['/Applications', join(home, 'Applications')],
     env: internals.env ?? process.env,
@@ -518,8 +522,12 @@ async function locate(
       }
     }
     case 'cli': {
-      if (locator.requiresDesktop === true && !canOpenNativePath({
+      // A desktop CLI locator names a program that draws on the host's own desktop,
+      // so it needs that desktop rather than the mere ability to open a path: WSL can
+      // open one through Windows while running no Linux GUI program at all.
+      if (locator.requiresDesktop === true && !canOpenLinuxDesktop({
         platform: internals.platform,
+        osRelease: internals.osRelease,
         env: { ...internals.env },
       })) return null
       const found = await internals.resolveExecutable(locator.name)

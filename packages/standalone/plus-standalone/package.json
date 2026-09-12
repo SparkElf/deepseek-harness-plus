@@ -91,7 +91,17 @@
       {
         "name": "@deepseek-ai/dsh-settings",
         "version": "0.1.5-rc.2",
-        "reason": "dshmarket@>=1.45.1 declares ^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2, which 0.1.5-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-slots",
+        "version": "0.1.5-rc.2",
+        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-primitives",
+        "version": "0.1.5-rc.2",
+        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
       }
     ]
   },
@@ -99,7 +109,9 @@
   "overrides": {
     "@huanlin/dsh-plugin-better-locale": "0.4.1",
     "dsh-better-sidebar": "0.19.1",
-    "@deepseek-ai/dsh-settings": "0.1.5-rc.2"
+    "@deepseek-ai/dsh-settings": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.5-rc.2"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.2"
