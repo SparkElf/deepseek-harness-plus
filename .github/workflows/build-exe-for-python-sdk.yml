@@ -170,12 +170,15 @@ jobs:
           reg add "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock"
           /t REG_DWORD /f /v "AllowDevelopmentWithoutDevLicense" /d "1"
 
-      # setup-node's built-in pnpm store cache keys on platform AND arch, so
-      # the Linux architectures sharing runner.os stay on separate caches.
+      # The pnpm store is requested but never saved here. Saving it costs about a
+      # minute on the slowest targets, and the store it would seed helps only a
+      # later job on the same platform — which this matrix does not have, because
+      # each target builds once on its own runner. The pkg-fetch cache below is the
+      # reusable one and keeps its save.
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
 
       - uses: actions/setup-python@v6.3.0
         with:
