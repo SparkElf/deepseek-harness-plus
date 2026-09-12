@@ -99,13 +99,49 @@ function isWsl(internals: PathOpenerInternals): boolean {
   return (internals.osRelease ?? osRelease()).toLowerCase().includes('microsoft')
 }
 
+/**
+ * Windows PowerShell locations to try when PATH carries no Windows entry.
+ *
+ * WSL injects its Windows directories into PATH only for the processes it starts
+ * interactively, so a service, a scheduled job, or any process started after that
+ * injection was lost resolves nothing by name. The interpreter is still present on
+ * the volume the distribution mounts, and naming it there is what keeps the Windows
+ * desktop reachable from those processes.
+ */
+const WINDOWS_POWERSHELL_CANDIDATES = [
+  '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+  '/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+] as const
+
 /** Open one Windows-resolvable path through its registered desktop application. */
 async function openWindowsPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
-  await run('powershell.exe', [
+  const args = [
     '-NoProfile',
     '-Command',
     `Invoke-Item -LiteralPath ${powershellLiteral(path)}`,
-  ], signal)
+  ]
+  try {
+    await run('powershell.exe', args, signal)
+    return
+  } catch (error) {
+    // A missing executable is the one failure a mounted path can answer; a non-zero
+    // exit from PowerShell itself is a real launch failure and must stay reported.
+    if (!isMissingExecutable(error)) throw error
+  }
+  for (const candidate of WINDOWS_POWERSHELL_CANDIDATES) {
+    try {
+      await run(candidate, args, signal)
+      return
+    } catch (error) {
+      if (!isMissingExecutable(error)) throw error
+    }
+  }
+  throw new Error('Windows PowerShell is not reachable from this WSL mount')
+}
+
+/** Whether a spawn failed because the executable could not be found at all. */
+function isMissingExecutable(error: unknown): boolean {
+  return (error as { code?: unknown } | null | undefined)?.code === 'ENOENT'
 }
 
 /** Translate a WSL path before handing it to the Windows desktop. */
@@ -152,6 +188,25 @@ async function openNativePathWithIntent(
   }
 
   throw new Error(`native path opener is unsupported on ${platform}`)
+}
+
+/**
+ * Whether this host can reach a Linux desktop application.
+ *
+ * WSL hands every path to the Windows desktop, so a Linux GUI program such as
+ * `xdg-open` is not what opens anything there: a surface asking this question
+ * wants to know whether a Linux display is attached, and WSL is not one even
+ * though it can open a path.
+ *
+ * @param internals - platform and environment seam for deterministic tests.
+ * @returns true when a Linux desktop application can receive the path.
+ */
+export function canOpenLinuxDesktop(internals: PathOpenerInternals = {}): boolean {
+  const platform = internals.platform ?? process.platform
+  if (platform !== 'linux') return false
+  if (isWsl(internals)) return false
+  const env = internals.env ?? process.env
+  return present(env.DISPLAY) || present(env.WAYLAND_DISPLAY)
 }
 
 /**

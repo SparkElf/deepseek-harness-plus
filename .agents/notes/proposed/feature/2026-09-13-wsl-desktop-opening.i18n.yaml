@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-09-13-wsl-desktop-opening.md
+2026-09-13-wsl-desktop-opening.md: 1fc7cfb68e558edbd9e2ed9a9bce9890d1460887
+2026-09-13-wsl-desktop-opening.zh.md: 5bbe50faf4b734c8c1abb063ecd4d28f71c8efbd

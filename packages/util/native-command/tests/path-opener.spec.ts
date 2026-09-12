@@ -17,9 +17,14 @@ vi.mock('node:child_process', () => ({ execFile: execFileMock }))
 
 import { release as osRelease } from 'node:os'
 import { describe, expect, it, vi } from 'vitest'
-import { canOpenNativePath, nativeFileManager, revealNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/index.ts'
+import { canOpenLinuxDesktop, canOpenNativePath, nativeFileManager, revealNativePath, openNativePath, openNativeTextFile, type PathOpenerRunner } from '../src/index.ts'
 
 const signal = () => new AbortController().signal
+
+/** Whether this test process runs inside WSL, where Explorer is the file manager. */
+function isWslHost(): boolean {
+  return osRelease().toLowerCase().includes('microsoft')
+}
 
 describe('native path opener', () => {
   it('opens with macOS open(1)', async () => {
@@ -68,6 +73,34 @@ describe('native path opener', () => {
     ])
   })
 
+  it('names the interpreter on the mounted volume when PATH has no Windows entry', async () => {
+    const requestSignal = signal()
+    // A service started without WSL's PATH injection resolves nothing by name. The
+    // interpreter is still on the mounted volume, and reaching it there is the
+    // difference between a working button and one that always reports a failure.
+    const missing = Object.assign(new Error('spawn powershell.exe ENOENT'), { code: 'ENOENT' })
+    const run = vi.fn<PathOpenerRunner>(async (command) => {
+      if (command === 'wslpath') return { stdout: 'C:' + String.fromCharCode(92) + 'work' + String.fromCharCode(92) + 'a.txt' + String.fromCharCode(13, 10), stderr: '' }
+      if (command === 'powershell.exe') throw missing
+      return { stdout: '', stderr: '' }
+    })
+    await openNativeTextFile('/home/test/a.txt', requestSignal, {
+      platform: 'linux', osRelease: '6.8.0-generic', env: { WSL_DISTRO_NAME: 'Ubuntu' }, run,
+    })
+    expect(run.mock.calls.at(-1)?.[0]).toBe('/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe')
+  })
+
+  it('keeps a real PowerShell failure instead of trying another mount', async () => {
+    const denied = Object.assign(new Error('powershell failed'), { code: 1 })
+    const run = vi.fn<PathOpenerRunner>(async (command) => {
+      if (command === 'wslpath') return { stdout: 'C:' + String.fromCharCode(92) + 'a.txt' + String.fromCharCode(13, 10), stderr: '' }
+      throw denied
+    })
+    await expect(openNativeTextFile('/tmp/a.txt', signal(), {
+      platform: 'linux', osRelease: '6.8.0-generic', env: { WSL_DISTRO_NAME: 'Ubuntu' }, run,
+    })).rejects.toThrow()
+    expect(run.mock.calls.filter(call => call[0] !== 'wslpath')).toHaveLength(1)
+  })
   it('rejects an empty WSL path translation before invoking Windows', async () => {
     const run = vi.fn<PathOpenerRunner>(async () => ({ stdout: '\r\n', stderr: '' }))
     await expect(openNativeTextFile('/home/test/settings.yaml', signal(), {
@@ -327,7 +360,30 @@ describe('canOpenNativePath', () => {
   })
 })
 
+describe('canOpenLinuxDesktop', () => {
+  it('answers no on WSL, which opens through Windows instead of a Linux program', () => {
+    // `xdg-open` is a Linux GUI program; WSL hands the path to the Windows desktop,
+    // so a WSL host must not advertise the Linux file manager as installed.
+    expect(canOpenLinuxDesktop({
+      platform: 'linux', osRelease: '5.15.153.1-microsoft-standard-WSL2', env: {},
+    })).toBe(false)
+    expect(canOpenLinuxDesktop({
+      platform: 'linux', osRelease: '6.8.0-generic', env: { WSL_DISTRO_NAME: 'Ubuntu' },
+    })).toBe(false)
+  })
 
+  it('follows the display server on a Linux host', () => {
+    const linux = { platform: 'linux' as const, osRelease: '6.8.0-generic' }
+    expect(canOpenLinuxDesktop({ ...linux, env: {} })).toBe(false)
+    expect(canOpenLinuxDesktop({ ...linux, env: { DISPLAY: ':0' } })).toBe(true)
+    expect(canOpenLinuxDesktop({ ...linux, env: { WAYLAND_DISPLAY: 'wayland-0' } })).toBe(true)
+  })
+
+  it('answers no on the platforms whose desktop is not a Linux one', () => {
+    expect(canOpenLinuxDesktop({ platform: 'darwin', env: { DISPLAY: ':0' } })).toBe(false)
+    expect(canOpenLinuxDesktop({ platform: 'win32', env: {} })).toBe(false)
+  })
+})
 describe('native file manager', () => {
   it.each([
     ['darwin', 'finder', '/tmp/my report.txt', 'open', ['-R', '/tmp/my report.txt']],
@@ -368,13 +424,22 @@ describe('native file manager', () => {
     await expect(revealNativePath('/file', AbortSignal.abort(new Error('cancelled')), { run })).rejects.toThrow('cancelled')
     expect(run).not.toHaveBeenCalled()
     await expect(revealNativePath('/file', signal(), { platform: 'darwin', run })).rejects.toThrow('desktop failed')
-    expect(nativeFileManager()).toBe(process.platform === 'darwin' ? 'finder' : process.platform === 'win32' ? 'explorer' : 'directory')
+    // The function answers for the host it runs on, and a WSL host opens through
+    // Explorer rather than a Linux directory browser.
+    const wslHost = process.platform === 'linux' && isWslHost()
+    expect(nativeFileManager()).toBe(process.platform === 'darwin'
+      ? 'finder'
+      : process.platform === 'win32' || wslHost ? 'explorer' : 'directory')
   })
 })
 
 
 it('uses the native runner for a file-manager handoff when none is injected', async () => {
-  execFileMock.mockImplementation((_command, _args, _options, callback) => { callback(null, '', '') })
+  // On a WSL host the handoff translates the path for Explorer first, so the
+  // runner must answer wslpath before the launch command is attempted.
+  execFileMock.mockImplementation((command, _args, _options, callback) => {
+    callback(null, command === 'wslpath' ? 'C:\tmp\report.txt' : '', '')
+  })
   await revealNativePath('/tmp/report.txt', signal())
   expect(execFileMock).toHaveBeenCalled()
 })

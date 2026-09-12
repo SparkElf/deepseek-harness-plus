@@ -6,6 +6,7 @@
 export { runNativeCommand } from './runner.ts'
 export type { NativeCommandRunner } from './runner.ts'
 export {
+  canOpenLinuxDesktop,
   canOpenNativePath,
   nativeFileManager,
   revealNativePath,
