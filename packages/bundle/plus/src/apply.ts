@@ -488,6 +488,10 @@ function writeProfileRequirements(
   const managedFileAsset = (value: string): boolean => value.startsWith('file:')
     && (/[\\/]\.dsh[\\/]releases[\\/]plus[\\/].*[\\/]packages[\\/]/u.test(value)
       || /[\\/]\.dsh-plus[\\/]packages[\\/]/u.test(value))
+  // Override names a previously accepted profile may carry and this one must drop.
+  // The office preview moved from the upstream Huanlin package to SparkElf's own
+  // redistribution of it, so an older profile's override for the upstream name has to
+  // go; the replacement is an ordinary profile dependency, not an override.
   const retiredOverrides = new Set([
     '@huanlin/dsh-plugin-better-sidebar-plugin-office',
     '@sparkelf/dsh-office-viewer-fonts',

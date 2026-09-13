@@ -9410,9 +9410,6 @@ importers:
       '@huanlin/dsh-plugin-better-locale':
         specifier: 0.4.1
         version: 0.4.1(@deepseek-ai/cordis@vendor+cordis)
-      '@huanlin/dsh-plugin-better-sidebar-plugin-office':
-        specifier: 0.2.0
-        version: 0.2.0(@deepseek-ai/cordis@vendor+cordis)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(pdfjs-dist@6.3.289)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@sparkelf/dsh-api-client':
         specifier: 0.5.1
         version: 0.5.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(react@18.3.1)
@@ -9428,11 +9425,14 @@ importers:
       '@sparkelf/dsh-officecli':
         specifier: 0.1.2
         version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)
+      '@sparkelf/dsh-plugin-better-sidebar-office':
+        specifier: 0.2.1
+        version: 0.2.1(@deepseek-ai/cordis@vendor+cordis)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(pdfjs-dist@6.3.289)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@sparkelf/dsh-plugin-supervisor':
         specifier: 0.1.5
         version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.1.0-rc.27
+        specifier: workspace:0.1.0-rc.28
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
@@ -12991,21 +12991,6 @@ packages:
       '@deepseek-ai/dsh-client-locale':
         optional: true
 
-  '@huanlin/dsh-plugin-better-sidebar-plugin-office@0.2.0':
-    resolution: {integrity: sha512-RPwk9ojWIT3u2cyfLztn8q5/xS6czuvqQohJ2wReZ+dIdgF8HpAUhdm2i6XayazME0K6quF2/TNAfuFvC+tycg==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@deepseek-ai/cordis': ^4.0.1
-      dsh-better-sidebar: ^0.17.0
-      react: ^18.2.0
-    peerDependenciesMeta:
-      '@deepseek-ai/cordis':
-        optional: true
-      dsh-better-sidebar:
-        optional: true
-      react:
-        optional: true
-
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
     engines: {node: '>=18.18.0'}
@@ -14901,6 +14886,21 @@ packages:
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.2
       '@deepseek-ai/dsh-tools': 0.1.5-rc.2
+
+  '@sparkelf/dsh-plugin-better-sidebar-office@0.2.1':
+    resolution: {integrity: sha512-Tub44X47mOZ+fsP+DlScT376llGJF5iL/y7qz3R4dwAn+ZRDLbIr+gOxtLe3tosOBRmW1hOPPw86mgBnIxkYtA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.1
+      dsh-better-sidebar: ^0.17.0
+      react: ^18.2.0
+    peerDependenciesMeta:
+      '@deepseek-ai/cordis':
+        optional: true
+      dsh-better-sidebar:
+        optional: true
+      react:
+        optional: true
 
   '@sparkelf/dsh-plugin-supervisor@0.1.5':
     resolution: {integrity: sha512-PPT4B3Z3vqETdGAyLuNCMl7lS72VAOAb/9kiw0kHT/hRR0sOQCgV8jlxVULQ+xyf8fSu0ejbBE5baDIsyewSbA==}
@@ -21583,24 +21583,6 @@ snapshots:
     optionalDependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
 
-  '@huanlin/dsh-plugin-better-sidebar-plugin-office@0.2.0(@deepseek-ai/cordis@vendor+cordis)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(pdfjs-dist@6.3.289)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
-    dependencies:
-      '@aiden0z/pptx-renderer': 1.2.4(pdfjs-dist@6.3.289)
-      '@univerjs/preset-sheets-core': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
-      '@univerjs/presets': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
-      docx-preview: 0.4.0
-      rxjs: 7.8.2
-      xlsx: 0.18.5
-    optionalDependencies:
-      '@deepseek-ai/cordis': link:vendor/cordis
-      dsh-better-sidebar: 0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      react: 18.3.1
-    transitivePeerDependencies:
-      - '@types/react'
-      - '@types/react-dom'
-      - pdfjs-dist
-      - react-dom
-
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -23177,6 +23159,24 @@ snapshots:
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@officecli/officecli': 1.0.147
+
+  '@sparkelf/dsh-plugin-better-sidebar-office@0.2.1(@deepseek-ai/cordis@vendor+cordis)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(pdfjs-dist@6.3.289)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      '@aiden0z/pptx-renderer': 1.2.4(pdfjs-dist@6.3.289)
+      '@univerjs/preset-sheets-core': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
+      '@univerjs/presets': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
+      docx-preview: 0.4.0
+      rxjs: 7.8.2
+      xlsx: 0.18.5
+    optionalDependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
+      dsh-better-sidebar: 0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.1(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react: 18.3.1
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+      - pdfjs-dist
+      - react-dom
 
   '@sparkelf/dsh-plugin-supervisor@0.1.5(@deepseek-ai/cordis@vendor+cordis)':
     dependencies:
