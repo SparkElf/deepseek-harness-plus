@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.1.0-rc.27",
+  "version": "0.1.0-rc.28",
   "publishConfig": {
     "access": "public"
   },
@@ -30,7 +30,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.5-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.1.0-rc.27",
+    "@sparkelf/dsh-plus": "workspace:0.1.0-rc.28",
     "@changfenhuang/dsh-genui": "0.9.9",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -41,7 +41,7 @@
     "@sparkelf/dsh-api-client": "0.5.1",
     "@huanlin/dsh-plugin-better-locale": "0.4.1",
     "dsh-better-sidebar": "0.19.1",
-    "@huanlin/dsh-plugin-better-sidebar-plugin-office": "0.2.0",
+    "@sparkelf/dsh-plugin-better-sidebar-office": "0.2.1",
     "@sparkelf/dsh-office-viewer-fonts": "0.1.2",
     "dsh-video-preview": "0.1.4",
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
@@ -61,7 +61,7 @@
       "dshmarket",
       "@huanlin/dsh-plugin-better-locale",
       "dsh-better-sidebar",
-      "@huanlin/dsh-plugin-better-sidebar-plugin-office",
+      "@sparkelf/dsh-plugin-better-sidebar-office",
       "@sparkelf/dsh-office-viewer-fonts",
       "dsh-video-preview",
       "@changfenhuang/dsh-genui",
@@ -88,7 +88,7 @@
       {
         "name": "dsh-better-sidebar",
         "version": "0.19.1",
-        "reason": "@huanlin/dsh-plugin-better-sidebar-plugin-office@0.2.0 declares ^0.17.0, which 0.1.5-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-better-sidebar-office@0.2.1 declares ^0.17.0, which 0.1.5-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-settings",

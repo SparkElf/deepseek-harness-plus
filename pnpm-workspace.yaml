@@ -78,6 +78,9 @@ minimumReleaseAgeExclude:
   - 'dsh-sql-workbench@0.5.1'
   - 'dsh-better-sidebar@0.19.1'
   - '@huanlin/dsh-plugin-better-locale@0.4.1'
+  # SparkElf's own redistribution of the office preview; the release that pinned it
+  # could not wait out the age window, since the distribution and the package ship together.
+  - '@sparkelf/dsh-plugin-better-sidebar-office@0.2.1'
   - dshmarket@1.45.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.

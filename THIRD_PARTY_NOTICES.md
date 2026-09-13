@@ -38,7 +38,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
 | [`@huanlin/dsh-plugin-better-locale`](https://github.com/HuanLinOTO/dsh-plugin-better-locale) | AGPL-3.0 |
-| [`@huanlin/dsh-plugin-better-sidebar-plugin-office`](https://github.com/HuanLinOTO/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
 | [`@joplin/turndown-plugin-gfm`](https://github.com/laurent22/joplin-turndown-plugin-gfm) | MIT |
 | [`@jridgewell/gen-mapping`](https://github.com/jridgewell/sourcemaps) | MIT |
 | [`@lexical/history`](https://github.com/facebook/lexical) | MIT |
@@ -61,6 +60,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@sparkelf/dsh-mobile-bridge`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-office-viewer-fonts`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-officecli`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-plugin-better-sidebar-office`](https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
 | [`@sparkelf/dsh-plugin-supervisor`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-ssh-manager`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-workbench-vault`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
