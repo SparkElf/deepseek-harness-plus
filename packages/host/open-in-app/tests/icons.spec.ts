@@ -281,4 +281,31 @@ describe('Linux desktop-entry icons', () => {
     // filemanager (xdg-open) declares no desktop entry to read an icon from.
     await expect(extractAppIcon(byId('filemanager'), resolved, TIMEOUT_MS, internals(empty))).resolves.toBeNull()
   })
+  it('translates POSIX paths for the Windows interpreter on WSL', async () => {
+    // Windows PowerShell rejects a Linux path: it resolves /mnt/c/... as
+    // \\wsl.localhost\... and refuses to treat it as a file, so every path handed to
+    // it must be translated first. The icon stays unextracted without this.
+    const home = await mkdtemp(join(tmpdir(), 'dsh-icon-paths-'))
+    const calls: string[][] = []
+    const internals: OpenInAppInternals = {
+      platform: 'linux',
+      osRelease: '5.15.167.4-microsoft-standard-WSL2',
+      home,
+      env: { WSL_DISTRO_NAME: 'Ubuntu' },
+      run: async (command, args) => {
+        calls.push([command, ...args])
+        return { stdout: 'C:' + String.fromCharCode(92) + 'translated', stderr: '' }
+      },
+      resolveExecutable: async () => null,
+    }
+    const app = OPEN_IN_APP_CATALOG.find(entry => entry.id === 'filemanager')
+    if (app === undefined) throw new TypeError('filemanager must exist in the catalog')
+    await extractAppIcon(app, {
+      launch: { kind: 'shell-open' },
+      icon: { kind: 'executable', path: '/mnt/c/Windows/explorer.exe' },
+    }, 1_000, internals)
+    const wslpathCalls = calls.filter(call => call[0] === 'wslpath')
+    expect(wslpathCalls).toHaveLength(3)
+    expect(wslpathCalls.map(call => call[2])).toContain('/mnt/c/Windows/explorer.exe')
+  })
 })

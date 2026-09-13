@@ -17,7 +17,7 @@ import { readdir, readFile, stat } from 'node:fs/promises'
 import { homedir, release as osRelease, platform as osPlatform } from 'node:os'
 import { dirname, isAbsolute, join } from 'node:path'
 import {
-  canOpenLinuxDesktop, openNativePath, runNativeCommand, type NativeCommandRunner,
+  canOpenLinuxDesktop, canOpenNativePath, openNativePath, runNativeCommand, type NativeCommandRunner,
 } from '@deepseek-ai/dsh-native-command'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import {
@@ -471,6 +471,14 @@ export function specFor(app: OpenInAppApp, platform: NodeJS.Platform): OpenInApp
     : undefined
 }
 
+/**
+ * Explorer icon for the Windows shell open a WSL host resolves to.
+ *
+ * \`SystemRoot\` is unset inside WSL, so the mounted drive is named directly; the
+ * command-line \`openWindowsPath\` reaches the same interpreter through the same mount.
+ */
+const WINDOWS_EXPLORER_ICON = '/mnt/c/Windows/explorer.exe'
+
 /** Icon source for a resolved executable: Windows extracts from the binary itself. */
 function executableIcon(path: string, internals: ResolvedInternals): OpenInAppIconSource | undefined {
   return internals.platform === 'win32' ? { kind: 'executable', path } : undefined
@@ -522,14 +530,29 @@ async function locate(
       }
     }
     case 'cli': {
-      // A desktop CLI locator names a program that draws on the host's own desktop,
-      // so it needs that desktop rather than the mere ability to open a path: WSL can
-      // open one through Windows while running no Linux GUI program at all.
-      if (locator.requiresDesktop === true && !canOpenLinuxDesktop({
-        platform: internals.platform,
-        osRelease: internals.osRelease,
-        env: { ...internals.env },
-      })) return null
+      // A desktop CLI locator names a program that draws on the host's own Linux
+      // desktop. WSL has no such program, but it does have the Windows desktop, so
+      // the entry stays and resolves to the Windows shell open instead of a launcher
+      // this host cannot run.
+      if (locator.requiresDesktop === true) {
+        const facts = {
+          platform: internals.platform,
+          osRelease: internals.osRelease,
+          env: { ...internals.env },
+        }
+        const linuxDesktop = canOpenLinuxDesktop(facts)
+        // WSL answers no here yet can still open a path, because the Windows desktop
+        // takes it. That combination is what selects the shell open below; a headless
+        // Linux host answers no to both and keeps dropping the entry.
+        if (!linuxDesktop && canOpenNativePath(facts)) {
+          const iconPath = expandCandidate(WINDOWS_EXPLORER_ICON, internals)
+          return {
+            launch: { kind: 'shell-open' },
+            icon: iconPath === null ? undefined : { kind: 'executable', path: iconPath },
+          }
+        }
+        if (!linuxDesktop) return null
+      }
       const found = await internals.resolveExecutable(locator.name)
       return found === null
         ? null

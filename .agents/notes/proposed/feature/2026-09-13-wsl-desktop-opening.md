@@ -18,6 +18,8 @@ Name the interpreter on the mounted Windows volume when PATH carries no Windows 
 
 Answer the Linux-desktop question separately. `canOpenLinuxDesktop()` reports whether a Linux GUI program can receive a path: a display server is announced and the host is not WSL. The `requiresDesktop` locator check uses it, so WSL stops advertising `xdg-open`.
 
+WSL keeps the entry rather than losing it. The two questions differ: `canOpenLinuxDesktop()` answers no there, while `canOpenNativePath()` answers yes because Windows takes the path, and that combination selects the Windows shell open with the Explorer icon. A headless Linux host answers no to both and still drops the entry, which is what the capability was for.
+
 The resolver gained an `osRelease` seam alongside its existing platform seam. Without it a test that names a platform still reads the host kernel, so the same suite answered differently on a WSL workstation than in CI.
 
 ## Alternatives considered

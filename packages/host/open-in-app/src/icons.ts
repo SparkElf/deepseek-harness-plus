@@ -97,6 +97,41 @@ const EXTRACT_ICON_PS1 = [
   '',
 ].join('\n')
 
+/**
+ * Translate POSIX paths for the Windows interpreter when this host is WSL.
+ *
+ * `Convert-Path` and `System.Drawing` reject a Linux path: the extension host maps
+ * `/mnt/c/...` itself, but PowerShell running as a Windows process resolves
+ * `\\wsl.localhost\...` and refuses to treat it as a file. `wslpath -w` produces the
+ * form it accepts. A non-WSL host returns its paths unchanged.
+ *
+ * @param paths - absolute POSIX paths to hand to the interpreter.
+ * @param timeoutMs - per-command deadline for the translation.
+ * @param internals - platform and runner hooks for deterministic tests.
+ * @returns the translated paths, or null when a translation failed.
+ */
+async function windowsPaths(
+  paths: readonly string[], timeoutMs: number, internals: ResolvedInternals,
+): Promise<string[] | null> {
+  if (!isWslHost(internals)) return [...paths]
+  const translated: string[] = []
+  for (const path of paths) {
+    const windows = await output('wslpath', ['-w', path], timeoutMs, internals)
+    const trimmed = windows?.replace(/[\r\n]+$/u, '') ?? ''
+    if (trimmed === '') return null
+    translated.push(trimmed)
+  }
+  return translated
+}
+
+/** Whether this Host is a WSL distribution, whose Windows desktop takes the path. */
+function isWslHost(internals: ResolvedInternals): boolean {
+  if (internals.platform !== 'linux') return false
+  const env = internals.env
+  if ((env.WSL_DISTRO_NAME ?? '') !== '' || (env.WSL_INTEROP ?? '') !== '') return true
+  return internals.osRelease.toLowerCase().includes('microsoft')
+}
+
 /** Extract one Windows executable's associated icon as a 32px PNG. */
 async function extractExecutableIconPng(
   executablePath: string, timeoutMs: number, internals: ResolvedInternals,
@@ -106,8 +141,12 @@ async function extractExecutableIconPng(
     const script = join(workDir, 'extract-icon.ps1')
     const outPng = join(workDir, 'icon.png')
     await writeFile(script, EXTRACT_ICON_PS1, 'utf8')
+    // Windows PowerShell reads Windows paths, so a WSL host translates all three before
+    // handing them over; the unmounted caller passes them through unchanged.
+    const args = await windowsPaths([script, executablePath, outPng], timeoutMs, internals)
+    if (args === null) return null
     const ran = await output('powershell.exe', [
-      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script, executablePath, outPng,
+      '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ...args,
     ], timeoutMs, internals)
     if (ran === null) return null
     try {
@@ -192,6 +231,13 @@ export async function extractAppIcon(
 ): Promise<OpenInAppIcon | null> {
   const completed = resolveInternals(internals)
   if (completed.platform === 'linux') {
+    // A resolved executable icon takes precedence on Linux: WSL reaches the Windows
+    // shell open and its Explorer icon lives in the executable, while the desktop-entry
+    // lookup below has nothing to read on a host with no Linux desktop at all.
+    if (resolved.icon?.kind === 'executable') {
+      const bytes = await extractExecutableIconPng(resolved.icon.path, timeoutMs, completed)
+      return bytes === null ? null : { bytes, contentType: 'image/png' }
+    }
     const desktopId = specFor(app, completed.platform)?.desktopId
     return desktopId === undefined ? null : extractLinuxIcon(desktopId, completed)
   }

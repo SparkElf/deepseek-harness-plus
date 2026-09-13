@@ -17,7 +17,9 @@ async function main(): Promise<number> {
   const argv = process.argv.slice(2)
   const first = argv[0]
   if (first === 'apply') {
-    runApply(argv.slice(1))
+    // `runApply` parses the command word itself, so it receives the arguments this
+    // dispatcher already inspected rather than a slice that dropped it.
+    runApply(argv)
     return 0
   }
   return await runStandaloneCli(argv)

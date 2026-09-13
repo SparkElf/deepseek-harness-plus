@@ -129,6 +129,35 @@ describe('resolveOpenInAppApps', () => {
     expect(run).not.toHaveBeenCalled()
   })
 
+
+  it('resolves the WSL file manager to the Windows desktop instead of dropping it', async () => {
+    const home = await tempRoot()
+    // WSL runs no Linux desktop program, but it does have the Windows desktop, so the
+    // entry stays and points at the shell open rather than disappearing from the menu.
+    await expect(resolveLaunch(byId('filemanager'), TIMEOUT_MS, bare({
+      platform: 'linux',
+      osRelease: '5.15.167.4-microsoft-standard-WSL2',
+      home,
+      env: linuxEnv(home),
+      resolveExecutable: pathTable({ 'xdg-open': '/usr/bin/xdg-open' }),
+    }))).resolves.toEqual({
+      launch: { kind: 'shell-open' },
+      icon: { kind: 'executable', path: '/mnt/c/Windows/explorer.exe' },
+    })
+  })
+
+  it('keeps dropping the Linux file manager on a headless Linux host', async () => {
+    const home = await tempRoot()
+    // The mirror image of the case above: no Linux desktop and no Windows one either,
+    // so the entry must not render a launcher that cannot run.
+    await expect(resolveLaunch(byId('filemanager'), TIMEOUT_MS, bare({
+      platform: 'linux',
+      osRelease: '6.8.0-generic',
+      home,
+      env: linuxEnv(home),
+      resolveExecutable: pathTable({ 'xdg-open': '/usr/bin/xdg-open' }),
+    }))).resolves.toBeNull()
+  })
   it('does not offer the Linux file manager without a desktop session', async () => {
     const home = await tempRoot()
     const resolveExecutable = pathTable({ 'xdg-open': '/usr/bin/xdg-open' })
