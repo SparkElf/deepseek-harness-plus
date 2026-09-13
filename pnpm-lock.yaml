@@ -9422,6 +9422,9 @@ importers:
       '@sparkelf/dsh-mobile-bridge':
         specifier: '>=0.2.11'
         version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
+      '@sparkelf/dsh-office-viewer-fonts':
+        specifier: 0.1.2
+        version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-officecli':
         specifier: 0.1.2
         version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)
@@ -14883,6 +14886,14 @@ packages:
       '@deepseek-ai/dsh-client-ui-slots': 0.1.5-alpha.1
       '@deepseek-ai/dsh-settings': 0.1.5-alpha.1
       react: '>=18.2.0 <20'
+
+  '@sparkelf/dsh-office-viewer-fonts@0.1.2':
+    resolution: {integrity: sha512-MtabUdabR828iuen4PxoziPg45JPKQ6kNMQXVqV+JvA9d0us+Rg5AUPg+BLc98gSMQondnveytnHogpqhpSYTg==}
+    engines: {node: ^22.19.0 || >=24.0.0}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.2
+      '@deepseek-ai/dsh-host-webserver': 0.1.5-rc.2
+      '@deepseek-ai/dsh-skill': 0.1.5-rc.2
 
   '@sparkelf/dsh-officecli@0.1.2':
     resolution: {integrity: sha512-iFKdbBogVx8f8vA3J3Bx8WcWDCSfBQN0onBOtLvFeelZ1dYLuAuUwuVzULo6q7ssyHs407Tc0TH5vfV0UgCmsw==}
@@ -23157,6 +23168,10 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  '@sparkelf/dsh-office-viewer-fonts@0.1.2(@deepseek-ai/cordis@vendor+cordis)':
+    dependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
 
   '@sparkelf/dsh-officecli@0.1.2(@deepseek-ai/cordis@vendor+cordis)':
     dependencies:
