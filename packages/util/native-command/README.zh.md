@@ -45,7 +45,7 @@ const { stdout, stderr } = await runNativeCommand('osascript', ['-e', script], s
 
 ### 打开 Host 路径
 
-`openNativePath(path, signal)` 将路径交给默认应用；平台能够确定默认浏览器时，HTML 与 SVG 会优先交给该浏览器。`openNativeTextFile(path, signal)` 选择文本编辑器意图；macOS 使用 `open -t`。WSL 路径先通过 `wslpath -w` 转换，再交给 Windows 桌面；当 PATH 中没有 Windows 条目时，解释器按已挂载的 Windows 卷上的位置直接指定，因此在 WSL 交互式 PATH 注入之外启动的服务同样能到达桌面。`canOpenNativePath()` 报告当前 Host 是否可能具备桌面目标；`canOpenLinuxDesktop()` 把该判断收窄到 Linux 桌面程序，WSL 因经 Windows 打开而从不具备。
+`openNativePath(path, signal)` 将路径交给默认应用；平台能够确定默认浏览器时，HTML 与 SVG 会优先交给该浏览器。`openNativeTextFile(path, signal)` 选择文本编辑器意图；macOS 使用 `open -t`。WSL 路径先通过 `wslpath -w` 转换，再交给 Windows 桌面；当 PATH 中没有 Windows 条目时，解释器按已挂载的 Windows 卷上的位置直接指定，因此在 WSL 交互式 PATH 注入之外启动的服务同样能到达桌面。`canOpenNativePath()` 报告当前 Host 是否可能具备桌面目标；`canOpenLinuxDesktop()` 把该判断收窄到 Linux 桌面程序，WSL 因经 Windows 打开而从不具备。提供 Linux 文件管理器的调用方询问这个更窄的问题，并在 WSL 主机上解析到 Windows 桌面，而不是移除该项。
 
 `revealNativePath(path, signal)` 在 Finder 或文件资源管理器中选中文件，包含 WSL 路径转换；在桌面 Linux 上通过 `xdg-open` 打开上层目录。`nativeFileManager()` 标识该操作，供 UI 根据 Host 选择文案；桌面是否可用仍由独立的 `canOpenNativePath()` 检查决定。调用方必须先授权绝对文件路径，再执行操作。平台分派由注入运行器的测试覆盖；原生桌面验证由对应平台负责。 Explorer 接收独立参数中的编码文件 URI。退出码 1 按已转交请求处理；取消、找不到可执行文件和其他退出码仍然报错。该确认不能证明桌面窗口已选中文件。
 

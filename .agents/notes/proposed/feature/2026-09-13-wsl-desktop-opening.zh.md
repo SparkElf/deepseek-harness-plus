@@ -18,6 +18,8 @@ Status: proposed
 
 把 Linux 桌面的问题单独回答。`canOpenLinuxDesktop()` 报告 Linux GUI 程序能否接收路径：有 display server 且该主机不是 WSL。`requiresDesktop` 定位器检查改用它，于是 WSL 不再提供 `xdg-open`。
 
+WSL 保留该项而不是失去它。两个问题的答案不同：`canOpenLinuxDesktop()` 在那里回答否，而 `canOpenNativePath()` 回答是，因为由 Windows 接管路径；这一组合选中带 Explorer 图标的 Windows shell open。无头 Linux 主机对两者都回答否，仍然移除该项，这正是该能力原本的用途。
+
 resolver 在既有的 platform seam 之外新增了 `osRelease` seam。没有它时，声明了平台的测试仍会读宿主内核，同一套件因此在 WSL 工作站与 CI 上给出不同答案。
 
 ## Alternatives considered
