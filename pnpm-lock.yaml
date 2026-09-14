@@ -1655,6 +1655,9 @@ importers:
       '@sparkelf/dsh-mobile-bridge':
         specifier: '>=0.2.11'
         version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
+      '@sparkelf/dsh-patch-better-sidebar-media-path':
+        specifier: workspace:>=0.1.0-rc.26
+        version: link:../../../patches/npm/better-sidebar-media-path
       '@sparkelf/dsh-patch-browser-auth-mode':
         specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/browser-auth-mode
@@ -11196,6 +11199,8 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+
+  patches/npm/better-sidebar-media-path: {}
 
   patches/npm/browser-auth-mode: {}
 

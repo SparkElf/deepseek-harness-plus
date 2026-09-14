@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-better-sidebar-media-path",
+  "description": "Data-only patch resolving a workspace-relative media path against the session cwd in dsh-better-sidebar",
+  "version": "0.1.0-rc.32",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/better-sidebar-media-path"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/better-sidebar-media-path.patch": "./patches/better-sidebar-media-path.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "better-sidebar-media-path",
+        "dsh": ">=0.1.5-rc.2",
+        "target": {
+          "kind": "npm",
+          "name": "dsh-better-sidebar",
+          "range": "0.19.1"
+        },
+        "file": "./patches/better-sidebar-media-path.patch"
+      }
+    ]
+  }
+}
