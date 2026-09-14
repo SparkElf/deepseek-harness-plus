@@ -11,7 +11,8 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
   DEFAULT_PORT,
@@ -71,6 +72,37 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
   return { port, host, open, foreground }
 }
 
+/**
+ * Where the installation that owns this command keeps its packages.
+ *
+ * A global install places the command in a shared prefix and a local install places
+ * it in a project; neither has anything to do with the directory the user happens to
+ * be in. The search therefore starts at this module own file and climbs to the tree
+ * npm laid out around it.
+ *
+ * The test is the launcher, not the distribution: inside a workspace the package
+ * resolves its own name, so looking for the distribution would stop at the package
+ * rather than at the tree that owns every dependency.
+ *
+ * @returns absolute path to the installation root.
+ */
+function installationRoot(): string {
+  const here = dirname(fileURLToPath(import.meta.url))
+  let current = here
+  for (;;) {
+    if (existsSync(join(current, 'node_modules', '@deepseek-ai', 'dsh'))) return current
+    const parent = dirname(current)
+    // A tree npm did not lay out has no such ancestor; the module own directory
+    // keeps the failure message pointing at the installation that was searched.
+    if (parent === current) return here
+    current = parent
+  }
+}
+
+/** The package.json this installation resolves its dependencies from. */
+function installationAnchor(): string {
+  return join(installationRoot(), 'package.json')
+}
 /** The launcher entry this installation must drive. */
 function launcherEntry(anchor: string): string {
   return createRequire(anchor).resolve('@deepseek-ai/dsh/lib/bin.js')
@@ -86,9 +118,9 @@ function runForeground(entry: string, port: number, host: string, open: boolean)
 
 async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
-  const anchor = join(process.cwd(), 'package.json')
+  const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
-  const created = ensureProfile(paths, process.cwd())
+  const created = ensureProfile(paths, installationRoot())
   console.log(created
     ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory
     : 'Using the existing ' + STANDALONE_PROFILE + ' profile')
@@ -133,7 +165,7 @@ async function startDetached(home: string, entry: string, options: StartOptions)
 }
 
 async function stop(): Promise<number> {
-  const anchor = join(process.cwd(), 'package.json')
+  const anchor = installationAnchor()
   const { home } = resolvePaths(anchor)
   const state = readState(home)
   if (state === undefined) {
@@ -156,7 +188,7 @@ async function stop(): Promise<number> {
 }
 
 function status(): number {
-  const anchor = join(process.cwd(), 'package.json')
+  const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
   const state = readState(paths.home)
   if (state === undefined) {
@@ -180,7 +212,7 @@ function status(): number {
 async function update(argv: readonly string[]): Promise<number> {
   const checkOnly = argv.includes('--check')
   const assumeYes = argv.includes('--yes')
-  const anchor = join(process.cwd(), 'package.json')
+  const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
   const distribution = readDistributionProfile(paths.distributionDirectory)
   const installed = distribution.version
@@ -234,7 +266,7 @@ function confirm(question: string): Promise<boolean> {
 }
 
 async function doctor(): Promise<number> {
-  const anchor = join(process.cwd(), 'package.json')
+  const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
   let failures = 0
   const check = (ok: boolean, line: string): void => {
