@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-13-runtime-mirror-preserves-local-work.md
-2026-09-13-runtime-mirror-preserves-local-work.md: 0e8eece357df2293fd9549f4af91c3f17d53276f
-2026-09-13-runtime-mirror-preserves-local-work.zh.md: f4403cea56e76160c5cc39ab2d9b33e20ab2c4ee
+2026-09-13-runtime-mirror-preserves-local-work.md: c13e13d3b21d81a9c51c88456d916ecb0de08701
+2026-09-13-runtime-mirror-preserves-local-work.zh.md: 6d3cd87d640f1b57cacafe054fbe501d52f2388f
