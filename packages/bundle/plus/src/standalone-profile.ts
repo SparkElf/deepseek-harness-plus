@@ -62,11 +62,17 @@ export function resolveDistributionDirectory(anchor: string): string {
   }
   // A resolution that leaves the consumer tree means the module answered from its own
   // installation, which reports health for a distribution the consumer never installed.
-  const consumerRoot = resolve(dirname(anchor))
-  if (!resolved.startsWith(consumerRoot + '/')) {
-    throw new Error('@sparkelf/dsh-plus resolved outside ' + consumerRoot + ' (found ' + resolved + '); run this command from the directory that installed it')
+  // The comparison walks up from the anchor because the resolved package sits under the
+  // anchor's \`node_modules\`, not beside it: requiring \`<root>/package.json\` legitimately
+  // reports \`<root>/node_modules/@sparkelf/dsh-plus\`.
+  let current = resolve(dirname(anchor))
+  for (;;) {
+    if (resolved === current || resolved.startsWith(current + '/')) return resolved
+    const parent = dirname(current)
+    if (parent === current) break
+    current = parent
   }
-  return resolved
+  throw new Error('@sparkelf/dsh-plus resolved outside ' + resolve(dirname(anchor)) + ' (found ' + resolved + '); run this command from the directory that installed it')
 }
 
 /** The reviewed bundle order and pins the installed distribution declares. */
