@@ -24,6 +24,7 @@ import {
   readState,
   spawnServer,
   stateDirectory,
+  waitForAuthenticatedUrl,
   waitForServer,
   writeState,
 } from './standalone-server.ts'
@@ -157,8 +158,13 @@ async function startDetached(home: string, entry: string, options: StartOptions)
     if (isRunning(pid)) process.kill(pid, 'SIGTERM')
     return 1
   }
-  writeState(home, { pid, port, url })
-  console.log('Plus is running at ' + url)
+  // The launcher prints the URL carrying the process launch token, and the server
+  // refuses every request without the cookie that token mints. Reporting the bare
+  // address sends the user to a 401 that tells them to reopen the launcher's URL,
+  // which lives only in the log this command points at.
+  const opened = await waitForAuthenticatedUrl(logPath, READY_TIMEOUT_MILLISECONDS) ?? url
+  writeState(home, { pid, port, url: opened })
+  console.log('Plus is running at ' + opened)
   console.log('Logs: ' + logPath)
   console.log('Stop it with: dsh-plus stop')
   return 0
