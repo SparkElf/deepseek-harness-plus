@@ -63,8 +63,9 @@ Measured on a real release, not assumed:
 3. **Built code imports the official specifier.** \`@sparkelf/dsh-agent-presets\`'s \`lib/index.js\` contains \`from '@deepseek-ai/dsh-tools'\`. Node resolves an import by name, so **the installed location must keep the official name**; a package manifest that renamed its dependencies would point at a name the code never asks for.
 4. **\`overrides\` substitutes by name, not by manifest entry.** With \`"@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@x"\`, pnpm installs our build at \`node_modules/@deepseek-ai/dsh-tools\`, which is the path the import needs. Verified end to end: a consumer of \`@sparkelf/dsh-agent-presets\` printed \`PATCHED-PRESETS uses PATCHED-TOOLS\`.
 5. **\`overrides\` belongs in \`pnpm-workspace.yaml\`, not \`package.json\`.** pnpm 10 moved it. Placing it in \`package.json\` is silently ignored — the first attempt did exactly that and resolved the official package instead.
-6. **The patched set is exactly twenty packages.** They form a closed dependency graph: \`dsh-web-app\` depends on fifteen of them, \`api-session-controller\` on four, \`host-frontend-static\` on two, \`agent-presets\` on one. Publishing them together is what lets them resolve; a partial set fails at install because a dependency names a package that is not there.
-7. **The official registry serves no second package under an existing name**, so republishing must rename onto our scope. The rename is on the package only: dependencies and imports keep the official names, and the consumer's overrides map one to the other.
+6. **npm rejects an override that names a direct dependency** with \`EOVERRIDE\`. The one package the manifest lists as a dependency (\`dsh-web-app\`) therefore travels as a dependency alias, and the remaining nineteen as overrides.
+7. **The patched set is exactly twenty packages.** They form a closed dependency graph: \`dsh-web-app\` depends on fifteen of them, \`api-session-controller\` on four, \`host-frontend-static\` on two, \`agent-presets\` on one. Publishing them together is what lets them resolve; a partial set fails at install because a dependency names a package that is not there.
+8. **The official registry serves no second package under an existing name**, so republishing must rename onto our scope. The rename is on the package only: dependencies and imports keep the official names, and the consumer's overrides map one to the other.
 
 ## Acceptance criteria
 
@@ -87,6 +88,7 @@ Measured on a real release, not assumed:
 - **A plugin that replaces an official row can drift from it.** The replacement must track the interface it implements; the profile patch that mounts it makes the substitution visible in one file.
 - **Plugin conversion is per-patch work.** Twelve conversions are not one change; each needs its own verification against a real installation.
 - **Some capabilities may resist conversion.** `web-base-path` touches the served frontend, which is a build product; if it cannot become a plugin pair, that capability stays Desktop-only and the distribution must say so.
+- **Every upstream release rebuilds and republishes twenty packages.** \`package-patched-official.mjs\` and \`publish-patched-official.mjs\` automate the step, but it remains a release operation rather than an import.
 
 ## Consequences
 

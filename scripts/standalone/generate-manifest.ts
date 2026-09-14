@@ -42,6 +42,7 @@ export function readDistribution(directory: string): {
   readonly bundles: readonly string[]
   readonly dependencies: readonly ProfileDependency[]
   readonly allowBuilds: Readonly<Record<string, boolean>>
+  readonly overrides: Readonly<Record<string, string>>
 } {
   const manifest = requireRecord(JSON.parse(readFileSync(resolve(directory, 'package.json'), 'utf8')) as unknown, 'distribution manifest')
   const plus = requireRecord(manifest.dshPlus, 'dshPlus')
@@ -66,6 +67,18 @@ export function readDistribution(directory: string): {
     .map(([name, spec]) => ({ name, spec: String(spec) }))
   const merged = new Map<string, ProfileDependency>()
   for (const entry of [...dependencies, ...runtimeDependencies]) merged.set(entry.name, entry)
+  // A patch against official source cannot reach a registry installation, so the
+  // distribution republishes the affected workspaces and declares the substitution
+  // here. The manifest has to carry it: npm resolves the tree during \`npm install\`,
+  // which happens before any command of ours runs.
+  const overrides: Record<string, string> = {}
+  const rawOverrides = profile.overrides === undefined
+    ? {}
+    : requireRecord(profile.overrides, 'dshPlus.profile.overrides')
+  for (const [name, spec] of Object.entries(rawOverrides)) {
+    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
+    overrides[name] = spec
+  }
   return {
     name: String(manifest.name),
     version: String(manifest.version),
@@ -73,6 +86,7 @@ export function readDistribution(directory: string): {
     bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies: [...merged.values()],
     allowBuilds,
+    overrides,
   }
 }
 
@@ -100,6 +114,16 @@ function main(): void {
       'https://registry.npmjs.org',
       Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
     )
+  // An override cannot name a package the manifest also lists as a direct dependency:
+  // npm rejects that combination as EOVERRIDE. The tree root therefore travels as a
+  // dependency alias, and the remaining substitutions as overrides onto its transitive
+  // dependencies. Both keep the official name, which is what the built code imports.
+  const rootAliases = Object.fromEntries(
+    Object.entries(distribution.overrides).filter(([name]) => distribution.dependencies.some(entry => entry.name === name)),
+  )
+  const transitiveOverrides = Object.fromEntries(
+    Object.entries(distribution.overrides).filter(([name]) => rootAliases[name] === undefined),
+  )
   const manifest = {
     name: '@sparkelf/dsh-plus-standalone',
     version: distribution.version,
@@ -116,9 +140,11 @@ function main(): void {
       // so an installation that omits it mounts nothing and has no command to run.
       [distribution.name]: 'workspace:' + distribution.version,
       ...Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
+      ...rootAliases,
     },
-    ...overrides.length === 0 ? {} : {
-      overrides: Object.fromEntries(overrides.map(entry => [entry.name, entry.version])),
+    overrides: {
+      ...Object.fromEntries(overrides.map(entry => [entry.name, entry.version])),
+      ...transitiveOverrides,
     },
     dshPlusStandalone: {
       formatVersion: 1,
