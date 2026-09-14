@@ -46,6 +46,19 @@ entries:
     owner: dsh-market
     localPatches: []
     plusBundle: true
+  - name: "dsh-better-sidebar"
+    source:
+      kind: npm
+      spec: dsh-better-sidebar
+    pinned: 0.19.1
+    interest: Native right-sidebar tabs, file tree, editor, terminal, and side chat
+    owner: omdsh-dev
+    localPatches:
+      - package: "@sparkelf/dsh-patch-better-sidebar-media-path"
+        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
+        retireWhen: dsh-better-sidebar resolves a workspace-relative media path
+          against the session cwd (omdsh-dev/DSH-better-sidebar#673)
+    plusBundle: true
   - name: "@deepseek-ai/dsh-agent-presets"
     source:
       kind: git
