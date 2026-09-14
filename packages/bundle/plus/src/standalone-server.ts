@@ -146,3 +146,30 @@ export async function waitForServer(url: string, timeoutMilliseconds: number): P
   }
   return false
 }
+
+/**
+ * Wait until the launcher's log carries the authenticated URL.
+ *
+ * Readiness and the printed line are separate events: the server answers before the
+ * launcher finishes its own startup, so the log is polled here rather than read once.
+ *
+ * @param logPath - the launcher's log file.
+ * @param timeoutMilliseconds - how long to keep polling.
+ * @returns the printed URL, or undefined when it never appeared.
+ */
+export async function waitForAuthenticatedUrl(logPath: string, timeoutMilliseconds: number): Promise<string | undefined> {
+  const deadline = Date.now() + timeoutMilliseconds
+  for (;;) {
+    let text = ''
+    try {
+      text = readFileSync(logPath, 'utf8')
+    } catch {
+      // The launcher creates the log before it prints, so an absent file is a race
+      // with its first write rather than an error to report.
+    }
+    const found = /dsh web: (http:\/\/\S+)/u.exec(text)
+    if (found?.[1] !== undefined) return found[1]
+    if (Date.now() >= deadline) return undefined
+    await new Promise((resolveDelay) => { setTimeout(resolveDelay, 250) })
+  }
+}
