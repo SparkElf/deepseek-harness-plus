@@ -27,6 +27,8 @@ Treat the mirror's working tree as data to preserve, not a clean checkout to mov
 5. Prove a new test fails without its fix by restoring the sources it guards, rebuilding, and running it. Editing the source to plant the regression proves nothing unless the build succeeds afterward: a broken edit leaves the previous artifact in place, the test runs against code that still carries the fix, and it passes for a reason unrelated to the test. The reliable sequence is revert, rebuild, observe red, then restore and rebuild again.
 6. A package that publishes a command declares its own `bin`. npm creates an executable only for the package that declares it, so a dependency's `bin` lands in a nested directory no shell searches. The same reasoning applies to every host tool the package needs: a consumer installs one package and expects the one command its documentation names.
 7. Resolve an installation from the command's own location, never from the working directory. A global install and a local install place the command in different trees, and neither has anything to do with where the user is standing. When searching upward for the tree, test for a package the installation's dependencies provide rather than the command's own package: inside a workspace the package resolves its own name, so that test stops one level too early.
+8. Change a profile the supervisor's guard protects by running the refresh script, never by editing the profile and restarting the unit. The guard refuses to start when the accepted closure no longer matches, which is what it is for: an acceptance records that someone reviewed the change. `dsh-plus-refresh restart` accepts and then restarts, and `all` rebuilds first; a bare `systemctl restart` after an edit stops the service, retries until systemd gives up, and leaves the deployment down until an acceptance is recorded.
+9. Before changing a file under the served profile, ask which layer owns the fix. A third-party package inside the profile has no repository here to change, so its fix belongs upstream or nowhere; a local edit survives only until the next `apply`. The patch directory covers official-source revisions only, and its variant targets name `dsh-source`.
 
 ## Acceptance criteria
 
@@ -34,6 +36,7 @@ Treat the mirror's working tree as data to preserve, not a clean checkout to mov
 - The verification step names the built artifact and the served endpoint, not only the source file.
 - No step discards work with a bare `git checkout` or an unqualified `git stash push` against the mirror.
 - Proving a new test fails leaves the build succeeding after the regression is planted, so the artifact that ran genuinely omitted the fix.
+- Every change to the served profile goes through the refresh script and records an acceptance before the restart.
 
 ## Alternatives considered
 
