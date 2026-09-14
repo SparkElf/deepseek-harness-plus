@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, posix, resolve, win32 } from 'node:path'
 
 /** Profile name a standalone installation owns. */
 export const STANDALONE_PROFILE = 'plus'
@@ -44,6 +44,28 @@ export function resolveHome(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 /**
+ * Whether one absolute path is the other or sits beneath it.
+ *
+ * A path outside the parent has a relative form starting with `..`, which every
+ * platform answers the same way. Comparing the text against a literal separator is
+ * not: Windows separates with a backslash, so a nested path never matched its own
+ * ancestor and every Windows installation reported the distribution as sitting
+ * outside its own tree.
+ *
+ * @param candidate - absolute path to test.
+ * @param parent - absolute path that may contain it.
+ * @param platform - separating convention, injectable so the Windows answer is
+ * testable where the suite runs on a POSIX host.
+ * @returns true when the candidate is the parent or inside it.
+ */
+export function isWithin(candidate: string, parent: string, platform: NodeJS.Platform = process.platform): boolean {
+  if (candidate === parent) return true
+  const path = platform === 'win32' ? win32 : posix
+  const inside = path.relative(parent, candidate)
+  return inside !== '' && !inside.startsWith('..') && !inside.startsWith(path.sep + '..')
+}
+
+/**
  * Resolve the installed distribution directory from one requiring anchor.
  *
  * The anchor must be a path inside the consumer's own tree. Resolving from this
@@ -67,7 +89,7 @@ export function resolveDistributionDirectory(anchor: string): string {
   // reports \`<root>/node_modules/@sparkelf/dsh-plus\`.
   let current = resolve(dirname(anchor))
   for (;;) {
-    if (resolved === current || resolved.startsWith(current + '/')) return resolved
+    if (isWithin(resolved, current)) return resolved
     const parent = dirname(current)
     if (parent === current) break
     current = parent
