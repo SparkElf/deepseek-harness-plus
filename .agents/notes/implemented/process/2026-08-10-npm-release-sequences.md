@@ -125,6 +125,14 @@ The verification also packs the Landlock entry, which `dsh-sandbox-local` declar
 
 The installed-consumer probe captures npm's HTTP diagnostics and includes them when installation fails. Registry response codes and cache status remain visible even when npm reports a failed peer manifest fetch as `ERESOLVE` with an undefined version.
 
+### A published package is not installable until the consumer's mirror serves it
+
+A publication writes to one registry. Consumers on a mirror — the mainland mirror is the default for this distribution's users — read a synchronized copy, and the copy appears only after the mirror has fetched the package. Installing against the mirror before that fetch finishes fails with `404` on the tarball, which reads as a missing package rather than a pending one.
+
+The failure is easy to misdiagnose because the package is present where it was published: `npm view` against the canonical registry answers `200` for the same version that the consumer cannot install. Verifying a release therefore means installing the published version **through the registry the consumer uses**, not through the one the publisher wrote to.
+
+Trigger a mirror's fetch and wait for it before announcing a release. A mirror that has not yet cached a scope answers `404` for the package document itself; confirm the package document and its tarball both answer `200` through the consumer's registry before treating the release as installable.
+
 ### Repository changes this carried
 
 | Item | Content |
