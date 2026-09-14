@@ -95,3 +95,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: pnpm run release:publish --family plus --from dist/npm-plus
+
+      # A publication writes to one registry and users install from a mirror, which
+      # serves a synchronized copy that appears only after it has fetched the package.
+      # Without this step a release works for the publisher and answers 404 for every
+      # consumer, first for a new package's packument and then for its tarball.
+      - name: Sync the consumer mirror and verify the release installs from it
+        run: pnpm run release:sync-mirror

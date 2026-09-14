@@ -30,6 +30,7 @@ import {
 } from './standalone-server.ts'
 import {
   STANDALONE_PROFILE,
+  applyProfileNpmPatches,
   ensureProfile,
   readDistributionProfile,
   resolvePaths,
@@ -125,6 +126,12 @@ async function start(argv: readonly string[]): Promise<number> {
   console.log(created
     ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory
     : 'Using the existing ' + STANDALONE_PROFILE + ' profile')
+  // The profile symlinks the consumer's packages, so a patch lands on the installed
+  // copy the launcher loads. A reinstall restores the published bytes, which is why
+  // this runs on every start rather than only when the profile was created.
+  for (const label of applyProfileNpmPatches(paths.distributionDirectory, paths.profileDirectory)) {
+    console.log('Applied the reviewed patch ' + label)
+  }
   const entry = launcherEntry(anchor)
   if (options.foreground) return runForeground(entry, options.port, options.host, options.open)
 
