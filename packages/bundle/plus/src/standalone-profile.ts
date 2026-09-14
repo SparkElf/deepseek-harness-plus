@@ -9,6 +9,7 @@
  * bundle's own list.
  */
 
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
@@ -241,4 +242,82 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
   return true
+}
+
+/** Run git in one directory, returning undefined instead of throwing when asked to. */
+function git(root: string, args: readonly string[], acceptFailure = false): string | undefined {
+  const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
+  if (result.status === 0) return result.stdout.trim()
+  if (acceptFailure) return undefined
+  const detail = result.stderr.trim()
+  throw new Error('git ' + args.join(' ') + ' failed' + (detail === '' ? '' : ': ' + detail))
+}
+
+/**
+ * Apply the reviewed npm-target patches to the profile's installed packages.
+ *
+ * A standalone installation runs no `apply` step: it installs the distribution from
+ * the registry, links the consumer's packages, and starts. The npm patches a
+ * distribution declares therefore need an owner that does not require an official
+ * source checkout — the source half of the apply step needs one, this does not.
+ *
+ * The work is idempotent: a patch whose reverse already applies is left alone, so a
+ * second start neither re-applies nor fails. A reinstall restores the published bytes,
+ * which is why this runs on every start rather than once.
+ *
+ * @param distributionDirectory - the installed `@sparkelf/dsh-plus` directory.
+ * @param profileDirectory - the standalone profile directory.
+ * @returns the labels of the patches that were applied.
+ */
+export function applyProfileNpmPatches(distributionDirectory: string, profileDirectory: string): string[] {
+  const manifest = requireRecord(
+    JSON.parse(readFileSync(join(distributionDirectory, 'package.json'), 'utf8')) as unknown,
+    'Plus distribution manifest',
+  )
+  const plus = requireRecord(manifest.dshPlus, 'dshPlus')
+  const names = plus.patchPackages
+  if (!Array.isArray(names)) throw new Error('dshPlus.patchPackages must be an array')
+  const applied: string[] = []
+  for (const value of names) {
+    if (typeof value !== 'string' || value === '') throw new Error('dshPlus.patchPackages entries must be non-empty strings')
+    const patchPackage = resolveInstalledPackage(distributionDirectory, value)
+    const declaration = requireRecord(patchPackage.manifest.dshPatch, value + ' dshPatch')
+    const variants = declaration.variants
+    if (!Array.isArray(variants)) throw new Error(value + ' dshPatch.variants must be an array')
+    for (const entry of variants) {
+      const variant = requireRecord(entry, value + ' variant')
+      const target = requireRecord(variant.target, value + ' variant target')
+      // Only npm targets reach an installed package; a source target needs the
+      // official checkout, which a standalone installation does not have.
+      if (target.kind !== 'npm') continue
+      const targetName = String(target.name)
+      const patched = resolveInstalledPackage(profileDirectory, targetName)
+      const file = resolve(patchPackage.directory, String(variant.file))
+      if (git(patched.directory, ['apply', '--reverse', '--check', file], true) !== undefined) continue
+      git(patched.directory, ['apply', file])
+      applied.push(value + ' -> ' + targetName)
+    }
+  }
+  return applied
+}
+
+/** One installed package's manifest and directory. */
+interface InstalledPackage {
+  readonly name: string
+  readonly version: string
+  readonly directory: string
+  readonly manifest: Record<string, unknown>
+}
+
+/** Resolve one installed package's manifest from a requiring directory. */
+function resolveInstalledPackage(from: string, packageName: string): InstalledPackage {
+  const requireFrom = createRequire(join(from, 'package.json'))
+  let manifestPath: string
+  try {
+    manifestPath = requireFrom.resolve(packageName + '/package.json')
+  } catch {
+    throw new Error(packageName + ' is not installed under ' + from)
+  }
+  const manifest = requireRecord(JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown, packageName + ' manifest')
+  return { name: packageName, version: String(manifest.version), directory: dirname(manifestPath), manifest }
 }
