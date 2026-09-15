@@ -32,6 +32,21 @@ jobs:
       - name: Install (immutable)
         run: pnpm install --frozen-lockfile
 
+      # The governance gate materializes each source patch's declared official base, and
+      # the base moves with every official release. A checkout of this repository holds
+      # only the revisions it descends from, so a base published after the fork point is
+      # absent until the public upstream is fetched.
+      #
+      # The fetch is not shallow: three-way merge needs the base of the lines a patch
+      # touches, and a depth-1 fetch carries neither that history nor its blobs. With them
+      # missing, git falls back to direct application and a patch whose context merely
+      # moved fails as if it conflicted.
+      - name: Fetch the official base revisions
+        run: |
+          git remote add upstream-official https://github.com/deepseek-ai/deepseek-harness.git
+          git fetch --no-tags upstream-official \
+            "$(node -p "require('./packages/bundle/plus/package.json').dshPlus.sourceBase.revision")"
+
       - name: Verify Plus release tag and package closure
         env:
           RELEASE_PUBLISH: 'true'
