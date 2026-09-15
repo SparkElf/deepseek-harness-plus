@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
@@ -181,7 +181,40 @@ export function installProfilePackages(paths: StandalonePaths, consumerDirectory
     return
   }
   runPnpm(paths.profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in the plus profile')
+  alignReplacedPackageNames(profileModules)
   linkNestedBundles(paths, profileModules)
+}
+
+/**
+ * Make each replaced package declare the name of the location it occupies.
+ *
+ * \`overrides\` installs our build at the official path, but the manifest inside still
+ * names our scope. The client module system resolves a loader entry's declared name and
+ * then requires the manifest it finds to declare that same name
+ * (\`client/modules\`: \`name === expectedPackageName\`); a mismatch makes the package own no
+ * browser module at all. The symptom is silent — the packages install, the server starts,
+ * and the panels those packages render simply never appear.
+ *
+ * The rewrite replaces the file rather than writing through it: pnpm hard-links a package
+ * manifest into its content-addressed store, so an in-place write would edit every
+ * profile sharing that store entry.
+ *
+ * @param profileModules - the profile's \`node_modules\` directory.
+ */
+export function alignReplacedPackageNames(profileModules: string): void {
+  const scoped = join(profileModules, '@deepseek-ai')
+  if (!existsSync(scoped)) return
+  for (const entry of readdirSync(scoped)) {
+    const manifestPath = join(scoped, entry, 'package.json')
+    if (!existsSync(manifestPath)) continue
+    const declared = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const expected = '@deepseek-ai/' + entry
+    if (declared.name === expected) continue
+    const replaced = { ...declared, name: expected }
+    const temporary = manifestPath + '.dsh-name'
+    writeFileSync(temporary, JSON.stringify(replaced, null, 2) + '\n')
+    renameSync(temporary, manifestPath)
+  }
 }
 
 /** Run pnpm in one directory, inheriting its output. */
