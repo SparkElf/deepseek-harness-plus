@@ -46,6 +46,23 @@ jobs:
           git remote add upstream-official https://github.com/deepseek-ai/deepseek-harness.git
           git fetch --no-tags upstream-official \
             "$(node -p "require('./packages/bundle/plus/package.json').dshPlus.sourceBase.revision")"
+          git fetch --no-tags upstream-official 'refs/tags/dsh-v*:refs/tags/dsh-v*'
+
+      # The base must be the commit an official release tag points at, not the tip of
+      # master. A base six commits past the tag built, packaged, and passed every other
+      # gate; only its generated codecs disagreed with the loader npm had published, so
+      # the installed profile could not start. Every other gate compares packages to a
+      # source tree and never to the tree npm published, so none of them can see that.
+      - name: Verify the base is an official release
+        run: |
+          REV="$(node -p "require('./packages/bundle/plus/package.json').dshPlus.sourceBase.revision")"
+          TAGS="$(git tag --points-at "$REV" | grep '^dsh-v' || true)"
+          if [ -z "$TAGS" ]; then
+            echo "::error::sourceBase $REV is not an official dsh-v* release tag commit"
+            echo "tags at that commit: $(git tag --points-at "$REV" | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "sourceBase is $(echo "$TAGS" | tr '\n' ' ')"
 
       - name: Verify Plus release tag and package closure
         env:

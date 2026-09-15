@@ -9,7 +9,7 @@ const nativeWindowsPnpmDestination = '${{ runner.temp }}/setup-pnpm-js-${{ githu
 
 describe('CI workflow', () => {
 
-  it('fetches the official patch base without a depth limit', () => {
+  it('fetches the official patch base without a depth limit and pins it to a release tag', () => {
     // The Plus release workflow materializes each source patch's declared official base
     // before verifying it. Two properties have to hold together, and both failed once:
     //
@@ -37,6 +37,18 @@ describe('CI workflow', () => {
     expect(script, 'a shallow fetch cannot three-way merge a moved patch').not.toMatch(/--depth/)
     // The revision comes from the distribution so it cannot drift from what the patches declare.
     expect(script).toContain('dshPlus.sourceBase.revision')
+    // A base six commits past the release tag built and passed every other gate, but its
+    // generated codecs disagreed with the loader npm had published and the profile could
+    // not start. Comparing the base against the official tags is what catches that, so the
+    // workflow must both fetch tags and assert the base carries one.
+    expect(script).toMatch(/git fetch[^\n]*refs\/tags\/dsh-v\*:refs\/tags\/dsh-v\*/)
+    const tagCheck = steps.filter(step =>
+      isRecord(step) && typeof step.run === 'string' && step.run.includes('--points-at'))
+    expect(tagCheck.length, 'the base must be checked against the official tags').toBeGreaterThan(0)
+    const tagScript = tagCheck.map(step => (step as { run: string }).run).join('\n')
+    expect(tagScript).toContain("'^dsh-v'")
+    expect(tagScript).toMatch(/exit 1/)
+
   })
 
   it('isolates every pnpm action setup destination per runner', () => {
