@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+// @ts-expect-error The packager is runtime JavaScript without declaration artifacts.
 import { PACKAGED_FILES, STRIPPED_FIELDS } from './package-patched-official.mjs'
 
 describe('PACKAGED_FILES', () => {
