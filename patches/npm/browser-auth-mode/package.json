@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-browser-auth-mode",
-  "version": "0.1.0-rc.41",
+  "version": "0.2.0-rc.1",
   "description": "Data-only exact official-source patch adding profile-selected browser authentication policy",
   "publishConfig": {
     "access": "public"
