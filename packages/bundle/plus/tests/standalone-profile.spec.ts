@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { alignReplacedPackageNames, isWithin, pnpmAvailable, pnpmInstallCommand, pnpmInstallCommands, resolveDistributionDirectory } from '../src/standalone-profile.ts'
+import { alignReplacedPackageNames, isWithin, pnpmAvailable, pnpmInstallCommand, pnpmInstallCommands, registryOrder, resolveDistributionDirectory } from '../src/standalone-profile.ts'
 
 const roots: string[] = []
 
@@ -132,7 +132,7 @@ describe('Windows pnpm invocation', () => {
     // stopped every Windows installation at 'spawnSync pnpm.cmd EINVAL'. The source is
     // read rather than executed because the failure needs Windows to reproduce.
     const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
-    const runner = source.slice(source.indexOf('function runPnpm'))
+    const runner = source.slice(source.indexOf('function installWithRegistryFallback'))
     expect(runner.slice(0, runner.indexOf('\n}'))).toContain('shell: process.platform === \'win32\'')
   })
 })
@@ -167,5 +167,49 @@ describe('pnpm prerequisite', () => {
     } finally {
       process.env.PATH = savedPath
     }
+  })
+})
+
+describe('registry order', () => {
+  it('prefers the mainland mirror for a mainland locale', () => {
+    // A mainland consumer reaches the mirror far faster than the origin, and the profile
+    // install fetches a full dependency closure, so the choice is the first thing a
+    // slow start shows. The Desktop installer already prefers it there.
+    const saved = process.env.LANG
+    process.env.LANG = 'zh_CN.UTF-8'
+    try {
+      expect(registryOrder()[0]).toBe('https://registry.npmmirror.com')
+    } finally {
+      if (saved === undefined) delete process.env.LANG
+      else process.env.LANG = saved
+    }
+  })
+
+  it('prefers the origin for a non-mainland locale', () => {
+    const saved = process.env.LANG
+    process.env.LANG = 'en_US.UTF-8'
+    try {
+      expect(registryOrder()[0]).toBe('https://registry.npmjs.org')
+    } finally {
+      if (saved === undefined) delete process.env.LANG
+      else process.env.LANG = saved
+    }
+  })
+
+  it('lets an explicit registry override the locale', () => {
+    const saved = process.env.DSH_PLUS_INSTALL_REGISTRY
+    process.env.DSH_PLUS_INSTALL_REGISTRY = 'https://example.invalid'
+    try {
+      expect(registryOrder()[0]).toBe('https://example.invalid')
+    } finally {
+      if (saved === undefined) delete process.env.DSH_PLUS_INSTALL_REGISTRY
+      else process.env.DSH_PLUS_INSTALL_REGISTRY = saved
+    }
+  })
+
+  it('always keeps a second registry to fall back to', () => {
+    // A single unreachable registry would make a first start fail where retrying the
+    // other would have succeeded.
+    expect(registryOrder().length).toBeGreaterThanOrEqual(2)
   })
 })
