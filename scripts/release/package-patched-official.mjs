@@ -46,8 +46,10 @@ const OFFICIAL_SCOPE = '@deepseek-ai/'
 /**
  * The workspaces the Plus patches modify, by repository path.
  *
- * The list is explicit: a patch that adds a workspace must add it here too, which is
- * what makes the omission visible at review time instead of as a missing package.
+ * A patch that adds a workspace updates this list. The spec beside this module derives
+ * the same set from each patch file's \`diff --git\` headers and fails when the two
+ * diverge, because a hand-written list drifts and a missing entry publishes a package set
+ * the patches do not describe.
  */
 export const PATCHED_WORKSPACES = [
   'apps/web',
