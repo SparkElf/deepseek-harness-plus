@@ -42,7 +42,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.1.5-rc.2"
+      "dsh": ">=0.1.6-alpha.1"
     },
     "profile": {
       "bundles": [
@@ -91,26 +91,26 @@
         "ssh2": true
       },
       "overrides": {
-        "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.5-rc.6",
-        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.5-rc.6",
-        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-conversation": "npm:@sparkelf/dsh-client-ui-conversation@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.1.5-rc.6",
-        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.1.5-rc.6",
-        "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.1.5-rc.6",
-        "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.5-rc.6",
-        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.1.5-rc.6",
-        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.5-rc.6",
-        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.5-rc.6",
-        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.5-rc.6",
-        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.5-rc.6",
-        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.1.5-rc.6"
+        "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-conversation": "npm:@sparkelf/dsh-client-ui-conversation@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.6-alpha.1",
+        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.1.6-alpha.1"
       }
     },
     "patchPackages": [
@@ -129,7 +129,7 @@
       "@sparkelf/dsh-patch-mobile-journal-generation"
     ],
     "sourceBase": {
-      "revision": "fb2c4b9e698e30edb738bca4cf0618587db7d203"
+      "revision": "0d1f50007f9bca3f52b06e1c3074fa14d5fb0720"
     }
   },
   "dependencies": {
