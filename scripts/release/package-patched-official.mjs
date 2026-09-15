@@ -56,8 +56,15 @@ const PATCHED_WORKSPACES = [
   'packages/workspace/workspace',
 ]
 
-/** Files and directories a published package must carry. */
-const PUBLISHED_FILES = ['lib', 'presets', 'skills', 'README.md', 'README.zh.md', 'LICENSE']
+/**
+ * Files and directories a published package must carry.
+ *
+ * \`dist\` matters for the web frontend, whose payload is the built application the
+ * server serves; omitting it published a package whose \`files\` promised a directory it
+ * did not contain, and the server answered 404 for every page.
+ */
+export const PACKAGED_FILES = ['lib', 'dist', 'presets', 'skills', 'README.md', 'README.zh.md', 'LICENSE']
+const PUBLISHED_FILES = PACKAGED_FILES
 
 /** Read one JSON file. */
 function readJson(path) {
@@ -173,21 +180,29 @@ function packageWorkspace(source, out, workspace, versions) {
   return published.name
 }
 
-const argv = process.argv.slice(2)
-let source
-let out
-for (let index = 0; index < argv.length; index += 1) {
-  if (argv[index] === '--source') { source = argv[index + 1]; index += 1; continue }
-  if (argv[index] === '--out') { out = argv[index + 1]; index += 1; continue }
-  throw new Error('unknown option: ' + argv[index])
+// Importing this module must not package anything: a spec imports it for its table,
+// and running the body on import would make that import throw instead.
+async function main() {
+  const argv = process.argv.slice(2)
+  let source
+  let out
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] === '--source') { source = argv[index + 1]; index += 1; continue }
+    if (argv[index] === '--out') { out = argv[index + 1]; index += 1; continue }
+    throw new Error('unknown option: ' + argv[index])
+  }
+  if (source === undefined || out === undefined) {
+    throw new Error('usage: package-patched-official.mjs --source <built-checkout> --out <dir>')
+  }
+  rmSync(out, { recursive: true, force: true })
+  mkdirSync(out, { recursive: true })
+  const versions = officialVersions(resolve(source))
+  const names = PATCHED_WORKSPACES.map(workspace =>
+    packageWorkspace(resolve(source), resolve(out), workspace, versions))
+  console.log('package-patched-official: ' + String(names.length) + ' package(s) written to ' + out)
+  for (const name of names) console.log('  ' + name)
 }
-if (source === undefined || out === undefined) {
-  throw new Error('usage: package-patched-official.mjs --source <built-checkout> --out <dir>')
+
+if (process.argv[1] !== undefined && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
+  await main()
 }
-rmSync(out, { recursive: true, force: true })
-mkdirSync(out, { recursive: true })
-const versions = officialVersions(resolve(source))
-const names = PATCHED_WORKSPACES.map(workspace =>
-  packageWorkspace(resolve(source), resolve(out), workspace, versions))
-console.log('package-patched-official: ' + String(names.length) + ' package(s) written to ' + out)
-for (const name of names) console.log('  ' + name)
