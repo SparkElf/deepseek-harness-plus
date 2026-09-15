@@ -1,8 +1,8 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { isWithin, resolveDistributionDirectory } from '../src/standalone-profile.ts'
+import { alignReplacedPackageNames, isWithin, resolveDistributionDirectory } from '../src/standalone-profile.ts'
 
 const roots: string[] = []
 
@@ -66,5 +66,61 @@ describe('path containment', () => {
     expect(isWithin(win32.join('D:\\', 'other'), parent, 'win32')).toBe(false)
     // A sibling whose name starts with the parent's is not inside it.
     expect(isWithin(parent + 'x', parent, 'win32')).toBe(false)
+  })
+})
+
+describe('alignReplacedPackageNames', () => {
+  /**
+   * Lay out one replaced package the way an override installs it: our build at the
+   * official path, still declaring our name.
+   * @param profileModules - the profile's `node_modules` directory.
+   * @param entry - the official package directory name.
+   * @returns the manifest path.
+   */
+  function replaced(profileModules: string, entry: string): string {
+    const directory = join(profileModules, '@deepseek-ai', entry)
+    mkdirSync(directory, { recursive: true })
+    const manifest = join(directory, 'package.json')
+    writeFileSync(manifest, JSON.stringify({ name: '@sparkelf/' + entry, version: '1.2.3' }, null, 2) + '\n')
+    return manifest
+  }
+
+  it('makes a replaced package declare the location it occupies', () => {
+    // The client module system resolves a loader entry declared name and then requires
+    // the manifest it finds to declare that same name. An override installs our build at
+    // the official path while the manifest keeps naming our scope, so the package owned
+    // no browser module and its panels silently never rendered.
+    const root = join(tmpdir(), 'dsh-plus-names-' + String(Math.random()).slice(2))
+    roots.push(root)
+    const modules = join(root, 'node_modules')
+    const manifest = replaced(modules, 'dsh-client-ui-settings-models')
+    alignReplacedPackageNames(modules)
+    expect(JSON.parse(readFileSync(manifest, 'utf8')).name).toBe('@deepseek-ai/dsh-client-ui-settings-models')
+  })
+
+  it('replaces the manifest rather than writing through it', () => {
+    // pnpm hard-links a manifest into its content-addressed store. Writing through the
+    // link would edit every profile that shares the store entry, so the rewrite must
+    // create a new file and move it into place.
+    const root = join(tmpdir(), 'dsh-plus-names-' + String(Math.random()).slice(2))
+    roots.push(root)
+    const modules = join(root, 'node_modules')
+    const manifest = replaced(modules, 'dsh-tools')
+    const before = statSync(manifest)
+    alignReplacedPackageNames(modules)
+    const after = statSync(manifest)
+    expect(after.ino).not.toBe(before.ino)
+    expect(after.nlink).toBe(1)
+  })
+
+  it('leaves a package that already declares the right name alone', () => {
+    const root = join(tmpdir(), 'dsh-plus-names-' + String(Math.random()).slice(2))
+    roots.push(root)
+    const modules = join(root, 'node_modules')
+    const manifest = replaced(modules, 'dsh-agent-presets')
+    writeFileSync(manifest, JSON.stringify({ name: '@deepseek-ai/dsh-agent-presets' }, null, 2) + '\n')
+    const before = statSync(manifest)
+    alignReplacedPackageNames(modules)
+    expect(statSync(manifest).ino).toBe(before.ino)
   })
 })
