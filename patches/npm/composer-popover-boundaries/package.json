@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-composer-popover-boundaries",
   "description": "Keep composer permission and model popovers inside the DSH center column",
-  "version": "0.1.0-rc.41",
+  "version": "0.2.0-rc.1",
   "publishConfig": {
     "access": "public"
   },
@@ -19,15 +19,15 @@
     "variants": [
       {
         "id": "composer-popover-center-boundaries",
-        "dsh": ">=0.1.5-rc.2",
+        "dsh": ">=0.1.6-alpha.1",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "fb2c4b9e698e30edb738bca4cf0618587db7d203",
+          "baseRevision": "0d1f50007f9bca3f52b06e1c3074fa14d5fb0720",
           "paths": [
             "apps/web/tests/",
             "packages/client/ui-layout/",
+            "packages/client/ui-permission-presets/",
             "packages/client/ui-primitives/",
-            "packages/client/ui-conversation/",
             "packages/client/ui-model-selection/"
           ]
         },

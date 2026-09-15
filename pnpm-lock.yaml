@@ -9408,7 +9408,7 @@ importers:
         specifier: 0.9.9
         version: 0.9.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-api-session-controller@packages+api+session-controller)(@deepseek-ai/dsh-client-store@packages+client+store)(@deepseek-ai/dsh-client-ui-chat@packages+client+ui-chat)(@deepseek-ai/dsh-client-ui-conversation@packages+client+ui-conversation)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-renderer@packages+client+ui-renderer)(@deepseek-ai/dsh-client-ui-session@packages+client+ui-session)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/dsh-skill@packages+skill+skill)(@deepseek-ai/dsh-system-prompt@packages+core+system-prompt)(@deepseek-ai/dsh-tools@packages+core+tools)(@deepseek-ai/dsh-util-values@packages+util+values)(react@18.3.1)
       '@deepseek-ai/dsh':
-        specifier: workspace:>=0.1.5-rc.2
+        specifier: workspace:>=0.1.6-alpha.1
         version: link:../../../apps/cli
       '@huanlin/dsh-plugin-better-locale':
         specifier: 0.4.1
@@ -9435,7 +9435,7 @@ importers:
         specifier: 0.1.5
         version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.1.0-rc.41
+        specifier: workspace:0.2.0-rc.1
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2

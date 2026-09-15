@@ -32,30 +32,29 @@ index 304bdb97f6..0e820ee757 100644
      await page.getByRole('menuitem', { name: /模型/ }).click()
      await page.getByRole('menuitemradio', { name: 'Acme Large' }).click()
  
-diff --git a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-index b54049efef..6eed9180c0 100644
---- a/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
-+++ b/packages/client/ui-conversation/src/client/skeleton/PermissionSelect.tsx
+diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
+index 1736fd8..efd2496 100644
+--- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
++++ b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 @@ -1,4 +1,4 @@
 -import { useEffect, useState } from 'react'
 +import { useEffect, useRef, useState } from 'react'
  import type { ReactNode } from 'react'
  import clsx from 'clsx'
- import type { PermissionSelect as PermissionSelectValue } from '@deepseek-ai/dsh-permission-presets/client'
-@@ -88,6 +88,8 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
+ import {
+@@ -100,6 +100,8 @@ export function PermissionSelect({
+   const catalog = usePermissionCatalog(state => state.value)
+   const [pick, setPick] = useState<string | null>(null)
    const [open, setOpen] = useState(false)
-   const [confirmation, setConfirmation] = useState<string | null>(null)
-   const [acknowledged, setAcknowledged] = useState(false)
 +  const triggerRef = useRef<HTMLButtonElement | null>(null)
 +  const boundaryRef = useRef<HTMLElement | null>(null)
+   const [confirmation, setConfirmation] = useState<string | null>(null)
+   const [acknowledged, setAcknowledged] = useState(false)
  
-   useEffect(() => {
-     if (!locked && value !== undefined) return
-@@ -155,8 +157,14 @@ export function PermissionSelect({ value, locked, command, t }: PermissionSelect
-         onSelect={choose}
+@@ -192,8 +194,13 @@ export function PermissionSelect({
          onClose={() => { setOpen(false) }}
          side="top"
-+        portal
+         portal
 +        boundaryRef={boundaryRef}
          anchor={
            <button
@@ -65,7 +64,7 @@ index b54049efef..6eed9180c0 100644
 +            }}
              type="button"
              className={css.trigger}
-             aria-label={t('input.accessMode', { name: currentLabel })}
+             aria-label={t('mode', { name: currentAccessibleLabel })}
 diff --git a/packages/client/ui-layout/README.md b/packages/client/ui-layout/README.md
 index 4fe19fb9ec..976a4dad8c 100644
 --- a/packages/client/ui-layout/README.md
@@ -76,19 +75,6 @@ index 4fe19fb9ec..976a4dad8c 100644
  
 -One registration declares four child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
 +One registration declares four child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
- 
- </details>
- 
-diff --git a/packages/client/ui-layout/README.zh.md b/packages/client/ui-layout/README.zh.md
-index 7a61e7808f..4c80da0778 100644
---- a/packages/client/ui-layout/README.zh.md
-+++ b/packages/client/ui-layout/README.zh.md
-@@ -43,7 +43,7 @@ kind: "package-reference"
- 
- `selectPanel(id)` 在改变选中态前检查实时 `main` 注册表；缺失的 key 会抛错并保留当前面板。`beginNavigation()` 为异步 UI 导航返回 abort signal。后续调用、有效面板选择（包括重复选择）或布局释放会中止该 signal，但不取消底层会话创建。消费者在提交导航或搬移草稿前检查 signal。
- 
--一次注册声明四个子slot并绑定 `ctx.layout` 的 `selectPanel`、`toggleSidebar`、`openRightbar(track, fullscreen)` 与 `closeRightbar`。同一个 root 存储把 `panelInfo` 选中态与 `layoutInfo` 测量、宽度偏好、呈现报告分开。`usePanelInfo` 订阅引用稳定的选中态对象，AppFrame 订阅引用稳定的布局对象。`rightbar` 的owner参数为实际 `width`、`viewportWidth` 与普通呈现的 `canShow`；占用方在空间不足时执行确定性的收起，变宽不自行重新展开。全屏隐藏宽度手柄，但不自行释放占用方要求保留的轨道。AppFrame 保持各列容器挂载。右栏的 root 控制器仅在选中会话界面时，经 `SessionProvider` 渲染 `rightbar.session`；内容卸载时的报告释放列宽。独立的标题组件仅在会话界面可见时使用所选会话标题，以构建配置的产品标题或本地化 `common.brand.localBuild` 为回退值；语言变化会更新该回退值。主题呈现器是第二个 effect：从解析后的快照做纯 DOM 写入——初始状态经 getter 读取一次，此后仅事件驱动，不经过 React。它先应用调色板、字号与 token 变量，再把渲染出的背景测量为唯一的颜色依据。 全屏呈现禁用网格和手柄过渡；占用方完全覆盖框架后才报告新的列宽。 退出全屏时，框架先保持无过渡并安装目标布局：关闭移除右轨道，恢复保留右轨道。后续普通几何操作恢复正常过渡。
-+一次注册声明四个子slot并绑定 `ctx.layout` 的 `selectPanel`、`toggleSidebar`、`openRightbar(track, fullscreen)` 与 `closeRightbar`。同一个 root 存储把 `panelInfo` 选中态与 `layoutInfo` 测量、宽度偏好、呈现报告分开。`usePanelInfo` 订阅引用稳定的选中态对象，AppFrame 订阅引用稳定的布局对象。`rightbar` 的owner参数为实际 `width`、`viewportWidth` 与普通呈现的 `canShow`；占用方在空间不足时执行确定性的收起，变宽不自行重新展开。全屏隐藏宽度手柄，但不自行释放占用方要求保留的轨道。AppFrame 保持各列容器挂载。center column标记其DOM owner，使portal composer菜单保持在其横向边界内。右栏的 root 控制器仅在选中会话界面时，经 `SessionProvider` 渲染 `rightbar.session`；内容卸载时的报告释放列宽。独立的标题组件仅在会话界面可见时使用所选会话标题，以构建配置的产品标题或本地化 `common.brand.localBuild` 为回退值；语言变化会更新该回退值。主题呈现器是第二个 effect：从解析后的快照做纯 DOM 写入——初始状态经 getter 读取一次，此后仅事件驱动，不经过 React。它先应用调色板、字号与 token 变量，再把渲染出的背景测量为唯一的颜色依据。 全屏呈现禁用网格和手柄过渡；占用方完全覆盖框架后才报告新的列宽。 退出全屏时，框架先保持无过渡并安装目标布局：关闭移除右轨道，恢复保留右轨道。后续普通几何操作恢复正常过渡。
  
  </details>
  

@@ -32,7 +32,9 @@ index c76dc4a51b..4c8ec0661a 100644
  
      # Production dsh does not install these optional providers. Install the
      # matching Bundle in this Profile and restart the Host, then copy this
-diff --git a/packages/preset/agent-presets/presets/ptc/agent.cordis.yml b/packages/preset/agent-presets/presets/ptc/agent.cordis.yml
+index 940a7c9..286d0ac 100644
+--- a/packages/preset/agent-presets/presets/cordis/agent.cordis.yml
++++ b/packages/preset/agent-presets/presets/cordis/agent.cordis.ymldiff --git a/packages/preset/agent-presets/presets/ptc/agent.cordis.yml b/packages/preset/agent-presets/presets/ptc/agent.cordis.yml
 index a3771e6b71..5235855abd 100644
 --- a/packages/preset/agent-presets/presets/ptc/agent.cordis.yml
 +++ b/packages/preset/agent-presets/presets/ptc/agent.cordis.yml
@@ -66,7 +68,9 @@ index a3771e6b71..5235855abd 100644
  
      # Production dsh does not install these optional providers. Install the
      # matching Bundle in this Profile and restart the Host, then copy this
-diff --git a/packages/preset/agent-presets/presets/standard/agent.cordis.yml b/packages/preset/agent-presets/presets/standard/agent.cordis.yml
+index 7773f64..25cdebf 100644
+--- a/packages/preset/agent-presets/presets/ptc/agent.cordis.yml
++++ b/packages/preset/agent-presets/presets/ptc/agent.cordis.ymldiff --git a/packages/preset/agent-presets/presets/standard/agent.cordis.yml b/packages/preset/agent-presets/presets/standard/agent.cordis.yml
 index 63b1798840..3052ac720b 100644
 --- a/packages/preset/agent-presets/presets/standard/agent.cordis.yml
 +++ b/packages/preset/agent-presets/presets/standard/agent.cordis.yml
@@ -100,3 +104,6 @@ index 63b1798840..3052ac720b 100644
  
      # Production dsh does not install these optional providers. Install the
      # matching Bundle in this Profile and restart the Host, then copy this
+index b2c26e4..922a430 100644
+--- a/packages/preset/agent-presets/presets/standard/agent.cordis.yml
++++ b/packages/preset/agent-presets/presets/standard/agent.cordis.yml

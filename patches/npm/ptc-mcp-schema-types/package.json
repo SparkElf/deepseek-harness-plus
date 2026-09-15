@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-ptc-mcp-schema-types",
-  "version": "0.1.0-rc.41",
+  "version": "0.2.0-rc.1",
   "description": "Data-only exact official-source patch preserving MCP parameter types in the TypeScript PTC SDK",
   "publishConfig": {
     "access": "public"
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "ptc-mcp-validation-schema-types",
-        "dsh": ">=0.1.5-rc.2",
+        "dsh": ">=0.1.6-alpha.1",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "fb2c4b9e698e30edb738bca4cf0618587db7d203",
+          "baseRevision": "0d1f50007f9bca3f52b06e1c3074fa14d5fb0720",
           "paths": [
             "packages/core/tools/"
           ]
