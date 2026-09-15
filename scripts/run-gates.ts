@@ -1509,8 +1509,20 @@ export function taskkillArgs(rootPid: number, descendants: number[]): string[][]
   return [rootPid, ...descendants].map(pid => ['/PID', String(pid), '/T', '/F'])
 }
 
-/** Breadth-first walk of the pid/ppid rows starting at `root`. */
-function collectDescendants(root: number, rows: Array<[number, number]>): number[] {
+/**
+ * Breadth-first walk of the pid/ppid rows starting at `root`.
+ *
+ * The captured ppid relation need not be a tree. Windows recycles pids, so a snapshot
+ * taken while a process exits can pair one pid with a parent that already belongs to
+ * its own subtree; following that edge revisits pids forever, and the growth surfaces
+ * as `RangeError: Maximum call stack size exceeded` from the append rather than as a
+ * missing descendant. Each pid is therefore recorded once and never followed twice.
+ *
+ * @param root - the process to walk from.
+ * @param rows - pid and parent-pid pairs.
+ * @returns every descendant pid, in breadth-first order, each appearing once.
+ */
+export function collectDescendants(root: number, rows: Array<[number, number]>): number[] {
   const byParent = new Map<number, number[]>()
   for (const [pid, ppid] of rows) {
     const children = byParent.get(ppid) ?? []
@@ -1518,12 +1530,16 @@ function collectDescendants(root: number, rows: Array<[number, number]>): number
     byParent.set(ppid, children)
   }
   const result: number[] = []
-  const queue = byParent.get(root) ?? []
+  const visited = new Set<number>([root])
+  const queue = [...(byParent.get(root) ?? [])]
   for (let index = 0; index < queue.length; index += 1) {
     const pid = queue[index]
-    if (pid === undefined) continue
+    if (pid === undefined || visited.has(pid)) continue
+    visited.add(pid)
     result.push(pid)
-    queue.push(...(byParent.get(pid) ?? []))
+    for (const child of byParent.get(pid) ?? []) {
+      if (!visited.has(child)) queue.push(child)
+    }
   }
   return result
 }
