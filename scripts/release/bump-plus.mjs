@@ -1,9 +1,14 @@
 /**
- * Bump every Plus release member to one version.
+ * Bump every Plus release member to one version and refresh what depends on it.
  *
  * The member list comes from \`PlusFamily.patterns\` in \`families.ts\` — the same authority
  * \`verify.ts --family plus\` enforces — because a hand-written list of directories missed
  * fifteen of the nineteen members and failed the release before it published anything.
+ *
+ * Two generated files follow a version change, in this order: the standalone manifest
+ * carries each member's version, and the lockfile records the manifest. Updating the
+ * lockfile before the manifest leaves it stale, which CI reports as
+ * ERR_PNPM_OUTDATED_LOCKFILE against \`packages/standalone/plus-standalone\`.
  *
  * Usage:
  *   node scripts/release/bump-plus.mjs <version> [--dry-run]
@@ -13,12 +18,18 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+/** Where the generated manifest and its inputs live, relative to the repository root. */
+const MANIFEST_OUT = 'packages/standalone/plus-standalone/package.json'
+const MANIFEST_DISTRIBUTION = 'packages/bundle/plus'
+const MANIFEST_RUNTIME = '0.1.5-rc.2'
+const MANIFEST_GENERATOR = 'scripts/standalone/generate-manifest.ts'
+
 const root = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
  * Every Plus release member, resolved from the family's own patterns.
  *
- * @returns repository-relative manifest paths, relative to the repository root.
+ * @returns repository-relative manifest paths.
  */
 export function plusMemberManifests() {
   const patterns = [
@@ -32,11 +43,6 @@ export function plusMemberManifests() {
     .sort()
 }
 
-/** Read one manifest, or fail naming the path that could not be read. */
-function readManifest(path) {
-  return JSON.parse(readFileSync(resolve(root, path), 'utf8'))
-}
-
 /**
  * Rewrite every member's version to \`version\`.
  *
@@ -47,7 +53,7 @@ function readManifest(path) {
 export function bumpPlus(version, dryRun) {
   const changed = []
   for (const path of plusMemberManifests()) {
-    const manifest = readManifest(path)
+    const manifest = JSON.parse(readFileSync(resolve(root, path), 'utf8'))
     if (manifest.version === version) continue
     changed.push({ path, from: manifest.version, to: version })
     if (dryRun) continue
@@ -67,11 +73,14 @@ function main() {
   const label = changed.length + ' of ' + String(members.length) + ' member(s)'
   console.log('bump-plus: ' + (dryRun ? 'would set ' : 'set ') + label + ' to ' + version)
   for (const entry of changed) console.log('  ' + entry.path + ': ' + entry.from + ' -> ' + entry.to)
-  if (dryRun || changed.length === 0) return
-  // A version change is a dependency change: the lockfile records each workspace's
-  // version, and CI installs with --frozen-lockfile, which fails on the mismatch.
-  execFileSync('pnpm', ['install', '--lockfile-only'], { cwd: root, stdio: 'inherit' })
-  console.log('bump-plus: lockfile updated')
+  if (dryRun) return
+  const run = (command, args, name) => {
+    execFileSync(command, args, { cwd: root, stdio: 'inherit' })
+    console.log('bump-plus: ' + name)
+  }
+  run('pnpm', ['exec', 'tsx', MANIFEST_GENERATOR, '--distribution', MANIFEST_DISTRIBUTION,
+    '--out', MANIFEST_OUT, '--runtime-version', MANIFEST_RUNTIME], 'manifest regenerated')
+  run('pnpm', ['install', '--lockfile-only'], 'lockfile updated')
 }
 
 if (process.argv[1] !== undefined && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
