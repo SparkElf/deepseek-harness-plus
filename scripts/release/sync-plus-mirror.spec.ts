@@ -5,7 +5,7 @@ describe('plusMemberNamesAt', () => {
   it('names every Plus member at the release version', () => {
     // The sync step must cover the whole closure: a package left out of the request is
     // exactly the 404 a consumer hits after the publisher's install succeeded.
-    const names = plusMemberNamesAt(process.cwd(), '0.1.0-rc.33')
+    const names = plusMemberNamesAt(process.cwd(), '0.1.0-rc.34')
     expect(names.length).toBeGreaterThan(10)
     expect(names).toContain('@sparkelf/dsh-plus')
     expect(names).toContain('@sparkelf/dsh-patch-better-sidebar-media-path')

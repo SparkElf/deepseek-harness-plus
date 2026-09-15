@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, symlinkSync, writeFil
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
+import { parseDocument } from 'yaml'
 
 /** Profile name a standalone installation owns. */
 export const STANDALONE_PROFILE = 'plus'
@@ -104,6 +105,7 @@ export function readDistributionProfile(distributionDirectory: string): {
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
+  readonly overrides: Readonly<Record<string, string>>
   readonly version: string
 } {
   const manifest = requireRecord(
@@ -124,11 +126,23 @@ export function readDistributionProfile(distributionDirectory: string): {
     if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
     allowBuilds[name] = allowed
   }
+  // An override substitutes our republished build for an official package by name: the
+  // built code imports the official specifier, so the installed location has to keep
+  // that name while its contents come from ours.
+  const overrides: Record<string, string> = {}
+  const rawOverrides = profile.overrides === undefined
+    ? {}
+    : requireRecord(profile.overrides, 'dshPlus.profile.overrides')
+  for (const [name, spec] of Object.entries(rawOverrides)) {
+    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
+    overrides[name] = spec
+  }
   return {
     name: String(manifest.name),
     bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies,
     allowBuilds,
+    overrides,
     version: String(manifest.version),
   }
 }
@@ -241,7 +255,32 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
     },
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
+  writeProfileOverrides(paths.profileDirectory, distribution.overrides)
   return true
+}
+
+/**
+ * Record the distribution's package substitutions in the profile workspace.
+ *
+ * pnpm reads \`overrides\` from \`pnpm-workspace.yaml\` since version 10 and ignores the
+ * same key in \`package.json\`, so a profile that carried it in the manifest would
+ * silently install the official package the override meant to replace.
+ *
+ * @param profileDirectory - the standalone profile directory.
+ * @param overrides - official package name to published replacement spec.
+ */
+function writeProfileOverrides(profileDirectory: string, overrides: Readonly<Record<string, string>>): void {
+  const workspacePath = join(profileDirectory, 'pnpm-workspace.yaml')
+  const document = parseDocument(existsSync(workspacePath) ? readFileSync(workspacePath, 'utf8') : '')
+  const [documentError] = document.errors
+  if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
+  if (document.get('packages') === undefined) document.set('packages', ['.'])
+  for (const [name, spec] of Object.entries(overrides)) document.setIn(['overrides', name], spec)
+  // The profile resolves bundles from this directory, so peers the official tree would
+  // supply have to come from what the consumer installed.
+  if (document.get('nodeLinker') === undefined) document.set('nodeLinker', 'hoisted')
+  if (document.get('autoInstallPeers') === undefined) document.set('autoInstallPeers', false)
+  writeFileSync(workspacePath, String(document))
 }
 
 /** Run git in one directory, returning undefined instead of throwing when asked to. */

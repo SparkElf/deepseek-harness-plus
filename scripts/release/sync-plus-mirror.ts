@@ -26,11 +26,27 @@ const ROOT = fileURLToPath(new URL('../..', import.meta.url))
 /** Default mirror: the registry this distribution's users install from. */
 const DEFAULT_MIRROR = 'https://registry.npmmirror.com'
 
-/** How long one fetch may stay pending before the wait gives up. */
-const POLL_INTERVAL_MILLISECONDS = 5_000
+/** How long one check may stay pending before the wait gives up. */
+const POLL_INTERVAL_MILLISECONDS = 10_000
 
-/** How long the mirror has to serve a package before the step fails. */
-const READY_TIMEOUT_MILLISECONDS = 300_000
+/**
+ * How long the mirror has to serve a package before the step fails.
+ *
+ * This must outlast the publishing registry's own propagation: \`npm publish\` reports
+ * success while a read of the same package can still answer 404 for minutes, and a
+ * mirror cannot fetch a version its upstream does not serve yet. Fifteen minutes covers
+ * the gap observed on a real release with room to spare.
+ */
+const READY_TIMEOUT_MILLISECONDS = 900_000
+
+/**
+ * How often the still-missing packages are requested again.
+ *
+ * A request made while the publishing registry was not yet serving the version cannot
+ * succeed, so the wait has to repeat it rather than poll passively; one slow package
+ * would otherwise fail a release that would have completed on its own.
+ */
+const REQUEST_INTERVAL_MILLISECONDS = 60_000
 
 interface Options {
   readonly version: string
@@ -124,6 +140,7 @@ async function main(argv: readonly string[]): Promise<number> {
 
   const deadline = Date.now() + READY_TIMEOUT_MILLISECONDS
   const pending = new Set(names)
+  let nextRequest = Date.now() + REQUEST_INTERVAL_MILLISECONDS
   while (pending.size > 0) {
     for (const name of [...pending]) {
       if (versionServed(mirror, name, version)) pending.delete(name)
@@ -131,6 +148,13 @@ async function main(argv: readonly string[]): Promise<number> {
     if (pending.size === 0) break
     if (Date.now() >= deadline) {
       throw new Error('the mirror did not serve ' + String(pending.size) + ' package(s) in time: ' + [...pending].join(', '))
+    }
+    if (Date.now() >= nextRequest) {
+      // The publishing registry may not have served the version when the first request
+      // went out; a mirror cannot fetch what its upstream does not yet have.
+      for (const name of pending) requestSync(mirror, name)
+      console.log('sync-plus-mirror: re-requested ' + String(pending.size) + ' package(s) still missing')
+      nextRequest = Date.now() + REQUEST_INTERVAL_MILLISECONDS
     }
     await new Promise((resolveWait) => { setTimeout(resolveWait, POLL_INTERVAL_MILLISECONDS) })
   }
