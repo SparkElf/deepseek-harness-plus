@@ -80,12 +80,16 @@
         "dsh-video-preview": "0.1.4"
       },
       "allowBuilds": {
-        "@officecli/officecli": true,
-        "cpu-features": false,
-        "node-pty": true,
-        "oracledb": true,
-        "protobufjs": false,
-        "ssh2": true
+        "@deepseek-ai/dsh-subprocess-local@0.1.5-rc.2": true,
+        "@google/genai@1.52.0": false,
+        "@officecli/officecli@1.0.147": true,
+        "cpu-features@0.0.10": false,
+        "koffi@3.3.0": true,
+        "node-pty@1.1.0": true,
+        "node-pty@1.2.0-beta.15": true,
+        "oracledb@7.0.1": true,
+        "protobufjs@7.6.6": false,
+        "ssh2@1.17.0": true
       },
       "overrides": {
         "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.5-rc.2",
