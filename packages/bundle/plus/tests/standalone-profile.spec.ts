@@ -210,6 +210,15 @@ describe('registry order', () => {
     }
   })
 
+  it('reads the locale from Intl when the POSIX variables are absent', () => {
+    // A Windows console sets neither LANG nor LC_ALL, so a check that read only those
+    // classified every Windows installation as non-mainland and reached the origin
+    // first — a consumer's log showed npmjs failing before the mirror answered.
+    const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
+    const order = source.slice(source.indexOf('export function registryOrder'))
+    expect(order.slice(0, order.indexOf('\n}'))).toContain('Intl.DateTimeFormat')
+  })
+
   it('lets an explicit registry override the locale', () => {
     const saved = process.env.DSH_PLUS_INSTALL_REGISTRY
     process.env.DSH_PLUS_INSTALL_REGISTRY = 'https://example.invalid'

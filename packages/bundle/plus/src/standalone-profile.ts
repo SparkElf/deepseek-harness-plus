@@ -264,7 +264,14 @@ const MAINLAND_REGISTRY = 'https://registry.npmmirror.com'
 export function registryOrder(): readonly string[] {
   const configured = process.env.DSH_PLUS_INSTALL_REGISTRY
   if (configured !== undefined && configured !== '') return [configured, MAINLAND_REGISTRY]
-  const locale = (process.env.LANG ?? process.env.LC_ALL ?? '').toLowerCase()
+  // Intl reports the system locale on every platform. The POSIX variables are empty on
+  // Windows, so reading them alone classified every Windows console as non-mainland and
+  // reached the origin first — measured in a consumer's log, which showed npmjs failing
+  // before the mirror answered.
+  const locale = [process.env.LANG, process.env.LC_ALL, Intl.DateTimeFormat().resolvedOptions().locale]
+    .filter(value => value !== undefined)
+    .join(' ')
+    .toLowerCase()
   const mainlandFirst = locale.includes('zh') || locale.includes('cn')
   return mainlandFirst ? [MAINLAND_REGISTRY, OFFICIAL_REGISTRY] : [OFFICIAL_REGISTRY, MAINLAND_REGISTRY]
 }

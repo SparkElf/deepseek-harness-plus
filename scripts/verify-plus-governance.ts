@@ -222,17 +222,20 @@ function main(): void {
   // Each entry is version-pinned because pnpm matches a transitive dependency by
   // \`name@version\` and replaces an unmatched entry with a placeholder, which makes the
   // install fail rather than merely skip a build.
+  // pnpm matches an allowBuilds key by bare package name, whichever version the tree
+  // resolves. A name@version key matches only that exact version, and every dependency
+  // here is declared with a range, so the resolved version differs between machines —
+  // which is how koffi@3.2.1 on one consumer's machine missed a koffi@3.3.0 entry.
   if (JSON.stringify(allowBuilds) !== JSON.stringify({
-    '@deepseek-ai/dsh-subprocess-local@0.1.5-rc.2': true,
-    '@google/genai@1.52.0': false,
-    '@officecli/officecli@1.0.147': true,
-    'cpu-features@0.0.10': false,
-    'koffi@3.3.0': true,
-    'node-pty@1.1.0': true,
-    'node-pty@1.2.0-beta.15': true,
-    'oracledb@7.0.1': true,
-    'protobufjs@7.6.6': false,
-    'ssh2@1.17.0': true,
+    '@deepseek-ai/dsh-subprocess-local': true,
+    '@google/genai': false,
+    '@officecli/officecli': true,
+    'cpu-features': false,
+    'koffi': true,
+    'node-pty': true,
+    'oracledb': true,
+    'protobufjs': false,
+    'ssh2': true,
   })) {
     throw new Error('dshPlus.profile.allowBuilds must match the reviewed production native-build set')
   }
