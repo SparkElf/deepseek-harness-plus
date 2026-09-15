@@ -147,7 +147,21 @@ describe('pnpm prerequisite', () => {
     expect(commands.length).toBeGreaterThan(0)
     expect(commands[0]).toBe(pnpmInstallCommand())
     for (const command of commands) {
-      expect(command).toMatch(/pnpm$/u)
+      expect(command).toContain('pnpm')
+    }
+  })
+
+  it('downloads pnpm from the preferred registry', () => {
+    // pnpm is not on the npmjs origin only: an installer that reaches the origin while
+    // the profile install reaches the mirror makes the first of the two the slow one.
+    const saved = process.env.LANG
+    process.env.LANG = 'zh_CN.UTF-8'
+    try {
+      const npm = pnpmInstallCommands().find(command => command.startsWith('npm '))
+      expect(npm).toContain('--registry https://registry.npmmirror.com')
+    } finally {
+      if (saved === undefined) delete process.env.LANG
+      else process.env.LANG = saved
     }
   })
 

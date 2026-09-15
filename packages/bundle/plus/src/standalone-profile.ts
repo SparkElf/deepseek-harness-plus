@@ -296,7 +296,12 @@ export function pnpmAvailable(): boolean {
  * @returns commands to try in order, stopping at the first that works.
  */
 export function pnpmInstallCommands(): readonly string[] {
-  return ['corepack enable pnpm', 'npm install -g pnpm']
+  const registry = registryOrder()[0]
+  if (registry === undefined) return ['corepack enable pnpm', 'npm install -g pnpm']
+  // Both installers take the registry explicitly. npm does so with a flag; corepack reads
+  // COREPACK_NPM_REGISTRY, which the caller sets. A mainland consumer therefore downloads
+  // the package from the mirror, for the same reason the profile install prefers it.
+  return ['corepack enable pnpm', 'npm install -g pnpm --registry ' + registry]
 }
 
 /**
