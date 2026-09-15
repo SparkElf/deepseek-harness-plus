@@ -35,6 +35,7 @@ import {
   pnpmAvailable,
   pnpmInstallCommand,
   pnpmInstallCommands,
+  registryOrder,
   readDistributionProfile,
   resolvePaths,
 } from './standalone-profile.ts'
@@ -139,8 +140,17 @@ async function start(argv: readonly string[]): Promise<number> {
     // Try each installer in turn: Corepack is absent on an installation that disabled it,
     // and npm succeeds there. A failure reports the commands rather than a stack trace.
     let installed = false
+    const preferred = registryOrder()[0]
     for (const candidate of pnpmInstallCommands()) {
-      const attempt = spawnSync(candidate, { stdio: 'inherit', shell: true })
+      // Corepack reads its registry from the environment; npm takes a flag, which the
+      // command already carries. Setting it for both keeps the download on the mirror.
+      const attempt = spawnSync(candidate, {
+        stdio: 'inherit',
+        shell: true,
+        env: preferred === undefined
+          ? process.env
+          : { ...process.env, COREPACK_NPM_REGISTRY: preferred },
+      })
       if (attempt.status === 0 && pnpmAvailable()) { installed = true; break }
     }
     if (!installed) {

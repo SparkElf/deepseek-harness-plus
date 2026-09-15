@@ -180,9 +180,36 @@ export function installProfilePackages(paths: StandalonePaths, consumerDirectory
     linkNestedBundles(paths, profileModules)
     return
   }
-  runPnpm(paths.profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in the plus profile')
+  installWithRegistryFallback(paths)
   alignReplacedPackageNames(profileModules)
   linkNestedBundles(paths, profileModules)
+}
+
+/**
+ * Install the profile from the first registry that answers.
+ *
+ * The install fetches a full dependency closure, and a mainland consumer reaches the
+ * mirror far faster than the origin. Trying the preferred registry and falling back once
+ * keeps a first start quick without failing when the preferred one is unreachable.
+ *
+ * @param paths - resolved standalone paths.
+ */
+function installWithRegistryFallback(paths: StandalonePaths): void {
+  const registries = registryOrder()
+  for (const [index, registry] of registries.entries()) {
+    const result = spawnSync('pnpm', ['install', '--no-frozen-lockfile', '--registry', registry], {
+      cwd: paths.profileDirectory,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    })
+    if (result.error !== undefined) throw result.error
+    if (result.status === 0) return
+    const next = registries[index + 1]
+    if (next === undefined) {
+      throw new Error('pnpm install in the plus profile failed with exit code ' + String(result.status))
+    }
+    console.log('Install from ' + registry + ' failed; trying ' + next + '.')
+  }
 }
 
 /**
@@ -217,27 +244,30 @@ export function alignReplacedPackageNames(profileModules: string): void {
   }
 }
 
-/**
- * Run pnpm in one directory, inheriting its output.
- *
- * Windows resolves a command through its shell: \`spawnSync\` on a \`.cmd\` shim fails
- * with EINVAL, so the call goes through \`cmd.exe\` there. This matches the runner in
- * \`apply.ts\`, which the apply path has used on Windows since it shipped.
- *
- * @param cwd - the directory pnpm runs in.
- * @param args - pnpm arguments, without the executable.
- * @param label - the failing step's name, for the error.
- */
-function runPnpm(cwd: string, args: readonly string[], label: string): void {
-  const result = spawnSync('pnpm', [...args], {
-    cwd,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  })
-  if (result.error !== undefined) throw result.error
-  if (result.status !== 0) throw new Error(label + ' failed with exit code ' + String(result.status))
-}
 
+/** The npm registry the distribution installs from by default. */
+const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
+
+/** The mainland mirror, which serves the same packages and answers faster there. */
+const MAINLAND_REGISTRY = 'https://registry.npmmirror.com'
+
+/**
+ * The registries to try, in order, for this machine.
+ *
+ * A mainland locale reaches the mirror faster than the origin, which is why the Desktop
+ * installer already prefers it there. The same choice belongs to the profile install: it
+ * fetches a full dependency closure, so the delay is the first thing a consumer notices.
+ * `DSH_PLUS_INSTALL_REGISTRY` overrides the choice, and a failure falls back once.
+ *
+ * @returns registries to try in order.
+ */
+export function registryOrder(): readonly string[] {
+  const configured = process.env.DSH_PLUS_INSTALL_REGISTRY
+  if (configured !== undefined && configured !== '') return [configured, MAINLAND_REGISTRY]
+  const locale = (process.env.LANG ?? process.env.LC_ALL ?? '').toLowerCase()
+  const mainlandFirst = locale.includes('zh') || locale.includes('cn')
+  return mainlandFirst ? [MAINLAND_REGISTRY, OFFICIAL_REGISTRY] : [OFFICIAL_REGISTRY, MAINLAND_REGISTRY]
+}
 /**
  * Report whether pnpm can run.
  *
@@ -266,7 +296,12 @@ export function pnpmAvailable(): boolean {
  * @returns commands to try in order, stopping at the first that works.
  */
 export function pnpmInstallCommands(): readonly string[] {
-  return ['corepack enable pnpm', 'npm install -g pnpm']
+  const registry = registryOrder()[0]
+  if (registry === undefined) return ['corepack enable pnpm', 'npm install -g pnpm']
+  // Both installers take the registry explicitly. npm does so with a flag; corepack reads
+  // COREPACK_NPM_REGISTRY, which the caller sets. A mainland consumer therefore downloads
+  // the package from the mirror, for the same reason the profile install prefers it.
+  return ['corepack enable pnpm', 'npm install -g pnpm --registry ' + registry]
 }
 
 /**
