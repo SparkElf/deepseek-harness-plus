@@ -8,6 +8,37 @@ const runnerPrivatePnpmDestination = /^\$\{\{ runner\.temp \}\}\/setup-pnpm-\$\{
 const nativeWindowsPnpmDestination = '${{ runner.temp }}/setup-pnpm-js-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}'
 
 describe('CI workflow', () => {
+
+  it('fetches the official patch base without a depth limit', () => {
+    // The Plus release workflow materializes each source patch's declared official base
+    // before verifying it. Two properties have to hold together, and both failed once:
+    //
+    //   - The base must be fetched at all. A checkout of this repository carries only the
+    //     revisions it descends from, so a base published after the fork point is absent;
+    //     the release stopped at 'invalid reference'.
+    //   - The fetch must not be shallow. Three-way merge needs the base of the lines a
+    //     patch touches, and a depth-1 fetch carries neither that history nor its blobs.
+    //     Git then falls back to direct application, and a patch whose context merely
+    //     moved fails as though it conflicted — measured: two of twelve patches.
+    const workflow: unknown = yaml.load(readFileSync(resolve(root, '.github/workflows/release-publish-plus.yml'), 'utf8'))
+    if (!isRecord(workflow) || !isRecord(workflow.jobs)) {
+      throw new TypeError('release-publish-plus.yml must define jobs')
+    }
+    const steps: unknown[] = []
+    for (const job of Object.values(workflow.jobs)) {
+      if (!isRecord(job) || !Array.isArray(job.steps)) continue
+      steps.push(...job.steps)
+    }
+    const fetch = steps.filter(step =>
+      isRecord(step) && typeof step.run === 'string' && step.run.includes('upstream-official'))
+    expect(fetch.length, 'the release must fetch the official base').toBeGreaterThan(0)
+    const script = fetch.map(step => (step as { run: string }).run).join('\n')
+    expect(script).toMatch(/git fetch[^\n]*upstream-official/)
+    expect(script, 'a shallow fetch cannot three-way merge a moved patch').not.toMatch(/--depth/)
+    // The revision comes from the distribution so it cannot drift from what the patches declare.
+    expect(script).toContain('dshPlus.sourceBase.revision')
+  })
+
   it('isolates every pnpm action setup destination per runner', () => {
     const files = ['.github/workflows/ci.yml', '.github/workflows/ci-master.yml']
     const setups: Array<{ jobName: string; step: unknown }> = []
