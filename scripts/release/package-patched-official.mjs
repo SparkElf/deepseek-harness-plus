@@ -22,18 +22,23 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 /** Our scope replaces the official one on every republished package. */
-const OUR_SCOPE = '@sparkelf/'
+export const OUR_SCOPE = '@sparkelf/'
 
 /**
- * The version every republished package carries.
+ * The version one repackaging run publishes, resolved from the built checkout.
  *
- * A republished package keeps its dependencies on the OFFICIAL names and the version the
- * official registry serves — \`^0.1.5-rc.2\` while this set is \`0.1.5-rc.3\`. Writing our
- * own version into a dependency range resolves nothing, because the official registry
- * has no such release. The consumer's overrides map each official name onto our build,
- * which is where the substitution belongs.
+ * Deriving it rather than hardcoding matters twice. A republished package keeps its
+ * dependencies on the OFFICIAL names and ranges, because the official registry serves
+ * those; writing our own version into a range resolves nothing. And a repackaging of a
+ * new upstream revision must not require editing this file — the checkout already knows
+ * which version it built.
+ *
+ * @param source - built official checkout root.
+ * @returns the version every republished package carries.
  */
-const OUR_VERSION = '0.1.5-rc.4'
+export function sourceVersion(source) {
+  return JSON.parse(readFileSync(join(source, 'packages/bundle/web-app/package.json'), 'utf8')).version
+}
 
 /** The official scope this script rewrites. */
 const OFFICIAL_SCOPE = '@deepseek-ai/'
@@ -44,7 +49,7 @@ const OFFICIAL_SCOPE = '@deepseek-ai/'
  * The list is explicit: a patch that adds a workspace must add it here too, which is
  * what makes the omission visible at review time instead of as a missing package.
  */
-const PATCHED_WORKSPACES = [
+export const PATCHED_WORKSPACES = [
   'apps/web',
   'packages/api/gateway',
   'packages/api/session-controller',
@@ -74,7 +79,26 @@ const PATCHED_WORKSPACES = [
  * server serves; omitting it published a package whose \`files\` promised a directory it
  * did not contain, and the server answered 404 for every page.
  */
-export const PACKAGED_FILES = ['lib', 'dist', 'presets', 'skills', 'README.md', 'README.zh.md', 'LICENSE']
+export const PACKAGED_FILES = [
+  'lib',
+  'dist',
+  'presets',
+  'skills',
+  // A bundle's composition lives here; without it the plugin installs and mounts nothing.
+  'cordis.patch.yml',
+  'README.md',
+  'README.zh.md',
+  'LICENSE',
+]
+
+/**
+ * Manifest fields a republished package drops.
+ *
+ * Everything here is about building the package rather than running it. \`dsh\` is NOT
+ * on the list: it carries the package's own declarations, including \`dsh.client\`, which
+ * is how a browser module registers itself.
+ */
+export const STRIPPED_FIELDS = ['devDependencies', 'scripts', 'private']
 const PUBLISHED_FILES = PACKAGED_FILES
 
 /** Read one JSON file. */
@@ -164,9 +188,10 @@ function readdirNames(path) {
  * @param out - output directory.
  * @param workspace - repository-relative workspace path.
  * @param versions - official name to version.
+ * @param version - the version every republished package carries.
  * @returns the republished package name.
  */
-function packageWorkspace(source, out, workspace, versions) {
+function packageWorkspace(source, out, workspace, versions, version) {
   const from = join(source, workspace)
   const manifest = readJson(join(from, 'package.json'))
   const target = join(out, ourName(manifest.name).replace(OFFICIAL_SCOPE, '').replace('/', '__'))
@@ -178,7 +203,7 @@ function packageWorkspace(source, out, workspace, versions) {
   const published = {
     ...manifest,
     name: ourName(manifest.name),
-    version: OUR_VERSION,
+    version,
     // The official repository is not ours to point at, and a consumer reading the
     // manifest should reach the code that produced it.
     repository: { type: 'git', url: 'git+https://github.com/SparkElf/deepseek-harness-plus.git' },
@@ -187,7 +212,10 @@ function packageWorkspace(source, out, workspace, versions) {
   published.dependencies = rewriteSpecs(manifest.dependencies, versions)
   published.peerDependencies = rewriteSpecs(manifest.peerDependencies, versions)
   published.optionalDependencies = rewriteSpecs(manifest.optionalDependencies, versions)
-  for (const key of ['devDependencies', 'scripts', 'dsh', 'private']) delete published[key]
+  // \`dsh\` stays: it is how a package declares itself, including the \`client\` entry that
+  // registers a browser module. Dropping it published twenty packages that a consumer
+  // installed but the web app never loaded — the model selector simply never appeared.
+  for (const key of STRIPPED_FIELDS) delete published[key]
   writeFileSync(join(target, 'package.json'), JSON.stringify(published, null, 2) + String.fromCharCode(10))
   return published.name
 }
@@ -198,20 +226,23 @@ async function main() {
   const argv = process.argv.slice(2)
   let source
   let out
+  let version
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--source') { source = argv[index + 1]; index += 1; continue }
     if (argv[index] === '--out') { out = argv[index + 1]; index += 1; continue }
+    if (argv[index] === '--version') { version = argv[index + 1]; index += 1; continue }
     throw new Error('unknown option: ' + argv[index])
   }
   if (source === undefined || out === undefined) {
-    throw new Error('usage: package-patched-official.mjs --source <built-checkout> --out <dir>')
+    throw new Error('usage: package-patched-official.mjs --source <built-checkout> --out <dir> [--version <semver>]')
   }
   rmSync(out, { recursive: true, force: true })
   mkdirSync(out, { recursive: true })
   const versions = officialVersions(resolve(source))
+  const resolvedVersion = version ?? sourceVersion(resolve(source))
   const names = PATCHED_WORKSPACES.map(workspace =>
-    packageWorkspace(resolve(source), resolve(out), workspace, versions))
-  console.log('package-patched-official: ' + String(names.length) + ' package(s) written to ' + out)
+    packageWorkspace(resolve(source), resolve(out), workspace, versions, resolvedVersion))
+  console.log('package-patched-official: ' + String(names.length) + ' package(s) at ' + resolvedVersion + ' written to ' + out)
   for (const name of names) console.log('  ' + name)
 }
 

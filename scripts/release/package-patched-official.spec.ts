@@ -1,15 +1,14 @@
 import { describe, expect, it } from 'vitest'
-// @ts-expect-error The packager is runtime JavaScript without declaration artifacts.
-import { PACKAGED_FILES } from './package-patched-official.mjs'
+import { PACKAGED_FILES, STRIPPED_FIELDS } from './package-patched-official.mjs'
 
 describe('PACKAGED_FILES', () => {
   it('carries every payload a published workspace declares', () => {
-    // The built web frontend is its \`dist\` directory, and leaving it out published a
-    // package whose \`files\` promised a directory it did not contain — the server then
-    // answered 404 for every page while every manifest looked correct. Each directory a
-    // republished workspace can carry has to be on this list.
-    for (const directory of ['dist', 'lib', 'presets', 'skills']) {
-      expect(PACKAGED_FILES).toContain(directory)
+    // The built web frontend is its \`dist\` directory, and a bundle's composition is its
+    // \`cordis.patch.yml\`. Omitting either published a package whose own \`files\` list
+    // promised content it did not contain — the server answered 404 for every page, and a
+    // bundle installed without mounting. Both looked correct in every manifest.
+    for (const entry of ['dist', 'lib', 'presets', 'skills', 'cordis.patch.yml']) {
+      expect(PACKAGED_FILES).toContain(entry)
     }
   })
 
@@ -19,6 +18,18 @@ describe('PACKAGED_FILES', () => {
     for (const entry of PACKAGED_FILES) {
       expect(entry).not.toContain('*')
       expect(entry).not.toMatch(/^!/u)
+    }
+  })
+})
+
+describe('STRIPPED_FIELDS', () => {
+  it('keeps the manifest fields that register a package', () => {
+    // \`dsh.client\` is a browser module's registration. Dropping it published twenty
+    // packages that installed cleanly and never loaded, so the model selector and the
+    // settings panels did not appear while every other check passed.
+    expect(STRIPPED_FIELDS).not.toContain('dsh')
+    for (const field of ['devDependencies', 'scripts', 'private']) {
+      expect(STRIPPED_FIELDS).toContain(field)
     }
   })
 })
