@@ -32,6 +32,9 @@ import {
   STANDALONE_PROFILE,
   applyProfileNpmPatches,
   ensureProfile,
+  pnpmAvailable,
+  pnpmInstallCommand,
+  pnpmInstallCommands,
   readDistributionProfile,
   resolvePaths,
 } from './standalone-profile.ts'
@@ -122,6 +125,32 @@ async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
   const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
+  // The profile installs its own dependency tree, which needs pnpm. Asking here rather
+  // than failing inside the install turns a missing prerequisite into a decision the
+  // consumer makes, and the install it can run is the one command that provides it.
+  if (!pnpmAvailable()) {
+    const command = pnpmInstallCommand()
+    console.log('pnpm is required to install the ' + STANDALONE_PROFILE + ' profile, and was not found.')
+    console.log('Install it with: ' + command)
+    if (!await confirm('Install pnpm now?')) {
+      console.log('Install pnpm and run dsh-plus start again.')
+      return 1
+    }
+    // Try each installer in turn: Corepack is absent on an installation that disabled it,
+    // and npm succeeds there. A failure reports the commands rather than a stack trace.
+    let installed = false
+    for (const candidate of pnpmInstallCommands()) {
+      const attempt = spawnSync(candidate, { stdio: 'inherit', shell: true })
+      if (attempt.status === 0 && pnpmAvailable()) { installed = true; break }
+    }
+    if (!installed) {
+      console.log('Could not install pnpm automatically.')
+      console.log('Run one of these, then run dsh-plus start again:')
+      for (const candidate of pnpmInstallCommands()) console.log('  ' + candidate)
+      return 1
+    }
+    console.log('pnpm installed.')
+  }
   const created = ensureProfile(paths, installationRoot())
   console.log(created
     ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory

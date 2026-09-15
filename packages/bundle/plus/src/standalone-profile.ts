@@ -239,6 +239,46 @@ function runPnpm(cwd: string, args: readonly string[], label: string): void {
 }
 
 /**
+ * Report whether pnpm can run.
+ *
+ * The profile installs its own tree so its \`overrides\` apply, and only pnpm reads those
+ * from a workspace, so pnpm is a prerequisite the distribution cannot supply. Probing
+ * first turns a cryptic failure from the install into a message naming what is missing.
+ *
+ * @returns \`true\` when pnpm answers with a version.
+ */
+export function pnpmAvailable(): boolean {
+  const probe = spawnSync('pnpm', ['--version'], {
+    stdio: 'pipe',
+    shell: process.platform === 'win32',
+    encoding: 'utf8',
+  })
+  return probe.status === 0
+}
+
+/**
+ * The commands that install pnpm, in the order worth trying.
+ *
+ * Corepack ships with Node and needs no download, so it comes first; npm is the fallback
+ * for an installation whose Corepack is absent or disabled. Both are the consumer's own
+ * toolchain, which is what lets the first start offer to install rather than only report.
+ *
+ * @returns commands to try in order, stopping at the first that works.
+ */
+export function pnpmInstallCommands(): readonly string[] {
+  return ['corepack enable pnpm', 'npm install -g pnpm']
+}
+
+/**
+ * The command to show a consumer who declines the automatic install.
+ *
+ * @returns the preferred command, which is the one the offer runs first.
+ */
+export function pnpmInstallCommand(): string {
+  return pnpmInstallCommands()[0] ?? 'npm install -g pnpm'
+}
+
+/**
  * Expose the distribution's nested packages at the top level the profile searches.
  *
  * The profile resolves a bundle from one directory, so a package npm nested under the

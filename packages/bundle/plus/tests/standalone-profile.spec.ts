@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { alignReplacedPackageNames, isWithin, resolveDistributionDirectory } from '../src/standalone-profile.ts'
+import { alignReplacedPackageNames, isWithin, pnpmAvailable, pnpmInstallCommand, pnpmInstallCommands, resolveDistributionDirectory } from '../src/standalone-profile.ts'
 
 const roots: string[] = []
 
@@ -134,5 +134,38 @@ describe('Windows pnpm invocation', () => {
     const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
     const runner = source.slice(source.indexOf('function runPnpm'))
     expect(runner.slice(0, runner.indexOf('\n}'))).toContain('shell: process.platform === \'win32\'')
+  })
+})
+
+describe('pnpm prerequisite', () => {
+  it('offers an install command a consumer already has', () => {
+    // pnpm is a prerequisite the distribution cannot carry: the profile installs its own
+    // tree so its overrides apply, and only pnpm reads overrides from a workspace. A
+    // missing pnpm stopped every first Windows start with a raw shell error naming no
+    // remedy, so the commands are checked rather than left to the shell.
+    const commands = pnpmInstallCommands()
+    expect(commands.length).toBeGreaterThan(0)
+    expect(commands[0]).toBe(pnpmInstallCommand())
+    for (const command of commands) {
+      expect(command).toMatch(/pnpm$/u)
+    }
+  })
+
+  it('prefers corepack, which ships with Node', () => {
+    // Corepack needs no download and no elevation, so a first start should ask for it
+    // before reaching for npm.
+    expect(pnpmInstallCommand()).toBe('corepack enable pnpm')
+  })
+
+  it('reports pnpm as unavailable when the command cannot run', () => {
+    // The probe is what decides whether to prompt. An empty PATH cannot resolve pnpm, so
+    // this exercises the branch the prompt depends on without needing it absent globally.
+    const savedPath = process.env.PATH
+    process.env.PATH = ''
+    try {
+      expect(pnpmAvailable()).toBe(false)
+    } finally {
+      process.env.PATH = savedPath
+    }
   })
 })
