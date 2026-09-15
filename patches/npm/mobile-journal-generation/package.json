@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-mobile-journal-generation",
   "description": "Wait for a replacement mobile journal generation opening snapshot before consuming its buffered live entries",
-  "version": "0.1.0-rc.37",
+  "version": "0.1.0-rc.38",
   "publishConfig": {
     "access": "public"
   },
