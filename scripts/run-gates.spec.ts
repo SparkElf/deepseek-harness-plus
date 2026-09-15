@@ -6,6 +6,7 @@ import {
   formatGateResultReason,
   gatesForMode,
   parsePidPpidLines,
+  collectDescendants,
   runGate,
   runGates,
   taskkillArgs,
@@ -942,5 +943,28 @@ describe('Windows tree termination', () => {
 
   it('terminates the root alone when no descendant was captured', () => {
     expect(taskkillArgs(100, [])).toEqual([['/PID', '100', '/T', '/F']])
+  })
+
+  it('walks a wide process tree without overflowing the stack', () => {
+    // Spreading a child list into a call passes every element as an argument, and the
+    // stack runs out past roughly 130,000 of them — measured on this Node. The walk
+    // must append one at a time so its input length cannot decide whether it survives.
+    const rows: Array<[number, number]> = []
+    const width = 150_000
+    for (let pid = 2; pid <= width; pid += 1) rows.push([pid, 1])
+    const descendants = collectDescendants(1, rows)
+    expect(descendants).toHaveLength(width - 1)
+    expect(descendants.at(-1)).toBe(width)
+  })
+
+  it('terminates on a parent relation that is not a tree', () => {
+    // Windows recycles pids, so a snapshot taken while a process exits can pair a pid
+    // with a parent inside its own subtree. Following that edge revisited pids forever
+    // and CI reported it as a stack overflow from the append, not as a wrong pid list.
+    const rows: Array<[number, number]> = [[2, 3], [3, 2], [4, 2]]
+    const descendants = collectDescendants(2, rows)
+    expect(new Set(descendants).size).toBe(descendants.length)
+    expect(descendants).toContain(3)
+    expect(descendants).toContain(4)
   })
 })
