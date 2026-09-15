@@ -67,6 +67,11 @@ function main() {
   const label = changed.length + ' of ' + String(members.length) + ' member(s)'
   console.log('bump-plus: ' + (dryRun ? 'would set ' : 'set ') + label + ' to ' + version)
   for (const entry of changed) console.log('  ' + entry.path + ': ' + entry.from + ' -> ' + entry.to)
+  if (dryRun || changed.length === 0) return
+  // A version change is a dependency change: the lockfile records each workspace's
+  // version, and CI installs with --frozen-lockfile, which fails on the mismatch.
+  execFileSync('pnpm', ['install', '--lockfile-only'], { cwd: root, stdio: 'inherit' })
+  console.log('bump-plus: lockfile updated')
 }
 
 if (process.argv[1] !== undefined && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
