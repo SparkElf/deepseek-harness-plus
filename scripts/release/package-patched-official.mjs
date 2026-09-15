@@ -24,6 +24,17 @@ import { fileURLToPath } from 'node:url'
 /** Our scope replaces the official one on every republished package. */
 const OUR_SCOPE = '@sparkelf/'
 
+/**
+ * The version every republished package carries.
+ *
+ * A republished package keeps its dependencies on the OFFICIAL names and the version the
+ * official registry serves — \`^0.1.5-rc.2\` while this set is \`0.1.5-rc.3\`. Writing our
+ * own version into a dependency range resolves nothing, because the official registry
+ * has no such release. The consumer's overrides map each official name onto our build,
+ * which is where the substitution belongs.
+ */
+const OUR_VERSION = '0.1.5-rc.4'
+
 /** The official scope this script rewrites. */
 const OFFICIAL_SCOPE = '@deepseek-ai/'
 
@@ -167,6 +178,7 @@ function packageWorkspace(source, out, workspace, versions) {
   const published = {
     ...manifest,
     name: ourName(manifest.name),
+    version: OUR_VERSION,
     // The official repository is not ours to point at, and a consumer reading the
     // manifest should reach the code that produced it.
     repository: { type: 'git', url: 'git+https://github.com/SparkElf/deepseek-harness-plus.git' },
