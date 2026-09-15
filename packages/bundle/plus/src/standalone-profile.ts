@@ -217,10 +217,23 @@ export function alignReplacedPackageNames(profileModules: string): void {
   }
 }
 
-/** Run pnpm in one directory, inheriting its output. */
+/**
+ * Run pnpm in one directory, inheriting its output.
+ *
+ * Windows resolves a command through its shell: \`spawnSync\` on a \`.cmd\` shim fails
+ * with EINVAL, so the call goes through \`cmd.exe\` there. This matches the runner in
+ * \`apply.ts\`, which the apply path has used on Windows since it shipped.
+ *
+ * @param cwd - the directory pnpm runs in.
+ * @param args - pnpm arguments, without the executable.
+ * @param label - the failing step's name, for the error.
+ */
 function runPnpm(cwd: string, args: readonly string[], label: string): void {
-  const command = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
-  const result = spawnSync(command, [...args], { cwd, stdio: 'inherit' })
+  const result = spawnSync('pnpm', [...args], {
+    cwd,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+  })
   if (result.error !== undefined) throw result.error
   if (result.status !== 0) throw new Error(label + ' failed with exit code ' + String(result.status))
 }

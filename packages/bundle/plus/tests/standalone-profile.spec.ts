@@ -124,3 +124,15 @@ describe('alignReplacedPackageNames', () => {
     expect(statSync(manifest).ino).toBe(before.ino)
   })
 })
+
+describe('Windows pnpm invocation', () => {
+  it('runs pnpm through the shell on Windows', () => {
+    // \`spawnSync\` on a \`.cmd\` shim fails with EINVAL: Windows resolves a command name
+    // through its shell. The profile install passed 'pnpm.cmd' as the executable and
+    // stopped every Windows installation at 'spawnSync pnpm.cmd EINVAL'. The source is
+    // read rather than executed because the failure needs Windows to reproduce.
+    const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
+    const runner = source.slice(source.indexOf('function runPnpm'))
+    expect(runner.slice(0, runner.indexOf('\n}'))).toContain('shell: process.platform === \'win32\'')
+  })
+})
