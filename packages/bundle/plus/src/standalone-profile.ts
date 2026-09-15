@@ -106,6 +106,7 @@ export function readDistributionProfile(distributionDirectory: string): {
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
+  readonly dshRange: string
   readonly version: string
 } {
   const manifest = requireRecord(
@@ -137,42 +138,58 @@ export function readDistributionProfile(distributionDirectory: string): {
     if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
     overrides[name] = spec
   }
+  const compatibility = requireRecord(plus.compatibility, 'dshPlus.compatibility')
   return {
     name: String(manifest.name),
     bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies,
     allowBuilds,
     overrides,
+    dshRange: String(compatibility.dsh),
     version: String(manifest.version),
   }
 }
 
 /**
- * Point the profile at the consumer's installed packages.
+ * Give the profile its own installed tree, built from the distribution's declarations.
  *
- * The launcher resolves a bundle from the profile directory, so a profile with no
- * `node_modules` cannot see packages the consumer installed beside it. One link to
- * the consumer's directory keeps a single installed copy as the only authority.
+ * The launcher resolves a bundle from the profile directory, so the profile needs its
+ * own `node_modules`. Pointing it at the consumer's tree was cheaper, but it made the
+ * profile inherit whatever npm had already installed — including the official packages
+ * the distribution's `overrides` exist to replace. npm applies `overrides` only from a
+ * project's own root, so a profile without its own tree cannot receive them at all, and
+ * a patch delivered that way silently never arrives.
  *
- * npm hoists what it can and nests the rest, so a bundle can sit at the consumer's
- * top level or inside the package that depends on it. The profile reaches the first
- * through one link and the second through the distribution's own `node_modules`, and
- * a bundle found in neither is one the installation does not carry at all.
+ * Installing here makes the profile that root: pnpm reads `overrides` from the
+ * profile's own `pnpm-workspace.yaml`, which `writeProfileOverrides` writes before this
+ * runs. The install is skipped once the tree exists so a start does not pay for it
+ * twice; `dsh-plus apply` remains the command that reinstalls after a change.
  *
  * @param paths - resolved standalone paths.
- * @param consumerDirectory - directory whose `node_modules` holds the packages.
+ * @param consumerDirectory - directory whose `node_modules` holds the installation.
  */
-export function linkConsumerPackages(paths: StandalonePaths, consumerDirectory: string): void {
-  const target = join(consumerDirectory, 'node_modules')
-  if (!existsSync(target)) {
+export function installProfilePackages(paths: StandalonePaths, consumerDirectory: string): void {
+  const consumerModules = join(consumerDirectory, 'node_modules')
+  if (!existsSync(consumerModules)) {
     throw new Error('no node_modules in ' + consumerDirectory + '; run npm install there first')
   }
-  mkdirSync(paths.profileDirectory, { recursive: true })
-  const link = join(paths.profileDirectory, 'node_modules')
-  if (!existsSync(link)) symlinkSync(target, link, 'junction')
-  // A profile created before the installation changed must still reach what npm nested
-  // afterwards, so this runs on every start rather than only when the profile is new.
-  linkNestedBundles(paths, target)
+  const profileModules = join(paths.profileDirectory, 'node_modules')
+  if (existsSync(profileModules)) {
+    // A profile installed before the distribution declared overrides still needs the
+    // packages it reaches from the consumer tree, which npm nested rather than hoisted.
+    linkNestedBundles(paths, profileModules)
+    return
+  }
+  runPnpm(paths.profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in the plus profile')
+  linkNestedBundles(paths, profileModules)
+}
+
+/** Run pnpm in one directory, inheriting its output. */
+function runPnpm(cwd: string, args: readonly string[], label: string): void {
+  const command = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm'
+  const result = spawnSync(command, [...args], { cwd, stdio: 'inherit' })
+  if (result.error !== undefined) throw result.error
+  if (result.status !== 0) throw new Error(label + ' failed with exit code ' + String(result.status))
 }
 
 /**
@@ -237,16 +254,30 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * @returns whether this call created the manifest.
  */
 export function ensureProfile(paths: StandalonePaths, consumerDirectory: string): boolean {
-  linkConsumerPackages(paths, consumerDirectory)
   const manifestPath = join(paths.profileDirectory, 'package.json')
-  if (existsSync(manifestPath)) return false
   const distribution = readDistributionProfile(paths.distributionDirectory)
+  if (existsSync(manifestPath)) {
+    // The workspace carries decisions the distribution owns — overrides and the build
+    // script allowlist — and a distribution release changes them. Rewriting on every
+    // start is what lets an upgraded installation receive the new values; a profile
+    // written once keeps whatever its own release decided and can never be corrected.
+    writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds)
+    installProfilePackages(paths, consumerDirectory)
+    return false
+  }
   mkdirSync(paths.profileDirectory, { recursive: true })
   const manifest = {
     name: 'dsh-profile-' + STANDALONE_PROFILE,
     private: true,
     type: 'module',
-    dependencies: { '@sparkelf/dsh-plus': distribution.version, ...distribution.dependencies },
+    dependencies: {
+      '@sparkelf/dsh-plus': distribution.version,
+      // The launcher's own tree supplies every service package the bundles mount. A
+      // profile that lists only the distribution's plugins installs a partial tree and
+      // fails at load with a module the launcher would have carried.
+      '@deepseek-ai/dsh': distribution.dshRange,
+      ...distribution.dependencies,
+    },
     dsh: {
       profile: {
         bundles: distribution.bundles,
@@ -255,7 +286,9 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
     },
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
-  writeProfileOverrides(paths.profileDirectory, distribution.overrides)
+  // The overrides must reach the workspace before the install that reads them.
+  writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds)
+  installProfilePackages(paths, consumerDirectory)
   return true
 }
 
@@ -269,13 +302,21 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
  * @param profileDirectory - the standalone profile directory.
  * @param overrides - official package name to published replacement spec.
  */
-function writeProfileOverrides(profileDirectory: string, overrides: Readonly<Record<string, string>>): void {
+function writeProfileOverrides(
+  profileDirectory: string,
+  overrides: Readonly<Record<string, string>>,
+  allowBuilds: Readonly<Record<string, boolean>>,
+): void {
   const workspacePath = join(profileDirectory, 'pnpm-workspace.yaml')
   const document = parseDocument(existsSync(workspacePath) ? readFileSync(workspacePath, 'utf8') : '')
   const [documentError] = document.errors
   if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
   if (document.get('packages') === undefined) document.set('packages', ['.'])
   for (const [name, spec] of Object.entries(overrides)) document.setIn(['overrides', name], spec)
+  // pnpm refuses an install whose packages want to run build scripts until each is
+  // decided, so the distribution's reviewed decisions travel with the install rather
+  // than waiting for an interactive approval no start can offer.
+  for (const [name, allowed] of Object.entries(allowBuilds)) document.setIn(['allowBuilds', name], allowed)
   // The profile resolves bundles from this directory, so peers the official tree would
   // supply have to come from what the consumer installed.
   if (document.get('nodeLinker') === undefined) document.set('nodeLinker', 'hoisted')

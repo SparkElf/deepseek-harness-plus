@@ -185,7 +185,8 @@
     "verify:plus-profile-upgrade": "tsx scripts/verify-plus-profile-upgrade.ts",
     "test:plus-web": "pnpm run build && playwright test --config tests/plus-web/playwright.config.mjs",
     "verify:standalone-manifest": "tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out packages/standalone/plus-standalone/package.json --runtime-version 0.1.5-rc.2 --check",
-    "release:sync-mirror": "tsx scripts/release/sync-plus-mirror.ts"
+    "release:sync-mirror": "tsx scripts/release/sync-plus-mirror.ts",
+    "release:republish-patched": "node scripts/release/republish-patched-official.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",
