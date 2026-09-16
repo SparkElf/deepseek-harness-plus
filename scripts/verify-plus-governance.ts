@@ -264,6 +264,18 @@ function main(): void {
   }
   for (const record of records) {
     if (dependencies[record.name] === undefined) throw new Error('distribution must depend on ' + record.name)
+    // Every patch package moves with the release, so a minimum-only range like
+    // '>=0.1.0-rc.26' silently resolves to whichever older prerelease npm prefers over
+    // the one being published: semver excludes 0.2.0-rc.2 from that range, and an install
+    // then applies 0.1.x patches whose declared base is the previous official revision.
+    // The range has to admit the version this manifest declares.
+    // The judgement deliberately omits includePrerelease: that is how npm resolves the
+    // range, so a range that does not admit the version under those rules installs an
+    // older patch package instead of this one.
+    const declared = minimumRange(dependencies[record.name], 'distribution dependencies.' + record.name)
+    if (!satisfies(record.version, declared)) {
+      throw new Error(record.name + '@' + record.version + ' is not admitted by its own dependency range ' + declared)
+    }
     for (const target of record.targets) {
       if (target.kind === 'npm' && !ownsRuntimePackage(target.name)) {
         throw new Error('distribution must own patched npm target ' + target.name)
