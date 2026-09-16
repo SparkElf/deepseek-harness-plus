@@ -78,10 +78,16 @@ function registryState(name: string, version: string): RegistryState {
     throw new Error(`npm view ${name}@${version} failed:\n${output}`)
   }
   const parsed: unknown = JSON.parse(result.stdout)
-  if (typeof parsed !== 'string' || parsed === '') {
+  // `npm view --json` answers a single field as an array whenever more than one
+  // published version matches the spec, and as a bare string when exactly one does.
+  // Both spellings carry the same one value; reading only the string spelling made
+  // the publish step abort on every package whose name had older versions under a
+  // different dist-tag, which is every package in a re-run.
+  const integrity = Array.isArray(parsed) ? parsed[0] : parsed
+  if (typeof integrity !== 'string' || integrity === '') {
     throw new Error(`registry reported no dist.integrity for ${name}@${version}`)
   }
-  return { kind: 'present', integrity: parsed }
+  return { kind: 'present', integrity }
 }
 
 /**
