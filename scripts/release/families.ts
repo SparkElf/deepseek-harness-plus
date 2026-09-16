@@ -401,7 +401,18 @@ class PlusFamily extends DshFamily {
   /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
   override verifyBuildArtifacts(): void {}
 
-  override readonly installedEntry = undefined
+  /**
+   * The standalone installer is this family's executable, and the only member a consumer
+   * runs. Probing it proves the published dependency ranges resolve: the installer carries
+   * every plugin the profile mounts, so a member range naming a version the registry does
+   * not serve fails here rather than on a user's machine. This family previously declared
+   * no entry and the probe skipped it, which is how a range that resolved only inside the
+   * workspace reached a packed release.
+   */
+  override readonly installedEntry: InstalledEntry | undefined = {
+    packageName: '@sparkelf/dsh-plus-standalone',
+    binPath: 'lib/bin.js',
+  }
 }
 
 /** `vendor/*`: every package keeps its own version line, so every package has its own tag. */

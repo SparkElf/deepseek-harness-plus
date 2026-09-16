@@ -491,13 +491,23 @@ const dependencySections = ['dependencies', 'devDependencies', 'peerDependencies
 const runtimeDependencySections = ['dependencies', 'optionalDependencies', 'peerDependencies'] as const
 
 /**
- * Prevent an official runtime from requiring a package its release omits.
+ * Prevent an official runtime from requiring an experimental package its release omits.
+ *
+ * The subject is the package the release leaves out, not the directory it lives in. A
+ * private experimental package is packed by no publication pattern, so a release that
+ * depended on it would install a tree npm cannot resolve — that is the failure this
+ * rejects. The Agent Teams packages are the explicit exception the release does publish:
+ * `publish-npm-baseline` includes every directory in
+ * `PUBLIC_EXPERIMENTAL_PACKAGE_DIRECTORIES`, so a runtime may depend on them, and an
+ * installed deployment then carries the team layer the same way it carries any other
+ * published member.
  * @param manifests - release, private experimental, and deployment-root manifests.
  * @returns One error for each forbidden runtime dependency.
  */
 export function checkExperimentalDependencyIsolation(manifests: readonly WorkspaceManifest[]): string[] {
   const experimentalNames = new Set(manifests
     .filter(entry => experimentalPackageDirectory.test(entry.dir))
+    .filter(entry => !isPublicExperimentalPackageDirectory(entry.dir))
     .map(entry => entry.manifest.name)
     .filter(name => name !== undefined))
   const errors: string[] = []
@@ -537,7 +547,18 @@ function checkWorkspaceProtocol(manifests: readonly WorkspaceManifest[]): string
           && section === 'dependencies'
           && name === '@deepseek-ai/schemastery'
           && /^>=\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)
-        if (publishedPlusPeer || publishedPlusRuntimeDependency) continue
+        // A workspace member whose published version leads its checkout: the Agent Teams
+        // packages release on their own cadence, so the workspace still carries the
+        // previous version while the registry serves the newer one the runtime runs on.
+        // The protocol would resolve to the stale local version and name a tree the
+        // runtime cannot load, so a published-plus deployment pins the published range.
+        const publishedAheadOfCheckout = manifest.name?.startsWith('@sparkelf/') === true
+          && section === 'dependencies'
+          && runtimeDependencySections.includes(section)
+          && /^[\^~]?>=?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(range)
+          && isPublicExperimentalPackageDirectory(
+            manifests.find(entry => entry.manifest.name === name)?.dir ?? '')
+        if (publishedPlusPeer || publishedPlusRuntimeDependency || publishedAheadOfCheckout) continue
         errors.push(`${manifest.name ?? dir}: ${section}.${name} must use the workspace: protocol, got ${range}`)
       }
     }

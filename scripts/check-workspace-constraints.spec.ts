@@ -72,6 +72,21 @@ describe('experimental workspace constraints', () => {
     },
   )
 
+  it.each(['dependencies', 'optionalDependencies', 'peerDependencies'] as const)(
+    'allows release %s on a published experimental package',
+    (section) => {
+      // The Agent Teams packages publish with the dsh family, so a runtime that mounts
+      // them installs a tree npm can resolve. Only a package the release omits is isolated.
+      expect(checkExperimentalDependencyIsolation([publicExperimental, {
+        dir: 'packages/core/consumer',
+        manifest: {
+          name: '@deepseek-ai/dsh-consumer',
+          [section]: { '@deepseek-ai/dsh-experimental-agent-team': 'workspace:^' },
+        },
+      }])).toEqual([])
+    },
+  )
+
   it('allows development and experimental consumers but rejects the Python release runtime', () => {
     const manifests: WorkspaceManifest[] = [experimental, {
       dir: 'packages/core/test-only',

@@ -58,6 +58,10 @@ entries:
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar resolves a workspace-relative media path
           against the session cwd (omdsh-dev/DSH-better-sidebar#673)
+      - package: "@sparkelf/dsh-patch-better-sidebar-html-preview-path"
+        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
+        retireWhen: dsh-better-sidebar bounds a workspace-root-relative html preview
+          path to the session cwd (omdsh-dev/DSH-better-sidebar#692)
     plusBundle: true
   - name: "@deepseek-ai/dsh-agent-presets"
     source:
@@ -72,6 +76,19 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
         retireWhen: Official shipped Agent presets expose a deployment overlay or
           equivalent settings-backed rows
+    plusBundle: false
+  - name: "@deepseek-ai/dsh-host-open-in-app"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 0a15e36e7f82b6ed45af6fa9759f29b40dcd965d
+    interest: WSL host opens a workspace directory through the Windows shell
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-wsl-native-open"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official open-in-app translates POSIX paths for the Windows
+          interpreter on a WSL host
     plusBundle: false
   - name: "@deepseek-ai/dsh-session-format-v0-to-v1"
     source:

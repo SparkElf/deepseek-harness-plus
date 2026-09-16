@@ -1,6 +1,6 @@
 {
-  "name": "@sparkelf/dsh-patch-better-sidebar-media-path",
-  "description": "Data-only patch resolving a workspace-relative media path against the session cwd in dsh-better-sidebar",
+  "name": "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
+  "description": "Data-only patch bounding a workspace-root-relative HTML preview path to the session cwd in dsh-better-sidebar",
   "version": "0.2.0-rc.4",
   "publishConfig": {
     "access": "public"
@@ -9,11 +9,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/better-sidebar-media-path"
+    "directory": "patches/npm/better-sidebar-html-preview-path"
   },
   "exports": {
     "./package.json": "./package.json",
-    "./patches/better-sidebar-media-path.patch": "./patches/better-sidebar-media-path.patch"
+    "./patches/better-sidebar-html-preview-path.patch": "./patches/better-sidebar-html-preview-path.patch"
   },
   "files": [
     "patches/*.patch"
@@ -23,14 +23,14 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "better-sidebar-media-path",
+        "id": "better-sidebar-html-preview-path",
         "dsh": ">=0.1.6-alpha.1",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
           "range": "0.19.1"
         },
-        "file": "./patches/better-sidebar-media-path.patch"
+        "file": "./patches/better-sidebar-html-preview-path.patch"
       }
     ]
   }

@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.0-rc.3",
+  "version": "0.2.0-rc.4",
   "publishConfig": {
     "access": "public"
   },
@@ -47,7 +47,9 @@
     "profile": {
       "bundles": [
         "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-experimental-agent-team-profile",
         "@deepseek-ai/dsh-web-app",
+        "@deepseek-ai/dsh-experimental-agent-team-web-profile",
         "@sparkelf/dsh-mineru",
         "@sparkelf/dsh-officecli",
         "@sparkelf/dsh-mobile-bridge",
@@ -65,7 +67,7 @@
         "@sparkelf/dsh-api-client"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.9.9",
+        "@changfenhuang/dsh-genui": "0.11.0",
         "@sparkelf/dsh-mineru": "0.1.2",
         "@sparkelf/dsh-officecli": "0.1.2",
         "@sparkelf/dsh-plugin-supervisor": "0.1.5",
@@ -73,11 +75,13 @@
         "@sparkelf/dsh-workbench-vault": "0.1.2",
         "@sparkelf/dsh-ssh-manager": "0.7.2",
         "@sparkelf/dsh-api-client": "0.5.1",
-        "@huanlin/dsh-plugin-better-locale": "0.4.1",
+        "@huanlin/dsh-plugin-better-locale": "0.4.3",
         "dsh-better-sidebar": "0.19.1",
         "@sparkelf/dsh-plugin-better-sidebar-office": "0.2.1",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.2",
-        "dsh-video-preview": "0.1.4"
+        "dsh-video-preview": "0.1.4",
+        "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.6-alpha.1",
+        "@deepseek-ai/dsh-experimental-agent-team-web-profile": ">=0.1.6-alpha.1"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -127,7 +131,9 @@
       "@sparkelf/dsh-patch-web-base-path",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-mobile-journal-generation",
-      "@sparkelf/dsh-patch-session-format-legacy-restart"
+      "@sparkelf/dsh-patch-session-format-legacy-restart",
+      "@sparkelf/dsh-patch-wsl-native-open",
+      "@sparkelf/dsh-patch-better-sidebar-html-preview-path"
     ],
     "sourceBase": {
       "revision": "0a15e36e7f82b6ed45af6fa9759f29b40dcd965d"
@@ -135,20 +141,22 @@
   },
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
-    "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-session-format-legacy-restart": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.2.0-rc.3",
-    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.2.0-rc.3",
+    "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-session-format-legacy-restart": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.2.0-rc.4",
+    "@sparkelf/dsh-patch-wsl-native-open": "workspace:>=0.2.0-rc.4",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-plugin-dataops": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.1.0-rc.26",

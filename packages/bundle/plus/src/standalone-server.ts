@@ -120,8 +120,8 @@ export function spawnServer(options: {
     env: options.env,
   })
   const stream = createWriteStream(options.logPath)
-  output.stdout?.pipe(stream)
-  output.stderr?.pipe(stream)
+  output.stdout.pipe(stream)
+  output.stderr.pipe(stream)
   output.unref()
   if (output.pid === undefined) throw new Error('the server process did not start')
   return output.pid

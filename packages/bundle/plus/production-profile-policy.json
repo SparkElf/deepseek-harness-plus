@@ -1,6 +1,6 @@
 {
   "formatVersion": 1,
-  "name": "DeepSeek Harness Plus rc.28 DSH 0.1.6-alpha.1 profile upgrade",
+  "name": "DeepSeek Harness Plus rc.28 DSH 0.1.6-alpha.1 profile upgrade with Agent Teams and the WSL native-open patch",
   "requiredBundles": [
     "@deepseek-ai/dsh-base",
     "@deepseek-ai/dsh-web-app",
@@ -1001,7 +1001,7 @@
       "baselineVersion": "0.1.5-rc.2",
       "candidateVersion": "0.1.6-alpha.1",
       "baselineSha256": "a83b3954b2a8def41d6d4442de9cdeee3c0859e6332ac0f33d73301ceb7bbe8f",
-      "candidateSha256": "a397fc662fac2126c10060ee87fbe0077944a43a7cd625077dd590a7bd987aa0"
+      "candidateSha256": "080bbb6bdacbf8d4e4fe73a90f1f20d420971a60f2ed9d15f3ce31940e472851"
     },
     "@deepseek-ai/dsh-host-plugin-inventory": {
       "mode": "replace",
@@ -1139,7 +1139,7 @@
       "baselineVersion": "0.1.5-rc.2",
       "candidateVersion": "0.1.6-alpha.1",
       "baselineSha256": "a22e306ba61b83b7daadad1d3175c1753215c0ef0654d1a5c4503cabdb6180f2",
-      "candidateSha256": "552a6357172e6a020fc54add3ec9019cddfa5671ec85a07ad3c5a4d45088fdb5"
+      "candidateSha256": "9c563d381364430098368f4f72d0c04c0f5657caeb201bd40ea3fb51ffab2e36"
     },
     "@deepseek-ai/dsh-output-retention": {
       "mode": "replace",
@@ -1224,7 +1224,7 @@
       "baselineVersion": "0.1.5-rc.2",
       "candidateVersion": "0.1.6-alpha.1",
       "baselineSha256": "5a9bbae8c2fff5bd1188e6db0db9c4c135409c2aff1d0af4d3f09629a6d86146",
-      "candidateSha256": "5f2defc13d154e6ef7feaeb178beed3870915715c09d44f0acf6bbdaa802c98b"
+      "candidateSha256": "340ec3409958dc4234da80fd81db12d8b862e0e8d1c8a2d79b0675e2e13b4d7f"
     },
     "@deepseek-ai/dsh-sandbox": {
       "mode": "replace",

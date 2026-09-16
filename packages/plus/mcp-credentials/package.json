@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-mcp-credentials",
   "description": "Official MCP client replacement with credential-backed Streamable HTTP Bearer authentication",
-  "version": "0.2.0-rc.3",
+  "version": "0.2.0-rc.4",
   "publishConfig": {
     "access": "public"
   },
@@ -26,14 +26,14 @@
   ],
   "license": "MIT",
   "peerDependencies": {
-    "@deepseek-ai/dsh-attachment": ">=0.1.5-rc.2",
-    "@deepseek-ai/dsh-llm": ">=0.1.5-rc.2",
-    "@deepseek-ai/dsh-scope": ">=0.1.5-rc.2",
-    "@deepseek-ai/dsh-subprocess": ">=0.1.5-rc.2",
-    "@deepseek-ai/dsh-timeout": ">=0.1.5-rc.2",
-    "@deepseek-ai/dsh-tools": ">=0.1.5-rc.2",
+    "@deepseek-ai/dsh-attachment": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
+    "@deepseek-ai/dsh-scope": "workspace:^",
+    "@deepseek-ai/dsh-subprocess": "workspace:^",
+    "@deepseek-ai/dsh-timeout": "workspace:^",
+    "@deepseek-ai/dsh-tools": "workspace:^",
     "@deepseek-ai/cordis": ">=4.0.1",
-    "@deepseek-ai/dsh-credentials": ">=0.1.5-rc.2"
+    "@deepseek-ai/dsh-credentials": "workspace:^"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
