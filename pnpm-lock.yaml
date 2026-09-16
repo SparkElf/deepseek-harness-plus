@@ -1682,6 +1682,9 @@ importers:
       '@sparkelf/dsh-patch-session-export-chinese':
         specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/session-export-chinese
+      '@sparkelf/dsh-patch-session-format-legacy-restart':
+        specifier: workspace:>=0.1.0-rc.26
+        version: link:../../../patches/npm/session-format-legacy-restart
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
         specifier: workspace:>=0.1.0-rc.26
         version: link:../../../patches/npm/session-log-trajectory-toolbar
@@ -11217,6 +11220,8 @@ importers:
   patches/npm/responses-reasoning-status: {}
 
   patches/npm/session-export-chinese: {}
+
+  patches/npm/session-format-legacy-restart: {}
 
   patches/npm/session-log-trajectory-toolbar: {}
 

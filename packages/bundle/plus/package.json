@@ -126,7 +126,8 @@
       "@sparkelf/dsh-patch-ptc-mcp-schema-types",
       "@sparkelf/dsh-patch-web-base-path",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
-      "@sparkelf/dsh-patch-mobile-journal-generation"
+      "@sparkelf/dsh-patch-mobile-journal-generation",
+      "@sparkelf/dsh-patch-session-format-legacy-restart"
     ],
     "sourceBase": {
       "revision": "0a15e36e7f82b6ed45af6fa9759f29b40dcd965d"
@@ -143,6 +144,7 @@
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.1.0-rc.26",
+    "@sparkelf/dsh-patch-session-format-legacy-restart": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-patch-subagent-settings-presets": "workspace:>=0.1.0-rc.26",
     "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.1.0-rc.26",
