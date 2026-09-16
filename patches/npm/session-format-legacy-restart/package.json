@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-patch-session-format-legacy-restart",
+  "version": "0.2.0-rc.2",
+  "description": "Data-only exact official-source patch admitting the released interrupted-turn restart pattern by default",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/session-format-legacy-restart"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "session-format-legacy-restart-default",
+        "dsh": ">=0.1.6-alpha.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "0a15e36e7f82b6ed45af6fa9759f29b40dcd965d",
+          "paths": [
+            "packages/session/session-format-v0-to-v1/"
+          ]
+        },
+        "file": "./patches/session-format-legacy-restart.patch"
+      }
+    ]
+  }
+}

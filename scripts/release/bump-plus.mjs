@@ -60,6 +60,28 @@ export function bumpPlus(version, dryRun) {
     const text = readFileSync(resolve(root, path), 'utf8')
     writeFileSync(resolve(root, path), text.replace(/"version": "[^"]+"/u, '"version": "' + version + '"'))
   }
+  // The distribution's ranges on its own patch packages move with the family. A range left
+  // behind names an older prerelease, which npm then installs in preference to the one being
+  // published — and those older patches declare the previous official base, so \`apply\`
+  // finds no variant matching the source it was pointed at.
+  const distributionPath = 'packages/bundle/plus/package.json'
+  const distribution = JSON.parse(readFileSync(resolve(root, distributionPath), 'utf8'))
+  let rangesChanged = 0
+  for (const name of Object.keys(distribution.dependencies ?? {})) {
+    if (!name.startsWith('@sparkelf/dsh-patch-')) continue
+    const spec = 'workspace:>=' + version
+    if (distribution.dependencies[name] === spec) continue
+    distribution.dependencies[name] = spec
+    rangesChanged += 1
+  }
+  if (rangesChanged > 0) {
+    changed.push({ path: distributionPath, from: 'patch ranges', to: String(rangesChanged) + ' -> ' + version })
+    if (!dryRun) {
+      const updated = JSON.parse(readFileSync(resolve(root, distributionPath), 'utf8'))
+      for (const [name, value] of Object.entries(distribution.dependencies)) updated.dependencies[name] = value
+      writeFileSync(resolve(root, distributionPath), JSON.stringify(updated, null, 2) + '\n')
+    }
+  }
   return changed
 }
 

@@ -73,6 +73,19 @@ entries:
         retireWhen: Official shipped Agent presets expose a deployment overlay or
           equivalent settings-backed rows
     plusBundle: false
+  - name: "@deepseek-ai/dsh-session-format-v0-to-v1"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 0a15e36e7f82b6ed45af6fa9759f29b40dcd965d
+    interest: Deployment admission of the released interrupted-turn restart pattern
+      in v0 Session migration
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-session-format-legacy-restart"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official session-format migrations admit the pattern by default
+    plusBundle: false
   - name: "@deepseek-ai/dsh-client-connection-browser-authentication"
     source:
       kind: git

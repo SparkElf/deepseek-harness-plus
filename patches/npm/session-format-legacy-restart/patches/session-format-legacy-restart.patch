@@ -1,0 +1,35 @@
+diff --git a/packages/session/session-format-v0-to-v1/src/relationships.ts b/packages/session/session-format-v0-to-v1/src/relationships.ts
+index ddd1a4b..5cf0c7c 100644
+--- a/packages/session/session-format-v0-to-v1/src/relationships.ts
++++ b/packages/session/session-format-v0-to-v1/src/relationships.ts
+@@ -35,7 +35,7 @@ export interface ReleasedRelationshipExtensions {
+   /** Title-request model input was source-validated and preserved across sequence remapping. */
+   readonly preservedSourceTitleRequestText?: true
+   /** Admit the released resume pattern whose next-turn inbox insert omitted the prior turn/end. */
+-  readonly legacyInterruptedTurnRestart?: true
++  readonly legacyInterruptedTurnRestart?: boolean
+ }
+ 
+ /**
+@@ -78,8 +78,8 @@ export function assertReleasedArtifactRelationships(
+ 
+     switch (event.type) {
+       case 'turn/start': {
+-        const previous = artifact.events[event.seq - 1]
+-        if (extensions.legacyInterruptedTurnRestart === true
++        const previous = artifact.events.find(candidate => candidate.seq === event.seq - 1)
++        if (extensions.legacyInterruptedTurnRestart !== false
+           && openTurn !== null
+           && openStep === null
+           && data['turn'] === openTurn + 1
+@@ -437,8 +437,8 @@ function assertTitleSources(
+       throw new SessionFormatError(`${event.type} ${event.seq} messageSeqs must cite earlier human user/message events`)
+     }
+     const sourceData = releasedV0Record(source.data, `${source.type} ${seq} data`)
+-    const messageSource = releasedV0Record(sourceData['source'], `${source.type} ${seq} source`)
+-    if (messageSource['kind'] !== 'user') {
++    const provenance = releasedV0Record(sourceData['source'], `${source.type} ${seq} source`)
++    if (provenance['kind'] !== 'user') {
+       throw new SessionFormatError(`${event.type} ${event.seq} messageSeqs must cite earlier human user/message events`)
+     }
+     const content = sourceData['content'] as readonly Record<string, SessionFormatJsonValue>[]
