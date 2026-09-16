@@ -94,15 +94,14 @@ function verifySourcePatchApplies(path: string, baseRevision: string): void {
     throw new Error('cannot materialize source patch base ' + baseRevision + ': ' + added.stderr.trim())
   }
   try {
-    // Match how a deployment applies the patch: \`apply.ts\` uses \`--3way\`, which merges
-    // context that moved when upstream edited nearby lines. A gate stricter than the
-    // applier rejects patches the deployment would accept.
+    // Strict, because that is what the applier checks first: \`apply.ts\` decides a patch is
+    // pending or applied with \`git apply --check\` before it ever runs the three-way merge.
+    // A patch that only merges three-way fails that judgement and stops the deployment at
+    // 'patch does not apply', which is exactly how two patches shipped in 0.2.0-rc.3 failed
+    // after a gate that accepted them because it only tried the merge.
     const strict = spawnSync('git', ['apply', '--check', path], { cwd: checkout, encoding: 'utf8' })
     if (strict.status !== 0) {
-      const merged = spawnSync('git', ['apply', '--3way', '--check', path], { cwd: checkout, encoding: 'utf8' })
-      if (merged.status !== 0) {
-        throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + merged.stderr.trim())
-      }
+      throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + strict.stderr.trim())
     }
   } finally {
     spawnSync('git', ['worktree', 'remove', '--force', checkout], { cwd: root, encoding: 'utf8' })
