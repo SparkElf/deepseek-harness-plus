@@ -70,7 +70,7 @@
         "@changfenhuang/dsh-genui": "0.11.0",
         "@sparkelf/dsh-mineru": "0.1.2",
         "@sparkelf/dsh-officecli": "0.1.2",
-        "@sparkelf/dsh-plugin-supervisor": "0.1.5",
+        "@sparkelf/dsh-plugin-supervisor": "0.1.6",
         "dsh-sql-workbench": "0.5.1",
         "@sparkelf/dsh-workbench-vault": "0.1.2",
         "@sparkelf/dsh-ssh-manager": "0.7.2",

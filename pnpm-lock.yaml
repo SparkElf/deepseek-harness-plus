@@ -9447,8 +9447,8 @@ importers:
         specifier: 0.2.1
         version: 0.2.1(@deepseek-ai/cordis@vendor+cordis)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-llm@packages+llm+llm)(@deepseek-ai/dsh-session@packages+core+session)(@deepseek-ai/dsh-subagent@packages+subagent+subagent)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(pdfjs-dist@6.3.289)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@sparkelf/dsh-plugin-supervisor':
-        specifier: 0.1.5
-        version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)
+        specifier: 0.1.6
+        version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)
       '@sparkelf/dsh-plus':
         specifier: workspace:0.2.0-rc.6
         version: link:../../bundle/plus
@@ -15065,8 +15065,8 @@ packages:
       react:
         optional: true
 
-  '@sparkelf/dsh-plugin-supervisor@0.1.5':
-    resolution: {integrity: sha512-PPT4B3Z3vqETdGAyLuNCMl7lS72VAOAb/9kiw0kHT/hRR0sOQCgV8jlxVULQ+xyf8fSu0ejbBE5baDIsyewSbA==}
+  '@sparkelf/dsh-plugin-supervisor@0.1.6':
+    resolution: {integrity: sha512-Jc498yeXTCyGehIOJ8UgDLwuhbTtHLTh+P1wyME0h/uXFXNqUfUeX7ML3U92rM83WWOVxl7UHwsWOpYfzMAx5Q==}
     engines: {node: ^22.19.0 || >=24.0.0}
     hasBin: true
     peerDependencies:
@@ -23447,7 +23447,7 @@ snapshots:
       - pdfjs-dist
       - react-dom
 
-  '@sparkelf/dsh-plugin-supervisor@0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)':
+  '@sparkelf/dsh-plugin-supervisor@0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-invariants': link:packages/runtime-diagnostics/invariants

@@ -37,7 +37,7 @@
     "@changfenhuang/dsh-genui": "0.11.0",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
-    "@sparkelf/dsh-plugin-supervisor": "0.1.5",
+    "@sparkelf/dsh-plugin-supervisor": "0.1.6",
     "dsh-sql-workbench": "0.5.1",
     "@sparkelf/dsh-workbench-vault": "0.1.2",
     "@sparkelf/dsh-ssh-manager": "0.7.2",
@@ -91,42 +91,179 @@
     },
     "peerOverrides": [
       {
+        "name": "@deepseek-ai/dsh-llm",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-skill",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-tools",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-session",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-invariants",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-util-values",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-store",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-system-prompt",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-chat",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-tool",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-slots",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-session",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-renderer",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-primitives",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-api-session-controller",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-conversation",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-input-trigger",
+        "version": "0.1.6-alpha.1",
+        "reason": "@changfenhuang/dsh-genui@0.11.0 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-host-webserver",
+        "version": "0.1.6-alpha.1",
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.6 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-agent",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-sql-workbench@0.5.1 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-locale",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-sql-workbench@0.5.1 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-sql-workbench@0.5.1 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-user-approval",
+        "version": "0.1.6-alpha.1",
+        "reason": "@sparkelf/dsh-ssh-manager@0.7.2 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-credentials",
+        "version": "0.1.6-alpha.1",
+        "reason": "@sparkelf/dsh-ssh-manager@0.7.2 declares 0.1.5-rc.2, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-settings",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.5-rc.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-subagent",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.5-rc.1, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
         "name": "@huanlin/dsh-plugin-better-locale",
         "version": "0.4.3",
-        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.0, which 0.1.5-rc.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.0, which 0.1.6-alpha.1 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-client-ui-settings",
+        "version": "0.1.6-alpha.1",
+        "reason": "dsh-better-sidebar@0.19.1 declares ^0.1.5-rc.1, which 0.1.6-alpha.1 does not satisfy"
       },
       {
         "name": "dsh-better-sidebar",
         "version": "0.19.1",
-        "reason": "@sparkelf/dsh-plugin-better-sidebar-office@0.2.1 declares ^0.17.0, which 0.1.5-rc.2 does not satisfy"
-      },
-      {
-        "name": "@deepseek-ai/dsh-settings",
-        "version": "0.1.5-rc.2",
-        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
-      },
-      {
-        "name": "@deepseek-ai/dsh-client-ui-slots",
-        "version": "0.1.5-rc.2",
-        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
-      },
-      {
-        "name": "@deepseek-ai/dsh-client-ui-primitives",
-        "version": "0.1.5-rc.2",
-        "reason": "@sparkelf/dsh-mobile-bridge@>=0.2.11 declares 0.1.5-alpha.1, which 0.1.5-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-better-sidebar-office@0.2.1 declares ^0.17.0, which 0.1.6-alpha.1 does not satisfy"
       }
     ]
   },
   "private": false,
   "overrides": {
-    "@huanlin/dsh-plugin-better-locale": "0.4.3",
-    "dsh-better-sidebar": "0.19.1",
-    "@deepseek-ai/dsh-settings": "0.1.5-rc.2",
-    "@deepseek-ai/dsh-client-ui-slots": "0.1.5-rc.2",
+    "@deepseek-ai/dsh-llm": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-skill": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.6-alpha.2",
+    "@deepseek-ai/dsh-session": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-invariants": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-util-values": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-store": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-chat": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-tool": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-session": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.6-alpha.1",
     "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.1.6-alpha.2",
+    "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.6-alpha.2",
+    "@deepseek-ai/dsh-client-ui-conversation": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-input-trigger": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.6-alpha.2",
+    "@deepseek-ai/dsh-agent": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-locale": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-user-approval": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-credentials": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-settings": "0.1.6-alpha.1",
+    "@deepseek-ai/dsh-subagent": "0.1.6-alpha.1",
+    "@huanlin/dsh-plugin-better-locale": "0.4.3",
+    "@deepseek-ai/dsh-client-ui-settings": "0.1.6-alpha.1",
+    "dsh-better-sidebar": "0.19.1",
     "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.6-alpha.2",
     "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.6-alpha.2",
-    "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.1.6-alpha.2",
     "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.1.6-alpha.2",
@@ -137,12 +274,10 @@
     "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.1.6-alpha.2",
     "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.1.6-alpha.2",
     "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.1.6-alpha.2",
-    "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.6-alpha.2",
     "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.1.6-alpha.2",
     "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.1.6-alpha.2",
     "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.1.6-alpha.2",
     "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.6-alpha.2",
-    "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.6-alpha.2",
     "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.6-alpha.2",
     "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.6-alpha.2",
     "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.1.6-alpha.2"
