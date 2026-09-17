@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-index 2dc7237..f0a9ab9 100644
+index 15b8933..415126d 100644
 --- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 +++ b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-@@ -397,6 +397,31 @@
+@@ -397,6 +397,32 @@
    padding-top: 12px;
  }
  
@@ -31,11 +31,12 @@ index 2dc7237..f0a9ab9 100644
 +  cursor: not-allowed;
 +}
 +
- /* Model catalog: a table, not a stack of cards. The column captions are
-    written once above the rows, so a row is one line of fields plus its
-    delete control; each field still carries the indexed `aria-label` that
++
+ .modelCatalog {
+   display: flex;
+   flex-direction: column;
 diff --git a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-index 3fb057a..ad5ae52 100644
+index bc89f43..2533cae 100644
 --- a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 +++ b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 @@ -44,6 +44,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
@@ -81,7 +82,7 @@ index 3fb057a..ad5ae52 100644
    const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
    const probe = {
      settingsNs: namespace.ns,
-@@ -435,7 +450,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -436,7 +451,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                      value={probeApi ?? ''}
                      aria-label={t('customApi')}
                      disabled={disabled}
@@ -98,7 +99,7 @@ index 3fb057a..ad5ae52 100644
                    >
                      {/* A profile naming no protocol — hand-written into
                          settings.yaml with no model to need one — selects
-@@ -449,6 +472,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -450,6 +473,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                  </div>
                )
                : null}
@@ -124,10 +125,10 @@ index 3fb057a..ad5ae52 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index 0c9b29a..c9956ca 100644
+index d06ee79..9a623ba 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
-@@ -88,6 +88,7 @@ export const en = {
+@@ -89,6 +89,7 @@ export const en = {
    customDisplayName: 'Display name',
    customApi: 'API protocol',
    customApiUnset: 'Not selected',
@@ -135,7 +136,7 @@ index 0c9b29a..c9956ca 100644
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
    customBaseUrlInvalid: 'Enter a valid HTTP or HTTPS URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
-@@ -198,6 +199,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
+@@ -200,6 +201,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
    customDisplayName: '显示名称',
    customApi: 'API 协议',
    customApiUnset: '未选择',
@@ -144,7 +145,7 @@ index 0c9b29a..c9956ca 100644
    customBaseUrlInvalid: '请输入有效的 HTTP 或 HTTPS 地址。',
    customNeedsModels: '自定义提供方至少需要一个模型。',
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index 8dba978..5bd8033 100644
+index de9f3e0..404b66d 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
 @@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
