@@ -78,6 +78,30 @@ describe('PATCHED_WORKSPACES', () => {
     // rather than trusted.
     expect([...(PATCHED_WORKSPACES as string[])].sort()).toEqual(workspacesThePatchesModify())
   })
+
+  it('is referenced by an override for every patched workspace', () => {
+    // Repackaging a workspace produces @sparkelf/dsh-*; nothing installs it until the
+    // distribution's overrides name it. A workspace present here but absent there ships a
+    // package no consumer receives, which is how three source patches reached the source
+    // checkout and never reached a registry installation.
+    const distribution = JSON.parse(
+      readFileSync(join(root, 'packages/bundle/plus/package.json'), 'utf8'),
+    ) as { dshPlus: { profile: { overrides: Record<string, string> } } }
+    // A key is the official package name the consumer imports; the value is the npm
+    // substitution that replaces it. The workspace's own name is the key.
+    const overridden = new Set(Object.keys(distribution.dshPlus.profile.overrides))
+    // The packaged name is the workspace's own manifest name, not a path join: apps/web
+    // publishes as @deepseek-ai/dsh-web-frontend and packages/bundle/web-app as
+    // @deepseek-ai/dsh-web-app. Reading the manifest is what keeps this check honest.
+    const missing = [...(PATCHED_WORKSPACES as string[])].filter((workspace) => {
+      const manifest = JSON.parse(readFileSync(join(root, workspace, 'package.json'), 'utf8')) as { name?: string }
+      const name = manifest.name
+      if (name === undefined) return true
+      const spec = overridden.has(name)
+      return !spec
+    })
+    expect(missing).toEqual([])
+  })
 })
 
 describe('STRIPPED_FIELDS', () => {
