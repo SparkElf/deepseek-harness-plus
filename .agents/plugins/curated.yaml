@@ -65,7 +65,7 @@ entries:
       - package: "@sparkelf/dsh-patch-better-sidebar-main-view-session"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar resolves the on-screen session without
-          sessions.list.current (omdsh-dev/DSH-better-sidebar#695)
+          sessions.list.current (omdsh-dev/DSH-better-sidebar#715, PR #716)
     plusBundle: true
   - name: "@deepseek-ai/dsh-agent-presets"
     source:
