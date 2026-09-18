@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-web-base-path",
-  "version": "0.2.0-rc.7",
+  "version": "0.2.0-rc.8",
   "description": "Data-only exact official-source patch for complete reverse-proxy Web base-path support",
   "publishConfig": {
     "access": "public"
