@@ -66,6 +66,10 @@ entries:
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar resolves the on-screen session without
           sessions.list.current (omdsh-dev/DSH-better-sidebar#715, PR #716)
+      - package: "@sparkelf/dsh-patch-better-sidebar-browser-url-seed"
+        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
+        retireWhen: dsh-better-sidebar carries a link's url seed onto the tab it
+          opens (omdsh-dev/DSH-better-sidebar#717, PR #718)
     plusBundle: true
   - name: "@deepseek-ai/dsh-agent-presets"
     source:

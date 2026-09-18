@@ -1,0 +1,37 @@
+diff --git a/lib/client.js b/lib/client.js
+index f137630..f0f6415 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -1383,7 +1383,7 @@ window.__ModuleLoader__.load({
+ 						id: seed.id ?? minted?.tab.id ?? seed.type,
+ 						type: seed.type,
+ 						title,
+-						...seed.path === void 0 ? {} : { path: seed.path },
++						...((seed.path ?? seed.url) === void 0 ? {} : { path: seed.path ?? seed.url }),
+ 						...seed.diff === void 0 ? {} : { diff: seed.diff },
+ 						...seed.meta === void 0 && minted?.tab.meta === void 0 ? {} : { meta: seed.meta ?? minted?.tab.meta }
+ 					};
+@@ -16611,7 +16611,7 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 								id,
+ 								type: kind,
+ 								title: params?.title ?? seeded?.title ?? title,
+-								...params?.path === void 0 ? {} : { path: params.path },
++								...((params?.path ?? params?.url) === void 0 ? {} : { path: params?.path ?? params?.url }),
+ 								...params?.diff === void 0 ? {} : { diff: params.diff },
+ 								...meta === void 0 ? {} : { meta }
+ 							},
+@@ -16624,12 +16624,9 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 						return minted;
+ 					}
+ 					const patch = {};
+-					if (params?.path !== void 0 && params.path !== existing.tab.path) patch.path = params.path;
++					const nextPath = params?.path ?? params?.url;
++					if (nextPath !== void 0 && nextPath !== existing.tab.path) patch.path = nextPath;
+ 					if (params?.diff !== void 0) patch.diff = params.diff;
+-					if (params?.url !== void 0) patch.meta = {
+-						...typeof existing.tab.meta === "object" && existing.tab.meta !== null ? existing.tab.meta : {},
+-						url: params.url
+-					};
+ 					if (existing.scope.cwd !== scope.cwd) {
+ 						views.set(id, {
+ 							...existing,

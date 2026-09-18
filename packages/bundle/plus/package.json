@@ -123,6 +123,7 @@
     "patchPackages": [
       "@sparkelf/dsh-patch-better-sidebar-media-path",
       "@sparkelf/dsh-patch-better-sidebar-main-view-session",
+      "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
       "@sparkelf/dsh-patch-officecli-deliverables",
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-workspace-storage-restore",
@@ -145,6 +146,7 @@
   },
   "dependencies": {
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
+    "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-better-sidebar-main-view-session": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.0-rc.8",
