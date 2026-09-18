@@ -26,9 +26,11 @@ kind: "package-reference"
 ## 使用此软件包
 
 ```sh
-npm install -g @sparkelf/dsh-plus-standalone
+npm install -g @sparkelf/dsh-plus-standalone@next
 dsh-plus start
 ```
+
+到目前为止每个发行版都带预发布后缀，而 npm 会把带后缀的版本发到 `next` 标签而不是 `latest`。写上标签会安装当前发行版；省略它会安装一个更旧的版本，因为 `latest` 仍指向本发行版形成今天这个形态之前发布的版本。
 
 | Command | Effect |
 |---|---|
