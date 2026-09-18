@@ -18,6 +18,7 @@ import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
 import { releaseFamily } from './families.ts'
+import type { ReleaseFamily } from './families.ts'
 import { attempt, attemptEchoed, isEntry } from './process.ts'
 import { packedIdentity, readPublishOrder } from './tarball.ts'
 
@@ -133,18 +134,91 @@ async function publishTarball(
   }
 }
 
+/**
+ * Point `latest` at a version that was just published under a prerelease tag.
+ *
+ * Publishing a suffixed version puts it under `next`, so every release this
+ * repository has made left `latest` where it was. A consumer who follows the
+ * README's install line therefore receives whichever version was published before
+ * the distribution took its present form: measured on @sparkelf/dsh-plus-standalone,
+ * `latest` named 0.1.0-rc.35 while `next` named 0.2.0-rc.7, four days apart.
+ *
+ * Promotion is deliberately not part of publishing. `npm dist-tag add` is a second
+ * write against a package that already exists, so it can fail on its own and it can
+ * be judged on its own: the version stays published either way, and a failure here
+ * reports which package needs the tag without pretending the publication failed.
+ *
+ * @param name - package whose tag moves.
+ * @param version - version the tag should name.
+ * @param distTag - the tag the version published under; `latest` is skipped for it.
+ * @returns true when the tag was moved or already correct.
+ */
+function promoteLatest(name: string, version: string, distTag: string | undefined): boolean {
+  if (distTag === 'latest') return false
+  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json'])
+  const parsed: unknown = current.status === 0 ? JSON.parse(current.stdout.trim() || '[]') : undefined
+  const latest = Array.isArray(parsed) ? parsed[0] : parsed
+  if (latest === version) return false
+  const moved = attemptEchoed('npm', ['dist-tag', 'add', `${name}@${version}`, 'latest'])
+  if (moved.status !== 0) {
+    throw new Error(
+      `published ${name}@${version} under '${String(distTag)}' but could not move latest`
+      + ` from ${typeof latest === 'string' ? latest : 'an unknown version'}:`
+      + `\n${moved.stdout}${moved.stderr}`,
+    )
+  }
+  console.log(`release publish: ${name} latest -> ${version} (was ${typeof latest === 'string' ? latest : 'unknown'})`)
+  return true
+}
+
+/**
+ * Move `latest` for every member of a published set whose tag trails its version.
+ *
+ * This runs as its own pass after publication so a promotion failure cannot be
+ * mistaken for a publication failure, and so an interrupted release can be finished
+ * by running it again: each move is idempotent.
+ *
+ * @param directory - packed directory the release was published from.
+ * @param family - family whose dist-tag policy decides what a prerelease means.
+ * @returns the number of tags moved.
+ */
+function promoteFamilyLatest(directory: string, family: ReleaseFamily): number {
+  let moved = 0
+  for (const filename of readPublishOrder(directory)) {
+    const tarball = join(directory, filename)
+    const { name, version } = packedIdentity(tarball)
+    if (promoteLatest(name, version, family.distTagForVersion(version))) moved += 1
+  }
+  return moved
+}
+
 /** Publish the family named by `--family` from the directory named by `--from`. */
 async function main(): Promise<void> {
   const { values } = parseArgs({
-    options: { family: { type: 'string' }, from: { type: 'string' } },
+    options: {
+      family: { type: 'string' },
+      from: { type: 'string' },
+      'promote-latest': { type: 'boolean' },
+    },
     allowPositionals: false,
   })
   if (values.family === undefined || values.from === undefined) {
-    throw new Error('usage: publish.ts --family <dsh|plus|vendor> --from <packed directory>')
+    throw new Error(
+      'usage: publish.ts --family <dsh|plus|vendor> --from <packed directory> [--promote-latest]',
+    )
   }
 
   const family = releaseFamily(values.family)
   const directory = resolve(process.cwd(), values.from)
+
+  // A promotion-only run finishes a release whose tags were left behind, without
+  // republishing anything: every member is already present, so the publish pass
+  // would skip all of them and then report the same summary.
+  if (values['promote-latest'] === true) {
+    const moved = promoteFamilyLatest(directory, family)
+    console.log(`release publish: family ${family.id}, ${String(moved)} latest tag(s) moved`)
+    return
+  }
 
   // Every entry in the order settles as either published or already present, so
   // one counter answers "how far along is this run" for whoever is watching a
@@ -183,6 +257,13 @@ async function main(): Promise<void> {
     `release publish: family ${family.id}, ${total} member(s),`
     + ` ${String(published)} published, ${String(skipped)} already present`,
   )
+
+  // Promotion follows publication rather than interleaving with it: the set is
+  // complete and consistent at this point, so one failure leaves a published release
+  // with stale tags - recoverable by re-running with --promote-latest - instead of a
+  // half-published one.
+  const moved = promoteFamilyLatest(directory, family)
+  console.log(`release publish: ${String(moved)} latest tag(s) moved`)
 }
 
 if (isEntry(import.meta.url)) await main()

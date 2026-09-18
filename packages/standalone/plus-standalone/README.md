@@ -25,11 +25,11 @@ One `npm install` brings the official runtime, the Plus distribution, and every 
 ## Use this package
 
 ```sh
-npm install -g @sparkelf/dsh-plus-standalone@next
+npm install -g @sparkelf/dsh-plus-standalone
 dsh-plus start
 ```
 
-Every release so far carries a prerelease suffix, and npm publishes a suffixed version under the `next` tag rather than `latest`. Naming the tag installs the current release; omitting it installs an older one, because `latest` still points at a version published before this distribution took its present form.
+A release publishes under `next` because every version carries a prerelease suffix, and the publish step then moves `latest` onto it so the command above installs the current release rather than the newest one npm would otherwise choose.
 
 | Command | Effect |
 |---|---|
