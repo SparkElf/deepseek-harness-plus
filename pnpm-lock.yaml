@@ -1697,6 +1697,9 @@ importers:
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
         specifier: workspace:>=0.2.0-rc.8
         version: link:../../../patches/npm/session-log-trajectory-toolbar
+      '@sparkelf/dsh-patch-session-query-unindexable-session':
+        specifier: workspace:>=0.2.0-rc.8
+        version: link:../../../patches/npm/session-query-unindexable-session
       '@sparkelf/dsh-patch-subagent-settings-presets':
         specifier: workspace:>=0.2.0-rc.8
         version: link:../../../patches/npm/subagent-settings-presets
@@ -11248,6 +11251,8 @@ importers:
   patches/npm/session-format-legacy-restart: {}
 
   patches/npm/session-log-trajectory-toolbar: {}
+
+  patches/npm/session-query-unindexable-session: {}
 
   patches/npm/subagent-settings-presets: {}
 

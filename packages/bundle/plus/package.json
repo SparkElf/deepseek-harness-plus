@@ -138,7 +138,8 @@
       "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-session-format-legacy-restart",
       "@sparkelf/dsh-patch-wsl-native-open",
-      "@sparkelf/dsh-patch-better-sidebar-html-preview-path"
+      "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
+      "@sparkelf/dsh-patch-session-query-unindexable-session"
     ],
     "sourceBase": {
       "revision": "ddefc45fbc7f8e46dd73185e68295696d1297887"
@@ -155,6 +156,7 @@
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.0-rc.8",
+    "@sparkelf/dsh-patch-session-query-unindexable-session": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.8",
     "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.0-rc.8",

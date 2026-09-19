@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-session-query-unindexable-session",
+  "description": "Skip a session whose stored log cannot be migrated instead of failing the whole content search, and index each session as it is read",
+  "version": "0.2.0-rc.8",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/session-query-unindexable-session"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/session-query-unindexable-session.patch": "./patches/session-query-unindexable-session.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "session-query-unindexable-session",
+        "dsh": ">=0.1.6-alpha.2",
+        "target": {
+          "kind": "npm",
+          "name": "@deepseek-ai/dsh-session-query-sqlite",
+          "range": "0.1.6-alpha.2"
+        },
+        "file": "./patches/session-query-unindexable-session.patch"
+      }
+    ]
+  }
+}
