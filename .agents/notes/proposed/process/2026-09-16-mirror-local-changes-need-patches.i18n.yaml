@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-16-mirror-local-changes-need-patches.md
+2026-09-16-mirror-local-changes-need-patches.md: e488cd9921a97eb51c9a3c4f0b66a3db5f75d501
+2026-09-16-mirror-local-changes-need-patches.zh.md: 9e4d6d650551b5cf7a1664f154a379c813ad328f

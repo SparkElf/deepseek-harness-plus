@@ -95,7 +95,8 @@ describe('alignReplacedPackageNames', () => {
     const modules = join(root, 'node_modules')
     const manifest = replaced(modules, 'dsh-client-ui-settings-models')
     alignReplacedPackageNames(modules)
-    expect(JSON.parse(readFileSync(manifest, 'utf8')).name).toBe('@deepseek-ai/dsh-client-ui-settings-models')
+    const written = JSON.parse(readFileSync(manifest, 'utf8')) as { name?: string }
+    expect(written.name).toBe('@deepseek-ai/dsh-client-ui-settings-models')
   })
 
   it('replaces the manifest rather than writing through it', () => {

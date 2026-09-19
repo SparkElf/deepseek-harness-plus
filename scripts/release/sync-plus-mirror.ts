@@ -77,7 +77,7 @@ function parseOptions(argv: readonly string[]): Options {
       index += 1
       continue
     }
-    throw new Error('unknown option: ' + token)
+    throw new Error('unknown option: ' + String(token))
   }
   const ref = process.env.GITHUB_REF ?? ''
   const prefix = 'refs/tags/plus-npm-v'

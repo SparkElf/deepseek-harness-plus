@@ -13,7 +13,7 @@
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { attemptEchoed } from './process.ts'
+import { attempt, attemptEchoed } from './process.ts'
 
 /** Read one JSON file. */
 function readJson(path) {
@@ -46,6 +46,40 @@ function publishOrder(manifests) {
   return order
 }
 
+/**
+ * Point `latest` at a version that published under a prerelease tag.
+ *
+ * Publishing a suffixed version puts it under `next`, so without this step `latest`
+ * keeps whichever version was set first. Measured before the fix:
+ * @sparkelf/dsh-web-app had `latest` at 0.1.5-rc.2 while `next` named 0.1.6-alpha.2, and a
+ * consumer installing it without a tag received the older build.
+ *
+ * Promotion is deliberately not folded into the publish call above: `npm dist-tag add`
+ * is a second write against a package that already exists, so it can fail on its own
+ * without the publication having failed.
+ *
+ * @param name - package whose tag moves.
+ * @param version - version the tag should name.
+ * @param tag - the tag the version published under; `latest` is skipped for it.
+ * @returns true when the tag was moved or already correct.
+ */
+function promoteLatest(name, version, tag) {
+  if (tag === 'latest') return false
+  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json'])
+  const parsed = current.status === 0 ? JSON.parse(current.stdout.trim() || '[]') : undefined
+  const latest = Array.isArray(parsed) ? parsed[0] : parsed
+  if (latest === version) return false
+  const moved = attemptEchoed('npm', ['dist-tag', 'add', name + '@' + version, 'latest'])
+  if (moved.status !== 0) {
+    throw new Error(
+      'published ' + name + '@' + version + " under '" + tag + "' but could not move latest"
+      + ' from ' + (typeof latest === 'string' ? latest : 'an unknown version'),
+    )
+  }
+  console.log('  latest ' + name + ' -> ' + version + ' (was ' + (typeof latest === 'string' ? latest : 'unknown') + ')')
+  return true
+}
+
 const argv = process.argv.slice(2)
 let dir
 let dryRun = false
@@ -74,4 +108,16 @@ for (const manifest of order) {
   const result = attemptEchoed('npm', args, { cwd: path })
   if (result.status !== 0) throw new Error('publish failed for ' + manifest.name)
   console.log('  published ' + manifest.name + '@' + manifest.version)
+}
+
+// Promotion follows the whole publication rather than interleaving with it: the set is
+// complete at this point, so a failure leaves a published release with stale tags —
+// recoverable by re-running — instead of a half-published one.
+if (!dryRun) {
+  let moved = 0
+  for (const manifest of order) {
+    const tag = manifest.version.includes('-') ? 'next' : 'latest'
+    if (promoteLatest(manifest.name, manifest.version, tag)) moved += 1
+  }
+  console.log('publish-patched-official: ' + String(moved) + ' latest tag(s) moved')
 }

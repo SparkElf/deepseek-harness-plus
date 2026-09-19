@@ -29,6 +29,8 @@ npm install -g @sparkelf/dsh-plus-standalone
 dsh-plus start
 ```
 
+A release publishes under `next` because every version carries a prerelease suffix, and the publish step then moves `latest` onto it so the command above installs the current release rather than the newest one npm would otherwise choose.
+
 | Command | Effect |
 |---|---|
 | `dsh-plus start` | Writes the profile on first run, picks a free port, starts the server, prints the URL |

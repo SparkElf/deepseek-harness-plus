@@ -234,7 +234,7 @@ export function alignReplacedPackageNames(profileModules: string): void {
   for (const entry of readdirSync(scoped)) {
     const manifestPath = join(scoped, entry, 'package.json')
     if (!existsSync(manifestPath)) continue
-    const declared = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
     const expected = '@deepseek-ai/' + entry
     if (declared.name === expected) continue
     const replaced = { ...declared, name: expected }

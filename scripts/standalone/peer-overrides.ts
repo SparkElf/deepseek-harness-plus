@@ -33,10 +33,11 @@ function publishedPeers(spec: string, registry: string): Record<string, string> 
       stdio: ['ignore', 'pipe', 'ignore'],
     })
     if (raw.trim() === '') return {}
-    const parsed: unknown = JSON.parse(raw)
+    const parsed = JSON.parse(raw) as unknown
     // npm answers one object per matching version, so a single spec arrives wrapped in
     // an array; treating that array as unusable silently drops every peer it carries.
-    const record = Array.isArray(parsed) ? parsed[0] : parsed
+    const entries = Array.isArray(parsed) ? (parsed as unknown[]) : [parsed]
+    const record: unknown = entries[0]
     if (record === null || typeof record !== 'object' || Array.isArray(record)) return {}
     const peers: Record<string, string> = {}
     for (const [name, range] of Object.entries(record as Record<string, unknown>)) peers[name] = String(range)

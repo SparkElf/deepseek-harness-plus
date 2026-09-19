@@ -73,7 +73,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     if (token === '--no-open') { open = false; continue }
     if (token === '--foreground') { foreground = true; continue }
-    throw new Error('unknown option: ' + token)
+    throw new Error('unknown option: ' + String(token))
   }
   return { port, host, open, foreground }
 }

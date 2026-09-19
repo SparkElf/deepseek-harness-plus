@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-19-a-republished-version-must-carry-that-versions-source.md
+2026-09-19-a-republished-version-must-carry-that-versions-source.md: 47b69e04982b51e6ef458cd63e9658422327355d
+2026-09-19-a-republished-version-must-carry-that-versions-source.zh.md: 463815ee5316ee586715ec5825f49247db1727b8

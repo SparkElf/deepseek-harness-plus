@@ -35,10 +35,12 @@ function main() {
   let source
   let version
   let dryRun = false
+  let skipPublish = false
   for (let index = 0; index < argv.length; index += 1) {
     if (argv[index] === '--source') { source = argv[index + 1]; index += 1; continue }
     if (argv[index] === '--version') { version = argv[index + 1]; index += 1; continue }
     if (argv[index] === '--dry-run') { dryRun = true; continue }
+    if (argv[index] === '--skip-publish') { skipPublish = true; continue }
     throw new Error('unknown option: ' + argv[index])
   }
   if (source === undefined) {
@@ -55,7 +57,15 @@ function main() {
   // Verification is not optional and not separable: it compares the packaged output with
   // the workspace it came from, which is the check the manifest itself cannot give.
   run('verify-patched-official.mjs', ['--source', built, '--dir', target], 'verification')
-  run('publish-patched-official.mjs', ['--dir', target].concat(dryRun ? ['--dry-run'] : []), 'publication')
+  // A publication that stops on the first version the registry already carries leaves the
+  // later tarballs unpacked: the already-published set is the normal case when a release
+  // adds a workspace to the patched list. --skip-publish packages and verifies only, so a
+  // caller can publish the additions and leave the existing versions alone.
+  if (!skipPublish) {
+    run('publish-patched-official.mjs', ['--dir', target].concat(dryRun ? ['--dry-run'] : []), 'publication')
+  } else {
+    console.log('republish-patched-official: skipping publication, ' + target + ' holds the verified tarballs')
+  }
   if (process.env.DSH_PLUS_PACKAGE_DIR === undefined) rmSync(target, { recursive: true, force: true })
   console.log('republish-patched-official: done')
 }
