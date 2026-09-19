@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-19-http-200-does-not-prove-a-deployment-works.md
+2026-09-19-http-200-does-not-prove-a-deployment-works.md: 3a80b97b0c478658b63e2ebae169e8a2d584de94
+2026-09-19-http-200-does-not-prove-a-deployment-works.zh.md: d36dbb2a5d1ec1e9b2a5d2a5a7cb4b986daf4692
