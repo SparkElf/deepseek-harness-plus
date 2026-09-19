@@ -111,6 +111,20 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
         retireWhen: Official session-format migrations admit the pattern by default
     plusBundle: false
+  - name: "@deepseek-ai/dsh-session-query-sqlite"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    interest: Content search stays usable when one stored session log cannot be
+      migrated, and an interrupted first index pass keeps its progress
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-session-query-unindexable-session"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official session-query skips a session whose stored log it cannot
+          migrate, and publishes each indexed session before reading the next
+    plusBundle: false
   - name: "@deepseek-ai/dsh-client-connection-browser-authentication"
     source:
       kind: git

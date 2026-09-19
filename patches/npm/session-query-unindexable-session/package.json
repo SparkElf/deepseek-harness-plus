@@ -24,11 +24,13 @@
     "variants": [
       {
         "id": "session-query-unindexable-session",
-        "dsh": ">=0.1.6-alpha.2",
+        "dsh": ">=0.1.6-alpha.1",
         "target": {
-          "kind": "npm",
-          "name": "@deepseek-ai/dsh-session-query-sqlite",
-          "range": "0.1.6-alpha.2"
+          "kind": "dsh-source",
+          "baseRevision": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+          "paths": [
+            "packages/session-query/session-query-sqlite/"
+          ]
         },
         "file": "./patches/session-query-unindexable-session.patch"
       }
