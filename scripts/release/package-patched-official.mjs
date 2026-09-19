@@ -225,6 +225,31 @@ function packageWorkspace(source, out, workspace, versions, version) {
   return published.name
 }
 
+/**
+ * Refuse a publish version the source checkout does not declare.
+ *
+ * `--version` rewrites every republished manifest, which is what a correction
+ * under an already-released version needs. It cannot rewrite the source those
+ * packages are built from, so a version the source does not declare publishes an
+ * artifact that claims a release it was not built from. The check runs here
+ * rather than in the publisher because this step is where the source is read.
+ *
+ * @param source - the built checkout being packaged.
+ * @param version - the version to publish under.
+ * @throws {Error} when `releases.json` and the workspace disagree.
+ */
+function requireSourceVersion(source, version) {
+  // Every patched workspace ships as one version, so any of them answers for
+  // the tree; releases.json is the field the rest of the release path reads.
+  const declared = sourceVersion(source)
+  if (declared === version) return
+  throw new Error(
+    'republish-patched-official: --version ' + version + ' but the source declares '
+    + declared + ' at packages/bundle/web-app; rebase the patches onto the ' + version
+    + ' tree first, then republish',
+  )
+}
+
 // Importing this module must not package anything: a spec imports it for its table,
 // and running the body on import would make that import throw instead.
 async function main() {
@@ -245,6 +270,13 @@ async function main() {
   mkdirSync(out, { recursive: true })
   const versions = officialVersions(resolve(source))
   const resolvedVersion = version ?? sourceVersion(resolve(source))
+  // A version number is a claim about contents. Overriding it republishes the
+  // source under a version that source does not declare, and the two then
+  // disagree wherever the newer release changed a validated field — measured on
+  // 0.1.6-alpha.2: @sparkelf/dsh-api-session-controller@0.1.6-alpha.2 carried
+  // 0.1.6-alpha.1's typert codecs, which lack the create() factory the alpha.2
+  // loader requires, so every deployment honouring the override failed to boot.
+  if (version !== undefined) requireSourceVersion(resolve(source), version)
   const names = PATCHED_WORKSPACES.map(workspace =>
     packageWorkspace(resolve(source), resolve(out), workspace, versions, resolvedVersion))
   console.log('package-patched-official: ' + String(names.length) + ' package(s) at ' + resolvedVersion + ' written to ' + out)

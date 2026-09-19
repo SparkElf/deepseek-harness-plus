@@ -1710,16 +1710,16 @@ importers:
         specifier: workspace:>=0.2.0-rc.8
         version: link:../../../patches/npm/wsl-native-open
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.1.0-rc.26
+        specifier: workspace:>=0.2.0-rc.8
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-dataops':
-        specifier: workspace:>=0.1.0-rc.26
+        specifier: workspace:>=0.2.0-rc.8
         version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.1.0-rc.26
+        specifier: workspace:>=0.2.0-rc.8
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-subagent-settings':
-        specifier: workspace:>=0.1.0-rc.26
+        specifier: workspace:>=0.2.0-rc.8
         version: link:../../plus/subagent-settings
       dshmarket:
         specifier: '>=1.45.1'
