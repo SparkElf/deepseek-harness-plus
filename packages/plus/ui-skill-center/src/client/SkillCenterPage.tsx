@@ -78,12 +78,21 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   onToggle(skill: SkillEntry, enabled: boolean): void
   onDelete(skill: SkillEntry): void
 }): ReactNode {
+  // A project skill can come from a workspace other than the one being viewed — the
+  // listing spans every workspace a session names — so its origin is shown rather
+  // than left to look like it belongs to the workspace on screen.
+  const foreign = skill.isActiveWorkspace === false && skill.workspaceName !== undefined
   return (
-    <li className={css.card}>
+    <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
       <div className={css.cardHead}>
         <span className={css.cardIcon}><IconSkillOutline16 size={22} /></span>
         <div className={css.cardMain}>
-          <div className={css.cardTitle}>{skill.name}</div>
+          <div className={css.cardTitle}>
+            {skill.name}
+            {skill.workspaceName === undefined ? null : (
+              <span className={css.workspaceBadge}>{skill.workspaceName}</span>
+            )}
+          </div>
           <div className={css.cardDesc}>{skill.description}</div>
           {skill.whenToUse === undefined ? null : (
             <div className={css.cardWhenToUse}>{skill.whenToUse}</div>

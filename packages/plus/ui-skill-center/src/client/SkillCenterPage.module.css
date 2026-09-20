@@ -180,12 +180,30 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+/* A row from another workspace is present but is not the subject of this view. */
+.cardForeign {
+  opacity: 0.72;
+}
+
 .cardMain {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* The workspace a project skill came from, beside its name. */
+.workspaceBadge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  vertical-align: middle;
 }
 
 .cardTitle {

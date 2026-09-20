@@ -15,7 +15,7 @@ import { existsSync, lstatSync } from 'node:fs'
 import type { Dirent } from 'node:fs'
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -61,13 +61,13 @@ interface SourceGroup {
  * group; anything matching no convention lands in the custom group.
  */
 const SOURCE_GROUPS: readonly SourceGroup[] = [
-  { key: 'bundled', title: '系统内置', hint: '随 Harness 一同安装，不能删除' },
-  { key: 'runtime', title: '运行时注册', hint: '由已安装的插件在运行时注册' },
-  { key: 'user-agents', title: '用户 ~/.agents/skills', hint: '在用户 agents 目录下，对所有项目生效' },
-  { key: 'user-dsh', title: '用户 ~/.dsh/skills', hint: '在用户 dsh 目录下，对所有项目生效' },
-  { key: 'project-agents', title: '项目 .agents/skills', hint: '随项目提交，对协作者共享' },
-  { key: 'project-dsh', title: '项目 .dsh/skills', hint: '项目本地技能，通常不提交' },
+  { key: 'bundled', title: '系统内置', hint: '随 Harness 一同安装，对所有项目生效' },
+  { key: 'project-dsh', title: '项目 .dsh/skills', hint: '位于项目目录，仅对该工作区生效' },
+  { key: 'project-agents', title: '项目 .agents/skills', hint: '位于项目目录，随项目提交，对协作者共享' },
   { key: 'custom', title: '自定义目录', hint: '由本插件的 customSkillDirs 配置' },
+  { key: 'user-dsh', title: '用户 ~/.dsh/skills', hint: '在用户 dsh 目录下，对本机所有项目生效' },
+  { key: 'user-agents', title: '用户 ~/.agents/skills', hint: '在用户 agents 目录下，对本机所有项目生效' },
+  { key: 'runtime', title: '运行时注册', hint: '由已安装的插件在运行时注册' },
 ]
 
 /** A skill row as the panel receives it. */
@@ -176,6 +176,10 @@ export interface ScannedSkill {
   linked: boolean
   modelInvocable: boolean
   userInvocable: boolean
+  /** The project a project-scoped skill came from; absent for user and bundled roots. */
+  workspaceRoot?: string
+  workspaceName?: string
+  isActiveWorkspace?: boolean
 }
 
 /** The Markdown a skill directory may declare its bundle with. */
@@ -199,7 +203,11 @@ const SKILL_FILE = 'SKILL.md'
  * @param level - the group key every skill under this root belongs to.
  * @returns the skills found, sorted by name; missing roots yield none.
  */
-export async function scanSkillRoot(root: string, level: string): Promise<ScannedSkill[]> {
+export async function scanSkillRoot(
+  root: string,
+  level: string,
+  workspace?: { root: string; name: string; active: boolean },
+): Promise<ScannedSkill[]> {
   let entries: Dirent[]
   try {
     entries = await readdir(root, { withFileTypes: true })
@@ -240,6 +248,11 @@ export async function scanSkillRoot(root: string, level: string): Promise<Scanne
       modelInvocable: disabled !== true && invocation !== 'user',
       userInvocable: invocation !== 'model',
       ...field('when-to-use') === undefined ? {} : { whenToUse: field('when-to-use') as string },
+      ...workspace === undefined ? {} : {
+        workspaceRoot: workspace.root,
+        workspaceName: workspace.name,
+        isActiveWorkspace: workspace.active,
+      },
     })
   }
   return found.sort((a, b) => a.name.localeCompare(b.name))
@@ -264,11 +277,16 @@ function lstatSyncSafe(path: string): boolean {
 export function localSkillRoots(
   deps: Pick<SkillRoutesDeps, 'dshHome' | 'agentsHome'> & { customSkillDirs: readonly string[] },
   projectRoots: readonly string[],
-): { path: string; level: string }[] {
-  const roots: { path: string; level: string }[] = []
+  activeRoot?: string,
+): { path: string; level: string; workspace?: { root: string; name: string; active: boolean } }[] {
+  const roots: { path: string; level: string; workspace?: { root: string; name: string; active: boolean } }[] = []
   for (const projectRoot of projectRoots) {
-    roots.push({ path: join(projectRoot, '.dsh', 'skills'), level: 'project-dsh' })
-    roots.push({ path: join(projectRoot, '.agents', 'skills'), level: 'project-agents' })
+    // Every project root in scope is scanned, not only the active one: a session in
+    // another workspace still resolves skills from its own project, and the panel
+    // marks a row that came from somewhere other than the workspace being viewed.
+    const workspace = { root: projectRoot, name: basename(projectRoot) || projectRoot, active: projectRoot === activeRoot }
+    roots.push({ path: join(projectRoot, '.dsh', 'skills'), level: 'project-dsh', workspace })
+    roots.push({ path: join(projectRoot, '.agents', 'skills'), level: 'project-agents', workspace })
   }
   for (const dir of deps.customSkillDirs) roots.push({ path: dir, level: 'custom' })
   roots.push({ path: join(deps.dshHome, 'skills'), level: 'user-dsh' })
@@ -405,8 +423,8 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
   // The host registry serves the bundled catalog; the project and user roots the
   // agent runs with are read here and merge under the registry by name, so a root
   // the registry does serve is listed once with the registry's own policy.
-  for (const root of localSkillRoots(deps, projectRoots)) {
-    for (const skill of await scanSkillRoot(root.path, root.level)) {
+  for (const root of localSkillRoots(deps, projectRoots, findProjectRoot(cwd))) {
+    for (const skill of await scanSkillRoot(root.path, root.level, root.workspace)) {
       if (seen.has(root.level + ':' + skill.name)) continue
       seen.add(root.level + ':' + skill.name)
       byGroup.get(root.level)?.push({
@@ -418,6 +436,9 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
         modelInvocable: skill.modelInvocable,
         userInvocable: skill.userInvocable,
         ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
+        ...skill.workspaceRoot === undefined ? {} : { workspaceRoot: skill.workspaceRoot },
+        ...skill.workspaceName === undefined ? {} : { workspaceName: skill.workspaceName },
+        ...skill.isActiveWorkspace === undefined ? {} : { isActiveWorkspace: skill.isActiveWorkspace },
       })
     }
   }
