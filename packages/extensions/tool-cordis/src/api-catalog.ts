@@ -5621,10 +5621,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SkillDefinition extends SkillSummary {\n    readonly content: string;\n    readonly path?: string;\n    readonly metadata?: Readonly<Record<string, unknown>>;\n}',
   },
   {
-    name: 'SkillEntry',
-    declaration: 'export interface SkillEntry {\n    readonly name: string;\n    readonly description: string;\n    readonly whenToUse?: string;\n    readonly modelInvocable: boolean;\n}',
-  },
-  {
     name: 'SkillInvocationPolicy',
     declaration: 'export interface SkillInvocationPolicy {\n    readonly modelInvocable: boolean;\n    readonly userInvocable: boolean;\n}',
   },

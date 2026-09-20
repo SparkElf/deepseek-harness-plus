@@ -250,6 +250,10 @@
       // util/ folders are role-named without the util- prefix their npm names carry,
       // so these aliases stay hand-written like dsh-util-crypto above.
       "@deepseek-ai/dsh-util-time": ["./packages/util/time/src"],
+      // The skill center is role-named without the client-ui- marker its npm name
+      // carries, so — like the util aliases above — these stay hand-written.
+      "@sparkelf/dsh-client-ui-skill-center": ["./packages/plus/ui-skill-center/src/index.ts"],
+      "@sparkelf/dsh-client-ui-skill-center/client": ["./packages/plus/ui-skill-center/src/client/index.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],

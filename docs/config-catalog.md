@@ -3450,6 +3450,26 @@ export interface Config {
 
 Source: [`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
+<a id="sparkelfdsh-client-ui-skill-center"></a>
+
+## `@sparkelf/dsh-client-ui-skill-center`
+
+Requires: `webServer` · `skills` · `sessions`
+
+```ts config-catalog
+/** Plugin configuration. */
+export interface Config {
+  /** Extra custom skill root directories. */
+  customSkillDirs?: string[]
+  /** User dsh config root; defaults to `$DSH_HOME` or `~/.dsh`. */
+  dshHome?: string
+  /** User agents config root; defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
+  agentsHome?: string
+}
+```
+
+Source: [`packages/plus/ui-skill-center/src/index.ts:42`](../packages/plus/ui-skill-center/src/index.ts)
+
 <a id="sparkelfdsh-plugin-backup"></a>
 
 ## `@sparkelf/dsh-plugin-backup`

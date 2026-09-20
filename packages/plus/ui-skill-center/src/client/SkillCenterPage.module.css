@@ -1,0 +1,268 @@
+/**
+ * Skill center page. Every colour, border, and label weight comes from the
+ * shared alias tokens, so the panel follows the theme and matches the official
+ * panels beside it.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+}
+
+.title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.search {
+  margin: 12px 16px 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-3);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+}
+
+.search::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 24px;
+}
+
+.body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.body::-webkit-scrollbar-thumb {
+  background: var(--dsw-alias-scrollbar-bg-l2);
+  border-radius: 4px;
+}
+
+.body::-webkit-scrollbar-thumb:hover {
+  background: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.group {
+  margin-bottom: 20px;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.groupHint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-caption);
+}
+
+.card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.cardDescription {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cardWhenToUse {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.cardMarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mark {
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  font-size: 11px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.markOn {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.markOff {
+  border-color: var(--dsw-alias-border-l4);
+  color: var(--dsw-alias-label-caption);
+}
+
+.markDanger {
+  border-color: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.switch {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border: none;
+  border-radius: 9px;
+  background: var(--dsw-alias-border-l3);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.switchOn {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-1);
+  transition: transform 120ms ease;
+}
+
+.switchOn::after {
+  transform: translateX(14px);
+}
+
+.status {
+  padding: 24px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.statusError {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.input {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+}
+
+.textarea {
+  min-height: 72px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-markdown-code-block-small);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
