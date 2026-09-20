@@ -146,7 +146,10 @@
     }
   },
   "dependencies": {
+    "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-web-search-exa": ">=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.9",
     "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.14",
