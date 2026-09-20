@@ -6,12 +6,23 @@
     trustedHosts: !!js ctx.webRuntime.trustedHosts
     browserAuthentication: disabled
 
+# The derived index behind session history search. `first-search` builds it when a
+# search first asks for it rather than delaying every start.
 - id: session-query-sqlite
   config:
     path: !!js dshHomePath('storages/session-query.sqlite')
     openAt: first-search
 
+# The model-facing tools over that index: search, trace, and event read. The
+# backend above answers only once something mounts the tools that call it, so a
+# deployment carrying the backend alone has an index nothing asks for.
+- id: session-query-tool
+  config:
+    searchTimeoutMs: 900000
+
 - insert:
+    - id: plus-session-query-tool
+      name: '@deepseek-ai/dsh-tool-session-query'
     # The sidebar skill center. It reads the loaded skills through `ctx.skills`
     # and registers its row and page into the shell's own slots, so the panel
     # matches the official panels beside it.

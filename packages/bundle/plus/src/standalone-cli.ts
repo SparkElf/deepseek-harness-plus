@@ -15,6 +15,13 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
+  CAPABILITY_RECORD,
+  capabilityPatchLayer,
+  installCapabilityServices,
+  interviewCapabilities,
+  type CapabilityAnswers,
+} from './standalone-capabilities.ts'
+import {
   DEFAULT_PORT,
   STOP_GRACE_MILLISECONDS,
   choosePort,
@@ -42,6 +49,9 @@ import {
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
+
+/** Profile patch file the capability interview rewrites. */
+const CAPABILITY_PATCH_FILE = 'cordis.patch.yml'
 
 interface StartOptions {
   readonly port: number
@@ -171,6 +181,23 @@ async function start(argv: readonly string[]): Promise<number> {
   for (const label of applyProfileNpmPatches(paths.distributionDirectory, paths.profileDirectory)) {
     console.log('Applied the reviewed patch ' + label)
   }
+  // The capability interview runs once, when the profile is created: a deployment
+  // that already answered keeps its answers, and a re-run only reports them. Asking
+  // on every start would make a restart look like a first install.
+  const needsInterview = created || !existsSync(join(paths.home, CAPABILITY_RECORD))
+  const answers = needsInterview
+    ? await interviewCapabilities(true)
+    : undefined
+  if (answers !== undefined) {
+    const ready = await installCapabilityServices(answers, paths.home)
+    writeCapabilityPatch(paths.profileDirectory, answers)
+    console.log('  Enabled: ' + (answers.enabled.length === 0 ? '(none)' : answers.enabled.join(', ')))
+    if (answers.enabled.length > 0) console.log('  Services ready: ' + (ready.length === 0 ? '(none)' : ready.join(', ')))
+    if (answers.exaApiKey !== undefined) {
+      console.log('  Store the Exa key in the launch environment as EXA_API_KEY; it is not written to the profile.')
+    }
+  }
+
   const entry = launcherEntry(anchor)
   if (options.foreground) return runForeground(entry, options.port, options.host, options.open)
 
@@ -304,6 +331,20 @@ async function update(argv: readonly string[]): Promise<number> {
     console.log('The running server still serves ' + installed + '; run dsh-plus restart to load the new release.')
   }
   return 0
+}
+
+/**
+ * Write the profile's capability patch layer.
+ *
+ * The profile's loader merges this file, so enabling a capability is a data change
+ * rather than an edit to the deployment. Writing it on every configured run also
+ * turns a capability back off when the interview no longer selects it.
+ *
+ * @param profileDirectory - the profile whose layer is replaced.
+ * @param answers - the interview's answers.
+ */
+function writeCapabilityPatch(profileDirectory: string, answers: CapabilityAnswers): void {
+  writeFileSync(join(profileDirectory, CAPABILITY_PATCH_FILE), capabilityPatchLayer(answers))
 }
 
 /** Ask one yes/no question on the terminal. */
