@@ -1662,61 +1662,61 @@ importers:
         specifier: '>=0.2.11'
         version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
       '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/better-sidebar-html-preview-path
       '@sparkelf/dsh-patch-better-sidebar-main-view-session':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/better-sidebar-main-view-session
       '@sparkelf/dsh-patch-better-sidebar-media-path':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/better-sidebar-media-path
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-composer-popover-boundaries':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/composer-popover-boundaries
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-journal-generation':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/mobile-journal-generation
       '@sparkelf/dsh-patch-officecli-deliverables':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/officecli-deliverables
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-format-legacy-restart':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/session-format-legacy-restart
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-session-query-unindexable-session':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/session-query-unindexable-session
       '@sparkelf/dsh-patch-subagent-settings-presets':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/subagent-settings-presets
       '@sparkelf/dsh-patch-web-base-path':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/web-base-path
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-patch-wsl-native-open':
-        specifier: workspace:>=0.2.0-rc.12
+        specifier: workspace:>=0.2.0-rc.14
         version: link:../../../patches/npm/wsl-native-open
       '@sparkelf/dsh-plugin-backup':
         specifier: workspace:>=0.2.0-rc.8
@@ -9510,7 +9510,7 @@ importers:
         specifier: 0.1.6
         version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.12
+        specifier: workspace:0.2.0-rc.14
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
