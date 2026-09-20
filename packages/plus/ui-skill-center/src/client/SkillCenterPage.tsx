@@ -13,6 +13,7 @@ import {
   IconPlusOutline16,
   IconRefreshOutline16,
   IconSkillOutline16,
+  Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './SkillCenterPage.module.css'
@@ -214,7 +215,22 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
         </div>
       </header>
 
-      {creating ? (
+      <Modal
+        open={creating}
+        onClose={() => { setCreating(false) }}
+        title={t('create.title')}
+        closeLabel={t('action.cancel')}
+        footer={(
+          <>
+            <Button variant="outline" autoFocus onClick={() => { setCreating(false) }}>
+              {t('action.cancel')}
+            </Button>
+            <Button variant="primary" onClick={() => { void submit() }}>
+              {t('action.confirm')}
+            </Button>
+          </>
+        )}
+      >
         <div className={css.form}>
           <DraftField label={t('create.name')}>
             <input className={css.input} value={draft.name} onChange={set('name')} />
@@ -234,12 +250,8 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
               <option value="project">{t('create.rootProject')}</option>
             </select>
           </DraftField>
-          <div className={css.formActions}>
-            <button type="button" className={css.button} onClick={() => { setCreating(false) }}>{t('action.cancel')}</button>
-            <button type="button" className={css.primaryButton} onClick={() => { void submit() }}>{t('action.confirm')}</button>
-          </div>
         </div>
-      ) : null}
+      </Modal>
 
       <input
         className={css.search}

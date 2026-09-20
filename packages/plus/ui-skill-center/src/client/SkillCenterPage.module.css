@@ -287,13 +287,11 @@
   transform: translateX(16px);
 }
 
+/* The create form's body inside the modal, which owns the frame. */
 .form {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 12px;
 }
 
 .field {
@@ -330,12 +328,6 @@
   font-family: var(--dsw-font-markdown-code-block-small);
   font-size: 12px;
   resize: vertical;
-}
-
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .status {
