@@ -201,6 +201,8 @@ const SKILL_FILE = 'SKILL.md'
  *
  * @param root - absolute root directory to scan.
  * @param level - the group key every skill under this root belongs to.
+ * @param workspace - the project a project-scoped root belongs to, so a row can name
+ * its origin and mark itself when it is not the workspace being viewed.
  * @returns the skills found, sorted by name; missing roots yield none.
  */
 export async function scanSkillRoot(
@@ -272,6 +274,8 @@ function lstatSyncSafe(path: string): boolean {
  *
  * @param deps - the resolved configuration.
  * @param projectRoots - project roots whose skill directories are in scope.
+ * @param activeRoot - the project root the view is about, marked active so the panel
+ * can distinguish a row from another workspace.
  * @returns the roots to scan, in group order.
  */
 export function localSkillRoots(
