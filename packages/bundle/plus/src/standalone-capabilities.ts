@@ -279,8 +279,8 @@ export async function installCapabilityServices(
   if (enabled.has('mineru')) {
     console.log('')
     console.log('  MinerU: installing the parser and starting its service...')
-    const installed = installMineru()
-    if (installed && startMineru()) {
+    const installed = installMineru(home)
+    if (installed && startMineru(home)) {
       ready.push('mineru')
       console.log('  MinerU: ready at ' + (answers.mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT))
     } else {
@@ -314,26 +314,28 @@ export async function installCapabilityServices(
  * Install MinerU when it is absent and start its API service.
  *
  * MinerU is a Python package whose API server answers on a local port; the profile
- * points at that port. An existing installation is upgraded rather than skipped, so
- * enabling the capability keeps the parser current.
+ * points at that port. The parser is installed into a virtual environment under the
+ * deployment home and an existing one is upgraded rather than skipped, so enabling
+ * the capability keeps the parser current without touching the system interpreter.
  *
+ * @param home - the deployment home that owns the venv.
  * @returns whether the package is installed; not whether it answered.
  */
-function installMineru(): boolean {
+function installMineru(home: string): boolean {
   const python = pythonInterpreter()
   if (python === undefined) {
     console.log('  MinerU: no Python interpreter found on PATH.')
     return false
   }
-  // Prefer a user install: it needs no elevated shell, and MinerU brings its own
-  // model files. A system interpreter under PEP 668 refuses a plain install, which
-  // the fallback covers.
-  if (!runStep(python, ['-m', 'pip', 'install', '--user', '-U', 'mineru[core]'])) {
-    if (!runStep(python, ['-m', 'pip', 'install', '--break-system-packages', '-U', 'mineru[core]'])) {
-      return false
-    }
-  }
-  return true
+  // The venv keeps MinerU's torch and model dependencies away from the system
+  // interpreter, which is also what PEP 668 requires: a system pip refuses the install
+  // outright, and `--break-system-packages` would put a multi-gigabyte torch tree into
+  // the OS packages. `all` is the extra both the 3.x and 4.x lines publish; `core`
+  // existed only through 3.x and installing it on 4.x silently drops the extras.
+  const venv = join(home, '.mineru-venv')
+  if (!runStep(python, ['-m', 'venv', venv])) return false
+  const venvPython = join(venv, 'bin', 'python')
+  return runStep(venvPython, ['-m', 'pip', 'install', '-U', 'mineru[all]'])
 }
 
 /**
@@ -344,8 +346,8 @@ function installMineru(): boolean {
  *
  * @returns whether the server is running after this call.
  */
-function startMineru(): boolean {
-  const api = mineruApiBinary()
+function startMineru(home: string): boolean {
+  const api = mineruApiBinary(home)
   if (api === undefined) return false
   if (mineruAnswers()) return true
   if (spawnSync('systemctl', ['--version'], { stdio: 'ignore' }).status === 0) {
@@ -380,10 +382,18 @@ function pythonInterpreter(): string | undefined {
   return ['python3', 'python'].find(candidate => spawnSync(candidate, ['--version'], { stdio: 'ignore' }).status === 0)
 }
 
-/** The MinerU API entry point, wherever the install placed it. */
-function mineruApiBinary(): string | undefined {
-  const local = join(process.env.HOME ?? '/root', '.local', 'bin', 'mineru-api')
-  const candidates = [local, 'mineru-api']
+/**
+ * The MinerU API entry point, wherever the install placed it.
+ *
+ * The venv this command creates comes first: it is the interpreter the parser was
+ * installed into, so its `mineru-api` is the one that can import MinerU. A binary on
+ * PATH is a fallback for a deployment that installed MinerU some other way.
+ *
+ * @param home - the deployment home that owns the venv.
+ * @returns the command to run, or `undefined` when none answers.
+ */
+function mineruApiBinary(home: string): string | undefined {
+  const candidates = [join(home, '.mineru-venv', 'bin', 'mineru-api'), 'mineru-api']
   return candidates.find(candidate => spawnSync(candidate, ['--help'], { stdio: 'ignore' }).status === 0)
 }
 
