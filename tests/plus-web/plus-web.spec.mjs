@@ -567,14 +567,14 @@ test.describe('Plus npm profile user workflows', () => {
     await expect(page.getByRole('button', { name: /刷新|Refresh/ }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: /新建技能|New skill/ }).first()).toBeVisible()
 
-    // The catalog comes from the Host's own skill registry, so the skills the
-    // deployment ships appear with their descriptions under a source group.
+    await expect(page.getByPlaceholder(/搜索技能|Search skills/)).toBeVisible()
+
+    // The catalog comes from the Host's own skill registry, so a skill the
+    // deployment ships appears by name under its source group — which is what
+    // distinguishes this from a scanner of the plugin's own.
     const group = page.getByRole('heading', { name: /系统内置|Bundled/i }).first()
     await expect(group).toBeVisible({ timeout: 60_000 })
     await expect(page.getByText('genui', { exact: true }).first()).toBeVisible()
-    await expect(page.getByRole('button', { name: /搜索技能|Search skills/ }).or(
-      page.getByPlaceholder(/搜索技能|Search skills/),
-    ).first()).toBeVisible()
   })
 })
 
