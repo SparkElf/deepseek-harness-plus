@@ -53,6 +53,9 @@ function launchableInstallation(): { entry: string; home: string; patched: strin
     version: '1.0.0',
     dshPlus: {
       patchPackages: ['@sparkelf/dsh-patch-demo'],
+      // The installer reads the distribution's declared DSH compatibility
+      // before it patches anything, so the fixture declares it too.
+      compatibility: { dsh: '>=0.1.6-alpha.1' },
       profile: { bundles: [], dependencies: {}, allowBuilds: {} },
     },
   }))

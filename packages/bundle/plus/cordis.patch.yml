@@ -12,6 +12,12 @@
     openAt: first-search
 
 - insert:
+    # The sidebar skill center. It reads the loaded skills through `ctx.skills`
+    # and registers its row and page into the shell's own slots, so the panel
+    # matches the official panels beside it.
+    - id: plus-skill-center
+      name: '@sparkelf/dsh-client-ui-skill-center'
+
     - id: plus-backup
       name: '@sparkelf/dsh-plugin-backup'
 
