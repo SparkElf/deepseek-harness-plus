@@ -220,6 +220,7 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
         onClose={() => { setCreating(false) }}
         title={t('create.title')}
         closeLabel={t('action.cancel')}
+        className={css.dialog as string}
         footer={(
           <>
             <Button variant="outline" autoFocus onClick={() => { setCreating(false) }}>

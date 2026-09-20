@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-subagent-settings-presets",
-  "version": "0.2.0-rc.11",
+  "version": "0.2.0-rc.12",
   "description": "Data-only exact official-source patch routing built-in shipped preset delegation rows to the Plus settings capability and disabling the ralph row in the shipped compositions",
   "publishConfig": {
     "access": "public"

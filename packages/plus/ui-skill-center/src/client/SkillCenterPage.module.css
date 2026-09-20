@@ -287,6 +287,12 @@
   transform: translateX(16px);
 }
 
+/* The create dialog takes the width the official form dialogs use; the shared
+   Modal's own default is the narrow confirm width. */
+.dialog {
+  width: min(560px, 100%);
+}
+
 /* The create form's body inside the modal, which owns the frame. */
 .form {
   display: flex;
