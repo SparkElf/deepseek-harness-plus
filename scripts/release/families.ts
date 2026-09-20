@@ -9,7 +9,7 @@
  * `releaseFamilies()` entry; nothing else in the release scripts branches on it.
  */
 
-import { globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import {
   officialClientBuildEnvironment,
@@ -36,6 +36,28 @@ const PEER_SECTIONS = ['peerDependencies'] as const
 
 /** The workspace root manifest, which is never a release member. */
 const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
+
+/**
+ * Newest modification time of a directory's regular files.
+ *
+ * The build writes at least one file whenever it runs, so a member whose newest
+ * artifact is older than its newest source was packed without a build. Comparing the
+ * two newest files answers that without depending on any single output being
+ * rewritten, which an incremental build legitimately skips.
+ *
+ * @param directory - absolute directory to walk.
+ * @returns the newest mtime in milliseconds, or `undefined` when the directory is absent or empty.
+ */
+function newestMtime(directory: string): number | undefined {
+  if (!existsSync(directory)) return undefined
+  let newest: number | undefined
+  for (const relative of globSync(['**/*'], { cwd: directory })) {
+    const stats = statSync(resolve(directory, relative))
+    if (!stats.isFile()) continue
+    if (newest === undefined || stats.mtimeMs > newest) newest = stats.mtimeMs
+  }
+  return newest
+}
 
 /** One peer declaration the publish order leaves unordered. */
 interface DroppedPeerEdge {
@@ -398,8 +420,46 @@ class PlusFamily extends DshFamily {
 
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
 
-  /** Plus tarballs carry only Plus artifacts and inherit official Web assets at install time. */
-  override verifyBuildArtifacts(): void {}
+  /**
+   * Require every Plus build artifact to be newer than the sources it was built from.
+   *
+   * These tarballs carry committed build output — `lib/` is ignored by git and every
+   * member publishes it — so a pack that runs without a build ships whatever the last
+   * build left behind. That is how a release once published an installer whose source
+   * module existed, passed every gate, and was absent from the tarball: the version
+   * bump touched manifests, the pack repackaged the previous build, and nothing
+   * compared the two. A stale artifact is indistinguishable from a current one until
+   * a consumer runs it, so the comparison belongs here, at the release boundary.
+   *
+   * @param root - repository root containing the built members.
+   */
+  override verifyBuildArtifacts(root: string): void {
+    const stale: string[] = []
+    for (const pattern of this.patterns) {
+      for (const manifestPath of globSync([pattern], { cwd: root }).sort()) {
+        const directory = resolve(root, manifestPath.slice(0, manifestPath.length - '/package.json'.length))
+        const manifest: unknown = JSON.parse(readFileSync(resolve(root, manifestPath), 'utf8'))
+        if (typeof manifest !== 'object' || manifest === null) continue
+        const record = manifest as Record<string, unknown>
+        if (record.private === true || typeof record.name !== 'string') continue
+        // A member with no source half is data only (a patch package) and carries no build.
+        const newestSource = newestMtime(resolve(directory, 'src'))
+        if (newestSource === undefined) continue
+        const newestArtifact = newestMtime(resolve(directory, 'lib'))
+        if (newestArtifact === undefined) {
+          stale.push(record.name + ': has src/ but no built lib/')
+          continue
+        }
+        if (newestArtifact < newestSource) stale.push(record.name + ': lib/ predates src/')
+      }
+    }
+    if (stale.length > 0) {
+      throw new Error(
+        'Plus release members carry stale build artifacts; run a complete pnpm run build before packing:'
+        + stale.map(entry => '\n  ' + entry).join(''),
+      )
+    }
+  }
 
   /**
    * The standalone installer is this family's executable, and the only member a consumer

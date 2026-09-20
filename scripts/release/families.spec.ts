@@ -1,6 +1,6 @@
 /** Release family discovery, publish order, tag naming, and the bump judgements. */
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -164,6 +164,33 @@ describe('release families', () => {
 
     write(join(official, 'packages/client/example/lib/client.js'), 'module.exports = { changed: true }\n')
     expect(() => { dsh.verifyBuildArtifacts(official) }).toThrow(/artifacts differ/)
+  })
+
+  it('rejects a Plus member packed without a build', () => {
+    const plus = releaseFamily('plus')
+    const root = mkdtempSync(join(tmpdir(), 'dsh-release-stale-'))
+    roots.push(root)
+    const built = join(root, 'packages/plus/example')
+    write(join(built, 'package.json'), JSON.stringify({ name: '@sparkelf/dsh-example', version: '0.0.1' }))
+    write(join(built, 'src/index.ts'), 'export const value = 1\n')
+    write(join(built, 'lib/index.js'), 'export const value = 1\n')
+    const stale = join(root, 'packages/bundle/plus')
+    write(join(stale, 'package.json'), JSON.stringify({ name: '@sparkelf/dsh-stale', version: '0.0.1' }))
+    write(join(stale, 'src/index.ts'), 'export const value = 2\n')
+    write(join(stale, 'lib/index.js'), 'export const value = 1\n')
+    // A member that only carries data has no build to compare.
+    const data = join(root, 'patches/npm/example')
+    write(join(data, 'package.json'), JSON.stringify({ name: '@sparkelf/dsh-patch-example', version: '0.0.1' }))
+    write(join(data, 'patches/example.patch'), 'diff --git a/x b/x\n')
+    // The failing member is the one whose source moved on after its build: its
+    // artifact is older than its source, which is what a pack without a build ships.
+    const past = new Date(Date.now() - 60_000)
+    utimesSync(join(stale, 'lib/index.js'), past, past)
+
+    expect(() => { plus.verifyBuildArtifacts(root) }).toThrow(/run a complete pnpm run build/)
+
+    utimesSync(join(stale, 'lib/index.js'), new Date(), new Date())
+    expect(() => { plus.verifyBuildArtifacts(root) }).not.toThrow()
   })
 
   it('publishes a dependency before its consumer, and orders ties by name', () => {
