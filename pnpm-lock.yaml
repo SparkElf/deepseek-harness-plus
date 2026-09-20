@@ -1652,6 +1652,9 @@ importers:
 
   packages/bundle/plus:
     dependencies:
+      '@sparkelf/dsh-client-ui-skill-center':
+        specifier: workspace:>=0.2.0-rc.9
+        version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-mobile-bridge':
         specifier: '>=0.2.11'
         version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
