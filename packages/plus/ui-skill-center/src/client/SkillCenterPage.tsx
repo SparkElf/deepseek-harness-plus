@@ -25,6 +25,20 @@ export interface SkillCenterPageProps {
   t(key: SkillCenterLocaleKey): string
 }
 
+/** One workspace row as the root seat publishes it. */
+interface WorkspaceRow {
+  readonly path: string
+  readonly sessionIds: readonly string[]
+}
+
+/**
+ * The root seat `ui-workspace` publishes through `slots.provideRoot`.
+ *
+ * Declared structurally rather than imported: the seat's owning package is not a
+ * dependency of this one, and the panel only needs the row fields it reads.
+ */
+type WorkspaceSeat = (selector: (snapshot: { items: readonly WorkspaceRow[] }) => readonly WorkspaceRow[]) => readonly WorkspaceRow[]
+
 /** Client-side group shape, as the list route serves it. */
 interface Group {
   key: string
@@ -105,23 +119,37 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
 
 /**
  * The skill center panel.
- * @param props - the slot's runtime share, providing the dictionary resolver.
+ * @param props - the slot's runtime share: the dictionary resolver and the workspace rows.
  * @returns the rendered panel.
  */
-export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPageProps): ReactNode {
+export function SkillCenterPage({ t, ...runtime }: PropsRuntime<'main'> & SkillCenterPageProps): ReactNode {
   const api = useMemo(() => new SkillApi(), [])
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ name: '', description: '', whenToUse: '', content: '', root: 'user' as 'user' | 'project' })
+  // `ui-workspace` publishes this seat through `slots.provideRoot`, so every root-scope
+  // component receives it; the type is read from the runtime share rather than
+  // hand-declared, because this package does not own the seat's declaration.
+  const useWorkspaces = (runtime as { useWorkspaces?: WorkspaceSeat }).useWorkspaces
+  const workspaces: readonly WorkspaceRow[] = useWorkspaces === undefined
+    ? []
+    : useWorkspaces(snapshot => snapshot.items)
+  // A workspace holds its sessions, and the project skill roots are read relative to a
+  // directory, so the panel scopes the listing to the workspace its sessions name. The
+  // server process's own cwd would answer for the directory the server was started from.
+  const scope = useMemo(() => {
+    const withSessions = workspaces.find(item => item.sessionIds.length > 0)
+    return (withSessions ?? workspaces[0])?.path
+  }, [workspaces])
 
   const load = useCallback(async (): Promise<void> => {
     try {
-      setState({ kind: 'ready', payload: await api.list() })
+      setState({ kind: 'ready', payload: await api.list(scope) })
     } catch (error) {
       setState({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
     }
-  }, [api])
+  }, [api, scope])
 
   useEffect(() => { void load() }, [load])
 

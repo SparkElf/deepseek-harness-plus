@@ -11,8 +11,9 @@
  *
  * @module @sparkelf/dsh-client-ui-skill-center
  */
-import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
+import { existsSync, lstatSync } from 'node:fs'
+import type { Dirent } from 'node:fs'
+import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -165,6 +166,116 @@ export function levelOfSource(source: string, provider: string): string {
   return 'custom'
 }
 
+/** One skill found by reading a root directory. */
+export interface ScannedSkill {
+  name: string
+  description: string
+  whenToUse?: string
+  level: string
+  path: string
+  linked: boolean
+  modelInvocable: boolean
+  userInvocable: boolean
+}
+
+/** The Markdown a skill directory may declare its bundle with. */
+const SKILL_FILE = 'SKILL.md'
+
+/**
+ * Read one root directory for skills.
+ *
+ * The web-app bundle disables the host `skill-filesystem` row and lets each preset
+ * own local discovery, so the host registry carries only the bundled catalog: a
+ * panel reading the registry alone shows the shipped skills and none of the
+ * project or user ones the agent is actually running with. Reading the root
+ * conventions here closes that gap without a second catalog authority — the
+ * registry still owns discovery for anything it does serve, and this scan is
+ * merged under it by name.
+ *
+ * Both layouts the harness accepts are read: a directory holding SKILL.md, and a
+ * flat Markdown file.
+ *
+ * @param root - absolute root directory to scan.
+ * @param level - the group key every skill under this root belongs to.
+ * @returns the skills found, sorted by name; missing roots yield none.
+ */
+export async function scanSkillRoot(root: string, level: string): Promise<ScannedSkill[]> {
+  let entries: Dirent[]
+  try {
+    entries = await readdir(root, { withFileTypes: true })
+  } catch {
+    // A root that does not exist is the normal case for a deployment that never
+    // created one, not a failure to report.
+    return []
+  }
+  const found: ScannedSkill[] = []
+  for (const entry of entries) {
+    const path = entry.isDirectory() || entry.isSymbolicLink()
+      ? join(root, entry.name, SKILL_FILE)
+      : entry.name.endsWith('.md') ? join(root, entry.name) : undefined
+    if (path === undefined || !existsSync(path)) continue
+    const name = entry.name.replace(/\.md$/u, '')
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(name)) continue
+    let source: string
+    try {
+      source = await readFile(path, 'utf8')
+    } catch {
+      continue
+    }
+    const front = /^---\r?\n([\s\S]*?)\r?\n---/.exec(source)?.[1] ?? ''
+    const field = (key: string): string | undefined => {
+      const line = new RegExp('^\\s*' + key + '\\s*:\\s*(.+?)\\s*$', 'mu').exec(front)
+      return line?.[1]?.replace(/^['"]|['"]$/gu, '')
+    }
+    const disabled = readDisabledFlag(source)
+    const invocation = field('invocation')
+    found.push({
+      name,
+      description: field('description') ?? '',
+      level,
+      path,
+      linked: lstatSyncSafe(path),
+      // A skill is model-invocable unless the file disables it; user invocation
+      // follows the frontmatter's own policy when it declares one.
+      modelInvocable: disabled !== true && invocation !== 'user',
+      userInvocable: invocation !== 'model',
+      ...field('when-to-use') === undefined ? {} : { whenToUse: field('when-to-use') as string },
+    })
+  }
+  return found.sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/** Whether a skill file is reached through a symlink, which makes deletion unsafe. */
+function lstatSyncSafe(path: string): boolean {
+  try {
+    return lstatSync(path).isSymbolicLink() || lstatSync(dirname(path)).isSymbolicLink()
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Every local skill root this deployment uses, with the group each belongs to.
+ *
+ * @param deps - the resolved configuration.
+ * @param projectRoots - project roots whose skill directories are in scope.
+ * @returns the roots to scan, in group order.
+ */
+export function localSkillRoots(
+  deps: Pick<SkillRoutesDeps, 'dshHome' | 'agentsHome'> & { customSkillDirs: readonly string[] },
+  projectRoots: readonly string[],
+): { path: string; level: string }[] {
+  const roots: { path: string; level: string }[] = []
+  for (const projectRoot of projectRoots) {
+    roots.push({ path: join(projectRoot, '.dsh', 'skills'), level: 'project-dsh' })
+    roots.push({ path: join(projectRoot, '.agents', 'skills'), level: 'project-agents' })
+  }
+  for (const dir of deps.customSkillDirs) roots.push({ path: dir, level: 'custom' })
+  roots.push({ path: join(deps.dshHome, 'skills'), level: 'user-dsh' })
+  roots.push({ path: join(deps.agentsHome, 'skills'), level: 'user-agents' })
+  return roots
+}
+
 /**
  * Read `disable-model-invocation` from a skill file.
  * @param source - the skill file's content.
@@ -269,11 +380,12 @@ async function readJson(req: IncomingMessage, maxBytes: number): Promise<Record<
   return parsed as Record<string, unknown>
 }
 
-/** The list handler: group the registry snapshot by source. */
+/** The list handler: group the registry snapshot and the local roots together. */
 async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPayload> {
   const projectRoots = [...new Set(deps.activeSessionCwds().map(findProjectRoot).concat(findProjectRoot(cwd)))]
   const snapshot = await deps.snapshotProject(cwd)
   const byGroup = new Map<string, SkillEntry[]>(SOURCE_GROUPS.map(g => [g.key, []]))
+  const seen = new Set<string>()
   for (const skill of snapshot.skills) {
     // The summary carries the discovery source but not the file path, so the
     // group is derived from the source the registry already resolved.
@@ -287,7 +399,27 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
       userInvocable: skill.invocation.userInvocable,
       ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
     }
+    seen.add(level + ':' + skill.name)
     ;(byGroup.get(level) ?? byGroup.get('custom'))?.push(entry)
+  }
+  // The host registry serves the bundled catalog; the project and user roots the
+  // agent runs with are read here and merge under the registry by name, so a root
+  // the registry does serve is listed once with the registry's own policy.
+  for (const root of localSkillRoots(deps, projectRoots)) {
+    for (const skill of await scanSkillRoot(root.path, root.level)) {
+      if (seen.has(root.level + ':' + skill.name)) continue
+      seen.add(root.level + ':' + skill.name)
+      byGroup.get(root.level)?.push({
+        name: skill.name,
+        description: skill.description,
+        level: skill.level,
+        path: skill.path,
+        linked: skill.linked,
+        modelInvocable: skill.modelInvocable,
+        userInvocable: skill.userInvocable,
+        ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
+      })
+    }
   }
   const groups: GroupPayload[] = []
   for (const g of SOURCE_GROUPS) {
