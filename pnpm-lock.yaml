@@ -1653,7 +1653,7 @@ importers:
   packages/bundle/plus:
     dependencies:
       '@deepseek-ai/dsh-tool-session-query':
-        specifier: workspace:>=0.0.1-rc.1
+        specifier: workspace:>=0.1.6-alpha.1
         version: link:../../session-query/tool-session-query
       '@sparkelf/dsh-client-ui-skill-center':
         specifier: workspace:>=0.2.0-rc.9
