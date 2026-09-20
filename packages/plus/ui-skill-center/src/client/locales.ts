@@ -8,6 +8,7 @@
 /** Every string this plugin renders. */
 export interface SkillCenterLocale {
   'panel': string
+  'panel.intro': string
   'search.placeholder': string
   'search.clear': string
   'search.noMatches': string
@@ -41,6 +42,7 @@ export type SkillCenterLocaleKey = keyof SkillCenterLocale
 /** Simplified Chinese dictionary. */
 export const zh: SkillCenterLocale = {
   'panel': '技能中心',
+  'panel.intro': '浏览已加载的技能，启用或停用模型调用',
   'search.placeholder': '搜索技能…',
   'search.clear': '清除搜索',
   'search.noMatches': '无匹配技能',
@@ -71,6 +73,7 @@ export const zh: SkillCenterLocale = {
 /** English dictionary. */
 export const en: SkillCenterLocale = {
   'panel': 'Skill Center',
+  'panel.intro': 'Browse loaded skills and control model invocation',
   'search.placeholder': 'Search skills…',
   'search.clear': 'Clear search',
   'search.noMatches': 'No matching skills',

@@ -1,10 +1,14 @@
 /**
- * Skill center page. Browses the loaded skills grouped by source, toggles
- * model invocation, creates a skill, and deletes one into a recoverable trash.
+ * Skill center page. Browses the loaded skills grouped by source, toggles model
+ * invocation, creates a skill, and deletes one into a recoverable trash.
+ *
+ * The header, rows, and glyph frame follow the official plugin panel's layout so
+ * the page reads as one of the shell's own.
  *
  * @module @sparkelf/dsh-client-ui-skill-center/client/SkillCenterPage
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './SkillCenterPage.module.css'
 import { SkillApi, type ListPayload, type SkillEntry } from './api.ts'
@@ -30,6 +34,20 @@ type LoadState =
   | { kind: 'failed'; message: string }
 
 /**
+ * One labelled create-form field.
+ * @param props - the field's label and the control it wraps.
+ * @returns the labelled field.
+ */
+function DraftField({ label, children }: { label: string; children: ReactNode }): ReactNode {
+  return (
+    <div className={css.field}>
+      <span className={css.fieldLabel}>{label}</span>
+      {children}
+    </div>
+  )
+}
+
+/**
  * One skill row.
  * @param props - the entry, its toggle, and its delete action.
  * @returns the row.
@@ -41,52 +59,41 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   onDelete(skill: SkillEntry): void
 }): ReactNode {
   return (
-    <div className={css.card}>
-      <div className={css.cardMain}>
-        <div className={css.cardName}>{skill.name}</div>
-        <div className={css.cardDescription}>{skill.description}</div>
-        {skill.whenToUse === undefined ? null : (
-          <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
-        )}
-        <div className={css.cardMarks}>
-          <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-            {t('skill.modelInvocable')}
-          </span>
-          <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-            {t('skill.userInvocable')}
-          </span>
-          {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
+    <li className={css.card}>
+      <div className={css.cardHead}>
+        <span className={css.cardIcon}><IconSkillOutline16 size={22} /></span>
+        <div className={css.cardMain}>
+          <div className={css.cardTitle}>{skill.name}</div>
+          <div className={css.cardDesc}>{skill.description}</div>
+          {skill.whenToUse === undefined ? null : (
+            <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
+          )}
+          <div className={css.cardMarks}>
+            <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+              {t('skill.modelInvocable')}
+            </span>
+            <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+              {t('skill.userInvocable')}
+            </span>
+            {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
+          </div>
+        </div>
+        <div className={css.cardEnd}>
+          <button
+            type="button"
+            className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
+            aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
+            aria-pressed={skill.modelInvocable}
+            onClick={() => { onToggle(skill, !skill.modelInvocable) }}
+          />
+          {skill.path === undefined || skill.linked === true ? null : (
+            <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
+              {t('action.delete')}
+            </button>
+          )}
         </div>
       </div>
-      <div className={css.cardActions}>
-        <button
-          type="button"
-          className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
-          aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
-          aria-pressed={skill.modelInvocable}
-          onClick={() => { onToggle(skill, !skill.modelInvocable) }}
-        />
-        {skill.path === undefined || skill.linked === true ? null : (
-          <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
-            {t('action.delete')}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/**
- * One labelled create-form field.
- * @param props - the field's label and the control it wraps.
- * @returns the labelled field.
- */
-function DraftField({ label, children }: { label: string; children: ReactNode }): ReactNode {
-  return (
-    <div className={css.field}>
-      <span className={css.fieldLabel}>{label}</span>
-      {children}
-    </div>
+    </li>
   )
 }
 
@@ -172,12 +179,19 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
     }
   }, [api, draft, load])
 
+  const total = state.kind === 'ready' ? state.payload.groups.reduce((n, g) => n + g.skills.length, 0) : 0
+
   return (
     <div className={css.page}>
-      <div className={css.header}>
-        <span className={css.title}>{t('panel')}</span>
-        <button type="button" className={css.button} onClick={() => { void load() }}>{t('action.refresh')}</button>
-        <button type="button" className={css.button} onClick={() => { setCreating(v => !v) }}>{t('action.create')}</button>
+      <div className={css.pageHead}>
+        <div>
+          <h1 className={css.pageTitle}>{t('panel')}</h1>
+          <p className={css.pageIntro}>{t('panel.intro')}</p>
+        </div>
+        <div className={css.toolbar}>
+          <button type="button" className={css.button} onClick={() => { void load() }}>{t('action.refresh')}</button>
+          <button type="button" className={css.primaryButton} onClick={() => { setCreating(v => !v) }}>{t('action.create')}</button>
+        </div>
       </div>
 
       {creating ? (
@@ -194,16 +208,15 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
           <DraftField label={t('create.content')}>
             <textarea className={css.textarea} value={draft.content} onChange={set('content')} />
           </DraftField>
-          <div className={css.field}>
-            <span className={css.fieldLabel}>{t('create.root')}</span>
+          <DraftField label={t('create.root')}>
             <select className={css.input} value={draft.root} onChange={(e) => { setDraft(d => ({ ...d, root: e.target.value === 'project' ? 'project' : 'user' })) }}>
               <option value="user">{t('create.rootUser')}</option>
               <option value="project">{t('create.rootProject')}</option>
             </select>
-          </div>
+          </DraftField>
           <div className={css.formActions}>
             <button type="button" className={css.button} onClick={() => { setCreating(false) }}>{t('action.cancel')}</button>
-            <button type="button" className={css.button} onClick={() => { void submit() }}>{t('action.confirm')}</button>
+            <button type="button" className={css.primaryButton} onClick={() => { void submit() }}>{t('action.confirm')}</button>
           </div>
         </div>
       ) : null}
@@ -215,18 +228,23 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
         onChange={(e) => { setQuery(e.target.value) }}
       />
 
-      <div className={css.body}>
-        {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
-        {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}
-        {state.kind === 'ready' && groups.length === 0 ? (
-          <div className={css.status}>{query.trim() === '' ? t('state.empty') : t('search.noMatches')}</div>
-        ) : null}
-        {groups.map(group => (
-          <div className={css.group} key={group.key}>
-            <div className={css.groupTitle}>
-              {group.title}
-              <span className={css.groupHint}>{group.hint}</span>
-            </div>
+      {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
+      {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}
+      {state.kind === 'ready' && groups.length === 0 ? (
+        <div className={css.status}>{query.trim() === '' ? t('state.empty') : t('search.noMatches')}</div>
+      ) : null}
+      {state.kind === 'ready' && groups.length > 0 && total === 0 ? (
+        <div className={css.status}>{t('state.empty')}</div>
+      ) : null}
+
+      {groups.map(group => (
+        <div className={css.group} key={group.key}>
+          <h2 className={css.groupTitle}>
+            {group.title}
+            <span className={css.groupCount}>{group.skills.length}</span>
+            <span className={css.groupHint}>{group.hint}</span>
+          </h2>
+          <ul className={css.cards}>
             {group.skills.map(skill => (
               <SkillCard
                 key={group.key + ':' + skill.name}
@@ -236,9 +254,9 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
                 onDelete={(s) => { void remove(s) }}
               />
             ))}
-          </div>
-        ))}
-      </div>
+          </ul>
+        </div>
+      ))}
     </div>
   )
 }
