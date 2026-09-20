@@ -3468,7 +3468,7 @@ export interface Config {
 }
 ```
 
-Source: [`packages/plus/ui-skill-center/src/index.ts:42`](../packages/plus/ui-skill-center/src/index.ts)
+Source: [`packages/plus/ui-skill-center/src/index.ts:43`](../packages/plus/ui-skill-center/src/index.ts)
 
 <a id="sparkelfdsh-plugin-backup"></a>
 
