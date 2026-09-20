@@ -16,10 +16,6 @@
 # The model-facing tools over that index: search, trace, and event read. The
 # backend above answers only once something mounts the tools that call it, so a
 # deployment carrying the backend alone has an index nothing asks for.
-- id: session-query-tool
-  config:
-    searchTimeoutMs: 900000
-
 - insert:
     - id: plus-session-query-tool
       name: '@deepseek-ai/dsh-tool-session-query'
@@ -68,3 +64,10 @@
         provider: fork
         enabled: false
         maxDepth: 0
+
+# The first content search builds the whole index in one transaction, so it needs far
+# more than a steady-state query. This row follows the insert above because a patch
+# only reaches rows an earlier patch created.
+- id: plus-session-query-tool
+  config:
+    searchTimeoutMs: 900000

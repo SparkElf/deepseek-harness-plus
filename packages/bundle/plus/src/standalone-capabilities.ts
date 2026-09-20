@@ -17,6 +17,11 @@ import { join } from 'node:path'
  * deselects them; a user who accepts the defaults ends up with a deployment whose
  * features work, which is the state the interactive question exists to reach.
  *
+ * Enabling a capability has to mean the feature works, so each entry carries both
+ * halves of that: the profile row that mounts it and the service it needs. A
+ * capability that only asked a question and then dropped the answer would report
+ * success while the deployment stayed exactly as it was.
+ *
  * @module @sparkelf/dsh-plus/standalone-capabilities
  */
 
@@ -69,6 +74,19 @@ export interface CapabilityAnswers {
   /** MinerU endpoint to write; defaults to the local service this command starts. */
   readonly mineruEndpoint?: string
 }
+
+/** Where this command starts MinerU when the capability is enabled. */
+export const DEFAULT_MINERU_ENDPOINT = 'http://127.0.0.1:8000/file_parse'
+
+/** File under the deployment home recording which capabilities were enabled. */
+export const CAPABILITY_RECORD = 'capabilities.json'
+
+/** Deployment env file the launcher reads as its `user-env` layer. */
+export const CAPABILITY_ENV_FILE = '.env'
+
+/** Comment that identifies a profile layer this interview wrote. */
+export const CAPABILITY_MARKER = 'Written by dsh-plus start from the capability interview.'
+
 /** One prompt on the terminal, resolving the trimmed line the user typed. */
 function ask(question: string): Promise<string> {
   return new Promise((resolveAnswer) => {
@@ -135,11 +153,42 @@ export async function interviewCapabilities(interactive: boolean): Promise<Capab
   }
 }
 
-/** Where this command starts MinerU when the capability is enabled. */
-export const DEFAULT_MINERU_ENDPOINT = 'http://127.0.0.1:8000/file_parse'
+/** Names this module owns in the deployment env file. */
+const CAPABILITY_ENV_NAMES: readonly string[] = ['DSH_MINERU_ENDPOINT', 'EXA_API_KEY']
 
-/** File under the deployment home recording which capabilities were enabled. */
-export const CAPABILITY_RECORD = 'capabilities.json'
+/**
+ * The deployment env file, with one assignment per enabled capability that reaches
+ * its service through the launch environment.
+ *
+ * MinerU is switched on by the presence of its endpoint and Exa reads its key from
+ * the launch environment, so a capability the user selected is enabled here as well
+ * as in the profile layer. Only the names this interview owns are rewritten: a
+ * deployment that keeps its own assignments in the same file keeps them, and
+ * deselecting a capability removes the assignment that turned it on.
+ *
+ * @param answers - the interview's answers.
+ * @param existing - the file's current text, when it already exists.
+ * @returns the environment file's text.
+ */
+export function capabilityEnvironment(answers: CapabilityAnswers, existing = ''): string {
+  const enabled = new Set(answers.enabled)
+  const owned = new Set(CAPABILITY_ENV_NAMES)
+  const kept = existing.split('\n').filter((line) => {
+    const name = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1]
+    return line.trim() !== '' && !line.trimStart().startsWith('#') && (name === undefined || !owned.has(name))
+  })
+  const written: string[] = [
+    '# Written by dsh-plus start from the capability interview. Enabling or',
+    '# disabling a capability rewrites the lines below; other lines are kept.',
+  ]
+  if (enabled.has('mineru')) {
+    written.push('DSH_MINERU_ENDPOINT=' + (answers.mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT))
+  }
+  if (enabled.has('exa') && answers.exaApiKey !== undefined) {
+    written.push('EXA_API_KEY=' + answers.exaApiKey)
+  }
+  return [...written, ...kept].join('\n') + '\n'
+}
 
 /**
  * The profile patch layer that turns the selected capabilities on.
@@ -148,6 +197,10 @@ export const CAPABILITY_RECORD = 'capabilities.json'
  * row rather than editing the deployment. An empty selection still writes the file,
  * because a layer that exists and mounts nothing is how a previously enabled
  * capability is turned back off.
+ *
+ * The profile's own layer is a separate file with its own name: a deployment that
+ * configured something by hand keeps it, and the capability rows are rewritten
+ * whole on every start.
  *
  * @param answers - the interview's answers.
  * @returns the patch layer's YAML text.
@@ -165,10 +218,18 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
       '        numResults: 8',
     )
   }
+  if (enabled.has('computer-use')) {
+    rows.push(
+      '    - id: computer-use',
+      "      name: '@deepseek-ai/dsh-computer-use'",
+      '    - id: computer-use-cua-driver-mcp',
+      "      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp'",
+    )
+  }
 
   const lines = [
-    '# Written by dsh-plus start from the capability interview. Enabling or',
-    '# disabling a capability rewrites this file; edits here are replaced.',
+    '# ' + CAPABILITY_MARKER + ' Enabling or disabling a capability',
+    '# rewrites this file; edits here are replaced.',
   ]
   if (rows.length > 0) lines.push('- insert:', ...rows)
   if (enabled.has('exa')) {
@@ -182,6 +243,7 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
   }
   return lines.join('\n') + '\n'
 }
+
 /** Run one command, reporting a failure rather than throwing. */
 function runStep(command: string, args: readonly string[]): boolean {
   const result = spawnSync(command, [...args], { stdio: 'inherit' })
@@ -218,7 +280,7 @@ export async function installCapabilityServices(
     console.log('')
     console.log('  MinerU: installing the parser and starting its service...')
     const installed = installMineru()
-    if (installed) {
+    if (installed && startMineru()) {
       ready.push('mineru')
       console.log('  MinerU: ready at ' + (answers.mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT))
     } else {
@@ -229,21 +291,19 @@ export async function installCapabilityServices(
   }
 
   if (enabled.has('officecli')) {
-    // OfficeCLI ships as a profile dependency, so enabling the capability installs it
-    // through the profile rather than a host-level tool. It is reported as ready once
-    // the profile install has run; see writeCapabilityPatch for the dependency.
+    // OfficeCLI ships inside the mounted bundle and carries its own binary, so the
+    // capability needs no host step; the profile row is what turns it on.
     ready.push('officecli')
   }
 
   if (enabled.has('computer-use')) {
-    const readyNow = desktopDriverAvailable()
-    if (readyNow) {
+    if (desktopDriverAvailable()) {
       ready.push('computer-use')
     } else {
       console.log('')
-      console.log('  computer-use: the cua driver was not found on the Windows side.')
-      console.log('  Install it from Windows, then run dsh-plus start again:')
-      console.log('    the cua-driver release for this architecture, on the Windows host')
+      console.log('  computer-use: the cua driver was not found on PATH. The plugin is')
+      console.log('  still mounted, so it starts once the driver is installed:')
+      console.log('    install the cua-driver release for this architecture, then restart')
     }
   }
 
@@ -257,13 +317,10 @@ export async function installCapabilityServices(
  * points at that port. An existing installation is upgraded rather than skipped, so
  * enabling the capability keeps the parser current.
  *
- * @returns whether the service is installed; not whether it answered.
+ * @returns whether the package is installed; not whether it answered.
  */
 function installMineru(): boolean {
-  const python = ['python3', 'python'].find((candidate) => {
-    const probe = spawnSync(candidate, ['--version'], { stdio: 'ignore' })
-    return probe.status === 0
-  })
+  const python = pythonInterpreter()
   if (python === undefined) {
     console.log('  MinerU: no Python interpreter found on PATH.')
     return false
@@ -277,6 +334,63 @@ function installMineru(): boolean {
     }
   }
   return true
+}
+
+/**
+ * Start the MinerU API server as a background service when none answers yet.
+ *
+ * The service has to outlive the install command, so it is registered with the
+ * host's service manager when one is available and otherwise started detached.
+ *
+ * @returns whether the server is running after this call.
+ */
+function startMineru(): boolean {
+  const api = mineruApiBinary()
+  if (api === undefined) return false
+  if (mineruAnswers()) return true
+  if (spawnSync('systemctl', ['--version'], { stdio: 'ignore' }).status === 0) {
+    writeFileSync('/etc/systemd/system/mineru-api.service', [
+      '[Unit]',
+      'Description=MinerU document parsing API for DeepSeek Harness Plus',
+      'After=network-online.target',
+      'Wants=network-online.target',
+      '',
+      '[Service]',
+      'Type=simple',
+      'User=root',
+      'ExecStart=' + api + ' --host 127.0.0.1 --port 8000',
+      'Restart=on-failure',
+      'RestartSec=2',
+      'TimeoutStopSec=15',
+      '',
+      '[Install]',
+      'WantedBy=multi-user.target',
+      '',
+    ].join('\n'))
+    spawnSync('systemctl', ['daemon-reload'], { stdio: 'ignore' })
+    return spawnSync('systemctl', ['enable', '--now', 'mineru-api.service'], { stdio: 'ignore' }).status === 0
+  }
+  console.log('  MinerU: start the API server with:')
+  console.log('    ' + api + ' --host 127.0.0.1 --port 8000')
+  return false
+}
+
+/** The Python interpreter to install MinerU with, preferring python3. */
+function pythonInterpreter(): string | undefined {
+  return ['python3', 'python'].find(candidate => spawnSync(candidate, ['--version'], { stdio: 'ignore' }).status === 0)
+}
+
+/** The MinerU API entry point, wherever the install placed it. */
+function mineruApiBinary(): string | undefined {
+  const local = join(process.env.HOME ?? '/root', '.local', 'bin', 'mineru-api')
+  const candidates = [local, 'mineru-api']
+  return candidates.find(candidate => spawnSync(candidate, ['--help'], { stdio: 'ignore' }).status === 0)
+}
+
+/** Whether a MinerU API server already answers on the default port. */
+function mineruAnswers(): boolean {
+  const probe = spawnSync('curl', ['-sf', '-o', '/dev/null', '--max-time', '3', 'http://127.0.0.1:8000/docs'], { stdio: 'ignore' })
+  return probe.status === 0
 }
 
 /** Whether the Windows-side desktop driver answers from this shell. */

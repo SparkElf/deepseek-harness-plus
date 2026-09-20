@@ -15,7 +15,10 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
+  CAPABILITY_ENV_FILE,
+  CAPABILITY_MARKER,
   CAPABILITY_RECORD,
+  capabilityEnvironment,
   capabilityPatchLayer,
   installCapabilityServices,
   interviewCapabilities,
@@ -50,7 +53,7 @@ import {
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
 
-/** Profile patch file the capability interview rewrites. */
+/** Profile patch file the capability interview rewrites (the profile's user layer). */
 const CAPABILITY_PATCH_FILE = 'cordis.patch.yml'
 
 interface StartOptions {
@@ -191,10 +194,11 @@ async function start(argv: readonly string[]): Promise<number> {
   if (answers !== undefined) {
     const ready = await installCapabilityServices(answers, paths.home)
     writeCapabilityPatch(paths.profileDirectory, answers)
+    writeCapabilityEnvironment(paths.home, answers)
     console.log('  Enabled: ' + (answers.enabled.length === 0 ? '(none)' : answers.enabled.join(', ')))
     if (answers.enabled.length > 0) console.log('  Services ready: ' + (ready.length === 0 ? '(none)' : ready.join(', ')))
-    if (answers.exaApiKey !== undefined) {
-      console.log('  Store the Exa key in the launch environment as EXA_API_KEY; it is not written to the profile.')
+    if (answers.enabled.includes('exa') && answers.exaApiKey === undefined) {
+      console.log('  Exa: add EXA_API_KEY to ' + join(paths.home, CAPABILITY_ENV_FILE) + ' when you have a key.')
     }
   }
 
@@ -344,7 +348,33 @@ async function update(argv: readonly string[]): Promise<number> {
  * @param answers - the interview's answers.
  */
 function writeCapabilityPatch(profileDirectory: string, answers: CapabilityAnswers): void {
-  writeFileSync(join(profileDirectory, CAPABILITY_PATCH_FILE), capabilityPatchLayer(answers))
+  const path = join(profileDirectory, CAPABILITY_PATCH_FILE)
+  // The profile has exactly one user layer, so the capability rows live in it. A file
+  // this command did not write belongs to the deployment, and replacing it would drop
+  // whatever the operator put there; keep it beside the new layer instead.
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : undefined
+  if (existing !== undefined && !existing.includes(CAPABILITY_MARKER)) {
+    writeFileSync(path + '.before-capabilities', existing)
+    console.log('  Kept the existing profile layer at ' + CAPABILITY_PATCH_FILE + '.before-capabilities')
+  }
+  writeFileSync(path, capabilityPatchLayer(answers))
+}
+
+/**
+ * Write the deployment's capability environment file.
+ *
+ * MinerU is switched on by the presence of its endpoint and Exa reads its key from
+ * the launch environment, so the answers reach those two through `$DSH_HOME/.env`
+ * rather than through the profile layer. The file is replaced whole on every
+ * configured start, which is also how a capability the user dropped stops applying.
+ *
+ * @param home - the deployment home whose env file the launcher reads.
+ * @param answers - the interview's answers.
+ */
+function writeCapabilityEnvironment(home: string, answers: CapabilityAnswers): void {
+  const path = join(home, CAPABILITY_ENV_FILE)
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : ''
+  writeFileSync(path, capabilityEnvironment(answers, existing))
 }
 
 /** Ask one yes/no question on the terminal. */
