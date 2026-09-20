@@ -550,6 +550,32 @@ test.describe('Plus npm profile user workflows', () => {
     await match.click()
     await expect(page.getByText(needle, { exact: true })).toBeVisible({ timeout: 60_000 })
   })
+
+  test('browses the installed skills through the sidebar Skill Center', async ({ page }) => {
+    await enterApp(page)
+    await connectAcceptanceWorkspace(page)
+
+    // The entry is the shell's own row: same sidebar list the official Plugins
+    // entry uses, so it appears without any DOM the plugin injects.
+    const entry = page.getByRole('button', { name: /技能中心|Skill Center/ }).first()
+    await expect(entry).toBeVisible({ timeout: 30_000 })
+    await entry.click()
+
+    const panel = page.getByRole('heading', { name: /技能中心|Skill Center/, exact: true })
+    await expect(panel).toBeVisible({ timeout: 30_000 })
+    await expect(page.getByText(/浏览已加载的技能|Browse loaded skills/).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /刷新|Refresh/ }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /新建技能|New skill/ }).first()).toBeVisible()
+
+    // The catalog comes from the Host's own skill registry, so the skills the
+    // deployment ships appear with their descriptions under a source group.
+    const group = page.getByRole('heading', { name: /系统内置|Bundled/i }).first()
+    await expect(group).toBeVisible({ timeout: 60_000 })
+    await expect(page.getByText('genui', { exact: true }).first()).toBeVisible()
+    await expect(page.getByRole('button', { name: /搜索技能|Search skills/ }).or(
+      page.getByPlaceholder(/搜索技能|Search skills/),
+    ).first()).toBeVisible()
+  })
 })
 
 test.describe('Plus mobile Web navigation', () => {
