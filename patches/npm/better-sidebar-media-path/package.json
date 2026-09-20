@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-media-path",
   "description": "Data-only patch resolving a workspace-relative media path against the session cwd in dsh-better-sidebar",
-  "version": "0.2.0-rc.10",
+  "version": "0.2.0-rc.11",
   "publishConfig": {
     "access": "public"
   },

@@ -8,7 +8,12 @@
  * @module @sparkelf/dsh-client-ui-skill-center/client/SkillCenterPage
  */
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import {
+  Button,
+  IconPlusOutline16,
+  IconRefreshOutline16,
+  IconSkillOutline16,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import css from './SkillCenterPage.module.css'
 import { SkillApi, type ListPayload, type SkillEntry } from './api.ts'
@@ -183,16 +188,31 @@ export function SkillCenterPage({ t }: PropsRuntime<'main'> & SkillCenterPagePro
 
   return (
     <div className={css.page}>
-      <div className={css.pageHead}>
+      <header className={css.pageHead}>
         <div>
           <h1 className={css.pageTitle}>{t('panel')}</h1>
           <p className={css.pageIntro}>{t('panel.intro')}</p>
         </div>
         <div className={css.toolbar}>
-          <button type="button" className={css.button} onClick={() => { void load() }}>{t('action.refresh')}</button>
-          <button type="button" className={css.primaryButton} onClick={() => { setCreating(v => !v) }}>{t('action.create')}</button>
+          <button
+            type="button"
+            className={css.iconButton}
+            aria-label={t('action.refresh')}
+            title={t('action.refresh')}
+            onClick={() => { void load() }}
+          >
+            <span className={css.iconWrap} aria-hidden="true"><IconRefreshOutline16 /></span>
+          </button>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={<IconPlusOutline16 size={13} />}
+            onClick={() => { setCreating(v => !v) }}
+          >
+            {t('action.create')}
+          </Button>
         </div>
-      </div>
+      </header>
 
       {creating ? (
         <div className={css.form}>

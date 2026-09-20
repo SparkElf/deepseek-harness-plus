@@ -22,7 +22,7 @@
 
 .page > * {
   width: 100%;
-  max-width: 900px;
+  max-width: 960px;
 }
 
 .pageHead {
@@ -50,7 +50,35 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 16px;
+}
+
+/* The same circular icon action the plugin page's head carries. */
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--dsw-alias-label-caption);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.iconWrap {
+  display: inline-flex;
 }
 
 .button {
@@ -71,17 +99,6 @@
 .button:focus-visible {
   outline: 2px solid var(--dsw-alias-brand-primary);
   outline-offset: 1px;
-}
-
-.primaryButton {
-  height: 32px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 8px;
-  background: var(--dsw-alias-brand-primary);
-  color: var(--dsw-alias-label-primary);
-  font-size: 13px;
-  cursor: pointer;
 }
 
 .search {
