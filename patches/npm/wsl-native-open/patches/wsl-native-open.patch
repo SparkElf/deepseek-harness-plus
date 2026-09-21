@@ -1,5 +1,5 @@
 diff --git a/packages/host/open-in-app/src/icons.ts b/packages/host/open-in-app/src/icons.ts
-index 6908ce7..570dc45 100644
+index 6908ce795b..570dc45c96 100644
 --- a/packages/host/open-in-app/src/icons.ts
 +++ b/packages/host/open-in-app/src/icons.ts
 @@ -97,6 +97,41 @@ const EXTRACT_ICON_PS1 = [
@@ -73,7 +73,7 @@ index 6908ce7..570dc45 100644
      return desktopId === undefined ? null : extractLinuxIcon(desktopId, completed)
    }
 diff --git a/packages/host/open-in-app/src/resolver.ts b/packages/host/open-in-app/src/resolver.ts
-index 7ab964b..8ea7318 100644
+index 7ab964b4fd..8ea7318975 100644
 --- a/packages/host/open-in-app/src/resolver.ts
 +++ b/packages/host/open-in-app/src/resolver.ts
 @@ -14,10 +14,10 @@
@@ -164,7 +164,7 @@ index 7ab964b..8ea7318 100644
        return found === null
          ? null
 diff --git a/packages/util/native-command/src/index.ts b/packages/util/native-command/src/index.ts
-index a2e23a3..f1ea7c6 100644
+index a2e23a35be..f1ea7c6233 100644
 --- a/packages/util/native-command/src/index.ts
 +++ b/packages/util/native-command/src/index.ts
 @@ -6,6 +6,7 @@
@@ -176,10 +176,18 @@ index a2e23a3..f1ea7c6 100644
    nativeFileManager,
    revealNativePath,
 diff --git a/packages/util/native-command/src/path-opener.ts b/packages/util/native-command/src/path-opener.ts
-index 8f3443b..79e7ace 100644
+index 8f3443b3c1..3962fd8523 100644
 --- a/packages/util/native-command/src/path-opener.ts
 +++ b/packages/util/native-command/src/path-opener.ts
-@@ -99,13 +99,49 @@ function isWsl(internals: PathOpenerInternals): boolean {
+@@ -11,7 +11,6 @@
+ 
+ import { release as osRelease } from 'node:os'
+ import { dirname, extname } from 'node:path'
+-import { pathToFileURL } from 'node:url'
+ import { runNativeCommand, type NativeCommandRunner } from './runner.ts'
+ 
+ /** Testable command boundary; native implementations never invoke a shell. */
+@@ -99,13 +98,49 @@ function isWsl(internals: PathOpenerInternals): boolean {
    return (internals.osRelease ?? osRelease()).toLowerCase().includes('microsoft')
  }
  
@@ -231,7 +239,7 @@ index 8f3443b..79e7ace 100644
  }
  
  /** Translate a WSL path before handing it to the Windows desktop. */
-@@ -154,6 +190,25 @@ async function openNativePathWithIntent(
+@@ -154,6 +189,25 @@ async function openNativePathWithIntent(
    throw new Error(`native path opener is unsupported on ${platform}`)
  }
  
@@ -257,3 +265,20 @@ index 8f3443b..79e7ace 100644
  /**
   * Whether {@link openNativePath} plausibly reaches a desktop on this host.
   *
+@@ -244,10 +298,13 @@ export async function revealNativePath(
+       windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
+       if (windowsPath === '') throw new Error('wslpath returned no Windows path')
+     }
+-    // Explorer parses commas itself; a file URI preserves commas and whitespace in the path.
+-    const target = pathToFileURL(windowsPath, { windows: true }).href.replaceAll(',', '%2C')
++    // Explorer takes the path itself: `wslpath -w` already produced the spelling it reads.
++    // A `file://` URL is not interchangeable here — a percent-encoded non-ASCII path (a CJK
++    // directory such as 题库) fails to resolve, and Explorer then opens its default location
++    // instead of selecting the file. Measured with a directory it had never opened: the native
++    // path selected 子目录/测试文件.txt, the URL form changed nothing.
+     try {
+-      await run('explorer.exe', ['/select,', target], signal)
++      await run('explorer.exe', ['/select,', windowsPath], signal)
+     } catch (error) {
+       signal.throwIfAborted()
+       // Explorer can exit 1 after delegating to the existing desktop process.
