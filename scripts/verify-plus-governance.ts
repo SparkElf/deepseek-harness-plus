@@ -253,6 +253,9 @@ function main(): void {
     '@sparkelf/dsh-plugin-better-sidebar-office': '0.2.1',
     '@sparkelf/dsh-office-viewer-fonts': '0.1.2',
     'dsh-video-preview': '0.1.4',
+    // The reviewed session background: a new session's centre column renders it, and every
+    // other surface stays official.
+    'dsh-right-bg-anim': '1.1.0',
     // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).

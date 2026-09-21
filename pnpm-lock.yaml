@@ -1688,6 +1688,9 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../../patches/npm/legacy-code-preset
+      '@sparkelf/dsh-patch-mobile-journal-generation':
+        specifier: workspace:>=0.2.0-rc.17
+        version: link:../../../patches/npm/mobile-journal-generation
       '@sparkelf/dsh-patch-officecli-deliverables':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../../patches/npm/officecli-deliverables

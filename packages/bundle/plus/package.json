@@ -115,6 +115,7 @@
         "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.1.6-alpha.2",
         "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.1.6-alpha.2",
         "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.6-alpha.2",
+        "@deepseek-ai/dsh-session-query-sqlite": "npm:@sparkelf/dsh-session-query-sqlite@0.1.6-alpha.2",
         "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.6-alpha.2",
         "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.6-alpha.2",
         "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.6-alpha.2",
@@ -139,7 +140,8 @@
       "@sparkelf/dsh-patch-session-format-legacy-restart",
       "@sparkelf/dsh-patch-wsl-native-open",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
-      "@sparkelf/dsh-patch-session-query-unindexable-session"
+      "@sparkelf/dsh-patch-session-query-unindexable-session",
+      "@sparkelf/dsh-patch-mobile-journal-generation"
     ],
     "sourceBase": {
       "revision": "ddefc45fbc7f8e46dd73185e68295696d1297887"
@@ -159,6 +161,7 @@
     "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.0-rc.17",
+    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.0-rc.17",

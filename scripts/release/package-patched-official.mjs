@@ -73,6 +73,7 @@ export const PATCHED_WORKSPACES = [
   'packages/preset/agent-presets',
   'packages/session/session-format-v0-to-v1',
   'packages/session-query/session-log-export',
+  'packages/session-query/session-query-sqlite',
   'packages/util/native-command',
   'packages/workspace/workspace',
 ]
