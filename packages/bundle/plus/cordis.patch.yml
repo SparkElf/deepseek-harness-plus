@@ -28,17 +28,9 @@
     - id: plus-backup
       name: '@sparkelf/dsh-plugin-backup'
 
-    - id: plus-dataops
-      name: '@sparkelf/dsh-plugin-dataops'
-      disabled: !!js "!process.env.DSH_DATAOPS_BASE_URL"
-      config:
-        baseUrl: !!js process.env.DSH_DATAOPS_BASE_URL
-        serverName: dataops
-        credentialRef: dataops_access_token
-        targetCredentialRef: dataops_target_ref
-        callbackOrigin: !!js process.env.DSH_DATAOPS_CALLBACK_ORIGIN
-        toolCallTimeoutMs: 60000
-        failOnStartupError: false
+    # DataOps tools belong to the DataOps-managed workspace profile only. A
+    # standalone profile must not carry DataOps identity or endpoint config, so
+    # this layer mounts no DataOps plugin.
 
     # A disabled root node carries the package's Web Settings entry into the
     # client inventory; the startup nodes below exclusively own Host schemas.

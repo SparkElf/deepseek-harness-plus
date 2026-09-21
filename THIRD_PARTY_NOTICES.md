@@ -59,7 +59,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-api-client`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mineru`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
-| [`@sparkelf/dsh-mobile-bridge`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-office-viewer-fonts`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-officecli`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-plugin-better-sidebar-office`](https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
@@ -80,6 +79,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
+| [`dsh-right-bg-anim`](https://github.com/forestlightelf/dsh-right-bg-anim) | MIT |
 | [`dsh-sql-workbench`](https://github.com/SparkElf/dsh-sql-workbench) | MIT |
 | [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |

@@ -51,7 +51,7 @@
     "@deepseek-ai/dsh-experimental-agent-team-web-profile": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
-    "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
+    "dsh-right-bg-anim": "1.1.0",
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
@@ -66,7 +66,6 @@
       "@deepseek-ai/dsh-experimental-agent-team-web-profile",
       "@sparkelf/dsh-mineru",
       "@sparkelf/dsh-officecli",
-      "@sparkelf/dsh-mobile-bridge",
       "dshmarket",
       "@huanlin/dsh-plugin-better-locale",
       "dsh-better-sidebar",
@@ -78,7 +77,8 @@
       "@sparkelf/dsh-plus",
       "dsh-sql-workbench",
       "@sparkelf/dsh-ssh-manager",
-      "@sparkelf/dsh-api-client"
+      "@sparkelf/dsh-api-client",
+      "dsh-right-bg-anim"
     ],
     "allowBuilds": {
       "@deepseek-ai/dsh-subprocess-local": true,

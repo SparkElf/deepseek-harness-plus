@@ -52,7 +52,6 @@
         "@deepseek-ai/dsh-experimental-agent-team-web-profile",
         "@sparkelf/dsh-mineru",
         "@sparkelf/dsh-officecli",
-        "@sparkelf/dsh-mobile-bridge",
         "dshmarket",
         "@huanlin/dsh-plugin-better-locale",
         "dsh-better-sidebar",
@@ -64,7 +63,8 @@
         "@sparkelf/dsh-plus",
         "dsh-sql-workbench",
         "@sparkelf/dsh-ssh-manager",
-        "@sparkelf/dsh-api-client"
+        "@sparkelf/dsh-api-client",
+        "dsh-right-bg-anim"
       ],
       "dependencies": {
         "@changfenhuang/dsh-genui": "0.11.0",
@@ -80,6 +80,7 @@
         "@sparkelf/dsh-plugin-better-sidebar-office": "0.2.1",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.2",
         "dsh-video-preview": "0.1.4",
+        "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.6-alpha.1",
         "@deepseek-ai/dsh-experimental-agent-team-web-profile": ">=0.1.6-alpha.1"
       },
@@ -135,7 +136,6 @@
       "@sparkelf/dsh-patch-ptc-mcp-schema-types",
       "@sparkelf/dsh-patch-web-base-path",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
-      "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-session-format-legacy-restart",
       "@sparkelf/dsh-patch-wsl-native-open",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
@@ -151,7 +151,6 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-mobile-bridge": ">=0.2.11",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-better-sidebar-main-view-session": "workspace:>=0.2.0-rc.17",
@@ -159,7 +158,6 @@
     "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.17",
@@ -172,7 +170,6 @@
     "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-wsl-native-open": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-dataops": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.17",
     "dshmarket": ">=1.45.1",
