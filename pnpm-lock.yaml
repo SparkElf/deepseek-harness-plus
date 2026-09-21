@@ -1667,9 +1667,6 @@ importers:
       '@sparkelf/dsh-client-ui-skill-center':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../plus/ui-skill-center
-      '@sparkelf/dsh-mobile-bridge':
-        specifier: '>=0.2.11'
-        version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
@@ -1691,9 +1688,6 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../../patches/npm/legacy-code-preset
-      '@sparkelf/dsh-patch-mobile-journal-generation':
-        specifier: workspace:>=0.2.0-rc.17
-        version: link:../../../patches/npm/mobile-journal-generation
       '@sparkelf/dsh-patch-officecli-deliverables':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../../patches/npm/officecli-deliverables
@@ -1730,9 +1724,6 @@ importers:
       '@sparkelf/dsh-plugin-backup':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../plus/backup
-      '@sparkelf/dsh-plugin-dataops':
-        specifier: workspace:>=0.2.0-rc.17
-        version: link:../../plus/dataops
       '@sparkelf/dsh-plugin-mcp-credentials':
         specifier: workspace:>=0.2.0-rc.17
         version: link:../../plus/mcp-credentials
@@ -9509,9 +9500,6 @@ importers:
       '@sparkelf/dsh-mineru':
         specifier: 0.1.2
         version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)
-      '@sparkelf/dsh-mobile-bridge':
-        specifier: '>=0.2.11'
-        version: 0.2.11(@deepseek-ai/cordis@vendor+cordis)(react@18.3.1)
       '@sparkelf/dsh-office-viewer-fonts':
         specifier: 0.1.2
         version: 0.1.2(@deepseek-ai/cordis@vendor+cordis)
@@ -9542,6 +9530,9 @@ importers:
       dsh-video-preview:
         specifier: 0.1.4
         version: 0.1.4
+      dsh-right-bg-anim:
+        specifier: 1.1.0
+        version: 1.1.0
       dshmarket:
         specifier: '>=1.45.1'
         version: 1.45.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/schemastery@vendor+schemastery)
@@ -17212,6 +17203,9 @@ packages:
       '@deepseek-ai/dsh-llm': 0.1.5-rc.2
       '@deepseek-ai/dsh-tools': 0.1.5-rc.2
       react: ^18.2.0 || ^19.0.0
+
+  dsh-right-bg-anim@1.1.0:
+    resolution: {integrity: sha512-GgJ0uWub6wQahxK4q7wlsCFuz/4lZgabAsvBUn+1zA/BakZHlMnHrUO6JORPbjkI0OfxaTcpAEcpa/9//C0tyA==}
 
   dsh-video-preview@0.1.4:
     resolution: {integrity: sha512-AdmqL2cca8ygAOsM56PHvycPHvzyY4Gv7DTSH/5prkPs4R3mKIIEiwQAAtpeDS9cy0s4+VQfLb7a1uA6UHQ31Q==}
@@ -26680,6 +26674,8 @@ snapshots:
       - pg-native
       - use-sync-external-store
       - utf-8-validate
+
+  dsh-right-bg-anim@1.1.0: {}
 
   dsh-video-preview@0.1.4: {}
 
