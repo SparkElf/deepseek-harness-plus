@@ -24,8 +24,22 @@ import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { resolvePeerOverrides } from './peer-overrides.ts'
 
-/** Published placeholder an omitted capability is overridden onto. */
-export const OMITTED_PLACEHOLDER = 'npm:@sparkelf/dsh-omitted@0.2.0-rc.17'
+/** Published name of the placeholder an omitted capability is overridden onto. */
+export const OMITTED_PLACEHOLDER_PACKAGE = '@sparkelf/dsh-omitted'
+
+/**
+ * Override spec that substitutes the placeholder for one omitted capability.
+ *
+ * The placeholder is a plus-family member, so it carries the distribution's own version:
+ * deriving it keeps a version bump from leaving the override pinned to a release the
+ * registry no longer serves beside the manifest that names it.
+ *
+ * @param version - the distribution's version.
+ * @returns the npm alias spec to write into the override.
+ */
+export function omittedPlaceholderSpec(version: string): string {
+  return 'npm:' + OMITTED_PLACEHOLDER_PACKAGE + '@' + version
+}
 
 /** One registry-installable variant of the distribution. */
 interface StandaloneVariant {
@@ -227,7 +241,7 @@ function main(): void {
       // deleted. Recording the substitution here is what lets a deployment assert the
       // omission without restating the list it was generated from.
       omittedPackages: Object.fromEntries(
-        [...excludedPackages].map(name => [name, OMITTED_PLACEHOLDER]),
+        [...excludedPackages].map(name => [name, omittedPlaceholderSpec(distribution.version)]),
       ),
     },
   }
