@@ -6,18 +6,15 @@ English | [中文](2026-09-22-reveal-in-explorer-takes-the-native-path.zh.md)
 
 ## Problem
 
-「在文件资源管理器中显示」在 WSL 主机上对**含非 ASCII 字符的路径**永远打开桌面，
-从不选中目标文件。它只影响中文路径，所以英文路径的手工验证一直是绿的。
+"Reveal in file manager" always opened the desktop on a WSL host for a path containing non-ASCII characters, and never selected the file. Only non-ASCII paths were affected, which is why manual verification with English paths stayed green.
 
-`revealNativePath` 把 `wslpath -w` 的输出再经 `pathToFileURL(windowsPath, { windows: true })`
-转成 `file://` URL 才交给 Explorer。Explorer 不解析该形式下的百分号编码非 ASCII 路径，
-于是选不中任何目标并退回默认位置。
+`revealNativePath` passed the `wslpath -w` output through `pathToFileURL(windowsPath, { windows: true })` before handing it to Explorer. Explorer does not resolve a percent-encoded non-ASCII path in that form, so it selected nothing and opened its default location.
 
 ## Decision
 
-`patches/npm/wsl-native-open` 的 `revealNativePath` 直接传原生路径：
+`revealNativePath` in `patches/npm/wsl-native-open` hands Explorer the native path directly:
 
-```ts
+```ts ignore-check
 try {
   await run('explorer.exe', ['/select,', windowsPath], signal)
 } catch (error) {
@@ -26,36 +23,27 @@ try {
 }
 ```
 
-`wslpath -w` 已经产出 Explorer 能读的拼写，URL 转换是多余的中间层；它同时也是缺陷来源。
-不再使用的 `pathToFileURL` 导入一并移除。
+`wslpath -w` already produces the spelling Explorer reads, so the URL conversion was a redundant layer that also caused the defect. The now-unused `pathToFileURL` import is removed with it.
 
 ## Findings this change rests on
 
-1. **两种形式只差编码。** 用 Explorer 从未打开过的目录做单变量对照：
-   原生路径选中了 `子目录/测试文件.txt`，URL 形式没有任何变化。
-2. **ASCII 对照排除了参数拼接。** 同一 ASCII 路径在两种形式下均正确，
-   所以 `/select,` 与路径分成两个 argv 或合并成一个都不是原因，
-   这也否定了先前把它当作根因的判断。
-3. **判据是窗口状态而非退出码。** Explorer 委托给已运行实例后总是以 1 退出，
-   退出码无法区分成功与失败；`Shell.Application.Windows()` 的
-   `LocationName` 与 `Document.SelectedItems()` 才是可判定的观测。
-4. **补丁平面与上游平面分离。** 仓库源码 `packages/util/native-command/src` 是上游平面，
-   其现有单测断言 `file:///C:/work/%E6%8A%A5%E5%91%8A.txt`，即把缺陷固化了；
-   行为修复位于补丁平面，上游修复走独立分支（见 `docs/development.md` 的补丁工作流）。
+1. **The two forms differ only in encoding.** A single-variable comparison against a directory Explorer had never opened: the native path selected `子目录/测试文件.txt`, while the URL form changed nothing.
+2. **An ASCII control ruled out argument passing.** The same ASCII path worked in both forms, so neither splitting `/select,` from the path nor merging them is the cause. That also refutes the earlier diagnosis that named argument passing.
+3. **The observation is window state, not exit code.** Explorer always exits 1 after delegating to the running desktop process, so the exit code cannot separate success from failure; `LocationName` and `Document.SelectedItems()` from `Shell.Application.Windows()` are the decidable observations.
+4. **The patch plane and the upstream plane are separate.** The repository source at `packages/util/native-command/src` is the upstream plane, and its existing unit test asserts `file:///C:/work/%E6%8A%A5%E5%91%8A.txt`, which freezes the defect. The behavior fix lives on the patch plane; the upstream fix travels on its own branch ([workflow](../../../../docs/development.md#patched-third-party-packages)).
+5. **Explorer cannot claim the foreground from a service session.** The same command issued by a native Windows process reaches the foreground, while a systemd-hosted DSH session does not, and `AppActivate` reports success without moving the window. This is the Windows foreground lock, so the revealed window stays behind the browser. Changing the opener cannot fix it; a UI acknowledgement is the place to address it if a product wants the user to notice.
 
 ## Alternatives considered
 
-**保留 URL 形式，改为不对中文做百分号编码。** 一个未编码的 `file://` URL 在含空格或逗号时
-不再是一个合法 URL，而这两类字符在 Windows 路径里常见。原生路径同时覆盖这两类。
+**Keep the URL form but stop percent-encoding non-ASCII characters.** An unencoded `file://` URL is no longer a valid URL once the path holds a space or a comma, and both characters are common in Windows paths. The native path covers both.
 
-**改成 `/select,"路径"` 的引号形式。** 实测在中文路径下同样退回默认位置，未采用。
+**Quote the path as `/select,"path"`.** Measured to fall back to the default location for the same non-ASCII path, so it was not adopted.
 
-**在该手势里改用 PowerShell 的 `Invoke-Item`。** 那是「打开」而非「定位到并选中」，
-与 `openNativePath` 的既有分支重复，且丢失选中语义。
+**Switch the gesture to PowerShell `Invoke-Item`.** That opens the file rather than revealing and selecting it, duplicates the existing `openNativePath` branch, and loses the selection semantics.
+
 
 ## Consequences
 
-- WSL 主机上含中文、空格、逗号的路径现在都能被正确定位。
-- 修复随 `wsl-native-open` 补丁分发，因此它同时到达源码运行与 registry 安装两种形态；
-  该补丁的 `packages/util/native-command/` 目标目录与既有 override 让它保持可达。
-- 上游把该修复合入后，本补丁的对应 hunk 应随之退役。
+- Paths containing Chinese characters, spaces, and commas are now located correctly on WSL hosts.
+- The fix ships inside the `wsl-native-open` patch, so it reaches both a source-run deployment and a registry installation; the patch's `packages/util/native-command/` target and the existing override keep it reachable.
+- Once upstream merges the fix, this patch's corresponding hunk retires.
