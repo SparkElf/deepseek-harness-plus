@@ -72,6 +72,12 @@ export const PATCHED_WORKSPACES = [
   'packages/client/ui-primitives',
   'packages/client/ui-settings-models',
   'packages/client/ui-trajectory',
+  // Same incompatibility as api/terminal-controller: the published official builds of
+  // these two carry a typert manifest generated before the alpha.2 loader required a
+  // `create()` factory, so a registry installation that keeps them fails to load the
+  // plugin tree.
+  'packages/llm/llm',
+  'packages/subagent/subagent',
   'packages/core/tools',
   'packages/host/frontend-static',
   'packages/host/open-in-app',
