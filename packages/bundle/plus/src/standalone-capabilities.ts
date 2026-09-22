@@ -231,7 +231,15 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
     '# ' + CAPABILITY_MARKER + ' Enabling or disabling a capability',
     '# rewrites this file; edits here are replaced.',
   ]
-  if (rows.length > 0) lines.push('- insert:', ...rows)
+  // The loader requires a top-level YAML array, so a selection that mounts nothing
+  // still has to produce one. Comments alone parse as `null`, and the profile then
+  // refuses to boot with "must be a top-level YAML array of loader patch entries" —
+  // which is the whole deployment, not just the missing capability.
+  if (rows.length > 0) {
+    lines.push('- insert:', ...rows)
+  } else {
+    lines.push('[]')
+  }
   if (enabled.has('exa')) {
     lines.push(
       '',
