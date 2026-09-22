@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-format-legacy-restart",
-  "version": "0.2.0-rc.19",
+  "version": "0.2.0-rc.20",
   "description": "Data-only exact official-source patch admitting the released interrupted-turn restart pattern by default",
   "publishConfig": {
     "access": "public"
