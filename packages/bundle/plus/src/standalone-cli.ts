@@ -11,7 +11,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
@@ -173,6 +173,26 @@ function installationRoot(): string {
 function installationAnchor(): string {
   return join(installationRoot(), 'package.json')
 }
+
+/**
+ * Path to the installed command's own file, which is where a declaration lookup starts.
+ *
+ * The declaration belongs to the package the user installed, and that package is a
+ * sibling of this module rather than an ancestor: a variant's forwarder imports this
+ * CLI in-process, so `import.meta.url` names `@sparkelf/dsh-plus` while the installed
+ * command is the variant. `process.argv[1]` is the entry that was actually invoked,
+ * which is the package whose declaration applies.
+ *
+ * Walking out from the installation root cannot reach it either: that root is the
+ * project the user ran the command in, so every variant would fall back to the full
+ * profile and keep the capabilities it excluded.
+ *
+ * @returns absolute path to the invoked command, or this module when argv carries none.
+ */
+function declarationAnchor(): string {
+  const invoked = process.argv[1]
+  return invoked === undefined || invoked === '' ? fileURLToPath(import.meta.url) : resolve(invoked)
+}
 /** The launcher entry this installation must drive. */
 function launcherEntry(anchor: string): string {
   return createRequire(anchor).resolve('@deepseek-ai/dsh/lib/bin.js')
@@ -189,7 +209,9 @@ function runForeground(entry: string, profileName: string, port: number, host: s
 async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
   const anchor = installationAnchor()
-  const paths = resolvePaths(anchor)
+  // The profile's own name and omissions come from the package that installed this
+  // command, which is a different tree position than the dependencies it resolves.
+  const paths = resolvePaths(declarationAnchor())
   // The profile installs its own dependency tree, which needs pnpm. Asking here rather
   // than failing inside the install turns a missing prerequisite into a decision the
   // consumer makes, and the install it can run is the one command that provides it.
