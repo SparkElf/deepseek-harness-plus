@@ -15,9 +15,11 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
+  CAPABILITIES,
   CAPABILITY_ENV_FILE,
   CAPABILITY_MARKER,
   CAPABILITY_RECORD,
+  DEFAULT_MINERU_ENDPOINT,
   capabilityEnvironment,
   capabilityPatchLayer,
   installCapabilityServices,
@@ -62,6 +64,15 @@ interface StartOptions {
   readonly host: string
   readonly open: boolean
   readonly foreground: boolean
+  /**
+   * Capabilities to enable without asking, or undefined to interview.
+   *
+   * An unattended install has no terminal to answer the interview, so a build that
+   * bakes a profile into an image states the selection instead. An empty list is a
+   * selection too: it means every optional capability stays off, which is what a
+   * deployment that must not run them requires.
+   */
+  readonly capabilities: readonly string[] | undefined
 }
 
 function parseStartOptions(argv: readonly string[]): StartOptions {
@@ -69,6 +80,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
   let host = '127.0.0.1'
   let open = true
   let foreground = false
+  let capabilities: readonly string[] | undefined
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--port' || token === '-p') {
@@ -87,9 +99,47 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     if (token === '--no-open') { open = false; continue }
     if (token === '--foreground') { foreground = true; continue }
+    if (token === '--capabilities') {
+      const value = argv[index + 1]
+      if (value === undefined) throw new Error('--capabilities requires a comma-separated list, or an empty string for none')
+      const stated = value === '' ? [] : value.split(',').map(entry => entry.trim()).filter(entry => entry !== '')
+      // A stated selection is the only way an unattended install chooses capabilities, so
+      // a name this release does not offer fails here: the deployment would otherwise
+      // start without a capability its caller believes it selected. Validating at parse
+      // time also makes the failure independent of what is installed.
+      const offered = new Set(CAPABILITIES.map(capability => capability.id))
+      for (const id of stated) {
+        if (!offered.has(id)) {
+          throw new Error('unknown capability "' + id + '"; this release offers ' + [...offered].join(', '))
+        }
+      }
+      capabilities = stated
+      index += 1
+      continue
+    }
     throw new Error('unknown option: ' + String(token))
   }
-  return { port, host, open, foreground }
+  return { port, host, open, foreground, capabilities }
+}
+
+/**
+ * Resolve a stated capability selection.
+ *
+ * An unattended install states what it wants instead of answering the interview, so a
+ * name it does not offer has to fail here rather than silently enable nothing: the
+ * deployment would otherwise start with a capability the caller believes it selected.
+ *
+ * @param ids - capability ids the caller selected.
+ * @returns the answers the interview would have returned.
+ */
+function selectCapabilities(ids: readonly string[]): CapabilityAnswers {
+  const selected = [...new Set(ids)]
+  // MinerU is started from an endpoint the interview collects; an unattended install
+  // gets the documented default rather than an unset one.
+  return {
+    enabled: selected,
+    ...selected.includes('mineru') ? { mineruEndpoint: DEFAULT_MINERU_ENDPOINT } : {},
+  }
 }
 
 /**
@@ -190,7 +240,9 @@ async function start(argv: readonly string[]): Promise<number> {
   // on every start would make a restart look like a first install.
   const needsInterview = created || !existsSync(join(paths.home, CAPABILITY_RECORD))
   const answers = needsInterview
-    ? await interviewCapabilities(true)
+    ? options.capabilities === undefined
+      ? await interviewCapabilities(true)
+      : selectCapabilities(options.capabilities)
     : undefined
   if (answers !== undefined) {
     const ready = await installCapabilityServices(answers, paths.home)
