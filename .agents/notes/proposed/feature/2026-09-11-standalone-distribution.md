@@ -10,6 +10,8 @@ Installing Plus today requires git, an official source checkout, and a nine-minu
 
 ## Decision
 
+> Extended by [a reduced standalone variant declares what it omits](../../implemented/architecture/2026-09-22-standalone-variants-declare-omissions.md): the same registry entry point now also carries variants, each declaring the packages and bundles its deployment omits or adds.
+
 Ship @sparkelf/dsh-plus-standalone: a registry package whose dependencies carry the reviewed plugins and whose first start writes the profile the launcher boots. The user installs one package and runs one command; no source, no build, no git.
 
 ## Alternatives considered

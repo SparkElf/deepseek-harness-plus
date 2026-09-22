@@ -29,6 +29,8 @@ Three pieces, each owning one fact:
 | `dshPlusStandalone.omittedPackages` | package name to override spec, applied to the profile workspace |
 The distribution declares capabilities as `optionalDependencies`, because the distribution can run them but does not require them. That is what makes an omission expressible: a required dependency states the deployment cannot work without it, which is false for a capability a variant is allowed to drop.
 
+A variant also **extends** the set: `includePackages` and `includeBundles` mount plugins that belong to one deployment rather than to the reviewed set every consumer receives. They append after the distribution's order, because a deployment plugin extends the reviewed set instead of occupying a position in it. Writing them into the shared distribution would ship a DataOps plugin to every consumer of the public package.
+
 An omitted capability is **substituted, not deleted**: `@sparkelf/dsh-omitted` is a placeholder that exports nothing, and the variant's `omittedPackages` map points each excluded name at it. The substitution is what makes the omission auditable — a scan of the tree finds the placeholder rather than the capability — and the placeholder deliberately has no exports, so mounting it fails loudly instead of silently stubbing a capability.
 
 The CLI reads the declaration by walking out from its own file to the package that installed it (`readStandaloneDeclaration`), which is how one `dsh-plus` build serves both the full and the reduced deployment. It writes the omissions into the profile's `pnpm-workspace.yaml` alongside the distribution's `overrides`, which is the only place pnpm reads them.
@@ -43,6 +45,12 @@ The CLI reads the declaration by walking out from its own file to the package th
 
 4. **A name-alignment mechanism already exists for replaced packages.** `alignReplacedPackageNames` rewrites a substituted package's declared name to the official name of the directory it occupies, because the client module system requires `name === expectedPackageName`. The placeholder is never mounted as a loader entry, so it is not subject to that requirement.
 
+
+5. **A registry installation meets a loader that requires a manifest format the published packages predate.** The profile pins the alpha.2 typert loader, which rejects a codec declaration without a `create()` factory; the official `dsh-llm`, `dsh-subagent`, `dsh-api-terminal-controller`, `dsh-agent-presets` and `dsh-api-session-controller` builds declared 5, 5, 14, 5 and 30 such entries where the patched checkout generates 5, 13, 48, 17 and 41. Republishing them from the patched checkout is what makes the two meet, and `api/terminal-controller`, `llm/llm` and `subagent/subagent` join `PATCHED_WORKSPACES` for that reason rather than because Plus patches their source.
+
+6. **A substituted package must declare the name of the directory it occupies, and that alignment does not survive an install.** The client module system requires `name === expectedPackageName`, so a package that keeps our scope inside an official path owns no browser module. `dsh-plus` aligns them on `install`; an assembly that writes the profile directly must run the alignment *after* the profile's own install, because that install reinstalls the replaced packages from the registry and discards an earlier rewrite. A placeholder is skipped: reading the substitution off the installed tree is what lets an audit distinguish an omitted capability from a present one.
+
+7. **A capability layer that mounts nothing still has to be a YAML array.** `capabilityPatchLayer` wrote comments alone for an empty selection, which parses as `null`, and the profile refused to boot with "must be a top-level YAML array of loader patch entries" — taking down the whole deployment rather than only the omitted capability.
 
 ## Alternatives considered
 

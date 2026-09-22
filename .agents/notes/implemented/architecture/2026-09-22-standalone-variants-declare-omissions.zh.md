@@ -29,6 +29,8 @@ DataOps AI 工作区镜像不允许运行 computer-use、cua 驱动与 Exa 网�
 | `dshPlusStandalone.omittedPackages` | 包名到 override spec 的映射，写入 profile 工作区 |
 分发层把能力声明为 `optionalDependencies`，因为分发层能运行它们但不要求它们。这正是「省略」可被表达的前提：必需依赖意味着没有它部署无法工作，而对变体允许丢弃的能力来说这是错的。
 
+变体还会**扩展**集合：`includePackages` 与 `includeBundles` 挂载属于某个部署、而不属于每个消费者都收到的经评审集合的插件。它们追加在分发层顺序之后，因为部署插件是扩展经评审集合，而不是占据它其中的一个位置。把它们写进共享的分发层会把 DataOps 插件发给公网包的每个消费者。
+
 被省略的能力是**被替换而非被删除**：`@sparkelf/dsh-omitted` 是一个不导出任何内容的占位包，变体的 `omittedPackages` 把每个被排除的名字指向它。替换使省略可审计 —— 扫描依赖树会找到占位包而不是该能力 —— 而占位包刻意不导出任何内容，因此挂载它会显式失败，而不是静默替换该能力。
 
 CLI 从自身文件向外走到安装它的包来读取声明（`readStandaloneDeclaration`），这就是同一个 `dsh-plus` 构建能同时服务完整与精简部署的方式。它把省略项写入 profile 的 `pnpm-workspace.yaml`，与分发层的 `overrides` 放在一起，那是 pnpm 唯一会读取它们的位置。
@@ -43,6 +45,12 @@ CLI 从自身文件向外走到安装它的包来读取声明（`readStandaloneD
 
 4. **被替换包已有名称对齐机制。** `alignReplacedPackageNames` 会把被替换包声明的名字改写为它所占据目录的官方名，因为客户端模块系统要求 `name === expectedPackageName`。占位包从不作为 loader 条目被挂载，因此不受该要求约束。
 
+
+5. **registry 安装会遇到一个要求发布包尚未具备的 manifest 格式的加载器。** profile 固定 alpha.2 的 typert 加载器，它拒绝没有 `create()` 工厂的 codec 声明；官方 `dsh-llm`、`dsh-subagent`、`dsh-api-terminal-controller`、`dsh-agent-presets` 与 `dsh-api-session-controller` 的构建分别声明了 5、5、14、5、30 个此类条目，而补丁检出生成的是 5、13、48、17、41。从补丁检出重新发布它们，才让两者相遇；`api/terminal-controller`、`llm/llm` 与 `subagent/subagent` 为此加入 `PATCHED_WORKSPACES`，而不是因为 Plus 修改了它们的源码。
+
+6. **被替换的包必须声明它所占据目录的名字，而该对齐无法在安装后存活。** 客户端模块系统要求 `name === expectedPackageName`，因此一个在官方路径下保留我们自己 scope 的包不拥有任何浏览器模块。`dsh-plus` 在 `install` 时对齐它们；直接编写 profile 的装配必须在 profile 自身安装**之后**再对齐，因为那次安装会从 registry 重装被替换的包并丢弃先前的改写。占位包被跳过：从安装树读取替换关系，正是审计能区分「被省略的能力」与「存在的能力」的依据。
+
+7. **什么都不挂载的能力层仍然必须是 YAML 数组。** `capabilityPatchLayer` 对空选择只写注释，YAML 解析为 `null`，profile 便以 "must be a top-level YAML array of loader patch entries" 拒绝启动 —— 拖垮整个部署，而不只是被省略的能力。
 
 ## 已考虑但未采用的方案
 

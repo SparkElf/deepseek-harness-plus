@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-09-22-standalone-variants-declare-omissions.md
-2026-09-22-standalone-variants-declare-omissions.md: a1a0b5ec53a5be66f16ca8b10be77d3fb1fab15a
-2026-09-22-standalone-variants-declare-omissions.zh.md: 9f97ae8ffae14fd44d99fe043f421980154bed78
+2026-09-22-standalone-variants-declare-omissions.md: 6970c105b7059b7300b8aff8b85dec2e5d5001fc
+2026-09-22-standalone-variants-declare-omissions.zh.md: d6783db276d476ff5c91721cae6dc9a19bae6955
