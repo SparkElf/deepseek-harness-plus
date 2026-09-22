@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
   "description": "Data-only patch bounding a workspace-root-relative HTML preview path to the session cwd in dsh-better-sidebar",
-  "version": "0.2.0-rc.18",
+  "version": "0.2.0-rc.19",
   "publishConfig": {
     "access": "public"
   },

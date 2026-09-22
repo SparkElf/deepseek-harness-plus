@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.2.0-rc.18",
+  "version": "0.2.0-rc.19",
   "publishConfig": {
     "access": "public"
   },
