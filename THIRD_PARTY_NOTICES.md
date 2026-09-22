@@ -58,11 +58,13 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-api-client`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-dataops-managed`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mineru`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-office-viewer-fonts`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-officecli`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-plugin-better-sidebar-office`](https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
 | [`@sparkelf/dsh-plugin-supervisor`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-query-result-analysis`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-ssh-manager`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-workbench-vault`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |

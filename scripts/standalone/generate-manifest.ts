@@ -51,6 +51,15 @@ interface StandaloneVariant {
   readonly excludePackages: readonly string[]
   /** Bundles this variant must not mount. */
   readonly excludeBundles: readonly string[]
+  /**
+   * Packages a variant mounts that the distribution does not review.
+   *
+   * A deployment-specific plugin is not part of the shared set, so it travels with the
+   * variant rather than entering the distribution every consumer receives.
+   */
+  readonly includePackages: Readonly<Record<string, string>>
+  /** Bundles a variant mounts beyond the distribution's order. */
+  readonly includeBundles: readonly string[]
 }
 
 /** One reviewed runtime package the distribution pins exactly. */
@@ -136,6 +145,13 @@ export function readDistribution(directory: string): {
       profile: String(variant.profile),
       excludePackages: requireStringArray(variant.excludePackages, 'standaloneVariants.' + id + '.excludePackages'),
       excludeBundles: requireStringArray(variant.excludeBundles, 'standaloneVariants.' + id + '.excludeBundles'),
+      includePackages: variant.includePackages === undefined
+        ? {}
+        : Object.fromEntries(Object.entries(requireRecord(variant.includePackages, 'standaloneVariants.' + id + '.includePackages'))
+          .map(([name, spec]) => [name, String(spec)])),
+      includeBundles: variant.includeBundles === undefined
+        ? []
+        : requireStringArray(variant.includeBundles, 'standaloneVariants.' + id + '.includeBundles'),
     }
   }
   return {
@@ -183,8 +199,18 @@ function main(): void {
       throw new Error('generate-manifest: variant "' + String(variantId) + '" excludes bundle ' + name + ', which the distribution does not mount')
     }
   }
-  const bundles = distribution.bundles.filter(entry => !excludedBundles.has(entry))
-  const dependencies = distribution.dependencies.filter(entry => !excludedPackages.has(entry.name))
+  // A variant's own plugins mount after the distribution's order, because a deployment
+  // plugin extends the reviewed set rather than replacing a position in it.
+  const bundled = [
+    ...distribution.bundles.filter(entry => !excludedBundles.has(entry)),
+    ...(variant?.includeBundles ?? []),
+  ]
+  const bundles = [...new Set(bundled)]
+  const included = Object.entries(variant?.includePackages ?? {}).map(([name, spec]) => ({ name, spec }))
+  const dependencies = [
+    ...distribution.dependencies.filter(entry => !excludedPackages.has(entry.name)),
+    ...included,
+  ]
   const runtimeVersion = values['runtime-version'] ?? distribution.dshRange.replace(/^[^\d]*/u, '')
   // A published plugin whose peer range cannot match this runtime installs nothing at
   // all, so the override is what makes the dependency set installable rather than a

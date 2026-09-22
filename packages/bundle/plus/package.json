@@ -133,7 +133,15 @@
             "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp",
             "@deepseek-ai/dsh-web-search-exa"
           ],
-          "excludeBundles": []
+          "excludeBundles": [],
+          "includePackages": {
+            "@sparkelf/dsh-dataops-managed": "0.3.2",
+            "@sparkelf/dsh-query-result-analysis": "0.1.2"
+          },
+          "includeBundles": [
+            "@sparkelf/dsh-dataops-managed",
+            "@sparkelf/dsh-query-result-analysis"
+          ]
         }
       }
     },
