@@ -10,13 +10,34 @@
  * Keeping one generator means a plugin added to the distribution cannot reach the
  * standalone package without also reaching its bundle order.
  *
- * Usage: tsx scripts/standalone/generate-manifest.ts --distribution <dir> --out <file>
+ * A deployment that must not carry every reviewed plugin selects a variant declared under
+ * `dshPlus.profile.standaloneVariants`. A variant names its own package and profile and
+ * lists the packages and bundles it omits, so an intranet image can install from the
+ * registry without the capabilities it is not allowed to run. The default manifest is the
+ * unreduced distribution, which is what a public consumer receives.
+ *
+ * Usage: tsx scripts/standalone/generate-manifest.ts --distribution <dir> --out <file> [--variant <id>]
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { resolvePeerOverrides } from './peer-overrides.ts'
+
+/** Published placeholder an omitted capability is overridden onto. */
+export const OMITTED_PLACEHOLDER = 'npm:@sparkelf/dsh-omitted@0.2.0-rc.17'
+
+/** One registry-installable variant of the distribution. */
+interface StandaloneVariant {
+  /** Published package name this variant builds. */
+  readonly packageName: string
+  /** Profile name the launcher materializes. */
+  readonly profile: string
+  /** Reviewed packages this variant must not install. */
+  readonly excludePackages: readonly string[]
+  /** Bundles this variant must not mount. */
+  readonly excludeBundles: readonly string[]
+}
 
 /** One reviewed runtime package the distribution pins exactly. */
 interface ProfileDependency {
@@ -41,6 +62,7 @@ export function readDistribution(directory: string): {
   readonly dshRange: string
   readonly bundles: readonly string[]
   readonly dependencies: readonly ProfileDependency[]
+  readonly variants: Readonly<Record<string, StandaloneVariant>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
 } {
@@ -65,8 +87,15 @@ export function readDistribution(directory: string): {
   const runtimeDependencies = Object.entries(requireRecord(manifest.dependencies, 'distribution dependencies'))
     .filter(([name, spec]) => !String(spec).startsWith('workspace:') && !name.startsWith('@sparkelf/dsh-patch-'))
     .map(([name, spec]) => ({ name, spec: String(spec) }))
+  // An optional dependency is a capability the distribution can run but does not require:
+  // it must stay installable for a deployment that keeps it, and it must be nameable by a
+  // variant that omits it, so it joins the reviewed set rather than being dropped.
+  const optionalDependencies = manifest.optionalDependencies === undefined
+    ? []
+    : Object.entries(requireRecord(manifest.optionalDependencies, 'distribution optionalDependencies'))
+      .map(([name, spec]) => ({ name, spec: String(spec) }))
   const merged = new Map<string, ProfileDependency>()
-  for (const entry of [...dependencies, ...runtimeDependencies]) merged.set(entry.name, entry)
+  for (const entry of [...dependencies, ...runtimeDependencies, ...optionalDependencies]) merged.set(entry.name, entry)
   // A patch against official source cannot reach a registry installation, so the
   // distribution republishes the affected workspaces and declares the substitution
   // here. The manifest has to carry it: npm resolves the tree during \`npm install\`,
@@ -79,6 +108,22 @@ export function readDistribution(directory: string): {
     if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
     overrides[name] = spec
   }
+  // A variant is a named reduction of the same reviewed facts: it installs fewer packages
+  // and mounts fewer bundles, so an intranet deployment never receives a capability it is
+  // not allowed to run. Absent variants leave the manifest identical to today's.
+  const rawVariants = profile.standaloneVariants === undefined
+    ? {}
+    : requireRecord(profile.standaloneVariants, 'dshPlus.profile.standaloneVariants')
+  const variants: Record<string, StandaloneVariant> = {}
+  for (const [id, raw] of Object.entries(rawVariants)) {
+    const variant = requireRecord(raw, 'dshPlus.profile.standaloneVariants.' + id)
+    variants[id] = {
+      packageName: String(variant.packageName),
+      profile: String(variant.profile),
+      excludePackages: requireStringArray(variant.excludePackages, 'standaloneVariants.' + id + '.excludePackages'),
+      excludeBundles: requireStringArray(variant.excludeBundles, 'standaloneVariants.' + id + '.excludeBundles'),
+    }
+  }
   return {
     name: String(manifest.name),
     version: String(manifest.version),
@@ -87,6 +132,7 @@ export function readDistribution(directory: string): {
     dependencies: [...merged.values()],
     allowBuilds,
     overrides,
+    variants,
   }
 }
 
@@ -97,11 +143,34 @@ function main(): void {
       out: { type: 'string' },
       'runtime-version': { type: 'string' },
       'skip-overrides': { type: 'boolean' },
+      variant: { type: 'string' },
       check: { type: 'boolean' },
     },
   })
   if (values.distribution === undefined || values.out === undefined) throw new Error('--distribution and --out are required')
   const distribution = readDistribution(resolve(values.distribution))
+  // A named variant installs and mounts strictly less than the distribution. Selecting one
+  // is the only way the reduction reaches a manifest, so an unselected build stays whole.
+  const variantId = values.variant
+  const variant = variantId === undefined ? undefined : distribution.variants[variantId]
+  if (variantId !== undefined && variant === undefined) {
+    throw new Error('generate-manifest: unknown variant "' + variantId + '"; declared: '
+      + (Object.keys(distribution.variants).join(', ') || '(none)'))
+  }
+  const excludedPackages = new Set(variant?.excludePackages ?? [])
+  const excludedBundles = new Set(variant?.excludeBundles ?? [])
+  for (const name of excludedPackages) {
+    if (!distribution.dependencies.some(entry => entry.name === name)) {
+      throw new Error('generate-manifest: variant "' + String(variantId) + '" excludes ' + name + ', which the distribution does not declare')
+    }
+  }
+  for (const name of excludedBundles) {
+    if (!distribution.bundles.includes(name)) {
+      throw new Error('generate-manifest: variant "' + String(variantId) + '" excludes bundle ' + name + ', which the distribution does not mount')
+    }
+  }
+  const bundles = distribution.bundles.filter(entry => !excludedBundles.has(entry))
+  const dependencies = distribution.dependencies.filter(entry => !excludedPackages.has(entry.name))
   const runtimeVersion = values['runtime-version'] ?? distribution.dshRange.replace(/^[^\d]*/u, '')
   // A published plugin whose peer range cannot match this runtime installs nothing at
   // all, so the override is what makes the dependency set installable rather than a
@@ -109,23 +178,23 @@ function main(): void {
   const overrides = values['skip-overrides'] === true
     ? []
     : resolvePeerOverrides(
-      distribution.dependencies.map(entry => entry.name + '@' + entry.spec),
+      dependencies.map(entry => entry.name + '@' + entry.spec),
       runtimeVersion,
       'https://registry.npmjs.org',
-      Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
+      Object.fromEntries(dependencies.map(entry => [entry.name, entry.spec])),
     )
   // An override cannot name a package the manifest also lists as a direct dependency:
   // npm rejects that combination as EOVERRIDE. The tree root therefore travels as a
   // dependency alias, and the remaining substitutions as overrides onto its transitive
   // dependencies. Both keep the official name, which is what the built code imports.
   const rootAliases = Object.fromEntries(
-    Object.entries(distribution.overrides).filter(([name]) => distribution.dependencies.some(entry => entry.name === name)),
+    Object.entries(distribution.overrides).filter(([name]) => dependencies.some(entry => entry.name === name)),
   )
   const transitiveOverrides = Object.fromEntries(
     Object.entries(distribution.overrides).filter(([name]) => rootAliases[name] === undefined),
   )
   const manifest = {
-    name: '@sparkelf/dsh-plus-standalone',
+    name: variant?.packageName ?? '@sparkelf/dsh-plus-standalone',
     version: distribution.version,
     private: false,
     type: 'module',
@@ -139,7 +208,7 @@ function main(): void {
       // It appears in the bundle order but in none of the dependency lists it declares,
       // so an installation that omits it mounts nothing and has no command to run.
       [distribution.name]: 'workspace:' + distribution.version,
-      ...Object.fromEntries(distribution.dependencies.map(entry => [entry.name, entry.spec])),
+      ...Object.fromEntries(dependencies.map(entry => [entry.name, entry.spec])),
       ...rootAliases,
     },
     overrides: {
@@ -148,10 +217,18 @@ function main(): void {
     },
     dshPlusStandalone: {
       formatVersion: 1,
-      profile: 'plus',
-      bundles: distribution.bundles,
+      // The installing package declares the profile it materializes, so the launcher can
+      // resolve a variant's own profile name from this manifest at start time.
+      profile: variant?.profile ?? 'plus',
+      bundles,
       allowBuilds: distribution.allowBuilds,
       peerOverrides: overrides.map(entry => ({ name: entry.name, version: entry.version, reason: entry.reason })),
+      // npm has no removal semantics, so an omitted capability is substituted rather than
+      // deleted. Recording the substitution here is what lets a deployment assert the
+      // omission without restating the list it was generated from.
+      omittedPackages: Object.fromEntries(
+        [...excludedPackages].map(name => [name, OMITTED_PLACEHOLDER]),
+      ),
     },
   }
   const out = resolve(values.out)
@@ -176,7 +253,8 @@ function main(): void {
     return
   }
   writeFileSync(out, JSON.stringify({ ...previous, ...manifest }, null, 2) + '\n')
-  console.info('generate-manifest: wrote ' + out + ' with ' + String(distribution.dependencies.length) + ' pinned plugin(s), ' + String(distribution.bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).')
+  console.info('generate-manifest: wrote ' + out + ' with ' + String(dependencies.length) + ' pinned plugin(s), ' + String(bundles.length) + ' bundle(s), and ' + String(overrides.length) + ' peer override(s).'
+    + (variant === undefined ? '' : ' (variant ' + String(variantId) + ' excluded ' + String(excludedPackages.size) + ' package(s) and ' + String(excludedBundles.size) + ' bundle(s))'))
   for (const entry of overrides) console.info('  override ' + entry.name + '@' + entry.version + ' because ' + entry.reason)
 }
 

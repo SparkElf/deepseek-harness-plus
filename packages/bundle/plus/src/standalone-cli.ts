@@ -48,6 +48,7 @@ import {
   registryOrder,
   readDistributionProfile,
   resolvePaths,
+  type StandalonePaths,
 } from './standalone-profile.ts'
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
@@ -128,8 +129,8 @@ function launcherEntry(anchor: string): string {
 }
 
 /** Run the server in this process, inheriting stdio. */
-function runForeground(entry: string, port: number, host: string, open: boolean): number {
-  const args = [entry, '--profile', STANDALONE_PROFILE, '--port', String(port), '--host', host]
+function runForeground(entry: string, profileName: string, port: number, host: string, open: boolean): number {
+  const args = [entry, '--profile', profileName, '--port', String(port), '--host', host]
   if (!open) args.push('--no-open')
   const result = spawnSync(process.execPath, args, { stdio: 'inherit' })
   return result.status ?? 1
@@ -176,8 +177,8 @@ async function start(argv: readonly string[]): Promise<number> {
   }
   const created = ensureProfile(paths, installationRoot())
   console.log(created
-    ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory
-    : 'Using the existing ' + STANDALONE_PROFILE + ' profile')
+    ? 'Created the ' + paths.profileName + ' profile at ' + paths.profileDirectory
+    : 'Using the existing ' + paths.profileName + ' profile')
   // The profile symlinks the consumer's packages, so a patch lands on the installed
   // copy the launcher loads. A reinstall restores the published bytes, which is why
   // this runs on every start rather than only when the profile was created.
@@ -203,7 +204,7 @@ async function start(argv: readonly string[]): Promise<number> {
   }
 
   const entry = launcherEntry(anchor)
-  if (options.foreground) return runForeground(entry, options.port, options.host, options.open)
+  if (options.foreground) return runForeground(entry, paths.profileName, options.port, options.host, options.open)
 
   const existing = readState(paths.home)
   if (existing !== undefined) {
@@ -212,10 +213,11 @@ async function start(argv: readonly string[]): Promise<number> {
     return 0
   }
 
-  return startDetached(paths.home, entry, options)
+  return startDetached(paths, entry, options)
 }
 
-async function startDetached(home: string, entry: string, options: StartOptions): Promise<number> {
+async function startDetached(paths: StandalonePaths, entry: string, options: StartOptions): Promise<number> {
+  const home = paths.home
   const port = await choosePort(options.port, options.host)
   if (port === undefined) {
     console.error('No free port in the range ' + String(options.port) + '-' + String(options.port + 9) + '.')
@@ -223,9 +225,9 @@ async function startDetached(home: string, entry: string, options: StartOptions)
     return 1
   }
   if (port !== options.port) console.log('Port ' + String(options.port) + ' is in use; using ' + String(port) + '.')
-  const logPath = join(stateDirectory(home), 'server.log')
-  const env = { ...process.env, DSH_HOME: home }
-  const args = [entry, '--profile', STANDALONE_PROFILE, '--port', String(port), '--host', options.host, '--no-open']
+  const logPath = join(stateDirectory(paths.home), 'server.log')
+  const env = { ...process.env, DSH_HOME: paths.home }
+  const args = [entry, '--profile', paths.profileName, '--port', String(port), '--host', options.host, '--no-open']
   const pid = spawnServer({ command: process.execPath, args, env, logPath })
   const url = 'http://' + options.host + ':' + String(port) + '/'
   const ready = await waitForServer(url, READY_TIMEOUT_MILLISECONDS)

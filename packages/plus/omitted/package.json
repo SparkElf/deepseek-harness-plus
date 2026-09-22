@@ -1,0 +1,38 @@
+{
+  "name": "@sparkelf/dsh-omitted",
+  "description": "Placeholder package an omitted capability is overridden onto, so an installation never receives the real one.",
+  "version": "0.2.0-rc.17",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "packages/plus/omitted"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "README.md",
+    "README.zh.md",
+    "README.i18n.yaml"
+  ],
+  "license": "MIT",
+  "private": false,
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.0.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^"
+  }
+}

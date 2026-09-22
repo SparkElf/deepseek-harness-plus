@@ -28,6 +28,7 @@ const MANIFEST_BIN_ALLOWLIST = new Map<string, ManifestBin>([
   ['apps/cli/package.json', { dsh: 'lib/bin.js' }],
   ['packages/bundle/plus/package.json', { 'dsh-plus': 'lib/bin.js' }],
   ['packages/standalone/plus-standalone/package.json', { 'dsh-plus': 'lib/bin.js' }],
+  ['packages/standalone/dataops-standalone/package.json', { 'dsh-dataops': 'lib/bin.js' }],
   ['packages/experimental/webworker-packer/package.json', { 'dsh-pack-vfs-image': './bin.js' }],
 ])
 
@@ -36,6 +37,7 @@ const EXECUTABLE_SOURCE_ALLOWLIST = new Map<string, string>([
   ['apps/cli/src/bin.ts', 'supported dsh application launcher'],
   ['packages/bundle/plus/src/bin.ts', 'profile materializer invoked through dsh plugin exec'],
   ['packages/standalone/plus-standalone/src/bin.ts', 'installed command that forwards to the dsh-plus materializer'],
+  ['packages/standalone/dataops-standalone/src/bin.ts', 'installed command that forwards to the dsh-plus materializer for the DataOps variant'],
   ['packages/context/time-context/tests/fixtures/driver.ts', 'test-only subprocess driver'],
   ['packages/experimental/webworker-packer/bin.js', 'private build-only wrapper'],
   ['packages/experimental/webworker-packer/src/bin.ts', 'private build-only implementation'],
