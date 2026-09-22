@@ -9532,7 +9532,7 @@ importers:
         specifier: 0.1.6
         version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.17
+        specifier: workspace:0.2.0-rc.18
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
@@ -9626,7 +9626,7 @@ importers:
         specifier: 0.1.6
         version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@packages+runtime-diagnostics+invariants)(@deepseek-ai/dsh-session@packages+core+session)
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.17
+        specifier: workspace:0.2.0-rc.18
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
