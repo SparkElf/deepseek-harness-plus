@@ -55,6 +55,13 @@ export const PATCHED_WORKSPACES = [
   'apps/web',
   'packages/api/gateway',
   'packages/api/session-controller',
+  // The published official build of this package predates the alpha.2 typert format:
+  // its manifest declares codecs without the `create()` factory the alpha.2 loader
+  // requires, so a registry installation that keeps the official package fails to load
+  // its plugin tree. Republishing it from the patched checkout is what supplies the
+  // matching manifest, and the workspace is listed here for that reason rather than
+  // because Plus patches its source.
+  'packages/api/terminal-controller',
   'packages/bundle/web-app',
   'packages/client/connection',
   'packages/client/ui-agent-preset',
