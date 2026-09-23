@@ -171,8 +171,8 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-tool-session-query": ">=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": ">=0.2.0-rc.17",
+    "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
+    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-better-sidebar-main-view-session": "workspace:>=0.2.0-rc.17",
@@ -192,9 +192,9 @@
     "@sparkelf/dsh-patch-web-base-path": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-patch-wsl-native-open": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-backup": ">=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-mcp-credentials": ">=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-subagent-settings": ">=0.2.0-rc.17",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.17",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.17",
+    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.17",
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
@@ -213,6 +213,6 @@
   "optionalDependencies": {
     "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
-    "@deepseek-ai/dsh-web-search-exa": ">=0.1.6-alpha.1"
+    "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1"
   }
 }

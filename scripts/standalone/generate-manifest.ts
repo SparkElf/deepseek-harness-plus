@@ -100,15 +100,24 @@ export function readDistribution(directory: string): {
     if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
     allowBuilds[name] = allowed
   }
+  // A range naming a workspace member keeps the `workspace:` protocol in the manifest. The
+  // repository constraint gate requires it for any member, and `pnpm pack` rewrites it to
+  // the version the member publishes, which is exactly what the registry installation needs.
+  // Converting it here instead would satisfy npm and fail the gate.
   const dependencies = Object.entries(rawDependencies).map(([name, spec]) => {
     if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.dependencies.' + name + ' must be a non-empty string')
     return { name, spec }
   })
-  // The distribution also declares external runtime packages as ordinary dependencies,
-  // and a bundle the standalone manifest omits cannot be resolved from the profile at
-  // all, so every published external dependency has to reach the manifest.
+  // The distribution also declares runtime packages as ordinary dependencies, and a bundle
+  // the standalone manifest omits cannot be resolved from the profile at all, so every
+  // published dependency has to reach the manifest.
+  //
+  // A \`workspace:\` range names a package this repository publishes, which reaches the
+  // registry as the version it declares. The distribution keeps the protocol because the
+  // repository constraint gate requires it; the manifest needs the published range, because
+  // npm resolves it from the registry where no workspace exists.
   const runtimeDependencies = Object.entries(requireRecord(manifest.dependencies, 'distribution dependencies'))
-    .filter(([name, spec]) => !String(spec).startsWith('workspace:') && !name.startsWith('@sparkelf/dsh-patch-'))
+    .filter(([name]) => !name.startsWith('@sparkelf/dsh-patch-'))
     .map(([name, spec]) => ({ name, spec: String(spec) }))
   // An optional dependency is a capability the distribution can run but does not require:
   // it must stay installable for a deployment that keeps it, and it must be nameable by a
