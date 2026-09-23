@@ -169,7 +169,9 @@ async function main(): Promise<number> {
   if (dirty !== '') throw new Error('ship: the working tree has uncommitted changes:\n' + dirty)
 
   step('bumping ' + family.id + ' to ' + prerelease)
-  run('pnpm', ['run', 'release:bump', '--family', family.id, '--prerelease', prerelease])
+  // The package scripts name only the dsh and vendor families, so the bump runs through tsx
+  // directly; `release:dsh` would bump the wrong family.
+  run('npx', ['tsx', 'scripts/release/bump.ts', '--family', family.id, '--prerelease', prerelease])
   const version = declaredVersion(entry)
   console.log('  version is now ' + version)
 
