@@ -73,7 +73,7 @@ index 4b07441c8c..519ba1344b 100644
      return desktopId === undefined ? null : extractLinuxIcon(desktopId, completed)
    }
 diff --git a/packages/host/open-in-app/src/resolver.ts b/packages/host/open-in-app/src/resolver.ts
-index 62c6f8e4bc..1fec00b5c1 100644
+index 970118e22a..ad8d176da4 100644
 --- a/packages/host/open-in-app/src/resolver.ts
 +++ b/packages/host/open-in-app/src/resolver.ts
 @@ -14,10 +14,11 @@
@@ -177,21 +177,13 @@ index 9ad8e0883c..3377ddcb6f 100644
    nativeFileManager,
    revealNativePath,
 diff --git a/packages/util/native-command/src/path-opener.ts b/packages/util/native-command/src/path-opener.ts
-index 618efa31b1..1356281211 100644
+index 67bbc35902..dd062cc003 100644
 --- a/packages/util/native-command/src/path-opener.ts
 +++ b/packages/util/native-command/src/path-opener.ts
-@@ -11,7 +11,6 @@
- 
- import { release as osRelease } from 'node:os'
- import { dirname, extname } from 'node:path'
--import { pathToFileURL } from 'node:url'
- import { runNativeCommand, type NativeCommandRunner } from './runner.ts'
- 
- /** Testable command boundary; native implementations never invoke a shell. */
-@@ -99,13 +98,49 @@ function isWsl(internals: PathOpenerInternals): boolean {
-   return (internals.osRelease ?? osRelease()).toLowerCase().includes('microsoft')
- }
- 
+@@ -150,8 +150,55 @@ async function runExplorer(args: readonly string[], signal: AbortSignal, run: Pa
+  * @param signal - caller lifetime; abort terminates the command.
+  * @param run - shell-free command runner.
+  */
 +/**
 + * Windows PowerShell locations to try when PATH carries no Windows entry.
 + *
@@ -201,37 +193,42 @@ index 618efa31b1..1356281211 100644
 + * the volume the distribution mounts, and naming it there is what keeps the Windows
 + * desktop reachable from those processes.
 + */
-+const WINDOWS_POWERSHELL_CANDIDATES = [
-+  '/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
-+  '/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
++const WINDOWS_EXPLORER_CANDIDATES = [
++  '/mnt/c/Windows/explorer.exe',
++  '/c/Windows/explorer.exe',
 +] as const
 +
- /** Open one Windows-resolvable path through its registered desktop application. */
++/**
++ * Open one Windows-resolvable path through its registered desktop application.
++ *
++ * Explorer resolves the association, but a process whose PATH lost its Windows entries
++ * cannot name the shell. WSL injects those entries only for the processes it starts
++ * interactively, so a service or scheduled job resolves nothing by name; naming the
++ * shell on the volume the distribution mounts keeps the Windows desktop reachable.
++ * @param path - Windows-resolvable path.
++ * @param signal - caller lifetime; abort terminates the command.
++ * @param run - shell-free command runner.
++ */
  async function openWindowsPath(path: string, signal: AbortSignal, run: PathOpenerRunner): Promise<void> {
--  await run('powershell.exe', [
-+  const args = [
-     '-NoProfile',
-     '-Command',
-     `Invoke-Item -LiteralPath ${powershellLiteral(path)}`,
--  ], signal)
-+  ]
+-  await runExplorer([explorerTarget(path)], signal, run)
++  const target = explorerTarget(path)
 +  try {
-+    await run('powershell.exe', args, signal)
++    await runExplorer([target], signal, run)
 +    return
 +  } catch (error) {
-+    // A missing executable is the one failure a mounted path can answer; a non-zero
-+    // exit from PowerShell itself is a real launch failure and must stay reported.
++    // A missing executable is the one failure a mounted path can answer; any other
++    // failure is Explorer's own and must stay reported.
 +    if (!isMissingExecutable(error)) throw error
 +  }
-+  for (const candidate of WINDOWS_POWERSHELL_CANDIDATES) {
++  for (const candidate of WINDOWS_EXPLORER_CANDIDATES) {
 +    try {
-+      await run(candidate, args, signal)
++      await run(candidate, [target], signal)
 +      return
 +    } catch (error) {
 +      if (!isMissingExecutable(error)) throw error
 +    }
 +  }
-+  throw new Error('Windows PowerShell is not reachable from this WSL mount')
++  throw new Error('Windows Explorer is not reachable from this WSL mount')
 +}
 +
 +/** Whether a spawn failed because the executable could not be found at all. */
@@ -240,7 +237,7 @@ index 618efa31b1..1356281211 100644
  }
  
  /** Translate a WSL path before handing it to the Windows desktop. */
-@@ -154,6 +189,25 @@ async function openNativePathWithIntent(
+@@ -200,6 +247,25 @@ async function openNativePathWithIntent(
    throw new Error(`native path opener is unsupported on ${platform}`)
  }
  
@@ -266,20 +263,3 @@ index 618efa31b1..1356281211 100644
  /**
   * Whether {@link openNativePath} plausibly reaches a desktop on this host.
   *
-@@ -257,10 +311,13 @@ export async function revealNativePath(
-       windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
-       if (windowsPath === '') throw new Error('wslpath returned no Windows path')
-     }
--    // Explorer parses commas itself; a file URI preserves commas and whitespace in the path.
--    const target = pathToFileURL(windowsPath, { windows: true }).href.replaceAll(',', '%2C')
-+    // Explorer takes the path itself: `wslpath -w` already produced the spelling it reads.
-+    // A `file://` URL is not interchangeable here — a percent-encoded non-ASCII path (a CJK
-+    // directory such as 题库) fails to resolve, and Explorer then opens its default location
-+    // instead of selecting the file. Measured with a directory it had never opened: the native
-+    // path selected 子目录/测试文件.txt, the URL form changed nothing.
-     try {
--      await run('explorer.exe', ['/select,', target], signal)
-+      await run('explorer.exe', ['/select,', windowsPath], signal)
-     } catch (error) {
-       signal.throwIfAborted()
-       // Explorer can exit 1 after delegating to the existing desktop process.

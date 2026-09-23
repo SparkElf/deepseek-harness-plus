@@ -33,6 +33,9 @@ Plus 分发针对官方 DSH 源码的十五个补丁。官方发布了 `0.1.7-al
 5. **republish 是同一份源码的另一个消费者。** 分发层用自己构建的包替换二十七个官方包，而那些构建承载补丁。修正后的补丁只有在从补丁树重建并重新发布那个包之后，才会到达 registry 安装 —— 所以升级在补丁能应用时**还没有**完成，而是在重新发布的包承载它们时才完成。
 6. **只为某个预览器存在的补丁，随该预览器一起退役。** 官方 `0.1.7-alpha.2` 在自己的右侧栏文档标签页里渲染 Office 与电子表格，且由 `web-app` 默认挂载。`@sparkelf/dsh-plugin-better-sidebar-office` 是为 `dsh-better-sidebar` 预览这些格式的，因此官方能力取代了它。
 7. **`office-to-pdf` 接受绝对字体目录，所以公文字体不需要补丁。** 该 provider 暴露 `fontDirectories: string[]` 与 `fontFallbacks: string[][]`，并报告它找不到的字体族。中文公文会指名 方正小标宋 / 仿宋GB2312 / 楷体GB2312 / 黑体，而转换套件不带这些字体，因此由部署指名存放它们的目录。官方已经拥有的配置项能挺过下一次升级；补丁不能。
+8. **重做不总是 rebase，有时是删除。** 从 alpha.2 跟到 rc.1（又 156 个提交），两个补丁失败，且失败方式相同：官方**已经实现了该行为**，所以补丁自己的实现不再能与它组合。`wsl-native-open` 曾安装一个 PowerShell 打开器并自带路径字面量构造；官方把它换成了 `explorer.exe` 加一个 `explorerTarget()`，为 Explorer 的命令行解析编码 Windows 路径。把两者拼在一起无法编译 —— 各自引用了对方删掉的辅助函数。该补丁只保留官方仍缺的能力（PATH 无 Windows 条目时在挂载卷上指名 Explorer），其余删除。
+
+9. **基准 pin 是一个集合，移动基准的发布要同时移动它们全部。** 两次升级中，同样七处位置指名了官方版本：`compatibility.dsh`、`sourceBase.revision`、每个补丁包的 `dsh` range 与 `target.baseRevision`、`curated.yaml` 的 `pinned` 字段、standalone 脚本的 `--runtime-version`、以及 release-age 豁免。门禁能抓到「补丁不再适用」，但没有任何东西能抓到「pin 被落下」，所以只有当七处全部移动时这次版本提升才是正确的。
 
 ## 已考虑但未采用的方案
 
