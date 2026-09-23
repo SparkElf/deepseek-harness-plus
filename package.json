@@ -190,7 +190,8 @@
     "release:verify-published": "tsx scripts/release/verify-published.ts",
     "release:local": "tsx scripts/release/local-publish.ts",
     "release:republish-patched": "node scripts/release/republish-patched-official.mjs",
-    "release:ship": "tsx scripts/release/ship.ts"
+    "release:ship": "tsx scripts/release/ship.ts",
+    "release:promote-runtime": "tsx scripts/release/promote-runtime.ts"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",
