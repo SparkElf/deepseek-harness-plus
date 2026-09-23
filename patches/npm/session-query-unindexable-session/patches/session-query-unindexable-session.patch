@@ -1,5 +1,5 @@
 diff --git a/packages/session-query/session-query-sqlite/src/index.ts b/packages/session-query/session-query-sqlite/src/index.ts
-index 7c95afa..ccb36da 100644
+index 7c95afa28d..ccb36da3a2 100644
 --- a/packages/session-query/session-query-sqlite/src/index.ts
 +++ b/packages/session-query/session-query-sqlite/src/index.ts
 @@ -11,9 +11,10 @@ import { Context, Service, type Fiber } from '@deepseek-ai/cordis'

@@ -1,20 +1,20 @@
 diff --git a/packages/api/gateway/src/client/journal-stream.ts b/packages/api/gateway/src/client/journal-stream.ts
-index ab013abdf3..25e415747e 100644
+index ab013abdf3..35dcb86255 100644
 --- a/packages/api/gateway/src/client/journal-stream.ts
 +++ b/packages/api/gateway/src/client/journal-stream.ts
 @@ -241,6 +241,10 @@ export abstract class RemoteJournalStream<
          if (next.done) return
          const item = next.value
          if (item.generation !== this.generation) {
-+          // A replaced mobile carrier can surface buffered live entries before
-+          // its opening snapshot. The snapshot subsumes them, so retain the
++          // A replaced carrier can surface buffered live entries before its
++          // opening snapshot. The snapshot subsumes them, so retain the
 +          // published window and wait for that generation's opening cursor.
 +          if (item.value.type !== 'opened') continue
            this.replaceGeneration(item, true)
            continue
          }
 diff --git a/packages/api/gateway/tests/journal-stream.client.spec.ts b/packages/api/gateway/tests/journal-stream.client.spec.ts
-index 498f5a033b..226340fee9 100644
+index 498f5a033b..e6f1b41f69 100644
 --- a/packages/api/gateway/tests/journal-stream.client.spec.ts
 +++ b/packages/api/gateway/tests/journal-stream.client.spec.ts
 @@ -788,7 +788,7 @@ describe('RemoteJournalStream', () => {
@@ -26,7 +26,7 @@ index 498f5a033b..226340fee9 100644
      const finish = Promise.withResolvers<undefined>()
      const fixture = journalFixture(
        [
-@@ -797,17 +797,26 @@ describe('RemoteJournalStream', () => {
+@@ -797,13 +797,46 @@ describe('RemoteJournalStream', () => {
            waitAfterFrames: finish.promise,
            terminal: new RemoteStreamCarrierError('lost'),
          },
@@ -44,16 +44,33 @@ index 498f5a033b..226340fee9 100644
  
      await fixture.journal.open({})
      finish.resolve(undefined)
--    await vi.waitFor(() => { expect(fixture.failed).toHaveBeenCalledOnce() })
--    expect(fixture.failed.mock.calls[0]?.[0]).toMatchObject({
--      message: 'resumed fixture journal emitted an entry before its opening cursor',
 +    await vi.waitFor(() => { expect(fixture.changes).toHaveLength(2) })
 +    expect(fixture.changes.at(-1)).toMatchObject({
 +      type: 'replace',
 +      page: { marker: 'replacement' },
 +      entries: [{ seq: 0 }, { seq: 1 }],
-     })
++    })
 +    expect(fixture.failed).not.toHaveBeenCalled()
-     await fixture.journal.dispose()
-   })
- 
++    await fixture.journal.dispose()
++  })
++
++  it('rejects a superseded repair whose replacement emits an entry first', async () => {
++    const gap = Promise.withResolvers<ScriptedFrame>()
++    const fixture = journalFixture(
++      [
++        {
++          frames: [opened(1, page('initial', [0, 1])), gap.promise],
++          terminal: new RemoteStreamCarrierError('generation lost'),
++        },
++        { frames: [{ type: 'entry', entry: { seq: 4 } }], hold: true },
++      ],
++      [
++        () => new Promise<Page>(() => {}),
++      ],
++    )
++
++    await fixture.journal.open({ limit: 5 })
++    gap.resolve({ type: 'entry', entry: { seq: 4 } })
+     await vi.waitFor(() => { expect(fixture.failed).toHaveBeenCalledOnce() })
+     expect(fixture.failed.mock.calls[0]?.[0]).toMatchObject({
+       message: 'resumed fixture journal emitted an entry before its opening cursor',

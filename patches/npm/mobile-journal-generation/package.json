@@ -19,10 +19,10 @@
     "variants": [
       {
         "id": "mobile-journal-opening-generation",
-        "dsh": ">=0.1.6-alpha.1",
+        "dsh": ">=0.1.7-alpha.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+          "baseRevision": "00102833dfaee1da9f48a3a8eae9d34005a75218",
           "paths": [
             "packages/api/gateway/src/client/",
             "packages/api/gateway/tests/"

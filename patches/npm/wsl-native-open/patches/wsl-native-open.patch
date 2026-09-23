@@ -1,8 +1,8 @@
 diff --git a/packages/host/open-in-app/src/icons.ts b/packages/host/open-in-app/src/icons.ts
-index 6908ce795b..570dc45c96 100644
+index 4b07441c8c..519ba1344b 100644
 --- a/packages/host/open-in-app/src/icons.ts
 +++ b/packages/host/open-in-app/src/icons.ts
-@@ -97,6 +97,41 @@ const EXTRACT_ICON_PS1 = [
+@@ -98,6 +98,41 @@ const EXTRACT_ICON_PS1 = [
    '',
  ].join('\n')
  
@@ -44,7 +44,7 @@ index 6908ce795b..570dc45c96 100644
  /** Extract one Windows executable's associated icon as a 32px PNG. */
  async function extractExecutableIconPng(
    executablePath: string, timeoutMs: number, internals: ResolvedInternals,
-@@ -106,8 +141,12 @@ async function extractExecutableIconPng(
+@@ -107,8 +142,12 @@ async function extractExecutableIconPng(
      const script = join(workDir, 'extract-icon.ps1')
      const outPng = join(workDir, 'icon.png')
      await writeFile(script, EXTRACT_ICON_PS1, 'utf8')
@@ -58,7 +58,7 @@ index 6908ce795b..570dc45c96 100644
      ], timeoutMs, internals)
      if (ran === null) return null
      try {
-@@ -192,6 +231,13 @@ export async function extractAppIcon(
+@@ -148,6 +187,13 @@ export async function extractAppIcon(
  ): Promise<OpenInAppIcon | null> {
    const completed = resolveInternals(internals)
    if (completed.platform === 'linux') {
@@ -73,10 +73,10 @@ index 6908ce795b..570dc45c96 100644
      return desktopId === undefined ? null : extractLinuxIcon(desktopId, completed)
    }
 diff --git a/packages/host/open-in-app/src/resolver.ts b/packages/host/open-in-app/src/resolver.ts
-index 7ab964b4fd..8ea7318975 100644
+index 62c6f8e4bc..1fec00b5c1 100644
 --- a/packages/host/open-in-app/src/resolver.ts
 +++ b/packages/host/open-in-app/src/resolver.ts
-@@ -14,10 +14,10 @@
+@@ -14,10 +14,11 @@
  
  import { spawn } from 'node:child_process'
  import { readdir, readFile, stat } from 'node:fs/promises'
@@ -84,12 +84,13 @@ index 7ab964b4fd..8ea7318975 100644
 +import { homedir, release as osRelease, platform as osPlatform } from 'node:os'
  import { dirname, isAbsolute, join } from 'node:path'
  import {
--  canOpenNativePath, openNativePath, runNativeCommand, type NativeCommandRunner,
-+  canOpenLinuxDesktop, canOpenNativePath, openNativePath, runNativeCommand, type NativeCommandRunner,
+-  canOpenNativePath, openNativePath, runNativeCommand, desktopEntryFields, desktopDataDirectories, type NativeCommandRunner,
++  canOpenLinuxDesktop, canOpenNativePath, openNativePath, runNativeCommand,
++  desktopEntryFields, desktopDataDirectories, type NativeCommandRunner,
  } from '@deepseek-ai/dsh-native-command'
  import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
  import {
-@@ -98,6 +98,8 @@ export const launchDetachedApp: OpenInAppLauncher = (command, args, options) =>
+@@ -98,6 +99,8 @@ export const launchDetachedApp: OpenInAppLauncher = (command, args, options) =>
  /** Injectable platform facts for deterministic tests. */
  export interface OpenInAppInternals {
    platform?: NodeJS.Platform
@@ -98,7 +99,7 @@ index 7ab964b4fd..8ea7318975 100644
    /** SSH launch fact from the inherited process layer, independent of `.env` values. */
    ssh?: boolean
    /** Bundle-directory roots replacing `/Applications` and `~/Applications`. */
-@@ -115,6 +117,7 @@ export interface OpenInAppInternals {
+@@ -115,6 +118,7 @@ export interface OpenInAppInternals {
  /** Platform facts after the one explicit defaulting step at each public entry. */
  export interface ResolvedInternals {
    platform: NodeJS.Platform
@@ -106,7 +107,7 @@ index 7ab964b4fd..8ea7318975 100644
    ssh: boolean
    applicationRoots: readonly string[]
    env: Readonly<Record<string, string | undefined>>
-@@ -140,6 +143,7 @@ export function resolveInternals(internals: OpenInAppInternals): ResolvedInterna
+@@ -140,6 +144,7 @@ export function resolveInternals(internals: OpenInAppInternals): ResolvedInterna
    }
    return {
      platform: internals.platform ?? osPlatform(),
@@ -114,7 +115,7 @@ index 7ab964b4fd..8ea7318975 100644
      ssh: internals.ssh ?? false,
      applicationRoots: internals.applicationRoots ?? ['/Applications', join(home, 'Applications')],
      env: internals.env ?? process.env,
-@@ -467,6 +471,14 @@ export function specFor(app: OpenInAppApp, platform: NodeJS.Platform): OpenInApp
+@@ -453,6 +458,14 @@ export function specFor(app: OpenInAppApp, platform: NodeJS.Platform): OpenInApp
      : undefined
  }
  
@@ -129,7 +130,7 @@ index 7ab964b4fd..8ea7318975 100644
  /** Icon source for a resolved executable: Windows extracts from the binary itself. */
  function executableIcon(path: string, internals: ResolvedInternals): OpenInAppIconSource | undefined {
    return internals.platform === 'win32' ? { kind: 'executable', path } : undefined
-@@ -518,10 +530,29 @@ async function locate(
+@@ -504,10 +517,29 @@ async function locate(
        }
      }
      case 'cli': {
@@ -164,7 +165,7 @@ index 7ab964b4fd..8ea7318975 100644
        return found === null
          ? null
 diff --git a/packages/util/native-command/src/index.ts b/packages/util/native-command/src/index.ts
-index a2e23a35be..f1ea7c6233 100644
+index 9ad8e0883c..3377ddcb6f 100644
 --- a/packages/util/native-command/src/index.ts
 +++ b/packages/util/native-command/src/index.ts
 @@ -6,6 +6,7 @@
@@ -176,7 +177,7 @@ index a2e23a35be..f1ea7c6233 100644
    nativeFileManager,
    revealNativePath,
 diff --git a/packages/util/native-command/src/path-opener.ts b/packages/util/native-command/src/path-opener.ts
-index 8f3443b3c1..3962fd8523 100644
+index 618efa31b1..1356281211 100644
 --- a/packages/util/native-command/src/path-opener.ts
 +++ b/packages/util/native-command/src/path-opener.ts
 @@ -11,7 +11,6 @@
@@ -265,7 +266,7 @@ index 8f3443b3c1..3962fd8523 100644
  /**
   * Whether {@link openNativePath} plausibly reaches a desktop on this host.
   *
-@@ -244,10 +298,13 @@ export async function revealNativePath(
+@@ -257,10 +311,13 @@ export async function revealNativePath(
        windowsPath = translated.stdout.replace(/[\r\n]+$/, '')
        if (windowsPath === '') throw new Error('wslpath returned no Windows path')
      }

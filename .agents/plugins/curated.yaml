@@ -75,21 +75,20 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Deployment replacement of the two built-in delegation rows in shipped
       Agent presets
     owner: deepseek-ai
-    localPatches:
-      - package: "@sparkelf/dsh-patch-subagent-settings-presets"
-        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
-        retireWhen: Official shipped Agent presets expose a deployment overlay or
-          equivalent settings-backed rows
+    # Retired at DSH 0.1.7-alpha.2: d1e22a7e24 replaced the standalone preset files with
+    # profile-declared compositions under packages/bundle/web-app/presets/, and the ralph
+    # half was already effective on the previous base. See the Agent Note.
+    localPatches: []
     plusBundle: false
   - name: "@deepseek-ai/dsh-host-open-in-app"
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: WSL host opens a workspace directory through the Windows shell
     owner: deepseek-ai
     localPatches:
@@ -102,7 +101,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Deployment admission of the released interrupted-turn restart pattern
       in v0 Session migration
     owner: deepseek-ai
@@ -115,7 +114,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Content search stays usable when one stored session log cannot be
       migrated, and an interrupted first index pass keeps its progress
     owner: deepseek-ai
@@ -129,7 +128,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Profile-selected browser identity policy after the independent Host
       and Origin trust fence
     owner: deepseek-ai
@@ -143,21 +142,20 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Complete reverse-proxy Web mount prefix across Host transport browser
       assets and downloads
     owner: deepseek-ai
-    localPatches:
-      - package: "@sparkelf/dsh-patch-web-base-path"
-        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
-        retireWhen: Official DSH ships equivalent end-to-end reverse-proxy base-path
-          behavior
+    # Retired at DSH 0.1.7-alpha.2: official ships end-to-end document-relative routing
+    # (eeb9b03465, 29182514ed) with a forced route-resolution gate, which is the behavior
+    # this patch required. See the Agent Note recording the upgrade.
+    localPatches: []
     plusBundle: false
   - name: "@deepseek-ai/dsh-workspace"
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Public durable-storage restore operation consumed by the Plus Backup plugin
     owner: deepseek-ai
     localPatches:
@@ -170,7 +168,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Clickable original Office paths produced by the OfficeCLI tool
     owner: deepseek-ai
     localPatches:
@@ -182,7 +180,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Consistent Simplified-Chinese wording across the Session export action
       and status dialog
     owner: deepseek-ai
@@ -196,7 +194,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Desktop Session-log export placement and styling within the Trajectory
       toolbar while phones retain the Header action
     owner: deepseek-ai
@@ -211,7 +209,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Resume and display compatibility for Sessions persisted before the
       code preset was renamed to ptc
     owner: deepseek-ai
@@ -226,7 +224,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Explicit OpenAI Responses replay compatibility for gateways that
       reject reasoning input status metadata
     owner: deepseek-ai
@@ -240,7 +238,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/DeepSeek-Harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: TypeScript PTC parameter declarations for MCP Schemas carrying
       validation-only draft keywords
     owner: deepseek-ai
@@ -255,7 +253,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/deepseek-harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Composer Permission and Model portal menus remain inside the AppFrame
       center column
     owner: deepseek-ai
@@ -269,7 +267,7 @@ entries:
     source:
       kind: git
       url: https://github.com/deepseek-ai/deepseek-harness.git
-    pinned: ddefc45fbc7f8e46dd73185e68295696d1297887
+    pinned: 00102833dfaee1da9f48a3a8eae9d34005a75218
     interest: Replacement mobile journal generations wait for their opening snapshot
       before buffered live entries
     owner: deepseek-ai
