@@ -168,6 +168,25 @@ async function main(): Promise<number> {
   const dirty = run('git', ['status', '--porcelain']).stdout.trim()
   if (dirty !== '') throw new Error('ship: the working tree has uncommitted changes:\n' + dirty)
 
+  // A dry run reports the plan without performing any of it. It deliberately does not run the
+  // bump to find out what the version will be: the bump commits, and a preview that leaves a
+  // release commit behind is not a preview.
+  if (values['dry-run'] === true) {
+    const current = declaredVersion(entry)
+    const next = current.replace(/rc\.\d+$/, prerelease)
+    console.log('')
+    console.log('ship: dry run, nothing was changed')
+    console.log('  1. bump ' + family.id + ' from ' + current + ' to ' + next)
+    console.log('  2. regenerate both standalone manifests (after the bump: they carry the version)')
+    console.log('  3. run the governance and standalone gates')
+    console.log('  4. exempt any dependency the release-age policy rejects, then install')
+    console.log('  5. publish and verify the registry serves every member')
+    console.log('  6. push branch ' + branch + ', open a pull request, wait for its checks')
+    console.log('  7. merge with --admin (an author cannot approve their own pull request)')
+    console.log('  8. sync master, tag ' + (family.tagPrefix + next) + ', delete the branch, read the remote back')
+    return 0
+  }
+
   step('bumping ' + family.id + ' to ' + prerelease)
   // The package scripts name only the dsh and vendor families, so the bump runs through tsx
   // directly; `release:dsh` would bump the wrong family.
@@ -202,12 +221,6 @@ async function main(): Promise<number> {
     run('git', ['add', '-A'])
     run('git', ['commit', '-q', '-m', 'fix(release): exempt the ' + runtimeVersion + ' closure from the release-age policy'])
     console.log('  frozen install now succeeds')
-  }
-
-  if (values['dry-run'] === true) {
-    console.log('')
-    console.log('ship: dry run, stopping before publication')
-    return 0
   }
 
   step('publishing ' + version + ' and proving the registry serves it')
