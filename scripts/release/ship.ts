@@ -187,12 +187,24 @@ async function main(): Promise<number> {
     return 0
   }
 
-  step('bumping ' + family.id + ' to ' + prerelease)
-  // The package scripts name only the dsh and vendor families, so the bump runs through tsx
-  // directly; `release:dsh` would bump the wrong family.
-  run('npx', ['tsx', 'scripts/release/bump.ts', '--family', family.id, '--prerelease', prerelease])
-  const version = declaredVersion(entry)
-  console.log('  version is now ' + version)
+  // A release is resumable: an interrupted run is re-run with the same arguments, so every step
+  // here tolerates already having happened. The bump is the one that does not do so on its own —
+  // its commit fails with "nothing to commit" once the version is already declared — which turns
+  // a retry into a dead end exactly when a retry is wanted.
+  const target = declaredVersion(entry).replace(/rc\.\d+$/, prerelease)
+  let version = target
+  if (declaredVersion(entry) === target) {
+    console.log('')
+    console.log('ship: ' + family.id + ' already declares ' + target + '; skipping the bump')
+  } else {
+    step('bumping ' + family.id + ' from ' + declaredVersion(entry) + ' to ' + target)
+    // The package scripts name only the dsh and vendor families, so the bump runs through tsx
+    // directly; `release:dsh` would bump the wrong family.
+    run('npx', ['tsx', 'scripts/release/bump.ts', '--family', family.id, '--prerelease', prerelease])
+    version = declaredVersion(entry)
+    console.log('  version is now ' + version)
+  }
+  if (version !== target) throw new Error('ship: expected ' + target + ' after the bump but the manifest declares ' + version)
 
   // After the bump, never before: the manifests carry the distribution's version, so
   // generating them first leaves the gate comparing them against the previous one.
@@ -201,8 +213,14 @@ async function main(): Promise<number> {
   run('npx', ['tsx', 'scripts/standalone/generate-manifest.ts', '--distribution', 'packages/bundle/plus', '--out', 'packages/standalone/plus-standalone/package.json', '--runtime-version', runtimeVersion])
   run('npx', ['tsx', 'scripts/standalone/generate-manifest.ts', '--distribution', 'packages/bundle/plus', '--out', 'packages/standalone/dataops-standalone/package.json', '--runtime-version', runtimeVersion, '--variant', 'dataops'])
   run('git', ['add', '-A'])
-  run('git', ['commit', '-q', '-m', 'release(' + family.id + '): ' + version])
-  console.log('  committed as one release commit')
+  // The manifests may already be correct on a resumed run, in which case there is nothing to
+  // commit and that is the desired state rather than a failure.
+  const staged = run('git', ['diff', '--cached', '--name-only'], true).stdout.trim()
+  if (staged === '') console.log('  the manifests already match; nothing to commit')
+  else {
+    run('git', ['commit', '-q', '-m', 'release(' + family.id + '): ' + version])
+    console.log('  committed as one release commit')
+  }
 
   step('running the gates')
   run('pnpm', ['run', 'verify:plus-governance'])
