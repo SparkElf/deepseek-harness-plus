@@ -39,6 +39,32 @@ function step(label: string, script: string, args: readonly string[] = []): void
   if (result.status !== 0) throw new Error(label + ' failed with exit code ' + String(result.status))
 }
 
+/**
+ * Run one step, retrying a failure that a registry window can explain.
+ *
+ * Verifying the packed install resolves the release's dependency ranges, and those ranges name
+ * versions that may have been published moments ago — by this run, or by a republish that is
+ * still committing. A failure there is indistinguishable from a real packaging defect by exit
+ * status alone, which is why the retry is bounded and prints what it is retrying: measured on a
+ * release that had just published, the same step failed once and passed on the next three runs.
+ * @param label - step name, for output and the failure message.
+ * @param script - package script to run.
+ * @param args - extra arguments for it.
+ * @param attempts - how many times to try before giving up.
+ */
+function stepWithRetry(label: string, script: string, args: readonly string[], attempts = 3): void {
+  for (let attempt = 1; ; attempt += 1) {
+    console.log('')
+    console.log('local-publish: ' + label + (attempt === 1 ? '' : ' (attempt ' + String(attempt) + ' of ' + String(attempts) + ')'))
+    const result = attemptEchoed('pnpm', ['run', script, ...args])
+    if (result.status === 0) return
+    if (attempt >= attempts) throw new Error(label + ' failed with exit code ' + String(result.status) + ' after ' + String(attempts) + ' attempts')
+    // A propagation window settles on its own; the retry waits rather than hammering.
+    console.log('local-publish: retrying in 15s, a registry window can explain this failure')
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 15_000)
+  }
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -60,7 +86,7 @@ function main(): void {
     // Packing states the release: the tarballs carry the members and versions that later
     // steps read, so nothing has to restate the list and drift from it.
     step('packing ' + family.id, 'release:pack', ['--family', family.id, '--out', directory])
-    step('verifying the packed install', 'release:verify-packed-install', ['--family', family.id, '--from', directory])
+    stepWithRetry('verifying the packed install', 'release:verify-packed-install', ['--family', family.id, '--from', directory])
     if (values['dry-run'] === true) {
       console.log('')
       console.log('local-publish: dry run, packed ' + directory + ' without publishing')
