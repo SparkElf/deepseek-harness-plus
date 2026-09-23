@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.0-rc.20",
+  "version": "0.2.0-rc.21",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-alpha.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.20",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.21",
     "@changfenhuang/dsh-genui": "0.11.0",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -303,9 +303,9 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.20",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.20",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.20"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.21",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.21",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.21"
     }
   }
 }
