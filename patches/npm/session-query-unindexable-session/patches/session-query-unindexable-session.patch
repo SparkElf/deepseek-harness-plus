@@ -1,0 +1,90 @@
+diff --git a/packages/session-query/session-query-sqlite/src/index.ts b/packages/session-query/session-query-sqlite/src/index.ts
+index 7c95afa..ccb36da 100644
+--- a/packages/session-query/session-query-sqlite/src/index.ts
++++ b/packages/session-query/session-query-sqlite/src/index.ts
+@@ -11,9 +11,10 @@ import { Context, Service, type Fiber } from '@deepseek-ai/cordis'
+ import z from '@deepseek-ai/schemastery'
+ import type { Session, SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
+ import type SessionPersistence from '@deepseek-ai/dsh-session-persistence'
+-import type {
+-  SessionPersistenceRevision,
+-  SessionPersistenceSnapshot,
++import {
++  SessionFormatUnsupportedError,
++  type SessionPersistenceRevision,
++  type SessionPersistenceSnapshot,
+ } from '@deepseek-ai/dsh-session-persistence'
+ import SessionQueryEngine, {
+   SESSION_QUERY_DEFAULT_PERSISTED_INSPECT_CONCURRENCY,
+@@ -24,6 +25,7 @@ import SessionQueryEngine, {
+   assertSessionHeadersCompatible,
+   buildSessionEventSearchDocuments,
+   readColdSessionLog,
++  type ColdSessionLog,
+ } from '@deepseek-ai/dsh-session-query'
+ import type {
+   Config as SessionQueryConfig,
+@@ -519,10 +521,27 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
+             // live-preferred.
+             if (initiallyLive.has(entry.header.id) || this.ctx.sessions.get(entry.header.id) !== undefined) continue
+             assertNotAborted(signal)
+-            const loaded = await readColdSessionLog(persistence, entry.header.id, signal)
++            let loaded: ColdSessionLog
++            try {
++              loaded = await readColdSessionLog(persistence, entry.header.id, signal)
++            } catch (readError: unknown) {
++              // A session whose stored log cannot be migrated is not indexable,
++              // but it must not stop every other session from being indexed: one
++              // unreadable log would otherwise fail content search on every
++              // attempt, forever. Leave it out of this pass.
++              if (!(readError instanceof SessionFormatUnsupportedError)) throw readError
++              continue
++            }
+             assertNotAborted(signal)
+             assertSessionHeadersCompatible(entry.header, loaded.header)
+             entry.loaded = observeSession(loaded.header, loaded.inheritedEventCount, loaded.events)
++            // Publish this session before reading the next one. The first pass
++            // over a large history reads every log, so deferring the write until
++            // the whole corpus is observed means an interrupt discards all of it
++            // and the next search repeats the same work forever. Committing per
++            // session keeps earlier progress, and the revision check above skips
++            // whatever is already indexed on the next attempt.
++            this._persistObservedSession(entry.loaded, entry.revision)
+           }
+           assertNotAborted(signal)
+           const afterSnapshots = await persistence.list(listOptions)
+@@ -613,6 +632,34 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
+     }
+   }
+ 
++  /**
++   * Index one observed session in its own transaction.
++   *
++   * Called while the corpus is being read rather than after it, so a first pass
++   * that is interrupted keeps every session it already indexed. The next pass
++   * skips those by revision and continues where this one stopped.
++   * @param entry - the observed session and its parsed documents.
++   * @param revision - the persistence revision the entry was read at.
++   */
++  private _persistObservedSession(entry: ObservedSession, revision: SessionPersistenceRevision): void {
++    const db = this._requireDb()
++    const generation = this._mainGeneration() + 1
++    db.exec('BEGIN IMMEDIATE')
++    try {
++      this._replacePersistedSession(entry, revision, generation)
++      db.prepare('UPDATE search_state SET global_generation = ? WHERE singleton = 1').run(generation)
++      db.exec('COMMIT')
++    } catch (error: unknown) {
++      try {
++        db.exec('ROLLBACK')
++      } catch {
++        // The write failure is the actionable cause; a rollback failure on the
++        // same broken transaction adds nothing.
++      }
++      throw error
++    }
++  }
++
+   private _replaceLiveSession(entry: ObservedSession, generation: number, persisted: boolean): void {
+     this._deleteSession('live', entry.header.id)
+     const db = this._requireDb()

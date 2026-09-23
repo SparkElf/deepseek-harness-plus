@@ -2,10 +2,9 @@
 
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
+import { isAbsolute, join, relative, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { createRequire } from 'node:module'
 import { satisfies, valid, validRange } from 'semver'
 import { parse } from 'yaml'
 import { loadCordisYaml } from './cordis-yaml.ts'
@@ -13,7 +12,6 @@ import { loadCordisYaml } from './cordis-yaml.ts'
 const root = fileURLToPath(new URL('..', import.meta.url))
 const distributionPath = 'packages/bundle/plus/package.json'
 const patchRoot = 'patches/npm'
-const requireFromDistribution = createRequire(resolve(root, distributionPath))
 
 function object(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -94,15 +92,14 @@ function verifySourcePatchApplies(path: string, baseRevision: string): void {
     throw new Error('cannot materialize source patch base ' + baseRevision + ': ' + added.stderr.trim())
   }
   try {
-    // Match how a deployment applies the patch: \`apply.ts\` uses \`--3way\`, which merges
-    // context that moved when upstream edited nearby lines. A gate stricter than the
-    // applier rejects patches the deployment would accept.
+    // Strict, because that is what the applier checks first: \`apply.ts\` decides a patch is
+    // pending or applied with \`git apply --check\` before it ever runs the three-way merge.
+    // A patch that only merges three-way fails that judgement and stops the deployment at
+    // 'patch does not apply', which is exactly how two patches shipped in 0.2.0-rc.3 failed
+    // after a gate that accepted them because it only tried the merge.
     const strict = spawnSync('git', ['apply', '--check', path], { cwd: checkout, encoding: 'utf8' })
     if (strict.status !== 0) {
-      const merged = spawnSync('git', ['apply', '--3way', '--check', path], { cwd: checkout, encoding: 'utf8' })
-      if (merged.status !== 0) {
-        throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + merged.stderr.trim())
-      }
+      throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + strict.stderr.trim())
     }
   } finally {
     spawnSync('git', ['worktree', 'remove', '--force', checkout], { cwd: root, encoding: 'utf8' })
@@ -110,17 +107,53 @@ function verifySourcePatchApplies(path: string, baseRevision: string): void {
   }
 }
 
-/** npm payload必须能应用到distribution当前解析的exact target，不能把失败推迟到部署。 */
+/**
+ * Whether an npm payload applies to the published package it targets.
+ *
+ * Both of the obvious local trees are the wrong subject. Running `git apply` inside the
+ * repository's `node_modules` proves nothing — that path is ignored, so git skips the
+ * file and exits 0 whatever the payload says; measured, a payload with every context line
+ * replaced by `MANGLE-XYZ` still returned 0 there. And a workspace copy is neither
+ * guaranteed present nor guaranteed pristine: `dsh-better-sidebar` reaches a deployment
+ * through the profile's own install, not the workspace's, and a copy left behind by an
+ * earlier local experiment does not match what the registry serves.
+ *
+ * The subject is therefore the published tarball for the declared range, unpacked into a
+ * scratch repository so `git apply` acts on a work tree rather than inheriting the
+ * repository's ignore rules.
+ *
+ * @param name - npm package the payload targets.
+ * @param range - Version range the payload declares for that package.
+ * @param path - Absolute payload file path.
+ */
 function verifyNpmPatchApplies(name: string, range: string, path: string): void {
-  const manifestPath = requireFromDistribution.resolve(name + '/package.json')
-  const manifest = json(manifestPath)
-  const version = string(manifest.version, name + ' installed version')
-  if (!satisfies(version, range, { includePrerelease: true })) {
-    throw new Error(name + ' installed version ' + version + ' does not satisfy patch target ' + range)
-  }
-  const result = spawnSync('git', ['apply', '--check', path], { cwd: dirname(manifestPath), encoding: 'utf8' })
-  if (result.status !== 0) {
-    throw new Error('npm patch does not apply to ' + name + '@' + version + ': ' + path + ': ' + result.stderr.trim())
+  const scratch = mkdtempSync(join(tmpdir(), 'dsh-npm-patch-check-'))
+  try {
+    const packed = spawnSync('npm', ['pack', name + '@' + range, '--silent', '--pack-destination', scratch], {
+      cwd: scratch,
+      encoding: 'utf8',
+    })
+    if (packed.status !== 0) {
+      throw new Error('cannot fetch ' + name + '@' + range + ' from the registry: ' + packed.stderr.trim())
+    }
+    const tarball = packed.stdout.trim().split('\n').pop() ?? ''
+    if (tarball === '') throw new Error('cannot resolve the tarball for ' + name + '@' + range)
+    const extracted = spawnSync('tar', ['xzf', join(scratch, tarball), '-C', scratch], { encoding: 'utf8' })
+    if (extracted.status !== 0) throw new Error('cannot extract ' + tarball + ': ' + extracted.stderr.trim())
+    const published = json(join(scratch, 'package', 'package.json'))
+    const version = string(published.version, name + ' published version')
+    if (!satisfies(version, range, { includePrerelease: true })) {
+      throw new Error(name + ' published version ' + version + ' does not satisfy patch target ' + range)
+    }
+    const tree = join(scratch, 'package')
+    const init = spawnSync('git', ['init', '--quiet'], { cwd: tree, encoding: 'utf8' })
+    if (init.status !== 0) throw new Error('cannot initialize the npm patch scratch repository: ' + init.stderr.trim())
+    const result = spawnSync('git', ['apply', '--check', path], { cwd: tree, encoding: 'utf8' })
+    if (result.status !== 0) {
+      throw new Error('npm patch does not apply to ' + name + '@' + version + ': ' + path + ': ' + result.stderr.trim())
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true })
   }
 }
 
@@ -207,19 +240,27 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.9.9',
+    '@changfenhuang/dsh-genui': '0.11.0',
     '@sparkelf/dsh-mineru': '0.1.2',
     '@sparkelf/dsh-officecli': '0.1.2',
-    '@sparkelf/dsh-plugin-supervisor': '0.1.5',
+    '@sparkelf/dsh-plugin-supervisor': '0.1.6',
     'dsh-sql-workbench': '0.5.1',
     '@sparkelf/dsh-workbench-vault': '0.1.2',
     '@sparkelf/dsh-ssh-manager': '0.7.2',
     '@sparkelf/dsh-api-client': '0.5.1',
-    '@huanlin/dsh-plugin-better-locale': '0.4.1',
+    '@huanlin/dsh-plugin-better-locale': '0.4.3',
     'dsh-better-sidebar': '0.19.1',
     '@sparkelf/dsh-plugin-better-sidebar-office': '0.2.1',
     '@sparkelf/dsh-office-viewer-fonts': '0.1.2',
     'dsh-video-preview': '0.1.4',
+    // The reviewed session background: a new session's centre column renders it, and every
+    // other surface stays official.
+    'dsh-right-bg-anim': '1.1.0',
+    // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
+    // that creates named teammates and shares a durable task board. It needs its
+    // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
+    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.6-alpha.1',
+    '@deepseek-ai/dsh-experimental-agent-team-web-profile': '>=0.1.6-alpha.1',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')

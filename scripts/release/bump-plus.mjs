@@ -64,18 +64,25 @@ export function bumpPlus(version, dryRun) {
   // behind names an older prerelease, which npm then installs in preference to the one being
   // published — and those older patches declare the previous official base, so \`apply\`
   // finds no variant matching the source it was pointed at.
+  // Every member counts, not only the patch packages. A range on a plugin or on the skill
+  // center pins the deployment to whatever release first satisfied it: a minimum-only range
+  // like >=0.2.0-rc.9 is satisfied by every later prerelease, so an upgrade installed the new
+  // distribution and kept the old plugin beside it. The member list is the same authority the
+  // versions above come from, so no member can be forgotten here.
+  const memberNames = new Set(plusMemberManifests().map(path =>
+    JSON.parse(readFileSync(resolve(root, path), 'utf8')).name))
   const distributionPath = 'packages/bundle/plus/package.json'
   const distribution = JSON.parse(readFileSync(resolve(root, distributionPath), 'utf8'))
   let rangesChanged = 0
   for (const name of Object.keys(distribution.dependencies ?? {})) {
-    if (!name.startsWith('@sparkelf/dsh-patch-')) continue
+    if (!memberNames.has(name)) continue
     const spec = 'workspace:>=' + version
     if (distribution.dependencies[name] === spec) continue
     distribution.dependencies[name] = spec
     rangesChanged += 1
   }
   if (rangesChanged > 0) {
-    changed.push({ path: distributionPath, from: 'patch ranges', to: String(rangesChanged) + ' -> ' + version })
+    changed.push({ path: distributionPath, from: 'member ranges', to: String(rangesChanged) + ' -> ' + version })
     if (!dryRun) {
       const updated = JSON.parse(readFileSync(resolve(root, distributionPath), 'utf8'))
       for (const [name, value] of Object.entries(distribution.dependencies)) updated.dependencies[name] = value

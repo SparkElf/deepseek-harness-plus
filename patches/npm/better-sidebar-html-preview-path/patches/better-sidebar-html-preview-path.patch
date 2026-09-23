@@ -1,0 +1,28 @@
+diff --git a/lib/index.js b/lib/index.js
+index 278ca90..82d457d 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -5080,8 +5080,21 @@ function apply(ctx, config) {
+ 					writeError(res, new SidebarError("bad-request", decoded.message, decoded.status));
+ 					return;
+ 				}
+-				const { sessionId, path } = decoded.ref;
+-				const absolute = await ensureWorkspacePath(await sessionCwdOf(ctx, sessionId), path, fenceEnabledOf(() => settingsFace));
++				const { sessionId, path: decodedPath } = decoded.ref;
++				// A produced-file path may arrive workspace-root-relative ("/x.html"), which the
++				// host would read as a POSIX root and realpath outside the workspace. That only
++				// holds while the cwd-joined candidate actually exists: every other absolute path
++				// (a mounted drive such as /mnt/d/..., a workspace sibling) is already the real
++				// target and must be used as sent. Deciding on existence — not on containment —
++				// is what keeps both shapes working, which is how the media route bounds its own.
++				const htmlCwd = await sessionCwdOf(ctx, sessionId);
++				let path = decodedPath;
++				if (isAbsolute(decodedPath) && !isWithin(htmlCwd, decodedPath)) {
++					const candidate = join(htmlCwd, decodedPath);
++					const exists = await stat(candidate).then(info => info.isFile(), () => false);
++					if (exists) path = candidate;
++				}
++				const absolute = await ensureWorkspacePath(htmlCwd, path, fenceEnabledOf(() => settingsFace));
+ 				const info = await stat(absolute);
+ 				if (!info.isFile() || info.size > resolved.mediaLimit) throw new SidebarError("fs-error", "not a file or too large", 400);
+ 				const type = mediaTypeForPath(absolute);

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-20-an-unindexable-session-must-not-fail-the-whole-content-search.md
+2026-09-20-an-unindexable-session-must-not-fail-the-whole-content-search.md: 5e259048a0e77b737ebc8b8d7e6541c8a46ee6e8
+2026-09-20-an-unindexable-session-must-not-fail-the-whole-content-search.zh.md: 160cb07262083f14e063724ac5c5ded0b4b6f0d1

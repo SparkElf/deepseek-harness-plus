@@ -315,6 +315,10 @@ function ciSharedStaticGates(): Gate[] {
     // A plugin the distribution reviews but the standalone manifest omits is a bundle the
     // profile cannot resolve, and npm installs the set either way.
     pnpmScript('standalone-manifest', 'verify:standalone-manifest', { label: 'standalone manifest' }),
+    // A variant is generated from the same distribution and omits packages a public
+    // consumer receives. Drift here ships an intranet image the reviewed reduction no
+    // longer describes, so it is checked beside the manifest it is derived from.
+    pnpmScript('standalone-variants', 'verify:standalone-variants', { label: 'standalone variants' }),
   ]
 }
 

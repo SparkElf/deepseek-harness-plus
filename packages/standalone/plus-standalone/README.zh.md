@@ -30,6 +30,8 @@ npm install -g @sparkelf/dsh-plus-standalone
 dsh-plus start
 ```
 
+因为每个版本都带预发布后缀，发行版会发到 `next` 标签；发布步骤随后把 `latest` 移到它上面，因此上面这条命令安装的是当前发行版，而不是 npm 本来会选中的那个版本。
+
 | Command | Effect |
 |---|---|
 | `dsh-plus start` | 首次运行写出 profile、选择空闲端口、启动 server、打印 URL |

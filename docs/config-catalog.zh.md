@@ -3452,6 +3452,26 @@ export interface Config {
 
 来源：[`packages/workflow/workflow-worker-thread/src/index.ts:32`](../packages/workflow/workflow-worker-thread/src/index.ts)
 
+<a id="sparkelfdsh-client-ui-skill-center"></a>
+
+## `@sparkelf/dsh-client-ui-skill-center`
+
+需要： `webServer` · `skills` · `sessions`
+
+```ts config-catalog
+/** Plugin configuration. */
+export interface Config {
+  /** Extra custom skill root directories. */
+  customSkillDirs?: string[]
+  /** User dsh config root; defaults to `$DSH_HOME` or `~/.dsh`. */
+  dshHome?: string
+  /** User agents config root; defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
+  agentsHome?: string
+}
+```
+
+来源： [`packages/plus/ui-skill-center/src/index.ts:43`](../packages/plus/ui-skill-center/src/index.ts)
+
 <a id="sparkelfdsh-plugin-backup"></a>
 
 ## `@sparkelf/dsh-plugin-backup`
@@ -3805,5 +3825,7 @@ Depends on: [`AgentOptions`](subsystems/core.zh.md)
 - `@deepseek-ai/dsh-util-values`（[`packages/util/values/src/index.ts`](../packages/util/values/src/index.ts)）
 - `@deepseek-ai/dsh-util-workspace-path`（[`packages/util/workspace-path/src/index.ts`](../packages/util/workspace-path/src/index.ts)）
 - `@deepseek-ai/dsh-win32-process`（[`packages/subprocess/win32-process/src/index.ts`](../packages/subprocess/win32-process/src/index.ts)）
+- `@sparkelf/dsh-dataops-standalone`（[`packages/standalone/dataops-standalone/src/index.ts`](../packages/standalone/dataops-standalone/src/index.ts)）
+- `@sparkelf/dsh-omitted`（[`packages/plus/omitted/src/index.ts`](../packages/plus/omitted/src/index.ts)）
 - `@sparkelf/dsh-plus`（[`packages/bundle/plus/src/index.ts`](../packages/bundle/plus/src/index.ts)）
 - `@sparkelf/dsh-plus-standalone`（[`packages/standalone/plus-standalone/src/index.ts`](../packages/standalone/plus-standalone/src/index.ts)）

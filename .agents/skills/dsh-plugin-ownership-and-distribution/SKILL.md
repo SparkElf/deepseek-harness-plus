@@ -1,6 +1,6 @@
 ---
 name: dsh-plugin-ownership-and-distribution
-description: Use before adding, moving, publishing, curating, or default-mounting a DSH capability to decide plugin ownership, npm distribution, repository placement, and profile composition independently.
+description: Use before adding, moving, publishing, curating, default-mounting, or repairing a DSH capability — including a defect inside a capability another plugin owns — to decide plugin ownership, npm distribution, repository placement, and profile composition independently.
 ---
 
 # DSH Plugin Ownership And Distribution
@@ -10,6 +10,10 @@ Use this workflow before implementation whenever a capability may become a packa
 ## Required Evidence
 
 Read the capability's current Host and Client entries, package manifest, bundle patch, settings and persistence owners, public Harness APIs, release workflow, and every profile that mounts it. For a third-party candidate, also report its repository, license, maintained version, feature fit, and unresolved compatibility risks. Do not install, move, or publish before the owner accepts the classification.
+
+**Read what the current owner also provides before deciding to replace it.** A registry exposes the id it matches; it does not announce the capabilities that ride on the same implementation. A file-viewer registration reads as an extension point while the builtin it displaces may be the only editor for that file type, so replacing it silently drops editing, saving, and its settings. Name the replacement's owned surface — rendering, mutation, persistence, settings, disposal — and reject an option that drops any of it.
+
+**Name the delivery mechanism as one of four, never as "a patch".** Profile configuration; our own plugin mounted on a published extension point; an npm-target patch on an external package, delivered through the profile's `patchedDependencies`; and a republished first-party package delivered through `overrides`. The first two travel as code we own; the last two are two different mechanisms for two different package populations — an external npm package is patched in place, while an official `@deepseek-ai/*` workspace whose built `lib/` cannot express the change is repackaged under our scope. Deciding for one population does not decide for the other.
 
 ## Decide Four Dimensions Separately
 

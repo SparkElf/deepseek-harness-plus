@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
+  "description": "Data-only patch bounding a workspace-root-relative HTML preview path to the session cwd in dsh-better-sidebar",
+  "version": "0.2.0-rc.20",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/better-sidebar-html-preview-path"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/better-sidebar-html-preview-path.patch": "./patches/better-sidebar-html-preview-path.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "better-sidebar-html-preview-path",
+        "dsh": ">=0.1.6-alpha.1",
+        "target": {
+          "kind": "npm",
+          "name": "dsh-better-sidebar",
+          "range": "0.19.1"
+        },
+        "file": "./patches/better-sidebar-html-preview-path.patch"
+      }
+    ]
+  }
+}

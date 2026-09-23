@@ -10,6 +10,8 @@ Status: proposed
 
 ## Decision
 
+> 由[精简的 standalone 变体声明它省略了什么](../../implemented/architecture/2026-09-22-standalone-variants-declare-omissions.zh.md)扩展：同一 registry 入口现在也承载变体，每个变体声明其部署省略或新增的 package 与 bundle。
+
 发布 @sparkelf/dsh-plus-standalone：一个 registry package，其 dependencies 携带受审的 plugins，其首次 start 写出 launcher 启动的 profile。用户安装一个 package 并运行一条命令；无需源码、无需构建、无需 git。
 
 ## Alternatives considered

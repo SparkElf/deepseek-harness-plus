@@ -1,0 +1,27 @@
+{
+  "name": "@sparkelf/dsh-patch-wsl-native-open",
+  "version": "0.2.0-rc.20",
+  "description": "Data-only exact official-source patch translating POSIX paths for the Windows interpreter on a WSL host",
+  "publishConfig": { "access": "public" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/wsl-native-open"
+  },
+  "type": "module",
+  "files": ["patches/*.patch"],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [{
+      "id": "wsl-native-path-translation",
+      "dsh": ">=0.1.6-alpha.1",
+      "target": {
+        "kind": "dsh-source",
+        "baseRevision": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+        "paths": ["packages/host/open-in-app/", "packages/util/native-command/"]
+      },
+      "file": "./patches/wsl-native-open.patch"
+    }]
+  }
+}

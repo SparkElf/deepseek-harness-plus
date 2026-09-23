@@ -250,6 +250,10 @@
       // util/ folders are role-named without the util- prefix their npm names carry,
       // so these aliases stay hand-written like dsh-util-crypto above.
       "@deepseek-ai/dsh-util-time": ["./packages/util/time/src"],
+      // The skill center is role-named without the client-ui- marker its npm name
+      // carries, so — like the util aliases above — these stay hand-written.
+      "@sparkelf/dsh-client-ui-skill-center": ["./packages/plus/ui-skill-center/src/index.ts"],
+      "@sparkelf/dsh-client-ui-skill-center/client": ["./packages/plus/ui-skill-center/src/client/index.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp-app": ["./packages/bundle/acp-app/src"],
@@ -455,6 +459,8 @@
       "@deepseek-ai/dsh-workflow-worker-thread": ["./packages/workflow/workflow-worker-thread/src"],
       "@deepseek-ai/dsh-workspace": ["./packages/workspace/workspace/src"],
       "@deepseek-ai/dsh-workspace/invariant": ["./packages/workspace/workspace/src/invariant.ts"],
+      "@sparkelf/dsh-dataops-standalone": ["./packages/standalone/dataops-standalone/src"],
+      "@sparkelf/dsh-omitted": ["./packages/plus/omitted/src"],
       "@sparkelf/dsh-plugin-backup": ["./packages/plus/backup/src"],
       "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
       "@sparkelf/dsh-plugin-mcp-credentials": ["./packages/plus/mcp-credentials/src"],

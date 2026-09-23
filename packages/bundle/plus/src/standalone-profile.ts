@@ -16,13 +16,103 @@ import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
 import { parseDocument } from 'yaml'
 
-/** Profile name a standalone installation owns. */
+/** Profile name a standalone installation owns when its package declares none. */
 export const STANDALONE_PROFILE = 'plus'
+
+/**
+ * Read the profile name the installing package declares.
+ *
+ * A standalone package describes the profile it materializes, so a reduced variant can
+ * own a differently named profile beside the full one instead of overwriting it. The
+ * declaration travels with the package because npm resolves the tree long before any
+ * command of ours runs, and the distribution cannot name a profile for a package it
+ * does not own.
+ *
+ * @param anchor - path inside the installing package's tree.
+ * @param fallback - profile name to use when the declaration is absent.
+ * @returns the declared profile name, or the fallback.
+ */
+export function resolveStandaloneProfile(anchor: string, fallback: string = STANDALONE_PROFILE): string {
+  return readStandaloneDeclaration(anchor, fallback).profileName
+}
+
+/** What the installing package declares about the deployment it owns. */
+export interface StandaloneDeclaration {
+  /** Profile name the launcher materializes. */
+  readonly profileName: string
+  /**
+   * Capabilities the deployment must not install, as package name to override spec.
+   *
+   * npm substitutes rather than deletes, so each entry names the placeholder the
+   * capability is replaced with. The profile workspace applies these as overrides,
+   * which is where pnpm reads them.
+   */
+  readonly omittedPackages: Readonly<Record<string, string>>
+}
+
+/**
+ * Read the deployment facts the installing package declares.
+ *
+ * A standalone package describes the profile it materializes and the capabilities it
+ * omits, so a reduced variant owns a differently named profile and a reduced install
+ * without the distribution naming either. The declaration travels with the package
+ * because npm resolves the tree long before any command of ours runs.
+ *
+ * @param anchor - path inside the installing package's tree.
+ * @param fallback - profile name to use when the declaration is absent.
+ * @returns the declared profile name and omitted capabilities.
+ */
+export function readStandaloneDeclaration(
+  anchor: string,
+  fallback: string = STANDALONE_PROFILE,
+): StandaloneDeclaration {
+  // The anchor is the CLI file; walk out to the package that declares the forwarder.
+  let current = resolve(anchor)
+  for (;;) {
+    const manifestPath = join(current, 'package.json')
+    const declared = readStandaloneFacts(manifestPath)
+    if (declared !== undefined) return declared
+    const parent = dirname(current)
+    if (parent === current) return { profileName: fallback, omittedPackages: {} }
+    current = parent
+  }
+}
+
+/** Read one manifest's standalone declaration, or undefined when it carries none. */
+function readStandaloneFacts(manifestPath: string): StandaloneDeclaration | undefined {
+  if (!existsSync(manifestPath)) return undefined
+  let standalone: Record<string, unknown> | undefined
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
+    standalone = manifest.dshPlusStandalone as Record<string, unknown> | undefined
+  } catch {
+    // A package whose manifest cannot be read declares nothing; the caller keeps walking
+    // because the declaring package may sit above it.
+    return undefined
+  }
+  const profile = standalone?.profile
+  if (standalone === undefined || typeof profile !== 'string' || profile === '') return undefined
+  const rawOmitted = standalone.omittedPackages
+  const omittedPackages: Record<string, string> = {}
+  if (rawOmitted !== undefined && typeof rawOmitted === 'object' && !Array.isArray(rawOmitted)) {
+    for (const [name, spec] of Object.entries(rawOmitted as Record<string, unknown>)) {
+      if (typeof spec !== 'string' || spec === '') {
+        throw new Error('dshPlusStandalone.omittedPackages.' + name + ' must be a non-empty string')
+      }
+      omittedPackages[name] = spec
+    }
+  }
+  return { profileName: profile, omittedPackages }
+}
 
 /** Resolved locations for one standalone installation. */
 export interface StandalonePaths {
   /** DSH home holding profiles, credentials, and session data. */
   readonly home: string
+  /** Profile name the launcher boots, as the installing package declares it. */
+  readonly profileName: string
+  /** Capabilities the deployment omits, as package name to override spec. */
+  readonly omittedPackages: Readonly<Record<string, string>>
   /** Profile directory the launcher boots. */
   readonly profileDirectory: string
   /** Installed Plus distribution directory. */
@@ -234,7 +324,7 @@ export function alignReplacedPackageNames(profileModules: string): void {
   for (const entry of readdirSync(scoped)) {
     const manifestPath = join(scoped, entry, 'package.json')
     if (!existsSync(manifestPath)) continue
-    const declared = JSON.parse(readFileSync(manifestPath, 'utf8'))
+    const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
     const expected = '@deepseek-ai/' + entry
     if (declared.name === expected) continue
     const replaced = { ...declared, name: expected }
@@ -358,9 +448,12 @@ function linkBundle(consumerModules: string, name: string, source: string): void
 /** Resolve every path a command needs, without creating anything. */
 export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env): StandalonePaths {
   const home = resolveHome(env)
+  const declaration = readStandaloneDeclaration(anchor)
   return {
     home,
-    profileDirectory: join(home, 'profiles', STANDALONE_PROFILE),
+    profileName: declaration.profileName,
+    omittedPackages: declaration.omittedPackages,
+    profileDirectory: join(home, 'profiles', declaration.profileName),
     distributionDirectory: resolveDistributionDirectory(anchor),
   }
 }
@@ -389,7 +482,7 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
     // script allowlist — and a distribution release changes them. Rewriting on every
     // start is what lets an upgraded installation receive the new values; a profile
     // written once keeps whatever its own release decided and can never be corrected.
-    writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds)
+    writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
     installProfilePackages(paths, consumerDirectory)
     return false
   }
@@ -415,7 +508,7 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
   // The overrides must reach the workspace before the install that reads them.
-  writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds)
+  writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
   installProfilePackages(paths, consumerDirectory)
   return true
 }
@@ -434,6 +527,7 @@ function writeProfileOverrides(
   profileDirectory: string,
   overrides: Readonly<Record<string, string>>,
   allowBuilds: Readonly<Record<string, boolean>>,
+  omittedPackages: Readonly<Record<string, string>>,
 ): void {
   const workspacePath = join(profileDirectory, 'pnpm-workspace.yaml')
   const document = parseDocument(existsSync(workspacePath) ? readFileSync(workspacePath, 'utf8') : '')
@@ -441,6 +535,10 @@ function writeProfileOverrides(
   if (documentError !== undefined) throw new Error('Plus profile workspace is not valid YAML', { cause: documentError })
   if (document.get('packages') === undefined) document.set('packages', ['.'])
   for (const [name, spec] of Object.entries(overrides)) document.setIn(['overrides', name], spec)
+  // A capability the deployment omits is substituted rather than deleted, because npm's
+  // override has no removal form. Writing it here keeps the omission in the one place
+  // pnpm reads, so an install never receives the capability the variant excluded.
+  for (const [name, spec] of Object.entries(omittedPackages)) document.setIn(['overrides', name], spec)
   // pnpm refuses an install whose packages want to run build scripts until each is
   // decided, so the distribution's reviewed decisions travel with the install rather
   // than waiting for an interactive approval no start can offer.

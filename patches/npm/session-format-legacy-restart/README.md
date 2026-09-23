@@ -10,6 +10,6 @@ The patch changes the gate in two ways. The extension becomes `boolean` rather t
 
 The deployment carries a session that needs this: `session-f6ab795c-0a7b-4287-b3e5-19229e412024` holds an `agent/inbox/spliced` insert targeting `next-turn`, and the strict gate refuses its `turn/start`. This package is that deployment change, moved from a mirror stash into a reviewed patch so a rebuild cannot drop it.
 
-The target is the exact official source base `0a15e36e7f82b6ed45af6fa9759f29b40dcd965d`. The Plus apply command verifies the base ancestry and payload before applying it. This package has no JavaScript entry, Cordis lifecycle, install script, or capability implementation.
+The target is the exact official source base `ddefc45fbc7f8e46dd73185e68295696d1297887`. The Plus apply command verifies the base ancestry and payload before applying it. This package has no JavaScript entry, Cordis lifecycle, install script, or capability implementation.
 
 Retire this package when official session-format migrations admit the interrupted-turn restart pattern by default, or when the sessions it serves no longer exist.

@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-18-move-latest-when-a-prerelease-publishes.md
+2026-09-18-move-latest-when-a-prerelease-publishes.md: b7fda20c3127d2e8468d0e21c91733914cf44a24
+2026-09-18-move-latest-when-a-prerelease-publishes.zh.md: 7c0e47dfd7621e4e30bc0d2de2c87104b7fa780d

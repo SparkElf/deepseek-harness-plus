@@ -11,9 +11,21 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
+import {
+  CAPABILITIES,
+  CAPABILITY_ENV_FILE,
+  CAPABILITY_MARKER,
+  CAPABILITY_RECORD,
+  DEFAULT_MINERU_ENDPOINT,
+  capabilityEnvironment,
+  capabilityPatchLayer,
+  installCapabilityServices,
+  interviewCapabilities,
+  type CapabilityAnswers,
+} from './standalone-capabilities.ts'
 import {
   DEFAULT_PORT,
   STOP_GRACE_MILLISECONDS,
@@ -38,16 +50,29 @@ import {
   registryOrder,
   readDistributionProfile,
   resolvePaths,
+  type StandalonePaths,
 } from './standalone-profile.ts'
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
+
+/** Profile patch file the capability interview rewrites (the profile's user layer). */
+const CAPABILITY_PATCH_FILE = 'cordis.patch.yml'
 
 interface StartOptions {
   readonly port: number
   readonly host: string
   readonly open: boolean
   readonly foreground: boolean
+  /**
+   * Capabilities to enable without asking, or undefined to interview.
+   *
+   * An unattended install has no terminal to answer the interview, so a build that
+   * bakes a profile into an image states the selection instead. An empty list is a
+   * selection too: it means every optional capability stays off, which is what a
+   * deployment that must not run them requires.
+   */
+  readonly capabilities: readonly string[] | undefined
 }
 
 function parseStartOptions(argv: readonly string[]): StartOptions {
@@ -55,6 +80,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
   let host = '127.0.0.1'
   let open = true
   let foreground = false
+  let capabilities: readonly string[] | undefined
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--port' || token === '-p') {
@@ -73,9 +99,47 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     if (token === '--no-open') { open = false; continue }
     if (token === '--foreground') { foreground = true; continue }
-    throw new Error('unknown option: ' + token)
+    if (token === '--capabilities') {
+      const value = argv[index + 1]
+      if (value === undefined) throw new Error('--capabilities requires a comma-separated list, or an empty string for none')
+      const stated = value === '' ? [] : value.split(',').map(entry => entry.trim()).filter(entry => entry !== '')
+      // A stated selection is the only way an unattended install chooses capabilities, so
+      // a name this release does not offer fails here: the deployment would otherwise
+      // start without a capability its caller believes it selected. Validating at parse
+      // time also makes the failure independent of what is installed.
+      const offered = new Set(CAPABILITIES.map(capability => capability.id))
+      for (const id of stated) {
+        if (!offered.has(id)) {
+          throw new Error('unknown capability "' + id + '"; this release offers ' + [...offered].join(', '))
+        }
+      }
+      capabilities = stated
+      index += 1
+      continue
+    }
+    throw new Error('unknown option: ' + String(token))
   }
-  return { port, host, open, foreground }
+  return { port, host, open, foreground, capabilities }
+}
+
+/**
+ * Resolve a stated capability selection.
+ *
+ * An unattended install states what it wants instead of answering the interview, so a
+ * name it does not offer has to fail here rather than silently enable nothing: the
+ * deployment would otherwise start with a capability the caller believes it selected.
+ *
+ * @param ids - capability ids the caller selected.
+ * @returns the answers the interview would have returned.
+ */
+function selectCapabilities(ids: readonly string[]): CapabilityAnswers {
+  const selected = [...new Set(ids)]
+  // MinerU is started from an endpoint the interview collects; an unattended install
+  // gets the documented default rather than an unset one.
+  return {
+    enabled: selected,
+    ...selected.includes('mineru') ? { mineruEndpoint: DEFAULT_MINERU_ENDPOINT } : {},
+  }
 }
 
 /**
@@ -109,14 +173,34 @@ function installationRoot(): string {
 function installationAnchor(): string {
   return join(installationRoot(), 'package.json')
 }
+
+/**
+ * Path to the installed command's own file, which is where a declaration lookup starts.
+ *
+ * The declaration belongs to the package the user installed, and that package is a
+ * sibling of this module rather than an ancestor: a variant's forwarder imports this
+ * CLI in-process, so `import.meta.url` names `@sparkelf/dsh-plus` while the installed
+ * command is the variant. `process.argv[1]` is the entry that was actually invoked,
+ * which is the package whose declaration applies.
+ *
+ * Walking out from the installation root cannot reach it either: that root is the
+ * project the user ran the command in, so every variant would fall back to the full
+ * profile and keep the capabilities it excluded.
+ *
+ * @returns absolute path to the invoked command, or this module when argv carries none.
+ */
+function declarationAnchor(): string {
+  const invoked = process.argv[1]
+  return invoked === undefined || invoked === '' ? fileURLToPath(import.meta.url) : resolve(invoked)
+}
 /** The launcher entry this installation must drive. */
 function launcherEntry(anchor: string): string {
   return createRequire(anchor).resolve('@deepseek-ai/dsh/lib/bin.js')
 }
 
 /** Run the server in this process, inheriting stdio. */
-function runForeground(entry: string, port: number, host: string, open: boolean): number {
-  const args = [entry, '--profile', STANDALONE_PROFILE, '--port', String(port), '--host', host]
+function runForeground(entry: string, profileName: string, port: number, host: string, open: boolean): number {
+  const args = [entry, '--profile', profileName, '--port', String(port), '--host', host]
   if (!open) args.push('--no-open')
   const result = spawnSync(process.execPath, args, { stdio: 'inherit' })
   return result.status ?? 1
@@ -125,7 +209,9 @@ function runForeground(entry: string, port: number, host: string, open: boolean)
 async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
   const anchor = installationAnchor()
-  const paths = resolvePaths(anchor)
+  // The profile's own name and omissions come from the package that installed this
+  // command, which is a different tree position than the dependencies it resolves.
+  const paths = resolvePaths(declarationAnchor())
   // The profile installs its own dependency tree, which needs pnpm. Asking here rather
   // than failing inside the install turns a missing prerequisite into a decision the
   // consumer makes, and the install it can run is the one command that provides it.
@@ -163,16 +249,36 @@ async function start(argv: readonly string[]): Promise<number> {
   }
   const created = ensureProfile(paths, installationRoot())
   console.log(created
-    ? 'Created the ' + STANDALONE_PROFILE + ' profile at ' + paths.profileDirectory
-    : 'Using the existing ' + STANDALONE_PROFILE + ' profile')
+    ? 'Created the ' + paths.profileName + ' profile at ' + paths.profileDirectory
+    : 'Using the existing ' + paths.profileName + ' profile')
   // The profile symlinks the consumer's packages, so a patch lands on the installed
   // copy the launcher loads. A reinstall restores the published bytes, which is why
   // this runs on every start rather than only when the profile was created.
   for (const label of applyProfileNpmPatches(paths.distributionDirectory, paths.profileDirectory)) {
     console.log('Applied the reviewed patch ' + label)
   }
+  // The capability interview runs once, when the profile is created: a deployment
+  // that already answered keeps its answers, and a re-run only reports them. Asking
+  // on every start would make a restart look like a first install.
+  const needsInterview = created || !existsSync(join(paths.home, CAPABILITY_RECORD))
+  const answers = needsInterview
+    ? options.capabilities === undefined
+      ? await interviewCapabilities(true)
+      : selectCapabilities(options.capabilities)
+    : undefined
+  if (answers !== undefined) {
+    const ready = await installCapabilityServices(answers, paths.home)
+    writeCapabilityPatch(paths.profileDirectory, answers)
+    writeCapabilityEnvironment(paths.home, answers)
+    console.log('  Enabled: ' + (answers.enabled.length === 0 ? '(none)' : answers.enabled.join(', ')))
+    if (answers.enabled.length > 0) console.log('  Services ready: ' + (ready.length === 0 ? '(none)' : ready.join(', ')))
+    if (answers.enabled.includes('exa') && answers.exaApiKey === undefined) {
+      console.log('  Exa: add EXA_API_KEY to ' + join(paths.home, CAPABILITY_ENV_FILE) + ' when you have a key.')
+    }
+  }
+
   const entry = launcherEntry(anchor)
-  if (options.foreground) return runForeground(entry, options.port, options.host, options.open)
+  if (options.foreground) return runForeground(entry, paths.profileName, options.port, options.host, options.open)
 
   const existing = readState(paths.home)
   if (existing !== undefined) {
@@ -181,10 +287,11 @@ async function start(argv: readonly string[]): Promise<number> {
     return 0
   }
 
-  return startDetached(paths.home, entry, options)
+  return startDetached(paths, entry, options)
 }
 
-async function startDetached(home: string, entry: string, options: StartOptions): Promise<number> {
+async function startDetached(paths: StandalonePaths, entry: string, options: StartOptions): Promise<number> {
+  const home = paths.home
   const port = await choosePort(options.port, options.host)
   if (port === undefined) {
     console.error('No free port in the range ' + String(options.port) + '-' + String(options.port + 9) + '.')
@@ -192,9 +299,9 @@ async function startDetached(home: string, entry: string, options: StartOptions)
     return 1
   }
   if (port !== options.port) console.log('Port ' + String(options.port) + ' is in use; using ' + String(port) + '.')
-  const logPath = join(stateDirectory(home), 'server.log')
-  const env = { ...process.env, DSH_HOME: home }
-  const args = [entry, '--profile', STANDALONE_PROFILE, '--port', String(port), '--host', options.host, '--no-open']
+  const logPath = join(stateDirectory(paths.home), 'server.log')
+  const env = { ...process.env, DSH_HOME: paths.home }
+  const args = [entry, '--profile', paths.profileName, '--port', String(port), '--host', options.host, '--no-open']
   const pid = spawnServer({ command: process.execPath, args, env, logPath })
   const url = 'http://' + options.host + ':' + String(port) + '/'
   const ready = await waitForServer(url, READY_TIMEOUT_MILLISECONDS)
@@ -304,6 +411,46 @@ async function update(argv: readonly string[]): Promise<number> {
     console.log('The running server still serves ' + installed + '; run dsh-plus restart to load the new release.')
   }
   return 0
+}
+
+/**
+ * Write the profile's capability patch layer.
+ *
+ * The profile's loader merges this file, so enabling a capability is a data change
+ * rather than an edit to the deployment. Writing it on every configured run also
+ * turns a capability back off when the interview no longer selects it.
+ *
+ * @param profileDirectory - the profile whose layer is replaced.
+ * @param answers - the interview's answers.
+ */
+function writeCapabilityPatch(profileDirectory: string, answers: CapabilityAnswers): void {
+  const path = join(profileDirectory, CAPABILITY_PATCH_FILE)
+  // The profile has exactly one user layer, so the capability rows live in it. A file
+  // this command did not write belongs to the deployment, and replacing it would drop
+  // whatever the operator put there; keep it beside the new layer instead.
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : undefined
+  if (existing !== undefined && !existing.includes(CAPABILITY_MARKER)) {
+    writeFileSync(path + '.before-capabilities', existing)
+    console.log('  Kept the existing profile layer at ' + CAPABILITY_PATCH_FILE + '.before-capabilities')
+  }
+  writeFileSync(path, capabilityPatchLayer(answers))
+}
+
+/**
+ * Write the deployment's capability environment file.
+ *
+ * MinerU is switched on by the presence of its endpoint and Exa reads its key from
+ * the launch environment, so the answers reach those two through `$DSH_HOME/.env`
+ * rather than through the profile layer. The file is replaced whole on every
+ * configured start, which is also how a capability the user dropped stops applying.
+ *
+ * @param home - the deployment home whose env file the launcher reads.
+ * @param answers - the interview's answers.
+ */
+function writeCapabilityEnvironment(home: string, answers: CapabilityAnswers): void {
+  const path = join(home, CAPABILITY_ENV_FILE)
+  const existing = existsSync(path) ? readFileSync(path, 'utf8') : ''
+  writeFileSync(path, capabilityEnvironment(answers, existing))
 }
 
 /** Ask one yes/no question on the terminal. */

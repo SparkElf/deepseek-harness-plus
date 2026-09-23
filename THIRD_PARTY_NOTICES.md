@@ -36,6 +36,8 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@anthropic-ai/sdk`](https://github.com/anthropics/anthropic-sdk-typescript) | MIT |
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
 | [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
+| [`@deepseek-ai/dsh-computer-use`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
 | [`@huanlin/dsh-plugin-better-locale`](https://github.com/HuanLinOTO/dsh-plugin-better-locale) | AGPL-3.0 |
 | [`@joplin/turndown-plugin-gfm`](https://github.com/laurent22/joplin-turndown-plugin-gfm) | MIT |
@@ -56,12 +58,13 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-api-client`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-dataops-managed`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mineru`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
-| [`@sparkelf/dsh-mobile-bridge`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-office-viewer-fonts`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-officecli`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-plugin-better-sidebar-office`](https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office) | AGPL-3.0 |
 | [`@sparkelf/dsh-plugin-supervisor`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-query-result-analysis`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-ssh-manager`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-workbench-vault`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
@@ -78,6 +81,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
+| [`dsh-right-bg-anim`](https://github.com/forestlightelf/dsh-right-bg-anim) | MIT |
 | [`dsh-sql-workbench`](https://github.com/SparkElf/dsh-sql-workbench) | MIT |
 | [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |

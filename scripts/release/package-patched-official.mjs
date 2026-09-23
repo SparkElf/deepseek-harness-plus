@@ -55,22 +55,39 @@ export const PATCHED_WORKSPACES = [
   'apps/web',
   'packages/api/gateway',
   'packages/api/session-controller',
+  // The published official build of this package predates the alpha.2 typert format:
+  // its manifest declares codecs without the `create()` factory the alpha.2 loader
+  // requires, so a registry installation that keeps the official package fails to load
+  // its plugin tree. Republishing it from the patched checkout is what supplies the
+  // matching manifest, and the workspace is listed here for that reason rather than
+  // because Plus patches its source.
+  'packages/api/terminal-controller',
   'packages/bundle/web-app',
   'packages/client/connection',
   'packages/client/ui-agent-preset',
-  'packages/client/ui-conversation',
   'packages/client/ui-deliverables',
   'packages/client/ui-layout',
   'packages/client/ui-model-selection',
+  'packages/client/ui-permission-presets',
   'packages/client/ui-primitives',
   'packages/client/ui-settings-models',
   'packages/client/ui-trajectory',
+  // Same incompatibility as api/terminal-controller: the published official builds of
+  // these two carry a typert manifest generated before the alpha.2 loader required a
+  // `create()` factory, so a registry installation that keeps them fails to load the
+  // plugin tree.
+  'packages/llm/llm',
+  'packages/subagent/subagent',
   'packages/core/tools',
   'packages/host/frontend-static',
+  'packages/host/open-in-app',
   'packages/host/webserver',
   'packages/llm/llm-pi-ai',
   'packages/preset/agent-presets',
+  'packages/session/session-format-v0-to-v1',
   'packages/session-query/session-log-export',
+  'packages/session-query/session-query-sqlite',
+  'packages/util/native-command',
   'packages/workspace/workspace',
 ]
 
@@ -222,6 +239,31 @@ function packageWorkspace(source, out, workspace, versions, version) {
   return published.name
 }
 
+/**
+ * Refuse a publish version the source checkout does not declare.
+ *
+ * `--version` rewrites every republished manifest, which is what a correction
+ * under an already-released version needs. It cannot rewrite the source those
+ * packages are built from, so a version the source does not declare publishes an
+ * artifact that claims a release it was not built from. The check runs here
+ * rather than in the publisher because this step is where the source is read.
+ *
+ * @param source - the built checkout being packaged.
+ * @param version - the version to publish under.
+ * @throws {Error} when `releases.json` and the workspace disagree.
+ */
+function requireSourceVersion(source, version) {
+  // Every patched workspace ships as one version, so any of them answers for
+  // the tree; releases.json is the field the rest of the release path reads.
+  const declared = sourceVersion(source)
+  if (declared === version) return
+  throw new Error(
+    'republish-patched-official: --version ' + version + ' but the source declares '
+    + declared + ' at packages/bundle/web-app; rebase the patches onto the ' + version
+    + ' tree first, then republish',
+  )
+}
+
 // Importing this module must not package anything: a spec imports it for its table,
 // and running the body on import would make that import throw instead.
 async function main() {
@@ -242,6 +284,13 @@ async function main() {
   mkdirSync(out, { recursive: true })
   const versions = officialVersions(resolve(source))
   const resolvedVersion = version ?? sourceVersion(resolve(source))
+  // A version number is a claim about contents. Overriding it republishes the
+  // source under a version that source does not declare, and the two then
+  // disagree wherever the newer release changed a validated field — measured on
+  // 0.1.6-alpha.2: @sparkelf/dsh-api-session-controller@0.1.6-alpha.2 carried
+  // 0.1.6-alpha.1's typert codecs, which lack the create() factory the alpha.2
+  // loader requires, so every deployment honouring the override failed to boot.
+  if (version !== undefined) requireSourceVersion(resolve(source), version)
   const names = PATCHED_WORKSPACES.map(workspace =>
     packageWorkspace(resolve(source), resolve(out), workspace, versions, resolvedVersion))
   console.log('package-patched-official: ' + String(names.length) + ' package(s) at ' + resolvedVersion + ' written to ' + out)

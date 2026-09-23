@@ -27,7 +27,7 @@ describe('CI workflow', () => {
     const steps: unknown[] = []
     for (const job of Object.values(workflow.jobs)) {
       if (!isRecord(job) || !Array.isArray(job.steps)) continue
-      steps.push(...job.steps)
+      steps.push(...(job.steps as unknown[]))
     }
     const fetch = steps.filter(step =>
       isRecord(step) && typeof step.run === 'string' && step.run.includes('upstream-official'))

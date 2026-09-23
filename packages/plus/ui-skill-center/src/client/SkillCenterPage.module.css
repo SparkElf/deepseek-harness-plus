@@ -1,0 +1,366 @@
+/**
+ * Skill center page.
+ *
+ * The page, its header, and its rows follow the official plugin panel's
+ * measurements — the same 28px page inset, 20px title, 48px framed glyph, and
+ * borderless rows whose hover surface reaches past the content — so the panel
+ * reads as one of the shell's own. Every colour comes from the shared alias
+ * tokens.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 28px clamp(24px, 4vw, 48px) 48px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.page > * {
+  width: 100%;
+  max-width: 960px;
+}
+
+.pageHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+.pageIntro {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+/* The same circular icon action the plugin page's head carries. */
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--dsw-alias-label-caption);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.iconButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.iconWrap {
+  display: inline-flex;
+}
+
+.button {
+  height: 32px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+}
+
+.search::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.group {
+  margin-top: 32px;
+}
+
+.groupTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+}
+
+.groupCount {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.groupHint {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-caption);
+}
+
+.cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The hover surface reaches 8px past the content on both sides while the row's
+   content stays aligned with the page header, as the official rows do. */
+.card {
+  min-width: 0;
+  margin: 0 -8px;
+  border-radius: 12px;
+}
+
+.card:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px;
+}
+
+.cardIcon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 10px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* A row from another workspace is present but is not the subject of this view. */
+.cardForeign {
+  opacity: 0.72;
+}
+
+.cardMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* The workspace a project skill came from, beside its name. */
+.workspaceBadge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary);
+  vertical-align: middle;
+}
+
+.cardTitle {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardDesc {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardWhenToUse {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.cardMarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.mark {
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.markOn {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.markOff {
+  border-color: var(--dsw-alias-border-l4);
+  color: var(--dsw-alias-label-caption);
+}
+
+.markDanger {
+  border-color: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.cardEnd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border: none;
+  border-radius: 10px;
+  background: var(--dsw-alias-border-l3);
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.switchOn {
+  background: var(--dsw-alias-state-success-primary);
+}
+
+.switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-1);
+  transition: transform 120ms ease;
+}
+
+.switchOn::after {
+  transform: translateX(16px);
+}
+
+/* The create dialog takes the width the official form dialogs use; the shared
+   Modal's own default is the narrow confirm width. */
+.dialog {
+  width: min(560px, 100%);
+}
+
+/* The create form's body inside the modal, which owns the frame. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.input {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+}
+
+.textarea {
+  box-sizing: border-box;
+  min-height: 80px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-font-markdown-code-block-small);
+  font-size: 12px;
+  resize: vertical;
+}
+
+.status {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.statusError {
+  color: var(--dsw-alias-state-error-primary);
+}
