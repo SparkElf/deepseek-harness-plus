@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-media-path",
   "description": "Data-only patch resolving a workspace-relative media path against the session cwd in dsh-better-sidebar",
-  "version": "0.2.0-rc.21",
+  "version": "0.2.0-rc.22",
   "publishConfig": {
     "access": "public"
   },
@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "better-sidebar-media-path",
-        "dsh": ">=0.1.7-alpha.2",
+        "dsh": ">=0.1.7-rc.1",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",

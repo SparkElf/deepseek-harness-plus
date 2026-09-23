@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-wsl-native-open",
-  "version": "0.2.0-rc.21",
+  "version": "0.2.0-rc.22",
   "description": "Data-only exact official-source patch translating POSIX paths for the Windows interpreter on a WSL host",
   "publishConfig": {
     "access": "public"
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "wsl-native-path-translation",
-        "dsh": ">=0.1.7-alpha.2",
+        "dsh": ">=0.1.7-rc.1",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "00102833dfaee1da9f48a3a8eae9d34005a75218",
+          "baseRevision": "46a7f68b0922371ce7144b668b90e377d8e799f4",
           "paths": [
             "packages/host/open-in-app/",
             "packages/util/native-command/"

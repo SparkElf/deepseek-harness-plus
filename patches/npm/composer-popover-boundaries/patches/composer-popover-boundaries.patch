@@ -74,7 +74,7 @@ index b3a60fb6ec..61a5638145 100644
    min-width: min(240px, calc(100vw - 32px));
    max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index b9c8993563..9797fb4c8b 100644
+index c7db6f1c0b..048bc6b509 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 @@ -167,13 +167,25 @@ export function ModelSelect(
@@ -107,10 +107,10 @@ index b9c8993563..9797fb4c8b 100644
      // First run measures the hidden pre-render (same commit as `open`), so
      // the card lands placed before anything paints.
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index 4a5ee43b91..7c07d68cb2 100644
+index 6f1ebf1c52..c89f4a19a8 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-@@ -213,23 +213,30 @@ describe('ModelSelect reasoning effort', () => {
+@@ -216,23 +216,30 @@ describe('ModelSelect reasoning effort', () => {
      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
      try {
@@ -145,7 +145,7 @@ index 4a5ee43b91..7c07d68cb2 100644
 +      expect(menu.style.maxWidth).toBe('216px')
        expect(menu.style.top).toBe('12px')
        // Interactions inside the trigger subtree or the portaled card stay open.
-       fireEvent.mouseDown(menu)
+       expect(fireEvent.mouseDown(menu)).toBe(true)
 diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 index f34e2b16e9..c5db564e1a 100644
 --- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
@@ -179,7 +179,7 @@ index f34e2b16e9..c5db564e1a 100644
              className={css.trigger}
              aria-label={t('mode', { name: currentAccessibleLabel })}
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index 3328454710..2255803273 100644
+index fbb8ef676e..6db9fb3ee2 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -41,7 +41,7 @@ Check this table before writing a control in a feature package. A plugin cannot
@@ -192,7 +192,7 @@ index 3328454710..2255803273 100644
  | `SegmentedTabs` | Controlled equal-width tabs with a sliding indicator and Left/Right, Home, and End navigation. The caller supplies labels, tab/panel ids, and panel content. |
  | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index 598b561e79..dba4808fc2 100644
+index 822ff17c3c..cbffc2fdc6 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
 @@ -41,7 +41,7 @@ kind: "package-library"
