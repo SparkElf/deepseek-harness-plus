@@ -83,7 +83,6 @@ export const PATCHED_WORKSPACES = [
   'packages/host/open-in-app',
   'packages/host/webserver',
   'packages/llm/llm-pi-ai',
-  'packages/preset/agent-presets',
   'packages/session/session-format-v0-to-v1',
   'packages/session-query/session-log-export',
   'packages/session-query/session-query-sqlite',

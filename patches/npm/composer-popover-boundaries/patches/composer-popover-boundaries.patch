@@ -1,5 +1,5 @@
 diff --git a/apps/web/tests/access-confirmation.e2e.ts b/apps/web/tests/access-confirmation.e2e.ts
-index 2b2ba0e..bd61e45 100644
+index b1c57c60e7..9d09f2aefb 100644
 --- a/apps/web/tests/access-confirmation.e2e.ts
 +++ b/apps/web/tests/access-confirmation.e2e.ts
 @@ -150,6 +150,12 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
@@ -16,7 +16,7 @@ index 2b2ba0e..bd61e45 100644
      const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
      await dialog.waitFor({ timeout: 10_000 })
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index 304bdb9..0e820ee 100644
+index 474afb1c36..dbbbac33ed 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
 @@ -105,6 +105,12 @@ describe('web e2e: the composer model switch is the default for later sessions',
@@ -33,20 +33,20 @@ index 304bdb9..0e820ee 100644
      await page.getByRole('menuitemradio', { name: 'Acme Large' }).click()
  
 diff --git a/packages/client/ui-layout/README.md b/packages/client/ui-layout/README.md
-index 582c5fb..bc4dc41 100644
+index b26b182f5e..55391c0bb3 100644
 --- a/packages/client/ui-layout/README.md
 +++ b/packages/client/ui-layout/README.md
-@@ -45,7 +45,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
+@@ -49,7 +49,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
  
  `selectPanel(id)` checks the live `main` registry before changing selection; an absent key throws and leaves the current panel intact. `beginNavigation()` returns an abort signal for an asynchronous UI navigation. A later call, a valid panel selection (including repeated selection), or layout disposal aborts that signal without cancelling underlying Session creation. Consumers check the signal before committing navigation or moving drafts.
  
--One registration declares four child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
-+One registration declares four child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
+-One registration declares five child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
++One registration declares five child slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `usePanelInfo` subscribes to the stable selection object; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
  
  </details>
  
 diff --git a/packages/client/ui-layout/src/client/AppFrame.tsx b/packages/client/ui-layout/src/client/AppFrame.tsx
-index 323318f..86a33a3 100644
+index e9ed81aa47..9a3ee7c192 100644
 --- a/packages/client/ui-layout/src/client/AppFrame.tsx
 +++ b/packages/client/ui-layout/src/client/AppFrame.tsx
 @@ -33,7 +33,7 @@ export type AppFrameProps =
@@ -59,10 +59,10 @@ index 323318f..86a33a3 100644
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index b2cb715..968d000 100644
+index b3a60fb6ec..61a5638145 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-@@ -104,7 +104,9 @@
+@@ -94,7 +94,9 @@
    display: flex;
    flex-direction: column;
    /* Let the visible pane's rows set the card width, but keep pathological ids
@@ -74,13 +74,15 @@ index b2cb715..968d000 100644
    min-width: min(240px, calc(100vw - 32px));
    max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index b5a55f5..7252e44 100644
+index b9c8993563..9797fb4c8b 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -167,13 +167,22 @@ export function ModelSelect(
+@@ -167,13 +167,25 @@ export function ModelSelect(
        const rect = triggerRef.current?.getBoundingClientRect()
        if (rect === undefined) return
        const MARGIN = 12
++      // The composer's center column narrows both clamp edges when this trigger
++      // sits in one; without it the viewport alone decides, as before.
 +      const boundary = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]')?.getBoundingClientRect()
 +      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
 +      const maxX = Math.min(window.innerWidth - MARGIN, (boundary?.right ?? window.innerWidth) - MARGIN)
@@ -95,19 +97,20 @@ index b5a55f5..7252e44 100644
 +      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
        if (lh > 0) y = Math.min(Math.max(y, MARGIN), window.innerHeight - lh - MARGIN)
 -      setMenuPos({ left: x, top: y })
-+      setMenuPos({
-+        left: x,
-+        top: y,
-+        ...boundary === undefined ? {} : { minWidth: Math.min(264, availableWidth), maxWidth: availableWidth },
-+      })
++      // A bounded card takes the owner's width: the same 12px inset on both
++      // sides, never wider than the room between them.
++      const bounds = boundary === undefined
++        ? {}
++        : { minWidth: Math.min(264, availableWidth), maxWidth: availableWidth }
++      setMenuPos({ left: x, top: y, ...bounds })
      }
      // First run measures the hidden pre-render (same commit as `open`), so
      // the card lands placed before anything paints.
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index 4a5ee43..a70e88d 100644
+index 4a5ee43b91..7c07d68cb2 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-@@ -213,23 +213,28 @@ describe('ModelSelect reasoning effort', () => {
+@@ -213,23 +213,30 @@ describe('ModelSelect reasoning effort', () => {
      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
      try {
@@ -121,6 +124,7 @@ index 4a5ee43..a70e88d 100644
          t={t}
 -      />)
 +      /></div>)
++      // The composer card's own rect is a zero rect in jsdom; the column's is not.
 +      Object.defineProperty(container.firstElementChild, 'getBoundingClientRect', {
 +        configurable: true,
 +        value: () => ({ left: 280, right: 520, top: 0, bottom: 700, width: 240, height: 700, x: 280, y: 0, toJSON: () => ({}) }),
@@ -134,15 +138,16 @@ index 4a5ee43..a70e88d 100644
 -      // jsdom anchor rects are all zero, so the measured 200x300 card clamps
 -      // to the 12px viewport margin on both axes.
 -      expect(menu.style.left).toBe('12px')
-+      // The owner boundary is narrower than the viewport, so the card keeps
-+      // the 12px center-column margin rather than spilling over the sidebar.
++      // The owner column is narrower than the viewport, so the measured
++      // 200x300 card keeps the 12px column inset instead of spilling over the
++      // sidebar; vertically only the viewport clamps.
 +      expect(menu.style.left).toBe('292px')
 +      expect(menu.style.maxWidth).toBe('216px')
        expect(menu.style.top).toBe('12px')
        // Interactions inside the trigger subtree or the portaled card stay open.
        fireEvent.mouseDown(menu)
 diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
-index 1736fd8..efd2496 100644
+index f34e2b16e9..c5db564e1a 100644
 --- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 +++ b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 @@ -1,4 +1,4 @@
@@ -151,16 +156,16 @@ index 1736fd8..efd2496 100644
  import type { ReactNode } from 'react'
  import clsx from 'clsx'
  import {
-@@ -100,6 +100,8 @@ export function PermissionSelect({
+@@ -80,6 +80,8 @@ export function PermissionSelect({
    const catalog = usePermissionCatalog(state => state.value)
    const [pick, setPick] = useState<string | null>(null)
    const [open, setOpen] = useState(false)
-+  const triggerRef = useRef<HTMLButtonElement | null>(null)
++  /** The center column this trigger sits in; the portaled menu clamps to it. */
 +  const boundaryRef = useRef<HTMLElement | null>(null)
    const [confirmation, setConfirmation] = useState<string | null>(null)
    const [acknowledged, setAcknowledged] = useState(false)
  
-@@ -192,8 +194,13 @@ export function PermissionSelect({
+@@ -172,8 +174,12 @@ export function PermissionSelect({
          onClose={() => { setOpen(false) }}
          side="top"
          portal
@@ -168,78 +173,82 @@ index 1736fd8..efd2496 100644
          anchor={
            <button
 +            ref={(node) => {
-+              triggerRef.current = node
 +              boundaryRef.current = node?.closest<HTMLElement>('[data-dsh-center-col]') ?? null
 +            }}
              type="button"
              className={css.trigger}
              aria-label={t('mode', { name: currentAccessibleLabel })}
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index cefa67e..915e570 100644
+index 3328454710..2255803273 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
-@@ -40,7 +40,7 @@ Check this table before writing a control in a feature package. A plugin cannot
- | `Switch` | Two-state toggle, 36×20. `label` is required, so the control cannot ship unnamed. |
+@@ -41,7 +41,7 @@ Check this table before writing a control in a feature package. A plugin cannot
+ | `SegmentedControl` | Tablist of two or more equal-width segments with one sliding indicator, for switching a card or panel between a few modes; the owner holds the selection and `label` names the list. `id` seeds each tab's id (`<id>-<value>`) and the panel it controls (`<id>-<value>-panel`), which the owner renders and points back at the tab with `aria-labelledby`; a segment may be `disabled` with a `title`, and `disabled` on the control locks every segment while the shown panel has work in flight. |
  | `Checkbox` | Labeled native checkbox with controlled state, keyboard interaction, and disabled styling; the caller supplies localized `label` text. |
  | `Input` | Single-line text entry for search boxes and inline forms. |
--| `Menu` | Dropdown of items, separators, and group labels, with nested submenus. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. |
-+| `Menu` | Dropdown of items, separators, and group labels, with nested submenus. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. Portaled menus may intersect viewport clamping with an owner boundary. |
+-| `Menu`, `MenuItemButton` | Dropdown of `items` data rows, separators, and group labels, with nested submenus; `children` adds component rows, each a `MenuItemButton` (`separatorBefore` starts a new group), in the same list. Every row shares the styling, the keyboard walk, and the focus return; closing stays the owner's state change for both kinds. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. |
++| `Menu`, `MenuItemButton` | Dropdown of `items` data rows, separators, and group labels, with nested submenus; `children` adds component rows, each a `MenuItemButton` (`separatorBefore` starts a new group), in the same list. Every row shares the styling, the keyboard walk, and the focus return; closing stays the owner's state change for both kinds. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. A portaled list may intersect viewport clamping with an owner boundary. |
  | `Pill` | Selectable capsule button for view switchers and filters; takes `active` and `onClick`. |
+ | `SegmentedTabs` | Controlled equal-width tabs with a sliding indicator and Left/Right, Home, and End navigation. The caller supplies labels, tab/panel ids, and panel content. |
  | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
- | `StateDot` | Status mark: `done`, `warning`, `ongoing`, `error`, or `idle`. `aria-hidden`, so the render site owns the name. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index 3c069d0..39eeb5f 100644
+index 598b561e79..dba4808fc2 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
-@@ -40,7 +40,7 @@ kind: "package-library"
- | `Switch` | 36×20 的双态开关。`label` 必填，控件不可能在没有名称的情况下发布。 |
+@@ -41,7 +41,7 @@ kind: "package-library"
+ | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |
  | `Checkbox` | 带标签的原生复选框，支持受控状态、键盘交互和禁用样式；调用方提供本地化的 `label` 文本。 |
  | `Input` | 单行文本输入，用于搜索框与行内表单。 |
--| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。 |
-+| `Menu` | 由条目、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。portal菜单可将视口clamp与owner boundary取交集。 |
+-| `Menu`, `MenuItemButton` | 由 `items` 数据行、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；`children` 在同一列表中加入组件行，每行一个 `MenuItemButton`（`separatorBefore` 开启新分组）。所有行共享样式、键盘走位与焦点归还；两类行的关闭都是 owner 状态的改变。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。 |
++| `Menu`, `MenuItemButton` | 由 `items` 数据行、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；`children` 在同一列表中加入组件行，每行一个 `MenuItemButton`（`separatorBefore` 开启新分组）。所有行共享样式、键盘走位与焦点归还；两类行的关闭都是 owner 状态的改变。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。portal 模式的列表可把视口钳制与 owner boundary 取交集。 |
  | `Pill` | 可选中的胶囊按钮，用于视图切换与筛选器；接受 `active` 与 `onClick`。 |
+ | `SegmentedTabs` | 受控的等宽分段标签，支持滑动指示条及左／右方向键、Home、End 导航。调用方提供文案、标签与面板 id，以及面板内容。 |
  | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
- | `StateDot` | 状态标记：`done`、`warning`、`ongoing`、`error` 或 `idle`。它是 `aria-hidden` 的，名称由渲染点提供。 |
 diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
-index bb04912..1e1e1c7 100644
+index 9547fb8576..0d28236dfb 100644
 --- a/packages/client/ui-primitives/src/Menu.tsx
 +++ b/packages/client/ui-primitives/src/Menu.tsx
 @@ -1,5 +1,5 @@
  import { useEffect, useLayoutEffect, useRef, useState } from 'react'
--import type { CSSProperties, ReactNode } from 'react'
-+import type { CSSProperties, ReactNode, RefObject } from 'react'
+-import type { CSSProperties, ReactNode, SyntheticEvent } from 'react'
++import type { CSSProperties, ReactNode, RefObject, SyntheticEvent } from 'react'
  import { createPortal } from 'react-dom'
  import clsx from 'clsx'
- import { IconCheckOutline16 } from './icons/index.tsx'
-@@ -75,6 +75,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
-  * gap and a brief overshoot survivable; coming back cancels the close.
-  * @param props.dense - reduce vertical row spacing without changing the standard typography or card width.
-  * @param props.compact - use reduced menu typography and spacing.
-+ * @param props.boundaryRef - portal mode only: limit horizontal placement to this owner as well as the viewport.
-  * @param props.getAnchorRect - portal mode only: supply the anchor rect
-  * directly (e.g. from a host-owned trigger button) instead of measuring the
-  * Menu's own wrapper span. Required when the wrapper isn't itself laid out at
-@@ -89,7 +90,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
-  * crowds the cell).
+ import { IconCheckOutlineRegular } from './icons/index.tsx'
+@@ -137,6 +137,10 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * the trigger (render-prop anchors, effect-positioned proxies — measuring the
+  * wrapper there races the host's layout effects). Called on open, each animation
+  * frame, and scroll/resize; return null to skip placement for that frame.
++ * @param props.boundaryRef - portal mode only: intersect horizontal placement
++ * with this owner element's rect as well as the viewport, so a menu owned by a
++ * column stays inside that column when a sidebar or panel leaves a narrow
++ * center.
+  * @param props.footer - rows pinned below the scrolling items area, separated
+  * by a hairline; they stay visible while the items above scroll.
+  * @param props.children - component rows rendered after `items` in the same
+@@ -153,7 +157,7 @@ const MEASURE_STYLE: CSSProperties = { visibility: 'hidden', left: 0, top: 0 }
+  * document.body outside the owner's DOM subtree.
   * @returns anchor wrapper with the conditional list.
   */
--export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, footer, className }: {
-+export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, boundaryRef, footer, className }: {
+-export function Menu({ open, anchor, items = [], children, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, footer, className, listClassName }: {
++export function Menu({ open, anchor, items = [], children, selectedId, selectedIds, onSelect, onClose, align = 'start', side = 'bottom', portal = false, closeOnPointerLeave = false, dense = false, compact = false, autoFocus = false, selection = 'check', getAnchorRect, boundaryRef, footer, className, listClassName }: {
    open: boolean
    autoFocus?: boolean
    anchor: ReactNode
-@@ -107,6 +108,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+@@ -172,6 +176,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
    compact?: boolean
    selection?: 'check' | 'fill'
    getAnchorRect?: () => DOMRect | null
 +  boundaryRef?: RefObject<HTMLElement | null>
    className?: string | undefined
+   listClassName?: string | undefined
  }) {
-   const rootRef = useRef<HTMLSpanElement>(null)
-@@ -174,8 +176,13 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+@@ -240,8 +245,15 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
        const MARGIN = 12
        const vw = window.innerWidth
        const vh = window.innerHeight
++      // The owner boundary narrows both clamp edges; without one the viewport
++      // alone decides, exactly as before.
 +      const boundary = boundaryRef?.current?.getBoundingClientRect()
 +      const minX = Math.max(MARGIN, (boundary?.left ?? 0) + MARGIN)
 +      const maxX = Math.min(vw - MARGIN, (boundary?.right ?? vw) - MARGIN)
@@ -250,7 +259,7 @@ index bb04912..1e1e1c7 100644
        const lh = listEl?.offsetHeight ?? 0
  
        let x: number
-@@ -187,14 +194,18 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+@@ -253,14 +265,22 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
          x = r.left
          y = side === 'bottom' ? r.bottom + 4 : r.top - lh - 4
        } else {
@@ -261,18 +270,22 @@ index bb04912..1e1e1c7 100644
  
 -      if (lw > 0) x = Math.min(Math.max(x, MARGIN), vw - lw - MARGIN)
 +      if (lw > 0) x = Math.min(Math.max(x, minX), maxX - placedWidth)
-       if (lh > 0) y = Math.min(Math.max(y, MARGIN), vh - lh - MARGIN)
+       if (lh > 0) y = Math.min(Math.max(y, overlayTopMargin(MARGIN)), vh - lh - MARGIN)
  
--      setFixedPos({ left: x, top: y })
-+      setFixedPos({
-+        left: x,
-+        top: y,
-+        ...boundary === undefined ? {} : { minWidth: Math.min(218, availableWidth), maxWidth: availableWidth },
-+      })
+-      setFixedPos(current => current?.left === x && current.top === y ? current : { left: x, top: y })
++      // A bounded card takes the owner's width: the same 12px inset on both
++      // sides, never wider than the room between them.
++      const bounds = boundary === undefined
++        ? {}
++        : { minWidth: Math.min(218, availableWidth), maxWidth: availableWidth }
++      setFixedPos(current => current?.left === x && current.top === y
++        && current.minWidth === bounds.minWidth && current.maxWidth === bounds.maxWidth
++        ? current
++        : { left: x, top: y, ...bounds })
      }
      // First run measures the hidden pre-render (same commit as `open`), so
      // end/top alignment and clamping use real dimensions before anything
-@@ -206,7 +217,7 @@ export function Menu({ open, anchor, items, selectedId, selectedIds, onSelect, o
+@@ -279,7 +299,7 @@ export function Menu({ open, anchor, items = [], children, selectedId, selectedI
        window.removeEventListener('scroll', place, true)
        window.removeEventListener('resize', place)
      }
@@ -282,10 +295,10 @@ index bb04912..1e1e1c7 100644
    // Opening remembers where the keyboard was, so closing can hand it back to
    // that control — an anchor wrapping several (a split button) cannot be asked
 diff --git a/packages/client/ui-primitives/tests/atoms.client.spec.tsx b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
-index a2f6b70..458c825 100644
+index a1933e216e..e324aaffb7 100644
 --- a/packages/client/ui-primitives/tests/atoms.client.spec.tsx
 +++ b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
-@@ -416,6 +416,32 @@ describe('Menu', () => {
+@@ -479,6 +479,33 @@ describe('Menu', () => {
      expect(menu.style.top).toBe('132px')
    })
  
@@ -307,6 +320,7 @@ index a2f6b70..458c825 100644
 +        onClose={() => {}}
 +      />)
 +      const menu = screen.getByRole('menu')
++      // The owner is 240px wide, so the 12px insets leave 216px for a 300px card.
 +      expect(menu.style.left).toBe('292px')
 +      expect(menu.style.minWidth).toBe('216px')
 +      expect(menu.style.maxWidth).toBe('216px')

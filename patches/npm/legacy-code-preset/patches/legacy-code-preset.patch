@@ -1,5 +1,5 @@
 diff --git a/packages/api/session-controller/src/agent.ts b/packages/api/session-controller/src/agent.ts
-index 8fd5255..d7748b0 100644
+index 3f0fa77944..f05a3169d5 100644
 --- a/packages/api/session-controller/src/agent.ts
 +++ b/packages/api/session-controller/src/agent.ts
 @@ -12,10 +12,13 @@ import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
@@ -35,7 +35,7 @@ index 8fd5255..d7748b0 100644
        agentPreset: resolvedId,
        setup: async (agentCtx, agent) => {
 diff --git a/packages/api/session-controller/tests/agent.host.spec.ts b/packages/api/session-controller/tests/agent.host.spec.ts
-index 75efa91..9e28732 100644
+index 4756ae45b0..a8612e6d14 100644
 --- a/packages/api/session-controller/tests/agent.host.spec.ts
 +++ b/packages/api/session-controller/tests/agent.host.spec.ts
 @@ -9,6 +9,7 @@ import SessionStore, { SESSION_FORMAT_VERSION, SessionLogOffset, SessionId } fro
@@ -116,7 +116,7 @@ index 75efa91..9e28732 100644
 +  })
  })
 diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-index b40453e..0f22c6d 100644
+index 26fdcfcbf6..25dd5a95bc 100644
 --- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
 +++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
 @@ -19,6 +19,8 @@ import type { AgentPresetSettingsState } from './settings-store.ts'
@@ -135,17 +135,17 @@ index b40453e..0f22c6d 100644
 +  const name = text?.name ?? (preset === LEGACY_PTC_PRESET ? t('presetPtcName') : preset)
    return (
      <span className={css.label} title={text?.description ?? t('headerHint')}>
-       <IconAgentPresetOutline16 size={14} className={css.icon} />
+       <IconAgentPresetOutlineRegular size={14} className={css.icon} />
 -      {text?.name ?? preset}
 +      {name}
      </span>
    )
  }
 diff --git a/packages/client/ui-agent-preset/tests/components.client.spec.tsx b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
-index 6343836..67944a5 100644
+index a900483d4c..bb8eca6cae 100644
 --- a/packages/client/ui-agent-preset/tests/components.client.spec.tsx
 +++ b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
-@@ -329,6 +329,12 @@ describe('the session-header label', () => {
+@@ -344,6 +344,12 @@ describe('the session-header label', () => {
      expect(screen.getByTitle(en.headerHint).textContent).toBe('mine')
    })
  

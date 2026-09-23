@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-officecli-deliverables",
   "description": "Data-only exact source patch adding OfficeCLI originals to the existing deliverables and file-link projection",
-  "version": "0.2.0-rc.20",
+  "version": "0.2.0-rc.21",
   "publishConfig": {
     "access": "public"
   },
@@ -24,10 +24,10 @@
     "variants": [
       {
         "id": "officecli-deliverables",
-        "dsh": ">=0.1.6-alpha.1",
+        "dsh": ">=0.1.7-alpha.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "ddefc45fbc7f8e46dd73185e68295696d1297887",
+          "baseRevision": "00102833dfaee1da9f48a3a8eae9d34005a75218",
           "paths": [
             "packages/client/ui-deliverables/src/client/"
           ]

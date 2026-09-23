@@ -250,7 +250,10 @@ function main(): void {
     '@sparkelf/dsh-api-client': '0.5.1',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
     'dsh-better-sidebar': '0.19.1',
-    '@sparkelf/dsh-plugin-better-sidebar-office': '0.2.1',
+    // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
+    // document tab now renders Office and spreadsheets itself, so the third-party
+    // previewer is redundant. The government font assets stay, and reach the official
+    // conversion through office-to-pdf's fontDirectories.
     '@sparkelf/dsh-office-viewer-fonts': '0.1.2',
     'dsh-video-preview': '0.1.4',
     // The reviewed session background: a new session's centre column renders it, and every
@@ -259,8 +262,10 @@ function main(): void {
     // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
-    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.6-alpha.1',
-    '@deepseek-ai/dsh-experimental-agent-team-web-profile': '>=0.1.6-alpha.1',
+    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-alpha.2',
+    // The two Agent Teams packages release on their own cadence; this one trails the
+    // runtime, so its range names the version the registry actually serves.
+    '@deepseek-ai/dsh-experimental-agent-team-web-profile': '>=0.1.6-alpha.2',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')

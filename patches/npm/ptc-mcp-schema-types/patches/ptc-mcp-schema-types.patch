@@ -64,7 +64,7 @@ index c064fb294c..573cdd69c0 100644
   * Assert the enforced subset plus the object-root constraint retained by
   * subagent and workflow structured outputs.
 diff --git a/packages/core/tools/src/ts-types.ts b/packages/core/tools/src/ts-types.ts
-index d92c987817..a2d6fa7132 100644
+index d92c987817..40fbe3bc59 100644
 --- a/packages/core/tools/src/ts-types.ts
 +++ b/packages/core/tools/src/ts-types.ts
 @@ -7,7 +7,7 @@
@@ -76,6 +76,15 @@ index d92c987817..a2d6fa7132 100644
  import type { JsonSchemaNode, JsonSchemaScalar } from './json-schema.ts'
  /** Internal PTC mode projection: the model-facing schema plus the canonical output schema. */
  export interface ToolSdkSchema extends ToolSchema {
+@@ -219,7 +219,7 @@ function renderSupportedSchema(schema: JsonSchemaNode, indent: number): TypeDocu
+         }
+         break
+       }
+-      /* v8 ignore next -- assertSupportedJsonSchema narrowed this closed type union. */
++      /* v8 ignore next -- assertTypeProjectableJsonSchema narrowed this closed type union. */
+       default:
+         finish(typeDocument('unknown'))
+     }
 @@ -239,7 +239,7 @@ function renderSupportedSchema(schema: JsonSchemaNode, indent: number): TypeDocu
   */
  export function jsonSchemaToTs(schema: unknown, indent = 0): string {

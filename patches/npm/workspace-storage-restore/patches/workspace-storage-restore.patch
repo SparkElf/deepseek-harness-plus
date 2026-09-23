@@ -1,8 +1,8 @@
 diff --git a/packages/workspace/workspace/src/index.ts b/packages/workspace/workspace/src/index.ts
-index 037344fce4..7b6d915807 100644
+index 00eaf0030c..b6e761e1cb 100644
 --- a/packages/workspace/workspace/src/index.ts
 +++ b/packages/workspace/workspace/src/index.ts
-@@ -10,7 +10,7 @@ import { stat } from 'node:fs/promises'
+@@ -10,7 +10,7 @@ import { mkdir, stat } from 'node:fs/promises'
  import { Context, Service } from '@deepseek-ai/cordis'
  import type { SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
  import type {} from '@deepseek-ai/dsh-session-persistence'
@@ -11,7 +11,7 @@ index 037344fce4..7b6d915807 100644
  import { WorkspaceEntity } from './entity.ts'
  import type { WorkspaceEntityHost } from './entity.ts'
  
-@@ -91,6 +91,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
+@@ -170,6 +170,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
  export class WorkspaceRegistry extends Service {
    static inject = ['storageDomain', 'sessionPersistence']
  
@@ -19,7 +19,7 @@ index 037344fce4..7b6d915807 100644
    private table?: KvTable<WorkspaceId, WorkspaceRecord>
    private global?: DomainGlobal<WorkspaceDomainState>
    private state?: WorkspaceDomainState
-@@ -116,8 +117,51 @@ export class WorkspaceRegistry extends Service {
+@@ -195,8 +196,53 @@ export class WorkspaceRegistry extends Service {
  
    /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */
    protected async [Service.init](): Promise<void> {
@@ -36,10 +36,12 @@ index 037344fce4..7b6d915807 100644
 +   * @returns the operation result after the new durable baseline is available.
 +   */
 +  async withStorageRestore<T>(restore: () => Promise<T>): Promise<T> {
-+    // restore替换durable files前必须先退出domain；finally复用startup路径重建全部index。
++    // The restore replaces durable files, so the domain must be closed first;
++    // the finally clause reuses the startup path to rebuild every cache.
 +    return await this.enqueueOperation(async () => {
-+      const domain = this.domain
-+      if (domain === undefined) throw new Error('workspace registry is not started yet')
++      // The queue slot runs recoverPendingMutation first, which requires the
++      // registry state, so the open domain is present by this point.
++      const domain = this.domain as Domain<typeof workspaceDomainSpec>
 +      const previousArchivedSessions = this.requireState().archivedSessionIds.length
 +      await domain.close()
 +      delete this.domain
@@ -72,3 +74,113 @@ index 037344fce4..7b6d915807 100644
      this.table = domain.table('workspaces')
      this.global = domain.global
      this.state = domain.global.get()
+diff --git a/packages/workspace/workspace/tests/workspace.spec.ts b/packages/workspace/workspace/tests/workspace.spec.ts
+index ef3116b3d7..67721e6474 100644
+--- a/packages/workspace/workspace/tests/workspace.spec.ts
++++ b/packages/workspace/workspace/tests/workspace.spec.ts
+@@ -1378,6 +1378,105 @@ describe('first-use Workspace preparation', () => {
+   })
+ })
+ 
++describe('WorkspaceRegistry storage restore', () => {
++  const contexts: Context[] = []
++
++  afterEach(async () => {
++    for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
++  })
++
++  it('serves the replaced baseline, not the pre-restore window, once the restore returns', async () => {
++    const kept = await makeDir('restore-kept')
++    const restored = await makeDir('restore-kept-2')
++    const h = await harness({ sessions: [header('kept', kept, 100)] })
++    contexts.push(h.ctx)
++    const created = await h.registry.create(kept)
++    expect(h.registry.list().map(workspace => workspace.id)).toEqual([created.id])
++
++    // A restore replaces the durable medium wholesale: the registry must
++    // observe the replacement only after reopening, never the old window.
++    const id = WorkspaceId('restored-workspace')
++    const replaced = await h.registry.withStorageRestore(async () => {
++      const medium = h.pool.media.get('workspace')!
++      medium.tables.set('workspaces', new Map([[id, {
++        path: restored,
++        title: 'restored',
++        sessionIds: [],
++        createdAt: '1970-01-01T00:00:01.000Z',
++        updatedAt: '1970-01-01T00:00:01.000Z',
++      }]]))
++      medium.global = {
++        initialized: true,
++        workspaceIds: [id],
++        archivedSessionIds: [SessionId('archived-before-restore')],
++        pinnedSessionIds: [],
++      }
++      return 'replaced'
++    })
++
++    expect(replaced).toBe('replaced')
++    // Both the record set and the registry-global archive set come from the
++    // reopened domain; the pre-restore workspace and archive set are gone.
++    expect(h.registry.list().map(workspace => workspace.path)).toEqual([restored])
++    expect(h.registry.archivedSessionIds).toEqual([SessionId('archived-before-restore')])
++    expect(h.registry.list().map(workspace => workspace.id)).not.toContain(created.id)
++  })
++
++  it('reopens through startup bootstrap so a restored empty baseline is rebuilt', async () => {
++    const dir = await makeDir('restore-rebuild')
++    const h = await harness({ sessions: [header('rebuild', dir, 100)] })
++    contexts.push(h.ctx)
++    await h.registry.create(dir)
++    expect(h.registry.list()).toHaveLength(1)
++
++    await h.registry.withStorageRestore(async () => {
++      const medium = h.pool.media.get('workspace')!
++      medium.tables.set('workspaces', new Map())
++      medium.global = null
++    })
++
++    // The restored medium carries no initialized marker, so the reopened
++    // registry bootstraps the header history again instead of serving a stale cache.
++    expect(storedState(h.pool).initialized).toBe(true)
++    expect(h.registry.list()).toHaveLength(1)
++  })
++
++  it('rebuilds every cache on the restored baseline after the replacement throws', async () => {
++    const dir = await makeDir('restore-throws')
++    const h = await harness({ sessions: [header('throws', dir, 100)] })
++    contexts.push(h.ctx)
++    await h.registry.create(dir)
++
++    await expect(h.registry.withStorageRestore(async () => {
++      const medium = h.pool.media.get('workspace')!
++      medium.tables.set('workspaces', new Map())
++      medium.global = null
++      throw new Error('replacement failed')
++    })).rejects.toThrow('replacement failed')
++
++    // The reopen runs in the finally arm, so the registry is still usable:
++    // the restored empty medium is bootstrapped from the Session headers again.
++    expect(h.registry.list().map(workspace => workspace.path)).toEqual([dir])
++    await expect(h.registry.create(dir)).resolves.toBeDefined()
++  })
++
++  it('serializes a queued mutation behind the restore it was issued during', async () => {
++    const dir = await makeDir('restore-queued')
++    const h = await harness({ sessions: [header('queued', dir, 100)] })
++    contexts.push(h.ctx)
++    const created = await h.registry.create(dir)
++    const order: string[] = []
++    // The restore takes the registry queue slot synchronously, so the delete
++    // issued next runs only after the domain was closed and reopened.
++    const restoring = h.registry.withStorageRestore(async () => { order.push('restore') })
++    const deleting = h.registry.delete(created.id).then((ok) => { order.push('delete'); return ok })
++    await Promise.all([restoring, deleting])
++    expect(order).toEqual(['restore', 'delete'])
++    expect(await deleting).toBe(true)
++    expect(h.registry.list()).toEqual([])
++  })
++})
++
+ // The registry knows no family: the providers merge theirs, and this suite merges its own.
+ declare module '@deepseek-ai/dsh-workspace/types' {
+   interface SessionActivityKindMap {

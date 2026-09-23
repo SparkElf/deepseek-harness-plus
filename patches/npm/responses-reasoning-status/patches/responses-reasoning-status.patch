@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-index 15b8933..415126d 100644
+index a21446f6ff..721a18a7e1 100644
 --- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 +++ b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-@@ -397,6 +397,32 @@
+@@ -415,6 +415,32 @@
    padding-top: 12px;
  }
  
@@ -36,10 +36,10 @@ index 15b8933..415126d 100644
    display: flex;
    flex-direction: column;
 diff --git a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-index bc89f43..2533cae 100644
+index b4df6a7124..74b9f6aa55 100644
 --- a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 +++ b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-@@ -44,6 +44,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
+@@ -45,6 +45,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
  
  
  
@@ -49,7 +49,7 @@ index bc89f43..2533cae 100644
  /** Props of {@link ProviderEditor}. */
  export interface ProviderEditorProps {
    /** Provider route id. */
-@@ -171,6 +174,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -181,6 +184,10 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    const root = useMemo(() => schema.rehydrate(namespace.schema), [namespace.schema, schema])
    const node = useMemo(() => schema.nodeAtPath(root, settingsPath), [root, schema, settingsPath])
    const fallback = schema.getPath(namespace.value, settingsPath)
@@ -60,7 +60,7 @@ index bc89f43..2533cae 100644
    const disabled = props.readOnly || busy
    const layout = layoutOf(namespace.ns)
    const keyRef = refFor(schema, namespace, settingsPath, props.provider)
-@@ -199,6 +206,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -209,6 +216,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
      const value = schema.getPath(source, [key])
      return typeof value === 'string' && value.trim().length > 0 ? value : undefined
    }
@@ -72,7 +72,7 @@ index bc89f43..2533cae 100644
    const setField = (key: string, next: string | undefined): void => {
      // A value of nothing but whitespace is cleared, not stored: `stringAt`
      // already reports it as absent, so the field would otherwise render empty
-@@ -227,6 +239,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -237,6 +249,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    // What the form currently shows, which is what an interrogation must ask:
    // an edited-but-unsaved endpoint, and a key typed but not yet stored.
    const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
@@ -82,7 +82,7 @@ index bc89f43..2533cae 100644
    const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
    const probe = {
      settingsNs: namespace.ns,
-@@ -436,7 +451,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -446,7 +461,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                      value={probeApi ?? ''}
                      aria-label={t('customApi')}
                      disabled={disabled}
@@ -98,8 +98,8 @@ index bc89f43..2533cae 100644
 +                    }}
                    >
                      {/* A profile naming no protocol — hand-written into
-                         settings.yaml with no model to need one — selects
-@@ -450,6 +473,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+                         cordis.patch.yml with no model to need one — selects
+@@ -460,6 +483,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                  </div>
                )
                : null}
@@ -125,27 +125,29 @@ index bc89f43..2533cae 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index d06ee79..9a623ba 100644
+index 9c8a44d9e0..ad9a8c9aca 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
-@@ -89,6 +89,7 @@ export const en = {
-   customDisplayName: 'Display name',
-   customApi: 'API protocol',
-   customApiUnset: 'Not selected',
+@@ -96,6 +96,7 @@ export const en = {
+   protocolOpenAiCompletions: 'OpenAI Chat Completions',
+   protocolOpenAiResponses: 'OpenAI Responses',
+   protocolAnthropicMessages: 'Anthropic Messages',
 +  omitReasoningInputStatus: 'Gateway compatibility mode',
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
    customBaseUrlInvalid: 'Enter a valid HTTP or HTTPS URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
-@@ -200,6 +201,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
-   customDisplayName: '显示名称',
-   customApi: 'API 协议',
-   customApiUnset: '未选择',
+@@ -215,7 +216,8 @@ export const zh: { [Key in keyof typeof en]: string } = {
+   protocolOpenAiCompletions: 'OpenAI Chat Completions',
+   protocolOpenAiResponses: 'OpenAI Responses',
+   protocolAnthropicMessages: 'Anthropic Messages',
+-  customNeedsBaseUrl: '自定义模型 API 需要填写 API 地址。',
 +  omitReasoningInputStatus: '中转站兼容模式',
-   customNeedsBaseUrl: '自定义提供方需要填写 API 地址。',
++  customNeedsBaseUrl: '自定义提供方需要填写 API 地址。',
    customBaseUrlInvalid: '请输入有效的 HTTP 或 HTTPS 地址。',
-   customNeedsModels: '自定义提供方至少需要一个模型。',
+   customNeedsModels: '自定义模型 API 至少需要一个模型。',
+   customBaseUrlPlaceholder: 'https://gateway.example/v1',
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index de9f3e0..404b66d 100644
+index de9f3e0e42..404b66d173 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
 @@ -111,6 +111,24 @@ export interface PiAiAuthInjection {
@@ -182,10 +184,10 @@ index de9f3e0..404b66d 100644
      maxRetries: 0,
    }
 diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
-index 2f9e563..7eda300 100644
+index b07cd57bfb..0907f511c9 100644
 --- a/packages/llm/llm-pi-ai/src/config.ts
 +++ b/packages/llm/llm-pi-ai/src/config.ts
-@@ -87,6 +87,12 @@ export type {
+@@ -88,6 +88,12 @@ export type {
    PiAiThinkingFormat,
  } from './catalog.ts'
  
@@ -198,7 +200,7 @@ index 2f9e563..7eda300 100644
  /** Configuration for one pi-ai provider route; the `providers` dict key IS the route. */
  export interface PiAiProviderProfile {
    /** Credential reference (environment-variable name) resolved per request through `ctx.credentials`. */
-@@ -124,6 +130,8 @@ export interface PiAiProviderProfile {
+@@ -125,6 +131,8 @@ export interface PiAiProviderProfile {
     * refused rather than left looking applied.
     */
    compat?: PiAiCompatProfile
@@ -207,7 +209,7 @@ index 2f9e563..7eda300 100644
    /**
     * Context capacity for a model this route lists that neither the entry nor
     * the installed catalog sizes (default 262,144). A guess by construction, so
-@@ -319,6 +327,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
+@@ -323,6 +331,10 @@ const modelProfile: z<PiAiModelProfile> = z.object({
  /** A {@link modelProfile} whose id lives in the `modelOverrides` dict key. */
  const modelOverride: z<PiAiModelOverride> = z.object(modelFields)
  
@@ -218,7 +220,7 @@ index 2f9e563..7eda300 100644
  const profile = z.object({
    apiKeyEnv: z.string().role('credential-ref'),
    displayName: z.string(),
-@@ -327,6 +339,7 @@ const profile = z.object({
+@@ -331,6 +343,7 @@ const profile = z.object({
    models: z.array(modelProfile),
    modelOverrides: z.dict(modelOverride),
    compat: compatProfile,
@@ -226,7 +228,7 @@ index 2f9e563..7eda300 100644
    defaultContextWindow: z.number().step(1).min(1).default(DEFAULT_CONTEXT_WINDOW),
    defaultMaxTokens: z.number().step(1).min(1).default(DEFAULT_MAX_TOKENS),
    defaultInput: z.array(z.union(MODALITIES)).default([...DEFAULT_INPUT]),
-@@ -422,6 +435,11 @@ export function resolveProfiles(
+@@ -426,6 +439,11 @@ export function resolveProfiles(
        throw new Error(`llm-pi-ai: provider "${provider}" has an empty displayName`)
      }
      assertValidHeaders(provider, source.headers)
