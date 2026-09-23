@@ -78,9 +78,6 @@ minimumReleaseAgeExclude:
   - 'dsh-sql-workbench@0.5.1'
   - 'dsh-better-sidebar@0.19.1'
   - '@huanlin/dsh-plugin-better-locale@0.4.1'
-  # SparkElf's own redistribution of the office preview; the release that pinned it
-  # could not wait out the age window, since the distribution and the package ship together.
-  - '@sparkelf/dsh-plugin-better-sidebar-office@0.2.1'
   - dshmarket@1.45.1
   # Fresh pi-ai releases carry the model catalog updates that are the whole
   # point of bumping it; waiting out the release age would defeat that.
@@ -113,6 +110,33 @@ minimumReleaseAgeExclude:
   # All platform aliases resolve to the @openai/codex package name, so their
   # reviewed exact versions must share one version-union policy entry.
   - '@openai/codex@0.153.4||0.153.4-darwin-arm64||0.153.4-darwin-x64||0.153.4-linux-arm64||0.153.4-linux-x64||0.153.4-win32-arm64||0.153.4-win32-x64'
+  # The distribution follows an official release the day it ships, so the official closure it
+  # resolves cannot wait out the age window: the profile and the release it tracks ship
+  # together, and Plus's own patches are written against exactly this base revision. Every
+  # entry names the exact version dshPlus.sourceBase pins, never a range.
+  - '@deepseek-ai/dsh-attachment@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-brand@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-chunked-list@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-experimental-agent-team-profile@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-experimental-agent-team@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-experimental-client-ui-agent-team@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-experimental-tool-agent-team@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-invariants@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-llm@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-ptc-runtime@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-sandbox-policy@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-sandbox@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-session-persistence@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-session-projection@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-session@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-subagent@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-timeout@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-tools@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-typert-protocol@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-user-approval@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-util-crypto@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-util-time@0.1.7-alpha.2'
+  - '@deepseek-ai/dsh-util-values@0.1.7-alpha.2'
 
 patchedDependencies:
   '@yao-pkg/pkg@6.21.0': patches/@yao-pkg__pkg@6.21.0.patch
