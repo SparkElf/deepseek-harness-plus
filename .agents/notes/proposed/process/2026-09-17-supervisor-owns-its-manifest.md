@@ -37,6 +37,32 @@ So an edit made while the service runs is discarded by the stop that follows it.
 
 **The runbook names the steps but not the order's constraint.** Its step 7 says to capture sessions and switch the profile atomically; the atomicity that matters here is stopping before editing the manifest, which no step states.
 
+## A later measurement: every phase writes, not only stop
+
+Promoting to `0.1.7-rc.1` reproduced this with a different trigger. `dsh-plus-switch` wrote the
+manifest, then ran `profile-guard accept` — which takes seconds while the supervisor is still
+serving — and the reload that followed adopted the *previous* mirror:
+
+```
+reload.adopting  from=.../plus-rc30/apps/cli/lib/bin.js  to=.../plus-rc30/apps/cli/lib/bin.js
+```
+
+The writer is `announce()`, not merely `stop()`:
+
+```js
+announce(key, values = {}) {
+  this.phase = { key, values }
+  ...
+  this.writeStatus()          // every progress phase serializes the in-memory manifest
+}
+```
+
+A supervisor that is still running therefore rewrites the file on any progress phase, so the
+window between writing and reading the manifest is not safe while the unit is active. The
+sequence that holds is **accept first, write the manifest last**, immediately before the reload
+that reads it; `dsh-plus-switch` now orders its steps `link → accept → manifest → reload →
+verify` for that reason.
+
 ## Proposal
 
 **Stop the process that owns a file before editing it, and verify the served artifact rather than the command's exit status.**

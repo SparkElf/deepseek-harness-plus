@@ -37,6 +37,30 @@ writeStatus() {
 
 **runbook 命名了步骤，却没有说出顺序上的约束。** 其第 7 步说要捕获会话并原子地切换 profile；而这里真正要的原子性，是在编辑 manifest 之前先停止进程，没有任何一步写明这一点。
 
+## 后续测量：不止 stop，每个阶段都会写
+
+升级到 `0.1.7-rc.1` 时以另一种触发方式复现了同一问题。`dsh-plus-switch` 先写 manifest，
+随后运行 `profile-guard accept` —— 该步骤耗时数秒，期间 supervisor 仍在服务 —— 之后执行的
+reload 采纳的却是**前一个** mirror：
+
+```
+reload.adopting  from=.../plus-rc30/apps/cli/lib/bin.js  to=.../plus-rc30/apps/cli/lib/bin.js
+```
+
+写入者是 `announce()`，而不只是 `stop()`：
+
+```js
+announce(key, values = {}) {
+  this.phase = { key, values }
+  ...
+  this.writeStatus()          // every progress phase serializes the in-memory manifest
+}
+```
+
+因此仍在运行的 supervisor 会在任意进度阶段重写该文件，单元处于 active 时写入与读取 manifest
+之间的窗口并不安全。成立的顺序是**先 accept、最后写 manifest**，且紧接其后就是读取它的 reload；
+`dsh-plus-switch` 现在正因如此把步骤排为 `link → accept → manifest → reload → verify`。
+
 ## Proposal
 
 **在编辑一个文件之前，先停止拥有它的进程；并验证实际服务的产物，而不是命令的退出状态。**
