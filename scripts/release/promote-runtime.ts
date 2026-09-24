@@ -54,7 +54,8 @@ function require(command: string, args: readonly string[]): string {
 function readRuntimeVersion(version: string): string {
   const published = require('npm', ['view', '@sparkelf/dsh-plus@' + version, 'dshPlus.compatibility.dsh', '--json']).trim()
   const parsed: unknown = JSON.parse(published)
-  const range = typeof parsed === 'string' ? parsed : undefined
+  // npm serialises a single value as an array under --json, so both forms are read.
+  const range = typeof parsed === 'string' ? parsed : Array.isArray(parsed) && typeof parsed[0] === 'string' ? parsed[0] : undefined
   const match = range === undefined ? null : /^>=?(.+)$/.exec(range)
   if (match?.[1] === undefined) {
     throw new Error('promote-runtime: @sparkelf/dsh-plus@' + version + ' declares no compatibility range (' + published + ')')
@@ -161,6 +162,21 @@ async function main(): Promise<number> {
   if (installed !== values.version) {
     throw new Error('promote-runtime: the profile still carries ' + String(installed) + ' after installing ' + values.version)
   }
+
+  console.log('')
+  // The profile guard refuses a start whose accepted closure changed, and a promotion changes it
+  // by definition. Acceptance is what records the new closure, and it is a separate action from
+  // the restart: the unit performs it from an ExecStartPre hook, so a restart issued directly
+  // through the supervisor's runtime command skips it. Without this the guard rolls the profile
+  // back, the unit retries until StartLimitBurst trips, and the only trace is a bare exit code.
+  console.log('promote-runtime: recording the new profile closure')
+  const guard = join(DSH_HOME, 'supervisor', 'profile-guard.mjs')
+  if (!existsSync(guard)) throw new Error('promote-runtime: no profile guard at ' + guard)
+  require('node', [guard, 'accept',
+    '--profile', profile,
+    '--profile-link', join(DSH_HOME, 'profiles', 'plus'),
+    '--manifest', MANIFEST,
+    '--state', join(DSH_HOME, 'supervisor', 'accepted-profile.json')])
 
   console.log('')
   console.log('promote-runtime: restarting through the supervisor')
