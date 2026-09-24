@@ -75,6 +75,7 @@ minimumReleaseAgeExclude:
   - '@sparkelf/dsh-ssh-manager@0.7.2'
   - '@sparkelf/dsh-workbench-vault@0.1.2'
   - '@changfenhuang/dsh-genui@0.9.9'
+  - '@changfenhuang/dsh-genui@0.11.1'
   - 'dsh-sql-workbench@0.5.1'
   - 'dsh-better-sidebar@0.19.1'
   - '@huanlin/dsh-plugin-better-locale@0.4.1'

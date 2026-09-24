@@ -1682,6 +1682,9 @@ importers:
       '@sparkelf/dsh-patch-mobile-journal-generation':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/mobile-journal-generation
+      '@sparkelf/dsh-patch-office-preview-stable-load':
+        specifier: workspace:>=0.2.0-rc.25
+        version: link:../../../patches/npm/office-preview-stable-load
       '@sparkelf/dsh-patch-officecli-deliverables':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/officecli-deliverables
@@ -11400,6 +11403,8 @@ importers:
   patches/npm/legacy-code-preset: {}
 
   patches/npm/mobile-journal-generation: {}
+
+  patches/npm/office-preview-stable-load: {}
 
   patches/npm/officecli-deliverables: {}
 
