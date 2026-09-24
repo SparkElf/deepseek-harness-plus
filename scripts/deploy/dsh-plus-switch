@@ -1,0 +1,246 @@
+#!/usr/bin/env bash
+#
+# Switch the Plus runtime mirror that 3080 serves, safely.
+#
+#   dsh-plus-switch <new-mirror-absolute-path>
+#
+# Why this exists instead of editing runtime.json and restarting:
+#
+# The supervisor reads its manifest once at start and keeps that copy in memory; its stop()
+# path serializes that in-memory copy back over runtime.json. Stopping the unit, editing the
+# manifest, and starting it again therefore races the supervisor's own write, and the restarted
+# service can serve the previous mirror. Measured 2026-09-24: the manifest named plus-rc31 after
+# the edit, systemctl start succeeded, and the web process still ran plus-rc30.
+#
+# The supervisor exposes `reload` for exactly this: it re-reads the manifest, adopts the new
+# runtime, stops web, starts it against the adopted runtime, and recovers the Sessions it
+# captured -- in one operation, in the process that already owns the listening socket. Because
+# the unit is never stopped, its control socket stays up and this script cannot be killed by a
+# stop it requests (which is why the systemd-run detach below exists for the fallback path).
+#
+# It verifies the served profile afterwards rather than trusting the exit code of the command.
+#
+# Every step appends its name to a phase file before it runs and its outcome after
+# it finishes, and the whole run is appended to a log. An interrupted run therefore
+# reports where it stopped instead of leaving an operator to infer it from file
+# timestamps: the first attempt stopped the service, then ended before recording the
+# new profile, and nothing in the tree said which steps had not run.
+#
+# Dead symlinks in the target profile are repaired first. The guard opens every entry
+# under profile/node_modules, so one pointing at a package upstream has since moved
+# aborts the accept with ENOENT. Measured going from 0.1.6-alpha.1 to 0.1.6-alpha.2:
+# upstream relocated tool-present from packages/fs/ to packages/deliverables/.
+set -euo pipefail
+
+NODE=/root/.nvm/versions/node/v24.18.0/bin/node
+MANIFEST=/root/.dsh/supervisor/runtime.json
+PROFILE_LINK=/root/.dsh/profiles/plus
+UNIT=deepseek-harness-plus.service
+PORT=3080
+REFRESH=/root/.dsh/dsh-plus-refresh
+LOG=/root/.dsh/dsh-plus-switch.log
+PHASE=/root/.dsh/dsh-plus-switch.phase
+
+if [ "${1:-}" = "" ]; then
+  echo "usage: dsh-plus-switch <absolute-mirror-path>" >&2
+  exit 2
+fi
+
+MIRROR="$1"
+
+# Run outside the runtime unit. A switch started from a 3080 session inherits that unit's
+# cgroup, and the fallback path below stops the unit, which would kill this very script
+# (measured 2026-09-24 15:33). systemd-run gives it a sibling transient unit that the stop
+if [ "${DSH_SWITCH_DETACHED:-}" != "1" ] && [ "${1:-}" != "--foreground" ]; then
+  case "$MIRROR" in --foreground) MIRROR="$2" ;; esac
+  if command -v systemd-run >/dev/null 2>&1; then
+    echo "[switch] detaching into a transient unit so the stop cannot kill me"
+    exec systemd-run --unit "dsh-plus-switch-$$" --collect --quiet --pipe \
+      --setenv DSH_SWITCH_DETACHED=1 \
+      "$0" "$MIRROR"
+  fi
+  echo "[switch] warning: systemd-run unavailable; a stop may terminate this switch" >&2
+fi
+
+if [ ! -d "$MIRROR/profile" ]; then
+  echo "dsh-plus-switch: $MIRROR has no profile directory" >&2
+  exit 2
+fi
+
+# Ask whether the target can actually serve before the running service is touched. The
+# directory test above accepts an EMPTY profile, and a switch that stops 3080 for a target
+# which cannot start is worse than no switch at all. Two questions, both cheap:
+#   - is the profile materialised (manifest, cordis root, installed distribution)?
+#   - does the distribution accept the official baseline this release tree provides?
+# The second is the one that poisoned 2026-09-24: the distribution required >=0.1.7-rc.1
+# while the served tree was 0.1.6-alpha.2, so every plugin failed to import.
+if ! "$NODE" /root/.dsh/supervisor/check-target.mjs --mirror "$MIRROR"; then
+  echo "dsh-plus-switch: $MIRROR cannot serve; the running service was not touched" >&2
+  exit 3
+fi
+
+: > "$LOG"
+exec >> "$LOG" 2>&1
+
+# Record the step before running it, so an interrupted run leaves the name of the
+# step it did not finish rather than only a log whose last line is ambiguous.
+step() { printf '%s %s %s\n' "$(date -Is)" "$1" "${2:-start}" >> "$PHASE"; echo "[switch] $1 ${2:-}"; }
+
+step total start
+echo "[switch] target mirror: $MIRROR"
+
+# 0. Repair dead symlinks before anything reads the profile.
+step repair-links start
+repaired=0
+while read -r link; do
+  [ -e "$link" ] && continue
+  name=$(basename "$link")
+  short=${name#@deepseek-ai/}
+  found=$(find "$MIRROR/packages" "$MIRROR/vendor" -maxdepth 3 -type d -name "$short" 2>/dev/null | head -1)
+  if [ -n "$found" ]; then
+    ln -sfn "$found" "$link"
+    echo "[switch]   repaired $name -> $found"
+    repaired=$((repaired+1))
+  else
+    echo "[switch]   cannot resolve $name (no package directory named $short)" >&2
+  fi
+done < <(find "$MIRROR/profile/node_modules" -maxdepth 4 -type l 2>/dev/null)
+step repair-links "done repaired=$repaired"
+
+# What is serving now, so a failure after the stop can be undone. Captured before the stop
+# because the stop is the point of no return: an interrupted run used to leave the unit down
+# with no record of what it had been serving.
+PREVIOUS_LINK=$(readlink -f "$PROFILE_LINK" 2>/dev/null || true)
+ROLLBACK_MANIFEST="$MANIFEST.pre-switch-"$(date +%Y%m%d-%H%M%S)
+cp -p "$MANIFEST" "$ROLLBACK_MANIFEST" 2>/dev/null || true
+ROLLED_BACK=no
+
+rollback() {
+  [ "$ROLLED_BACK" = yes ] && return 0
+  ROLLED_BACK=yes
+  step rollback start
+  echo "[switch] $1" >&2
+  if [ -n "$PREVIOUS_LINK" ] && [ -d "$PREVIOUS_LINK" ]; then
+    ln -sfn "$PREVIOUS_LINK" "$PROFILE_LINK"
+    echo "[switch] profile link restored to $PREVIOUS_LINK"
+  fi
+  if [ -f "$ROLLBACK_MANIFEST" ]; then
+    cp -p "$ROLLBACK_MANIFEST" "$MANIFEST"
+    echo "[switch] manifest restored from $ROLLBACK_MANIFEST"
+  fi
+  # The unit was never stopped, so recovery is a reload back onto the restored manifest: the
+  # supervisor that owns the socket adopts the previous mirror and restarts web onto it. If the
+  # unit is somehow down, start it first -- that path is the only one that needs systemctl.
+  if [ "$(systemctl is-active "$UNIT")" != active ]; then
+    systemctl reset-failed "$UNIT" 2>/dev/null || true
+    systemctl start "$UNIT" 2>/dev/null || true
+  fi
+  ROLLBACK_SUPERVISOR="$(readlink -f "$PROFILE_LINK" 2>/dev/null)/node_modules/@sparkelf/dsh-plugin-supervisor/runtime/bin.mjs"
+  if [ -f "$ROLLBACK_SUPERVISOR" ]; then
+    "$NODE" "$ROLLBACK_SUPERVISOR" --manifest "$MANIFEST" reload 2>/dev/null || true
+  fi
+  for _ in $(seq 1 75); do
+    sleep 2
+    [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:$PORT/" 2>/dev/null)" = "200" ] && break
+  done
+}
+
+# An operator interrupt must not leave the service down either.
+trap 'rollback "interrupted by a signal"' INT TERM
+
+# 1. Point the profile link at the new mirror. The unit keeps running: reload re-reads the
+#    manifest and adopts the new runtime inside the supervisor that already owns the socket,
+#    so there is no window in which a fresh supervisor could read a stale in-memory copy.
+
+step link start
+ln -sfn "$MIRROR/profile" "$PROFILE_LINK"
+step link "done -> $MIRROR/profile"
+
+# 2. Record the profile so the guard accepts the reload.
+step accept start
+echo "[switch] preflight, then record the accepted profile"
+# Repair the scope and prove module identity before the fingerprint is recorded.
+"$NODE" /root/.dsh/supervisor/preflight-start.mjs
+step accept done
+
+
+# 3. Write the manifest LAST, because the running supervisor overwrites it.
+#    Its announce() writes its in-memory manifest back on every progress phase, so a write
+#    made while the unit still runs is discarded -- measured 2026-09-24: the manifest named
+#    plus-rc31, accept ran for four seconds, and reload then adopted plus-rc30 because the
+#    supervisor had written its own copy back in between. Ordering it after accept is what
+#    makes the value survive to the reload that reads it.
+step manifest start
+"$NODE" -e "
+const { readFileSync, writeFileSync } = require('node:fs')
+const path = '$MANIFEST'
+const manifest = JSON.parse(readFileSync(path, 'utf8'))
+const previous = manifest.runtime.args[0]
+manifest.runtime.args = manifest.runtime.args.map(argument => argument.replace(/plus-rc\\d+/, '$MIRROR'.match(/plus-rc\\d+/)?.[0] ?? ''))
+manifest.runtime.cwd = '$MIRROR'
+manifest.runtime.args[0] = '$MIRROR/apps/cli/lib/bin.js'
+delete manifest.webPid
+manifest.state = 'stopped'
+writeFileSync(path, JSON.stringify(manifest, null, 2) + String.fromCharCode(10))
+console.log('[switch] manifest runtime: ' + previous + ' -> ' + manifest.runtime.args[0])
+"
+
+step manifest done
+
+# 4. Reload. The supervisor adopts the manifest on disk and restarts web onto it, capturing
+#    and recovering Sessions in the same operation. Its exit status is not the evidence: the
+#    check below reads which mirror the resulting web process actually runs, because a reload
+#    that adopts the file but starts the old runtime would look identical to success.
+step reload start
+if [ "$(systemctl is-active "$UNIT")" != active ]; then
+  echo "[switch] $UNIT is not active; starting it before reload"
+  systemctl reset-failed "$UNIT" 2>/dev/null || true
+  systemctl start "$UNIT"
+  for _ in $(seq 1 60); do
+    systemctl is-active --quiet "$UNIT" && break
+    sleep 1
+  done
+fi
+SUPERVISOR="$(readlink -f "$PROFILE_LINK")/node_modules/@sparkelf/dsh-plugin-supervisor/runtime/bin.mjs"
+if [ ! -f "$SUPERVISOR" ]; then
+  step reload failed
+  rollback "no supervisor runtime at $SUPERVISOR"
+  exit 1
+fi
+echo "[switch] reloading through $SUPERVISOR"
+"$NODE" "$SUPERVISOR" --manifest "$MANIFEST" reload
+
+ready=no
+for _ in $(seq 1 100); do
+  sleep 3
+  if [ "$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 "http://127.0.0.1:$PORT/" 2>/dev/null)" = "200" ]; then ready=yes; break; fi
+done
+if [ "$ready" != "yes" ]; then
+  step reload failed
+  rollback "$UNIT did not answer on $PORT after reload"
+  exit 1
+fi
+step reload "done ready"
+# 5. Verify the SERVED mirror, because neither systemctl's nor reload's exit status proves which
+#    runtime the web process ended up on. The ceiling is 300s because a cold start of a mirror
+#    whose web bundle is not built yet loads every client module before it listens.
+step verify start
+served=$(ps -eo args 2>/dev/null | grep "bin.js --profile plus --port $PORT" | grep -v grep | grep -oE 'plus-rc[0-9]+' | head -1)
+target=$(echo "$MIRROR" | grep -oE 'plus-rc[0-9]+')
+if [ -z "$served" ]; then
+  # No serving web process matched at all: the probe failed, not the switch.
+  step verify failed
+  rollback "no web process for port $PORT could be found"
+  exit 1
+fi
+if [ "$served" != "$target" ]; then
+  step verify failed
+  rollback "serving $served but $target was requested"
+  exit 1
+fi
+step verify done
+
+step total done
+trap - INT TERM
+echo "[switch] serving $served on $PORT"
+echo "[switch] rollback manifest kept at $ROLLBACK_MANIFEST"

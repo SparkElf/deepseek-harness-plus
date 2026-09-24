@@ -26,9 +26,11 @@ Writing a second, partial copy of any of these is the mistake this skill exists 
 
 1. **Build the mirror.** Check out the new official revision in a release mirror, keep the previous mirror as the rollback anchor, apply this repository's patches, then run `dsh-plus-build <mirror>`.
 2. **Point the profile at the matching republished packages.** The overrides live in the profile's `pnpm-workspace.yaml`. Two version sequences meet here and they are not the same number: the distribution releases as `0.2.0-rc.N`, while a republished official package carries the official revision it was built from, `0.1.7-rc.1`. Read the range from the version being promoted, never from the installed one — the installed copy names the base being left.
-3. **Record the profile closure.** The supervisor's profile guard refuses to start when the accepted closure changed without a new acceptance. `dsh-plus-refresh accept` does this; a bare restart does not, and the guard then rolls the profile back while the unit retries until `StartLimitBurst` trips, leaving one bare exit code in the journal.
-4. **Restart through the supervisor**, not the service manager. The unit runs the supervisor and the web process is its child; `systemctl restart` kills both, so the control socket disappears and every connection is refused during the restart. Use `dsh-3080-restart` or `dsh-plus-refresh restart`.
-5. **Verify the runtime, not the distribution version.** See below: this is the step whose absence makes a failed promotion look successful.
+3. **Write the manifest last, after acceptance.** A running supervisor rewrites its manifest on every progress phase — `announce()` calls `writeStatus()`, not only `stop()` — so a manifest written before a multi-second acceptance step is the supervisor's own older copy by the time anything reads it. Measured: the manifest named the new mirror, acceptance ran for seconds, and the reload adopted the previous mirror. `dsh-plus-switch` orders its steps `link → accept → manifest → reload → verify` for this reason.
+
+4. **Record the profile closure.** The supervisor's profile guard refuses to start when the accepted closure changed without a new acceptance. `dsh-plus-refresh accept` does this; a bare restart does not, and the guard then rolls the profile back while the unit retries until `StartLimitBurst` trips, leaving one bare exit code in the journal.
+5. **Restart through the supervisor**, not the service manager. The unit runs the supervisor and the web process is its child; `systemctl restart` kills both, so the control socket disappears and every connection is refused during the restart. Use `dsh-3080-restart` or `dsh-plus-refresh restart`.
+6. **Verify the runtime, not the distribution version.** See below: this is the step whose absence makes a failed promotion look successful.
 
 ## Verify the runtime package versions
 
