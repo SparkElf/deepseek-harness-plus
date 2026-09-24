@@ -74,8 +74,9 @@ minimumReleaseAgeExclude:
   - '@sparkelf/dsh-plugin-supervisor@0.1.5'
   - '@sparkelf/dsh-ssh-manager@0.7.2'
   - '@sparkelf/dsh-workbench-vault@0.1.2'
-  - '@changfenhuang/dsh-genui@0.9.9'
-  - '@changfenhuang/dsh-genui@0.11.1'
+  # Matched by bare name: the exact-version form did not exempt this third-party
+  # package, and the profile pins the version it resolves.
+  - '@changfenhuang/dsh-genui'
   - 'dsh-sql-workbench@0.5.1'
   - 'dsh-better-sidebar@0.19.1'
   - '@huanlin/dsh-plugin-better-locale@0.4.1'
