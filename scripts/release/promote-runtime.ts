@@ -42,6 +42,25 @@ function require(command: string, args: readonly string[]): string {
 }
 
 /**
+ * Read the official revision the version being promoted was built from.
+ *
+ * The distribution declares it in `compatibility.dsh`, which is the range the republished
+ * official packages satisfy. Reading it from the release rather than deriving it from the
+ * distribution's own version keeps the two sequences separate.
+ * @param profileDirectory - the release's profile directory.
+ * @returns the official revision string, for example `0.1.7-rc.1`.
+ */
+function readRuntimeVersion(profileDirectory: string): string {
+  const manifest = join(profileDirectory, 'node_modules', '@sparkelf', 'dsh-plus', 'package.json')
+  if (!existsSync(manifest)) throw new Error('promote-runtime: ' + manifest + ' is absent, so the official revision is unknown')
+  const range = (JSON.parse(readFileSync(manifest, 'utf8')) as { dshPlus?: { compatibility?: { dsh?: string } } })
+    .dshPlus?.compatibility?.dsh
+  const match = range === undefined ? null : /^>=?(.+)$/.exec(range)
+  if (match?.[1] === undefined) throw new Error('promote-runtime: the distribution declares no compatibility range')
+  return match[1]
+}
+
+/**
  * Read the release directory the supervisor currently runs.
  *
  * The manifest names it, so this reads the manifest rather than guessing a directory name:
@@ -72,15 +91,15 @@ function installedVersion(profileDirectory: string): string | undefined {
 }
 
 /**
- * Move every override that names this distribution onto the release being promoted.
+ * Move every override that names this distribution's republished official packages.
  *
  * An override substitutes this repository's build of an official package, for example
- * `@deepseek-ai/dsh-llm: npm:@sparkelf/dsh-llm@0.1.6-alpha.2`. Those builds are republished with
- * the distribution, so their version tracks the release: leaving them behind installs a
- * distribution whose replaced packages come from the previous base, which is the mismatch that
- * makes a promotion look successful and behave like the release before it.
+ * `@deepseek-ai/dsh-llm: npm:@sparkelf/dsh-llm@0.1.7-rc.1`. Two version sequences meet here and
+ * they are not the same number: the distribution releases as `0.2.0-rc.N`, while a republished
+ * official package carries the official revision it was built from, `0.1.7-rc.1`. Passing the
+ * distribution's version would send pnpm looking for a build that does not exist.
  * @param source - pnpm-workspace.yaml text.
- * @param version - release version to move the overrides onto.
+ * @param runtimeVersion - official revision the republished packages carry.
  * @returns the updated text and how many overrides moved.
  */
 function refreshOverrides(source: string, version: string): { source: string; moved: number } {
@@ -128,9 +147,10 @@ async function main(): Promise<number> {
   // resolves the official peer ranges those overrides exist to satisfy and fails on the conflict.
   const overrides = join(profile, 'pnpm-workspace.yaml')
   if (existsSync(overrides)) {
-    const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), values.version)
+    const runtimeVersion = readRuntimeVersion(profile)
+    const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), runtimeVersion)
     writeFileSync(overrides, rewritten.source)
-    console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto the release')
+    console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto ' + runtimeVersion)
   }
   console.log('promote-runtime: installing ' + values.version + ' into the profile')
   require('pnpm', ['install', '--dir', profile, '--config.lockfile=false', '@sparkelf/dsh-plus@' + values.version, '--silent'])
