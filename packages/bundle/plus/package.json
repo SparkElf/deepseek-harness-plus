@@ -65,7 +65,7 @@
         "dsh-right-bg-anim"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.11.0",
+        "@changfenhuang/dsh-genui": "0.11.1",
         "@sparkelf/dsh-mineru": "0.1.2",
         "@sparkelf/dsh-officecli": "0.1.2",
         "@sparkelf/dsh-plugin-supervisor": "0.1.6",
