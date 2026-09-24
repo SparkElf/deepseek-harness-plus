@@ -1,5 +1,7 @@
 # Deployment scripts
 
+English | [中文](README.zh.md)
+
 These run against a live deployment under the DSH home. They live here as the record of the
 procedure; the deployment home holds the copies that execute.
 
