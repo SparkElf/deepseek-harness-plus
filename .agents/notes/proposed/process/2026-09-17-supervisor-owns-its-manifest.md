@@ -11,8 +11,7 @@ Promoting 3080 from the rc.28 mirror to rc.29 looked like it had failed three ti
 The manifest and the running process disagreed, and the manifest kept reverting:
 
 ```
-runtime.json: /root/.dsh/releases/plus/plus-rc29/apps/cli/lib/bin.js
-web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile plus --port 3080
+runtime.json: /root/.dsh/releases/plus/plus-rc29/apps/cli/lib/bin.js web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile plus --port 3080
 ```
 
 ## Why it reached production
@@ -20,12 +19,10 @@ web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile p
 **The supervisor caches its manifest and writes it back on stop.** `readSupervisorManifest` runs once at start; every later write uses that in-memory copy:
 
 ```js
-// runtime/supervisor.mjs
-async stop() {
+// runtime/supervisor.mjs async stop() {
   ...
   this.writeStatus()          // serializes THIS.MANIFEST, not the file
-}
-writeStatus() {
+} writeStatus() {
   const content = JSON.stringify({ ...this.manifest, state, webPid, phase })
   writeSupervisorManifest(this.manifestPath, content)
 }
@@ -39,9 +36,7 @@ So an edit made while the service runs is discarded by the stop that follows it.
 
 ## A later measurement: every phase writes, not only stop
 
-Promoting to `0.1.7-rc.1` reproduced this with a different trigger. `dsh-plus-switch` wrote the
-manifest, then ran `profile-guard accept` — which takes seconds while the supervisor is still
-serving — and the reload that followed adopted the *previous* mirror:
+Promoting to `0.1.7-rc.1` reproduced this with a different trigger. `dsh-plus-switch` wrote the manifest, then ran `profile-guard accept` — which takes seconds while the supervisor is still serving — and the reload that followed adopted the *previous* mirror:
 
 ```
 reload.adopting  from=.../plus-rc30/apps/cli/lib/bin.js  to=.../plus-rc30/apps/cli/lib/bin.js
@@ -57,11 +52,7 @@ announce(key, values = {}) {
 }
 ```
 
-A supervisor that is still running therefore rewrites the file on any progress phase, so the
-window between writing and reading the manifest is not safe while the unit is active. The
-sequence that holds is **accept first, write the manifest last**, immediately before the reload
-that reads it; `dsh-plus-switch` now orders its steps `link → accept → manifest → reload →
-verify` for that reason.
+A supervisor that is still running therefore rewrites the file on any progress phase, so the window between writing and reading the manifest is not safe while the unit is active. The sequence that holds is **accept first, write the manifest last**, immediately before the reload that reads it; `dsh-plus-switch` now orders its steps `link → accept → manifest → reload → verify` for that reason.
 
 ## Proposal
 

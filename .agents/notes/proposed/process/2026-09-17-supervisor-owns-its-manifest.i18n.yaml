@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-09-17-supervisor-owns-its-manifest.md
-2026-09-17-supervisor-owns-its-manifest.md: 4c4c33f9fb88b419a18e2809760ff1ece939fcbd
-2026-09-17-supervisor-owns-its-manifest.zh.md: 14952c36f9bf5dc9ae2643e5c8ba97e21ce8c500
+2026-09-17-supervisor-owns-its-manifest.md: 0a1be9ad1a108c0a8ac1d02d0a264a968e34d0fb
+2026-09-17-supervisor-owns-its-manifest.zh.md: ef8d0059a6aabfc351c702dd0d0a02a5a8f7cbdc

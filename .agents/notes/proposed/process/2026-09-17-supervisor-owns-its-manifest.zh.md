@@ -11,8 +11,7 @@ Status: proposed
 manifest 与运行中的进程互相矛盾，而且 manifest 不断被改回去：
 
 ```
-runtime.json: /root/.dsh/releases/plus/plus-rc29/apps/cli/lib/bin.js
-web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile plus --port 3080
+runtime.json: /root/.dsh/releases/plus/plus-rc29/apps/cli/lib/bin.js web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile plus --port 3080
 ```
 
 ## Why it reached production
@@ -20,12 +19,10 @@ web process:  /root/.dsh/releases/plus/plus-rc28/apps/cli/lib/bin.js --profile p
 **supervisor 缓存自己的 manifest，并在停止时写回。** `readSupervisorManifest` 只在启动时运行一次；此后每次写入用的都是那份内存副本：
 
 ```js
-// runtime/supervisor.mjs
-async stop() {
+// runtime/supervisor.mjs async stop() {
   ...
   this.writeStatus()          // serializes THIS.MANIFEST, not the file
-}
-writeStatus() {
+} writeStatus() {
   const content = JSON.stringify({ ...this.manifest, state, webPid, phase })
   writeSupervisorManifest(this.manifestPath, content)
 }
@@ -39,9 +36,7 @@ writeStatus() {
 
 ## 后续测量：不止 stop，每个阶段都会写
 
-升级到 `0.1.7-rc.1` 时以另一种触发方式复现了同一问题。`dsh-plus-switch` 先写 manifest，
-随后运行 `profile-guard accept` —— 该步骤耗时数秒，期间 supervisor 仍在服务 —— 之后执行的
-reload 采纳的却是**前一个** mirror：
+升级到 `0.1.7-rc.1` 时以另一种触发方式复现了同一问题。`dsh-plus-switch` 先写 manifest， 随后运行 `profile-guard accept` —— 该步骤耗时数秒，期间 supervisor 仍在服务 —— 之后执行的 reload 采纳的却是**前一个** mirror：
 
 ```
 reload.adopting  from=.../plus-rc30/apps/cli/lib/bin.js  to=.../plus-rc30/apps/cli/lib/bin.js
@@ -56,10 +51,7 @@ announce(key, values = {}) {
   this.writeStatus()          // every progress phase serializes the in-memory manifest
 }
 ```
-
-因此仍在运行的 supervisor 会在任意进度阶段重写该文件，单元处于 active 时写入与读取 manifest
-之间的窗口并不安全。成立的顺序是**先 accept、最后写 manifest**，且紧接其后就是读取它的 reload；
-`dsh-plus-switch` 现在正因如此把步骤排为 `link → accept → manifest → reload → verify`。
+因此仍在运行的 supervisor 会在任意进度阶段重写该文件，单元处于 active 时写入与读取 manifest 之间的窗口并不安全。成立的顺序是**先 accept、最后写 manifest**，且紧接其后就是读取它的 reload；`dsh-plus-switch` 现在正因如此把步骤排为 `link → accept → manifest → reload → verify`。
 
 ## Proposal
 
