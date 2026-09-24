@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-rc.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.24",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.25",
     "@changfenhuang/dsh-genui": "0.11.0",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -50,10 +50,10 @@
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.17",
-    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.17",
+    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.25",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.25",
+    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.25",
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
@@ -301,9 +301,9 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.25",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.25",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.25"
     }
   }
 }
