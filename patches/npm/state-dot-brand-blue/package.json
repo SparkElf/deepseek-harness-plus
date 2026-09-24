@@ -1,0 +1,39 @@
+{
+  "name": "@sparkelf/dsh-patch-state-dot-brand-blue",
+  "description": "Exact source patch restoring the pixel-matrix loading animation in the brand blue",
+  "version": "0.2.0-rc.25",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/state-dot-brand-blue"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/state-dot-brand-blue.patch": "./patches/state-dot-brand-blue.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "state-dot-brand-blue",
+        "dsh": ">=0.1.7-rc.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "46a7f68b0922371ce7144b668b90e377d8e799f4",
+          "paths": [
+            "packages/client/ui-primitives/src/"
+          ]
+        },
+        "file": "./patches/state-dot-brand-blue.patch"
+      }
+    ]
+  }
+}
