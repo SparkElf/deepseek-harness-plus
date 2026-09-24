@@ -204,9 +204,11 @@ async function main(): Promise<number> {
   // moves the distribution without moving them leaves the replaced packages on the previous
   // release -- and npm cannot be used here at all: it does not read pnpm's overrides, so it
   // resolves the official peer ranges those overrides exist to satisfy and fails on the conflict.
+  // Read once, outside the override block: the runtime check below needs the same revision, and
+  // the overrides are not always present in a hand-assembled profile.
+  const runtimeVersion = readRuntimeVersion(String(values.version))
   const overrides = join(profile, 'pnpm-workspace.yaml')
   if (existsSync(overrides)) {
-    const runtimeVersion = readRuntimeVersion(String(values.version))
     const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), runtimeVersion)
     writeFileSync(overrides, rewritten.source)
     console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto ' + runtimeVersion)
