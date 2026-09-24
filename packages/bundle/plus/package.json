@@ -150,6 +150,7 @@
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-legacy-code-preset",
       "@sparkelf/dsh-patch-mobile-journal-generation",
+      "@sparkelf/dsh-patch-office-preview-stable-load",
       "@sparkelf/dsh-patch-officecli-deliverables",
       "@sparkelf/dsh-patch-ptc-mcp-schema-types",
       "@sparkelf/dsh-patch-responses-reasoning-status",
@@ -191,7 +192,8 @@
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.25"
+    "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.25",
+    "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.0-rc.25"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

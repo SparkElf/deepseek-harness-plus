@@ -1,0 +1,39 @@
+{
+  "name": "@sparkelf/dsh-patch-office-preview-stable-load",
+  "description": "Exact source patch keeping an Office conversion alive across renders of its tab",
+  "version": "0.2.0-rc.25",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/office-preview-stable-load"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/office-preview-stable-load.patch": "./patches/office-preview-stable-load.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "office-preview-stable-load",
+        "dsh": ">=0.1.7-rc.1",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "46a7f68b0922371ce7144b668b90e377d8e799f4",
+          "paths": [
+            "packages/client/ui-sidebar-documentpreview/src/"
+          ]
+        },
+        "file": "./patches/office-preview-stable-load.patch"
+      }
+    ]
+  }
+}
