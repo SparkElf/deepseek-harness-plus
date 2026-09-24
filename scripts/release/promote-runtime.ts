@@ -45,18 +45,20 @@ function require(command: string, args: readonly string[]): string {
  * Read the official revision the version being promoted was built from.
  *
  * The distribution declares it in `compatibility.dsh`, which is the range the republished
- * official packages satisfy. Reading it from the release rather than deriving it from the
- * distribution's own version keeps the two sequences separate.
- * @param profileDirectory - the release's profile directory.
+ * official packages satisfy. The range must come from the version being promoted rather than the
+ * one already installed: those name different bases, so reading the installed copy would move the
+ * overrides onto the revision the deployment is leaving.
+ * @param version - distribution version to inspect.
  * @returns the official revision string, for example `0.1.7-rc.1`.
  */
-function readRuntimeVersion(profileDirectory: string): string {
-  const manifest = join(profileDirectory, 'node_modules', '@sparkelf', 'dsh-plus', 'package.json')
-  if (!existsSync(manifest)) throw new Error('promote-runtime: ' + manifest + ' is absent, so the official revision is unknown')
-  const range = (JSON.parse(readFileSync(manifest, 'utf8')) as { dshPlus?: { compatibility?: { dsh?: string } } })
-    .dshPlus?.compatibility?.dsh
+function readRuntimeVersion(version: string): string {
+  const published = require('npm', ['view', '@sparkelf/dsh-plus@' + version, 'dshPlus.compatibility.dsh', '--json']).trim()
+  const parsed: unknown = JSON.parse(published)
+  const range = typeof parsed === 'string' ? parsed : undefined
   const match = range === undefined ? null : /^>=?(.+)$/.exec(range)
-  if (match?.[1] === undefined) throw new Error('promote-runtime: the distribution declares no compatibility range')
+  if (match?.[1] === undefined) {
+    throw new Error('promote-runtime: @sparkelf/dsh-plus@' + version + ' declares no compatibility range (' + published + ')')
+  }
   return match[1]
 }
 
@@ -147,7 +149,7 @@ async function main(): Promise<number> {
   // resolves the official peer ranges those overrides exist to satisfy and fails on the conflict.
   const overrides = join(profile, 'pnpm-workspace.yaml')
   if (existsSync(overrides)) {
-    const runtimeVersion = readRuntimeVersion(profile)
+    const runtimeVersion = readRuntimeVersion(String(values.version))
     const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), runtimeVersion)
     writeFileSync(overrides, rewritten.source)
     console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto ' + runtimeVersion)
