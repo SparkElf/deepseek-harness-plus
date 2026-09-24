@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.0-rc.23",
+  "version": "0.2.0-rc.24",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-rc.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.23",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.24",
     "@changfenhuang/dsh-genui": "0.11.0",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -49,7 +49,6 @@
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.1",
-    "@deepseek-ai/dsh-experimental-agent-team-web-profile": ">=0.1.6-alpha.2",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.17",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.17",
@@ -126,7 +125,6 @@
       "@deepseek-ai/dsh-base",
       "@deepseek-ai/dsh-experimental-agent-team-profile",
       "@deepseek-ai/dsh-web-app",
-      "@deepseek-ai/dsh-experimental-agent-team-web-profile",
       "@sparkelf/dsh-mineru",
       "@sparkelf/dsh-officecli",
       "dshmarket",
@@ -303,9 +301,9 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.23",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.23",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.23"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.24"
     }
   }
 }
