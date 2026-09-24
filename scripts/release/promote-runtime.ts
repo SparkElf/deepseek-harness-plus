@@ -21,6 +21,9 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { isEntry } from './process.ts'
 
+/** Runtime packages whose version answers whether a promotion reached the sources. */
+const RUNTIME_SUBJECTS = ['dsh-session', 'dsh-tools', 'dsh-host-webserver']
+
 /** Where a deployment keeps its release directories and supervisor manifest. */
 const DSH_HOME = '/root/.dsh'
 const MANIFEST = join(DSH_HOME, 'supervisor', 'runtime.json')
@@ -118,6 +121,40 @@ function refreshOverrides(source: string, version: string): { source: string; mo
   return { source: updated, moved }
 }
 
+/**
+ * Prove the runtime packages carry the official revision, not just the distribution version.
+ *
+ * The distribution is a wrapper: what executes is the release mirror's own sources, linked into
+ * the profile's \`@deepseek-ai\` scope. A promotion that moves only the distribution's version
+ * leaves those sources on the previous revision, and it then serves the previous release while
+ * reporting the new version -- passing an HTTP check and a client-module check, because both are
+ * satisfied by the older code. Asking the packages themselves is the only observation that
+ * separates the two, so it is a required step rather than a diagnostic.
+ * @param profileDirectory - the release's profile directory.
+ * @param runtimeVersion - official revision the promotion claims to have reached.
+ */
+function checkRuntimeRevision(profileDirectory: string, runtimeVersion: string): void {
+  const stale: string[] = []
+  for (const name of RUNTIME_SUBJECTS) {
+    const manifest = join(profileDirectory, 'node_modules', '@deepseek-ai', name, 'package.json')
+    if (!existsSync(manifest)) {
+      stale.push(name + ' is not installed')
+      continue
+    }
+    const version = (JSON.parse(readFileSync(manifest, 'utf8')) as { version?: string }).version ?? '(unknown)'
+    console.log('  ' + name.padEnd(24) + version)
+    if (version !== runtimeVersion) stale.push(name + ' is ' + version)
+  }
+  if (stale.length > 0) {
+    throw new Error('promote-runtime: the runtime did not reach ' + runtimeVersion + ': ' + stale.join(', ')
+      + '\n  The distribution version moved but the runtime packages did not, so the deployment'
+      + ' still serves the previous release. This happens when the release mirror was not rebuilt'
+      + ' on the new official revision: its sources are what the profile links to. See'
+      + ' .agents/skills/dsh-promote-deployment/SKILL.md.')
+  }
+  console.log('  all runtime packages carry ' + runtimeVersion)
+}
+
 async function main(): Promise<number> {
   const { values } = parseArgs({ options: { version: { type: 'string' }, check: { type: 'boolean', default: false } } })
   const running = runningRelease()
@@ -133,7 +170,26 @@ async function main(): Promise<number> {
       console.log('  requested:     ' + values.version + ' (not promoted yet)')
       return 1
     }
-    console.log('  match: the running deployment carries the requested version')
+    // The distribution version matching is not enough, and checking only it is how a deployment
+    // that serves the previous release reports success. The runtime packages answer the question.
+    const expected = readRuntimeVersion(String(values.version))
+    console.log('  runtime should be ' + expected)
+    let served = true
+    for (const name of RUNTIME_SUBJECTS) {
+      const manifest = join(profile, 'node_modules', '@deepseek-ai', name, 'package.json')
+      const version = existsSync(manifest)
+        ? (JSON.parse(readFileSync(manifest, 'utf8')) as { version?: string }).version ?? '(unknown)'
+        : '(not installed)'
+      console.log('  ' + name.padEnd(24) + version)
+      if (version !== expected) served = false
+    }
+    if (!served) {
+      console.log('  mismatch: the distribution version moved but the runtime did not, so the')
+      console.log('            deployment serves the previous release. Rebuild the release mirror on')
+      console.log('            ' + expected + ' and promote again.')
+      return 1
+    }
+    console.log('  match: the running deployment executes ' + expected)
     return 0
   }
   if (values.version === undefined) throw new Error('promote-runtime: --version is required (or --check to compare)')
@@ -182,6 +238,10 @@ async function main(): Promise<number> {
 
   // The restart answers before the served version changes, so the check reads the deployment
   // rather than trusting the restart command's exit status.
+  console.log('')
+  console.log('promote-runtime: checking the runtime, not only the distribution version')
+  checkRuntimeRevision(profile, runtimeVersion)
+
   console.log('')
   console.log('promote-runtime: waiting for the deployment to serve ' + values.version)
   const deadline = Date.now() + 120_000
