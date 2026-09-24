@@ -240,7 +240,7 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.11.0',
+    '@changfenhuang/dsh-genui': '0.11.1',
     '@sparkelf/dsh-mineru': '0.1.2',
     '@sparkelf/dsh-officecli': '0.1.2',
     '@sparkelf/dsh-plugin-supervisor': '0.1.6',
@@ -263,9 +263,9 @@ function main(): void {
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.1',
-    // The two Agent Teams packages release on their own cadence; this one trails the
-    // runtime, so its range names the version the registry actually serves.
-    '@deepseek-ai/dsh-experimental-agent-team-web-profile': '>=0.1.6-alpha.2',
+    // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
+    // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
+    // web-profile bundle that official removed in 9f21d7842a.
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')

@@ -1,16 +1,20 @@
 {
-  "name": "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
+  "name": "@sparkelf/dsh-patch-state-dot-brand-blue",
+  "description": "Exact source patch restoring the pixel-matrix loading animation in the brand blue",
   "version": "0.2.0-rc.25",
-  "description": "Data-only exact official-source patch placing Session export in the desktop Trajectory toolbar",
   "publishConfig": {
     "access": "public"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/session-log-trajectory-toolbar"
+    "directory": "patches/npm/state-dot-brand-blue"
   },
-  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/state-dot-brand-blue.patch": "./patches/state-dot-brand-blue.patch"
+  },
   "files": [
     "patches/*.patch"
   ],
@@ -19,17 +23,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "session-log-desktop-trajectory-toolbar",
+        "id": "state-dot-brand-blue",
         "dsh": ">=0.1.7-rc.1",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "46a7f68b0922371ce7144b668b90e377d8e799f4",
           "paths": [
-            "packages/client/ui-trajectory/",
-            "packages/session-query/session-log-export/"
+            "packages/client/ui-primitives/src/"
           ]
         },
-        "file": "./patches/session-log-trajectory-toolbar.patch"
+        "file": "./patches/state-dot-brand-blue.patch"
       }
     ]
   }
