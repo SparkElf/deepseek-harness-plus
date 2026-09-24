@@ -137,6 +137,7 @@ minimumReleaseAgeExclude:
   - '@deepseek-ai/dsh-util-crypto@0.1.7-rc.1'
   - '@deepseek-ai/dsh-util-time@0.1.7-rc.1'
   - '@deepseek-ai/dsh-util-values@0.1.7-rc.1'
+  - '@deepseek-ai/dsh-client-ui-workspace@0.1.7-rc.1'
 
 patchedDependencies:
   '@yao-pkg/pkg@6.21.0': patches/@yao-pkg__pkg@6.21.0.patch
