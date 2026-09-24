@@ -1,16 +1,20 @@
 {
-  "name": "@sparkelf/dsh-patch-responses-reasoning-status",
+  "name": "@sparkelf/dsh-patch-state-dot-brand-blue",
+  "description": "Exact source patch restoring the pixel-matrix loading animation in the brand blue",
   "version": "0.2.0-rc.25",
-  "description": "Data-only exact official-source patch for OpenAI Responses gateways that reject replayed reasoning status metadata",
   "publishConfig": {
     "access": "public"
   },
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/responses-reasoning-status"
+    "directory": "patches/npm/state-dot-brand-blue"
   },
-  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/state-dot-brand-blue.patch": "./patches/state-dot-brand-blue.patch"
+  },
   "files": [
     "patches/*.patch"
   ],
@@ -19,17 +23,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "responses-omit-reasoning-input-status",
+        "id": "state-dot-brand-blue",
         "dsh": ">=0.1.7-rc.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "477b4f420553e8a52c2fbccc464d7561b239c443",
           "paths": [
-            "packages/llm/llm-pi-ai/",
-            "packages/client/ui-settings-models/"
+            "packages/client/ui-primitives/src/"
           ]
         },
-        "file": "./patches/responses-reasoning-status.patch"
+        "file": "./patches/state-dot-brand-blue.patch"
       }
     ]
   }

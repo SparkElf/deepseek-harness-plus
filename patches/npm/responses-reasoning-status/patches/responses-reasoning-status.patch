@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-settings-models/src/client/ModelsSection.module.css b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
-index a21446f6ff..721a18a7e1 100644
+index 2074fc6a07..c9575dedae 100644
 --- a/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 +++ b/packages/client/ui-settings-models/src/client/ModelsSection.module.css
 @@ -415,6 +415,32 @@
@@ -36,7 +36,7 @@ index a21446f6ff..721a18a7e1 100644
    display: flex;
    flex-direction: column;
 diff --git a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
-index b4df6a7124..74b9f6aa55 100644
+index 41dac376d1..0e5d0bafd0 100644
 --- a/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 +++ b/packages/client/ui-settings-models/src/client/ProviderEditor.tsx
 @@ -45,6 +45,9 @@ type EditorLayout = 'deepseek' | 'pi-ai' | 'unknown'
@@ -58,9 +58,9 @@ index b4df6a7124..74b9f6aa55 100644
 +    [...settingsPath, ...OMIT_REASONING_INPUT_STATUS_PATH],
 +  ) === true
    const disabled = props.readOnly || busy
-   const layout = layoutOf(namespace.ns)
-   const keyRef = refFor(schema, namespace, settingsPath, props.provider)
-@@ -209,6 +216,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+   const accountProvider = props.provider === 'deepseek-account'
+   // Account settings use a configurable Cordis entry id.
+@@ -212,6 +219,11 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
      const value = schema.getPath(source, [key])
      return typeof value === 'string' && value.trim().length > 0 ? value : undefined
    }
@@ -72,7 +72,7 @@ index b4df6a7124..74b9f6aa55 100644
    const setField = (key: string, next: string | undefined): void => {
      // A value of nothing but whitespace is cleared, not stored: `stringAt`
      // already reports it as absent, so the field would otherwise render empty
-@@ -237,6 +249,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -240,6 +252,9 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
    // What the form currently shows, which is what an interrogation must ask:
    // an edited-but-unsaved endpoint, and a key typed but not yet stored.
    const probeApi = stringAt(draft, 'api') ?? stringAt(fallback, 'api')
@@ -82,7 +82,7 @@ index b4df6a7124..74b9f6aa55 100644
    const probeBaseURL = stringAt(draft, 'baseURL') ?? stringAt(fallback, 'baseURL')
    const probe = {
      settingsNs: namespace.ns,
-@@ -446,7 +461,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -452,7 +467,15 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                      value={probeApi ?? ''}
                      aria-label={t('customApi')}
                      disabled={disabled}
@@ -99,7 +99,7 @@ index b4df6a7124..74b9f6aa55 100644
                    >
                      {/* A profile naming no protocol — hand-written into
                          cordis.patch.yml with no model to need one — selects
-@@ -460,6 +483,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
+@@ -466,6 +489,24 @@ export function ProviderEditor(props: ProviderEditorProps): ReactNode {
                  </div>
                )
                : null}
@@ -125,10 +125,10 @@ index b4df6a7124..74b9f6aa55 100644
                  the extras differ — DeepSeek's inherited capacities, pi-ai's
                  endpoint interrogation. */}
 diff --git a/packages/client/ui-settings-models/src/client/locales.ts b/packages/client/ui-settings-models/src/client/locales.ts
-index 9c8a44d9e0..ad9a8c9aca 100644
+index bba0b85288..5bd2602ad5 100644
 --- a/packages/client/ui-settings-models/src/client/locales.ts
 +++ b/packages/client/ui-settings-models/src/client/locales.ts
-@@ -96,6 +96,7 @@ export const en = {
+@@ -97,6 +97,7 @@ export const en = {
    protocolOpenAiCompletions: 'OpenAI Chat Completions',
    protocolOpenAiResponses: 'OpenAI Responses',
    protocolAnthropicMessages: 'Anthropic Messages',
@@ -136,7 +136,7 @@ index 9c8a44d9e0..ad9a8c9aca 100644
    customNeedsBaseUrl: 'A custom provider needs a base URL.',
    customBaseUrlInvalid: 'Enter a valid HTTP or HTTPS URL.',
    customNeedsModels: 'A custom provider needs at least one model.',
-@@ -215,7 +216,8 @@ export const zh: { [Key in keyof typeof en]: string } = {
+@@ -217,7 +218,8 @@ export const zh: { [Key in keyof typeof en]: string } = {
    protocolOpenAiCompletions: 'OpenAI Chat Completions',
    protocolOpenAiResponses: 'OpenAI Responses',
    protocolAnthropicMessages: 'Anthropic Messages',

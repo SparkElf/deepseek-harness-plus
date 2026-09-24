@@ -1,6 +1,6 @@
 {
-  "name": "@sparkelf/dsh-patch-session-query-unindexable-session",
-  "description": "Skip a session whose stored log cannot be migrated instead of failing the whole content search, and index each session as it is read",
+  "name": "@sparkelf/dsh-patch-office-preview-stable-load",
+  "description": "Exact source patch keeping an Office conversion alive across renders of its tab",
   "version": "0.2.0-rc.25",
   "publishConfig": {
     "access": "public"
@@ -9,11 +9,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/session-query-unindexable-session"
+    "directory": "patches/npm/office-preview-stable-load"
   },
   "exports": {
     "./package.json": "./package.json",
-    "./patches/session-query-unindexable-session.patch": "./patches/session-query-unindexable-session.patch"
+    "./patches/office-preview-stable-load.patch": "./patches/office-preview-stable-load.patch"
   },
   "files": [
     "patches/*.patch"
@@ -23,16 +23,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "session-query-unindexable-session",
+        "id": "office-preview-stable-load",
         "dsh": ">=0.1.7-rc.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "477b4f420553e8a52c2fbccc464d7561b239c443",
           "paths": [
-            "packages/session-query/session-query-sqlite/"
+            "packages/client/ui-sidebar-documentpreview/src/"
           ]
         },
-        "file": "./patches/session-query-unindexable-session.patch"
+        "file": "./patches/office-preview-stable-load.patch"
       }
     ]
   }

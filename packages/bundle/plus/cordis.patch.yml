@@ -71,5 +71,5 @@
 # extension point official DSH already owns, and it survives a DSH upgrade.
 - id: office-to-pdf
   config:
-    fontDirectories: !!js "process.env.DSH_OFFICE_FONT_DIR ? [process.env.DSH_OFFICE_FONT_DIR] : []"
+    fontDirectories: !!js "process.env.DSH_OFFICE_FONT_DIR ? [process.env.DSH_OFFICE_FONT_DIR] : undefined"
     fontFallbacks: !!js "[[\"FZXiaoBiaoSong-B05S\",\"方正小标宋简体\",\"FangSong_GB2312\",\"仿宋_GB2312\",\"KaiTi_GB2312\",\"楷体_GB2312\",\"SimHei\",\"黑体\"]]"

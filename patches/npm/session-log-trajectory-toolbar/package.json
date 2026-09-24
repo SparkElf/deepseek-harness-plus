@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
-  "version": "0.2.0-rc.23",
+  "version": "0.2.0-rc.25",
   "description": "Data-only exact official-source patch placing Session export in the desktop Trajectory toolbar",
   "publishConfig": {
     "access": "public"
@@ -20,10 +20,10 @@
     "variants": [
       {
         "id": "session-log-desktop-trajectory-toolbar",
-        "dsh": ">=0.1.7-rc.1",
+        "dsh": ">=0.1.7-rc.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "46a7f68b0922371ce7144b668b90e377d8e799f4",
+          "baseRevision": "477b4f420553e8a52c2fbccc464d7561b239c443",
           "paths": [
             "packages/client/ui-trajectory/",
             "packages/session-query/session-log-export/"
