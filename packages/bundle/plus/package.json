@@ -42,7 +42,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.1.7-rc.1"
+      "dsh": ">=0.1.7-rc.2"
     },
     "profile": {
       "bundles": [
@@ -78,7 +78,7 @@
         "@sparkelf/dsh-office-viewer-fonts": "0.1.2",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
-        "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.1"
+        "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -92,33 +92,33 @@
         "ssh2": true
       },
       "overrides": {
-        "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.7-rc.1",
-        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.7-rc.1",
-        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.1.7-rc.1",
-        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.1.7-rc.1",
-        "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.1.7-rc.1",
-        "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.1.7-rc.1",
-        "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.7-rc.1",
-        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.1.7-rc.1",
-        "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.1.7-rc.1",
-        "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.1.7-rc.1",
-        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.7-rc.1",
-        "@deepseek-ai/dsh-session-query-sqlite": "npm:@sparkelf/dsh-session-query-sqlite@0.1.7-rc.1",
-        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.7-rc.1",
-        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.7-rc.1",
-        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.7-rc.1",
-        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.1.7-rc.1",
-        "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.1.7-rc.1",
-        "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.1.7-rc.1",
-        "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.1.7-rc.1"
+        "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.7-rc.2",
+        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.7-rc.2",
+        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.1.7-rc.2",
+        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.1.7-rc.2",
+        "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.1.7-rc.2",
+        "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.1.7-rc.2",
+        "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.1.7-rc.2",
+        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.1.7-rc.2",
+        "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.1.7-rc.2",
+        "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.1.7-rc.2",
+        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.1.7-rc.2",
+        "@deepseek-ai/dsh-session-query-sqlite": "npm:@sparkelf/dsh-session-query-sqlite@0.1.7-rc.2",
+        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.1.7-rc.2",
+        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.1.7-rc.2",
+        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.1.7-rc.2",
+        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.1.7-rc.2",
+        "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.1.7-rc.2",
+        "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.1.7-rc.2",
+        "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.1.7-rc.2"
       },
       "standaloneVariants": {
         "dataops": {
@@ -163,7 +163,7 @@
       "@sparkelf/dsh-patch-wsl-native-open"
     ],
     "sourceBase": {
-      "revision": "46a7f68b0922371ce7144b668b90e377d8e799f4"
+      "revision": "477b4f420553e8a52c2fbccc464d7561b239c443"
     }
   },
   "dependencies": {

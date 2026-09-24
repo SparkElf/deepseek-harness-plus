@@ -262,7 +262,7 @@ function main(): void {
     // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
-    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.1',
+    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.2',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.

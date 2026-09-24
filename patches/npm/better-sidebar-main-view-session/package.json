@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "better-sidebar-main-view-session",
-        "dsh": ">=0.1.7-rc.1",
+        "dsh": ">=0.1.7-rc.2",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
