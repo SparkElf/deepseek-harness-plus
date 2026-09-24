@@ -16,7 +16,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { isEntry } from './process.ts'
@@ -71,6 +71,31 @@ function installedVersion(profileDirectory: string): string | undefined {
   return (JSON.parse(readFileSync(manifest, 'utf8')) as { version?: string }).version
 }
 
+/**
+ * Move every override that names this distribution onto the release being promoted.
+ *
+ * An override substitutes this repository's build of an official package, for example
+ * `@deepseek-ai/dsh-llm: npm:@sparkelf/dsh-llm@0.1.6-alpha.2`. Those builds are republished with
+ * the distribution, so their version tracks the release: leaving them behind installs a
+ * distribution whose replaced packages come from the previous base, which is the mismatch that
+ * makes a promotion look successful and behave like the release before it.
+ * @param source - pnpm-workspace.yaml text.
+ * @param version - release version to move the overrides onto.
+ * @returns the updated text and how many overrides moved.
+ */
+function refreshOverrides(source: string, version: string): { source: string; moved: number } {
+  let moved = 0
+  const updated = source.replace(
+    /^(\s+"[^"]+":\s+npm:@sparkelf\/[^@\s]+@)(\S+)$/gmu,
+    (whole, prefix: string, current: string) => {
+      if (current === version) return whole
+      moved += 1
+      return prefix + version
+    },
+  )
+  return { source: updated, moved }
+}
+
 async function main(): Promise<number> {
   const { values } = parseArgs({ options: { version: { type: 'string' }, check: { type: 'boolean', default: false } } })
   const running = runningRelease()
@@ -96,10 +121,19 @@ async function main(): Promise<number> {
   }
 
   console.log('')
+  // The profile's overrides live in its pnpm-workspace.yaml and are what substitute this
+  // distribution's builds for the official packages. They pin exact versions, so a promotion that
+  // moves the distribution without moving them leaves the replaced packages on the previous
+  // release -- and npm cannot be used here at all: it does not read pnpm's overrides, so it
+  // resolves the official peer ranges those overrides exist to satisfy and fails on the conflict.
+  const overrides = join(profile, 'pnpm-workspace.yaml')
+  if (existsSync(overrides)) {
+    const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), values.version)
+    writeFileSync(overrides, rewritten.source)
+    console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto the release')
+  }
   console.log('promote-runtime: installing ' + values.version + ' into the profile')
-  // `npm install` against the profile directory, so the dependency and its tree are replaced
-  // together: editing package.json alone leaves the installed copy in place.
-  require('npm', ['install', '--no-audit', '--no-fund', '--prefix', profile, '@sparkelf/dsh-plus@' + values.version])
+  require('pnpm', ['install', '--dir', profile, '--config.lockfile=false', '@sparkelf/dsh-plus@' + values.version, '--silent'])
   const installed = installedVersion(profile)
   console.log('  profile now carries ' + (installed ?? '(nothing)'))
   if (installed !== values.version) {
