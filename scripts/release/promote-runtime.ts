@@ -164,25 +164,21 @@ async function main(): Promise<number> {
   }
 
   console.log('')
-  // The profile guard refuses a start whose accepted closure changed, and a promotion changes it
-  // by definition. Acceptance is what records the new closure, and it is a separate action from
-  // the restart: the unit performs it from an ExecStartPre hook, so a restart issued directly
-  // through the supervisor's runtime command skips it. Without this the guard rolls the profile
-  // back, the unit retries until StartLimitBurst trips, and the only trace is a bare exit code.
-  console.log('promote-runtime: recording the new profile closure')
-  const guard = join(DSH_HOME, 'supervisor', 'profile-guard.mjs')
-  if (!existsSync(guard)) throw new Error('promote-runtime: no profile guard at ' + guard)
-  require('node', [guard, 'accept',
-    '--profile', profile,
-    '--profile-link', join(DSH_HOME, 'profiles', 'plus'),
-    '--manifest', MANIFEST,
-    '--state', join(DSH_HOME, 'supervisor', 'accepted-profile.json')])
-
-  console.log('')
-  console.log('promote-runtime: restarting through the supervisor')
-  const supervisor = join(profile, 'node_modules', '@sparkelf', 'dsh-plugin-supervisor', 'runtime', 'bin.mjs')
-  if (!existsSync(supervisor)) throw new Error('promote-runtime: no supervisor runtime at ' + supervisor)
-  require('node', [supervisor, 'restart', '--manifest', MANIFEST])
+  // Restarting is not one command. Changing the profile invalidates the closure the supervisor's
+  // guard accepted, and the guard refuses to start until the new closure is recorded -- so a bare
+  // restart rolls the profile back, the unit retries until StartLimitBurst trips, and the only
+  // trace is a bare exit code. The deployment already owns that sequence in dsh-3080-restart,
+  // which repairs the profile scope, proves module uniqueness, re-accepts the fingerprint, and
+  // then restarts through the supervisor rather than the service manager (a unit restart kills
+  // the supervisor too, taking the control socket with it and refusing every connection during
+  // the restart). Calling it keeps one implementation instead of a second, partial copy here.
+  console.log('promote-runtime: restarting through the deployment helper')
+  const helper = join(DSH_HOME, 'dsh-3080-restart')
+  if (!existsSync(helper)) {
+    throw new Error('promote-runtime: no restart helper at ' + helper
+      + '; the profile closure must be re-accepted before a restart or the guard rolls it back')
+  }
+  require('bash', [helper])
 
   // The restart answers before the served version changes, so the check reads the deployment
   // rather than trusting the restart command's exit status.
