@@ -21,7 +21,13 @@ function fixture(): string {
 }
 
 describe('Plus official package scope', () => {
-  it('loads the Subagent Settings client beside its two Host schema owners', () => {
+  it('keeps the retired Subagent Settings plugin out of the composed profile', () => {
+    // DSH 0.1.7-rc.1 moved the browser settings service from settingsScope to configForms and
+    // ships its own @deepseek-ai/dsh-client-ui-settings-subagent, which dsh-web-app mounts
+    // directly. The third-party plugin still injects settingsScope, so it can never activate,
+    // and a pending client entry fails the whole browser boot with "Failed to load plugins".
+    // The package therefore stays published for consumers who pin it deliberately, while this
+    // profile must no longer mount it.
     const manifest = JSON.parse(readFileSync(
       fileURLToPath(new URL('../package.json', import.meta.url)),
       'utf8',
@@ -34,9 +40,9 @@ describe('Plus official package scope', () => {
 
     expect(manifest.dshPlus.profile.bundles).not.toContain('@sparkelf/dsh-plugin-subagent-settings')
     expect(subagentManifest.dsh.client).toBeDefined()
-    expect(plusPatch).toContain("id: plus-subagent-settings-client\n      name: '@sparkelf/dsh-plugin-subagent-settings'")
-    expect(plusPatch).toContain("id: plus-subagent-settings\n      name: '@sparkelf/dsh-plugin-subagent-settings/startup'")
-    expect(plusPatch).toContain("id: plus-subagent-fork-settings\n      name: '@sparkelf/dsh-plugin-subagent-settings/startup'")
+    expect(plusPatch).not.toContain('plus-subagent-settings-client')
+    expect(plusPatch).not.toContain('plus-subagent-settings')
+    expect(plusPatch).not.toContain('plus-subagent-fork-settings')
   })
 
   it('parses, scopes, and sorts the official workspace roster', () => {
