@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.0-rc.23",
+  "version": "0.2.0-rc.24",
   "publishConfig": {
     "access": "public"
   },
