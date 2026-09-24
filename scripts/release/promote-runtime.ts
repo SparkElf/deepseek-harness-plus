@@ -16,7 +16,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { isEntry } from './process.ts'
@@ -39,6 +39,28 @@ function require(command: string, args: readonly string[]): string {
     throw new Error(command + ' ' + args.join(' ') + ' failed with exit code ' + String(outcome.status) + '\n' + outcome.stdout + outcome.stderr)
   }
   return outcome.stdout
+}
+
+/**
+ * Read the official revision the version being promoted was built from.
+ *
+ * The distribution declares it in `compatibility.dsh`, which is the range the republished
+ * official packages satisfy. The range must come from the version being promoted rather than the
+ * one already installed: those name different bases, so reading the installed copy would move the
+ * overrides onto the revision the deployment is leaving.
+ * @param version - distribution version to inspect.
+ * @returns the official revision string, for example `0.1.7-rc.1`.
+ */
+function readRuntimeVersion(version: string): string {
+  const published = require('npm', ['view', '@sparkelf/dsh-plus@' + version, 'dshPlus.compatibility.dsh', '--json']).trim()
+  const parsed: unknown = JSON.parse(published)
+  // npm serialises a single value as an array under --json, so both forms are read.
+  const range = typeof parsed === 'string' ? parsed : Array.isArray(parsed) && typeof parsed[0] === 'string' ? parsed[0] : undefined
+  const match = range === undefined ? null : /^>=?(.+)$/.exec(range)
+  if (match?.[1] === undefined) {
+    throw new Error('promote-runtime: @sparkelf/dsh-plus@' + version + ' declares no compatibility range (' + published + ')')
+  }
+  return match[1]
 }
 
 /**
@@ -71,6 +93,31 @@ function installedVersion(profileDirectory: string): string | undefined {
   return (JSON.parse(readFileSync(manifest, 'utf8')) as { version?: string }).version
 }
 
+/**
+ * Move every override that names this distribution's republished official packages.
+ *
+ * An override substitutes this repository's build of an official package, for example
+ * `@deepseek-ai/dsh-llm: npm:@sparkelf/dsh-llm@0.1.7-rc.1`. Two version sequences meet here and
+ * they are not the same number: the distribution releases as `0.2.0-rc.N`, while a republished
+ * official package carries the official revision it was built from, `0.1.7-rc.1`. Passing the
+ * distribution's version would send pnpm looking for a build that does not exist.
+ * @param source - pnpm-workspace.yaml text.
+ * @param runtimeVersion - official revision the republished packages carry.
+ * @returns the updated text and how many overrides moved.
+ */
+function refreshOverrides(source: string, version: string): { source: string; moved: number } {
+  let moved = 0
+  const updated = source.replace(
+    /^(\s+"[^"]+":\s+npm:@sparkelf\/[^@\s]+@)(\S+)$/gmu,
+    (whole, prefix: string, current: string) => {
+      if (current === version) return whole
+      moved += 1
+      return prefix + version
+    },
+  )
+  return { source: updated, moved }
+}
+
 async function main(): Promise<number> {
   const { values } = parseArgs({ options: { version: { type: 'string' }, check: { type: 'boolean', default: false } } })
   const running = runningRelease()
@@ -96,10 +143,20 @@ async function main(): Promise<number> {
   }
 
   console.log('')
+  // The profile's overrides live in its pnpm-workspace.yaml and are what substitute this
+  // distribution's builds for the official packages. They pin exact versions, so a promotion that
+  // moves the distribution without moving them leaves the replaced packages on the previous
+  // release -- and npm cannot be used here at all: it does not read pnpm's overrides, so it
+  // resolves the official peer ranges those overrides exist to satisfy and fails on the conflict.
+  const overrides = join(profile, 'pnpm-workspace.yaml')
+  if (existsSync(overrides)) {
+    const runtimeVersion = readRuntimeVersion(String(values.version))
+    const rewritten = refreshOverrides(readFileSync(overrides, 'utf8'), runtimeVersion)
+    writeFileSync(overrides, rewritten.source)
+    console.log('promote-runtime: moved ' + String(rewritten.moved) + ' override(s) onto ' + runtimeVersion)
+  }
   console.log('promote-runtime: installing ' + values.version + ' into the profile')
-  // `npm install` against the profile directory, so the dependency and its tree are replaced
-  // together: editing package.json alone leaves the installed copy in place.
-  require('npm', ['install', '--no-audit', '--no-fund', '--prefix', profile, '@sparkelf/dsh-plus@' + values.version])
+  require('pnpm', ['install', '--dir', profile, '--config.lockfile=false', '@sparkelf/dsh-plus@' + values.version, '--silent'])
   const installed = installedVersion(profile)
   console.log('  profile now carries ' + (installed ?? '(nothing)'))
   if (installed !== values.version) {
@@ -107,10 +164,21 @@ async function main(): Promise<number> {
   }
 
   console.log('')
-  console.log('promote-runtime: restarting through the supervisor')
-  const supervisor = join(profile, 'node_modules', '@sparkelf', 'dsh-plugin-supervisor', 'runtime', 'bin.mjs')
-  if (!existsSync(supervisor)) throw new Error('promote-runtime: no supervisor runtime at ' + supervisor)
-  require('node', [supervisor, 'restart', '--manifest', MANIFEST])
+  // Restarting is not one command. Changing the profile invalidates the closure the supervisor's
+  // guard accepted, and the guard refuses to start until the new closure is recorded -- so a bare
+  // restart rolls the profile back, the unit retries until StartLimitBurst trips, and the only
+  // trace is a bare exit code. The deployment already owns that sequence in dsh-3080-restart,
+  // which repairs the profile scope, proves module uniqueness, re-accepts the fingerprint, and
+  // then restarts through the supervisor rather than the service manager (a unit restart kills
+  // the supervisor too, taking the control socket with it and refusing every connection during
+  // the restart). Calling it keeps one implementation instead of a second, partial copy here.
+  console.log('promote-runtime: restarting through the deployment helper')
+  const helper = join(DSH_HOME, 'dsh-3080-restart')
+  if (!existsSync(helper)) {
+    throw new Error('promote-runtime: no restart helper at ' + helper
+      + '; the profile closure must be re-accepted before a restart or the guard rolls it back')
+  }
+  require('bash', [helper])
 
   // The restart answers before the served version changes, so the check reads the deployment
   // rather than trusting the restart command's exit status.
