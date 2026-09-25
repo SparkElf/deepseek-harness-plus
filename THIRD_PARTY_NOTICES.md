@@ -80,7 +80,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dsh-better-sidebar`](https://github.com/omdsh-dev/DSH-better-sidebar) | MIT |
-| [`dsh-mobile`](https://github.com/saya-ch/dsh-mobile) | Apache-2.0 |
+| [`dsh-plugin-mobile-gateway`](https://github.com/Clarklevis1995/dsh-plugin-mobile-gateway) | MIT |
 | [`dsh-right-bg-anim`](https://github.com/forestlightelf/dsh-right-bg-anim) | MIT |
 | [`dsh-sql-workbench`](https://github.com/SparkElf/dsh-sql-workbench) | MIT |
 | [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
