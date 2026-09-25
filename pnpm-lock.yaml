@@ -9526,10 +9526,10 @@ importers:
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../plus/subagent-settings
       '@sparkelf/dsh-plugin-supervisor':
-        specifier: 0.1.6
-        version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
+        specifier: 0.1.7
+        version: 0.1.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.26
+        specifier: workspace:0.2.0-rc.27
         version: link:../../bundle/plus
       '@sparkelf/dsh-query-result-analysis':
         specifier: 0.1.2
@@ -9617,10 +9617,10 @@ importers:
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../plus/subagent-settings
       '@sparkelf/dsh-plugin-supervisor':
-        specifier: 0.1.6
-        version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
+        specifier: 0.1.7
+        version: 0.1.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.26
+        specifier: workspace:0.2.0-rc.27
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
@@ -15095,16 +15095,16 @@ packages:
       '@deepseek-ai/cordis': ^4.0.2
       '@deepseek-ai/dsh-tools': 0.1.5-rc.2
 
-  '@sparkelf/dsh-plugin-supervisor@0.1.6':
-    resolution: {integrity: sha512-Jc498yeXTCyGehIOJ8UgDLwuhbTtHLTh+P1wyME0h/uXFXNqUfUeX7ML3U92rM83WWOVxl7UHwsWOpYfzMAx5Q==}
+  '@sparkelf/dsh-plugin-supervisor@0.1.7':
+    resolution: {integrity: sha512-1hYmT0Ay2TN5Dd3VsGfV54n7I2VOd+QVFV5OBnM1HO/tgL/P/Wssnu8zl2rgE4Tm0QDBrfbozR4gjyq4kMQYrg==}
     engines: {node: ^22.19.0 || >=24.0.0}
     hasBin: true
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.2
-      '@deepseek-ai/dsh-api-session-controller': 0.1.5-rc.2
-      '@deepseek-ai/dsh-host-webserver': 0.1.5-rc.2
-      '@deepseek-ai/dsh-invariants': 0.1.5-rc.2
-      '@deepseek-ai/dsh-session': 0.1.5-rc.2
+      '@deepseek-ai/dsh-api-session-controller': 0.1.7-rc.1
+      '@deepseek-ai/dsh-host-webserver': 0.1.7-rc.1
+      '@deepseek-ai/dsh-invariants': 0.1.7-rc.1
+      '@deepseek-ai/dsh-session': 0.1.7-rc.1
 
   '@sparkelf/dsh-query-result-analysis@0.1.2':
     resolution: {integrity: sha512-yyTcJ5GtkyZqS/rXwbwEOEKs4iomp2cTLwDz4B4ujWQzwZeSpb9TWZmBefMle687Z9NVO56mWQX3tTZ5HXA4jg==}
@@ -22811,11 +22811,11 @@ snapshots:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@officecli/officecli': 1.0.147
 
-  '@sparkelf/dsh-plugin-supervisor@0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))':
+  '@sparkelf/dsh-plugin-supervisor@0.1.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-invariants': 0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis)
-      yaml: 2.9.0
+      yaml: 2.9.1
 
   '@sparkelf/dsh-query-result-analysis@0.1.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-brand@0.1.5-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))':
     dependencies:

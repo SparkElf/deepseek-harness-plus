@@ -38,7 +38,7 @@
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
-    "@sparkelf/dsh-plugin-supervisor": "0.1.6",
+    "@sparkelf/dsh-plugin-supervisor": "0.1.7",
     "dsh-sql-workbench": "0.5.1",
     "@sparkelf/dsh-workbench-vault": "0.1.2",
     "@sparkelf/dsh-ssh-manager": "0.7.2",
@@ -158,22 +158,22 @@
       {
         "name": "@deepseek-ai/dsh-session",
         "version": "0.1.7-rc.2",
-        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.6 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.7 declares 0.1.7-rc.1, which 0.1.7-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-invariants",
         "version": "0.1.7-rc.2",
-        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.6 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.7 declares 0.1.7-rc.1, which 0.1.7-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-host-webserver",
         "version": "0.1.7-rc.2",
-        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.6 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.7 declares 0.1.7-rc.1, which 0.1.7-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-api-session-controller",
         "version": "0.1.7-rc.2",
-        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.6 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.7 declares 0.1.7-rc.1, which 0.1.7-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-agent",
