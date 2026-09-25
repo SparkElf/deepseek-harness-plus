@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.26",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.27",
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -272,10 +272,10 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.26",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.26",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.26",
-      "dsh-mobile": "npm:@sparkelf/dsh-omitted@0.2.0-rc.26"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.27",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.27",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.27",
+      "dsh-mobile": "npm:@sparkelf/dsh-omitted@0.2.0-rc.27"
     }
   }
 }
