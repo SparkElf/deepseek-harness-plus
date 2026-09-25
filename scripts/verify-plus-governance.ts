@@ -265,10 +265,9 @@ function main(): void {
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.2',
     // The mobile face is the community plugin: it carries its own cordis layer and its own
     // client face, so the profile install is the whole integration.
-    // The mobile client is Clarklevis1995/dsh-mobile's companion gateway: the phone is a native
-    // KMP app that speaks its own WebSocket protocol, and the gateway serves that protocol on a
-    // LAN listener of its own (3081) beside the loopback WebUI.
-    'dsh-plugin-mobile-gateway': '>=0.7.7',
+    // The mobile client is this fork of Clarklevis1995/dsh-mobile's companion gateway: it reads
+    // DSH 0.1.7 Session format 4 and lifts the retired v3 message shapes on read.
+    '@sparkelf/dsh-plugin-mobile-gateway': '>=0.8.2',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.

@@ -15,6 +15,9 @@
 import { execFileSync } from 'node:child_process'
 import semver from 'semver'
 
+/** How long one registry query may stay pending before the override pass gives up on it. */
+const NPM_VIEW_TIMEOUT_MS = 20_000
+
 /** One override, with the reason that produced it. */
 export interface PeerOverride {
   /** Package whose resolution the override forces. */
@@ -31,6 +34,10 @@ function publishedPeers(spec: string, registry: string): Record<string, string> 
     const raw = execFileSync('npm', ['view', spec, 'peerDependencies', '--json', '--registry', registry], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      // A stalled registry connection otherwise blocks on npm's own 300s fetch-timeout and then
+      // its two retries; measured once at 7 minutes for a single `view` while the same command
+      // answered in 0.9s by hand. The gate runs one of these per third-party plugin.
+      timeout: NPM_VIEW_TIMEOUT_MS,
     })
     if (raw.trim() === '') return {}
     const parsed = JSON.parse(raw) as unknown
@@ -53,6 +60,7 @@ function resolveVersion(name: string, range: string | undefined, registry: strin
     const raw = execFileSync('npm', ['view', name, 'versions', '--json', '--registry', registry], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: NPM_VIEW_TIMEOUT_MS,
     })
     const parsed: unknown = JSON.parse(raw)
     const versions = (Array.isArray(parsed) ? parsed : [parsed]).map(String).filter(entry => semver.valid(entry) !== null)

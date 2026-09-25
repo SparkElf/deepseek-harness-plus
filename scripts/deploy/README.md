@@ -9,6 +9,7 @@ procedure; the deployment home holds the copies that execute.
 |---|---|
 | `dsh-plus-switch <mirror>` | Move the served release to another mirror. Validates the target before touching the service, records each step in a phase file, and rolls back on failure. |
 | `fix-nested-links.mjs --release <dir>` | Restore the per-package dependency links a `pnpm install` inside a release rewrites. Reads the scope checker's own report, so the two cannot disagree about what is missing. |
+| `migrate-session-v3.mjs [--dry-run]` | Archive a Session's superseded `session.v3.jsonl.zstd` once its v4 log covers every event. |
 
 ## Why the step order matters
 
@@ -30,3 +31,16 @@ profile. The scope check reports each package whose dependencies stopped resolvi
 restores exactly those links. Skipping it leaves a deployment that starts and then fails every
 tool call with `reading 'prepare'`, because the duplicate module instances give two scheduler
 Symbols.
+
+## Why the v3 log is archived
+
+A Session that predates the v3→v4 format migration keeps both generations in one directory. The
+persistence layer resolves the highest generation present, so it reads v4 and never re-runs the
+migration — the v3 file stays behind carrying syntax v4 refuses (`source.kind: "plugin"`, tool
+results without a tool-role message). A read that reaches those rows fails with "format v4 message
+requires a producer-owned source kind" while the Session is otherwise healthy, which reads as a
+failed run rather than a stale file.
+
+`migrate-session-v3.mjs` moves the orphan aside. It moves rather than deletes, and it refuses any
+file whose events the v4 log does not fully contain, so the archive can only hold data the live log
+already reproduces.
