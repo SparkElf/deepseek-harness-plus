@@ -18,16 +18,16 @@ entries:
     owner: SparkElf
     localPatches: []
     plusBundle: true
-  # The mobile face is the community plugin: it ships its own cordis layer (a Host gateway
-  # and a browser Client face) and declares 0.1.7-0 peers, so installing it into the profile
-  # is the whole integration. Our own mobile-bridge retired in its favour.
-  - name: "dsh-mobile"
+  # The mobile face is Clarklevis1995/dsh-mobile's companion gateway: a native KMP client for
+  # Android and iOS, paired to a WebSocket gateway this plugin serves on its own LAN listener.
+  # Our own mobile-bridge retired in its favour.
+  - name: "dsh-plugin-mobile-gateway"
     source:
       kind: npm
-      spec: "dsh-mobile"
-    pinned: 0.4.6
-    interest: Mobile access over LAN and remote connections, with an Android app and a mobile browser face
-    owner: saya-ch
+      spec: "dsh-plugin-mobile-gateway"
+    pinned: 0.7.7
+    interest: Native mobile client over a paired WebSocket gateway, with its own LAN listener beside the loopback WebUI
+    owner: Clarklevis1995
     localPatches: []
     plusBundle: true
   - name: "@changfenhuang/dsh-genui"

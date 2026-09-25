@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.0-rc.27",
+  "version": "0.2.0-rc.28",
   "publishConfig": {
     "access": "public"
   },
@@ -63,7 +63,7 @@
         "@sparkelf/dsh-ssh-manager",
         "@sparkelf/dsh-api-client",
         "dsh-right-bg-anim",
-        "dsh-mobile"
+        "dsh-plugin-mobile-gateway"
       ],
       "dependencies": {
         "@changfenhuang/dsh-genui": "0.11.1",
@@ -80,7 +80,7 @@
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.2",
-        "dsh-mobile": ">=0.4.6"
+        "dsh-plugin-mobile-gateway": ">=0.7.7"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -130,7 +130,7 @@
             "@deepseek-ai/dsh-computer-use",
             "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp",
             "@deepseek-ai/dsh-web-search-exa",
-            "dsh-mobile"
+            "dsh-plugin-mobile-gateway"
           ],
           "excludeBundles": [],
           "includePackages": {

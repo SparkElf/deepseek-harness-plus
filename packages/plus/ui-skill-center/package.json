@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-client-ui-skill-center",
-  "version": "0.2.0-rc.27",
+  "version": "0.2.0-rc.28",
   "description": "Skill center for the dsh web client: browses loaded skills grouped by source, enables or disables model invocation, creates skills, and deletes them into a recoverable trash",
   "publishConfig": {
     "access": "public"
