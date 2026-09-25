@@ -13,8 +13,8 @@
  * Usage: fix-nested-links.mjs --release <dir> [--check]
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync, symlinkSync } from 'node:fs'
-import { join, relative, resolve } from 'node:path'
+import { existsSync, mkdirSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 
 const argv = process.argv.slice(2)
 let release
@@ -41,11 +41,22 @@ for (const line of report.split('\n')) {
     const source = join(profile, name)
     if (!existsSync(source)) { console.log('  skip ' + name + ' (not in the profile)'); continue }
     const link = join(target, name)
-    const depth = relative(target, source)
-    if (check) { console.log('  would link ' + link + ' -> ' + depth); fixed += 1; continue }
+    // Resolve through the profile's own links before computing anything: a profile entry may
+    // itself be a symlink to the pnpm store, and a relative path built from the link's spelling
+    // rather than its target resolves to a directory that does not exist. A concurrent pnpm run
+    // can clear the link while this walks the report, so an unresolvable entry is skipped rather
+    // than aborting the whole repair.
+    let resolved
+    try {
+      resolved = realpathSync(source)
+    } catch (error) {
+      console.log('  skip ' + name + ' (unresolvable: ' + (error && error.code ? error.code : 'unknown') + ')')
+      continue
+    }
+    if (check) { console.log('  would link ' + link + ' -> ' + resolved); fixed += 1; continue }
     mkdirSync(target, { recursive: true })
     rmSync(link, { recursive: true, force: true })
-    symlinkSync(depth, link)
+    symlinkSync(resolved, link)
     console.log('  linked ' + name + ' into ' + directory)
     fixed += 1
   }
