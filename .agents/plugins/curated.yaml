@@ -54,6 +54,10 @@ entries:
     interest: Native right-sidebar tabs, file tree, editor, terminal, and side chat
     owner: omdsh-dev
     localPatches:
+      - package: "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load"
+        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
+        retireWhen: dsh-better-sidebar requests the catalog projection of every
+          level its subagent tree renders
       - package: "@sparkelf/dsh-patch-better-sidebar-media-path"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar resolves a workspace-relative media path
@@ -62,10 +66,9 @@ entries:
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar bounds a workspace-root-relative html preview
           path to the session cwd (omdsh-dev/DSH-better-sidebar#692)
-      - package: "@sparkelf/dsh-patch-better-sidebar-main-view-session"
-        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
-        retireWhen: dsh-better-sidebar resolves the on-screen session without
-          sessions.list.current (omdsh-dev/DSH-better-sidebar#715, PR #716)
+      # The on-screen-session patch retired at dsh-better-sidebar 0.21.1: the package now
+      # derives it from mountedSessions(ctx) instead of sessions.list.current, which is what
+      # the patch substituted (omdsh-dev/DSH-better-sidebar#715, PR #716).
       - package: "@sparkelf/dsh-patch-better-sidebar-browser-url-seed"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar carries a link's url seed onto the tab it

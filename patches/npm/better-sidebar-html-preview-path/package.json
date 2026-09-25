@@ -28,7 +28,7 @@
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
-          "range": "0.19.1"
+          "range": "0.21.1"
         },
         "file": "./patches/better-sidebar-html-preview-path.patch"
       }

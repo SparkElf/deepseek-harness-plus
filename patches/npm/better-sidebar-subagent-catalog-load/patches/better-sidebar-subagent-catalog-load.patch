@@ -1,0 +1,29 @@
+diff --git a/lib/client.js b/lib/client.js
+index 4af221a..64a1219 100644
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -11421,6 +11421,24 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
+ 			const rootCatalog = rootId === void 0 ? void 0 : catalogs[rootId];
+ 			const rootSummary = rootId === void 0 ? void 0 : byId[rootId];
+ 			const live = useSubagentLive(rootId, active);
++			// Every level of this tree reads its own catalog projection, and the host loads one
++			// only when asked. Without a request the level renders "loading" forever, because
++			// the view cannot tell "not requested" from "still arriving". Ask for the root and
++			// for every child the loaded catalogs reveal; a ref keeps a failed read from being
++			// retried by the store update its own failure produces.
++			const catalogRequests = (0, react.useRef)(new Set());
++			(0, react.useEffect)(() => {
++				if (rootId === void 0 || !active) return;
++				const wanted = new Set([rootId]);
++				for (const view of Object.values(catalogs)) {
++					for (const entry of view.entries ?? []) wanted.add(entry.id);
++				}
++				for (const id of wanted) {
++					if (catalogRequests.current.has(id)) continue;
++					catalogRequests.current.add(id);
++					void sessions.refreshProjections?.(id);
++				}
++			}, [rootId, active, sessions, catalogs]);
+ 			const openConversation = (0, react.useCallback)((target) => {
+ 				const workspace = ctx.get("uiWorkspace");
+ 				if (typeof workspace?.openSession === "function") {

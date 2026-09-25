@@ -1664,12 +1664,12 @@ importers:
       '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/better-sidebar-html-preview-path
-      '@sparkelf/dsh-patch-better-sidebar-main-view-session':
-        specifier: workspace:>=0.2.0-rc.25
-        version: link:../../../patches/npm/better-sidebar-main-view-session
       '@sparkelf/dsh-patch-better-sidebar-media-path':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/better-sidebar-media-path
+      '@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load':
+        specifier: workspace:>=0.2.0-rc.26
+        version: link:../../../patches/npm/better-sidebar-subagent-catalog-load
       '@sparkelf/dsh-patch-browser-auth-mode':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/browser-auth-mode
@@ -9529,7 +9529,7 @@ importers:
         specifier: 0.1.6
         version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.25
+        specifier: workspace:0.2.0-rc.26
         version: link:../../bundle/plus
       '@sparkelf/dsh-query-result-analysis':
         specifier: 0.1.2
@@ -9541,8 +9541,8 @@ importers:
         specifier: 0.1.2
         version: 0.1.2
       dsh-better-sidebar:
-        specifier: 0.19.1
-        version: 0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.21.1
+        version: 0.21.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dsh-right-bg-anim:
         specifier: 1.1.0
         version: 1.1.0
@@ -9620,7 +9620,7 @@ importers:
         specifier: 0.1.6
         version: 0.1.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.25
+        specifier: workspace:0.2.0-rc.26
         version: link:../../bundle/plus
       '@sparkelf/dsh-ssh-manager':
         specifier: 0.7.2
@@ -9629,8 +9629,8 @@ importers:
         specifier: 0.1.2
         version: 0.1.2
       dsh-better-sidebar:
-        specifier: 0.19.1
-        version: 0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.21.1
+        version: 0.21.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       dsh-right-bg-anim:
         specifier: 1.1.0
         version: 1.1.0
@@ -10542,7 +10542,7 @@ importers:
         version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -10686,7 +10686,7 @@ importers:
         version: 4.2.0
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -11392,9 +11392,9 @@ importers:
 
   patches/npm/better-sidebar-html-preview-path: {}
 
-  patches/npm/better-sidebar-main-view-session: {}
-
   patches/npm/better-sidebar-media-path: {}
+
+  patches/npm/better-sidebar-subagent-catalog-load: {}
 
   patches/npm/browser-auth-mode: {}
 
@@ -16133,9 +16133,6 @@ packages:
   cose-base@2.2.0:
     resolution: {integrity: sha512-AzlgcsCbUMymkADOJtQm3wO9S3ltPfYOFD5033keQn9NJzIbtnZj+UdBJe7DYml/8TdbtHJW3j58SOnKhWY/5g==}
 
-  cosmokit@1.8.1:
-    resolution: {integrity: sha512-PDBv4l90xZKrUsZ0vtoycgZpO/j4iFsqJXrAxsyBDsnQRI7ZMJXIjgDJsKNjd5L8jnVnnlrDCdhkFbTncgCVjQ==}
-
   cpu-features@0.0.10:
     resolution: {integrity: sha512-9IkYqtX3YHPCzoVg1Py+o9057a3i0fp7S530UWokCSaFVTc7CwXPRiOjRjBQQ18ZCNafx78YfnG+HALxtVmOGA==}
     engines: {node: '>=10.0.0'}
@@ -16444,25 +16441,25 @@ packages:
     resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
     engines: {node: '>=12'}
 
-  dsh-better-sidebar@0.19.1:
-    resolution: {integrity: sha512-Jr0tPJoDKUVkq+fioL6Td+YwXZ+PULx3CnBJ4iktaQGNP5y9hgpz6V7o7f4Yh2czheVKZsewurqCaiN10GQYeQ==}
+  dsh-better-sidebar@0.21.1:
+    resolution: {integrity: sha512-gbE5E9pwoJeHeedefBftSpTjGjd3TUOPUGYc4LlXUkW+NuYHwY6Hhfcsd//OKuohQLv6snle+sWhrdGWc8ARCg==}
     engines: {node: '>=20'}
     peerDependencies:
-      '@deepseek-ai/cordis': ^4.0.2
-      '@deepseek-ai/dsh-agent': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-locale': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-ui-conversation': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-ui-primitives': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-ui-settings': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-ui-sidebar-right': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-client-ui-slots': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-host-webserver': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-invariants': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-llm': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-session': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-settings': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-subagent': ^0.1.5-rc.1
-      '@deepseek-ai/dsh-tools': ^0.1.5-rc.1
+      '@deepseek-ai/cordis': ^4.0.4
+      '@deepseek-ai/dsh-agent': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-locale': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-ui-conversation': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-ui-primitives': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-ui-settings': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-ui-sidebar-right': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-client-ui-slots': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-host-webserver': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-invariants': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-llm': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-session': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-settings': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-subagent': ^0.1.7-rc.1
+      '@deepseek-ai/dsh-tools': ^0.1.7-rc.1
       '@huanlin/dsh-plugin-better-locale': ^0.1.0
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -18025,9 +18022,6 @@ packages:
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
-  node-pty@1.1.0:
-    resolution: {integrity: sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg==}
-
   node-pty@1.2.0-beta.15:
     resolution: {integrity: sha512-vORSzHXi4Ofl7HemVWpuudLqCPdaQb4LfpRCUpE5HPxhp4JYscl8zZwxh11p26v2wvW24WMwnMfLjhRLixrfxA==}
 
@@ -18651,9 +18645,6 @@ packages:
 
   scheduler@0.23.2:
     resolution: {integrity: sha512-UOShsPwz7NrMUqhR6t0hWjFduvOzbtv7toDH1/hIrfRNIDBnnBWd0CwJTGvTpngVlmwGCdP9/Zl/tVrDqcuYzQ==}
-
-  schemastery@3.18.0:
-    resolution: {integrity: sha512-Jw2uxjoyyqc/yeurmChUEc/jbi8GsrdXV/KmqRUDZXJAXAmrJiPsz8vKa17l/VckyzljHZ9oGaul443CQiXxtA==}
 
   scslre@0.3.0:
     resolution: {integrity: sha512-3A6sD0WYP7+QrjbfNA2FN3FsOaGGFoekCVgTyypy53gPxhbkCIjtO6YWgdrfM+n/8sI8JeXZOIxsHjMTNxQ4nQ==}
@@ -19530,6 +19521,11 @@ packages:
 
   yaml@2.9.0:
     resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
     engines: {node: '>= 14.6'}
     hasBin: true
 
@@ -23047,13 +23043,13 @@ snapshots:
     optionalDependencies:
       vite: 8.0.16(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
 
-  '@vitest/mocker@4.1.8(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))':
+  '@vitest/mocker@4.1.8(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.8
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
-      vite: 8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      vite: 8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1)
 
   '@vitest/pretty-format@4.1.8':
     dependencies:
@@ -23776,8 +23772,6 @@ snapshots:
     dependencies:
       layout-base: 2.0.1
 
-  cosmokit@1.8.1: {}
-
   cpu-features@0.0.10:
     dependencies:
       buildcheck: 0.0.7
@@ -24109,7 +24103,7 @@ snapshots:
 
   dotenv@16.6.1: {}
 
-  dsh-better-sidebar@0.19.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  dsh-better-sidebar@0.21.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@codemirror/commands': 6.11.0
       '@codemirror/lang-cpp': 6.0.3
@@ -24138,17 +24132,17 @@ snapshots:
       '@deepseek-ai/dsh-invariants': 0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis)
       '@deepseek-ai/dsh-llm': 0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis)
       '@deepseek-ai/dsh-settings': link:packages/settings/settings
+      '@deepseek-ai/schemastery': link:vendor/schemastery
       '@lezer/highlight': 1.2.3
       clsx: 2.1.1
       dompurify: 3.4.15
       mermaid: 11.17.2
-      node-pty: 1.1.0
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
       react-icons: 5.7.0(react@18.3.1)
       rxjs: 7.8.2
-      schemastery: 3.18.0
       ws: 8.21.0
+      yaml: 2.9.1
     optionalDependencies:
       '@huanlin/dsh-plugin-better-locale': 0.4.3(@deepseek-ai/cordis@vendor+cordis)
     transitivePeerDependencies:
@@ -26105,10 +26099,6 @@ snapshots:
 
   node-int64@0.4.0: {}
 
-  node-pty@1.1.0:
-    dependencies:
-      node-addon-api: 7.1.1
-
   node-pty@1.2.0-beta.15(patch_hash=b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0):
     dependencies:
       node-addon-api: 7.1.1
@@ -26805,11 +26795,6 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  schemastery@3.18.0:
-    dependencies:
-      '@standard-schema/spec': 1.1.0
-      cosmokit: 1.8.1
-
   scslre@0.3.0:
     dependencies:
       '@eslint-community/regexpp': 4.12.2
@@ -27455,7 +27440,7 @@ snapshots:
       tsx: 4.22.4
       yaml: 2.9.0
 
-  vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0):
+  vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -27468,7 +27453,7 @@ snapshots:
       fsevents: 2.3.3
       jiti: 2.7.0
       tsx: 4.22.4
-      yaml: 2.9.0
+      yaml: 2.9.1
 
   vitepress-plugin-mermaid@2.0.17(mermaid@11.16.0)(vitepress@1.6.4(@algolia/client-search@5.55.2)(@types/node@25.9.3)(@types/react@18.3.31)(lightningcss@1.32.0)(postcss@8.5.15)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(search-insights@2.17.3)(typescript@6.0.3)):
     dependencies:
@@ -27589,10 +27574,10 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
-  vitest@4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
+  vitest@4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1)):
     dependencies:
       '@vitest/expect': 4.1.8
-      '@vitest/mocker': 4.1.8(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      '@vitest/mocker': 4.1.8(vite@8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.8
       '@vitest/runner': 4.1.8
       '@vitest/snapshot': 4.1.8
@@ -27609,7 +27594,7 @@ snapshots:
       tinyexec: 1.2.4
       tinyglobby: 0.2.17
       tinyrainbow: 3.1.0
-      vite: 8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      vite: 8.0.16(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.1)
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
@@ -27738,6 +27723,8 @@ snapshots:
   yallist@5.0.0: {}
 
   yaml@2.9.0: {}
+
+  yaml@2.9.1: {}
 
   yargs-parser@20.2.9: {}
 

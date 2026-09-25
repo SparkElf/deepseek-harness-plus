@@ -249,7 +249,7 @@ function main(): void {
     '@sparkelf/dsh-ssh-manager': '0.7.2',
     '@sparkelf/dsh-api-client': '0.5.1',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.19.1',
+    'dsh-better-sidebar': '0.21.1',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official

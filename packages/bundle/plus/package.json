@@ -74,7 +74,7 @@
         "@sparkelf/dsh-ssh-manager": "0.7.2",
         "@sparkelf/dsh-api-client": "0.5.1",
         "@huanlin/dsh-plugin-better-locale": "0.4.3",
-        "dsh-better-sidebar": "0.19.1",
+        "dsh-better-sidebar": "0.21.1",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.2",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
@@ -144,8 +144,8 @@
     "patchPackages": [
       "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
-      "@sparkelf/dsh-patch-better-sidebar-main-view-session",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
+      "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-legacy-code-preset",
@@ -171,7 +171,6 @@
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.25",
-    "@sparkelf/dsh-patch-better-sidebar-main-view-session": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.0-rc.25",
@@ -193,7 +192,8 @@
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
     "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.25",
-    "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.0-rc.25"
+    "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.0-rc.25",
+    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.0-rc.26"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"
