@@ -81,7 +81,8 @@
       "dsh-sql-workbench",
       "@sparkelf/dsh-ssh-manager",
       "@sparkelf/dsh-api-client",
-      "dsh-right-bg-anim"
+      "dsh-right-bg-anim",
+      "dsh-mobile"
     ],
     "allowBuilds": {
       "@deepseek-ai/dsh-subprocess-local": true,

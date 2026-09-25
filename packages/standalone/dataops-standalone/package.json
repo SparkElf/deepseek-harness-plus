@@ -134,6 +134,7 @@
       "@sparkelf/dsh-ssh-manager",
       "@sparkelf/dsh-api-client",
       "dsh-right-bg-anim",
+      "dsh-mobile",
       "@sparkelf/dsh-dataops-managed",
       "@sparkelf/dsh-query-result-analysis"
     ],
