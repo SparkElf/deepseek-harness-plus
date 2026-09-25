@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.28",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.29",
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
