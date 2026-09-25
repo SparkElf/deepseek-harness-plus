@@ -1679,9 +1679,6 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/legacy-code-preset
-      '@sparkelf/dsh-patch-mobile-gateway-optional-queues':
-        specifier: workspace:>=0.2.0-rc.28
-        version: link:../../../patches/npm/mobile-gateway-optional-queues
       '@sparkelf/dsh-patch-mobile-journal-generation':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/mobile-journal-generation
@@ -9616,6 +9613,9 @@ importers:
       '@sparkelf/dsh-plugin-mcp-credentials':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../plus/mcp-credentials
+      '@sparkelf/dsh-plugin-mobile-gateway':
+        specifier: '>=0.8.2'
+        version: 0.8.2
       '@sparkelf/dsh-plugin-subagent-settings':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../plus/subagent-settings
@@ -9634,9 +9634,6 @@ importers:
       dsh-better-sidebar:
         specifier: 0.21.1
         version: 0.21.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-settings@packages+settings+settings)(@huanlin/dsh-plugin-better-locale@0.4.3(@deepseek-ai/cordis@vendor+cordis))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      dsh-plugin-mobile-gateway:
-        specifier: '>=0.7.7'
-        version: 0.7.7
       dsh-right-bg-anim:
         specifier: 1.1.0
         version: 1.1.0
@@ -11407,8 +11404,6 @@ importers:
   patches/npm/composer-popover-boundaries: {}
 
   patches/npm/legacy-code-preset: {}
-
-  patches/npm/mobile-gateway-optional-queues: {}
 
   patches/npm/mobile-journal-generation: {}
 
@@ -15053,6 +15048,10 @@ packages:
       '@deepseek-ai/cordis': ^4.0.2
       '@deepseek-ai/dsh-tools': 0.1.5-rc.2
 
+  '@sparkelf/dsh-plugin-mobile-gateway@0.8.2':
+    resolution: {integrity: sha512-5pPDEmf93FpQOiACPWS9GnKVBGNGhVUGThVC6KQSQC6go/5WYmglIkTyrBDX7iQkDSrH23S7D28QlnZ1qM8EtA==}
+    hasBin: true
+
   '@sparkelf/dsh-plugin-supervisor@0.1.7':
     resolution: {integrity: sha512-1hYmT0Ay2TN5Dd3VsGfV54n7I2VOd+QVFV5OBnM1HO/tgL/P/Wssnu8zl2rgE4Tm0QDBrfbozR4gjyq4kMQYrg==}
     engines: {node: ^22.19.0 || >=24.0.0}
@@ -16490,10 +16489,6 @@ packages:
         optional: true
       '@huanlin/dsh-plugin-better-locale':
         optional: true
-
-  dsh-plugin-mobile-gateway@0.7.7:
-    resolution: {integrity: sha512-uL+qMjhv2t64og6r+ua11/hlBydZNkLDMedjK+5i3vB+XuK08HK+FQSJd0XqUMJ4yRYFxZpr4gGdTMbcE8OXUw==}
-    hasBin: true
 
   dsh-right-bg-anim@1.1.0:
     resolution: {integrity: sha512-GgJ0uWub6wQahxK4q7wlsCFuz/4lZgabAsvBUn+1zA/BakZHlMnHrUO6JORPbjkI0OfxaTcpAEcpa/9//C0tyA==}
@@ -22628,6 +22623,15 @@ snapshots:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@officecli/officecli': 1.0.147
 
+  '@sparkelf/dsh-plugin-mobile-gateway@0.8.2':
+    dependencies:
+      '@deepseek-ai/schemastery': link:vendor/schemastery
+      qrcode: 1.5.4
+      ws: 8.21.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   '@sparkelf/dsh-plugin-supervisor@0.1.7(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.1(@deepseek-ai/cordis@vendor+cordis))':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
@@ -24237,15 +24241,6 @@ snapshots:
       yaml: 2.9.1
     optionalDependencies:
       '@huanlin/dsh-plugin-better-locale': 0.4.3(@deepseek-ai/cordis@vendor+cordis)
-    transitivePeerDependencies:
-      - bufferutil
-      - utf-8-validate
-
-  dsh-plugin-mobile-gateway@0.7.7:
-    dependencies:
-      '@deepseek-ai/schemastery': link:vendor/schemastery
-      qrcode: 1.5.4
-      ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
