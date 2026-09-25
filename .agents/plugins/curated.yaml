@@ -18,13 +18,16 @@ entries:
     owner: SparkElf
     localPatches: []
     plusBundle: true
-  - name: "@sparkelf/dsh-mobile-bridge"
+  # The mobile face is the community plugin: it ships its own cordis layer (a Host gateway
+  # and a browser Client face) and declares 0.1.7-0 peers, so installing it into the profile
+  # is the whole integration. Our own mobile-bridge retired in its favour.
+  - name: "dsh-mobile"
     source:
       kind: npm
-      spec: "@sparkelf/dsh-mobile-bridge"
-    pinned: 0.2.11
-    interest: End-to-end encrypted mobile access with a Host tunnel and Settings section
-    owner: SparkElf
+      spec: "dsh-mobile"
+    pinned: 0.4.6
+    interest: Mobile access over LAN and remote connections, with an Android app and a mobile browser face
+    owner: saya-ch
     localPatches: []
     plusBundle: true
   - name: "@changfenhuang/dsh-genui"
