@@ -48,7 +48,7 @@
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.2",
-    "dsh-mobile": ">=0.4.6",
+    "dsh-mobile": ">=0.4.7",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.25",
