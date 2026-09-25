@@ -1,6 +1,6 @@
 {
-  "name": "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
-  "description": "Data-only patch bounding a workspace-root-relative HTML preview path to the session cwd in dsh-better-sidebar",
+  "name": "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
+  "description": "Data-only patch making dsh-better-sidebar request the catalog projection of every level its subagent tree renders",
   "version": "0.2.0-rc.27",
   "publishConfig": {
     "access": "public"
@@ -9,11 +9,11 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/better-sidebar-html-preview-path"
+    "directory": "patches/npm/better-sidebar-subagent-catalog-load"
   },
   "exports": {
     "./package.json": "./package.json",
-    "./patches/better-sidebar-html-preview-path.patch": "./patches/better-sidebar-html-preview-path.patch"
+    "./patches/better-sidebar-subagent-catalog-load.patch": "./patches/better-sidebar-subagent-catalog-load.patch"
   },
   "files": [
     "patches/*.patch"
@@ -23,14 +23,14 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "better-sidebar-html-preview-path",
+        "id": "better-sidebar-subagent-catalog-load",
         "dsh": ">=0.1.7-rc.2",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
           "range": "0.21.1"
         },
-        "file": "./patches/better-sidebar-html-preview-path.patch"
+        "file": "./patches/better-sidebar-subagent-catalog-load.patch"
       }
     ]
   }

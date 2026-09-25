@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
   "description": "Data-only patch carrying a link URL seed onto the opened tab in dsh-better-sidebar",
-  "version": "0.2.0-rc.25",
+  "version": "0.2.0-rc.27",
   "publishConfig": {
     "access": "public"
   },
@@ -28,7 +28,7 @@
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
-          "range": "0.19.1"
+          "range": "0.21.1"
         },
         "file": "./patches/better-sidebar-browser-url-seed.patch"
       }

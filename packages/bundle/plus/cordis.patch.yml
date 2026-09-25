@@ -1,6 +1,3 @@
-- id: subagent-model-selection-settings
-  disabled: true
-
 - id: connection
   config:
     trustedHosts: !!js ctx.webRuntime.trustedHosts
@@ -32,30 +29,34 @@
     # standalone profile must not carry DataOps identity or endpoint config, so
     # this layer mounts no DataOps plugin.
 
-    # A disabled root node carries the package's Web Settings entry into the
-    # client inventory; the startup nodes below exclusively own Host schemas.
-    - id: plus-subagent-settings-client
-      name: '@sparkelf/dsh-plugin-subagent-settings'
-      config:
-        provider: spawn
-        enabled: false
-        enableRunInBackground: false
+    # Subagent Settings was retired at DSH 0.1.7-rc.1. The official distribution moved the
+    # browser settings service from settingsScope to configForms and ships its own
+    # @deepseek-ai/dsh-client-ui-settings-subagent, which dsh-web-app mounts directly. The
+    # third-party plugin still injects settingsScope, so it never activates, and a pending
+    # client entry fails the whole browser boot with "Failed to load plugins". Agent teams
+    # own delegation in this profile, so nothing here needs that section.
 
-    - id: plus-subagent-settings
-      name: '@sparkelf/dsh-plugin-subagent-settings/startup'
-      config:
-        settingsNamespace: subagent
-        provider: spawn
-        enabled: false
-        maxDepth: 0
+# Reminders are a default Plus capability. Official ships the three rows disabled in
+# its own bundle layer, so a deployment that wants them writes its own patch; making it
+# a Plus default means every consumer receives them without repeating that layer. The
+# rows are re-enabled rather than re-inserted: `applyEntryPatches` copies every
+# override key onto the row an earlier layer inserted, so this layer reaches the
+# official rows without duplicating their names.
+#
+# The three move together. `time-context` supplies the sampling instant, the browser
+# zone, and the elapsed time that let the model turn a reminder request such as
+# "tomorrow at nine" into an offset-bearing `at` value; without it the model has no
+# clock of its own and an unqualified time depends on a separate source. `ui-schedule`
+# carries the Automation tasks page, the Session-header clock, and the right-Sidebar
+# task tab over the Host service `schedule` mounts.
+- id: time-context
+  disabled: false
 
-    - id: plus-subagent-fork-settings
-      name: '@sparkelf/dsh-plugin-subagent-settings/startup'
-      config:
-        settingsNamespace: subagent-fork
-        provider: fork
-        enabled: false
-        maxDepth: 0
+- id: schedule
+  disabled: false
+
+- id: ui-schedule
+  disabled: false
 
 # The first content search builds the whole index in one transaction, so it needs far
 # more than a steady-state query. This row follows the insert above because a patch

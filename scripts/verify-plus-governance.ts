@@ -243,13 +243,13 @@ function main(): void {
     '@changfenhuang/dsh-genui': '0.11.1',
     '@sparkelf/dsh-mineru': '0.1.2',
     '@sparkelf/dsh-officecli': '0.1.2',
-    '@sparkelf/dsh-plugin-supervisor': '0.1.6',
+    '@sparkelf/dsh-plugin-supervisor': '0.1.7',
     'dsh-sql-workbench': '0.5.1',
     '@sparkelf/dsh-workbench-vault': '0.1.2',
     '@sparkelf/dsh-ssh-manager': '0.7.2',
     '@sparkelf/dsh-api-client': '0.5.1',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.19.1',
+    'dsh-better-sidebar': '0.21.1',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
@@ -263,6 +263,9 @@ function main(): void {
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.2',
+    // The mobile face is the community plugin: it carries its own cordis layer and its own
+    // client face, so the profile install is the whole integration.
+    'dsh-mobile': '>=0.4.6',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.
