@@ -152,6 +152,7 @@
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-legacy-code-preset",
+      "@sparkelf/dsh-patch-mobile-gateway-optional-queues",
       "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-office-preview-stable-load",
       "@sparkelf/dsh-patch-officecli-deliverables",
@@ -196,7 +197,8 @@
     "yaml": ">=2.9.0",
     "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.0-rc.25",
-    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.0-rc.26"
+    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.0-rc.26",
+    "@sparkelf/dsh-patch-mobile-gateway-optional-queues": "workspace:>=0.2.0-rc.28"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

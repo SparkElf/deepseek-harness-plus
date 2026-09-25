@@ -1679,6 +1679,9 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/legacy-code-preset
+      '@sparkelf/dsh-patch-mobile-gateway-optional-queues':
+        specifier: workspace:>=0.2.0-rc.28
+        version: link:../../../patches/npm/mobile-gateway-optional-queues
       '@sparkelf/dsh-patch-mobile-journal-generation':
         specifier: workspace:>=0.2.0-rc.25
         version: link:../../../patches/npm/mobile-journal-generation
@@ -11404,6 +11407,8 @@ importers:
   patches/npm/composer-popover-boundaries: {}
 
   patches/npm/legacy-code-preset: {}
+
+  patches/npm/mobile-gateway-optional-queues: {}
 
   patches/npm/mobile-journal-generation: {}
 

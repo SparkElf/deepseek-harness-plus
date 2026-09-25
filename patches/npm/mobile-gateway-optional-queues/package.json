@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-mobile-gateway-optional-queues",
+  "description": "Data-only patch letting dsh-plugin-mobile-gateway tolerate a control baseline without the optional queue snapshot",
+  "version": "0.2.0-rc.28",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/mobile-gateway-optional-queues"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/mobile-gateway-optional-queues.patch": "./patches/mobile-gateway-optional-queues.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "mobile-gateway-optional-queues",
+        "dsh": ">=0.1.7-rc.2",
+        "target": {
+          "kind": "npm",
+          "name": "dsh-plugin-mobile-gateway",
+          "range": "0.7.7"
+        },
+        "file": "./patches/mobile-gateway-optional-queues.patch"
+      }
+    ]
+  }
+}

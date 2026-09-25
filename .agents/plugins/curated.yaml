@@ -61,6 +61,9 @@ entries:
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar requests the catalog projection of every
           level its subagent tree renders
+      - package: "@sparkelf/dsh-patch-mobile-gateway-optional-queues"
+        upstreamUrl: https://github.com/Clarklevis1995/dsh-plugin-mobile-gateway
+        retireWhen: dsh-plugin-mobile-gateway accepts a control baseline that omits the queue snapshot
       - package: "@sparkelf/dsh-patch-better-sidebar-media-path"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar resolves a workspace-relative media path
