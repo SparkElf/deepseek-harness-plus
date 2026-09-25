@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-session-query-unindexable-session",
   "description": "Skip a session whose stored log cannot be migrated instead of failing the whole content search, and index each session as it is read",
-  "version": "0.2.0-rc.26",
+  "version": "0.2.0-rc.27",
   "publishConfig": {
     "access": "public"
   },

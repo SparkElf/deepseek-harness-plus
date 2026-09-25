@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-omitted",
   "description": "Placeholder package an omitted capability is overridden onto, so an installation never receives the real one.",
-  "version": "0.2.0-rc.26",
+  "version": "0.2.0-rc.27",
   "publishConfig": {
     "access": "public"
   },
