@@ -170,7 +170,10 @@
     }
   },
   "dependencies": {
+    "@deepseek-ai/dsh-computer-use": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.25",

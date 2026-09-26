@@ -49,17 +49,17 @@
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.1.7-rc.2",
     "@sparkelf/dsh-plugin-mobile-gateway": ">=0.8.2",
+    "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.25",
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
-    "yaml": ">=2.9.0",
-    "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
-    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
-    "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1"
+    "yaml": ">=2.9.0"
   },
   "dshPlusStandalone": {
     "formatVersion": 1,
@@ -182,11 +182,6 @@
         "reason": "@sparkelf/dsh-office-viewer-fonts@0.1.2 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
       },
       {
-        "name": "@deepseek-ai/dsh-settings",
-        "version": "0.1.7-rc.2",
-        "reason": "dshmarket@>=1.45.1 declares ^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2, which 0.1.7-rc.2 does not satisfy"
-      },
-      {
         "name": "@deepseek-ai/dsh-brand",
         "version": "0.1.7-rc.2",
         "reason": "@deepseek-ai/dsh-computer-use@>=0.1.6-alpha.1 declares ^0.1.6-alpha.1, which 0.1.7-rc.2 does not satisfy"
@@ -195,6 +190,11 @@
         "name": "@deepseek-ai/dsh-computer-use",
         "version": ">=0.1.6-alpha.1",
         "reason": "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp@>=0.1.6-alpha.1 declares ^0.1.6-alpha.1, which 0.1.7-rc.2 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-settings",
+        "version": "0.1.7-rc.2",
+        "reason": "dshmarket@>=1.45.1 declares ^0.1.0-rc.7 || ^0.1.1-rc.2 || ^0.1.2-alpha.2, which 0.1.7-rc.2 does not satisfy"
       }
     ],
     "omittedPackages": {}
@@ -218,9 +218,9 @@
     "@deepseek-ai/dsh-credentials": "0.1.7-rc.2",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "@deepseek-ai/dsh-skill": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-settings": "0.1.7-rc.2",
     "@deepseek-ai/dsh-brand": "0.1.7-rc.2",
     "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-settings": "0.1.7-rc.2",
     "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.1.7-rc.2",
     "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.1.7-rc.2",
     "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.1.7-rc.2",
