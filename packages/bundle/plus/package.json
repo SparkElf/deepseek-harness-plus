@@ -163,14 +163,18 @@
       "@sparkelf/dsh-patch-session-query-unindexable-session",
       "@sparkelf/dsh-patch-state-dot-brand-blue",
       "@sparkelf/dsh-patch-workspace-storage-restore",
-      "@sparkelf/dsh-patch-wsl-native-open"
+      "@sparkelf/dsh-patch-wsl-native-open",
+      "@sparkelf/dsh-patch-ui-settings-compact-phone"
     ],
     "sourceBase": {
       "revision": "477b4f420553e8a52c2fbccc464d7561b239c443"
     }
   },
   "dependencies": {
+    "@deepseek-ai/dsh-computer-use": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
+    "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.0-rc.25",
@@ -196,7 +200,8 @@
     "yaml": ">=2.9.0",
     "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.25",
     "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.0-rc.25",
-    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.0-rc.26"
+    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.0-rc.26",
+    "@sparkelf/dsh-patch-ui-settings-compact-phone": "workspace:>=0.2.0-rc.29"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"
