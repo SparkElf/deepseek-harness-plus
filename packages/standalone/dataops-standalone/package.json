@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.1.7-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.31",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.32",
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.2",
     "@sparkelf/dsh-officecli": "0.1.2",
@@ -74,8 +74,8 @@
     "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.2",
     "@deepseek-ai/dsh-client-ui-session": "0.1.7-rc.2",
     "@deepseek-ai/dsh-client-ui-renderer": "0.1.7-rc.2",
-    "@deepseek-ai/dsh-user-approval": "0.1.7-rc.2",
     "@deepseek-ai/dsh-credentials": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-user-approval": "0.1.7-rc.2",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "@deepseek-ai/dsh-skill": "0.1.7-rc.2",
     "@deepseek-ai/dsh-settings": "0.1.7-rc.2",
@@ -216,12 +216,12 @@
         "reason": "dsh-sql-workbench@0.5.1 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
       },
       {
-        "name": "@deepseek-ai/dsh-user-approval",
+        "name": "@deepseek-ai/dsh-credentials",
         "version": "0.1.7-rc.2",
         "reason": "@sparkelf/dsh-ssh-manager@0.7.2 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
       },
       {
-        "name": "@deepseek-ai/dsh-credentials",
+        "name": "@deepseek-ai/dsh-user-approval",
         "version": "0.1.7-rc.2",
         "reason": "@sparkelf/dsh-ssh-manager@0.7.2 declares 0.1.5-rc.2, which 0.1.7-rc.2 does not satisfy"
       },
@@ -272,10 +272,10 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.31",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.31",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.31",
-      "@sparkelf/dsh-plugin-mobile-gateway": "npm:@sparkelf/dsh-omitted@0.2.0-rc.31"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.32",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.32",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.32",
+      "@sparkelf/dsh-plugin-mobile-gateway": "npm:@sparkelf/dsh-omitted@0.2.0-rc.32"
     }
   }
 }
