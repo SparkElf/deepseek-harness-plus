@@ -1,8 +1,7 @@
 diff --git a/lib/index.js b/lib/index.js
-index 74c7171..278ca90 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -5040,7 +5040,10 @@ function apply(ctx, config) {
+@@ -3436,7 +3436,10 @@
  				const sessionId = url.searchParams.get("sessionId");
  				const raw = url.searchParams.get("path");
  				if (sessionId === null || raw === null) throw new SidebarError("bad-request", "sessionId and path are required");
