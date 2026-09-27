@@ -57,6 +57,9 @@ entries:
     interest: Native right-sidebar tabs, file tree, editor, terminal, and side chat
     owner: omdsh-dev
     localPatches:
+      - package: "@sparkelf/dsh-patch-ui-settings-compact-phone"
+        upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
+        retireWhen: dsh-client-ui-settings-general lays out its navigation for a narrow viewport
       - package: "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar requests the catalog projection of every
