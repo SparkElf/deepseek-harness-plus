@@ -21,7 +21,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
-import { releaseFamily } from './families.ts'
+import { releaseFamily, type InstalledEntry } from './families.ts'
 import { capture, isEntry } from './process.ts'
 import { packedIdentity } from './tarball.ts'
 
@@ -77,28 +77,37 @@ function main(): void {
   }
 
   const family = releaseFamily(values.family)
-  const entry = family.installedEntry
-  if (entry === undefined) {
+  const entries = family.installedEntries
+  if (entries.length === 0) {
     console.log(`release verify-packed-install: family ${family.id} publishes no executable, nothing to drive`)
     return
   }
 
   const root = process.cwd()
   const packed = packedDependencies(values.from.map(directory => resolve(root, directory)))
+  // A family may publish more than one installer over different dependency closures, and each has
+  // to resolve from the registry on its own. The loop drives every one rather than the first.
+  for (const entry of entries) {
+    driveEntry(family.id, entry, packed)
+  }
+}
+
+/** Install the packed tarballs and drive one entry's `--version`. */
+function driveEntry(familyId: string, entry: InstalledEntry, packed: ReadonlyMap<string, { url: string; version: string }>): void {
   const expected = packed.get(entry.packageName)
   if (expected === undefined) throw new Error(`${entry.packageName} is not among the packed tarballs`)
 
-  const consumerRoot = mkdtempSync(join(tmpdir(), `dsh-packed-${family.id}-`))
+  const consumerRoot = mkdtempSync(join(tmpdir(), `dsh-packed-${familyId}-`))
   try {
     writeFileSync(join(consumerRoot, 'package.json'), `${JSON.stringify({
-      name: `dsh-packed-install-${family.id}`,
+      name: `dsh-packed-install-${familyId}`,
       version: '0.0.0',
       private: true,
       dependencies: Object.fromEntries([...packed].map(([name, entryPacked]) => [name, entryPacked.url])),
     }, null, 2)}\n`)
 
     const environment = consumerEnvironment(consumerRoot)
-    console.log(`release verify-packed-install: installing ${String(packed.size)} tarball(s) into ${consumerRoot}`)
+    console.log(`release verify-packed-install: installing ${String(packed.size)} tarball(s) into ${consumerRoot} for ${entry.packageName}`)
     // Optional dependencies are omitted: the Landlock platform packages behind
     // them need a musl toolchain and one build per architecture, and a consumer
     // that cannot install them must still start — which is what optional means
