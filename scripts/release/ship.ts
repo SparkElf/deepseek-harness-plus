@@ -212,6 +212,12 @@ async function main(): Promise<number> {
   const runtimeVersion = /^>=?(.+)$/.exec(JSON.parse(readFileSync(entry, 'utf8')).dshPlus.compatibility.dsh)?.[1] ?? ''
   run('npx', ['tsx', 'scripts/standalone/generate-manifest.ts', '--distribution', 'packages/bundle/plus', '--out', 'packages/standalone/plus-standalone/package.json', '--runtime-version', runtimeVersion])
   run('npx', ['tsx', 'scripts/standalone/generate-manifest.ts', '--distribution', 'packages/bundle/plus', '--out', 'packages/standalone/dataops-standalone/package.json', '--runtime-version', runtimeVersion, '--variant', 'dataops'])
+  // Both standalone manifests name the distribution at its new version, and so does the root
+  // lockfile's importer entries for them. Bumping without refreshing it leaves the lockfile
+  // declaring the previous prerelease, which `pnpm install --frozen-lockfile` rejects at
+  // ERR_PNPM_OUTDATED_LOCKFILE on every CI job — a release that merges green locally and red
+  // upstream.
+  run('pnpm', ['install', '--lockfile-only'])
   run('git', ['add', '-A'])
   // The manifests may already be correct on a resumed run, in which case there is nothing to
   // commit and that is the desired state rather than a failure.
