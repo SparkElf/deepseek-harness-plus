@@ -346,6 +346,18 @@ export abstract class ReleaseFamily {
    * `undefined` for a family that publishes no executable.
    */
   abstract readonly installedEntry: InstalledEntry | undefined
+
+  /**
+   * Every executable this family publishes that the packed-install probe should drive.
+   *
+   * Defaults to the single `installedEntry`; a family with more than one installer overrides it so
+   * each closure resolves from the registry before the release publishes. Declared as a field rather
+   * than a getter so an override is a plain property, which the class hierarchy allows.
+   */
+  get installedEntries(): readonly InstalledEntry[] {
+    const entry = this.installedEntry
+    return entry === undefined ? [] : [entry]
+  }
 }
 
 /** Release packages and apps: one shared version across the whole family. */
@@ -472,6 +484,22 @@ class PlusFamily extends DshFamily {
   override readonly installedEntry: InstalledEntry | undefined = {
     packageName: '@sparkelf/dsh-plus-standalone',
     binPath: 'lib/bin.js',
+  }
+
+  /**
+   * Every standalone installer this family publishes, not just the first.
+   *
+   * `installedEntry` names one executable for the packed-install probe, and the probe stops at it.
+   * This family ships two installers — `dsh-plus` and `dsh-dataops` — with different dependency
+   * closures: DataOps excludes the optional computer-use packages and adds its managed
+   * integration. Probing only the first left the second's ranges unverified, so a range the
+   * registry cannot resolve would reach a consumer instead of failing the release.
+   */
+  override get installedEntries(): readonly InstalledEntry[] {
+    return [
+      { packageName: '@sparkelf/dsh-plus-standalone', binPath: 'lib/bin.js' },
+      { packageName: '@sparkelf/dsh-dataops-standalone', binPath: 'lib/bin.js' },
+    ]
   }
 }
 
