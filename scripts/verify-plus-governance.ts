@@ -241,20 +241,20 @@ function main(): void {
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
     '@changfenhuang/dsh-genui': '0.11.1',
-    '@sparkelf/dsh-mineru': '0.1.2',
-    '@sparkelf/dsh-officecli': '0.1.2',
-    '@sparkelf/dsh-plugin-supervisor': '0.1.7',
-    'dsh-sql-workbench': '0.5.1',
+    '@sparkelf/dsh-mineru': '0.1.3',
+    '@sparkelf/dsh-officecli': '0.1.3',
+    '@sparkelf/dsh-plugin-supervisor': '0.1.8',
+    'dsh-sql-workbench': '0.5.2',
     '@sparkelf/dsh-workbench-vault': '0.1.2',
-    '@sparkelf/dsh-ssh-manager': '0.7.2',
-    '@sparkelf/dsh-api-client': '0.5.1',
+    '@sparkelf/dsh-ssh-manager': '0.7.3',
+    '@sparkelf/dsh-api-client': '0.5.2',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
     'dsh-better-sidebar': '0.21.1',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
     // conversion through office-to-pdf's fontDirectories.
-    '@sparkelf/dsh-office-viewer-fonts': '0.1.2',
+    '@sparkelf/dsh-office-viewer-fonts': '0.1.3',
     'dsh-video-preview': '0.1.4',
     // The reviewed session background: a new session's centre column renders it, and every
     // other surface stays official.
