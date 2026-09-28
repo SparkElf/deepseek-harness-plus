@@ -31,7 +31,7 @@ describe('Plus official package scope', () => {
     const manifest = JSON.parse(readFileSync(
       fileURLToPath(new URL('../package.json', import.meta.url)),
       'utf8',
-    )) as { dshPlus: { profile: { bundles: string[] } } }
+    )) as { dependencies: Record<string, string>; dshPlus: { profile: { bundles: string[] } } }
     const subagentManifest = JSON.parse(readFileSync(
       fileURLToPath(new URL('../../../plus/subagent-settings/package.json', import.meta.url)),
       'utf8',
@@ -39,6 +39,11 @@ describe('Plus official package scope', () => {
     const plusPatch = readFileSync(fileURLToPath(new URL('../cordis.patch.yml', import.meta.url)), 'utf8')
 
     expect(manifest.dshPlus.profile.bundles).not.toContain('@sparkelf/dsh-plugin-subagent-settings')
+    // Leaving the package in the dependency set is not enough on its own: the loader
+    // assembles every installed package that declares a browser half, so an installed
+    // plugin still contributes the pending entry that fails the boot even when no patch
+    // row names it.
+    expect(manifest.dependencies).not.toHaveProperty('@sparkelf/dsh-plugin-subagent-settings')
     expect(subagentManifest.dsh.client).toBeDefined()
     expect(plusPatch).not.toContain('plus-subagent-settings-client')
     expect(plusPatch).not.toContain('plus-subagent-settings')
