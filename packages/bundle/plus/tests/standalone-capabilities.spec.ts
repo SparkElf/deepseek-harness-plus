@@ -1,5 +1,15 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { capabilityEnvironment, capabilityPatchLayer } from '../src/standalone-capabilities.ts'
+import {
+  CAPABILITY_RECORD,
+  capabilityEnvironment,
+  capabilityPatchLayer,
+  detectEnabledCapabilities,
+  editCapabilityPatchLayer,
+  readCapabilityRecord,
+} from '../src/standalone-capabilities.ts'
 
 /**
  * The profile loader requires a top-level YAML array in the capability layer, so a
@@ -63,5 +73,156 @@ describe('capability environment file', () => {
     // The interview owns this name, so the stale value is replaced rather than kept beside it.
     expect(file).toContain('EXA_API_KEY=k')
     expect(file).not.toContain('EXA_API_KEY=old')
+  })
+
+  it('keeps the key already in the file when the answers carry none', () => {
+    // The interview returns no key when the user chose to add it later, and enabling any
+    // other capability rewrites this whole file. Dropping the key there would silently
+    // disable a working search provider.
+    const file = capabilityEnvironment({ enabled: ['exa', 'officecli'] }, 'EXA_API_KEY=already-there\n')
+    expect(file).toContain('EXA_API_KEY=already-there')
+  })
+
+  it('drops the key when web search is no longer selected', () => {
+    // Deselecting the capability is what removes the assignment that turned it on; keeping
+    // it would make the file disagree with the profile layer.
+    const file = capabilityEnvironment({ enabled: ['officecli'] }, 'EXA_API_KEY=already-there\n')
+    expect(file).not.toContain('EXA_API_KEY')
+  })
+})
+
+describe('capability patch layer rows', () => {
+  it('mounts officecli when it is selected', () => {
+    // The capability reported itself as ready while writing no row, so the tools stayed
+    // absent. The row id and package match the plugin's own bundle layer.
+    const layer = capabilityPatchLayer({ enabled: ['officecli'] })
+    expect(layer).toContain('- id: officecli')
+    expect(layer).toContain("name: '@sparkelf/dsh-officecli'")
+  })
+})
+
+describe('capability record', () => {
+  it('round-trips the answers a configured run recorded', () => {
+    const home = mkdtempSync(join(tmpdir(), 'dsh-capability-record-'))
+    try {
+      writeFileSync(join(home, CAPABILITY_RECORD), JSON.stringify({ enabled: ['exa', 'mineru'], mineruEndpoint: 'http://127.0.0.1:9000/parse' }))
+      expect(readCapabilityRecord(home)).toEqual({ enabled: ['exa', 'mineru'], mineruEndpoint: 'http://127.0.0.1:9000/parse' })
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+
+  it('treats an absent or malformed record as no record', () => {
+    // The record is a cache of an earlier answer; refusing to boot over a corrupted one
+    // would strand a deployment whose write was interrupted.
+    const home = mkdtempSync(join(tmpdir(), 'dsh-capability-record-'))
+    try {
+      expect(readCapabilityRecord(home)).toBeUndefined()
+      writeFileSync(join(home, CAPABILITY_RECORD), '{ not json')
+      expect(readCapabilityRecord(home)).toBeUndefined()
+      writeFileSync(join(home, CAPABILITY_RECORD), JSON.stringify({ enabled: 'exa' }))
+      expect(readCapabilityRecord(home)).toBeUndefined()
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('capability detection', () => {
+  it('reads the rows the loader mounts, not the record', () => {
+    const layer = capabilityPatchLayer({ enabled: ['exa', 'officecli'] })
+    const detected = detectEnabledCapabilities(layer, 'EXA_API_KEY=k\n')
+    expect([...detected.mounted].sort()).toEqual(['exa', 'officecli'])
+    expect(detected.env).toContain('EXA_API_KEY')
+  })
+
+  it('does not count a package name mentioned in a comment', () => {
+    // Matching a bare package name would report a capability as mounted because a comment
+    // or an unrelated row's config mentioned it.
+    const detected = detectEnabledCapabilities('# - id: web-search-exa\n[]\n', '')
+    expect(detected.mounted).toEqual([])
+  })
+})
+
+describe('capability layer editing', () => {
+  /** A layer shaped like a deployment's own: capability rows beside hand-written ones. */
+  const ownLayer = [
+    '# Written by hand for this deployment.',
+    '- id: llm-pi-ai',
+    '  config:',
+    '    model: something',
+    '',
+    '- insert:',
+    '    - id: web-search-exa',
+    "      name: '@deepseek-ai/dsh-web-search-exa'",
+    '',
+    '- id: web',
+    '  config:',
+    '    searchProvider: exa',
+    '    fetchProvider: http',
+    '',
+    '- id: better-sidebar',
+    '  config:',
+    '    workspaceFence: false',
+    '',
+  ].join('\n')
+
+  it('removes only the capability rows when disabling', () => {
+    const off = editCapabilityPatchLayer(ownLayer, 'exa', false)
+    expect(off).not.toContain('web-search-exa')
+    expect(off).not.toContain('searchProvider: exa')
+    // The rows this command does not own must survive: replacing the layer wholesale is
+    // what `dsh-plus start` does, and it is why an operator with hand-written rows cannot
+    // use that path to change one capability.
+    expect(off).toContain('- id: llm-pi-ai')
+    expect(off).toContain('- id: better-sidebar')
+    expect(off).toContain('# Written by hand for this deployment.')
+  })
+
+  it('restores the capability rows when enabling again', () => {
+    const on = editCapabilityPatchLayer(editCapabilityPatchLayer(ownLayer, 'exa', false), 'exa', true)
+    expect(on).toContain('- id: web-search-exa')
+    expect(on).toContain('searchProvider: exa')
+    // A patch replaces the targeted row's whole `config`, so the selector has to restate
+    // `fetchProvider`; omitting it silently drops web_fetch.
+    expect(on).toContain('fetchProvider: http')
+    expect(on).toContain('- id: llm-pi-ai')
+  })
+
+  it('is idempotent when the capability is already enabled', () => {
+    // Inserting a second row under the same id doubles the entry rather than replacing it,
+    // so the edit removes the rows it owns before adding them back.
+    const once = editCapabilityPatchLayer(ownLayer, 'exa', true)
+    const twice = editCapabilityPatchLayer(once, 'exa', true)
+    expect(twice.match(/id: web-search-exa/g)).toHaveLength(1)
+    expect(twice.match(/^- id: web$/gm)).toHaveLength(1)
+  })
+
+  it('creates the insert entry when the layer has none', () => {
+    const on = editCapabilityPatchLayer('- id: llm-pi-ai\n', 'officecli', true)
+    expect(on).toContain('- insert:')
+    expect(on).toContain('- id: officecli')
+    expect(on).toContain('- id: llm-pi-ai')
+  })
+
+  it('replaces the empty-array marker rather than nesting it', () => {
+    // The loader requires a top-level array; a layer that mounts nothing is the literal
+    // `[]`, and leaving it beside an insert would produce two documents.
+    const on = editCapabilityPatchLayer('[]\n', 'exa', true)
+    expect(on).not.toContain('[]')
+    expect(on).toContain('- insert:')
+    expect(on).toContain('- id: web-search-exa')
+  })
+
+  it('writes the MinerU endpoint from the answers', () => {
+    const on = editCapabilityPatchLayer('- id: llm-pi-ai\n', 'mineru', true, 'http://127.0.0.1:9000/parse')
+    expect(on).toContain("name: '@sparkelf/dsh-mineru'")
+    expect(on).toContain('endpoint: http://127.0.0.1:9000/parse')
+  })
+
+  it('ends the file with exactly one newline', () => {
+    const off = editCapabilityPatchLayer(ownLayer, 'exa', false)
+    expect(off.endsWith('\n')).toBe(true)
+    expect(off.endsWith('\n\n')).toBe(false)
   })
 })
