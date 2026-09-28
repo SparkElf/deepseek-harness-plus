@@ -262,7 +262,7 @@ function main(): void {
     // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
-    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.1.7-rc.2',
+    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.0-rc.1',
     // The mobile face is the community plugin: it carries its own cordis layer and its own
     // client face, so the profile install is the whole integration.
     // The mobile client is this fork of Clarklevis1995/dsh-mobile's companion gateway: it reads

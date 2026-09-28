@@ -222,7 +222,7 @@ index 67bbc35902..dd062cc003 100644
 +  }
 +  for (const candidate of WINDOWS_EXPLORER_CANDIDATES) {
 +    try {
-+      await run(candidate, [target], signal)
++      await run(candidate, [target], signal, 'visible')
 +      return
 +    } catch (error) {
 +      if (!isMissingExecutable(error)) throw error
