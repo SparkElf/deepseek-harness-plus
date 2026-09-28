@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 /**
@@ -179,6 +179,16 @@ const CAPABILITY_ENV_NAMES: readonly string[] = ['EXA_API_KEY']
 export function capabilityEnvironment(answers: CapabilityAnswers, existing = ''): string {
   const enabled = new Set(answers.enabled)
   const owned = new Set(CAPABILITY_ENV_NAMES)
+  // Values the file already carries for the names this module owns. Re-running a
+  // configured start must not delete a credential the deployment already holds: the
+  // interview returns no key when the user says they will add it later, and enabling an
+  // unrelated capability still rewrites this whole file. Reading the present value back
+  // is what keeps `start` from undoing an earlier answer.
+  const carried = new Map<string, string>()
+  for (const line of existing.split('\n')) {
+    const parsed = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/.exec(line)
+    if (parsed?.[1] !== undefined && owned.has(parsed[1])) carried.set(parsed[1], parsed[2] ?? '')
+  }
   const kept = existing.split('\n').filter((line) => {
     const name = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1]
     return line.trim() !== '' && !line.trimStart().startsWith('#') && (name === undefined || !owned.has(name))
@@ -187,8 +197,9 @@ export function capabilityEnvironment(answers: CapabilityAnswers, existing = '')
     '# Written by dsh-plus start from the capability interview. Enabling or',
     '# disabling a capability rewrites the lines below; other lines are kept.',
   ]
-  if (enabled.has('exa') && answers.exaApiKey !== undefined) {
-    written.push('EXA_API_KEY=' + answers.exaApiKey)
+  if (enabled.has('exa')) {
+    const key = answers.exaApiKey ?? carried.get('EXA_API_KEY')
+    if (key !== undefined && key !== '') written.push('EXA_API_KEY=' + key)
   }
   return [...written, ...kept].join('\n') + '\n'
 }
@@ -227,6 +238,16 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
       "      name: '@deepseek-ai/dsh-computer-use'",
       '    - id: computer-use-cua-driver-mcp',
       "      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp'",
+    )
+  }
+  if (enabled.has('officecli')) {
+    // The plugin ships inside the mounted bundle and carries its own binary, so the
+    // capability needs no host step — but a selection that writes no row mounts nothing,
+    // and the capability then reports as ready while the tools stay absent. The row id
+    // and package match the plugin's own bundle layer.
+    rows.push(
+      '    - id: officecli',
+      "      name: '@sparkelf/dsh-officecli'",
     )
   }
   // MinerU reads its endpoint from plugin config, not from the environment, and a name prefixed
@@ -271,6 +292,276 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
 function runStep(command: string, args: readonly string[]): boolean {
   const result = spawnSync(command, [...args], { stdio: 'inherit' })
   return result.status === 0
+}
+
+/**
+ * The capability record a previous configured run wrote, or `undefined` when none exists.
+ *
+ * The record is what lets a later run report the deployment's answers instead of asking
+ * again. A malformed or unreadable file is treated as absent rather than fatal: it is a
+ * convenience cache, and refusing to boot over it would strand a deployment whose record
+ * was corrupted by an interrupted write.
+ *
+ * @param home - the deployment home holding the record.
+ * @returns the enabled ids, and the MinerU endpoint when the record carries one.
+ */
+export function readCapabilityRecord(home: string): CapabilityAnswers | undefined {
+  const path = join(home, CAPABILITY_RECORD)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    // Absent and unreadable are the same answer here: the caller falls back to the
+    // profile and env files, which are the authoritative state a record only mirrors.
+    return undefined
+  }
+  if (typeof parsed !== 'object' || parsed === null) return undefined
+  const record = parsed as { enabled?: unknown; mineruEndpoint?: unknown }
+  if (!Array.isArray(record.enabled)) return undefined
+  const enabled = record.enabled.filter((id): id is string => typeof id === 'string')
+  return {
+    enabled,
+    ...typeof record.mineruEndpoint === 'string' ? { mineruEndpoint: record.mineruEndpoint } : {},
+  }
+}
+
+/**
+ * The capabilities a deployment actually has mounted, read from the files the loader and
+ * the launch environment consume.
+ *
+ * A record is a cache of an earlier answer and can drift from the deployment — a profile
+ * layer edited by hand, a record deleted, a plugin removed from the distribution. What a
+ * capability is *doing* is decided by the profile patch rows and the env file, so that is
+ * what a report reads.
+ *
+ * @param profilePatchText - the profile layer's YAML text.
+ * @param envText - the deployment env file's text.
+ * @returns the ids found in the profile layer and the env names present.
+ */
+export function detectEnabledCapabilities(
+  profilePatchText: string,
+  envText: string,
+): { readonly mounted: readonly string[]; readonly env: readonly string[] } {
+  const mounted: string[] = []
+  // Matching the row id is what the loader does; matching a bare package name would also
+  // hit a comment or a name mentioned in an unrelated row's config.
+  if (/^\s*- id: web-search-exa\s*$/mu.test(profilePatchText)) mounted.push('exa')
+  if (/^\s*- id: mineru\s*$/mu.test(profilePatchText)) mounted.push('mineru')
+  if (/^\s*- id: officecli\s*$/mu.test(profilePatchText)) mounted.push('officecli')
+  if (/^\s*- id: computer-use\s*$/mu.test(profilePatchText)) mounted.push('computer-use')
+
+  const env: string[] = []
+  for (const line of envText.split('\n')) {
+    const name = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1]
+    if (name !== undefined && !env.includes(name)) env.push(name)
+  }
+  return { mounted, env }
+}
+
+/**
+ * The patch row one capability mounts, as a list of YAML lines, or `undefined` when the
+ * capability is turned on by something other than a row this module owns.
+ *
+ * MinerU is enabled by a row too, but its endpoint is per-deployment, so the caller passes
+ * the answers rather than a fixed row.
+ *
+ * @param id - the capability id.
+ * @returns the insert payload lines, without the surrounding `- insert:` entry.
+ */
+function capabilityRows(id: string): readonly string[] | undefined {
+  if (id === 'exa') {
+    return [
+      '    - id: web-search-exa',
+      "      name: '@deepseek-ai/dsh-web-search-exa'",
+      '      config:',
+      '        searchType: auto',
+      '        numResults: 8',
+    ]
+  }
+  if (id === 'officecli') {
+    return [
+      '    - id: officecli',
+      "      name: '@sparkelf/dsh-officecli'",
+    ]
+  }
+  if (id === 'computer-use') {
+    return [
+      '    - id: computer-use',
+      "      name: '@deepseek-ai/dsh-computer-use'",
+      '    - id: computer-use-cua-driver-mcp',
+      "      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp'",
+    ]
+  }
+  return undefined
+}
+
+/** The row ids a capability owns in the profile layer. */
+function capabilityRowIds(id: string): readonly string[] {
+  if (id === 'exa') return ['web-search-exa']
+  if (id === 'officecli') return ['officecli']
+  if (id === 'mineru') return ['mineru']
+  if (id === 'computer-use') return ['computer-use', 'computer-use-cua-driver-mcp']
+  return []
+}
+
+/**
+ * One capability's effect, added to or removed from an existing profile layer without
+ * disturbing the rest of the file.
+ *
+ * `dsh-plus start` owns the whole layer and rewrites it from the interview's answers, which
+ * is correct for an install that answered once and never edits afterwards. A deployment
+ * that maintains its own rows in that same layer cannot be served that way: replacing the
+ * file drops every row the operator wrote. This edits the rows this module owns and leaves
+ * every other entry, comment, and blank line exactly where it was.
+ *
+ * @param existing - the layer's current YAML text.
+ * @param id - the capability to add or remove.
+ * @param enable - whether to add the capability.
+ * @param mineruEndpoint - the endpoint to write when enabling MinerU.
+ * @returns the layer's new text.
+ */
+export function editCapabilityPatchLayer(
+  existing: string,
+  id: string,
+  enable: boolean,
+  mineruEndpoint?: string,
+): string {
+  const owned = capabilityRowIds(id)
+  const withoutRows = dropOwnedRows(existing, owned, id === 'exa')
+  const mineruRows = [
+    '    - id: mineru',
+    "      name: '@sparkelf/dsh-mineru'",
+    '      config:',
+    '        endpoint: ' + (mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT),
+  ]
+  const rows = id === 'mineru' && enable ? mineruRows : capabilityRows(id)
+  const text = enable && rows !== undefined
+    ? insertCapabilityRows(withoutRows, rows, id === 'exa')
+    : withoutRows.text
+  // Every file this repository writes ends with exactly one newline; an edited layer must
+  // not lose that, and the loader's YAML parse is indifferent to it either way.
+  const trimmed = text.replace(/\n+$/u, '')
+  return trimmed === '' ? '\n' : trimmed + '\n'
+}
+
+/**
+ * Remove the rows one capability owns, and for Exa the `web` selector row that routes
+ * search to it.
+ *
+ * A row is dropped with the block that belongs to it: the `- id:` line plus its indented
+ * continuation lines, and any comment line directly above that documented it. Comment and
+ * blank lines separating it from the next entry stay, so the surrounding file keeps its
+ * shape.
+ *
+ * @param existing - the layer's current YAML text.
+ * @param ids - the row ids this capability owns.
+ * @param withSelector - whether the capability also owns the shared `web` selector row.
+ * @returns the remaining text and whether anything was actually removed.
+ */
+function dropOwnedRows(
+  existing: string,
+  ids: readonly string[],
+  withSelector: boolean,
+): { text: string; removed: boolean } {
+  const lines = existing.split('\n')
+  const out: string[] = []
+  let removed = false
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index] ?? ''
+    const match = /^(\s*)- id:\s*(\S+)\s*$/.exec(line)
+    // The `web` selector is shared with the built-in provider: dropping it turns Exa off
+    // without touching the row's other keys, because the bundle layer's row reapplies.
+    const isSelector = withSelector && match?.[2] === 'web' && match[1] === ''
+    if (match === null || (!ids.includes(match[2] ?? '') && !isSelector)) {
+      out.push(line)
+      continue
+    }
+    removed = true
+    const indent = match[1] ?? ''
+    // Drop the comments that documented this row, stopping at a blank line so an unrelated
+    // comment above a blank line is not consumed.
+    while (out.length > 0) {
+      const previous = out[out.length - 1] ?? ''
+      if (previous.trimStart().startsWith('#') && previous.trim() !== '') out.pop()
+      else break
+    }
+    // Then the row's own continuation lines: deeper-indented or blank lines until the next
+    // entry at the same or a shallower level.
+    for (index += 1; index < lines.length; index += 1) {
+      const next = lines[index] ?? ''
+      if (next.trim() === '') {
+        // A blank line inside a row's block keeps it; a blank line starting a new block
+        // belongs to the file's spacing and goes back.
+        const after = lines[index + 1] ?? ''
+        if (after !== '' && (after.startsWith(indent + ' ') || after.startsWith(indent + '\t') || after.trimStart().startsWith('#'))) {
+          continue
+        }
+        index -= 1
+        break
+      }
+      const nextIndent = /^\s*/.exec(next)?.[0] ?? ''
+      if (nextIndent.length > indent.length) continue
+      index -= 1
+      break
+    }
+  }
+  return { text: out.join('\n'), removed }
+}
+
+/**
+ * Add a capability's rows to the layer, creating the `- insert:` entry when the file has
+ * none and appending to the existing one otherwise.
+ *
+ * The loader indexes inserted rows under the layer that inserted them, so appending to an
+ * existing `- insert:` list and adding a second one both work; appending keeps the file
+ * readable instead of growing one `- insert:` per capability.
+ *
+ * @param state - the layer with this capability's own rows already removed.
+ * @param rows - the insert payload lines to add.
+ * @param withSelector - whether Exa's `web` selector row must also be present.
+ * @returns the layer's new text.
+ */
+function insertCapabilityRows(
+  state: { text: string },
+  rows: readonly string[],
+  withSelector: boolean,
+): string {
+  const lines = state.text.split('\n')
+  const insertIndex = lines.findIndex(line => /^- insert:\s*$/.test(line))
+  if (insertIndex >= 0) {
+    // Append at the end of the existing insert block: walk past its payload lines.
+    let end = insertIndex + 1
+    while (end < lines.length) {
+      const line = lines[end] ?? ''
+      if (line.trim() === '' || /^\s/.test(line)) end += 1
+      else break
+    }
+    while (end > insertIndex + 1 && (lines[end - 1] ?? '').trim() === '') end -= 1
+    lines.splice(end, 0, ...rows)
+  } else {
+    // A layer with no entries is the literal `[]`; replacing it keeps one valid array.
+    const emptyIndex = lines.findIndex(line => line.trim() === '[]')
+    if (emptyIndex >= 0) lines.splice(emptyIndex, 1, '- insert:', ...rows)
+    else {
+      const trailing = lines.length > 0 && (lines[lines.length - 1] ?? '') === '' ? lines.pop() ?? '' : undefined
+      lines.push('- insert:', ...rows)
+      if (trailing !== undefined) lines.push(trailing)
+    }
+  }
+  if (withSelector && !/^\s*- id: web\s*$/mu.test(lines.join('\n'))) {
+    // The selector is a top-level row: it patches the bundle layer's own `web` entry, and
+    // it must restate `fetchProvider` because a patch replaces the whole `config` object
+    // rather than merging into it.
+    lines.push(
+      '',
+      '# Route web_search through Exa rather than the built-in provider.',
+      '- id: web',
+      '  config:',
+      '    searchProvider: exa',
+      '    fetchProvider: http',
+    )
+  }
+  return lines.join('\n')
 }
 
 /**

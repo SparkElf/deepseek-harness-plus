@@ -22,8 +22,11 @@ import {
   DEFAULT_MINERU_ENDPOINT,
   capabilityEnvironment,
   capabilityPatchLayer,
+  detectEnabledCapabilities,
+  editCapabilityPatchLayer,
   installCapabilityServices,
   interviewCapabilities,
+  readCapabilityRecord,
   type CapabilityAnswers,
 } from './standalone-capabilities.ts'
 import {
@@ -55,7 +58,6 @@ import {
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
-
 /** Profile patch file the capability interview rewrites (the profile's user layer). */
 const CAPABILITY_PATCH_FILE = 'cordis.patch.yml'
 
@@ -464,6 +466,147 @@ function confirm(question: string): Promise<boolean> {
   })
 }
 
+/**
+ * Report and change which optional capabilities this deployment has enabled.
+ *
+ * The interview runs once, at install time, and a deployment that answered it keeps its
+ * answers — so this is the only way to see what it chose or to change one answer later.
+ * The report is read from the profile layer and the env file rather than from the record,
+ * because those two are what the loader and the launch environment actually consume: a
+ * record deleted, or a layer edited by hand, would otherwise describe a deployment that
+ * does not exist.
+ *
+ * `--enable` and `--disable` edit only the rows this module owns. The profile layer is
+ * shared with rows an operator wrote themselves, so it is never replaced wholesale.
+ *
+ * @param argv - arguments after the command word.
+ * @returns the process exit code.
+ */
+function capabilities(argv: readonly string[]): number {
+  const anchor = installationAnchor()
+  const paths = resolvePaths(anchor)
+  const patchPath = join(paths.profileDirectory, CAPABILITY_PATCH_FILE)
+  const envPath = join(paths.home, CAPABILITY_ENV_FILE)
+  const patchText = existsSync(patchPath) ? readFileSync(patchPath, 'utf8') : ''
+  const envText = existsSync(envPath) ? readFileSync(envPath, 'utf8') : ''
+  const actual = detectEnabledCapabilities(patchText, envText)
+  const record = readCapabilityRecord(paths.home)
+
+  let enable: string[] = []
+  let disable: string[] = []
+  let asJson = false
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index]
+    if (token === '--json') {
+      asJson = true
+      continue
+    }
+    if (token === '--enable' || token === '--disable') {
+      const value = argv[index + 1]
+      const ids = (value ?? '').split(',').map(id => id.trim()).filter(id => id !== '')
+      if (value === undefined || ids.length === 0) {
+        console.error(token + ' requires a comma-separated list of capability ids')
+        return 1
+      }
+      const unknown = ids.filter(id => !CAPABILITIES.some(capability => capability.id === id))
+      if (unknown.length > 0) {
+        console.error('unknown capability: ' + unknown.join(', '))
+        console.error('Known: ' + CAPABILITIES.map(capability => capability.id).join(', '))
+        return 1
+      }
+      if (token === '--enable') enable = [...new Set([...enable, ...ids])]
+      else disable = [...new Set([...disable, ...ids])]
+      index += 1
+      continue
+    }
+    console.error('unknown option: ' + String(token))
+    return 1
+  }
+
+  const conflicting = enable.filter(id => disable.includes(id))
+  if (conflicting.length > 0) {
+    console.error('cannot both enable and disable: ' + conflicting.join(', '))
+    return 1
+  }
+
+  if (enable.length > 0 || disable.length > 0) {
+    const enabledNow = new Set(actual.mounted)
+    let nextPatch = patchText
+    for (const id of enable) {
+      nextPatch = editCapabilityPatchLayer(nextPatch, id, true, record?.mineruEndpoint)
+      enabledNow.add(id)
+    }
+    for (const id of disable) {
+      nextPatch = editCapabilityPatchLayer(nextPatch, id, false)
+      enabledNow.delete(id)
+    }
+    if (!existsSync(patchPath) || !patchText.includes(CAPABILITY_MARKER)) {
+      // The layer belongs to the deployment, not to this command. Keep the previous text
+      // beside it so a structural mistake is recoverable without a backup.
+      const backup = patchPath + '.before-capabilities'
+      if (patchText !== '' && !existsSync(backup)) writeFileSync(backup, patchText)
+    }
+    writeFileSync(patchPath, nextPatch)
+    // The env file is rewritten from the answers so a disabled capability drops the
+    // assignment that turned it on, and an enabled one keeps a key already in the file.
+    const answers: CapabilityAnswers = {
+      enabled: [...enabledNow],
+      ...record?.mineruEndpoint === undefined ? {} : { mineruEndpoint: record.mineruEndpoint },
+    }
+    const nextEnv = capabilityEnvironment(answers, envText)
+    writeFileSync(envPath, nextEnv)
+    const after = detectEnabledCapabilities(nextPatch, nextEnv)
+    console.log('Updated ' + CAPABILITY_PATCH_FILE + ' and ' + CAPABILITY_ENV_FILE + '.')
+    console.log('Run dsh-plus start (or restart the server) to apply the change.')
+    return reportCapabilities(after, record, asJson)
+  }
+
+  return reportCapabilities(actual, record, asJson)
+}
+
+/**
+ * Print the capability report.
+ *
+ * @param actual - the capabilities found in the profile layer and env file.
+ * @param record - what the last configured run recorded, when a record exists.
+ * @param asJson - when true, print machine-readable JSON instead of the table.
+ * @returns the process exit code, always 0.
+ */
+function reportCapabilities(
+  actual: { readonly mounted: readonly string[]; readonly env: readonly string[] },
+  record: CapabilityAnswers | undefined,
+  asJson: boolean,
+): number {
+  const rows = CAPABILITIES.map((capability) => {
+    const mounted = actual.mounted.includes(capability.id)
+    const recorded = record?.enabled.includes(capability.id)
+    return { id: capability.id, title: capability.title, enabled: mounted, recorded: recorded ?? null }
+  })
+  if (asJson) {
+    console.log(JSON.stringify({
+      capabilities: rows,
+      env: actual.env,
+      recordPresent: record !== undefined,
+    }, null, 2))
+    return 0
+  }
+  console.log('Optional capabilities:')
+  for (const row of rows) {
+    const state = row.enabled ? 'enabled ' : 'disabled'
+    // A record that disagrees with the files is the one case worth calling out: the two
+    // are supposed to describe the same deployment.
+    const drift = row.recorded !== null && row.recorded !== row.enabled ? '  (record says ' + (row.recorded ? 'enabled' : 'disabled') + ')' : ''
+    console.log('  ' + (row.enabled ? 'ok  ' : '--  ') + row.id.padEnd(14) + state + drift)
+  }
+  if (record === undefined) {
+    console.log('')
+    console.log('No ' + CAPABILITY_RECORD + ' yet; the next dsh-plus start will run the interview.')
+  }
+  console.log('')
+  console.log('Change with: dsh-plus capabilities --enable <id> | --disable <id>')
+  return 0
+}
+
 async function doctor(): Promise<number> {
   const anchor = installationAnchor()
   const paths = resolvePaths(anchor)
@@ -478,6 +621,29 @@ async function doctor(): Promise<number> {
   check(existsSync(join(paths.profileDirectory, 'package.json')), 'profile at ' + paths.profileDirectory + ' (dsh-plus start creates it)')
   const free = await portAvailable(DEFAULT_PORT)
   check(true, 'port ' + String(DEFAULT_PORT) + (free ? ' is free' : ' is in use; start will choose the next free one'))
+
+  // The capability record and the files that actually enable a capability are written by
+  // different runs, so they can disagree: a layer edited by hand, or a record deleted.
+  // Reporting the drift here is what turns the record from a write-only file into
+  // something a user can trust.
+  const patchPath = join(paths.profileDirectory, CAPABILITY_PATCH_FILE)
+  const envPath = join(paths.home, CAPABILITY_ENV_FILE)
+  const actual = detectEnabledCapabilities(
+    existsSync(patchPath) ? readFileSync(patchPath, 'utf8') : '',
+    existsSync(envPath) ? readFileSync(envPath, 'utf8') : '',
+  )
+  const record = readCapabilityRecord(paths.home)
+  const drifted = record === undefined
+    ? []
+    : CAPABILITIES.filter(capability => record.enabled.includes(capability.id) !== actual.mounted.includes(capability.id))
+  check(
+    drifted.length === 0,
+    drifted.length === 0
+      ? 'capabilities: ' + (actual.mounted.length === 0 ? '(none enabled)' : actual.mounted.join(', '))
+      : 'capabilities disagree with ' + CAPABILITY_RECORD + ': ' + drifted.map(capability => capability.id).join(', ')
+        + ' (run dsh-plus capabilities)',
+  )
+
   console.log(failures === 0 ? 'No problems found.' : String(failures) + ' problem(s) found.')
   return failures === 0 ? 0 : 1
 }
@@ -486,17 +652,23 @@ const USAGE = [
   'Usage: dsh-plus <command> [options]',
   '',
   'Commands:',
-  '  start     start the server (first run creates the profile)',
-  '  stop      stop the server',
-  '  status    report whether the server is running',
-  '  update    move to a newer distribution release',
-  '  doctor    check this installation',
+  '  start         start the server (first run creates the profile)',
+  '  stop          stop the server',
+  '  status        report whether the server is running',
+  '  capabilities  report or change the optional capabilities',
+  '  update        move to a newer distribution release',
+  '  doctor        check this installation',
   '',
   'start options:',
   '  --port <n>     port to prefer (default ' + String(DEFAULT_PORT) + '; a taken port moves to the next free one)',
   '  --host <h>     interface to bind (default 127.0.0.1)',
   '  --no-open      do not open a browser',
   '  --foreground   run in this terminal instead of in the background',
+  '',
+  'capabilities options:',
+  '  --enable <ids>   enable the comma-separated capability ids',
+  '  --disable <ids>  disable the comma-separated capability ids',
+  '  --json           print the report as JSON',
   '',
   'update options:',
   '  --check        report the available release without installing it',
@@ -518,6 +690,7 @@ export async function runStandaloneCli(argv: readonly string[]): Promise<number>
   if (command === 'start') return await start(rest)
   if (command === 'stop') return stop()
   if (command === 'status') return status()
+  if (command === 'capabilities') return capabilities(rest)
   if (command === 'update') return await update(rest)
   if (command === 'doctor') return doctor()
   console.error('unknown command: ' + command)
