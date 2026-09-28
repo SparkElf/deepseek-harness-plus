@@ -16,6 +16,7 @@
  */
 
 import { mkdtempSync, rmSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
@@ -65,6 +66,25 @@ function stepWithRetry(label: string, script: string, args: readonly string[], a
   }
 }
 
+/**
+ * How many members to pack at once.
+ *
+ * Each member shells out to `pnpm pack`, which spends its time waiting on the filesystem and
+ * on process startup, so the pool is bounded by cores rather than by memory. `DSH_RELEASE_PACK_CONCURRENCY`
+ * overrides it for a machine that wants the previous serial behaviour.
+ *
+ * @returns the validated pool size, at least 1.
+ */
+function packConcurrency(): number {
+  const raw = process.env.DSH_RELEASE_PACK_CONCURRENCY
+  if (raw === undefined || raw.trim() === '') return Math.max(1, Math.min(8, availableParallelism() - 1))
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    throw new Error('DSH_RELEASE_PACK_CONCURRENCY must be a positive integer, got ' + JSON.stringify(raw))
+  }
+  return parsed
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -85,7 +105,12 @@ function main(): void {
   try {
     // Packing states the release: the tarballs carry the members and versions that later
     // steps read, so nothing has to restate the list and drift from it.
-    step('packing ' + family.id, 'release:pack', ['--family', family.id, '--out', directory])
+    // Packing and the packed-install probe each walk the same member list, and both are
+    // dominated by subprocess startup rather than by CPU: `pack` runs `pnpm pack` per member
+    // and the probe runs `npm install` over the whole set. Neither depends on the other's
+    // members, so the default of one leaves most of the machine idle for minutes.
+    const concurrency = String(packConcurrency())
+    step('packing ' + family.id, 'release:pack', ['--family', family.id, '--out', directory, '--concurrency', concurrency])
     stepWithRetry('verifying the packed install', 'release:verify-packed-install', ['--family', family.id, '--from', directory])
     if (values['dry-run'] === true) {
       console.log('')

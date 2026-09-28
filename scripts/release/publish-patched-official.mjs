@@ -65,11 +65,11 @@ function publishOrder(manifests) {
  */
 function promoteLatest(name, version, tag) {
   if (tag === 'latest') return false
-  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json'])
+  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json', '--registry', PUBLISH_REGISTRY])
   const parsed = current.status === 0 ? JSON.parse(current.stdout.trim() || '[]') : undefined
   const latest = Array.isArray(parsed) ? parsed[0] : parsed
   if (latest === version) return false
-  const moved = attemptEchoed('npm', ['dist-tag', 'add', name + '@' + version, 'latest'])
+  const moved = attemptEchoed('npm', ['dist-tag', 'add', name + '@' + version, 'latest', '--registry', PUBLISH_REGISTRY])
   if (moved.status !== 0) {
     throw new Error(
       'published ' + name + '@' + version + " under '" + tag + "' but could not move latest"
@@ -103,7 +103,7 @@ for (const manifest of order) {
   // A prerelease version publishes to \`next\` unless told otherwise; npm refuses a
   // prerelease without an explicit tag rather than guessing which one it belongs to.
   const tag = manifest.version.includes('-') ? 'next' : 'latest'
-  const args = ['publish', '--access', 'public', '--tag', tag]
+  const args = ['publish', '--access', 'public', '--tag', tag, '--registry', PUBLISH_REGISTRY]
   if (dryRun) args.push('--dry-run')
   const result = attemptEchoed('npm', args, { cwd: path })
   if (result.status !== 0) throw new Error('publish failed for ' + manifest.name)

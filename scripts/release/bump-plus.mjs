@@ -21,7 +21,7 @@ import { fileURLToPath } from 'node:url'
 /** Where the generated manifest and its inputs live, relative to the repository root. */
 const MANIFEST_OUT = 'packages/standalone/plus-standalone/package.json'
 const MANIFEST_DISTRIBUTION = 'packages/bundle/plus'
-const MANIFEST_RUNTIME = '0.1.5-rc.2'
+const MANIFEST_RUNTIME = '0.2.0-rc.1'
 const MANIFEST_GENERATOR = 'scripts/standalone/generate-manifest.ts'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))

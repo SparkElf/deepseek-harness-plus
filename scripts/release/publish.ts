@@ -42,6 +42,17 @@ const PUBLISH_ATTEMPTS = 4
  */
 const PUBLISH_SPACING_MS = 2_000
 
+/**
+ * Registry a publication writes to.
+ *
+ * A machine that accelerates installs with a read-only mirror (`registry.npmmirror.com`)
+ * still has to publish upstream: the mirror answers `ENEEDAUTH` for every write, so a
+ * global `registry` setting that speeds up `pnpm install` breaks `ship` at its last step.
+ * Naming the registry here makes the write independent of that setting; the read-back
+ * that proves the publication uses the same one, so the evidence matches the write.
+ */
+const PUBLISH_REGISTRY = process.env.DSH_PUBLISH_REGISTRY ?? 'https://registry.npmjs.org'
+
 /** What the registry knows about one version. */
 type RegistryState =
   | { readonly kind: 'absent' }
@@ -72,7 +83,7 @@ function integrityOf(tarball: string): string {
  * @returns The registry state for that version.
  */
 function registryState(name: string, version: string): RegistryState {
-  const result = attempt('npm', ['view', `${name}@${version}`, 'dist.integrity', '--json'])
+  const result = attempt('npm', ['view', `${name}@${version}`, 'dist.integrity', '--json', '--registry', PUBLISH_REGISTRY])
   if (result.status !== 0) {
     const output = `${result.stdout}${result.stderr}`
     if (output.includes('E404') || output.includes('404 Not Found')) return { kind: 'absent' }
@@ -113,7 +124,7 @@ async function publishTarball(
     // No --access: every release member declares its own publishConfig, and
     // a command-line flag would override it. check-workspace-constraints
     // requires a public access level on every release member.
-    const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs])
+    const result = attemptEchoed('npm', ['publish', tarball, ...tagArgs, '--registry', PUBLISH_REGISTRY])
     const output = `${result.stdout}${result.stderr}`
     if (result.status === 0) return
 
@@ -155,11 +166,11 @@ async function publishTarball(
  */
 function promoteLatest(name: string, version: string, distTag: string | undefined): boolean {
   if (distTag === 'latest') return false
-  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json'])
+  const current = attempt('npm', ['view', name, 'dist-tags.latest', '--json', '--registry', PUBLISH_REGISTRY])
   const parsed: unknown = current.status === 0 ? JSON.parse(current.stdout.trim() || '[]') : undefined
   const latest = Array.isArray(parsed) ? parsed[0] : parsed
   if (latest === version) return false
-  const moved = attemptEchoed('npm', ['dist-tag', 'add', `${name}@${version}`, 'latest'])
+  const moved = attemptEchoed('npm', ['dist-tag', 'add', `${name}@${version}`, 'latest', '--registry', PUBLISH_REGISTRY])
   if (moved.status !== 0) {
     throw new Error(
       `published ${name}@${version} under '${String(distTag)}' but could not move latest`
