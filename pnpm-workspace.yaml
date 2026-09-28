@@ -67,17 +67,20 @@ allowBuilds:
 minimumReleaseAgeExclude:
   # Plus acceptance may consume reviewed same-day external releases, but only
   # at the exact versions pinned by distribution governance and curation.
-  - '@sparkelf/dsh-api-client@0.5.1'
-  - '@sparkelf/dsh-mineru@0.1.2'
+  - '@sparkelf/dsh-api-client@0.5.2'
+  - '@sparkelf/dsh-mineru@0.1.3'
   - '@sparkelf/dsh-mobile-bridge@0.2.11'
-  - '@sparkelf/dsh-officecli@0.1.2'
-  - '@sparkelf/dsh-plugin-supervisor@0.1.5'
-  - '@sparkelf/dsh-ssh-manager@0.7.2'
+  - '@sparkelf/dsh-officecli@0.1.3'
+  - '@sparkelf/dsh-plugin-supervisor@0.1.8'
+  - '@sparkelf/dsh-ssh-manager@0.7.3'
   - '@sparkelf/dsh-workbench-vault@0.1.2'
+  - '@sparkelf/dsh-office-viewer-fonts@0.1.3'
+  - '@sparkelf/dsh-query-result-analysis@0.1.3'
+  - '@sparkelf/dsh-dataops-managed@0.3.3'
   # Matched by bare name: the exact-version form did not exempt this third-party
   # package, and the profile pins the version it resolves.
   - '@changfenhuang/dsh-genui'
-  - 'dsh-sql-workbench@0.5.1'
+  - 'dsh-sql-workbench@0.5.2'
   - 'dsh-better-sidebar@0.19.1'
   - '@huanlin/dsh-plugin-better-locale@0.4.1'
   - dshmarket@1.45.1
