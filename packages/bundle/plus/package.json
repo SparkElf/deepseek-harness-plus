@@ -134,7 +134,7 @@
           ],
           "excludeBundles": [],
           "includePackages": {
-            "@sparkelf/dsh-dataops-managed": "0.3.3",
+            "@sparkelf/dsh-dataops-managed": "0.3.4",
             "@sparkelf/dsh-query-result-analysis": "0.1.3"
           },
           "includeBundles": [

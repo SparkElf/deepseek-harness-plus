@@ -16,11 +16,34 @@ The deployment already owns this procedure. Read these before running anything, 
 | `dsh-plus-build <mirror>` | `pnpm install` twice (a patch that adds a dependency changes the graph, and only a second install links it), then `pnpm run build --profile official`, then verify the brand record and that no workspace with dependencies lacks `node_modules`. |
 | `dsh-plus-switch` | Move the served release to another mirror, tracking phases. |
 | `dsh-plus-refresh rebuild \| accept \| restart \| all` | Rebuild the mirror, record the profile as accepted, restart, or all three in that order. |
+| `dsh-plus-mirror create --tag <official-tag> --mirror <path> --runtime <version>` | Extract an official tag into a fresh mirror, apply this repository's reviewed patches, typecheck them, regenerate the standalone manifests, build, create the profile, write the compatibility exemptions, relink the scope, and repair shadowed packages. `dsh-plus-mirror check --mirror <path>` reports the scope verdict. |
+| `dsh-plus-exemptions --runtime <version> [--out <path>]` | Derive the profile's `compatibility.json`: every plugin whose published peer ranges cannot match the runtime. |
+| `repair-shadowed-scope.mjs --release <mirror>` | Replace real directories that shadow a release package with links to its source. |
 | `dsh-3080-restart` | Restart through the supervisor: repair profile scope, prove module uniqueness, re-accept the fingerprint, restart, then verify the client modules and the connection surface. |
 | `relink-release.mjs --release <mirror>` | Restore the `@deepseek-ai` scope links a `pnpm install` inside the mirror rewrote. |
 | `check-profile-scope.mjs --release <mirror>` | Report duplicate `@deepseek-ai` packages and unresolvable dependencies; both break every tool call while HTTP stays 200. |
 
 Writing a second, partial copy of any of these is the mistake this skill exists to prevent. A hand-written promotion that edits only the profile's distribution version reports success, passes an HTTP check, and serves the previous release: the runtime packages resolve from the mirror's sources, which the promotion never touched.
+
+### The step a promotion cannot skip
+
+Plus does not install the official packages directly. Its profile's `overrides` redirect 27 of them to this repository's republished builds:
+
+    "@deepseek-ai/dsh-api-gateway": npm:@sparkelf/dsh-api-gateway@0.1.7-rc.2
+
+Those republished packages carry the patches, and **they are the runtime**. A profile whose overrides still name the previous revision installs the previous runtime beside a mirror built from the new source, and the result passes an HTTP check while serving the old release.
+
+So promoting onto a new official revision has a prerequisite the mirror build cannot satisfy:
+
+    node scripts/release/republish-patched-official.mjs --source <mirror> --version <official-version>
+
+This packages each patched official workspace, verifies the packaged output against the workspace it came from, and publishes. It is one command because those steps must not be separated — every reported defect came from a package that packaged cleanly and was verified against a list its author had written rather than against its source.
+
+Run it before `dsh-plus-mirror create`. Without it the promotion has no runtime to point at, and `dsh-plugin-backup`-style peer mismatches are the least of the symptoms.
+
+### One command
+
+`dsh-plus-mirror create` performs the whole sequence below. Each of its steps was added after a promotion failed on it: a hunk that applied but stopped compiling, a standalone manifest whose peer overrides no longer matched, a profile install the compatibility gate rejected, and a scope the check reported DEFECTIVE because real directories shadowed it. The step-by-step sections that follow explain what each one does and how to diagnose it; run them by hand only to repair a mirror the command could not finish.
 
 ## Promotion order
 
