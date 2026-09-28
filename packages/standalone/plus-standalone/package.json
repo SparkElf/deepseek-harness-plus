@@ -56,7 +56,6 @@
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.33",
-    "@sparkelf/dsh-plugin-subagent-settings": "workspace:>=0.2.0-rc.33",
     "dshmarket": ">=1.45.1",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
