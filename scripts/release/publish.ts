@@ -170,7 +170,7 @@ function promoteLatest(name: string, version: string, distTag: string | undefine
   const parsed: unknown = current.status === 0 ? JSON.parse(current.stdout.trim() || '[]') : undefined
   const latest = Array.isArray(parsed) ? parsed[0] : parsed
   if (latest === version) return false
-  const moved = attemptEchoed('npm', ['dist-tag', 'add', `${name}@${version}`, 'latest'])
+  const moved = attemptEchoed('npm', ['dist-tag', 'add', `${name}@${version}`, 'latest', '--registry', PUBLISH_REGISTRY])
   if (moved.status !== 0) {
     throw new Error(
       `published ${name}@${version} under '${String(distTag)}' but could not move latest`
