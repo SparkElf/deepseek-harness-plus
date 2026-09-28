@@ -153,16 +153,22 @@ export async function interviewCapabilities(interactive: boolean): Promise<Capab
   }
 }
 
-/** Names this module owns in the deployment env file. */
-const CAPABILITY_ENV_NAMES: readonly string[] = ['DSH_MINERU_ENDPOINT', 'EXA_API_KEY']
+/**
+ * Names this module owns in the deployment env file.
+ *
+ * Only names the loader accepts here: a `DSH_`-prefixed variable is refused in any `.env` because
+ * `DSH_HOME` is itself bootstrap-only and the file could otherwise relocate the home it is read
+ * from. MinerU's endpoint therefore travels in the profile layer, which is also where the plugin
+ * reads it.
+ */
+const CAPABILITY_ENV_NAMES: readonly string[] = ['EXA_API_KEY']
 
 /**
  * The deployment env file, with one assignment per enabled capability that reaches
  * its service through the launch environment.
  *
- * MinerU is switched on by the presence of its endpoint and Exa reads its key from
- * the launch environment, so a capability the user selected is enabled here as well
- * as in the profile layer. Only the names this interview owns are rewritten: a
+ * Exa reads its key from the launch environment, so a capability the user selected is enabled here
+ * as well as in the profile layer. Only the names this interview owns are rewritten: a
  * deployment that keeps its own assignments in the same file keeps them, and
  * deselecting a capability removes the assignment that turned it on.
  *
@@ -181,9 +187,6 @@ export function capabilityEnvironment(answers: CapabilityAnswers, existing = '')
     '# Written by dsh-plus start from the capability interview. Enabling or',
     '# disabling a capability rewrites the lines below; other lines are kept.',
   ]
-  if (enabled.has('mineru')) {
-    written.push('DSH_MINERU_ENDPOINT=' + (answers.mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT))
-  }
   if (enabled.has('exa') && answers.exaApiKey !== undefined) {
     written.push('EXA_API_KEY=' + answers.exaApiKey)
   }
@@ -224,6 +227,18 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
       "      name: '@deepseek-ai/dsh-computer-use'",
       '    - id: computer-use-cua-driver-mcp',
       "      name: '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp'",
+    )
+  }
+  // MinerU reads its endpoint from plugin config, not from the environment, and a name prefixed
+  // `DSH_` is refused in any .env file because `DSH_HOME` is itself bootstrap-only — the file could
+  // otherwise relocate the home it is read from. Writing the endpoint as a profile row is both the
+  // plugin's own contract and the only place the loader accepts it.
+  if (enabled.has('mineru')) {
+    rows.push(
+      '    - id: mineru',
+      "      name: '@sparkelf/dsh-mineru'",
+      '      config:',
+      '        endpoint: ' + (answers.mineruEndpoint ?? DEFAULT_MINERU_ENDPOINT),
     )
   }
 
