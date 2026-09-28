@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "better-sidebar-media-path",
-        "dsh": ">=0.1.7-rc.2",
+        "dsh": ">=0.2.0-rc.1",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",
