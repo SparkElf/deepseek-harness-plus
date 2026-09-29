@@ -9511,8 +9511,8 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-office-viewer-fonts':
-        specifier: 0.1.4
-        version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)
+        specifier: 0.1.5
+        version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)
       '@sparkelf/dsh-officecli':
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
@@ -9599,8 +9599,8 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-office-viewer-fonts':
-        specifier: 0.1.4
-        version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)
+        specifier: 0.1.5
+        version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)
       '@sparkelf/dsh-officecli':
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
@@ -15049,8 +15049,8 @@ packages:
       '@deepseek-ai/cordis': ^4.0.4
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
 
-  '@sparkelf/dsh-office-viewer-fonts@0.1.4':
-    resolution: {integrity: sha512-ToAQ31aNLmHNIasaJ3BycsAqBHT+6qyQUdTzKa4qnTiM7SJbV6oQR1y2hlGOVttmhbeX9aIOdRJ3zJ5ANvIHLQ==}
+  '@sparkelf/dsh-office-viewer-fonts@0.1.5':
+    resolution: {integrity: sha512-UdcBYZxELqPF+ZtCbvof/+7F1xHupHQ1asEUIRDVvdSeGQ6u5oXkcc96sR1AXRfSXXk3mBllxr2EXCv3eB8cEg==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.4
@@ -22601,7 +22601,7 @@ snapshots:
       '@deepseek-ai/schemastery': link:vendor/schemastery
       fflate: 0.8.3
 
-  '@sparkelf/dsh-office-viewer-fonts@0.1.4(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)':
+  '@sparkelf/dsh-office-viewer-fonts@0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-skill': link:packages/skill/skill

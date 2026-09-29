@@ -45,7 +45,7 @@
     "@sparkelf/dsh-api-client": "0.5.3",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "dsh-better-sidebar": "0.21.1",
-    "@sparkelf/dsh-office-viewer-fonts": "0.1.4",
+    "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.1",

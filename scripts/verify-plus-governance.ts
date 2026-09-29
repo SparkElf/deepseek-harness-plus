@@ -254,7 +254,7 @@ function main(): void {
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
     // conversion through office-to-pdf's fontDirectories.
-    '@sparkelf/dsh-office-viewer-fonts': '0.1.4',
+    '@sparkelf/dsh-office-viewer-fonts': '0.1.5',
     'dsh-video-preview': '0.1.4',
     // The reviewed session background: a new session's centre column renders it, and every
     // other surface stays official.
