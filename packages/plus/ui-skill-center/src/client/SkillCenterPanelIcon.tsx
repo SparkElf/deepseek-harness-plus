@@ -7,7 +7,7 @@
  * @module @sparkelf/dsh-client-ui-skill-center/client/SkillCenterPanelIcon
  */
 import type { ReactNode } from 'react'
-import { IconSkillOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconSkillOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 
 /**
@@ -16,5 +16,5 @@ import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
  * @returns the icon element.
  */
 export function SkillCenterPanelIcon({ size }: PropsRuntime<'sidebar.panellist'>): ReactNode {
-  return <IconSkillOutline16 size={size} />
+  return <IconSkillOutlineRegular size={size} />
 }

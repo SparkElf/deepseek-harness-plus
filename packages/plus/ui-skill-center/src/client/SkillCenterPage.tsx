@@ -10,9 +10,9 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Button,
-  IconPlusOutline16,
-  IconRefreshOutline16,
-  IconSkillOutline16,
+  IconPlusOutlineRegular,
+  IconRefreshOutlineRegular,
+  IconSkillOutlineRegular,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
@@ -85,7 +85,7 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   return (
     <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
       <div className={css.cardHead}>
-        <span className={css.cardIcon}><IconSkillOutline16 size={22} /></span>
+        <span className={css.cardIcon}><IconSkillOutlineRegular size={22} /></span>
         <div className={css.cardMain}>
           <div className={css.cardTitle}>
             {skill.name}
@@ -239,12 +239,12 @@ export function SkillCenterPage({ t, ...runtime }: PropsRuntime<'main'> & SkillC
             title={t('action.refresh')}
             onClick={() => { void load() }}
           >
-            <span className={css.iconWrap} aria-hidden="true"><IconRefreshOutline16 /></span>
+            <span className={css.iconWrap} aria-hidden="true"><IconRefreshOutlineRegular /></span>
           </button>
           <Button
             variant="primary"
             size="sm"
-            icon={<IconPlusOutline16 size={13} />}
+            icon={<IconPlusOutlineRegular size={13} />}
             onClick={() => { setCreating(v => !v) }}
           >
             {t('action.create')}
