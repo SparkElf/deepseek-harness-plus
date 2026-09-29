@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.2.0-rc.40",
+  "version": "0.2.0-rc.41",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.0-rc.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.40",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.41",
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -44,7 +44,7 @@
     "@sparkelf/dsh-api-client": "0.5.3",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "dsh-better-sidebar": "0.21.1",
-    "@sparkelf/dsh-office-viewer-fonts": "0.1.4",
+    "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.1",
