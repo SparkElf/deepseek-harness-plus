@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.0-rc.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.39",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.40",
     "@changfenhuang/dsh-genui": "0.11.1",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -87,7 +87,6 @@
     "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.0-rc.1",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "@deepseek-ai/dsh-client-ui-settings": "0.2.0-rc.1",
-    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.0-rc.1",
     "@deepseek-ai/dsh-brand": "0.2.0-rc.1",
     "@deepseek-ai/dsh-agent-presets": "npm:@sparkelf/dsh-agent-presets@0.2.0-rc.1",
     "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.2.0-rc.1",
@@ -290,21 +289,16 @@
         "reason": "dsh-better-sidebar@0.21.1 declares ^0.1.7-rc.1, which 0.2.0-rc.1 does not satisfy"
       },
       {
-        "name": "@deepseek-ai/dsh-client-ui-sidebar",
-        "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.5 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
-      },
-      {
         "name": "@deepseek-ai/dsh-brand",
         "version": "0.2.0-rc.1",
         "reason": "@sparkelf/dsh-query-result-analysis@0.1.4 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.39",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.39",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.39",
-      "@sparkelf/dsh-plugin-mobile-gateway": "npm:@sparkelf/dsh-omitted@0.2.0-rc.39"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.40",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.40",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.40",
+      "@sparkelf/dsh-plugin-mobile-gateway": "npm:@sparkelf/dsh-omitted@0.2.0-rc.40"
     }
   }
 }
