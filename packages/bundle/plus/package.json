@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.0-rc.37",
+  "version": "0.2.0-rc.39",
   "publishConfig": {
     "access": "public"
   },
@@ -67,16 +67,16 @@
       ],
       "dependencies": {
         "@changfenhuang/dsh-genui": "0.11.1",
-        "@sparkelf/dsh-mineru": "0.1.3",
-        "@sparkelf/dsh-officecli": "0.1.3",
-        "@sparkelf/dsh-plugin-supervisor": "0.1.8",
+        "@sparkelf/dsh-mineru": "0.1.4",
+        "@sparkelf/dsh-officecli": "0.1.4",
+        "@sparkelf/dsh-plugin-supervisor": "0.1.9",
         "dsh-sql-workbench": "0.5.2",
         "@sparkelf/dsh-workbench-vault": "0.1.2",
-        "@sparkelf/dsh-ssh-manager": "0.7.3",
-        "@sparkelf/dsh-api-client": "0.5.2",
+        "@sparkelf/dsh-ssh-manager": "0.7.4",
+        "@sparkelf/dsh-api-client": "0.5.3",
         "@huanlin/dsh-plugin-better-locale": "0.4.3",
         "dsh-better-sidebar": "0.21.1",
-        "@sparkelf/dsh-office-viewer-fonts": "0.1.3",
+        "@sparkelf/dsh-office-viewer-fonts": "0.1.4",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.1",
@@ -134,8 +134,8 @@
           ],
           "excludeBundles": [],
           "includePackages": {
-            "@sparkelf/dsh-dataops-managed": "0.3.4",
-            "@sparkelf/dsh-query-result-analysis": "0.1.3"
+            "@sparkelf/dsh-dataops-managed": "0.3.5",
+            "@sparkelf/dsh-query-result-analysis": "0.1.4"
           },
           "includeBundles": [
             "@sparkelf/dsh-dataops-managed",

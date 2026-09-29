@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-ui-settings-compact-phone",
   "description": "Layout-only patch giving the settings shell a phone layout: the navigation rail becomes a horizontal strip so the content keeps the panel width",
-  "version": "0.2.0-rc.37",
+  "version": "0.2.0-rc.39",
   "publishConfig": {
     "access": "public"
   },
