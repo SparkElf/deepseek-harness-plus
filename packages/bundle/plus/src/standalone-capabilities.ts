@@ -219,7 +219,59 @@ export function capabilityEnvironment(answers: CapabilityAnswers, existing = '')
  * @param answers - the interview's answers.
  * @returns the patch layer's YAML text.
  */
-export function capabilityPatchLayer(answers: CapabilityAnswers): string {
+/**
+ * The patch rows a previous version of this file carried, minus the ones this module owns.
+ *
+ * The module writes a fixed set of rows, so everything else in the file belongs to the
+ * deployment. A row starts at a top-level `- ` entry and runs to the next one, which keeps
+ * each row's own config and comments with it.
+ *
+ * @param existing - the file's current text.
+ * @returns the rows to write back after this module's own.
+ */
+function foreignPatchRows(existing: string): string[] {
+  if (existing.trim() === '') return []
+  const lines = existing.split('\n')
+  const rows: string[][] = []
+  let current: string[] | null = null
+  for (const line of lines) {
+    if (/^-\s/.test(line)) {
+      if (current !== null) rows.push(current)
+      current = [line]
+      continue
+    }
+    if (current !== null) current.push(line)
+  }
+  if (current !== null) rows.push(current)
+  // The capability rows this module writes are the `insert` block's children plus the
+  // `web` row that routes search. A block whose head is not one of them belongs to the
+  // deployment; a block that is one of them is replaced by the current selection whole.
+  const ownedHeads = new Set(['insert', 'web'])
+  return rows
+    .filter((row) => {
+      const head = row[0] ?? ''
+      const id = /^-\s+id:\s*(\S+)/.exec(head)?.[1]
+      if (id !== undefined) return !ownedHeads.has(id)
+      // A block keyed by something else, such as `- insert:`, is this module's when the
+      // module is what writes it. Only its own capability rows are recognised, so a
+      // deployment block that happens to use `insert` is the one ambiguous case; the
+      // module resolves it by removing only the rows it names.
+      if (/^-\s+insert:\s*$/.test(head)) {
+        const ownedChildren = new Set(['web-search-exa', 'computer-use', 'computer-use-cua-driver-mcp', 'mineru'])
+        const kept = row.filter((line, index) => {
+          if (index === 0) return false
+          const childId = /^\s+-\s+id:\s*(\S+)/.exec(line)?.[1]
+          return childId === undefined || !ownedChildren.has(childId)
+        })
+        // Nothing but the block head is left: the module wrote it and now mounts nothing.
+        return kept.some(line => /^\s+-\s+/.test(line))
+      }
+      return true
+    })
+    .map(row => row.join('\n').trimEnd())
+}
+
+export function capabilityPatchLayer(answers: CapabilityAnswers, existing = ''): string {
   const enabled = new Set(answers.enabled)
   const rows: string[] = []
 
@@ -271,6 +323,12 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
   // still has to produce one. Comments alone parse as `null`, and the profile then
   // refuses to boot with "must be a top-level YAML array of loader patch entries" —
   // which is the whole deployment, not just the missing capability.
+  // A deployment that configured something by hand keeps it: this file is the profile's
+  // only user layer, so a capability change must not drop rows it does not own. Only the
+  // rows this module writes are rewritten, which is what the file's own header promises.
+  // Parsing is line-based rather than a YAML round trip because the entries carry comments
+  // that a parse-and-serialize cycle would discard.
+  const foreign = foreignPatchRows(existing)
   if (rows.length > 0) {
     lines.push('- insert:', ...rows)
   } else {
@@ -284,6 +342,9 @@ export function capabilityPatchLayer(answers: CapabilityAnswers): string {
       '  config:',
       '    searchProvider: exa',
     )
+  }
+  if (foreign.length > 0) {
+    lines.push('', '# Rows this file carried before the capability interview; kept verbatim.', ...foreign)
   }
   return lines.join('\n') + '\n'
 }
