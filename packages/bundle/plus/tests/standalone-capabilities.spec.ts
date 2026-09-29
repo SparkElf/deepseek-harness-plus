@@ -35,6 +35,55 @@ describe('capability patch layer', () => {
     expect(layer).toContain('searchProvider: exa')
   })
 
+  it('keeps a hand-written row the capability rows do not own', () => {
+    // This file is the profile's only user layer. Rewriting it whole to change one capability
+    // dropped every row an operator had put there — measured 2026-09-29: enabling a capability
+    // from the GUI emptied a 9.6 kB layer down to the capability rows, taking a hand-written
+    // model provider, the permission presets, and the theme with it.
+    const existing = [
+      '- id: llm-pi-ai',
+      "  name: '@deepseek-ai/dsh-llm-pi-ai'",
+      '  config:',
+      '    providers:',
+      '      link_api:',
+      '        baseURL: https://example.invalid/v1',
+      '',
+      '- id: permission',
+      "  name: '@deepseek-ai/dsh-permission-presets'",
+      '  config:',
+      '    defaultPreset: danger-full-access',
+      '',
+    ].join('\n')
+    const layer = capabilityPatchLayer({ enabled: ['exa'] }, existing)
+    expect(layer).toContain('id: llm-pi-ai')
+    expect(layer).toContain('https://example.invalid/v1')
+    expect(layer).toContain('id: permission')
+    expect(layer).toContain('defaultPreset: danger-full-access')
+    // The capability's own rows are still written, and a row this module owns is replaced
+    // rather than duplicated.
+    expect(layer).toContain("name: '@deepseek-ai/dsh-web-search-exa'")
+    expect(layer.match(/id: web-search-exa/g)?.length).toBe(1)
+  })
+
+  it('drops a capability row the selection no longer enables', () => {
+    // The rewrite is also how a capability is turned back off, so an owned row must not
+    // survive on the strength of "keep what was there".
+    const existing = [
+      '- insert:',
+      '    - id: mineru',
+      "      name: '@sparkelf/dsh-mineru'",
+      '      config:',
+      '        endpoint: http://127.0.0.1:8000/file_parse',
+      '',
+      '- id: permission',
+      "  name: '@deepseek-ai/dsh-permission-presets'",
+      '',
+    ].join('\n')
+    const layer = capabilityPatchLayer({ enabled: [] }, existing)
+    expect(layer).not.toContain('id: mineru')
+    expect(layer).toContain('id: permission')
+  })
+
   it('mounts both computer-use plugins together', () => {
     // The capability is one choice but two plugins: the registry service and the driver
     // that talks to it. Mounting either alone leaves the capability unusable.

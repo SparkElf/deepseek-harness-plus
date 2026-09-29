@@ -41,6 +41,18 @@ This packages each patched official workspace, verifies the packaged output agai
 
 Run it before `dsh-plus-mirror create`. Without it the promotion has no runtime to point at, and `dsh-plugin-backup`-style peer mismatches are the least of the symptoms.
 
+### Where a hand-written row belongs
+
+The profile has one user layer, `<profile>/cordis.patch.yml`, and a capability change rewrites it. The rewrite keeps rows it does not own, but the file is still the layer that changes: a deployment's own configuration belongs in `$DSH_HOME/cordis.patch.yml` instead, which the loader applies last and nothing rewrites.
+
+    # $DSH_HOME/cordis.patch.yml
+    - id: llm-pi-ai
+      name: "@deepseek-ai/dsh-llm-pi-ai"
+      config:
+        providers: ...
+
+Measured 2026-09-29: a hand-written model provider, permission presets, theme, and welcome-notice version lived in the profile layer; one capability change from the GUI emptied the 9.6 kB file to 318 bytes. Restoring them into the home layer is what made the configuration survive the next capability change.
+
 ### One command
 
 `dsh-plus-mirror create` performs the whole sequence below. Each of its steps was added after a promotion failed on it: a hunk that applied but stopped compiling, a standalone manifest whose peer overrides no longer matched, a profile install the compatibility gate rejected, and a scope the check reported DEFECTIVE because real directories shadowed it. The step-by-step sections that follow explain what each one does and how to diagnose it; run them by hand only to repair a mirror the command could not finish.

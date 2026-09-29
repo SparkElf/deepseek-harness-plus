@@ -431,11 +431,14 @@ function writeCapabilityPatch(profileDirectory: string, answers: CapabilityAnswe
   // this command did not write belongs to the deployment, and replacing it would drop
   // whatever the operator put there; keep it beside the new layer instead.
   const existing = existsSync(path) ? readFileSync(path, 'utf8') : undefined
+  // The layer is rewritten whole, so a row this command does not own is carried over
+  // rather than dropped. Backing the file up is not a substitute: the operator's rows
+  // would stop applying until someone restored it by hand.
   if (existing !== undefined && !existing.includes(CAPABILITY_MARKER)) {
     writeFileSync(path + '.before-capabilities', existing)
     console.log('  Kept the existing profile layer at ' + CAPABILITY_PATCH_FILE + '.before-capabilities')
   }
-  writeFileSync(path, capabilityPatchLayer(answers))
+  writeFileSync(path, capabilityPatchLayer(answers, existing ?? ''))
 }
 
 /**
