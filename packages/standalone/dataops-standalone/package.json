@@ -247,7 +247,7 @@
       {
         "name": "@deepseek-ai/dsh-host-webserver",
         "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.8 declares 0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.9 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-locale",
@@ -262,12 +262,12 @@
       {
         "name": "@deepseek-ai/dsh-credentials",
         "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-ssh-manager@0.7.3 declares 0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
+        "reason": "@sparkelf/dsh-ssh-manager@0.7.4 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-user-approval",
         "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-ssh-manager@0.7.3 declares 0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
+        "reason": "@sparkelf/dsh-ssh-manager@0.7.4 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-settings",
@@ -292,12 +292,12 @@
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar",
         "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.4 declares 0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
+        "reason": "@sparkelf/dsh-dataops-managed@0.3.5 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-brand",
         "version": "0.2.0-rc.1",
-        "reason": "@sparkelf/dsh-query-result-analysis@0.1.3 declares 0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
+        "reason": "@sparkelf/dsh-query-result-analysis@0.1.4 declares >=0.1.7-rc.2, which 0.2.0-rc.1 does not satisfy"
       }
     ],
     "omittedPackages": {
