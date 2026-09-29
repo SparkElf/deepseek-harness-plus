@@ -936,3 +936,17 @@ export const IconArchiveOutline20 = ({ size = 20, className }: IconProps) => (
     <path d="M12.7962 12.5661V11.0832H7.20548V12.5661L12.7962 12.5661Z" fill="currentColor" />
   </svg>
 )
+
+
+/**
+ * Aliases for the weight-named icon exports the published runtime uses.
+ *
+ * The published 0.1.7 and 0.2.0 lines export these glyphs as `<Name>Regular`, while this
+ * source names them by their drawn size (`<Name>16`). A consumer built from this repository
+ * is bundled against whichever line it ships with, so both names resolve to one component.
+ */
+export const IconSkillOutlineRegular = IconSkillOutline16
+/** See IconSkillOutlineRegular. */
+export const IconPlusOutlineRegular = IconPlusOutline16
+/** See IconSkillOutlineRegular. */
+export const IconRefreshOutlineRegular = IconRefreshOutline16

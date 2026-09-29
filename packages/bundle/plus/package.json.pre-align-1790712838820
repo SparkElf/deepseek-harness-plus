@@ -63,11 +63,10 @@
         "@sparkelf/dsh-ssh-manager",
         "@sparkelf/dsh-api-client",
         "dsh-right-bg-anim",
-        "@sparkelf/dsh-mobile-bridge",
-        "@sparkelf/dsh-quant"
+        "@sparkelf/dsh-plugin-mobile-gateway"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.11.3",
+        "@changfenhuang/dsh-genui": "0.11.1",
         "@sparkelf/dsh-mineru": "0.1.4",
         "@sparkelf/dsh-officecli": "0.1.4",
         "@sparkelf/dsh-plugin-supervisor": "0.1.9",
@@ -76,13 +75,12 @@
         "@sparkelf/dsh-ssh-manager": "0.7.4",
         "@sparkelf/dsh-api-client": "0.5.3",
         "@huanlin/dsh-plugin-better-locale": "0.4.3",
-        "dsh-better-sidebar": "0.24.1",
+        "dsh-better-sidebar": "0.21.1",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.1",
-        "@sparkelf/dsh-mobile-bridge": "0.2.13",
-        "@sparkelf/dsh-quant": "0.91.0-sparkelf.13"
+        "@sparkelf/dsh-plugin-mobile-gateway": ">=0.8.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -131,7 +129,8 @@
           "excludePackages": [
             "@deepseek-ai/dsh-computer-use",
             "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp",
-            "@deepseek-ai/dsh-web-search-exa"
+            "@deepseek-ai/dsh-web-search-exa",
+            "@sparkelf/dsh-plugin-mobile-gateway"
           ],
           "excludeBundles": [],
           "includePackages": {

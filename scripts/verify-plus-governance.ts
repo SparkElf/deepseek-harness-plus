@@ -240,7 +240,7 @@ function main(): void {
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.11.1',
+    '@changfenhuang/dsh-genui': '0.11.3',
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
     '@sparkelf/dsh-plugin-supervisor': '0.1.9',
@@ -249,7 +249,7 @@ function main(): void {
     '@sparkelf/dsh-ssh-manager': '0.7.4',
     '@sparkelf/dsh-api-client': '0.5.3',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.21.1',
+    'dsh-better-sidebar': '0.24.1',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
@@ -263,11 +263,11 @@ function main(): void {
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.0-rc.1',
-    // The mobile face is the community plugin: it carries its own cordis layer and its own
-    // client face, so the profile install is the whole integration.
-    // The mobile client is this fork of Clarklevis1995/dsh-mobile's companion gateway: it reads
-    // DSH 0.1.7 Session format 4 and lifts the retired v3 message shapes on read.
-    '@sparkelf/dsh-plugin-mobile-gateway': '>=0.8.2',
+    // The mobile face is the companion gateway this deployment runs; it needs neither a
+    // host step nor a client build of its own.
+    '@sparkelf/dsh-mobile-bridge': '0.2.13',
+    // The quant workbench registers its tools and its own sidebar page.
+    '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.

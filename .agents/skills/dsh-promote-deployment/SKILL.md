@@ -41,6 +41,15 @@ This packages each patched official workspace, verifies the packaged output agai
 
 Run it before `dsh-plus-mirror create`. Without it the promotion has no runtime to point at, and `dsh-plugin-backup`-style peer mismatches are the least of the symptoms.
 
+### Driving the Windows desktop from a WSL deployment
+
+`computer-use` has no desktop of its own: the provider spawns an installed driver over stdio, and the driver owns the connection to the desktop. A deployment running under WSL drives the Windows desktop because WSL interop can execute a Windows executable directly, so the provider's `command` is the `/mnt/<drive>/...` path of `cua-driver.exe` — the `C:\` form is not an executable that process can spawn. The Windows daemon reaches the interactive session through a named pipe, so it must already be running there.
+
+    /root/.dsh/dsh-plus-cua --profile <profile dir>
+
+The tool discovers the executable under `/mnt/c/Users/*/AppData/Local/Programs/Cua`, proves it answers an MCP `initialize`, and writes the `command` into the profile's `computer-use-cua-driver-mcp` row. `--check` reports without writing. A layer that carries the row with no `command` activates the provider and then fails discovery, which reads as a plugin defect rather than a missing path.
+
+The provider exposes the driver's own tools, including `list_windows`, `click`, `type_text`, and `verify_state`. The driver's agent-cursor overlay is part of it: a window named `Cua.AgentCursorOverlay.default` in `list_windows` means the virtual cursor is live.
 ### Where a hand-written row belongs
 
 The profile has one user layer, `<profile>/cordis.patch.yml`, and a capability change rewrites it. The rewrite keeps rows it does not own, but the file is still the layer that changes: a deployment's own configuration belongs in `$DSH_HOME/cordis.patch.yml` instead, which the loader applies last and nothing rewrites.
