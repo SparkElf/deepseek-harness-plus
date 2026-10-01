@@ -265,7 +265,7 @@ function main(): void {
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.0-rc.2',
     // The mobile face is the companion gateway this deployment runs; it needs neither a
     // host step nor a client build of its own.
-    '@sparkelf/dsh-mobile-bridge': '0.2.13',
+    '@sparkelf/dsh-mobile-bridge': '0.2.15',
     // The quant workbench registers its tools and its own sidebar page.
     '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
