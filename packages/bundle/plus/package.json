@@ -81,7 +81,7 @@
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
-        "@sparkelf/dsh-mobile-bridge": "0.2.13",
+        "@sparkelf/dsh-mobile-bridge": "0.2.15",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13"
       },
       "allowBuilds": {
@@ -197,7 +197,7 @@
     "@sparkelf/dsh-patch-wsl-native-open": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.33",
-    "dshmarket": ">=1.45.1",
+    "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
     "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.0-rc.33",
