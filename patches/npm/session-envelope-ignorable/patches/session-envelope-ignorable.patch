@@ -1,0 +1,59 @@
+--- a/packages/core/session/src/types.ts
++++ b/packages/core/session/src/types.ts
+@@ -478,6 +478,18 @@
+ })
+ 
+ /**
++ * Envelope markers a log-only event may declare at {@link Session.append}.
++ *
++ * `ignorable` lets a reader that does not know the event type skip it instead of refusing the
++ * whole log. Only a producer whose record cannot affect reconstruction may set it, so it is
++ * opt-in per append rather than a property of the event type.
++ */
++export type EnvelopeIntent = {
++  /** Marks an event a reader may skip when it does not recognize the type. */
++  ignorable?: true
++}
++
++/**
+  * One immutable entry in the session log.
+  *
+  * A proper discriminated union over `type` (not independent `type`/`data`
+--- a/packages/core/session/src/index.ts
++++ b/packages/core/session/src/index.ts
+@@ -15,7 +15,8 @@
+ import type { Message } from '@deepseek-ai/dsh-llm'
+ import { SESSION_FORMAT_VERSION, SessionLogOffset, SessionSeq } from './types.ts'
+ import type { TypertLookup } from '@deepseek-ai/dsh-typert-protocol'
+-import type { CreateSessionOptions, EpochHeader, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, SurfaceEventType } from './types.ts'
++import type { CreateSessionOptions, EpochHeader, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, EnvelopeIntent,
++  SurfaceIntent, SurfaceEventType } from './types.ts'
+ import { SurfaceManager, validateSessionEventData, validateSurfaceMetadata } from './surface.ts'
+ import type { SessionSurface, SessionMessageProjection } from './surface.ts'
+ import { foldRequestHeader } from './request-header.ts'
+@@ -722,9 +723,12 @@
+   append<T extends SessionEventType>(
+     type: T,
+     data: SessionEventMap[T],
+-    ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : []
++    ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : [opts?: EnvelopeIntent]
+   ): SessionEvent<T> {
+-    const surfaceOpts: SurfaceIntent | undefined = opts[0]
++    // A surface event's single option object is a `SurfaceIntent`; a log-only event's is an
++    // `EnvelopeIntent`. The two never share a field, so one object serves both.
++    const intent: SurfaceIntent & EnvelopeIntent = (opts[0] ?? {}) as SurfaceIntent & EnvelopeIntent
++    const surfaceOpts: SurfaceIntent | undefined = opts[0] as SurfaceIntent | undefined
+     const surfaceMetadata = {
+       ...surfaceOpts?.sourceEventSeqs === undefined ? {} : { sourceEventSeqs: surfaceOpts.sourceEventSeqs },
+       ...surfaceOpts?.surfaceOp === undefined ? {} : { surfaceOp: surfaceOpts.surfaceOp },
+@@ -747,6 +751,10 @@
+       time: Date.now(),
+       data: dataSnapshot,
+       ...(surfaceMetadataSnapshot as { surfaceOp?: unknown; sourceEventSeqs?: unknown }),
++      // A log-only producer declares that a reader without its event type may skip the record.
++      // Only `true` is admitted: the field's absence means required, and an explicit falsy value
++      // would be indistinguishable from a producer that meant the opposite.
++      ...(intent.ignorable === true ? { ignorable: true } : {}),
+     } as unknown as SessionEvent<T>)
+     validateSessionEventData(event, `session event "${type}" at seq ${event.seq}`)
+     this.surfaceManager.validateNext(event as SessionEvent)

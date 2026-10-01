@@ -1694,6 +1694,9 @@ importers:
       '@sparkelf/dsh-patch-responses-reasoning-status':
         specifier: workspace:>=0.2.0-rc.33
         version: link:../../../patches/npm/responses-reasoning-status
+      '@sparkelf/dsh-patch-session-envelope-ignorable':
+        specifier: workspace:>=0.2.0-rc.43
+        version: link:../../../patches/npm/session-envelope-ignorable
       '@sparkelf/dsh-patch-session-export-chinese':
         specifier: workspace:>=0.2.0-rc.33
         version: link:../../../patches/npm/session-export-chinese
@@ -11417,6 +11420,8 @@ importers:
   patches/npm/ptc-mcp-schema-types: {}
 
   patches/npm/responses-reasoning-status: {}
+
+  patches/npm/session-envelope-ignorable: {}
 
   patches/npm/session-export-chinese: {}
 
