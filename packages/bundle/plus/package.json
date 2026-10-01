@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.0-rc.43",
+  "version": "0.2.0-rc.44",
   "publishConfig": {
     "access": "public"
   },
@@ -158,6 +158,7 @@
       "@sparkelf/dsh-patch-officecli-deliverables",
       "@sparkelf/dsh-patch-ptc-mcp-schema-types",
       "@sparkelf/dsh-patch-responses-reasoning-status",
+      "@sparkelf/dsh-patch-session-envelope-ignorable",
       "@sparkelf/dsh-patch-session-export-chinese",
       "@sparkelf/dsh-patch-session-format-legacy-restart",
       "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
@@ -187,6 +188,7 @@
     "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.0-rc.33",
+    "@sparkelf/dsh-patch-session-envelope-ignorable": "workspace:>=0.2.0-rc.43",
     "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-patch-session-format-legacy-restart": "workspace:>=0.2.0-rc.33",
     "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.2.0-rc.33",

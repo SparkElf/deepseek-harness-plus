@@ -108,6 +108,18 @@ entries:
         retireWhen: Official open-in-app translates POSIX paths for the Windows
           interpreter on a WSL host
     plusBundle: false
+  - name: "@deepseek-ai/dsh-session"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 639ed015397290b3745d163aafe02ffee4aa3f84
+    interest: Envelope ignorable marker cannot be set by out-of-repo plugin writers
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-session-envelope-ignorable"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Session.append accepts an envelope marker for log-only events upstream
+    plusBundle: false
   - name: "@deepseek-ai/dsh-session-format-v0-to-v1"
     source:
       kind: git

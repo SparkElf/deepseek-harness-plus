@@ -1,14 +1,14 @@
 {
-  "name": "@sparkelf/dsh-patch-legacy-code-preset",
+  "name": "@sparkelf/dsh-patch-session-envelope-ignorable",
   "version": "0.2.0-rc.44",
-  "description": "Data-only exact official-source patch mapping persisted legacy code presets to PTC without rewriting Session logs",
+  "description": "Data-only exact official-source patch letting a log-only event declare the session envelope's ignorable marker at append",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/legacy-code-preset"
+    "directory": "patches/npm/session-envelope-ignorable"
   },
   "type": "module",
   "files": [
@@ -19,19 +19,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "legacy-code-preset-ptc-compatibility",
+        "id": "session-envelope-ignorable-at-append",
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "639ed015397290b3745d163aafe02ffee4aa3f84",
           "paths": [
-            "packages/api/session-controller/src/",
-            "packages/api/session-controller/tests/",
-            "packages/client/ui-agent-preset/src/",
-            "packages/client/ui-agent-preset/tests/"
+            "packages/core/session/src/"
           ]
         },
-        "file": "./patches/legacy-code-preset.patch"
+        "file": "./patches/session-envelope-ignorable.patch"
       }
     ]
   }
