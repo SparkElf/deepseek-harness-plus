@@ -15,6 +15,12 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { attempt, attemptEchoed } from './process.ts'
 
+/**
+ * Registry every publication and dist-tag move targets. Mirrors publish.ts: the overwhelming
+ * default is the public registry, and a caller can point a dry run at a mirror.
+ */
+const PUBLISH_REGISTRY = process.env.DSH_PUBLISH_REGISTRY ?? 'https://registry.npmjs.org'
+
 /** Read one JSON file. */
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
