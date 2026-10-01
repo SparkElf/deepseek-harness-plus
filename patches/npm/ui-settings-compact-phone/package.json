@@ -27,7 +27,7 @@
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "4878cdabd87d4041bdaff61d04c966883b9fd07a",
+          "baseRevision": "639ed015397290b3745d163aafe02ffee4aa3f84",
           "paths": [
             "packages/client/ui-settings-general/src/"
           ]
