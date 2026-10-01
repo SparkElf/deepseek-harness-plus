@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-session-envelope-ignorable",
-  "version": "0.2.0-rc.44",
+  "version": "0.2.0-rc.45",
   "description": "Data-only exact official-source patch letting a log-only event declare the session envelope's ignorable marker at append",
   "publishConfig": {
     "access": "public"
