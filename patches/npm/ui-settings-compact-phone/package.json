@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "ui-settings-compact-phone",
-        "dsh": ">=0.2.0-rc.1",
+        "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "4878cdabd87d4041bdaff61d04c966883b9fd07a",
