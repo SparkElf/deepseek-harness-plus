@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
   "description": "Data-only patch making dsh-better-sidebar request the catalog projection of every level its subagent tree renders",
-  "version": "0.2.0-rc.42",
+  "version": "0.2.0-rc.43",
   "publishConfig": {
     "access": "public"
   },
@@ -24,7 +24,7 @@
     "variants": [
       {
         "id": "better-sidebar-subagent-catalog-load",
-        "dsh": ">=0.2.0-rc.1",
+        "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "npm",
           "name": "dsh-better-sidebar",

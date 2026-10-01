@@ -1,8 +1,8 @@
 diff --git a/apps/web/tests/access-confirmation.e2e.ts b/apps/web/tests/access-confirmation.e2e.ts
-index b1c57c60e7..9d09f2aefb 100644
+index a47cad6..6c05516 100644
 --- a/apps/web/tests/access-confirmation.e2e.ts
 +++ b/apps/web/tests/access-confirmation.e2e.ts
-@@ -150,6 +150,12 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
+@@ -151,6 +151,12 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
      expect(await access.getAttribute('aria-label')).toBe('访问模式，当前：工作区内修改')
  
      await access.click()
@@ -16,27 +16,28 @@ index b1c57c60e7..9d09f2aefb 100644
      const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
      await dialog.waitFor({ timeout: 10_000 })
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index aa17206061..4e5a2420cc 100644
+index d87bf4c..901bf5f 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
-@@ -106,6 +106,12 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -323,6 +323,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
      await trigger.waitFor({ timeout: 15_000 })
      expect(await trigger.evaluate(element => getComputedStyle(element).fontWeight)).toBe('400')
      await trigger.click()
-+    const modelMenu = await page.getByRole('menu').boundingBox()
-+    const modelCenter = await page.locator('[data-dsh-center-col]').boundingBox()
-+    expect(modelMenu).not.toBeNull()
-+    expect(modelCenter).not.toBeNull()
-+    expect(modelMenu!.x).toBeGreaterThanOrEqual(modelCenter!.x + 11)
-+    expect(modelMenu!.x + modelMenu!.width).toBeLessThanOrEqual(modelCenter!.x + modelCenter!.width - 11)
-     await page.getByRole('menuitem', { name: /模型/ }).click()
-     const entered = Promise.withResolvers<undefined>()
-     const release = Promise.withResolvers<undefined>()
++    // The composer popover must stay inside the centre column rather than touching its edges.
++    const boundaryMenu = await page.getByRole('menu').boundingBox()
++    const boundaryCenter = await page.locator('[data-dsh-center-col]').boundingBox()
++    expect(boundaryMenu).not.toBeNull()
++    expect(boundaryCenter).not.toBeNull()
++    expect(boundaryMenu!.x).toBeGreaterThanOrEqual(boundaryCenter!.x + 11)
++    expect(boundaryMenu!.x + boundaryMenu!.width).toBeLessThanOrEqual(boundaryCenter!.x + boundaryCenter!.width - 11)
+     const modelMenuBounds = await page.getByRole('menu', { name: '模型与推理等级', exact: true }).boundingBox()
+     const composerBounds = await page.locator('[data-composer-card]').first().boundingBox()
+     expect(modelMenuBounds!.width).toBeLessThan(composerBounds!.width)
 diff --git a/packages/client/ui-layout/README.md b/packages/client/ui-layout/README.md
-index e1fab07fff..a9553852ce 100644
+index e32e926..3e2b827 100644
 --- a/packages/client/ui-layout/README.md
 +++ b/packages/client/ui-layout/README.md
-@@ -51,7 +51,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
+@@ -54,7 +54,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
  
  `selectPanel(id)` checks the live `main` registry before changing selection; an absent key throws and leaves the current panel intact. `beginNavigation()` returns an abort signal for an asynchronous UI navigation. A later call, a valid panel selection (including repeated selection), or layout disposal aborts that signal without cancelling underlying Session creation. Consumers check the signal before committing navigation or moving drafts.
  
@@ -46,7 +47,7 @@ index e1fab07fff..a9553852ce 100644
  </details>
  
 diff --git a/packages/client/ui-layout/src/client/AppFrame.tsx b/packages/client/ui-layout/src/client/AppFrame.tsx
-index 841f9f72aa..a766ee1170 100644
+index 841f9f7..a766ee1 100644
 --- a/packages/client/ui-layout/src/client/AppFrame.tsx
 +++ b/packages/client/ui-layout/src/client/AppFrame.tsx
 @@ -33,7 +33,7 @@ export type AppFrameProps =
@@ -59,7 +60,7 @@ index 841f9f72aa..a766ee1170 100644
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index 74b3311cdb..43e04e65a3 100644
+index f4f42cb..3b01c1a 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 @@ -94,7 +94,9 @@
@@ -74,10 +75,10 @@ index 74b3311cdb..43e04e65a3 100644
    min-width: min(240px, calc(100vw - 32px));
    max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index 28e4bfa800..1e33fcf415 100644
+index fbeda5d..1857d75 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -174,13 +174,25 @@ export function ModelSelect(
+@@ -217,13 +217,25 @@ export function ModelSelect(
        const rect = triggerRef.current?.getBoundingClientRect()
        if (rect === undefined) return
        const MARGIN = 12
@@ -107,10 +108,10 @@ index 28e4bfa800..1e33fcf415 100644
      // First run measures the hidden pre-render (same commit as `open`), so
      // the card lands placed before anything paints.
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index aafc5b98a9..a5999850a4 100644
+index 470c852..40998a1 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-@@ -289,23 +289,30 @@ describe('ModelSelect reasoning effort', () => {
+@@ -315,23 +315,30 @@ describe('ModelSelect reasoning effort', () => {
      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
      try {
@@ -147,7 +148,7 @@ index aafc5b98a9..a5999850a4 100644
        // Interactions inside the trigger subtree or the portaled card stay open.
        expect(fireEvent.mouseDown(menu)).toBe(true)
 diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
-index f34e2b16e9..c5db564e1a 100644
+index f34e2b1..c5db564 100644
 --- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 +++ b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 @@ -1,4 +1,4 @@
@@ -179,33 +180,33 @@ index f34e2b16e9..c5db564e1a 100644
              className={css.trigger}
              aria-label={t('mode', { name: currentAccessibleLabel })}
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index c9f0cb4a5a..84fc1c70ec 100644
+index 2ccc2b6..580a830 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -45,7 +45,7 @@ Check this table before writing a control in a feature package. A plugin cannot
  | `SegmentedControl` | Tablist of two or more equal-width segments with one sliding indicator, for switching a card or panel between a few modes; the owner holds the selection and `label` names the list. `id` seeds each tab's id (`<id>-<value>`) and the panel it controls (`<id>-<value>-panel`), which the owner renders and points back at the tab with `aria-labelledby`; a segment may be `disabled` with a `title`, and `disabled` on the control locks every segment while the shown panel has work in flight. |
  | `Checkbox` | Labeled native checkbox with controlled state, keyboard interaction, and disabled styling; the caller supplies localized `label` text. |
- | `Input` | Single-line text entry for search boxes and inline forms. |
+ | `Input` | Single-line text entry for search boxes and inline forms. Its ref targets the native input for focus and is cleared on unmount. |
 -| `Menu`, `MenuItemButton` | Dropdown of `items` data rows, separators, and group labels, with nested submenus; `children` adds component rows, each a `MenuItemButton` (`separatorBefore` starts a new group), in the same list. Every row shares the styling, the keyboard walk, and the focus return; closing stays the owner's state change for both kinds. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. |
 +| `Menu`, `MenuItemButton` | Dropdown of `items` data rows, separators, and group labels, with nested submenus; `children` adds component rows, each a `MenuItemButton` (`separatorBefore` starts a new group), in the same list. Every row shares the styling, the keyboard walk, and the focus return; closing stays the owner's state change for both kinds. While open, ↑/↓ (with Home and End) walk the list, Tab settles the focused row, and Escape or Shift+Tab close back to the anchor; selecting a row also returns the keyboard to the anchor unless the owner moved it itself. Only a keyboard on the anchor or inside the list is intercepted, and `autoFocus` decides solely whether opening focuses the first row. A portaled list may intersect viewport clamping with an owner boundary. |
+ | `MenuGroup`, `observeStickyMenuGroups` | Localized, accessible groups for custom menus and listboxes, with shared sticky-heading styling and native intersection/size observation; the caller owns the observer's lifetime. |
  | `Pill` | Selectable capsule button for view switchers and filters; takes `active` and `onClick`. |
  | `SegmentedTabs` | Controlled equal-width tabs with a sliding indicator and Left/Right, Home, and End navigation. The caller supplies labels, tab/panel ids, and panel content. |
- | `Tag` | Read-only capsule badge; `tone` selects one of eight palettes. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index de6adf1a2d..79550da79a 100644
+index 588fb26..675d671 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
-@@ -45,7 +45,7 @@ kind: "package-library"
- | `SegmentedControl` | 两段或更多等宽分段加一个滑动指示块的 tablist，用于在几种模式间切换一张卡片或面板；选中项由调用方持有，`label` 为列表命名。`id` 派生每个 tab 的 id（`<id>-<value>`）及其控制的面板 id（`<id>-<value>-panel`），面板由调用方渲染并用 `aria-labelledby` 指回 tab；分段可 `disabled` 并带 `title`，控件级 `disabled` 在当前面板有进行中的操作时锁住全部分段。 |
- | `Checkbox` | 带标签的原生复选框，支持受控状态、键盘交互和禁用样式；调用方提供本地化的 `label` 文本。 |
- | `Input` | 单行文本输入，用于搜索框与行内表单。 |
--| `Menu`, `MenuItemButton` | 由 `items` 数据行、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；`children` 在同一列表中加入组件行，每行一个 `MenuItemButton`（`separatorBefore` 开启新分组）。所有行共享样式、键盘走位与焦点归还；两类行的关闭都是 owner 状态的改变。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。 |
+@@ -25,7 +25,7 @@ kind: "package-library"
+ <a id="use-this-package"></a>
+ ## 使用本包
+ 
+-`Toast` 在浅色和深色模式下均使用主题的系统提示背景与文字颜色。`Menu` 数据条目与 `MenuItemButton` 组件条目接收功能 owner 提供的有效快捷键，并在末端以无背景的浅灰色文字对齐显示，子菜单也采用同一呈现。`ShortcutKeys` 默认以无方块的按键文字显示菜单和行内提示。`tooltip` 变体在深色气泡上使用稍浅的键帽，以加号连接的组合则共用一个填充色块。`Tooltip.shortcutKeys` 将键帽与可选的本地化操作文本垂直居中排列，标签为空时只显示按键。可选的 `className` 供调用方设置交互状态样式。`Modal` 使用框架共享的浮层起点，视口边距至少为 24px。其遮罩不绘制 Windows 顶栏区域，覆盖整个视口的模态层仍阻挡背景点击。`Modal` 与设置外壳通过 `useModalLayer` 共用顶层 Esc 和 Tab 处理，关闭时恢复先前焦点。`closeTopModal(document)` 请求前台弹窗当前的关闭操作；上层菜单或未注册的对话框会阻止关闭其后方弹窗。组件通过 `isBehindModal` 避免将焦点移到嵌套弹窗后方。菜单先消费自己的 Esc，再由模态层处理关闭。 `observeComposition` 为局部弹层和录键处理提供相同的 composition-end 与旧版 IME 保护；调用方随交互生命周期释放其 document 监听。
 +| `Menu`, `MenuItemButton` | 由 `items` 数据行、分隔线与分组标题构成的下拉菜单，支持嵌套子菜单；`children` 在同一列表中加入组件行，每行一个 `MenuItemButton`（`separatorBefore` 开启新分组）。所有行共享样式、键盘走位与焦点归还；两类行的关闭都是 owner 状态的改变。打开期间 `↑`／`↓`（以及 Home、End）在列表中走位，Tab 选定聚焦行，Escape 或 Shift+Tab 关闭并把焦点还给锚点；选定一行同样把键盘还给锚点——除非拥有者自己移动了焦点。只拦截位于锚点或列表内的键盘，`autoFocus` 仅决定打开时是否聚焦首行。portal 模式的列表可把视口钳制与 owner boundary 取交集。 |
- | `Pill` | 可选中的胶囊按钮，用于视图切换与筛选器；接受 `active` 与 `onClick`。 |
- | `SegmentedTabs` | 受控的等宽分段标签，支持滑动指示条及左／右方向键、Home、End 导航。调用方提供文案、标签与面板 id，以及面板内容。 |
- | `Tag` | 只读胶囊徽章；`tone` 选择八种配色之一。 |
+ 
+ 弹窗自动进入及弹窗、菜单回焦，包括通过 Esc 和应用关闭快捷键触发的回焦，均使用 `focusWithoutRing(element, options?)`，在 Tab 或方向键导航恢复正常焦点样式前抑制外轮廓线。弹窗容器仍不绘制焦点外框。原有边框、阴影和错误状态保持不变。用 `data-modal-autofocus` 标记弹窗的初始控件，让模态层先保存触发控件，再移动焦点。随弹窗挂载的控件不得使用 React `autoFocus`，因为它会在保存触发控件前执行。弹窗容器获得焦点时，Tab 和 Shift+Tab 分别进入第一个和最后一个可聚焦控件。
+ 
 diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
-index fd5b655d5c..cd0a7ead05 100644
+index fd5b655..cd0a7ea 100644
 --- a/packages/client/ui-primitives/src/Menu.tsx
 +++ b/packages/client/ui-primitives/src/Menu.tsx
 @@ -1,5 +1,5 @@
@@ -295,10 +296,10 @@ index fd5b655d5c..cd0a7ead05 100644
    // Opening remembers where the keyboard was, so closing can hand it back to
    // that control — an anchor wrapping several (a split button) cannot be asked
 diff --git a/packages/client/ui-primitives/tests/atoms.client.spec.tsx b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
-index 842ea536cf..a7aad9480c 100644
+index bc48ea0..767b60a 100644
 --- a/packages/client/ui-primitives/tests/atoms.client.spec.tsx
 +++ b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
-@@ -494,6 +494,33 @@ describe('Menu', () => {
+@@ -504,6 +504,33 @@ describe('Menu', () => {
      expect(menu.style.top).toBe('132px')
    })
  
