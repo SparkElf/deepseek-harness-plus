@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.2.0-rc.49",
+  "version": "0.2.0-rc.50",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.0-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.49",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.50",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -54,9 +54,9 @@
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.49",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.49",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.49",
+    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.50",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.50",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.50",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
