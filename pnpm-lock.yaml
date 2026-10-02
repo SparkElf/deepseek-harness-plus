@@ -9505,7 +9505,7 @@ importers:
         specifier: 0.5.3
         version: 0.5.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(react@18.3.1)
       '@sparkelf/dsh-client-ui-skill-center':
-        specifier: workspace:>=0.2.0-rc.46
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-dataops-managed':
         specifier: 0.3.6
@@ -9523,16 +9523,16 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.2.0-rc.46
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.2.0-rc.46
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-supervisor':
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.46
+        specifier: workspace:0.2.0-rc.47
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
