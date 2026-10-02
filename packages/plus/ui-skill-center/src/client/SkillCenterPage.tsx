@@ -15,7 +15,8 @@ import {
   IconSkillOutlineRegular,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from './slot-contract.ts'
 import css from './SkillCenterPage.module.css'
 import { SkillApi, type ListPayload, type SkillEntry } from './api.ts'
 import type { SkillCenterLocaleKey } from './locales.ts'
@@ -131,7 +132,11 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
  * @param props - the slot's runtime share: the dictionary resolver and the workspace rows.
  * @returns the rendered panel.
  */
-export function SkillCenterPage({ t, ...runtime }: PropsRuntime<'main'> & SkillCenterPageProps): ReactNode {
+export function SkillCenterPage({
+  t,
+  renderSlot,
+  ...runtime
+}: PropsRuntime<'main'> & PropsRenderSlots<'skill-center.section'> & SkillCenterPageProps): ReactNode {
   const api = useMemo(() => new SkillApi(), [])
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
@@ -327,6 +332,8 @@ export function SkillCenterPage({ t, ...runtime }: PropsRuntime<'main'> & SkillC
           </ul>
         </div>
       ))}
+
+      {renderSlot('skill-center.section', {})}
     </div>
   )
 }

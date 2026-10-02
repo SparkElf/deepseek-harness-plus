@@ -1656,76 +1656,76 @@ importers:
         specifier: workspace:>=0.1.6-alpha.1
         version: link:../../session-query/tool-session-query
       '@sparkelf/dsh-client-ui-skill-center':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
       '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/better-sidebar-html-preview-path
       '@sparkelf/dsh-patch-better-sidebar-media-path':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/better-sidebar-media-path
       '@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/better-sidebar-subagent-catalog-load
       '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/browser-auth-mode
       '@sparkelf/dsh-patch-composer-popover-boundaries':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/composer-popover-boundaries
       '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/legacy-code-preset
       '@sparkelf/dsh-patch-mobile-journal-generation':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/mobile-journal-generation
       '@sparkelf/dsh-patch-office-preview-stable-load':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/office-preview-stable-load
       '@sparkelf/dsh-patch-officecli-deliverables':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/officecli-deliverables
       '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/ptc-mcp-schema-types
       '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/responses-reasoning-status
       '@sparkelf/dsh-patch-session-envelope-ignorable':
-        specifier: workspace:>=0.2.0-rc.43
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/session-envelope-ignorable
       '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/session-export-chinese
       '@sparkelf/dsh-patch-session-format-legacy-restart':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/session-format-legacy-restart
       '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/session-log-trajectory-toolbar
       '@sparkelf/dsh-patch-session-query-unindexable-session':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/session-query-unindexable-session
       '@sparkelf/dsh-patch-state-dot-brand-blue':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/state-dot-brand-blue
       '@sparkelf/dsh-patch-ui-settings-compact-phone':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/ui-settings-compact-phone
       '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/workspace-storage-restore
       '@sparkelf/dsh-patch-wsl-native-open':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../../patches/npm/wsl-native-open
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/mcp-credentials
       dshmarket:
         specifier: '>=1.66.7'
@@ -9505,11 +9505,11 @@ importers:
         specifier: 0.5.3
         version: 0.5.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(react@18.3.1)
       '@sparkelf/dsh-client-ui-skill-center':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-dataops-managed':
-        specifier: 0.3.5
-        version: 0.3.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)
+        specifier: 0.3.6
+        version: 0.3.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)
       '@sparkelf/dsh-mineru':
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
@@ -9523,16 +9523,16 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-supervisor':
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.45
+        specifier: workspace:0.2.0-rc.47
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -9602,7 +9602,7 @@ importers:
         specifier: 0.5.3
         version: 0.5.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(react@18.3.1)
       '@sparkelf/dsh-client-ui-skill-center':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-mineru':
         specifier: 0.1.4
@@ -9617,16 +9617,16 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-plugin-backup':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.2.0-rc.33
+        specifier: workspace:>=0.2.0-rc.47
         version: link:../../plus/mcp-credentials
       '@sparkelf/dsh-plugin-supervisor':
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.0-rc.45
+        specifier: workspace:0.2.0-rc.47
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -15031,8 +15031,8 @@ packages:
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
       react: ^18.2.0 || ^19.0.0
 
-  '@sparkelf/dsh-dataops-managed@0.3.5':
-    resolution: {integrity: sha512-utW9ROsyP37GHPLqTxVqv5pgIRT6YWp4hHXtDXItBmkrKcoVr8NmE55YaEKl1QV2WsOEUDd25LLxRlXGxVrWAw==}
+  '@sparkelf/dsh-dataops-managed@0.3.6':
+    resolution: {integrity: sha512-8yDKERod4T1/fmTOzY+u9fqNKbZyMtH40+fGeA2Ruo0ww4eIxFqYEyHbteX/8pczC3WIjrEUcWGsvIl2Rjisqw==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.4
@@ -15046,6 +15046,7 @@ packages:
       '@deepseek-ai/dsh-credentials': '>=0.1.7-rc.2'
       '@deepseek-ai/dsh-host-webserver': '>=0.1.7-rc.2'
       '@deepseek-ai/dsh-settings': '>=0.1.7-rc.2'
+      '@deepseek-ai/dsh-skill': 0.1.7-rc.2
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
       '@deepseek-ai/schemastery': '>=3.18.1'
       '@sparkelf/dsh-plugin-mcp-credentials': '>=0.1.0-rc.14'
@@ -22584,7 +22585,7 @@ snapshots:
       react: 18.3.1
       react-icons: 5.7.0(react@18.3.1)
 
-  '@sparkelf/dsh-dataops-managed@0.3.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)':
+  '@sparkelf/dsh-dataops-managed@0.3.6(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-client-ui-settings': link:packages/client/ui-settings
