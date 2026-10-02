@@ -58,7 +58,7 @@
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-dataops-managed": "0.3.5",
+    "@sparkelf/dsh-dataops-managed": "0.3.6",
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {

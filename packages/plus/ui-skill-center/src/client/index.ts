@@ -12,6 +12,10 @@ import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// The re-export carries this page's slot declaration to the plugins that contribute to it: a
+// bare `import type {}` is erased from the emitted types, while a type export keeps the module
+// in the declaration graph.
+export type { SkillCenterSectionOwnerProps } from './slot-contract.ts'
 import { SkillCenterPage } from './SkillCenterPage.tsx'
 import { SkillCenterPanelIcon } from './SkillCenterPanelIcon.tsx'
 import { en, zh, type SkillCenterLocaleKey } from './locales.ts'
@@ -44,6 +48,11 @@ export function apply(ctx: Context): void {
     name: 'main',
     key: PANEL_ID,
     locale: NS,
+    children: {
+      // A section another plugin contributes to this page. It stays empty unless one is
+      // installed, so a profile without such a plugin renders the page as it always has.
+      'skill-center.section': { kind: 'list', scope: 'root' },
+    },
   }, SkillCenterPage))
 
   ctx.slots.inject('sidebar.panellist', () => ctx.slots.register({
