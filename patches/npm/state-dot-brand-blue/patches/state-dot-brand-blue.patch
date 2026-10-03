@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-primitives/src/StateDot.module.css b/packages/client/ui-primitives/src/StateDot.module.css
-index 1a692c6892..3aa3186b94 100644
+index 1a692c6..3aa3186 100644
 --- a/packages/client/ui-primitives/src/StateDot.module.css
 +++ b/packages/client/ui-primitives/src/StateDot.module.css
 @@ -1,4 +1,12 @@
@@ -105,10 +105,10 @@ index 1a692c6892..3aa3186b94 100644
 +.step[data-state='warning'] { border-color: var(--dsw-alias-state-warn-primary); }
 \ No newline at end of file
 diff --git a/packages/client/ui-primitives/src/StateDot.tsx b/packages/client/ui-primitives/src/StateDot.tsx
-index ede3c6b98c..f54ebddf44 100644
+index ec480c6..f54ebdd 100644
 --- a/packages/client/ui-primitives/src/StateDot.tsx
 +++ b/packages/client/ui-primitives/src/StateDot.tsx
-@@ -3,24 +3,15 @@ import css from './StateDot.module.css'
+@@ -3,35 +3,15 @@ import css from './StateDot.module.css'
  import { IconCheckOutlineRegular } from './icons/index.tsx'
  
  /**
@@ -120,12 +120,23 @@ index ede3c6b98c..f54ebddf44 100644
  
 -/**
 - * Pin the loader's CSS animations to document time zero. A CSS animation starts
-- * when its element is inserted, so loaders mounted at different moments rotate
-- * out of phase; one shared start time keeps every visible loader in step.
+- * when its element is inserted and restarts when the element is moved or shown
+- * again, so loaders started at different moments rotate out of phase; one shared
+- * start time keeps every visible loader in step. Mount pins the first start; the
+- * element's own `animationstart` listener pins each restart.
 - * @param element - the mounted loader, or null on unmount.
 - */
 -function syncSpinner(element: SVGSVGElement | null): void {
 -  if (element === null) return
+-  pinSpinner(element)
+-  element.addEventListener('animationstart', () => { pinSpinner(element) })
+-}
+-
+-/**
+- * Set every CSS animation in the loader's subtree to start at document time zero.
+- * @param element - the mounted loader.
+- */
+-function pinSpinner(element: SVGSVGElement): void {
 -  // jsdom (the unit lane) implements no Web Animations despite lib.dom's
 -  // non-optional typing; the optional call leaves that lane unsynced.
 -  const spinner = element as { getAnimations?: SVGSVGElement['getAnimations'] }
@@ -138,7 +149,7 @@ index ede3c6b98c..f54ebddf44 100644
  
  /**
   * Render a state dot.
-@@ -40,18 +31,26 @@ export function StateDot({ state, size, className, appearance = 'dot' }: {
+@@ -51,18 +31,26 @@ export function StateDot({ state, size, className, appearance = 'dot' }: {
    if (state === 'ongoing') {
      return (
        <svg
