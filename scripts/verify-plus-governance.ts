@@ -238,6 +238,25 @@ function main(): void {
   const bundles = array(profile.bundles, 'dshPlus.profile.bundles').map((value, index) =>
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
   if (new Set(bundles).size !== bundles.length) throw new Error('dshPlus.profile.bundles must not contain duplicates')
+  // The runtime floor and the republished pins move together or the image is broken in a way
+  // no other check names. A profile installs each official package from its override, so a
+  // floor below those pins admits a runtime older than the packages it must host: 0.2.1-alpha.1
+  // plugins were refused by a 0.2.0-rc.2 launcher, and the profile never started. The floor
+  // cannot simply be the pin either -- a floor is a range that later patches raise, and a
+  // prerelease floor only admits prereleases of its own major.minor.patch, so ">=0.2.0-rc.2"
+  // silently excludes every 0.2.1 prerelease. Requiring the floor to admit the pinned runtime
+  // states the relationship the promotion has to preserve.
+  const compatibilityFloor = minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
+  const republished = new Set(
+    Object.values(object(object(profile, 'dshPlus.profile').overrides, 'dshPlus.profile.overrides'))
+      .map(value => /@([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/.exec(string(value, 'dshPlus.profile.overrides'))?.[1])
+      .filter((version): version is string => version !== undefined))
+  if (republished.size === 0) throw new Error('dshPlus.profile.overrides must pin the republished runtime')
+  for (const version of republished) {
+    if (satisfies(version, compatibilityFloor)) continue
+    throw new Error('dshPlus.compatibility.dsh (' + compatibilityFloor + ') must admit the republished runtime ' + version
+      + '; a prerelease floor admits only its own major.minor.patch, so it moves with the runtime')
+  }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
     '@changfenhuang/dsh-genui': '0.11.3',

@@ -21,10 +21,21 @@ import { fileURLToPath } from 'node:url'
 /** Where the generated manifest and its inputs live, relative to the repository root. */
 const MANIFEST_OUT = 'packages/standalone/plus-standalone/package.json'
 const MANIFEST_DISTRIBUTION = 'packages/bundle/plus'
-const MANIFEST_RUNTIME = '0.2.0-rc.1'
 const MANIFEST_GENERATOR = 'scripts/standalone/generate-manifest.ts'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
+
+/**
+ * The runtime floor the distribution declares, which its manifests publish as the launcher
+ * dependency. Derived rather than restated: a copy here drifts on the first release that
+ * raises the floor, and the manifests it regenerates then contradict the distribution.
+ *
+ * @returns the minimum-only range without its comparator, or an empty string when absent.
+ */
+export function manifestRuntime() {
+  const declared = JSON.parse(readFileSync(resolve(root, MANIFEST_DISTRIBUTION, 'package.json'), 'utf8')).dshPlus.compatibility.dsh
+  return /^>=?(.+)$/.exec(declared)?.[1] ?? ''
+}
 
 /**
  * Every Plus release member, resolved from the family's own patterns.
@@ -108,7 +119,7 @@ function main() {
     console.log('bump-plus: ' + name)
   }
   run('pnpm', ['exec', 'tsx', MANIFEST_GENERATOR, '--distribution', MANIFEST_DISTRIBUTION,
-    '--out', MANIFEST_OUT, '--runtime-version', MANIFEST_RUNTIME], 'manifest regenerated')
+    '--out', MANIFEST_OUT, '--runtime-version', manifestRuntime()], 'manifest regenerated')
   run('pnpm', ['install', '--lockfile-only'], 'lockfile updated')
 }
 
