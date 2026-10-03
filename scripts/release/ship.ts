@@ -191,7 +191,10 @@ async function main(): Promise<number> {
   // here tolerates already having happened. The bump is the one that does not do so on its own —
   // its commit fails with "nothing to commit" once the version is already declared — which turns
   // a retry into a dead end exactly when a retry is wanted.
-  const target = declaredVersion(entry).replace(/rc\.\d+$/, prerelease)
+  // Replace whatever prerelease the family currently declares, not only an rc one: a family
+  // that has moved to a different prerelease channel would otherwise compute its own version as
+  // the target, skip the bump, and fail publishing a version the registry already has.
+  const target = declaredVersion(entry).replace(/-[0-9A-Za-z.-]+$/, '-' + prerelease)
   let version = target
   if (declaredVersion(entry) === target) {
     console.log('')
