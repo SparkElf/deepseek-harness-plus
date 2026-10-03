@@ -9490,7 +9490,7 @@ importers:
         specifier: 0.11.3
         version: 0.11.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-store@packages+client+store)(@deepseek-ai/dsh-client-ui-chat@packages+client+ui-chat)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-skill@packages+skill+skill)(@deepseek-ai/dsh-system-prompt@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-scope@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))))(@deepseek-ai/dsh-util-values@0.2.0-rc.2(@deepseek-ai/cordis@vendor+cordis))(react@18.3.1)
       '@deepseek-ai/dsh':
-        specifier: workspace:>=0.2.0-rc.2
+        specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
       '@deepseek-ai/dsh-experimental-agent-team-profile':
         specifier: '>=0.2.0-rc.2'
@@ -9578,7 +9578,7 @@ importers:
         specifier: 0.11.3
         version: 0.11.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-client-store@packages+client+store)(@deepseek-ai/dsh-client-ui-chat@packages+client+ui-chat)(@deepseek-ai/dsh-client-ui-input-trigger@packages+client+ui-input-trigger)(@deepseek-ai/dsh-client-ui-tool@packages+client+ui-tool)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-skill@packages+skill+skill)(@deepseek-ai/dsh-system-prompt@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-llm@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-scope@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))))(@deepseek-ai/dsh-util-values@0.2.0-rc.2(@deepseek-ai/cordis@vendor+cordis))(react@18.3.1)
       '@deepseek-ai/dsh':
-        specifier: workspace:>=0.2.0-rc.2
+        specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
       '@deepseek-ai/dsh-computer-use':
         specifier: '>=0.1.6-alpha.1'
