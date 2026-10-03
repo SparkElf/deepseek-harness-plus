@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.0-rc.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.51",
+    "@sparkelf/dsh-plus": "workspace:0.2.0-rc.52",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -52,13 +52,13 @@
     "@sparkelf/dsh-mobile-bridge": "0.2.15",
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.51",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.51",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.51",
+    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.0-rc.52",
+    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.0-rc.52",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.0-rc.52",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-dataops-managed": "0.3.9",
+    "@sparkelf/dsh-dataops-managed": "0.3.10",
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {
@@ -256,12 +256,12 @@
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar",
         "version": "0.2.0-rc.2",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.9 declares >=0.1.7-rc.2, which 0.2.0-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-dataops-managed@0.3.10 declares >=0.1.7-rc.2, which 0.2.0-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-settings",
         "version": "0.2.0-rc.2",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.9 declares >=0.1.7-rc.2, which 0.2.0-rc.2 does not satisfy"
+        "reason": "@sparkelf/dsh-dataops-managed@0.3.10 declares >=0.1.7-rc.2, which 0.2.0-rc.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-brand",
@@ -280,9 +280,9 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.51",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.51",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.51"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.0-rc.52",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.0-rc.52",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.0-rc.52"
     }
   }
 }
