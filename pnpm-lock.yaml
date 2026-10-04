@@ -9508,8 +9508,8 @@ importers:
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/ui-skill-center
       '@sparkelf/dsh-dataops-managed':
-        specifier: 0.3.10
-        version: 0.3.10(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)
+        specifier: 0.3.11
+        version: 0.3.11(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)
       '@sparkelf/dsh-mineru':
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
@@ -9532,7 +9532,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.2
+        specifier: workspace:0.2.1-alpha.3
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -9626,7 +9626,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.2
+        specifier: workspace:0.2.1-alpha.3
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -15031,8 +15031,8 @@ packages:
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
       react: ^18.2.0 || ^19.0.0
 
-  '@sparkelf/dsh-dataops-managed@0.3.10':
-    resolution: {integrity: sha512-qSWwfEnS9qTrPNCYObKaqYKzXHvAiyWlbxeU9c7l2rCmjGW9XozWV1DhkU0/tHIfvJOZNh/tQGaYrLuKLF9oVA==}
+  '@sparkelf/dsh-dataops-managed@0.3.11':
+    resolution: {integrity: sha512-PsHWsftgFj4oFgAV2IDyhiXaXpsSLF2rmHUbysd5FEfUpdKXqDK9GJ6FIF7xZrQIcsgohbW/NMJCwz9lApr0DA==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.4
@@ -15046,7 +15046,7 @@ packages:
       '@deepseek-ai/dsh-credentials': '>=0.1.7-rc.2'
       '@deepseek-ai/dsh-host-webserver': '>=0.1.7-rc.2'
       '@deepseek-ai/dsh-settings': '>=0.1.7-rc.2'
-      '@deepseek-ai/dsh-skill': 0.2.0-rc.2
+      '@deepseek-ai/dsh-skill': '>=0.2.0-rc.2'
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
       '@deepseek-ai/schemastery': '>=3.18.1'
       '@sparkelf/dsh-plugin-mcp-credentials': '>=0.1.0-rc.14'
@@ -22585,7 +22585,7 @@ snapshots:
       react: 18.3.1
       react-icons: 5.7.0(react@18.3.1)
 
-  '@sparkelf/dsh-dataops-managed@0.3.10(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)':
+  '@sparkelf/dsh-dataops-managed@0.3.11(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-client-ui-settings': link:packages/client/ui-settings
