@@ -1,7 +1,8 @@
 /** Full-stack Plus user-data Backup Host plugin. */
 
-import { basename, dirname } from 'node:path'
+import { basename } from 'node:path'
 import Schema from '@deepseek-ai/schemastery'
+import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-settings'
@@ -25,7 +26,14 @@ export const Config: Schema<Config> = Schema.object({
 })
 
 /**
- * Register authenticated archive routes against a file-backed DSH home.
+ * Register authenticated archive routes against the Harness home.
+ *
+ * The archived user data lives under the Harness home, not beside the settings document: Session
+ * logs, attachments, Workspace storage, credentials, and identity are all written there. Only the
+ * profile's patch file sits beside the document, so deriving the root from the document archived
+ * that one file and silently dropped every other planned entry — a Sessions export produced an
+ * archive holding nothing but its manifest.
+ *
  * @param ctx - Host services plus the temporary patched Workspace restore operation.
  * @param config - Upload resource policy resolved by Cordis.
  */
@@ -35,5 +43,5 @@ export function apply(ctx: BackupHostContext, config: Config = {}): void {
   registerBackupRoutes(ctx, {
     maxUploadBytes: config.maxUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES,
     settingsFile: basename(documentPath),
-  }, dirname(documentPath))
+  }, resolveDshHome())
 }

@@ -23,6 +23,9 @@
       "path": "../../client/connection/tsconfig.host.json"
     },
     {
+      "path": "../../util/home-paths"
+    },
+    {
       "path": "../../host/webserver"
     },
     {
