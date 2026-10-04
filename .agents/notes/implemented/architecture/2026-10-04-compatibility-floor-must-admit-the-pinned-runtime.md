@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-10-04-compatibility-floor-must-admit-the-pinned-runtime.zh.md)
+
 ## Problem
 
 A Plus distribution reaches its runtime through two values that a release moves together:
