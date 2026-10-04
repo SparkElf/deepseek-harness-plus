@@ -23,7 +23,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用此软件包
 
-Host entry需mount在`connection`、`webServer`、`settings`及`workspaceRegistry`之后，Client entry需mount在locale及Settings之后。file-backed Settings provider提供`settings.documentPath`；`maxUploadBytes`默认为2147483648 bytes。
+Host entry需mount在`connection`、`webServer`、`settings`及`workspaceRegistry`之后，Client entry需mount在locale及Settings之后。file-backed Settings provider提供`settings.documentPath`；归档覆盖Harness home，`maxUploadBytes`默认为2147483648 bytes。
 
 Settings section使用三段segmented control。**全部**是配置与会话的并集；它不归档generated profiles、releases、logs、Supervisor files、cached packages或其他runtime output。**配置**只恢复配置文件，不关闭Session/Workspace storage。**会话**把`sessions`、`attachments`及`storages`一起放进Workspace storage-restore transaction恢复。Archive manifest记录scope与active Settings filename；含配置的archive在import时要求相同Settings filename。
 

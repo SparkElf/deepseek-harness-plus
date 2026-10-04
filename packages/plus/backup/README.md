@@ -23,7 +23,7 @@ This complete Host and Client plugin exports and restores three explicit user-da
 <a id="use-this-package"></a>
 ## Use this package
 
-Mount the Host entry after `connection`, `webServer`, `settings`, and `workspaceRegistry`, and mount the Client entry after locale and Settings. The file-backed Settings provider supplies `settings.documentPath`; `maxUploadBytes` defaults to 2147483648 bytes.
+Mount the Host entry after `connection`, `webServer`, `settings`, and `workspaceRegistry`, and mount the Client entry after locale and Settings. The file-backed Settings provider supplies `settings.documentPath`; the archive covers the Harness home, and `maxUploadBytes` defaults to 2147483648 bytes.
 
 The Settings section uses a three-way segmented control. **Everything** is the union of configuration and sessions; it does not archive generated profiles, releases, logs, Supervisor files, cached packages, or other runtime output. **Configuration** restores only configuration files and leaves Session/Workspace storage open. **Sessions** restores `sessions`, `attachments`, and `storages` together inside the Workspace storage-restore transaction. The archive manifest records the scope and active Settings filename; configuration-bearing archives require the same Settings filename at import.
 
