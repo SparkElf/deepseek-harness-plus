@@ -84,6 +84,8 @@
 # model-visible projection; the durable log keeps them on the tool result. An empty list
 # changes no behavior, so a deployment on a route that reads the array form can disable it
 # through this layer without uninstalling anything.
-- id: image-hoist
-  config:
-    providers: []
+- insert:
+    - id: image-hoist
+      name: '@sparkelf/dsh-image-hoist'
+      config:
+        providers: []
