@@ -74,3 +74,16 @@
   config:
     fontDirectories: !!js "process.env.DSH_OFFICE_FONT_DIR ? [process.env.DSH_OFFICE_FONT_DIR] : undefined"
     fontFallbacks: !!js "[[\"FZXiaoBiaoSong-B05S\",\"方正小标宋简体\",\"FangSong_GB2312\",\"仿宋_GB2312\",\"KaiTi_GB2312\",\"楷体_GB2312\",\"SimHei\",\"黑体\"]]"
+
+# OpenAI-compatible routes that advertise image input but cannot read the array form of
+# `function_call_output.output` price a tool result's image as one base64 text run and never
+# show it to the model: a 502 KB PNG measured 466,303 prompt tokens on such a route against
+# 991 when the same bytes ride on the user message. The provider answers a plausible wrong
+# number rather than failing, and the wrapper hides the 400 as a 500. For the routes named
+# here, the plugin moves tool-result images onto the nearest preceding user message in the
+# model-visible projection; the durable log keeps them on the tool result. An empty list
+# changes no behavior, so a deployment on a route that reads the array form can disable it
+# through this layer without uninstalling anything.
+- id: image-hoist
+  config:
+    providers: []
