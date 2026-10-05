@@ -51,6 +51,7 @@
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
     "@sparkelf/dsh-mobile-bridge": "0.2.15",
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
+    "@sparkelf/dsh-image-hoist": "0.1.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",
@@ -141,6 +142,7 @@
       "dsh-right-bg-anim",
       "@sparkelf/dsh-mobile-bridge",
       "@sparkelf/dsh-quant",
+      "@sparkelf/dsh-image-hoist",
       "@sparkelf/dsh-dataops-managed",
       "@sparkelf/dsh-query-result-analysis"
     ],

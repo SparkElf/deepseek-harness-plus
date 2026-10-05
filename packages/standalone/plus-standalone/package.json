@@ -50,6 +50,7 @@
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
     "@sparkelf/dsh-mobile-bridge": "0.2.15",
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
+    "@sparkelf/dsh-image-hoist": "0.1.1",
     "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
@@ -83,7 +84,8 @@
       "@sparkelf/dsh-api-client",
       "dsh-right-bg-anim",
       "@sparkelf/dsh-mobile-bridge",
-      "@sparkelf/dsh-quant"
+      "@sparkelf/dsh-quant",
+      "@sparkelf/dsh-image-hoist"
     ],
     "allowBuilds": {
       "@deepseek-ai/dsh-subprocess-local": true,

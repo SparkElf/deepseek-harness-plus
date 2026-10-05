@@ -287,6 +287,15 @@ function main(): void {
     '@sparkelf/dsh-mobile-bridge': '0.2.15',
     // The quant workbench registers its tools and its own sidebar page.
     '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
+    // Some OpenAI-compatible routes advertise image input but cannot read the array form of
+    // `function_call_output.output`. They price a tool result's image as one base64 text run
+    // and never show it to the model, and they answer a plausible wrong number instead of
+    // failing: a 502 KB PNG measured 466,303 prompt tokens on such a route against 991 when
+    // the same bytes ride on the user message. The plugin moves tool-result images onto the
+    // nearest preceding user message in the model-visible projection, leaving the durable log
+    // untouched. Its `providers` list is empty here, so a profile changes behavior only by
+    // naming the routes that need it.
+    '@sparkelf/dsh-image-hoist': '0.1.1',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.

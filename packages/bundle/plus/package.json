@@ -64,7 +64,8 @@
         "@sparkelf/dsh-api-client",
         "dsh-right-bg-anim",
         "@sparkelf/dsh-mobile-bridge",
-        "@sparkelf/dsh-quant"
+        "@sparkelf/dsh-quant",
+        "@sparkelf/dsh-image-hoist"
       ],
       "dependencies": {
         "@changfenhuang/dsh-genui": "0.11.3",
@@ -82,7 +83,8 @@
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
         "@sparkelf/dsh-mobile-bridge": "0.2.15",
-        "@sparkelf/dsh-quant": "0.91.0-sparkelf.13"
+        "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
+        "@sparkelf/dsh-image-hoist": "0.1.1"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
