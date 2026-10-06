@@ -37,6 +37,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
 | [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@deepseek-ai/dsh-computer-use`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-experimental-auto-review`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
 | [`@huanlin/dsh-plugin-better-locale`](https://github.com/HuanLinOTO/dsh-plugin-better-locale) | AGPL-3.0 |
