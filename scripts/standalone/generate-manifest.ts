@@ -210,8 +210,13 @@ function main(): void {
   }
   // A variant's own plugins mount after the distribution's order, because a deployment
   // plugin extends the reviewed set rather than replacing a position in it.
+  //
+  // A package a variant excludes can be a bundle as well as a dependency, and the profile
+  // resolves every bundle from its own tree. Dropping it from the dependencies alone left the
+  // bundle mounted against a package nothing installed, so the profile failed to resolve it and
+  // the build stopped. The same exclusion therefore applies to both lists.
   const bundled = [
-    ...distribution.bundles.filter(entry => !excludedBundles.has(entry)),
+    ...distribution.bundles.filter(entry => !excludedBundles.has(entry) && !excludedPackages.has(entry)),
     ...(variant?.includeBundles ?? []),
   ]
   const bundles = [...new Set(bundled)]
