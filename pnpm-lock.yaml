@@ -9535,7 +9535,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.10
+        specifier: workspace:0.2.1-alpha.11
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -9614,8 +9614,8 @@ importers:
         specifier: 0.1.4
         version: 0.1.4(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-mobile-bridge':
-        specifier: 0.2.15
-        version: 0.2.15(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
+        specifier: 0.2.16
+        version: 0.2.16(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)
       '@sparkelf/dsh-office-viewer-fonts':
         specifier: 0.1.5
         version: 0.1.5(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-skill@packages+skill+skill)
@@ -9632,7 +9632,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.10
+        specifier: workspace:0.2.1-alpha.11
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -15092,8 +15092,8 @@ packages:
       '@deepseek-ai/cordis': ^4.0.4
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
 
-  '@sparkelf/dsh-mobile-bridge@0.2.15':
-    resolution: {integrity: sha512-PUTZYrdu3mnzy2QOZ4/i0G5016LWbME1JRzBxpD4Dub50+ttrjUjA3DPvhLh12wFqcrQ+roKaPYS8n2IZlPW4g==}
+  '@sparkelf/dsh-mobile-bridge@0.2.16':
+    resolution: {integrity: sha512-DqsJyZEmHgqCzD7oPDeaTLjI3eqFsTaIK//fFsnmLY126ip17TmHWF1stU59DqyCP9U4ypkI1DrbI1kxItTq/w==}
     engines: {node: ^22.19.0 || >=24.0.0}
     peerDependencies:
       '@deepseek-ai/cordis': ^4.0.4
@@ -22664,7 +22664,7 @@ snapshots:
       '@deepseek-ai/schemastery': link:vendor/schemastery
       fflate: 0.8.3
 
-  '@sparkelf/dsh-mobile-bridge@0.2.15(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
+  '@sparkelf/dsh-mobile-bridge@0.2.16(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-settings@packages+settings+settings)(react@18.3.1)':
     dependencies:
       '@deepseek-ai/cordis': link:vendor/cordis
       '@deepseek-ai/dsh-settings': link:packages/settings/settings
