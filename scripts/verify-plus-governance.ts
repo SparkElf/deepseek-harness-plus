@@ -283,8 +283,9 @@ function main(): void {
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
     '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.0-rc.2',
     // The mobile face is the companion gateway this deployment runs; it needs neither a
-    // host step nor a client build of its own.
-    '@sparkelf/dsh-mobile-bridge': '0.2.15',
+    // host step nor a client build of its own. 0.2.16 keeps the minted pairing identity across
+    // reads, so an already-paired phone is no longer addressed to a bridge the relay replaced.
+    '@sparkelf/dsh-mobile-bridge': '0.2.16',
     // The quant workbench registers its tools and its own sidebar page.
     '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
     // Some OpenAI-compatible routes advertise image input but cannot read the array form of
@@ -299,6 +300,12 @@ function main(): void {
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.
+    // The full-access preset pins approval to 'never', which resolves every ask to 'rejected':
+    // the operation was refused, not approved. auto-review supplies the preset that admits the
+    // operation and routes each tool call through a reviewer instead of a person, and publishing
+    // it is what makes `auto` selectable at all -- permissionPresets keeps that name reserved
+    // until an integration registers for it.
+    '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-alpha.1',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
