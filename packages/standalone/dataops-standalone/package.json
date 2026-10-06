@@ -142,7 +142,8 @@
       "@sparkelf/dsh-quant",
       "@sparkelf/dsh-image-hoist",
       "@sparkelf/dsh-dataops-managed",
-      "@sparkelf/dsh-query-result-analysis"
+      "@sparkelf/dsh-query-result-analysis",
+      "@deepseek-ai/dsh-experimental-auto-review"
     ],
     "allowBuilds": {
       "@deepseek-ai/dsh-subprocess-local": true,
