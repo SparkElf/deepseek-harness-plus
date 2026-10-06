@@ -139,7 +139,6 @@
       "@sparkelf/dsh-ssh-manager",
       "@sparkelf/dsh-api-client",
       "dsh-right-bg-anim",
-      "@sparkelf/dsh-mobile-bridge",
       "@sparkelf/dsh-quant",
       "@sparkelf/dsh-image-hoist",
       "@sparkelf/dsh-dataops-managed",
