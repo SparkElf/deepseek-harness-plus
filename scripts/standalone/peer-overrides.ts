@@ -54,8 +54,50 @@ function publishedPeers(spec: string, registry: string): Record<string, string> 
   }
 }
 
-/** Highest published version of one package, preferring a match for a target range. */
-function resolveVersion(name: string, range: string | undefined, registry: string): string | undefined {
+/**
+ * The runtime version when the package published it, otherwise the newest version its peer range
+ * admits. One official package can lag its family, and pinning it to a version that was never
+ * published makes the whole install unresolvable.
+ * @param name - Package to resolve.
+ * @param runtimeVersion - Version the runtime family ships.
+ * @param range - Range the plugin declared for this package.
+ * @param registry - Registry to query.
+ * @returns A version to override to, falling back to the newest published one.
+ */
+function publishedOrHighest(
+  name: string,
+  runtimeVersion: string,
+  range: string,
+  registry: string,
+): string | undefined {
+  const versions = publishedVersions(name, registry)
+  if (versions.includes(runtimeVersion)) return runtimeVersion
+  const admits = versions.filter(entry => semver.satisfies(entry, range, { includePrerelease: true }))
+  return (admits.length > 0 ? admits : versions).sort(semver.rcompare)[0]
+}
+
+/**
+ * Whether one package published one exact version.
+ *
+ * The override pass derives versions from the registry, so a version it names that no registry
+ * serves is a defect in the derivation rather than a fact about the package. Exported so a test can
+ * assert that for every override the pass produces.
+ * @param name - Package to query.
+ * @param version - Version the override names.
+ * @param registry - Registry to query.
+ * @returns True when that exact version is published.
+ */
+export function isPublishedVersion(name: string, version: string, registry = 'https://registry.npmjs.org'): boolean {
+  return publishedVersions(name, registry).includes(version)
+}
+
+/**
+ * Every published version of one package, oldest-major-agnostic order as the registry returns it.
+ * @param name - Package to query.
+ * @param registry - Registry to query.
+ * @returns The versions, or an empty list when the query fails.
+ */
+function publishedVersions(name: string, registry: string): string[] {
   try {
     const raw = execFileSync('npm', ['view', name, 'versions', '--json', '--registry', registry], {
       encoding: 'utf8',
@@ -63,15 +105,21 @@ function resolveVersion(name: string, range: string | undefined, registry: strin
       timeout: NPM_VIEW_TIMEOUT_MS,
     })
     const parsed: unknown = JSON.parse(raw)
-    const versions = (Array.isArray(parsed) ? parsed : [parsed]).map(String).filter(entry => semver.valid(entry) !== null)
-    const candidates = range === undefined
-      ? versions
-      : versions.filter(entry => semver.satisfies(entry, range, { includePrerelease: true }))
-    const usable = candidates.length > 0 ? candidates : versions
-    return usable.sort(semver.rcompare)[0]
+    return (Array.isArray(parsed) ? parsed : [parsed]).map(String).filter(entry => semver.valid(entry) !== null)
   } catch {
-    return undefined
+    return []
   }
+}
+
+/** Highest published version of one package, preferring a match for a target range. */
+function resolveVersion(name: string, range: string | undefined, registry: string): string | undefined {
+  const versions = publishedVersions(name, registry)
+  if (versions.length === 0) return undefined
+  const candidates = range === undefined
+    ? versions
+    : versions.filter(entry => semver.satisfies(entry, range, { includePrerelease: true }))
+  const usable = candidates.length > 0 ? candidates : versions
+  return usable.sort(semver.rcompare)[0]
 }
 
 /**
@@ -98,9 +146,16 @@ export function resolvePeerOverrides(
       // A package the manifest already depends on directly must be overridden to the
       // version that dependency pins: npm rejects an override that names any other
       // version, and a different one would install a second copy besides.
+      // A package the runtime family published is pinned to the runtime version, because the
+      // official packages are released together. One is not: the official `dsh-invariants` stayed
+      // at 0.2.0-rc.2 while the rest moved to 0.2.1-alpha.1, so taking the runtime version produced
+      // an override npm could not resolve at all -- and only when something asked for that peer,
+      // which is why it survived until a profile installed peers. Falling back to the newest
+      // published version that satisfies the plugin's own range keeps this derived rather than
+      // recorded, and a release that does publish the runtime version still takes it.
       const version = pinned[name]
         ?? (name.startsWith('@deepseek-ai/')
-          ? runtimeVersion
+          ? publishedOrHighest(name, runtimeVersion, range, registry)
           : resolveVersion(name, undefined, registry))
       if (version === undefined) continue
       overrides.set(name, {
