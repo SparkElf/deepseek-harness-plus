@@ -28,6 +28,7 @@ export const EXCLUDED_PACKAGES: readonly string[] = [
   '@deepseek-ai/dsh-computer-use',
   '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp',
   '@deepseek-ai/dsh-web-search-exa',
+  '@sparkelf/dsh-mobile-bridge',
 ]
 
 /**
