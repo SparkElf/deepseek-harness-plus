@@ -298,7 +298,6 @@
     "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.2.1-alpha.1",
     "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.2.1-alpha.1",
     "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.2.1-alpha.1",
-    "@deepseek-ai/dsh-permission-presets": "npm:@sparkelf/dsh-permission-presets@0.2.1-alpha.1",
     "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.1",
