@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-office-preview-stable-load",
   "description": "Exact source patch keeping an Office conversion alive across renders of its tab",
-  "version": "0.2.1-alpha.11",
+  "version": "0.2.1-alpha.12",
   "publishConfig": {
     "access": "public"
   },

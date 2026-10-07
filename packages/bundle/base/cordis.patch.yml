@@ -224,7 +224,7 @@
     - id: approval
       name: '@deepseek-ai/dsh-user-approval'
       config:
-        policy: !!js "(process.env.DSH_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'never' : 'ask'"
+        policy: !!js "(process.env.DSH_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'allow' : 'ask'"
 
     - id: permission
       name: '@deepseek-ai/dsh-permission-presets'

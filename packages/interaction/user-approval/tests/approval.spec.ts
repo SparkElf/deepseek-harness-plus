@@ -419,6 +419,30 @@ describe('approval policy (the approval/policy fold)', () => {
     expect(session.snapshotEvents().filter(e => e.type === 'approval/decided')).toHaveLength(1)
   })
 
+  it('an allow config approves deterministically without consulting any answerer', async () => {
+    // The mirror of 'never': a full-access deployment wants the operation admitted rather than
+    // refused, and the outcome must not depend on which answerers are composed.
+    const ctx = new Context()
+    await ctx.plugin(ApprovalService, { policy: 'allow' })
+    const consulted = vi.fn()
+    ctx.on('approval/request', (_req, next) => { consulted(); return next() })
+    const { agent, session } = sessionAgent('sess-allow-1')
+    await expect(ctx.approval.request({ agent, toolName: 'bash' })).resolves.toBe('allowed-once')
+    expect(consulted).not.toHaveBeenCalled()
+    // The audit pair still lands on the session log.
+    expect(session.snapshotEvents().filter(e => e.type === 'approval/asked')).toHaveLength(1)
+    expect(session.snapshotEvents().filter(e => e.type === 'approval/decided')).toHaveLength(1)
+  })
+
+  it('allow outranks a refusing answerer registered before the service', async () => {
+    // The decision lives inside request(), so registration order cannot invert it.
+    const ctx = new Context()
+    ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('rejected'))
+    await ctx.plugin(ApprovalService, { policy: 'allow' })
+    const { agent } = sessionAgent('sess-allow-2')
+    await expect(ctx.approval.request({ agent, toolName: 'bash' })).resolves.toBe('allowed-once')
+  })
+
   it('the gate decides FIRST even against an answerer registered before the service (prepend)', async () => {
     const ctx = new Context()
     ctx.on('approval/request', () => Promise.resolve<ApprovalOutcome>('allowed-once'))
