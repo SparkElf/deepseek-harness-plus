@@ -56,16 +56,22 @@ const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cance
  * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
  *   deterministically. The strict headless stance (CI, unattended runs) and
  *   the policy whose outcome is knowable without asking.
+ * - `'allow'` — never prompt anyone either, and resolve every ask
+ *   `'allowed-once'` instead. The full-access stance: an operation that
+ *   would have asked is admitted, which is what `danger-full-access` means
+ *   and what `'never'` cannot express.
  */
-export type ApprovalPolicy = 'ask' | 'never'
+export type ApprovalPolicy = 'ask' | 'never' | 'allow'
 
 /** Every {@link ApprovalPolicy}, for option advertisement and runtime validation of untrusted policy strings. */
-export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
+export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never', 'allow']
 
 /** Model-facing statement for the deterministic `'never'` policy. */
 const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
 /** Model-facing statement for an interactive policy that may still fail closed. */
 const ASK_SENTENCE = 'Approval policy: ask. Operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
+/** Model-facing statement for the deterministic `'allow'` policy. */
+const ALLOW_SENTENCE = 'Approval policy: allow. Operations that require approval are approved automatically; no prompt is shown and sandbox escalation is permitted.'
 
 /**
  * Whether the log currently sits inside an open turn (a `turn/start` not yet
@@ -141,7 +147,7 @@ export interface Config {
  */
 export class ApprovalService extends Service {
   static Config: z<Config> = z.object({
-    policy: z.union(['ask', 'never'] as const).default('ask'),
+    policy: z.union(['ask', 'never', 'allow'] as const).default('ask'),
   })
 
   constructor(ctx: Context, public config: Config) {
@@ -160,7 +166,8 @@ export class ApprovalService extends Service {
           // A bare assemble() (tests, diagnostics) has no session to state.
           if (agent === undefined) return ''
           const policy = effective(agent)
-          return policy === 'never' ? NEVER_SENTENCE : ASK_SENTENCE
+          if (policy === 'never') return NEVER_SENTENCE
+          return policy === 'allow' ? ALLOW_SENTENCE : ASK_SENTENCE
         },
       })
     })
@@ -264,6 +271,10 @@ export class ApprovalService extends Service {
     // documented promise that 'never' rejects deterministically regardless
     // of registration order — only the service's own request path can.
     if (this.effectivePolicy(session) === 'never') return 'rejected'
+    // `'allow'` is the mirror of `'never'` and is decided at the same point for the same
+    // reason: the outcome must not depend on which answerers happen to be composed or on
+    // listener registration order.
+    if (this.effectivePolicy(session) === 'allow') return 'allowed-once'
     // Enter the promise chain BEFORE dispatching: a listener that throws
     // SYNCHRONOUSLY (before its first await) must land in the same rejection
     // path as an async one — `Promise.resolve(call())` would let it escape
