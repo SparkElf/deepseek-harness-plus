@@ -161,6 +161,20 @@ entries:
         retireWhen: Official DSH exposes an equivalent profile-selected
           browser-authentication policy
     plusBundle: false
+  - name: "@deepseek-ai/dsh-approval-allow-policy"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 477b4f420553e8a52c2fbccc464d7561b239c443
+    interest: An approval policy that admits an operation instead of refusing it,
+      so a full-access session approves what it would otherwise reject
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-approval-allow-policy"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official DSH exposes an approval policy that grants an ask,
+          or pairs `danger-full-access` with one
+    plusBundle: false
   - name: "@deepseek-ai/dsh-web-base-path"
     source:
       kind: git

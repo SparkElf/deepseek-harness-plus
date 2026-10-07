@@ -1,0 +1,36 @@
+{
+  "name": "@sparkelf/dsh-patch-approval-allow-policy",
+  "version": "0.2.1-alpha.12",
+  "description": "Data-only exact official-source patch adding an 'allow' approval policy that admits what 'never' refused",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/approval-allow-policy"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "approval-allow-policy",
+        "dsh": ">=0.2.0-rc.2",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "5badb15009ae1756c3afe0ae0cef1faafc290ccc",
+          "paths": [
+            "packages/interaction/user-approval/",
+            "packages/bundle/base/"
+          ]
+        },
+        "file": "./patches/approval-allow-policy.patch"
+      }
+    ]
+  }
+}

@@ -122,6 +122,11 @@
         "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.2.1-alpha.1",
         "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.2.1-alpha.1",
         "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-user-approval": "npm:@sparkelf/dsh-user-approval@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-permission-presets": "npm:@sparkelf/dsh-permission-presets@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.1",
         "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1",
         "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.2.1-alpha.1",
         "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.1"
@@ -150,6 +155,7 @@
       }
     },
     "patchPackages": [
+      "@sparkelf/dsh-patch-approval-allow-policy",
       "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
@@ -182,6 +188,7 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",

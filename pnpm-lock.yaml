@@ -1658,6 +1658,9 @@ importers:
       '@sparkelf/dsh-client-ui-skill-center':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/ui-skill-center
+      '@sparkelf/dsh-patch-approval-allow-policy':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/approval-allow-policy
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
@@ -11408,6 +11411,8 @@ importers:
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+
+  patches/npm/approval-allow-policy: {}
 
   patches/npm/better-sidebar-browser-url-seed: {}
 

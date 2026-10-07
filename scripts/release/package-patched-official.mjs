@@ -61,8 +61,6 @@ export const PATCHED_WORKSPACES = [
   // its plugin tree. Republishing it from the patched checkout is what supplies the
   // matching manifest, and the workspace is listed here for that reason rather than
   // because Plus patches its source.
-  'packages/api/terminal-controller',
-  'packages/bundle/web-app',
   'packages/client/connection',
   'packages/client/ui-agent-preset',
   'packages/client/ui-deliverables',
@@ -71,17 +69,17 @@ export const PATCHED_WORKSPACES = [
   'packages/client/ui-permission-presets',
   'packages/client/ui-primitives',
   'packages/client/ui-settings-models',
+  'packages/client/ui-settings-general',
+  'packages/client/ui-sidebar-documentpreview',
   'packages/client/ui-trajectory',
   // Same incompatibility as api/terminal-controller: the published official builds of
   // these two carry a typert manifest generated before the alpha.2 loader required a
   // `create()` factory, so a registry installation that keeps them fails to load the
   // plugin tree.
-  'packages/llm/llm',
-  'packages/subagent/subagent',
   'packages/core/tools',
-  'packages/host/frontend-static',
+  'packages/interaction/user-approval',
+  'packages/bundle/base',
   'packages/host/open-in-app',
-  'packages/host/webserver',
   'packages/llm/llm-pi-ai',
   'packages/session/session-format-v0-to-v1',
   'packages/session-query/session-log-export',
