@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.2.1-alpha.11",
+  "version": "0.2.1-alpha.14",
   "publishConfig": {
     "access": "public"
   },
@@ -33,7 +33,7 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.11",
+    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.14",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -272,7 +272,7 @@
     "@deepseek-ai/dsh-client-locale": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-credentials": "0.2.1-alpha.1",
-    "@deepseek-ai/dsh-user-approval": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-user-approval": "npm:@sparkelf/dsh-user-approval@0.2.1-alpha.1",
     "@deepseek-ai/dsh-settings": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.1",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
@@ -298,6 +298,9 @@
     "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.2.1-alpha.1",
     "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.2.1-alpha.1",
     "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.2.1-alpha.1",
+    "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.1",
+    "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.1",
     "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1"
   },
   "peerDependencies": {

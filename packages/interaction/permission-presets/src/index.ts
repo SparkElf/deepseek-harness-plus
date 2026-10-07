@@ -101,7 +101,7 @@ const permissionStateSchema: zod.ZodType<PermissionProjectionState> = zod.object
     zod.literal('workspace-write'),
     zod.literal('danger-full-access'),
   ]).nullable(),
-  approval: zod.union([zod.literal('ask'), zod.literal('never')]).nullable(),
+  approval: zod.union([zod.literal('ask'), zod.literal('never'), zod.literal('allow')]).nullable(),
   seeded: zod.boolean(),
 }).strict()
 
@@ -144,7 +144,7 @@ export interface Config {
   /**
    * The preset table: name → knob bundle. Defaults to `workspace-write`
    * (workspace-write + ask) and `danger-full-access` (danger-full-access +
-   * never). The name `custom` is reserved for the derived not-a-preset state.
+   * allow). The name `custom` is reserved for the derived not-a-preset state.
    */
   presets?: Record<string, PresetSpec>
   /**
@@ -173,8 +173,8 @@ export class PermissionPresetService extends Service {
         name: 'workspace-write', description: 'Write inside the workspace and permitted temporary directories; wider retries require approval.',
       },
       'danger-full-access': {
-        sandbox: 'danger-full-access', approval: 'never',
-        name: 'danger-full-access', description: 'Full file access without approval prompts.',
+        sandbox: 'danger-full-access', approval: 'allow',
+        name: 'danger-full-access', description: 'Full file access; operations that would ask are approved automatically.',
       },
     }),
     defaultPreset: z.string(),

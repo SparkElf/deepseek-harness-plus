@@ -1,14 +1,14 @@
 {
-  "name": "@sparkelf/dsh-patch-browser-auth-mode",
+  "name": "@sparkelf/dsh-patch-approval-allow-policy",
   "version": "0.2.1-alpha.14",
-  "description": "Data-only exact official-source patch adding profile-selected browser authentication policy",
+  "description": "Data-only exact official-source patch adding an 'allow' approval policy that admits what 'never' refused",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/browser-auth-mode"
+    "directory": "patches/npm/approval-allow-policy"
   },
   "type": "module",
   "files": [
@@ -19,16 +19,17 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "browser-authentication-policy-mode",
+        "id": "approval-allow-policy",
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "5badb15009ae1756c3afe0ae0cef1faafc290ccc",
           "paths": [
-            "packages/client/connection/"
+            "packages/interaction/user-approval/",
+            "packages/bundle/base/"
           ]
         },
-        "file": "./patches/browser-auth-mode.patch"
+        "file": "./patches/approval-allow-policy.patch"
       }
     ]
   }
