@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-state-dot-brand-blue",
   "description": "Exact source patch restoring the pixel-matrix loading animation in the brand blue",
-  "version": "0.2.1-alpha.13",
+  "version": "0.2.1-alpha.14",
   "publishConfig": {
     "access": "public"
   },
