@@ -1,7 +1,7 @@
 diff --git a/lib/client.js b/lib/client.js
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -1180,7 +1180,7 @@
+@@ -1183,6 +1183,6 @@
  						id: seed.id ?? minted?.tab.id ?? seed.type,
  						type: seed.type,
  						title,
@@ -9,8 +9,7 @@ diff --git a/lib/client.js b/lib/client.js
 +						...((seed.path ?? seed.url) === void 0 ? {} : { path: seed.path ?? seed.url }),
  						...seed.diff === void 0 ? {} : { diff: seed.diff },
  						...seed.meta === void 0 && minted?.tab.meta === void 0 ? {} : { meta: seed.meta ?? minted?.tab.meta }
- 					};
-@@ -15489,7 +15489,7 @@
+@@ -20961,6 +20961,6 @@
  								id,
  								type: kind,
  								title: params?.title ?? seeded?.title ?? title,
@@ -18,10 +17,7 @@ diff --git a/lib/client.js b/lib/client.js
 +								...((params?.path ?? params?.url) === void 0 ? {} : { path: params?.path ?? params?.url }),
  								...params?.diff === void 0 ? {} : { diff: params.diff },
  								...meta === void 0 ? {} : { meta }
- 							},
-@@ -15502,12 +15502,9 @@
- 						return minted;
- 					}
+@@ -20976,8 +20976,5 @@
  					const patch = {};
 -					if (params?.path !== void 0 && params.path !== existing.tab.path) patch.path = params.path;
 -					if (params?.diff !== void 0) patch.diff = params.diff;
@@ -32,6 +28,4 @@ diff --git a/lib/client.js b/lib/client.js
 +					const nextPath = params?.path ?? params?.url;
 +					if (nextPath !== void 0 && nextPath !== existing.tab.path) patch.path = nextPath;
 +					if (params?.diff !== void 0) patch.diff = params.diff;
- 					if (existing.scope.cwd !== scope.cwd) {
- 						views.set(id, {
- 							...existing,
+ 					const expanded = expandedOf(scope.sessionId);
