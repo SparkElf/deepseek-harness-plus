@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-alpha.14",
+  "version": "0.2.1-alpha.17",
   "publishConfig": {
     "access": "public"
   },
@@ -155,6 +155,7 @@
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-approval-allow-policy",
+      "@sparkelf/dsh-patch-bootstrap-exempt-names",
       "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
@@ -188,6 +189,7 @@
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-bootstrap-exempt-names": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",
