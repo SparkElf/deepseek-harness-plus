@@ -11422,6 +11422,8 @@ importers:
 
   patches/npm/better-sidebar-subagent-catalog-load: {}
 
+  patches/npm/bootstrap-exempt-names: {}
+
   patches/npm/browser-auth-mode: {}
 
   patches/npm/composer-popover-boundaries: {}
