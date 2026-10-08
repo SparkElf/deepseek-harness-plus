@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.1-alpha.14",
+  "version": "0.2.1-alpha.16",
   "publishConfig": {
     "access": "public"
   },
@@ -33,8 +33,8 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.14",
+    "@deepseek-ai/dsh": ">=0.2.1-alpha.1",
+    "@sparkelf/dsh-plus": "0.2.1-alpha.14",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -52,14 +52,14 @@
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
     "@sparkelf/dsh-image-hoist": "0.1.1",
     "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
-    "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.1",
+    "@deepseek-ai/dsh-tool-session-query": ">=0.1.6-alpha.1",
+    "@sparkelf/dsh-client-ui-skill-center": ">=0.2.1-alpha.1",
+    "@sparkelf/dsh-plugin-backup": ">=0.2.1-alpha.1",
+    "@sparkelf/dsh-plugin-mcp-credentials": ">=0.2.1-alpha.1",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-dataops-managed": "0.3.13",
+    "@sparkelf/dsh-dataops-managed": "0.3.14",
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {
@@ -120,7 +120,7 @@
     "@deepseek-ai/cordis": ">=4.0.2"
   },
   "devDependencies": {
-    "@deepseek-ai/cordis": "workspace:^"
+    "@deepseek-ai/cordis": "^"
   },
   "dshPlusStandalone": {
     "formatVersion": 1,
