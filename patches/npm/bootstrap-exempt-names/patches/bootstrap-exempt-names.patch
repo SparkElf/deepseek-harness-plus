@@ -1,0 +1,32 @@
+diff --git a/packages/boot/app-boot/src/index.ts b/packages/boot/app-boot/src/index.ts
+index 22332c3..ae00ae0 100644
+--- a/packages/boot/app-boot/src/index.ts
++++ b/packages/boot/app-boot/src/index.ts
+@@ -156,6 +156,19 @@ const BOOTSTRAP_NAMES = new Set([
+ /** Name prefixes no discovered file may set. */
+ const BOOTSTRAP_PREFIXES = ['DSH_', 'XDG_', 'DYLD_', 'BASH_FUNC_']
+ 
++/**
++ * Names the prefix rule must not refuse, because they decide nothing about process launch,
++ * module resolution, VCS hooks, or network trust. The rule protects what a variable controls;
++ * a shared prefix is a proxy for that property rather than the property itself, so the names
++ * that lack it are listed here instead of the prefix being narrowed for every deployment.
++ *
++ * DSH_OFFICE_FONT_DIR names the directory the office-to-pdf provider indexes for document
++ * fonts. The deployment that ships the provider declares that row in its own bundle, so the
++ * value belongs with the bundle configuration and must be settable from a .env like any other
++ * deployment value. The launch-critical names (DSH_HOME, DSH_SNAPSHOT) stay refused.
++ */
++const BOOTSTRAP_EXEMPT_NAMES = new Set(['DSH_OFFICE_FONT_DIR'])
++
+ /**
+  * The bootstrap names the Harness-home `.env` alone may set. A proxy chooses the route every
+  * request takes, so the invoking directory's file — which arrives with a clone — keeps refusing
+@@ -174,6 +187,7 @@ const HOME_LAYER_PROXY_NAMES = new Set(['HTTP_PROXY', 'HTTPS_PROXY', 'ALL_PROXY'
+  */
+ function isBootstrapOnly(name: string): boolean {
+   const upper = name.toUpperCase()
++  if (BOOTSTRAP_EXEMPT_NAMES.has(upper)) return false
+   return BOOTSTRAP_NAMES.has(upper) || BOOTSTRAP_PREFIXES.some(prefix => upper.startsWith(prefix))
+ }
+ 
