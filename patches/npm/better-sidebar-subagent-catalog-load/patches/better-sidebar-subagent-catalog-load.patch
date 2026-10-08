@@ -1,11 +1,12 @@
 diff --git a/lib/client.js b/lib/client.js
-index 4af221a..64a1219 100644
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -11421,6 +11421,24 @@ Mode: this is a continuable side conversation. Your answers stay in this side th
- 			const rootCatalog = rootId === void 0 ? void 0 : catalogs[rootId];
+@@ -16674,5 +16674,23 @@
+ 			const catalogs = (0, react.useMemo)(() => subagentCatalogs(list.projectionsBySession), [list.projectionsBySession]);
+ 			const rootId = (0, react.useMemo)(() => rootAncestor(byId, sessionId), [byId, sessionId]);
  			const rootSummary = rootId === void 0 ? void 0 : byId[rootId];
- 			const live = useSubagentLive(rootId, active);
+-			const live = useSubagentLive(rootId, active);
++			const live = useSubagentLive(rootId, active);
 +			// Every level of this tree reads its own catalog projection, and the host loads one
 +			// only when asked. Without a request the level renders "loading" forever, because
 +			// the view cannot tell "not requested" from "still arriving". Ask for the root and
@@ -24,6 +25,4 @@ index 4af221a..64a1219 100644
 +					void sessions.refreshProjections?.(id);
 +				}
 +			}, [rootId, active, sessions, catalogs]);
- 			const openConversation = (0, react.useCallback)((target) => {
- 				const workspace = ctx.get("uiWorkspace");
- 				if (typeof workspace?.openSession === "function") {
+ 			const runs = useWorkflowRuns(rootId, active);
