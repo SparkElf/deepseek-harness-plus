@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-patch-bootstrap-exempt-names",
+  "version": "0.2.1-alpha.14",
+  "description": "Data-only exact official-source patch exempting DSH_OFFICE_FONT_DIR from the bootstrap-only prefix rule, so a deployment may set it from a .env",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/bootstrap-exempt-names"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "bootstrap-exempt-names",
+        "dsh": ">=0.2.0-rc.2",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "5badb15009ae1756c3afe0ae0cef1faafc290ccc",
+          "paths": [
+            "packages/boot/app-boot/"
+          ]
+        },
+        "file": "./patches/bootstrap-exempt-names.patch"
+      }
+    ]
+  }
+}
