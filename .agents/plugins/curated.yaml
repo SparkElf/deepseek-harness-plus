@@ -175,6 +175,20 @@ entries:
         retireWhen: Official DSH exposes an approval policy that grants an ask,
           or pairs `danger-full-access` with one
     plusBundle: false
+  - name: "@deepseek-ai/dsh-boot-app-boot"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 477b4f420553e8a52c2fbccc464d7561b239c443
+    interest: The bootstrap prefix rule refusing every DSH_-prefixed name a discovered
+      .env sets, which keeps a deployment value from travelling with its own configuration
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-bootstrap-exempt-names"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official app-boot decides bootstrap-only membership per name rather
+          than by the DSH_ prefix
+    plusBundle: false
   - name: "@deepseek-ai/dsh-web-base-path"
     source:
       kind: git

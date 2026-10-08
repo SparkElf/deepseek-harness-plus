@@ -1673,6 +1673,9 @@ importers:
       '@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-subagent-catalog-load
+      '@sparkelf/dsh-patch-bootstrap-exempt-names':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/bootstrap-exempt-names
       '@sparkelf/dsh-patch-browser-auth-mode':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/browser-auth-mode
