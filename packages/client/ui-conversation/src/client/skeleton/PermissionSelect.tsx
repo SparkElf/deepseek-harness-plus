@@ -10,9 +10,15 @@ import css from './PermissionSelect.module.css'
 
 const FULL_ACCESS = 'danger-full-access'
 
+/** Machine value of the auto-review preset, which the plugin registers at runtime. */
+const AUTO_PRESET = 'auto'
+
 /* Shield glyphs (design set 1556): check = read-only, pencil = workspace
    write, exclamation = full access. currentColor so the trigger and menu
    rows tint them with their own text color. */
+
+/* The check inside the shield, shared by read-only and auto review. */
+const shieldCheck = 'M11.9 5.6L7.3 10.2L5.2 8.1'
 
 const shieldOutline = 'M8.20554 0.899994L14.7901 3.36857V7.01026C14.7901 12 11.0466 14.2103 8.20554 15.3C5.36446 14.2103 1.62012 12 1.62012 7.01026V3.36857L8.20554 0.899994Z'
 
@@ -39,6 +45,12 @@ const permissionGlyphs = new Map<string, ReactNode>([
       <path d="M9.10094 9.8114V11.5H7.59888V9.8114H9.10094Z" fill="currentColor" />
     </svg>
   )],
+  [AUTO_PRESET, (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d={shieldOutline} stroke="currentColor" strokeWidth="1.31831" strokeLinejoin="round" />
+      <path d={shieldCheck} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )],
 ])
 
 /** Glyph for a permission option value; host-configured names outside the design set get none. */
@@ -55,10 +67,15 @@ function displayName(name: string): string {
   return name.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
 }
 
+/**
+ * Built-in machine names whose product label replaces the conventional one. Auto review is
+ * registered by its plugin at runtime, so it is absent when that plugin is not mounted.
+ */
 const BUILT_IN_PERMISSION_NAMES = new Map<string, string>([
   ['read-only', en['access.preset.readOnly']],
   ['workspace-write', en['access.preset.workspaceWrite']],
   [FULL_ACCESS, en['access.preset.fullAccess']],
+  [AUTO_PRESET, en['access.preset.auto']],
 ])
 
 function permissionLabel(
@@ -71,6 +88,7 @@ function permissionLabel(
     if (value === 'read-only') return t('access.preset.readOnly')
     if (value === 'workspace-write') return t('access.preset.workspaceWrite')
     if (value === FULL_ACCESS) return t('access.preset.fullAccess')
+    if (value === AUTO_PRESET) return t('access.preset.auto')
   }
   return displayName(name)
 }
