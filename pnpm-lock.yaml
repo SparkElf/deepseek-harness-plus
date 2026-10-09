@@ -9504,9 +9504,6 @@ importers:
       '@deepseek-ai/dsh':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
-      '@deepseek-ai/dsh-client-ui-permission-presets':
-        specifier: npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1
-        version: '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)'
       '@deepseek-ai/dsh-experimental-agent-team-profile':
         specifier: '>=0.2.0-rc.2'
         version: 0.2.0-rc.2(347f43c37203f88a413b610b3ceb580e)
@@ -9522,6 +9519,9 @@ importers:
       '@sparkelf/dsh-api-client':
         specifier: 0.5.3
         version: 0.5.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-llm@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-tools@0.2.1-alpha.1(73231a466a60b85cffd759adc37885c3))(react@18.3.1)
+      '@sparkelf/dsh-client-ui-permission-presets':
+        specifier: 0.2.1-alpha.1
+        version: 0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-client-ui-skill-center':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/ui-skill-center
@@ -9598,9 +9598,6 @@ importers:
       '@deepseek-ai/dsh':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
-      '@deepseek-ai/dsh-client-ui-permission-presets':
-        specifier: npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1
-        version: '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)'
       '@deepseek-ai/dsh-computer-use':
         specifier: '>=0.1.6-alpha.1'
         version: 0.1.6-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis))
@@ -9625,6 +9622,9 @@ importers:
       '@sparkelf/dsh-api-client':
         specifier: 0.5.3
         version: 0.5.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-agent@packages+core+agent)(@deepseek-ai/dsh-llm@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-tools@0.2.1-alpha.1(73231a466a60b85cffd759adc37885c3))(react@18.3.1)
+      '@sparkelf/dsh-client-ui-permission-presets':
+        specifier: 0.2.1-alpha.1
+        version: 0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)
       '@sparkelf/dsh-client-ui-skill-center':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/ui-skill-center

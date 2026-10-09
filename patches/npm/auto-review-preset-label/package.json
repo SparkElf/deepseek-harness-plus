@@ -27,7 +27,7 @@
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "npm",
-          "name": "@deepseek-ai/dsh-client-ui-permission-presets",
+          "name": "@sparkelf/dsh-client-ui-permission-presets",
           "range": ">=0.1.7-rc.2 <0.3.0"
         },
         "file": "./patches/auto-review-preset-label.patch"
