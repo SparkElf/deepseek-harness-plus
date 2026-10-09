@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.1-alpha.18",
+  "version": "0.2.1-alpha.19",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.18",
+    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.19",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -59,7 +59,7 @@
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
-    "@sparkelf/dsh-dataops-managed": "0.3.15",
+    "@sparkelf/dsh-dataops-managed": "0.3.16",
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {
@@ -299,7 +299,7 @@
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar",
         "version": "0.2.1-alpha.1",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.15 declares >=0.1.7-rc.2, which 0.2.1-alpha.1 does not satisfy"
+        "reason": "@sparkelf/dsh-dataops-managed@0.3.16 declares >=0.1.7-rc.2, which 0.2.1-alpha.1 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-brand",
@@ -308,10 +308,10 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.18",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.18",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.18",
-      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.18"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.19",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.19",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.19",
+      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.19"
     }
   }
 }
