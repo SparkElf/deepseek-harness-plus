@@ -59,6 +59,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-api-client`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-client-ui-permission-presets`](https://github.com/SparkElf/deepseek-harness-plus) | MIT |
 | [`@sparkelf/dsh-dataops-managed`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-image-hoist`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mineru`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |

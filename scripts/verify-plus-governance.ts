@@ -311,7 +311,7 @@ function main(): void {
     // renders as its raw machine value in an English locale and carries no icon. The package is
     // named as a profile dependency so the distribution owns the bytes it patches, and the patch
     // package supplies the fourth label and glyph until upstream ships them.
-    '@deepseek-ai/dsh-client-ui-permission-presets': 'npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1',
+    '@sparkelf/dsh-client-ui-permission-presets': '0.2.1-alpha.1',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
