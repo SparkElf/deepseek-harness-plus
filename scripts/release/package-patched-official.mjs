@@ -55,6 +55,7 @@ export const PATCHED_WORKSPACES = [
   'apps/web',
   'packages/api/gateway',
   'packages/api/session-controller',
+  'packages/boot/app-boot',
   // The published official build of this package predates the alpha.2 typert format:
   // its manifest declares codecs without the `create()` factory the alpha.2 loader
   // requires, so a registry installation that keeps the official package fails to load
