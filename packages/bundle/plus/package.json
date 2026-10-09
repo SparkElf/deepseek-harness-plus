@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-alpha.19",
+  "version": "0.2.1-alpha.20",
   "publishConfig": {
     "access": "public"
   },
@@ -85,7 +85,8 @@
         "@sparkelf/dsh-mobile-bridge": "0.2.16",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
         "@sparkelf/dsh-image-hoist": "0.1.1",
-        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1"
+        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
+        "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -142,7 +143,7 @@
           ],
           "excludeBundles": [],
           "includePackages": {
-            "@sparkelf/dsh-dataops-managed": "0.3.16",
+            "@sparkelf/dsh-dataops-managed": "0.3.17",
             "@sparkelf/dsh-query-result-analysis": "0.1.4"
           },
           "includeBundles": [
@@ -154,6 +155,7 @@
       }
     },
     "patchPackages": [
+      "@sparkelf/dsh-patch-auto-review-preset-label",
       "@sparkelf/dsh-patch-approval-allow-policy",
       "@sparkelf/dsh-patch-bootstrap-exempt-names",
       "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
@@ -188,6 +190,7 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-auto-review-preset-label": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-bootstrap-exempt-names": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.1-alpha.1",
