@@ -1661,6 +1661,9 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
+      '@sparkelf/dsh-patch-auto-review-preset-label':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/auto-review-preset-label
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
@@ -9501,6 +9504,9 @@ importers:
       '@deepseek-ai/dsh':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
+      '@deepseek-ai/dsh-client-ui-permission-presets':
+        specifier: npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1
+        version: '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)'
       '@deepseek-ai/dsh-experimental-agent-team-profile':
         specifier: '>=0.2.0-rc.2'
         version: 0.2.0-rc.2(347f43c37203f88a413b610b3ceb580e)
@@ -9592,6 +9598,9 @@ importers:
       '@deepseek-ai/dsh':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../apps/cli
+      '@deepseek-ai/dsh-client-ui-permission-presets':
+        specifier: npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1
+        version: '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)'
       '@deepseek-ai/dsh-computer-use':
         specifier: '>=0.1.6-alpha.1'
         version: 0.1.6-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-brand@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis))
@@ -11416,6 +11425,8 @@ importers:
         version: link:../../typert/protocol
 
   patches/npm/approval-allow-policy: {}
+
+  patches/npm/auto-review-preset-label: {}
 
   patches/npm/better-sidebar-browser-url-seed: {}
 
@@ -15109,6 +15120,11 @@ packages:
       '@deepseek-ai/dsh-llm': '>=0.1.7-rc.2'
       '@deepseek-ai/dsh-tools': '>=0.1.7-rc.2'
       react: ^18.2.0 || ^19.0.0
+
+  '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1':
+    resolution: {integrity: sha512-rRj3ZCebb5AUNsL1FJhRaHtaRQmQzE99dj54yCwAp5m0m1+DzkYVXPl/JCbCJBw12uwYChfMk2Q+r9xTLF9xfQ==}
+    peerDependencies:
+      '@deepseek-ai/cordis': ^4.0.5-alpha.1
 
   '@sparkelf/dsh-dataops-managed@0.3.16':
     resolution: {integrity: sha512-F7OA4clvK63N9wK/6AL+XnQkhDjfJifWI6DaJhurypXgStBkKxcvTV6pkXQIIGI10dRqf3nDQM30EDQ7Y8whog==}
@@ -22881,6 +22897,10 @@ snapshots:
       '@sparkelf/dsh-workbench-vault': 0.1.2
       react: 18.3.1
       react-icons: 5.7.0(react@18.3.1)
+
+  '@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)':
+    dependencies:
+      '@deepseek-ai/cordis': link:vendor/cordis
 
   '@sparkelf/dsh-dataops-managed@0.3.16(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-client-ui-settings@packages+client+ui-settings)(@deepseek-ai/dsh-client-ui-sidebar@packages+client+ui-sidebar)(@deepseek-ai/dsh-credentials@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/dsh-settings@packages+settings+settings)(@deepseek-ai/dsh-tools@0.2.1-alpha.1(73231a466a60b85cffd759adc37885c3))(@deepseek-ai/schemastery@vendor+schemastery)(@sparkelf/dsh-plugin-mcp-credentials@packages+plus+mcp-credentials)(react@18.3.1)':
     dependencies:

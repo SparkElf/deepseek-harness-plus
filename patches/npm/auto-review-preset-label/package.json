@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-auto-review-preset-label",
+  "description": "Data-only patch giving the auto-review permission preset its own label and glyph in the republished permission-presets client",
+  "version": "0.2.1-alpha.19",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/auto-review-preset-label"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/auto-review-preset-label.patch": "./patches/auto-review-preset-label.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "auto-review-preset-label",
+        "dsh": ">=0.2.0-rc.2",
+        "target": {
+          "kind": "npm",
+          "name": "@deepseek-ai/dsh-client-ui-permission-presets",
+          "range": ">=0.1.7-rc.2 <0.3.0"
+        },
+        "file": "./patches/auto-review-preset-label.patch"
+      }
+    ]
+  }
+}

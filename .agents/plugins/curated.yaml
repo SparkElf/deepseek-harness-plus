@@ -352,3 +352,17 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
         retireWhen: Official API Gateway ships the replacement-generation opening order
     plusBundle: false
+  - name: "@deepseek-ai/dsh-client-ui-permission-presets"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/deepseek-harness.git
+    pinned: 5badb15009ae1756c3afe0ae0cef1faafc290ccc
+    interest: The auto-review preset shows its own product label and glyph instead of its raw
+      machine value with no icon
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-auto-review-preset-label"
+        upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
+        retireWhen: The permission-presets client labels and draws every registered preset,
+          including the one an integration registers at runtime
+    plusBundle: false
