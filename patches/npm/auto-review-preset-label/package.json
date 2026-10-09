@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-auto-review-preset-label",
   "description": "Data-only patch giving the auto-review permission preset its own label and glyph in the republished permission-presets client",
-  "version": "0.2.1-alpha.19",
+  "version": "0.2.1-alpha.20",
   "publishConfig": {
     "access": "public"
   },
