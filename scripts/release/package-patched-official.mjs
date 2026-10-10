@@ -80,6 +80,10 @@ export const PATCHED_WORKSPACES = [
   // plugin tree.
   'packages/core/tools',
   'packages/interaction/user-approval',
+  // The web-runtime compatibility patch edits this workspace, so a registry installation
+  // has to take its replacement build rather than the official one: a source patch cannot
+  // reach a published package, which carries built lib/ and no src/.
+  'packages/bundle/web-app',
   'packages/bundle/base',
   'packages/host/open-in-app',
   'packages/llm/llm-pi-ai',
