@@ -1721,6 +1721,9 @@ importers:
       '@sparkelf/dsh-patch-ui-settings-compact-phone':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/ui-settings-compact-phone
+      '@sparkelf/dsh-patch-web-runtime-compat':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/web-runtime-compat
       '@sparkelf/dsh-patch-workspace-storage-restore':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/workspace-storage-restore
@@ -11462,6 +11465,8 @@ importers:
   patches/npm/state-dot-brand-blue: {}
 
   patches/npm/ui-settings-compact-phone: {}
+
+  patches/npm/web-runtime-compat: {}
 
   patches/npm/workspace-storage-restore: {}
 

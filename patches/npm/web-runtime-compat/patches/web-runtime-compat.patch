@@ -1,0 +1,84 @@
+diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
+index 28e078bd31..67f8c01043 100644
+--- a/packages/bundle/web-app/src/index.ts
++++ b/packages/bundle/web-app/src/index.ts
+@@ -15,6 +15,7 @@
+ import { spawn, type ChildProcess } from 'node:child_process'
+ import { createRequire } from 'node:module'
+ import { isIP } from 'node:net'
++import { networkInterfaces } from 'node:os'
+ import { dirname, join } from 'node:path'
+ import { fileURLToPath } from 'node:url'
+ import type { Context } from '@deepseek-ai/cordis'
+@@ -22,7 +23,7 @@ import z from '@deepseek-ai/schemastery'
+ import { addHarnessSourceSection, auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
+ import type {} from '@deepseek-ai/dsh-client-connection'
+ import * as FrontendStatic from '@deepseek-ai/dsh-host-frontend-static'
+-import { isLoopbackHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
++import { isLoopbackHost, isWildcardHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
+ import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
+ import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
+ import type {} from '@deepseek-ai/cordis-plugin-loader'
+@@ -60,6 +61,17 @@ export interface Config {
+    * Absent or YAML `null` advertises the bind-address URL.
+    */
+   publicUrl?: string
++  /**
++   * Non-loopback authorities a deployment serves this GUI on, appended to the
++   * sampled LAN literals. The listener's own bind address is accepted
++   * separately, so this list carries only what the bind cannot name: a reverse
++   * proxy's host, or a public origin a browser actually uses.
++   *
++   * Superseded by the `connection` row's own `trustedHosts`, which is where a
++   * deployment adds authorities today. Kept so a profile layer written against
++   * the pre-rename row keeps reaching the host fence.
++   */
++  trustedHosts?: string[]
+ }
+ 
+ export const Config: z<Config> = z.object({
+@@ -67,6 +79,7 @@ export const Config: z<Config> = z.object({
+   printUrl: z.boolean().default(true),
+   surfaceContext: z.boolean().default(true),
+   publicUrl: z.transform(z.string(), value => parsePublicUrl(value).href),
++  trustedHosts: z.array(String).default([]),
+ })
+ 
+ /** Environment variable naming the advertised URL of this Web GUI. */
+@@ -245,6 +258,36 @@ export function apply(ctx: Context, config: Config): void {
+   // through a local forwarding address that this process cannot derive.
+   const handoffBrowser = config.openBrowser && !launchedThroughSsh(launchEnvironmentOf(ctx))
+   ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
++
++  // WEB_RUNTIME_COMPAT: alpha.2 renamed the bind-dependent service from
++  // `webRuntime` to `webStartup` and taught its own rows the new name. A
++  // third-party bundle cannot follow the rename: dsh-better-sidebar and
++  // dsh-video-preview declare `inject: [..., 'webRuntime', ...]`, and Cordis
++  // holds an injected row pending until the named service appears. A deployment
++  // that mounts them loses the sidebar routes and the video preview that are the
++  // whole reason they are mounted, so the old shape is published beside the new
++  // one for as long as those bundles ask for it.
++  //
++  // The shape is the pre-rename service: LAN literals sampled once from a
++  // wildcard bind, then this invocation's and the deployment's own authorities.
++  // `webStartup` already carries the flag-supplied half, so it is read rather
++  // than re-parsed, and `isWildcardHost` is the webserver's own predicate
++  // rather than a string comparison against the IPv4 any-address. This row's
++  // `trustedHosts` reaches the fence again here: alpha.2 moved the deployment
++  // list to the `connection` row, which leaves a profile layer written against
++  // the old row — one that serves a reverse-proxied origin — configuring a key
++  // nothing reads.
++  const compatLanAddresses = isWildcardHost(boundHost)
++    ? Object.values(networkInterfaces()).flat()
++      .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && iface.family === 'IPv4' && !iface.internal)
++      .map(iface => iface.address)
++    : []
++  const compatStartup = ctx.get('webStartup') as { trustedHosts?: readonly string[] } | undefined
++  ctx.provide('webRuntime', {
++    lanAddresses: compatLanAddresses,
++    trustedHosts: [...compatLanAddresses, ...config.trustedHosts ?? [], ...compatStartup?.trustedHosts ?? []],
++  })
++
+   if (config.surfaceContext) {
+     ctx.inject(['systemPrompt'], (promptCtx) => {
+       addHarnessSourceSection(promptCtx, SOURCE_ROOT)
