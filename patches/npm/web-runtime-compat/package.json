@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-web-runtime-compat",
-  "version": "0.2.1-alpha.23",
+  "version": "0.2.1-alpha.24",
   "description": "Data-only exact official-source patch republishing the bind-dependent webRuntime service beside its alpha.2 successor",
   "publishConfig": {
     "access": "public"
