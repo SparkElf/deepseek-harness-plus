@@ -33,7 +33,7 @@ diff --git a/lib/client.js b/lib/client.js
  			"confirm.title": "Enable Full access?",
  			"confirm.description": "Full access reduces confirmation steps and lets the agent perform more actions directly, including sensitive operations, file changes, or external commands. Only use it when you trust the current task.",
  			"confirm.acknowledge": "I understand the risks and want to continue",
-@@ -232,7 +236,8 @@
+@@ -232,12 +236,14 @@
  		const PRESET_LABEL_KEYS = new Map([
  			["read-only", "preset.readOnly"],
  			["workspace-write", "preset.workspaceWrite"],
@@ -43,7 +43,14 @@ diff --git a/lib/client.js b/lib/client.js
  		]);
  		const DEFAULT_PRESET_LABELS = {
  			"preset.readOnly": en["preset.readOnly"],
-@@ -286,7 +291,8 @@
+ 			"preset.workspaceWrite": en["preset.workspaceWrite"],
+-			"preset.fullAccess": en["preset.fullAccess"]
++			"preset.fullAccess": en["preset.fullAccess"],
++			"preset.auto": en["preset.auto"]
+ 		};
+ 		/**
+ 		* Convert conventional kebab-case preset names into user-facing title case.
+@@ -286,7 +292,8 @@
  		const permissionGlyphs = new Map([
  			["read-only", (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.PermissionIconReadOnlyRegular, {})],
  			["workspace-write", (0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.PermissionIconWorkspaceWriteRegular, {})],
