@@ -732,3 +732,31 @@ npm install --no-audit --no-fund --ignore-scripts "<standalone tarball>"
 
 实测结果：1174 包，standalone 与 dsh-plus 均 `0.2.1-alpha.27`，27 个 `@sparkelf` 包；
 `--offline` 重装退出码 0 且日志里 registry 出现 **0** 次。
+
+
+### `git reset --hard` 会丢掉未提交的脚本改动
+
+我用 python 改完 `Dockerfile` 后，为了拿干净的基线执行了：
+
+```sh
+git fetch origin main && git checkout -q main && git reset --hard origin/main
+```
+
+**`reset --hard` 把刚改的 `Dockerfile` 一起丢了**。更隐蔽的是随后 `git add <多个文件>`
+时，`Dockerfile` 已无改动，提交**只含另一个文件**——而 `git commit` 不会报错，
+输出看起来完全正常。
+
+后果：PR 合并后我才发现远端 `Dockerfile` 里 `grep -c release-tarballs` 是 **0**，
+即「已合并」的改动根本不存在。
+
+**判据**：提交后**检查 staged/committed 的内容**，不只看命令退出码：
+
+```sh
+git diff --cached --stat                        # 文件与规模对不对
+git diff --cached <file> | grep -c "<关键词>"    # 关键内容是否真的在里面
+git show --stat HEAD | tail -5                  # 提交实际包含什么
+```
+
+**规则**：`reset --hard` / `checkout -f` 之前，先确认工作树没有未提交的成果；
+有就先 `git stash` 或先提交。合并后**从远端读回**验证，不要信本地命令的成功输出
+（`git show origin/main:<path> | grep -c <keyword>`）。
