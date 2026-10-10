@@ -64,7 +64,7 @@
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {
-    "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.2.1-alpha.2",
+    "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.2.1-alpha.1",
     "@deepseek-ai/dsh-agent": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-skill": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.2.1-alpha.2",
@@ -82,13 +82,13 @@
     "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-conversation": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-input-trigger": "0.2.1-alpha.2",
-    "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.2.1-alpha.2",
+    "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-locale": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-sidebar-right": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-credentials": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-user-approval": "npm:@sparkelf/dsh-user-approval@0.2.1-alpha.2",
     "@deepseek-ai/dsh-settings": "0.2.1-alpha.2",
-    "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.2",
+    "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.1",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
     "@deepseek-ai/dsh-client-ui-settings": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-agent-instructions": "0.2.1-alpha.2",
@@ -104,7 +104,7 @@
     "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.2.1-alpha.2",
-    "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.2.1-alpha.2",
+    "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.2.1-alpha.1",
     "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.2.1-alpha.2",
     "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.2.1-alpha.2",
     "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.2.1-alpha.2",
@@ -117,7 +117,7 @@
     "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.2",
-    "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.2",
+    "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1",
     "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.1-alpha.2"
   },
   "peerDependencies": {
