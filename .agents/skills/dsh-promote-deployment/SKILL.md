@@ -646,3 +646,44 @@ RUN set -eux; \
     grep -q mediaCwd "${sidebar}/lib/index.js"; \
     grep -q catalogRequests "${sidebar}/lib/client.js"
 ```
+
+### 重建镜像时绝不能指向正在服务的树
+
+`dsh-plus-mirror create --mirror <dir>` 会清空并重建 `<dir>`。若 `<dir>` 是当前服务的树，
+它会覆盖**调用者自己的运行时**——包括正在执行这条命令的那个进程。
+
+实测 2026-10-11：在 3080 的会话里执行
+
+```sh
+/root/.dsh/dsh-plus-mirror create --tag dsh-v0.2.1-alpha.2 \
+  --mirror /root/.dsh/releases/plus/plus-021a2 \   # 3080 正在服务这棵树
+  --runtime 0.2.1-alpha.2
+```
+
+后果：树被清空重建，`packages/ptc-runtime/.../process.js` 一度缺失，**该会话的全部工具调用失败**
+（`run_code` 的 worker 从这棵树加载）。3080 短暂 404，直到重建走完才恢复。**连续 5 轮无法执行任何
+命令**，因为修复它需要的工具本身依赖它——循环依赖，无自救出口。
+
+**正确做法**：写到新目录，再切换。
+
+```sh
+# 1. 建到新目录（不影响在跑的）
+/root/.dsh/dsh-plus-mirror create --tag dsh-v0.2.1-alpha.2 \
+  --mirror /root/.dsh/releases/plus/plus-021a28 --runtime 0.2.1-alpha.2
+
+# 2. 确认新树完整
+test -f /root/.dsh/releases/plus/plus-021a28/profiles/plus/package.json
+
+# 3. 再切（自带失败回滚）
+/root/.dsh/dsh-plus-switch /root/.dsh/releases/plus/plus-021a28
+```
+
+**动手前先确认目标是否被服务**：
+
+```sh
+readlink -f /root/.dsh/profiles/plus                        # 当前服务的 profile
+ss -lptnH 'sport = :3080' | grep -oE 'pid=[0-9]+'           # 再读 /proc/<pid>/cmdline
+```
+
+**通用规则**：任何「重建 / 覆盖」型命令，先确认目标是否是当前正在使用的那一份。这与「必须建在
+已合并的 revision 上」是同一件事的两面：一个约束来源，一个约束目标。
