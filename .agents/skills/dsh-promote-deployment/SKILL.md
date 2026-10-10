@@ -356,3 +356,151 @@ while pgrep -f generate-manifest >/dev/null; do sleep 10; done
 ```
 
 写文件发生在**最后一步**，中途读会拿到半写内容（本次因此误判过两次）。
+
+### 提升必须建在已合并的 revision 上
+
+镜像构建读 `PLUS_REPO`，默认是**当前工作树**：
+
+```sh
+# /root/.dsh/dsh-plus-mirror:50
+PLUS_REPO=${PLUS_REPO:-/root/projects/deepseek-harness-plus}
+```
+
+2026-10-10 实测：在**未合并的分支** `fix/alpha2-substitution-set` 上建镜像并切 3080，把没过
+master 门禁的产物推上生产。页面白屏，报
+
+```
+client-modules: duplicate factory registration for
+  "@deepseek-ai/dsh-client-ui-permission-presets"
+```
+
+更糟的是 **master 上的真实缺陷被这一层掩盖**（5 个 override 指向不存在的 npm 版本），
+症状描述的是分支而不是发布版，所有诊断都对着错的产物。
+
+正确顺序：**先 merge 到 master → 从 master 建镜像 → 再切 3080 / 更新工作区 pin**。
+
+判断镜像建在哪个 revision：
+
+```sh
+cd <mirror> && git log --oneline -1     # 应等于 origin/master 的 tip
+```
+
+### 一个 override 可能指向「本仓库从不发布」的包
+
+`PATCHED_WORKSPACES` 是 republisher 构建的全部 workspace。override 若命名不在其中的包，它指向
+一个**本仓库从不发布**的包，版本永远停在最后一次发布。实测有 5 个这样：
+
+| 包 | `@sparkelf` 最新 | 官方 alpha.2 | `lib/` 对比 |
+|---|---|---|---|
+| `dsh-llm` | alpha.1 | 存在 | **逐字节相同** |
+| `dsh-host-webserver` | alpha.1 | 存在 | **逐字节相同** |
+| `dsh-host-frontend-static` | alpha.1 | 存在 | **逐字节相同** |
+| `dsh-subagent` | alpha.1 | 存在 | 差一个生成的类型描述 |
+| `dsh-api-terminal-controller` | alpha.1 | 存在 | 差一个生成的类型描述 |
+
+三个是空操作，另两个把描述文件钉在 runtime 后面。**override 数应等于 PATCHED_WORKSPACES 数**：
+
+```sh
+node -e "
+const p=require('./packages/bundle/plus/package.json');
+const src=require('fs').readFileSync('scripts/release/package-patched-official.mjs','utf8');
+const i=src.indexOf('PATCHED_WORKSPACES = [');
+const ws=[...src.slice(i, src.indexOf(']', i)).matchAll(/'([^']+)'/g)].map(m=>m[1]);
+const official=new Set(ws.map(w=>require('./'+w+'/package.json').name));
+const extra=Object.keys(p.dshPlus.profile.overrides).filter(n=>!official.has(n));
+console.log('override 数:', Object.keys(p.dshPlus.profile.overrides).length, ' patched:', ws.length);
+extra.forEach(n=>console.log('  孤儿 override:', n));
+"
+```
+
+判断一个 override 是否还有意义 —— 比较**同版本**的官方与 `@sparkelf` 构建：
+
+```sh
+for spec in "@deepseek-ai/<pkg>@<v>" "@sparkelf/<pkg>@<v>"; do
+  d=$(echo "$spec" | tr '/@' '__'); mkdir -p "$d"
+  npm pack --registry=https://registry.npmjs.org "$spec" --pack-destination "$d" >/dev/null 2>&1
+  tar -xzf "$d"/*.tgz -C "$d"
+done
+diff -rq _deepseek-ai_*/package/lib _sparkelf_*/package/lib && echo "空操作 → 可移除 override"
+```
+
+### floor 与 override 版本必须相容
+
+`compatibility.dsh` 是 floor，却是生成器与 `ship.ts` 推导 runtime 版本的**唯一来源**。floor 写着
+`>=0.2.1-alpha.1` 时，派生的 override 全指向 alpha.1，而镜像建在 alpha.2 上 —— 于是
+`verify:standalone-manifest` 拿 floor 推导的结果比对按 alpha.2 生成的文件，**永远不可能一致**；
+5 个孤儿 override 因 alpha.1 满足 floor 而**无人反对**。
+
+提升 runtime 时把 floor 一起提到该 runtime，两件事同时解决。
+
+### 前缀匹配不是 workspace 匹配
+
+`packages/llm/llm-pi-ai/` 以 `packages/llm/llm` 开头，但它们是两个不同 workspace。
+用 `startsWith` 判断「哪个补丁改了哪个包」会把 `responses-reasoning-status`（改 `llm-pi-ai`）
+误判成改了 `llm`。比较时带结尾斜杠，或用 manifest 的 `name`。
+
+### 生成器不能是非确定的，否则它自己的门禁会间歇失败
+
+`resolvePeerOverrides` 对每个插件问 registry 拿 peer，而 `publishedPeers` 在 `npm view` 失败时
+**静默返回 `{}`**。一次瞬时超时就让某个 peer 改由**另一个声明同一 peer 的插件**插入 —— 集合完全
+相同，**顺序与归因不同**。而 `--check` 用 `JSON.stringify` 比较，对键顺序敏感，于是门禁**间歇失败**，
+报错只说 `is stale in overrides, dshPlusStandalone`，不指出差别只是顺序。
+
+诊断 —— 连跑两次比较集合与顺序：
+
+```sh
+npx tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out /tmp/a.json
+npx tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out /tmp/b.json
+node -e "
+const a=require('/tmp/a.json'), b=require('/tmp/b.json');
+console.log('集合相同:', JSON.stringify(Object.keys(a.overrides).sort())===JSON.stringify(Object.keys(b.overrides).sort()));
+console.log('顺序相同:', JSON.stringify(Object.keys(a.overrides))===JSON.stringify(Object.keys(b.overrides)));
+"
+```
+
+修法：比较时**只对 `overrides` 与 `peerOverrides`** 做规范化（按 name 排序、`peerOverrides` 去掉
+诊断用的 `reason`）。**不要排序一切** —— `bundles` 的顺序是装配顺序、`dependencies` 是安装顺序，
+那里的变化是真实变化，必须仍被门禁捕获。
+
+### 无 src 的插件：lib/ 就是源码
+
+`dsh-plugins-plus` 里多数包有 `src/` 且带 `prepack: pnpm run build`，`lib/` 被 `.gitignore` 忽略。
+但 `image-hoist` **没有 `src/`** —— 它的 `lib/index.js` 是手写源码、直接入库发布：
+
+```sh
+ls packages/<name>/src 2>/dev/null || echo "无 src → lib 是源码，无 prepack"
+node -p "JSON.stringify(require('./packages/<name>/package.json').scripts)"
+```
+
+### 改插件前先确认哪一份是权威源码
+
+实测：`@sparkelf/dsh-image-hoist` 在 `/root/projects/` 下有**两份副本** —— 权威源码在
+`dsh-plugins-plus/packages/image-hoist/`（被 git 跟踪，带 `repository`/`scripts`/`devDependencies`），
+另有一个未跟踪的散件目录（缺 `repository`，peer 范围被简化成 `"*"`）。
+
+在散件上改动并发布了 `0.1.2` —— peer 范围降级、丢失 `repository`，harness 的
+`gen-third-party-notices` 预提交钩子直接失败。版本号已消耗，只能发 `0.1.3`。
+
+**发版前先确认权威位置**：
+
+```sh
+cd /root/projects/dsh-plugins-plus && git ls-files packages/<name> | head   # 被跟踪的才是源码
+git -C /root/projects ls-files dsh-<name>                                   # 空 = 散件，不要用它发版
+npm view --registry=https://registry.npmjs.org <pkg>@<version> repository peerDependencies dsh --json
+```
+
+### 生成器很慢，且写文件在最后一步
+
+每个 override 查一次 registry，单份实测 3–5 分钟。**必须脱离会话跑**（`systemd-run`），
+并在**进程真正退出后**再读文件 —— 中途读会拿到半写内容（本次因此误判过两次）：
+
+```sh
+systemd-run --collect --unit=dsh-gen-1 \
+  --working-directory=/root/projects/deepseek-harness-plus \
+  --setenv=PATH=/root/.nvm/versions/node/v24.18.0/bin:/usr/bin:/bin \
+  bash -c 'npx tsx scripts/standalone/generate-manifest.ts ... > /tmp/gen.log 2>&1; touch /tmp/gen-done'
+# 用完成标记判断，不要靠 sleep 猜
+while [ ! -f /tmp/gen-done ]; do sleep 10; done
+```
+
+会话内的 `nohup ... &` **会被 supervisor 重启带走**，`systemd-run` 不会。
