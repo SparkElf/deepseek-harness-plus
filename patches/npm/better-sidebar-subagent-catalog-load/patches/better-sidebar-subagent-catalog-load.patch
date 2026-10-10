@@ -1,12 +1,10 @@
 diff --git a/lib/client.js b/lib/client.js
 --- a/lib/client.js
 +++ b/lib/client.js
-@@ -16674,5 +16674,23 @@
- 			const catalogs = (0, react.useMemo)(() => subagentCatalogs(list.projectionsBySession), [list.projectionsBySession]);
+@@ -19753,6 +19753,24 @@
  			const rootId = (0, react.useMemo)(() => rootAncestor(byId, sessionId), [byId, sessionId]);
  			const rootSummary = rootId === void 0 ? void 0 : byId[rootId];
--			const live = useSubagentLive(rootId, active);
-+			const live = useSubagentLive(rootId, active);
+ 			const live = useSubagentLive(rootId, active);
 +			// Every level of this tree reads its own catalog projection, and the host loads one
 +			// only when asked. Without a request the level renders "loading" forever, because
 +			// the view cannot tell "not requested" from "still arriving". Ask for the root and
@@ -26,3 +24,5 @@ diff --git a/lib/client.js b/lib/client.js
 +				}
 +			}, [rootId, active, sessions, catalogs]);
  			const runs = useWorkflowRuns(rootId, active);
+ 			const team = (0, react.useMemo)(() => teamProjectionOf(list.projectionsBySession, rootId), [list.projectionsBySession, rootId]);
+ 			const teamMembers = (0, react.useMemo)(() => teamMembersOf(team, live, byId), [
