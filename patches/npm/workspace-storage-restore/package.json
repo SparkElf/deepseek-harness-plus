@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-workspace-storage-restore",
   "description": "Data-only patch adding the Workspace storage restore transaction to the exact official DSH source revision",
-  "version": "0.2.1-alpha.20",
+  "version": "0.2.1-alpha.21",
   "publishConfig": {
     "access": "public"
   },
@@ -27,7 +27,7 @@
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "5badb15009ae1756c3afe0ae0cef1faafc290ccc",
+          "baseRevision": "6851e496285b2c9670066fdd142e7e46da586649",
           "paths": [
             "packages/workspace/workspace/"
           ]

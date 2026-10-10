@@ -1661,9 +1661,6 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
-      '@sparkelf/dsh-patch-auto-review-preset-label':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/auto-review-preset-label
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
@@ -11425,8 +11422,6 @@ importers:
         version: link:../../typert/protocol
 
   patches/npm/approval-allow-policy: {}
-
-  patches/npm/auto-review-preset-label: {}
 
   patches/npm/better-sidebar-browser-url-seed: {}
 

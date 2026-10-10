@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-alpha.20",
+  "version": "0.2.1-alpha.21",
   "publishConfig": {
     "access": "public"
   },
@@ -155,7 +155,6 @@
       }
     },
     "patchPackages": [
-      "@sparkelf/dsh-patch-auto-review-preset-label",
       "@sparkelf/dsh-patch-approval-allow-policy",
       "@sparkelf/dsh-patch-bootstrap-exempt-names",
       "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
@@ -181,7 +180,7 @@
       "@sparkelf/dsh-patch-ui-settings-compact-phone"
     ],
     "sourceBase": {
-      "revision": "5badb15009ae1756c3afe0ae0cef1faafc290ccc"
+      "revision": "6851e496285b2c9670066fdd142e7e46da586649"
     }
   },
   "dependencies": {
@@ -190,7 +189,6 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-auto-review-preset-label": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-bootstrap-exempt-names": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.1-alpha.1",
