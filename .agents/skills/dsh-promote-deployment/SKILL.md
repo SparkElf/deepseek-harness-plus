@@ -118,3 +118,155 @@ curl -s https://registry.npmmirror.com/<encoded-name> | grep -c '"<version>"'
 ```
 
 Served by the mirror: build. Served upstream only: trigger a sync with `curl -X PUT https://registry.npmmirror.com/-/package/<encoded-name>/syncs`, or point the build at the upstream registry. Served nowhere: the release did not publish, and no retry fixes it.
+
+## When the artifact is right and the deployment is still wrong
+
+Every trap below produced a mirror that built, booted, answered HTTP 200, and served the wrong
+thing. The gates in this skill check the artifact; these check relationships the artifact cannot
+express. All measurements are 2026-10-10, DSH 0.2.1-alpha.2.
+
+**An override that names an unpublished version.** The 27 substitutions are written by hand, and
+nothing rejects a version that does not exist: pnpm keeps whatever the registry has, so an alpha.1
+package lands beside the alpha.2 runtime. Five overrides named unpublished alpha.2 builds, and the
+mirror died with `does not provide an export named isWildcardHost` — which reads as a plugin bug.
+Only patched workspaces are republished, so the version is never uniform; `resolvePeerOverrides`
+derives it per package, a hand-written override does not.
+
+```sh
+node -e "
+const o = require('./packages/bundle/plus/package.json').dshPlus.profile.overrides
+for (const v of Object.values(o)) { const m = /npm:(@[^@]+)@(\S+)/.exec(v); if (m) console.log(m[1] + '@' + m[2]) }" \
+| while read spec; do npm view --registry=https://registry.npmjs.org "$spec" version >/dev/null 2>&1 || echo "MISSING $spec"; done
+```
+
+**One package declared twice installs two copies that fight.** A package in both
+`profile.dependencies` and `profile.overrides` installs under each name; two versions shipping
+one client module register one module id twice (`duplicate factory registration`), the page shows
+"Failed to load plugins", and the profile never boots. The declarations are not redundant:
+`dependencies` carries the patched bytes for an **npm** patch target, while `overrides` is what
+an official package's `workspace:*` dependency resolves through. A **dsh-source** target needs only
+the override. So: decide by the target's `kind`, and when both exist pin them to one version.
+
+**The reviewed set is a declaration.** `verify-plus-governance` compares
+`profile.dependencies` against a hardcoded list in `scripts/verify-plus-governance.ts` and rejects
+any difference. A version bump, upgrade, or removal belongs in the same commit as the manifest
+edit — a mismatch means the reviewed set and the shipped set disagree, which is the condition the
+gate exists to catch, not a false positive.
+
+**A patch that applies is not a patch that is still needed.** Upstream can implement what a patch
+carries, and the patch then stops applying for the best possible reason: retire it, do not rebase.
+`curated.yaml` pre-declares the condition in `retireWhen`; check whether the new release contains
+the identifier the patch introduced. Measured: `better-sidebar 0.25.0` has
+`const nextPath = params?.path ?? params?.url`, byte-identical to a patch's replacement, so that
+patch retired. Retiring also removes it from `patchPackages` **and** `dshPlus.dependencies`; a
+leftover fails with `must reference every source patch package exactly once`. An npm patch's
+`target.range` moves with the version it was rebuilt against, upper bound exclusive, because the
+gate packs that range and runs the same strict `git apply --check` the applier does.
+
+**A plugin that installs is not a plugin that mounts.** A package becomes a layer only when its
+manifest declares `dsh.bundle` pointing at a `cordis.patch.yml` carrying its rows. Without it the
+module installs as a plain dependency and nothing mounts it — the profile reports success while the
+capability never runs. Measured: `@sparkelf/dsh-image-hoist` declared no bundle and was skipped
+with `declares no dsh.bundle`, invisible because its own layer in the plus patch named it.
+
+**A peer range that cannot match is not always a broken plugin.** `dsh-plus` refuses a plugin
+whose published `peerDependencies` cannot match the runtime, per exact version.
+`dsh-plus-exemptions` derives the exemption list and the mirror writes it to
+`profiles/plus/compatibility.json`; **a profile without that file skips every such plugin
+silently** while HTTP still answers 200. Generate it for the runtime being served, not the one
+being left:
+
+```sh
+node /root/.dsh/dsh-plus-exemptions --runtime <runtime> \
+  --manifest packages/standalone/plus-standalone/package.json \
+  --out <mirror>/profiles/plus/compatibility.json
+```
+
+**A repair that repairs nothing.** `repair-shadowed-scope.mjs` defaults to `<release>/profile`;
+a mirror keeps its profile at `profiles/plus`. Given only `--release` it finds no scope, prints
+`nothing to repair`, and exits 0 — leaving every `@deepseek-ai` package on its registry copy
+(measured: 276 shadowed). Pass `--profile` explicitly and follow it with a `pnpm install` in the
+release root, because the links now point at sources whose third-party imports only that install
+provides. A repair that reports success while changing nothing deserves more suspicion than one
+that fails; check the effect with `check-profile-scope.mjs`, not the exit code.
+
+**Promote from the merged revision.** The mirror builds from `PLUS_REPO`, a working tree. Building
+it from an unmerged branch and switching production to the result puts unreviewed bytes in front of
+users: the observed symptoms (a duplicate module, a skipped plugin) then describe the branch rather
+than the release, and every diagnosis is against the wrong artifact. Merge first, then build the
+mirror from that revision.
+
+### 一个 override 可能指向「这仓库从不发布」的包
+
+`PATCHED_WORKSPACES` 是 republisher 会构建的全部 workspace（27 个）。override 若命名了不在其中的包，
+它指向的是一个**本仓库从不发布**的包 —— 版本永远停在最后一次发布。2026-10-10 实测：
+
+```sh
+# override 数 ≠ PATCHED_WORKSPACES 数时，多出来的就是孤儿
+node -e "
+const p=require('./packages/bundle/plus/package.json');
+const src=require('fs').readFileSync('scripts/release/package-patched-official.mjs','utf8');
+const block=src.slice(src.indexOf('PATCHED_WORKSPACES = ['), src.indexOf(']', src.indexOf('PATCHED_WORKSPACES = [')));
+const ws=[...block.matchAll(/'([^']+)'/g)].map(m=>m[1]);
+const official=new Set(ws.map(w=>require('./'+w+'/package.json').name));
+for (const n of Object.keys(p.dshPlus.profile.overrides)) if(!official.has(n)) console.log('孤儿 override: '+n);
+"
+```
+
+实测有 5 个孤儿（`dsh-llm`、`dsh-host-webserver`、`dsh-subagent`、`dsh-host-frontend-static`、
+`dsh-api-terminal-controller`），全部停在 `0.2.1-alpha.1`，而 runtime 是 `0.2.1-alpha.2`。
+其中 3 个与同版本官方包 **`lib/` 逐字节相同**（override 是空操作），另 2 个只差一个生成的类型描述文件。
+官方 alpha.2 这 5 个包都存在，所以替换买到的是更旧的代码。
+
+判断一个 override 是否还有意义，比较**同版本**的官方与 `@sparkelf` 构建：
+
+```sh
+for spec in "@deepseek-ai/<pkg>@<v>" "@sparkelf/<pkg>@<v>"; do
+  d=$(echo "$spec" | tr '/@' '__'); mkdir -p "$d"
+  npm pack --registry=https://registry.npmjs.org "$spec" --pack-destination "$d" >/dev/null 2>&1
+  tar -xzf "$d"/*.tgz -C "$d"
+done
+diff -rq _deepseek-ai_*/package/lib _sparkelf_*/package/lib && echo "空操作：可移除 override"
+```
+
+### floor 与 override 版本必须相容
+
+`compatibility.dsh` 是 **floor**，却是生成器和 `ship.ts` 推导 runtime 版本的**唯一来源**
+（`/^>=?(.+)$/` 或 `replace(/^[^\d]*/,'')`）。floor 写着 `>=0.2.1-alpha.1` 时，生成的 override
+全部指向 alpha.1，而镜像实际建在 alpha.2 上 —— 于是：
+
+- `verify:standalone-manifest` 拿 floor 推导出的结果比对按 alpha.2 生成的文件，**永远不可能一致**；
+- 5 个孤儿 override 因为 alpha.1 满足 floor 而**没有任何门禁反对**。
+
+提升 runtime 时把 floor 一起提到该 runtime，两件事同时解决。判别：
+
+```sh
+node -e "console.log(require('./packages/bundle/plus/package.json').dshPlus.compatibility.dsh)"
+# 应等于镜像构建时 --runtime 的值（>=<runtime>）
+```
+
+### 前缀匹配不是 workspace 匹配
+
+`packages/llm/llm-pi-ai/` 以 `packages/llm/llm` 开头，但它们是两个不同的 workspace。
+用 `startsWith` 判断「哪个补丁改了哪个包」会把 `responses-reasoning-status`（改 `llm-pi-ai`）
+误判成改了 `llm`。比较时带上结尾斜杠，或用 manifest 的 `name` 比对。
+
+### 改动生成物后必须重新生成，且用对命令
+
+`profile.dependencies` 一改，两份 standalone manifest 立刻过期。门禁会报
+`is stale in overrides, dshPlusStandalone`。**不要手工编辑 manifest** —— 它由生成器产出：
+
+```sh
+pnpm run verify:standalone-manifest   # 只检查（--check），失败时打印必填命令
+```
+
+生成器慢（每个 override 都要问 registry），必须 **后台跑**：
+
+```sh
+nohup npx tsx scripts/standalone/generate-manifest.ts \
+  --distribution packages/bundle/plus \
+  --out packages/standalone/plus-standalone/package.json > /tmp/gen.log 2>&1 &
+```
+
+**在生成器跑完之前读 manifest 会读到半写状态**（本次因此误判过一次「52 个 alpha.2」）。
+等进程真正退出再读。

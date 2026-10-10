@@ -1,21 +1,19 @@
 diff --git a/lib/index.js b/lib/index.js
+index 7ce4ed1..d682739 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -4404,12 +4404,20 @@
- 			try {
- 				const decoded = decodeHtmlUrl(new URL(req.url ?? "/", "http://dsh.internal").pathname);
- 				if (!decoded.ok) {
+@@ -7043,8 +7043,16 @@ function apply(ctx, config) {
  					writeError(res, new SidebarError("bad-request", decoded.message, decoded.status));
  					return;
  				}
 -				const { sessionId, path } = decoded.ref;
--				const absolute = await ensureWorkspacePath(await sessionCwdOf(ctx, sessionId), path);
+-				const absolute = await ensureWorkspacePath(await activeWorktreeRootOf(ctx, sessionId, await sessionCwdOf(ctx, sessionId)), path);
 +				const { sessionId, path: raw } = decoded.ref;
 +				// The client sends the path it displays, which is workspace-relative when the file
 +				// lies inside the session. An absolute path that is not a real file is one of those
-+				// displayed paths: joining it to the session cwd is what the media route does, and
++				// displayed paths: joining it to the worktree root is what the media route does, and
 +				// an absolute path that does exist is already the real target and is used as sent.
-+				const htmlCwd = await sessionCwdOf(ctx, sessionId);
++				const htmlCwd = await activeWorktreeRootOf(ctx, sessionId, await sessionCwdOf(ctx, sessionId));
 +				const joined = isAbsolute(raw) ? join(htmlCwd, raw) : raw;
 +				const joinedIsFile = await stat(joined).then((info) => info.isFile(), () => false);
 +				const path = isAbsolute(raw) && !joinedIsFile ? raw : joined;
@@ -23,4 +21,3 @@ diff --git a/lib/index.js b/lib/index.js
  				const info = await stat(absolute);
  				if (!info.isFile() || info.size > resolved.mediaLimit) throw new SidebarError("fs-error", "not a file or too large", 400);
  				const type = mediaTypeForPath(absolute);
- 				const body = await readFile(absolute);

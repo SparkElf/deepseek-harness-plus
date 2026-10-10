@@ -42,7 +42,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.2.1-alpha.1"
+      "dsh": ">=0.2.1-alpha.2"
     },
     "profile": {
       "bundles": [
@@ -68,7 +68,7 @@
         "@sparkelf/dsh-image-hoist"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.11.3",
+        "@changfenhuang/dsh-genui": "0.11.4",
         "@sparkelf/dsh-mineru": "0.1.4",
         "@sparkelf/dsh-officecli": "0.1.4",
         "@sparkelf/dsh-plugin-supervisor": "0.1.9",
@@ -77,16 +77,15 @@
         "@sparkelf/dsh-ssh-manager": "0.7.4",
         "@sparkelf/dsh-api-client": "0.5.3",
         "@huanlin/dsh-plugin-better-locale": "0.4.3",
-        "dsh-better-sidebar": "0.24.1",
+        "dsh-better-sidebar": "0.25.0",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
-        "@sparkelf/dsh-mobile-bridge": "0.2.16",
+        "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
-        "@sparkelf/dsh-image-hoist": "0.1.1",
-        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
-        "@sparkelf/dsh-client-ui-permission-presets": "0.2.1-alpha.1"
+        "@sparkelf/dsh-image-hoist": "0.1.2",
+        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -111,9 +110,7 @@
         "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.2.1-alpha.2",
         "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.2.1-alpha.2",
         "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.2.1-alpha.2",
-        "@deepseek-ai/dsh-host-frontend-static": "npm:@sparkelf/dsh-host-frontend-static@0.2.1-alpha.2",
         "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.2.1-alpha.2",
-        "@deepseek-ai/dsh-host-webserver": "npm:@sparkelf/dsh-host-webserver@0.2.1-alpha.2",
         "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.2.1-alpha.2",
         "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.2.1-alpha.2",
         "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.2.1-alpha.2",
@@ -127,9 +124,6 @@
         "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.2",
         "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.2",
         "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.2",
-        "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.2",
-        "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.2.1-alpha.2",
-        "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.2",
         "@deepseek-ai/dsh-session": "npm:@sparkelf/dsh-session@0.2.1-alpha.2",
         "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.1-alpha.2"
       },
@@ -158,7 +152,6 @@
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-approval-allow-policy",
-      "@sparkelf/dsh-patch-better-sidebar-browser-url-seed",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
       "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
@@ -193,7 +186,6 @@
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-sidebar-browser-url-seed": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.1-alpha.1",

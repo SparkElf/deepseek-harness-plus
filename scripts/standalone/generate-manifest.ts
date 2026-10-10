@@ -175,6 +175,33 @@ export function readDistribution(directory: string): {
   }
 }
 
+/**
+ * A canonical form of one manifest field, for comparing two derivations.
+ *
+ * Two of the derived collections are not a pure function of the inputs: a transient `npm view`
+ * failure inside `resolvePeerOverrides` moves a peer to whichever other plugin declares it,
+ * which reorders the collection and changes the plugin the `reason` names. Every name and
+ * version is the same either way. Only those two are made order-insensitive; `bundles` is the
+ * mount order and `dependencies` the install order, so a change there is a real change.
+ * @param key - the manifest field being compared.
+ * @param value - that field before or after regeneration.
+ * @returns a string that is equal whenever the payload is equal.
+ */
+function canonical(key: string, value: unknown): string {
+  if (key === 'peerOverrides' && Array.isArray(value)) {
+    const rows = value.map((entry) => {
+      const record = entry as Record<string, unknown>
+      return JSON.stringify([record.name, record.version])
+    })
+    rows.sort()
+    return '[' + rows.join(',') + ']'
+  }
+  if (key === 'overrides' && value !== null && typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    return '{' + Object.keys(record).sort().map(name => JSON.stringify(name) + ':' + JSON.stringify(record[name])).join(',') + '}'
+  }
+  return JSON.stringify(value) ?? 'null'
+}
 function main(): void {
   const { values } = parseArgs({
     options: {
@@ -266,7 +293,10 @@ function main(): void {
       ...rootAliases,
     },
     overrides: {
-      ...Object.fromEntries(overrides.map(entry => [entry.name, entry.version])),
+      // Same reason as peerOverrides: the source list depends on registry timing.
+      ...Object.fromEntries([...overrides]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map(entry => [entry.name, entry.version])),
       ...transitiveOverrides,
     },
     dshPlusStandalone: {
@@ -276,7 +306,12 @@ function main(): void {
       profile: variant?.profile ?? 'plus',
       bundles,
       allowBuilds: distribution.allowBuilds,
-      peerOverrides: overrides.map(entry => ({ name: entry.name, version: entry.version, reason: entry.reason })),
+      // Sorted, because a transient registry failure inside resolvePeerOverrides moves a
+      // peer between plugins: the set is the same and the order is not, and the check below
+      // compares this field with JSON.stringify.
+      peerOverrides: [...overrides]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map(entry => ({ name: entry.name, version: entry.version, reason: entry.reason })),
       // npm has no removal semantics, so an omitted capability is substituted rather than
       // deleted. Recording the substitution here is what lets a deployment assert the
       // omission without restating the list it was generated from.
@@ -299,7 +334,7 @@ function main(): void {
     // manifest omits is a bundle the profile cannot resolve, and npm installs the set
     // without complaint either way.
     if (!existsSync(out)) throw new Error('generate-manifest: ' + out + ' does not exist; run the generator')
-    const stale = owned.filter(key => JSON.stringify(previous[key]) !== JSON.stringify(manifest[key as keyof typeof manifest]))
+    const stale = owned.filter(key => canonical(key, previous[key]) !== canonical(key, manifest[key as keyof typeof manifest]))
     if (stale.length > 0) {
       throw new Error('generate-manifest: ' + out + ' is stale in ' + stale.join(', ') + '; run the generator and commit the result')
     }
