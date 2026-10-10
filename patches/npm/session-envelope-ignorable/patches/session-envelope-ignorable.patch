@@ -1,37 +1,17 @@
---- a/packages/core/session/src/types.ts
-+++ b/packages/core/session/src/types.ts
-@@ -478,6 +478,18 @@
- })
- 
- /**
-+ * Envelope markers a log-only event may declare at {@link Session.append}.
-+ *
-+ * `ignorable` lets a reader that does not know the event type skip it instead of refusing the
-+ * whole log. Only a producer whose record cannot affect reconstruction may set it, so it is
-+ * opt-in per append rather than a property of the event type.
-+ */
-+export type EnvelopeIntent = {
-+  /** Marks an event a reader may skip when it does not recognize the type. */
-+  ignorable?: true
-+}
-+
-+/**
-  * One immutable entry in the session log.
-  *
-  * A proper discriminated union over `type` (not independent `type`/`data`
+diff --git a/packages/core/session/src/index.ts b/packages/core/session/src/index.ts
+index e97585e463..0ea183a357 100644
 --- a/packages/core/session/src/index.ts
 +++ b/packages/core/session/src/index.ts
-@@ -15,7 +15,8 @@
+@@ -15,7 +15,7 @@ import type { Scoped } from '@deepseek-ai/dsh-scope'
  import type { Message } from '@deepseek-ai/dsh-llm'
  import { SESSION_FORMAT_VERSION, SessionLogOffset, SessionSeq } from './types.ts'
  import type { TypertLookup } from '@deepseek-ai/dsh-typert-protocol'
--import type { CreateSessionOptions, EpochHeader, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, SurfaceEventType } from './types.ts'
-+import type { CreateSessionOptions, EpochHeader, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, EnvelopeIntent,
-+  SurfaceIntent, SurfaceEventType } from './types.ts'
+-import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, SurfaceEventType } from './types.ts'
++import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, EnvelopeIntent, SurfaceEventType } from './types.ts'
  import { SurfaceManager, validateSessionEventData, validateSurfaceMetadata } from './surface.ts'
  import type { SessionSurface, SessionMessageProjection } from './surface.ts'
  import { foldRequestHeader } from './request-header.ts'
-@@ -722,9 +723,12 @@
+@@ -798,9 +798,12 @@ export class Session {
    append<T extends SessionEventType>(
      type: T,
      data: SessionEventMap[T],
@@ -46,7 +26,7 @@
      const surfaceMetadata = {
        ...surfaceOpts?.sourceEventSeqs === undefined ? {} : { sourceEventSeqs: surfaceOpts.sourceEventSeqs },
        ...surfaceOpts?.surfaceOp === undefined ? {} : { surfaceOp: surfaceOpts.surfaceOp },
-@@ -747,6 +751,10 @@
+@@ -820,6 +823,10 @@ export class Session {
        time: Date.now(),
        data: dataSnapshot,
        ...(surfaceMetadataSnapshot as { surfaceOp?: unknown; sourceEventSeqs?: unknown }),
@@ -56,4 +36,27 @@
 +      ...(intent.ignorable === true ? { ignorable: true } : {}),
      } as unknown as SessionEvent<T>)
      validateSessionEventData(event, `session event "${type}" at seq ${event.seq}`)
-     this.surfaceManager.validateNext(event as SessionEvent)
+     this.commit(event as SessionEvent, entry)
+diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
+index fbc9a9cccb..26485e478d 100644
+--- a/packages/core/session/src/types.ts
++++ b/packages/core/session/src/types.ts
+@@ -477,6 +477,18 @@ export type SurfaceIntent<T extends SurfaceEventType = SurfaceEventType> = {
+   sourceEventSeqs?: SessionSeq[]
+ })
+ 
++/**
++ * Envelope markers a log-only event may declare at {@link Session.append}.
++ *
++ * `ignorable` lets a reader that does not know the event type skip it instead of refusing the
++ * whole log. Only a producer whose record cannot affect reconstruction may set it, so it is
++ * opt-in per append rather than a property of the event type.
++ */
++export type EnvelopeIntent = {
++  /** Marks an event a reader may skip when it does not recognize the type. */
++  ignorable?: true
++}
++
+ /**
+  * One immutable entry in the session log.
+  *

@@ -1,8 +1,8 @@
 diff --git a/packages/client/connection/src/browser-auth.ts b/packages/client/connection/src/browser-auth.ts
-index 5691180d96..823c23debf 100644
+index 6b01531da6..ce8e5dd013 100644
 --- a/packages/client/connection/src/browser-auth.ts
 +++ b/packages/client/connection/src/browser-auth.ts
-@@ -177,12 +177,29 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
+@@ -185,12 +185,29 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
    return secret
  }
  
@@ -11,9 +11,9 @@ index 5691180d96..823c23debf 100644
 +  /** Add any authentication input to the clean application URL. */
 +  authenticatedUrl(baseUrl: string): string
 +  /** Authorize one frontend index request, owning the response when denied or redirected. */
-+  authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse): boolean
++  authorizeIndex(req: ConnectionIndexRequest, res: ConnectionIndexResponse, secure?: boolean): boolean
 +  /** Decide whether a trusted Host request has the required browser identity. */
-+  isAuthenticated(request: ConnectionTrustRequest): boolean
++  isAuthenticated(request: ConnectionTrustRequest, secure?: boolean): boolean
 +}
 +
 +/** Profile-selected policy that admits every request after the independent Host/Origin fence. */
@@ -34,7 +34,7 @@ index 5691180d96..823c23debf 100644
    private readonly maxAgeMilliseconds: number
  
 diff --git a/packages/client/connection/src/index.ts b/packages/client/connection/src/index.ts
-index 647174f743..1ee4898b58 100644
+index 34e15f90a6..ad516d4126 100644
 --- a/packages/client/connection/src/index.ts
 +++ b/packages/client/connection/src/index.ts
 @@ -9,7 +9,7 @@ import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
@@ -46,8 +46,8 @@ index 647174f743..1ee4898b58 100644
  import { HostConnectionService } from './rpc-host.ts'
  import { ConnectionRecoveryConfigSchema, resolveConnectionConfig, type ConnectionRecoveryConfig } from './recovery-config.ts'
  
-@@ -101,6 +101,8 @@ export interface ConnectionConfig {
-    * bind. An entry that is not a bare, canonical authority fails plugin load.
+@@ -99,6 +99,8 @@ export interface ConnectionConfig {
+    * an entry here. A non-canonical or non-bare authority fails plugin load.
     */
    trustedHosts?: string[]
 +  /** Host API browser identity policy; Host/Origin trust remains independent. Default: `required`. */
@@ -55,7 +55,7 @@ index 647174f743..1ee4898b58 100644
    /** Absolute browser-session lifetime in days. Default: 30. */
    cookieMaxAgeDays?: number
    /** Maximum buffered JSON body for every `/api` request. Default: 300 MiB. */
-@@ -110,6 +112,7 @@ export interface ConnectionConfig {
+@@ -108,6 +110,7 @@ export interface ConnectionConfig {
  export const Config: z<ConnectionConfig> = z.object({
    recovery: ConnectionRecoveryConfigSchema.default({}),
    trustedHosts: z.array(String).default([]),
@@ -63,7 +63,7 @@ index 647174f743..1ee4898b58 100644
    cookieMaxAgeDays: z.natural().min(1).default(30),
    maxRequestBodyBytes: z.natural().min(1).default(DEFAULT_MAX_REQUEST_BODY_BYTES),
  })
-@@ -125,16 +128,21 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
+@@ -123,16 +126,21 @@ export async function apply(ctx: Context, config?: ConnectionConfig): Promise<vo
    const recovery = resolveConnectionConfig(config?.recovery)
    // The Loader resolves schema defaults; hand-built test contexts may pass none.
    const trustedHosts = config?.trustedHosts ?? []
@@ -87,19 +87,19 @@ index 647174f743..1ee4898b58 100644
    ctx.inject(['webServer'], (webCtx) => {
      assertImageBodyCapacity(webCtx, maxRequestBodyBytes)
 diff --git a/packages/client/connection/src/rpc-host.ts b/packages/client/connection/src/rpc-host.ts
-index 0f98bc1f19..1fc5c528a7 100644
+index 44862c770a..9a1616a162 100644
 --- a/packages/client/connection/src/rpc-host.ts
 +++ b/packages/client/connection/src/rpc-host.ts
 @@ -12,7 +12,7 @@ import { clientRequestSchema } from './rpc-schema.ts'
  import { bridge } from './http-bridge.ts'
- import { isTrustedApiRequest } from './api-request-trust.ts'
+ import { isRemoteAuthority, isTrustedApiRequest } from './api-request-trust.ts'
  import { API_PATH } from './api-path.ts'
 -import type { BrowserAuth } from './browser-auth.ts'
 +import type { BrowserAuthentication } from './browser-auth.ts'
  import { OperatorPeer } from './operator-peer.ts'
  import type {
    PeerAdmission,
-@@ -70,12 +70,12 @@ export class HostConnectionService extends Service implements HostConnectionHand
+@@ -72,12 +72,12 @@ export class HostConnectionService extends Service implements HostConnectionHand
     * Provide the Host half over the active HTTP server.
     * @param ctx - owning Connection plugin context.
     * @param trustedHosts - deployment authorities accepted by the Host/Origin fence.

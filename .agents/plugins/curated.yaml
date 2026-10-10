@@ -352,17 +352,19 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
         retireWhen: Official API Gateway ships the replacement-generation opening order
     plusBundle: false
+  # The auto-review label and glyph patch retired at DSH 0.2.1-alpha.2. That release ships the
+  # preset natively: PermissionSelect takes its label from the access dictionary's own
+  # auto.label key, renders a dedicated shield-A PermissionIconAutoReviewRegular, and shows the
+  # EXP badge beside it. The patch landed on the pre-alpha.2 client, whose glyph map keyed the
+  # raw value to the Full access artwork; applying it to alpha.2 would have overwritten the new
+  # icon with the old one, so keeping it was a regression rather than a gap.
   - name: "@deepseek-ai/dsh-client-ui-permission-presets"
     source:
       kind: git
       url: https://github.com/deepseek-ai/deepseek-harness.git
-    pinned: 5badb15009ae1756c3afe0ae0cef1faafc290ccc
+    pinned: d743267388641bc76f17c45ce8b4c231aed1d32c
     interest: The auto-review preset shows its own product label and glyph instead of its raw
       machine value with no icon
     owner: deepseek-ai
-    localPatches:
-      - package: "@sparkelf/dsh-patch-auto-review-preset-label"
-        upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
-        retireWhen: The permission-presets client labels and draws every registered preset,
-          including the one an integration registers at runtime
+    localPatches: []
     plusBundle: false

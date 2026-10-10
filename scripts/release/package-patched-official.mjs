@@ -72,6 +72,7 @@ export const PATCHED_WORKSPACES = [
   'packages/client/ui-settings-models',
   'packages/client/ui-settings-general',
   'packages/client/ui-sidebar-documentpreview',
+  'packages/core/session',
   'packages/client/ui-trajectory',
   // Same incompatibility as api/terminal-controller: the published official builds of
   // these two carry a typert manifest generated before the alpha.2 loader required a

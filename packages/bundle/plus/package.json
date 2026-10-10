@@ -129,7 +129,9 @@
         "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.1",
         "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1",
         "@deepseek-ai/dsh-llm": "npm:@sparkelf/dsh-llm@0.2.1-alpha.1",
-        "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.1"
+        "@deepseek-ai/dsh-subagent": "npm:@sparkelf/dsh-subagent@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-session": "npm:@sparkelf/dsh-session@0.2.1-alpha.1",
+        "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.1-alpha.1"
       },
       "standaloneVariants": {
         "dataops": {
