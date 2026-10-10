@@ -538,3 +538,64 @@ grep -A 11 "^allowBuilds" <profile>/pnpm-workspace.yaml || echo "块不存在 �
 **一般规则**：一个修复脚本报「无需修改」时，要区分「已经正确」和「它没找到目标」。
 后者必须报错或主动创建，不能算成功 —— 否则它把失败推迟到下游，而下游的报错指向别处
 （这里是 pnpm 的 `ERR_PNPM_IGNORED_BUILDS`，看起来像 profile 的问题，其实是修复没做）。
+
+### 补丁升级后必须重建 hunk 行号，否则 pnpm 拒绝而 patch 接受
+
+升级插件版本时，改目标的补丁**必须重新生成**，不能只改 `target.range`。
+
+**为什么 `patch` 测试会骗你**：`patch(1)` 默认允许 fuzz（模糊匹配）。行号差了 3078 行时它仍报
+成功，只是把 hunk 落到别处并警告：
+
+```
+Hunk #1 succeeded at 19752 with fuzz 2 (offset 3078 lines).
+```
+
+**pnpm 不允许 fuzz**，所以同一份补丁在镜像构建里直接失败：
+
+```
+[ERR_PNPM_PATCH_FAILED] Could not apply patch .../dsh-better-sidebar@0.25.0.patch
+```
+
+**验证补丁必须用零 fuzz**，这才等同于 pnpm 的严格度：
+
+```sh
+rm -rf /tmp/v && cp -r <解包的插件> /tmp/v && cd /tmp/v
+patch -p1 -F 0 --dry-run < <补丁>     # -F 0 = 不许 fuzz；报 "Hunk #1 FAILED" 就是会被 pnpm 拒
+```
+
+**重新生成的方法**（a/ 是原始包，b/ 是打过补丁的）：
+
+```sh
+cd /tmp/regen
+cp -r <原始包> a && cp -r <原始包> b
+(cd b && patch -p1 --forward < <旧补丁>)
+diff -u a/lib/x.js b/lib/x.js > raw.diff
+# 加上 git 头并去掉 mtime 后缀 —— pnpm 需要 diff --git 行
+```
+
+**两个格式要求**（缺任一 pnpm 就失败，且报错不说原因）：
+
+1. 必须有 `diff --git a/<path> b/<path>` 首行
+2. `---`/`+++` 行不能带 mtime 后缀（`diff -u` 默认会加）
+
+**判定等价**：重建前后对同一版本应用，结果文件必须**逐字节相同**：
+
+```sh
+rm -rf /tmp/rA /tmp/rB
+cp -r <原始包> /tmp/rA && (cd /tmp/rA && patch -p1 --forward < <旧补丁>)
+cp -r <原始包> /tmp/rB && (cd /tmp/rB && patch -p1 --forward < <新补丁>)
+diff -q /tmp/rA/lib/x.js /tmp/rB/lib/x.js && echo "等价"
+```
+
+### 排查补丁失败时，先确认你的测试补丁本身是对的
+
+我一个自制的测试补丁反复失败，结论一度跑偏到「pnpm 坏了」。真实原因是
+`diff -u <绝对路径> <绝对路径>` 生成的 `---`/`+++` 行**不是 `a/`、`b/` 前缀**，
+pnpm 因此拒绝——与插件版本无关。
+
+**做法**：先用一个「只插入一行、前缀正确」的最小补丁建立基线，确认它能通过，
+再拿真实补丁对比。基线不过就是环境问题，基线过了才是补丁问题。
+
+同时注意**标记字符串别撞车**：我用 `MARKER` 做标记，而 0.25.0 里本来就有 5 处
+`SETTINGS_NAV_MARKER`，于是「标记已落地」的计数完全失真，得出了相反结论。
+用 `PROBE_UNIQUE_<随机>` 这类不可能撞车的字符串。
