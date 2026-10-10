@@ -1,5 +1,5 @@
 diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
-index 28e078bd31..67f8c01043 100644
+index 28e078bd31..b75d19244b 100644
 --- a/packages/bundle/web-app/src/index.ts
 +++ b/packages/bundle/web-app/src/index.ts
 @@ -15,6 +15,7 @@
@@ -10,16 +10,28 @@ index 28e078bd31..67f8c01043 100644
  import { dirname, join } from 'node:path'
  import { fileURLToPath } from 'node:url'
  import type { Context } from '@deepseek-ai/cordis'
-@@ -22,7 +23,7 @@ import z from '@deepseek-ai/schemastery'
- import { addHarnessSourceSection, auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
- import type {} from '@deepseek-ai/dsh-client-connection'
- import * as FrontendStatic from '@deepseek-ai/dsh-host-frontend-static'
--import { isLoopbackHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
-+import { isLoopbackHost, isWildcardHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
- import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
- import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
- import type {} from '@deepseek-ai/cordis-plugin-loader'
-@@ -60,6 +61,17 @@ export interface Config {
+@@ -36,6 +37,20 @@ export const name = 'web-app'
+ const SOURCE_ROOT = fileURLToPath(new URL('../../../..', import.meta.url))
+ const ANNOUNCED_ROOTS = new WeakSet<Context>()
+ 
++/**
++ * Whether a bind address names every interface at once.
++ *
++ * Written here rather than imported from `dsh-host-webserver`: a deployment may carry an
++ * alpha.1 build of that package, whose module exports three names and not
++ * `isWildcardHost`; a missing import fails the whole plugin rather than this one test.
++ * The set covers the IPv4 and IPv6 any-addresses and their IPv4-mapped forms.
++ * @param host - bind address from configuration.
++ * @returns true when the address is unspecified.
++ */
++function isWildcardLiteral(host: string): boolean {
++  return ['0.0.0.0', '::', '::0', '0:0:0:0:0:0:0:0', '::ffff:0.0.0.0'].includes(host.replace(/^\[|\]$/gu, '').toLowerCase())
++}
++
+ /** Services required before the web runtime can mount. */
+ export const inject = ['webServer']
+ 
+@@ -60,6 +75,17 @@ export interface Config {
     * Absent or YAML `null` advertises the bind-address URL.
     */
    publicUrl?: string
@@ -37,7 +49,7 @@ index 28e078bd31..67f8c01043 100644
  }
  
  export const Config: z<Config> = z.object({
-@@ -67,6 +79,7 @@ export const Config: z<Config> = z.object({
+@@ -67,6 +93,7 @@ export const Config: z<Config> = z.object({
    printUrl: z.boolean().default(true),
    surfaceContext: z.boolean().default(true),
    publicUrl: z.transform(z.string(), value => parsePublicUrl(value).href),
@@ -45,7 +57,7 @@ index 28e078bd31..67f8c01043 100644
  })
  
  /** Environment variable naming the advertised URL of this Web GUI. */
-@@ -245,6 +258,36 @@ export function apply(ctx: Context, config: Config): void {
+@@ -245,6 +272,39 @@ export function apply(ctx: Context, config: Config): void {
    // through a local forwarding address that this process cannot derive.
    const handoffBrowser = config.openBrowser && !launchedThroughSsh(launchEnvironmentOf(ctx))
    ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
@@ -68,7 +80,10 @@ index 28e078bd31..67f8c01043 100644
 +  // list to the `connection` row, which leaves a profile layer written against
 +  // the old row — one that serves a reverse-proxied origin — configuring a key
 +  // nothing reads.
-+  const compatLanAddresses = isWildcardHost(boundHost)
++  // The wildcard test is written here rather than imported: a deployment can hold an
++  // alpha.1 copy of `dsh-host-webserver`, whose module exports three names and not
++  // `isWildcardHost`, and an import that fails takes this whole plugin down with it.
++  const compatLanAddresses = isWildcardLiteral(boundHost)
 +    ? Object.values(networkInterfaces()).flat()
 +      .filter((iface): iface is NonNullable<typeof iface> => iface !== undefined && iface.family === 'IPv4' && !iface.internal)
 +      .map(iface => iface.address)
