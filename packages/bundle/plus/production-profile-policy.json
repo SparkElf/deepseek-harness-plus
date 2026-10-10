@@ -1,326 +1,2274 @@
 {
   "formatVersion": 1,
-  "name": "DeepSeek Harness Plus rc.29: Agent Teams, the sidebar HTML preview patch, and the plugin upgrades",
+  "name": "DeepSeek Harness Plus 0.2.1-alpha.25: DSH 0.2.1-alpha.2 runtime with the webRuntime compatibility patch",
   "requiredBundles": [
     "@deepseek-ai/dsh-base",
     "@deepseek-ai/dsh-web-app",
     "@sparkelf/dsh-plus"
   ],
   "packages": {
-    "@changfenhuang/dsh-genui": {
+    "@deepseek-ai/cordis-plugin-group": {
+      "mode": "add",
+      "candidateVersion": "1.0.5-alpha.1",
+      "candidateSha256": "507b11e95b07dd7efc6d3206dfe2f4dd86de1b7fd97b63c900bb16839f854379"
+    },
+    "@deepseek-ai/cordis-plugin-hmr": {
+      "mode": "add",
+      "candidateVersion": "1.0.20-alpha.1",
+      "candidateSha256": "7ec10b68423f634b8209049c82293af4341599e75c4c6b5f5137d7b81eab3746"
+    },
+    "@deepseek-ai/cordis-plugin-loader": {
       "mode": "replace",
-      "baselineVersion": "0.9.9",
-      "candidateVersion": "0.11.0",
-      "baselineSha256": "a4a77bdde9cb9ed1b193729b4780f6a1f9a95829ec3a9728f6616b5d799b8a16",
-      "candidateSha256": "180637b77f1965cb670290ccd3764584824f718c5e3f0e39fa54a90b00d1daa7"
+      "baselineVersion": "1.0.6-alpha.1",
+      "candidateVersion": "1.0.6-alpha.1",
+      "baselineSha256": "d63c6e1b696986b1cfb12e25f421671dd0ab9622ccd53a3cda748449e71b6317",
+      "candidateSha256": "84dd1158e34f58ebcaa1970b273745be318da3ff969a202e63d3e7dbc6ec2a07"
+    },
+    "@deepseek-ai/cordis-plugin-logger-console": {
+      "mode": "add",
+      "candidateVersion": "1.0.5-alpha.1",
+      "candidateSha256": "1296eb101b3ff3a03e5f7e0e3c56ace5d98bfd6511cbb1694359ed23990afe32"
+    },
+    "@deepseek-ai/dsh": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "c5ada244ca0975e987804599672cd5a538ca9bea00aba6cd376f35afc8ca11d0"
+    },
+    "@deepseek-ai/dsh-acp": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "db54ce1d9d1fc0f8881f7b1159f27473232f2ca4b2ee34deace8bfbb50b51e2a",
+      "candidateSha256": "cf2c5e1bc9647bd6e65309c00e335d39c2bc85ae09cadde228ac0474eeb3b50c"
+    },
+    "@deepseek-ai/dsh-acp-app": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "75d8e44aa5313732c6fd88674a8758284b1d95da1d10232bd3ee059c1649c31b",
+      "candidateSha256": "1d4e4c5a585412a54d9a4d99901d411073a03e20589bfc377d36d84d52560c7b"
+    },
+    "@deepseek-ai/dsh-agent": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "2b37433f275d38a83a8daf633126f1c7fa4403352179e4b4807b060678f83c40",
+      "candidateSha256": "76452d741f99506576beb2f72c7275e4c093da62cc3446fc993d566c6c2071c0"
+    },
+    "@deepseek-ai/dsh-agent-default-model": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0c9489c64fd4da1baa025611944844edaac07ec9e22823038eff593e4984889b",
+      "candidateSha256": "a1ec49262515bc8f1b277caa030a936106f3be17819f0a10d91a99023f68de27"
+    },
+    "@deepseek-ai/dsh-agent-instructions": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "55ea12575188909298d13747f8fb8ac5827d71e7b66d77d1093bf6a403c87e3a",
+      "candidateSha256": "c622ea31a5104f6ee356259e5f17cc313362776ca0f9e54550f20eca1e831c28"
+    },
+    "@deepseek-ai/dsh-agent-loop": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "fade799b7658b0e00360079bed9d621c230277604a5af237ee21c4ab423717f8",
+      "candidateSha256": "c36185d082e770ff96e23af88bf3274056f9b8d872235269a614b5fe08454bd3"
+    },
+    "@deepseek-ai/dsh-agent-loop-testkit": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "b86aee078d8434610c100a221eac0c9fb7627e744fdafe5eab24bdc00c2e1149"
+    },
+    "@deepseek-ai/dsh-agent-preset": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "33d22988a758a4fc4fb7c6cd6528e30c9f2f07ac82aadcd35529f67ce3305d2a",
+      "candidateSha256": "1001a60a78933e5427cb2f5da7a759c547cf62aae785c4a6ca98d340dd0da8b9"
+    },
+    "@deepseek-ai/dsh-agent-preset-registry": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "98d004b880c1df096d956ba3cf50f59fcae92d0cd45bc847738e101ce8a18058",
+      "candidateSha256": "285262a6e4eab6565a6347efab6f3b6da4d6662da6eebc3ddce8961f5710d9ec"
+    },
+    "@deepseek-ai/dsh-agent-tool-presentation": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "1fc539883bf2ee2f28b4ca5707c62f648d0320c1f9f05b9c243183f3a22df28f",
+      "candidateSha256": "a9a4d85bfdd45f650b729019d77ce40c32f19593bdbbc6a9262c485973985e15"
+    },
+    "@deepseek-ai/dsh-anonymous-user-id": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "0555b6311e5b3dc211bb1b644561778703e4c91f80df7b123647babfcbf05d88"
+    },
+    "@deepseek-ai/dsh-api-account-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "8b42e2cf9687c0f15aaab0d145198f596d12d9209f2e177174f7b65030e8d264",
+      "candidateSha256": "ad2889c993cfcdbf1e52dcee14c9fea89c4a2f592037e4ea2aad20064a007dde"
+    },
+    "@deepseek-ai/dsh-api-gateway": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d0017de861f00e97fa9abd6494589e44aa8503f1c2149c720ddc3e7892bdec58",
+      "candidateSha256": "11a6e463b161ac2bc9312514360b02e45f3cb7a1f75132dfb1f59fffa20b3f8a"
+    },
+    "@deepseek-ai/dsh-api-job-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f18a8c8557202ba22da49857a262c0406fa355c45c68e84ff2a98ab7967fe89d",
+      "candidateSha256": "0b8d815882cf62ed19a0bc4be78532ad40752ef35457f4e465e2126571030060"
+    },
+    "@deepseek-ai/dsh-api-remotes": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3624a5378efcb59e6381aedc56f277051cbfa811daa4ba842a37a6e3c46fac84",
+      "candidateSha256": "b5de3f44612d292db83ec4231c6c13a1b5f3fc2e109446e434216f016795e974"
+    },
+    "@deepseek-ai/dsh-api-session-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4ab26e4a1edec3f8c2c3a48c55e32750f74228bb3c7c2dda1a6dcc382e0e384f",
+      "candidateSha256": "a3f138d30aab4e686b3f6786f8848921b6fce24373e2ca42a142950b1baae952"
+    },
+    "@deepseek-ai/dsh-api-settings-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bb2130a752a099233680ea2fef7166a7e06f8f10bb306e43694169347c5d2de5",
+      "candidateSha256": "6dee2fa5502236aa06a91edc6e12a222caa2982b0cf97a10667dcdffb1411766"
+    },
+    "@deepseek-ai/dsh-api-terminal-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "63fe6d9904553e629afe384a90b1183beebdf96d59cbd49381c693b74af4ca82",
+      "candidateSha256": "43eec0cef13ae6fb1c60f4fc026ec81c8561a53ada9cbddfc2a49b751b280505"
+    },
+    "@deepseek-ai/dsh-api-workspace-controller": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bf01089e407142966bf613652f94e76b02eafd3fc80ee30efc1f0aecfa502be6",
+      "candidateSha256": "9a1d04fc02d64836017203e0075750dad05ad5c7db3c2f1ecbf8253227888cf6"
+    },
+    "@deepseek-ai/dsh-api-workspace-files": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "1eb48eda21517832a5c7e45a7d615cbe4bd051f62439da6566abc34362e9f803",
+      "candidateSha256": "c3a05ea4a6e541cbc1c7466dc7edf380f1cd1ee4cbc12670f77c4476745263de"
+    },
+    "@deepseek-ai/dsh-app-boot": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5ee044b4d43d495fc505af6e5fdd8174b4b6bf0f0eac730721811904c670ee6c",
+      "candidateSha256": "a7805ea96e77463c27e16ddec7fffea9d26e03b65be10ac4946c8e9a36c06ab1"
+    },
+    "@deepseek-ai/dsh-atomic-write": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "65eeecc8b1733b7fd175f3634d2856c48e38978932d48f56ad4e1f7d5445d137",
+      "candidateSha256": "0cdc1b2b7d618e793ee0df358ffe6585aea1ec9a70d15f3df78e58596cb7f071"
+    },
+    "@deepseek-ai/dsh-attachment": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "2da0f13ba2dece6bd762a7d7f015ada3ee8972b6cceb654ae78d633c92efebeb"
+    },
+    "@deepseek-ai/dsh-attachment-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ec475d083ba50a3a2bc7373ada40fd3b8d92b689d72abf29377d8fa18f28378f",
+      "candidateSha256": "b8727d43460478e70dedfd7d86d179c8ef3682da141ffcc0a1e685d81969013a"
+    },
+    "@deepseek-ai/dsh-authorization": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ec59a3345a39b26d83d9ae00fd113e0eb6d349c077cae7b46e726555f4ce5a49",
+      "candidateSha256": "b68d1611e21c6eac9eb1d69f23bd4a301fc3ba36f5245d5b65e7bfa76ccef2c0"
+    },
+    "@deepseek-ai/dsh-base": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "459f411c91c77fc5c5cbe91d36c7e06f57ac1fde90bf90ecd8ee67126b7acee0",
+      "candidateSha256": "762caab04f9167018b38bfbe5792b3f5937bc9503e42cb0bb41e756ed2f4ddf4"
+    },
+    "@deepseek-ai/dsh-bash-local": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "0183e15c2bfe300393b749ea8300d6d48ae9f21eb913812818eae8a7ca7243c9"
+    },
+    "@deepseek-ai/dsh-bash-sandbox": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "1d80d4d6fd481c00192ba7f1818f9d34a5f84e8069b05afbfa21872b4803489c",
+      "candidateSha256": "79e935fb059cdf4b977ededd97dc0e22bbc695ab5084718975e10e294b193a3b"
+    },
+    "@deepseek-ai/dsh-brand": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "262e63be770b56d5918d59ae11f74911961e16a9d36ab635257faba72156a633",
+      "candidateSha256": "e86ad8e53e7451ac96799a950e336588702e83502bcc0faf3ee25601c72e172f"
+    },
+    "@deepseek-ai/dsh-browser-use": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "d11720e2ebe838e03c02ef5da93fcebe17082be535983aacfa10cb4dea26dce4"
+    },
+    "@deepseek-ai/dsh-chunked-list": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "52adfbfd71768a1e8825f190d7d0eaa6761c747686460bb179603475250c22e8",
+      "candidateSha256": "1eda93558cbf796b6c916b523192e9afb9d1a03688f4ab2a7194373385ccba50"
+    },
+    "@deepseek-ai/dsh-client-connection": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3fe85004af7ec703ad7c3986147e7845f2b11d6785ac2848667aef6a0312fe1c",
+      "candidateSha256": "dccccbf1b3a5b856ff5a1ff99c131fe329e2e3c76aaf195b75b56072a519a810"
+    },
+    "@deepseek-ai/dsh-client-file-upload": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cebc1197313b904bfa9cedab6b1844fe90215e6a326554a32a3c5dedfef2cf94",
+      "candidateSha256": "efc873bb65ea2a4c7365ddc9beef602ab25e9f3d2dfe44da0537d42cb74a538c"
+    },
+    "@deepseek-ai/dsh-client-hmr": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9baa51b48e98d2c1fc450e8f68b4953bf35538864c8943a58a93f61986df1cdd",
+      "candidateSha256": "8102b5e4e8f43f2cf124f5fe015e99363ef5bb12861ad32dd35323df03a6fc96"
     },
     "@deepseek-ai/dsh-client-locale": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "d2030eb76fdac66c8d9adb0231d6ea8739b2bfaeeb8653f3892d0e91f1c43d02",
-      "candidateSha256": "8ff9f3564abf22e78f9d22fab450a4bc7794cb6a22232f2aa03cfb50100c0e6f"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d6dfc1e24cba642716038c43f1f7836fe00fd837094d6e7e6b2faeb31820144a",
+      "candidateSha256": "6ade58b7814b9377e0488f82588e7f2e82b173c76c43c63adf580cc7b3e1ae3a"
+    },
+    "@deepseek-ai/dsh-client-modules": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e433b2539b940b1fcbece7be7f24701ce7423cc86e83c8a1961e3dd5c2a7747a",
+      "candidateSha256": "20d676435fc795dafa179cbb4c221d91663ea7a7d8e84075eec049e445d2367d"
+    },
+    "@deepseek-ai/dsh-client-product-analytics": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d82dede8cc8df918e7caf42648dc1badc720a55c939c6cf4cfa34888035614e5",
+      "candidateSha256": "1fca9d22b62732891db16e7b23766817b74b26b79dbff48f69d8cd7b8a3910c8"
+    },
+    "@deepseek-ai/dsh-client-resources": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b8425c011243e147311ff59c986b0fb4ba2498ab086426128df2b4fed4cba590",
+      "candidateSha256": "274fd4f9cc83a1cd162e966676970aa552f5a538a0cd1b7dee2001a627365d70"
+    },
+    "@deepseek-ai/dsh-client-shortcuts": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6887158089223cd190a9f08d5c49e178c7e1a2f9a711505a09f3ea5470de9c67",
+      "candidateSha256": "2948e82c14a5e4deb221a924a7eb709c9125212c6853e4abe85eaf06dc522c77"
+    },
+    "@deepseek-ai/dsh-client-store": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "dab5b0e98ca65d28b361104c339a43c1f37a5a41122a655637a69f40b0100dbb"
+    },
+    "@deepseek-ai/dsh-client-test-runtime": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e57d036634da939c88081dfffa76bda33c6b44725344aa906a351a0818c34025"
     },
     "@deepseek-ai/dsh-client-ui-agent-preset": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "cc34f5fb54f588e4de146d3cf7090ec991c2d090eb7989eb93d0656299f4ad2e",
-      "candidateSha256": "6e5a92063381a020578a6897a8d95ef3771d2283732ef0a6420f76c2f04b3796"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a1ea0ca1af8a1955ef2bacd4a50b0e393073b5c49eeaccc4ec6abf5cb8779d8d",
+      "candidateSha256": "d809864a465623c6f2ee3837f0b2497c394dc23007765c1a7a99ce4a206521aa"
     },
     "@deepseek-ai/dsh-client-ui-approval": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "c1fefddfc0d9b5570b54465db161514457e3168c1bfaa5f2ed753f8e37b1308f",
-      "candidateSha256": "91e85e0afe15fd5023126cefe3b3576bb9827d6836c434c35fb741c6bef11b77"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f8fdaf0b1077fba08d7b169c58e6ff2fa8d0248dcec6e0832d7877d1052e5d7c",
+      "candidateSha256": "02dda20b20796c212cfb60656ee4b3d3da9840ad82e7669ca0816034a72763ed"
     },
     "@deepseek-ai/dsh-client-ui-attachment": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "fddd6c0a00e834d945787aec508f097a3c4438af836c9169597ff5d35d8583ae",
-      "candidateSha256": "57f048fb66cde6bb173606ec17ee4f04dfcd722e59d0fa8e7be72b0f4d77d723"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "22563a926cf63c1b17dd564a4c39d0cc182f76ea55c62be0551d44f99a827389",
+      "candidateSha256": "6d4331d2bf03f30acd7c5cacee933a37773b7a540a8862320cdd09b396b9b54b"
+    },
+    "@deepseek-ai/dsh-client-ui-brand-official": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "669c4b5dd1b1bab658641639d4fa7e115594e2eca86d8b83f94e5f7b3d9c57cd",
+      "candidateSha256": "9f45a0be5f80d7ecea084b8fa34170f421779e2867ef724288bafea90a349ee8"
     },
     "@deepseek-ai/dsh-client-ui-chat": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "a1b914f7d2681e156813885c1406c5465ceedc39c8c8b4f29ab5582e7b9f0fac",
-      "candidateSha256": "b949b172ea32f800bd0c7c3ce0ccd98876b83c06f3ba1a9367212de0ee1c2d77"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5ac3ac4b136eec94533a8d44fdf9cdbea8e95fddc05b85dd6a96cf7be77a4324",
+      "candidateSha256": "32e4e72b40836891f04c6632a5b39b748ec5343f413af5053f0732f06dfafaad"
     },
     "@deepseek-ai/dsh-client-ui-commands": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "9f86ebc8668beee32925b5e8cfa1212210b018b1dcea88f3aab4c97e3684aa78",
-      "candidateSha256": "1ddb4d19d27addf8e24ae96b104b7e6f26e10cfa0db8f9899d18253d8f069aac"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4cd6e6cb93fea48ad5fd48fd13312c7196166ea3f9379ee4754a0eb990114348",
+      "candidateSha256": "13527f9501fcf44248e10f8a8cfa9bd57db545d41769864aa61df16670fea9fb"
     },
     "@deepseek-ai/dsh-client-ui-conversation": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "5bdfff5e5c135a45576d7bdf072d2f5c8b8251f5bff98a5afb280af6300a83e5",
-      "candidateSha256": "5943b2c42101d83ab8d07a4ece047d9fc0d771357bed7d883d139f89ba552757"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "04abb4e6064847adaa5c3609022291aaaaa85417889484eaff67face2b938cee",
+      "candidateSha256": "a119d41e22d35a2f9f0d9262f5351689222166b3b57ca3179bfadefffd18eea5"
     },
     "@deepseek-ai/dsh-client-ui-cordis": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "7ce9a6130a5f17e8675cc1c90fc6d6d30df5e543ba77e5cc89d51555f3f48144",
-      "candidateSha256": "63e0519eec31c1ea5625c81cf4f08edcfaa171a6a7d9181cb808e24008ba61bf"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "26b7cd307191bbb72e5bee16e75da91a460d5a954839d43231621d0326f2a522",
+      "candidateSha256": "df9eaa91ffba51ffedbf960dfed7448d9c8b6d5b3ea1879501ba68278724c08e"
     },
     "@deepseek-ai/dsh-client-ui-deliverables": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "4026a199be6cf9aef3418e29c573ba54b1bb19cb07d96dd1136f5d2d5f81da1a",
-      "candidateSha256": "74c10f0cbf7d09e3af394d1dd3c3380fec10932f574e4f874cc0d3321e11feb6"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a762786e66016b7e73646eeb1e74f514ed5ecef110703d335ec815d0d2f7c1e3",
+      "candidateSha256": "f306f0b5c7571f7be527d79a4c5f328e70eea38baf2a73c6c4c271a82ab1044c"
     },
     "@deepseek-ai/dsh-client-ui-directory-picker-browse": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "45a877a0b8ee6f02a66caf1943d2c11120cb40ed74acceea7b7427a3d53e0585",
-      "candidateSha256": "dbe316b139e949e6749c0b538905869f7a74ecffa0062aaa0d847885ca714ba6"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3741053ecc0c7bdcc4229a6537ab19b03acfea16f61b9ad52067c37dbfbadcc1",
+      "candidateSha256": "ad9a51dc8c668d86484b5a9295575c45737ee883ee697ed37f716c08120ba136"
+    },
+    "@deepseek-ai/dsh-client-ui-directory-picker-native": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c46fd9feb71936909cfd2cef06bf8a72efdfcb4b3eda3020ec7b8c3ddb64ca43",
+      "candidateSha256": "997860bdca78f708b141d52e93e8023165d1601cfc4ea7c1d2a147afcf659495"
+    },
+    "@deepseek-ai/dsh-client-ui-dockkit": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "71d2dfe60bed50df0ac4522bcca1de6158b69d589bae3db55a497cc9e49e08b5"
     },
     "@deepseek-ai/dsh-client-ui-goal": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "9a0e94b8a21a30b3e7fcf98615d039d8644df899130245634a5d9e40c432c923",
-      "candidateSha256": "7e0a78dc12e372a92b8779e8dd4b6be80c56f51b86425a3311de3897d1614893"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3dcd90740f6aa9619c4632d05a8ac876f1ec159faf0ae9e26059f7b588fa4adc",
+      "candidateSha256": "283d5f290b994d8f82f2473bb26198ab1215b65f1834f2c2e05698506d8a420f"
     },
     "@deepseek-ai/dsh-client-ui-input-trigger": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "435421b611be33d9e90850682238d44afaa196adc6f4ef1ab05d7b5fab375e45",
-      "candidateSha256": "ae4600bc9e8f7d4f252e8ac60ea2008366994a192b155f736cdedeaa9d07b362"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "02da044b9cc583c92b611e52df92247c1bb39c4182182e4df8e3afd9f2d775d8",
+      "candidateSha256": "df5fadd28f489113e48327f43d7a9ae44576a73b1ddd319714252290318b8740"
     },
     "@deepseek-ai/dsh-client-ui-jobs": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "bcc8a9b51dd5ca34ec6e59f64b67c550cfeba2f2c1a11a16c02f000f000c9368",
-      "candidateSha256": "a8114833669d1fa8d89de5a1c93b974e89e1f1c9d54f54e4b6c504e1e791c368"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "163aa570fdbca72e263ad65155a111dedb2f835a77ba9f2b3592d3aa64561f62",
+      "candidateSha256": "fcc091ed7ddc0e1bdd8c9d55b1f47ee39358c9cbdb7e12ec624bb8c8071f9e58"
     },
     "@deepseek-ai/dsh-client-ui-layout": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "fb7c09f230bec43bb55b579a35526216705ea12c0a37c3481e2687888306ca16",
-      "candidateSha256": "faa17d2c7166d542b13b3b9071ac28db80d4eb046ab5bcc4db423e52a8a69c15"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3e2e811fdb25afbd5b6e28996a72105c0115409d11e1541b12c6f86851ad7284",
+      "candidateSha256": "6c6ed1fa73576eb737cb7942f9b30a1aa1d51a94af6b5f1002f2e0ba606fdbd0"
     },
     "@deepseek-ai/dsh-client-ui-message-feedback": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "304b2a8bb9ac8164c7338971a9bdce34fb488a3d51138ba52f6b8a9d9b47eeca",
-      "candidateSha256": "489d3fca94686665b820b669e727f0e11060b06a308398b6b51141bc789a55cd"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cc4d874bd47b1c70c5ee5fbc58c19536f12ec3b5fe35f00b405fbb638dedc049",
+      "candidateSha256": "cc07c7eb3a6ff7e1bcf78438cd2d89ae73f878cd724d5407374450edd962e86c"
     },
     "@deepseek-ai/dsh-client-ui-model-selection": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "b37191d821ff8e5a9022a4344a154fac1a90e315509a917a5fdc30bc1e5741e8",
-      "candidateSha256": "4fa436762cc7110cad8b2e700a19ab550de30b849a35f4b5baf3622208565982"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7c303b894304c57bcdbf9c069ca2a57edd11ab18ce867107a70cc780a21dd2fe",
+      "candidateSha256": "1e53e1614cc978d3b0dc93cb9ffc4c4b45a3ea3af0b175b8b081bd34c0803e3b"
     },
     "@deepseek-ai/dsh-client-ui-open-in-app": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "5ec9573961e802af235c2808c33a0ee775fdc5dc3928c1e09dd099f0eaede575",
-      "candidateSha256": "bdb05682174816b026bd201291ff52b631bb558dd6bc280d0c8fb37106a72b94"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f083f56de3eb8b5f79889b1add3266edd8b417049b69a4a2be391e018ee28645",
+      "candidateSha256": "83e84fe4d7d2b171632495b6434904f66b844d54eaab56e08d7a5b0c112cdd49"
     },
     "@deepseek-ai/dsh-client-ui-permission-presets": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "156199af164a0ce79a63b5954a6b74228d96efda49c23edbda5067610b5cedb4",
-      "candidateSha256": "23c34abecb408db752780db4e49cc0df9b8e20e9423be17e3228eda403484d0e"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c3c0c74dd3076bc6eae4625009ee6c643ec5ac84055689b3975a1f116d576097",
+      "candidateSha256": "491f43f8a3d74a53dbef03d0a12c3712dd632d0bfb7af6b7b650b3d3921745a1"
     },
     "@deepseek-ai/dsh-client-ui-plan": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "7a2a32ca64748e6fbefe4b5fc2c6cadfcdbb35636d0c100448d1b6f3655783fb",
-      "candidateSha256": "f1c765fbc91df453f8a570a30e8b2d8df73c72948478fda97a68f601c2320802"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "69cbde1554a953295625036484329effd4d55bcfe48cf397243e4c9f6da23484",
+      "candidateSha256": "25565daf3397b24db09869cd046edcb0e7ea133e048b644b2246cfec562ea19d"
+    },
+    "@deepseek-ai/dsh-client-ui-plugin-manager": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d10555ca07c17796a9f9b9e088165fc82f41dc0c10a34f56f4b44d3bce980ab0",
+      "candidateSha256": "69281c8e905d4ee8e4d99e8633681c5493eef8d7603b0db57589421fe71a52ea"
+    },
+    "@deepseek-ai/dsh-client-ui-primitives": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "16de82dc21ce9b1d53eccfa701d47fb55bff02901b9955a2737c55127eb25a11"
+    },
+    "@deepseek-ai/dsh-client-ui-reference": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bd6ec863e0289cc52fe9e8da1072e05a299c79532f85adfeb498d83670492f43",
+      "candidateSha256": "c92683828c0cd32e4e1f98195a5849bd26ec2b93cbdc54bf1c184c628270e7a9"
+    },
+    "@deepseek-ai/dsh-client-ui-renderer": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9873fbf9b650962160ad6a3e08701f0d7c88f696931f1fe3f35ac6a4e1db5747",
+      "candidateSha256": "78adcc10a65d7506eb30f3b332b2ecda4c2b44003a6c2f5d2da7123abbba2051"
     },
     "@deepseek-ai/dsh-client-ui-schedule": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "c6f18c5ecd89a9d47e47155ad74b3c5cce1872792ee5545e055afbd913e94739",
-      "candidateSha256": "6a74c8b4a408f30f69ace373894db29b2b70365e17c2b86401dd9d7f7b5a4c17"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "98ffe024f4764f9071b387616f15e71b034aaddc95e4d2aea4737fc666c297e3",
+      "candidateSha256": "d49d07dda98d95a1b37382df758583b8b3184ab9219499ce8fb666b7ccf585a3"
+    },
+    "@deepseek-ai/dsh-client-ui-session": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d715a5c395f4493f0e07afdab25dc3d344a4b6e4cbf59883f6de7552d26a11f5",
+      "candidateSha256": "195c0a75f697ec37cd1634a5da2b5cd7736bc08d34b9c430e123f6eb329f0195"
+    },
+    "@deepseek-ai/dsh-client-ui-settings": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c75c96d02e5aba233f2e20815b8b32fcc970b397621a1f290b666dda084223b2",
+      "candidateSha256": "ea5b4387de6b77f69e40bd8d934b40d597b8d68fcc8b5d950f7649f78393765a"
+    },
+    "@deepseek-ai/dsh-client-ui-settings-account": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b27a7b34750da266660b773930e3114dce530aa4b674d93b97fae98431a82191",
+      "candidateSha256": "7e6c2f2e7a946c01499c7cce1cd5e9620160fe9189394a4124de933ad134da99"
+    },
+    "@deepseek-ai/dsh-client-ui-settings-agent-loop": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cc9a7af4e5f29dcaaa2442277082be978b605c96c6dd1877c853ba23eb2533dc",
+      "candidateSha256": "22b7623bbdac4ce96eb41ab6614b4539def031deceaed423d0692c552b352074"
     },
     "@deepseek-ai/dsh-client-ui-settings-general": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "30e9e9a0e099b148a263e5ce61afc441c7791d41fdd699cdadd01eab7a47e7f4",
-      "candidateSha256": "2a19bd92249bda8d1b385ee8cf4fb89aeeac6c167e428637b552c6026d7d06de"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "710961957223527ed2b8d6c8e84a2a4090cbf68aa39e657aab06ec378bd483c8",
+      "candidateSha256": "6c16b5ca7a67e75fb7916e7c21bedfc37579d618ff877488222b5a3108590a96"
     },
     "@deepseek-ai/dsh-client-ui-settings-models": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "ac67312b5a76452d833689dd8caa048926c179ae0c7b2302f59eb737e57dae16",
-      "candidateSha256": "691f6e035d3c71d0c6b0d27d8f613b1e83fa87693060aa675a56427028cafd7d"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "545ba0f6f23ac5fa6e6633298bc7a9c067efb9e9845b71b15c00780f3e16cc74",
+      "candidateSha256": "bd653f3b26dd4c5579e824dbc62ed5c28ffe3464f1226cdc25709a6113e6808d"
     },
     "@deepseek-ai/dsh-client-ui-settings-plugin-inventory": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "556f381a5066e0e5f2f36854e12e1b3033d03d316017dc187661c6ec089dbae3",
-      "candidateSha256": "5532be6b4d1aaa4eef6849ab3ad57fa2e3ad561e3ca57e2a52a6f91f52c769cf"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4806d7ff15877bfe6d7aa2c9514546889d962443f9724f6528e2960bd6075f95",
+      "candidateSha256": "46dd35308290f4f44d182d18717e4504bf5f571185f1d3058ff0c198b82e4750"
     },
     "@deepseek-ai/dsh-client-ui-settings-plugins": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "d0eb0402e08b7255a2e5dae888cd7778a5870e5da5a4a0eba2a0bfcdc2dc6ab9",
-      "candidateSha256": "67722f75759eb1de61ef227cc2f63ff1b3261e11a3219a149919a0864d15071d"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "266f3baa9f46a769890df1da2f3a8746d200a38a095dba857f73974aa85d5533",
+      "candidateSha256": "2d85f046471a26453b6a1b274bea72327a460de3e83bb514d2c8396ee18e8234"
     },
-    "@deepseek-ai/dsh-client-ui-settings-unarchive-sessions": {
+    "@deepseek-ai/dsh-client-ui-settings-session-log": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "848a47f9363b71b205a2c9ba379e2f20367cd539101656600014d36c95437751",
-      "candidateSha256": "7d9f0806eb487e80c80eb3ea6bfd79c0be24c1691d01314a58ea724c9c9764bf"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7dc6a307ad9ebf6371a0a0229cc6c48246b2846202033918c42475ed737afffc",
+      "candidateSha256": "3b2990c09eb0beed7cd4f39a4f2f522dc5b68e40d3a00ce1062a822eef54f86d"
+    },
+    "@deepseek-ai/dsh-client-ui-settings-shell": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9278aa59c37bceebb8bc0a1168d528becc820d3a40b34d2c589b36a7c39683df",
+      "candidateSha256": "494b961f43fe23507f8f31d7ea6df849c7b30863051f3adfd62d0c58ae3bbdfd"
+    },
+    "@deepseek-ai/dsh-client-ui-settings-subagent": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7d3197b888b3b3cb51f4b2573cc4113a6e32d8a717135c2df2545e91822c8e72",
+      "candidateSha256": "ea53f4cb8243d065b9c9dcf3f80a4aed5756fbf981ec7be201d13fbf2c7488ad"
+    },
+    "@deepseek-ai/dsh-client-ui-settings-web-search": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ec493b169ceacc875beebb2eeb622c4f19cc77756cf149dc3f023719233bc974",
+      "candidateSha256": "d31c72757fc7436742837935d54b83c41297a00c89776433bb998671a4d90953"
+    },
+    "@deepseek-ai/dsh-client-ui-shortcuts": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "edf1abf952b7ea5f9d8c3065e374be38f4f7f523aa45faccd784af3aab816297",
+      "candidateSha256": "96c51ad81514bda0f8ef64646cffcd4879d3e163b4772e3a881d7bc93605eab4"
     },
     "@deepseek-ai/dsh-client-ui-sidebar": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "8b84eb1b3009279697f652c274ffab4ba78e2e287bd31896f39d36a7c10e9017",
-      "candidateSha256": "fbc1716e01c5b06ac3711456edce9c5269095aa519c2b99b74e79f1f0180fe9c"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "57fc32ff815d3b951e132e3bdd2c83555e5ae4a3dd731bfef995b2bac677d676",
+      "candidateSha256": "4a53acb4384713f206312021918e036c4971cb98553ae8eb6e0e5f1c7d8a15a8"
+    },
+    "@deepseek-ai/dsh-client-ui-sidebar-browser": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5d15eb4b9bf200040e1f0f6d3497914f22ef2fe76d4f334aa7b70d560774330b",
+      "candidateSha256": "1a3bf431be884d014f917df7acd15b5e283578c8d65c53ae0dad43eeaf35af15"
     },
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "8f67561b0f7ab2b0b641dcfec07a7f8de33b03e22901e045b2184caf1fb0e500",
-      "candidateSha256": "6feed2b8c39d33cd15571412041407bb40520a7cf0645622d941c906680e49f1"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b822632818ea28a215beec6e16a4e19699a128f28cb32aba6e1a5ddbc22a31ad",
+      "candidateSha256": "7d2e143043deda8cfbbcc1976bb2abff5778fb67daf5c8ed268bcd932c1fa6c6"
     },
     "@deepseek-ai/dsh-client-ui-sidebar-files": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "5afd4f95241d3132cc999670dfa0c856f262736ea7410789623548b464122bb1",
-      "candidateSha256": "5fcd77035b723483da95827c4bff76ea33ab56fffcfb2d58a8b17ebaa7ccebec"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "8fd65128327ca158ce8781cf0fbeaa279ffc4095f86f43e852555129d2a804fe",
+      "candidateSha256": "349d17aff812e2a271e1795f12ef349215c29f2f6ce6045616761c499ccb7b24"
     },
     "@deepseek-ai/dsh-client-ui-sidebar-right": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "e388fbe7f8c034340d2170592165b6e59cce242f1db6086d9fca0ead7891db9e",
-      "candidateSha256": "62ad6b8ccc3583b2f6cffae729a4f1cfa9fedf0f8db18b6ef8fa73ecca3c79ad"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "2c599ccf5f59d360780fa4bc2f7346975782733708911459e606cda75f06d521",
+      "candidateSha256": "f3002331e51a44ca80bacf963cb07da97a276b004b567f0c02d43662dc1d18ab"
     },
     "@deepseek-ai/dsh-client-ui-sidebar-terminal": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "fb9c166322eb95414660122a39abd58dd7f9a7af90c8a87e8b569cdd8ad15bfd",
-      "candidateSha256": "a4746612a10b89db2074934ab4d235d0ebdda038432396955125ef3bd9c93476"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "1d8d2365bb0e8a3c4bdacfea7770540ada80dfb5dc26f242f23a1a7e77fc9154",
+      "candidateSha256": "cbbd2fa69c1fd3415ec7c15532ba2396565060bfb72a2c2bbb2cfcd54810cd87"
     },
     "@deepseek-ai/dsh-client-ui-skill": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "3ac7c7ed992ce5ac75e09268936cf84f0ce9ca8719ba005c52da04a2ea097e26",
-      "candidateSha256": "30ea289ae3b24a4ee9582148601ea834a59aa3710985005a72c6c6e0eb838d78"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "494e4a949f5a64db0582c4649372afe6288fab5c21ae14cf1fbe476464548d7b",
+      "candidateSha256": "82856e069be6bfb12be518e72567dc61035487dca7554809d5736da1fb0024a3"
+    },
+    "@deepseek-ai/dsh-client-ui-slots": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "21fd833e3f118ab8af261fba6a88c8487fdc2606255f68c84edfafebec505b09"
     },
     "@deepseek-ai/dsh-client-ui-subagent": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "bd63bf596dd522ef21fbc61c70c05637f4c737f3d4085ca9933923ef9a87e7e1",
-      "candidateSha256": "3b24175b75805b26e551780397311e11f3637a120609d7b4c74a05f7d71cef30"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f213571d84d4c8df4a78e1e78f79d5ad06919796b06dfca4b927c3fb773cb52b",
+      "candidateSha256": "f8e226c0cf19f22820097c86bfe89c6f187814852dcccd748f3f2ddadbaea7ae"
     },
     "@deepseek-ai/dsh-client-ui-theme": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "d5566bbb82b466dca4d57bc4b12c6666f4e06821626bcaa6ab38e985e478022d",
-      "candidateSha256": "bcbe6fd51d5297cd955b7b25b4f128ea0b0b2caf597d323611e650dfa4e8e118"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ea1b9ad3509d8c3ff97b77ac35077e6f6930a8b5718749b33ae7ffa3b07113b4",
+      "candidateSha256": "91e3223847969b424a28ac73681e60e62cce7ded6f5d0a043d0d7ea7132092fb"
     },
     "@deepseek-ai/dsh-client-ui-tool": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "5c641f2daa425faef3b6493ce37c9fe1174477d96a300c6053ff0a162fbbfea5",
-      "candidateSha256": "445f650db0ab2c0dff1cf37e9d2a756f9c73eec41d6f215891e03fcc21e22803"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "fe44f7a9bbf24a9138a5365d5228f0df4145e65be41acc190108fd73635f1672",
+      "candidateSha256": "4af8b7c5d683e7e20159a095849d33fb71921ea931fff58892c99a3a2282a8b3"
     },
     "@deepseek-ai/dsh-client-ui-trajectory": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "36f033c44c37811750c6ab55b36aac56220b76e7438165165a8365e71ddc21cf",
-      "candidateSha256": "7c917d853a410a6209aa00b58b77fa85ec1b5228ec86f6e5781366a527f97304"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "835a578b20fea1b582ed599b8322adf339798ce9cdc72151750cb8bac0c90040",
+      "candidateSha256": "67e03209e8763f872ec30fc5e7a72390fb48e8a2f679f676d463fb1064ad0222"
     },
     "@deepseek-ai/dsh-client-ui-user-questions": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "5043e9e3ad2be2ac412db0ac7fc4fa1126e4eb071c10775594925e1258a6b166",
-      "candidateSha256": "ba7144063c56cc8ed7cfe363a2a44db3ba856b47d3af487edca3a464ac3c1ad6"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bb1cd061b944ccd25a12bf8d941f6cbb8728e417806628126820339c4f34a22a",
+      "candidateSha256": "d5b67b2770896a162cc9c8fe0f67b9033de5435aa78a29ebdddfe5789a372e44"
     },
     "@deepseek-ai/dsh-client-ui-workflow-run": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "dd514eb62696ffe60d8eae41d15bf8aafe975763e2bfe55863501aea118d9469",
-      "candidateSha256": "01a4d1828627f3399c653197f81306c9855d8880d9ee3dcfad1cb7b97791611c"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6028410106ee05219b01e2baaf9b5a3cf38b8a48e84761802d1cee16e2a2f3f2",
+      "candidateSha256": "01827c4eead88e6369e328edeadb2bf781ab488399eea5a82a379523eb28d47b"
     },
     "@deepseek-ai/dsh-client-ui-workspace": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "9233dabbcde78dc211d4cb1937aaa30cd634c8248b109be65b01358b89469d6d",
-      "candidateSha256": "5fa161e507000fc2043ed3d49263bf8c3c4c2c851c827218ebb3a6c2de99dbbf"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3e435e7af862e4fb48a8cf635bbda31392f7785288c21cc68ca4f35a278d649c",
+      "candidateSha256": "ddb182515f454d090f571410781cf7c6b9e991d10c375b6497e432d7b36d58ae"
+    },
+    "@deepseek-ai/dsh-client-web": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "109cd1a26c04b5dcc08f86abc3474a2466589c1c43501d7e5b75d8fab65a500e"
+    },
+    "@deepseek-ai/dsh-cmdline": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "202696ac9f82755d403f6392b79faf4db3c1fe77eed9807a2d87ddc234bdfe50",
+      "candidateSha256": "eb374fceccb3f84e63beb4a8e7210c63b6dc24778fc3abbc6251c312a405b30a"
+    },
+    "@deepseek-ai/dsh-command-compact": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d9bf86c0f5aaa86255eedbc6b09454f590fa5e6da4d8d30ef015002a5ed0b2d4",
+      "candidateSha256": "ebf415a27cf376eb944e284981e28d8f85fdcbcb0da002aa4ea623f0977dc2b4"
+    },
+    "@deepseek-ai/dsh-command-feedback": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9b83e56bf53c13c9c55ef284a22ead8063cd4ba9fb9f0bc039bff36adcf578fc",
+      "candidateSha256": "adf7b3fe60f704980139ba4da920cef5d6be2f34e6a2fc742e5e4c3372631527"
+    },
+    "@deepseek-ai/dsh-command-goal": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3c61a1db92ae1a3167c5c511c256fb97a5d4a4709e22ba6d18c17688a6c2e0a8",
+      "candidateSha256": "b96dbc7f41371fc17f5391575a55ecbed7185ed9a7dafa73037f9316ba21d7f5"
+    },
+    "@deepseek-ai/dsh-commands": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ea92877a0c088c3da2c44ae45864124278f304fd6c7fb9c39c413c9cbfcf2f5a",
+      "candidateSha256": "58c03e4a37c63f0225afa41b591a896c30b356189c458e9235a5cb223feada28"
+    },
+    "@deepseek-ai/dsh-compaction": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "3a6a36e784e63773fe9b30c13663b54877d1ca39bd1e8e2ea79b0fb04b1b0514"
+    },
+    "@deepseek-ai/dsh-compaction-basic": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "27f83cbc31772ed0b76b13c7a5afa0d5024857bb1c3d85942a3e6e6cebc86057",
+      "candidateSha256": "9a3dd0531c22ae49e9ad57361a292ce58258c41ea0153a235530330c259adc9d"
+    },
+    "@deepseek-ai/dsh-compaction-image-offload": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a94fe00e92eac79a2e433258bface0582b8451a28fdc8fd0fee16aefd054ec65",
+      "candidateSha256": "987652a3c9c6ae10a6cf71ea4be888464545f38d18a5d9b1af8032e1c6ce54ee"
+    },
+    "@deepseek-ai/dsh-compaction-tool-result-pruner": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e2e38fb1061aa7a0d64b3e9060cca8d4b6937a5ddadceecf1aea732794d597a8",
+      "candidateSha256": "23120a771976220154d4dff6d186e1d3db1fe4f879acddd8b8c5f17d584cd465"
+    },
+    "@deepseek-ai/dsh-computer-use": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c98f5055f5e045b9311dda301083a0341caabae9b8d44782e9ebbe16148425de",
+      "candidateSha256": "881adc9829a3b8bac45ca41174ad829368aa36460011c0442fad4b97a77e4cd9"
+    },
+    "@deepseek-ai/dsh-config-editor": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6fc6c8d47e67a0124377a3480c5cd1320d9a2dbe17b52079d46bffec86898dbd",
+      "candidateSha256": "a058bee22476bc116c852dfcfb48f84cec048bea3396ee945e13bcb3b141556c"
+    },
+    "@deepseek-ai/dsh-cordis-client-runner": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "89f701110172ecb50b4130d175b878aff848fff6bc568155e327f4705f3ecd24",
+      "candidateSha256": "d633688acefec65ae5b58bb6ca6751afbfd148dcc13abeac39b4b1f88d7f22b2"
+    },
+    "@deepseek-ai/dsh-cordis-host-runner": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5bce06ffe0491054be036e8c329ad875191e9c37cf660c55047b920b9e33e873",
+      "candidateSha256": "b34b0530ffc05e082cde563e059b189b5a8fbfa14579a61d2e038cbf9ec339ec"
+    },
+    "@deepseek-ai/dsh-credentials": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6d58bce1d4a18ca7ab9f36933fbd8fbc147bb155d8b8351559dcef6fd415b19a",
+      "candidateSha256": "c7dc3f0a93d6bdeb590113fd776cb038ee4ae9bb81bea0291c4a68c588a8413f"
+    },
+    "@deepseek-ai/dsh-credentials-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a19be3233ed0cd4ba1ad0f537ab6eba3850af071a4e8f13855da78f72cbd6070",
+      "candidateSha256": "e1265ffeac17698ce083b07aef98854c9913da8ced71c48fc21e689e263ed5b3"
+    },
+    "@deepseek-ai/dsh-deepseek-account": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "96947661aa91c186408b32542c90880233946752e668959f3eb23c577803b7d7"
+    },
+    "@deepseek-ai/dsh-deepseek-account-platform": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "31e5a8cb5d0636588e45fd4f04f2aebdf8c62879aa0cd34ee2011fdb95a051b2",
+      "candidateSha256": "e7d60dceda83e17f032e31493eca726c180342f3870b80685e95505c95c9bcf9"
+    },
+    "@deepseek-ai/dsh-deepseek-llm-api-extensions": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "fe2d6207052bc27aa4954f9a64dcdc6c8b66ee0df9f13454af3930998258ff42",
+      "candidateSha256": "f56dcfec566096730c381baea83951a26f5cb6ca8e73461de4a151a750eb0e9e"
+    },
+    "@deepseek-ai/dsh-deque": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "1d5eb03db4177f2697ab4a47994bd097782d6e4f62ceb76e9ee9117a21857090",
+      "candidateSha256": "612bbdbf4783be1b10915c18035f052db84963fc9fb1196cdcbf9303175bd670"
+    },
+    "@deepseek-ai/dsh-experimental-agent-team": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "deaa2790db4afe4a845705d4c7f39c2ba8c291736cceebe7941c8142efc1219e",
+      "candidateSha256": "171e427c3cb4892ef2db1c0fa927da331f15a237f45ac5ffdea5a34d0b7cd2ce"
+    },
+    "@deepseek-ai/dsh-experimental-agent-team-profile": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "15343bd984eea2b6564c50ca3cdef9f4076ac72953f42b84bb7985c9c005962f",
+      "candidateSha256": "ffcb48d3c8ffafc7c1ef971214244a9a1893909850680ff422ce01a718c93824"
+    },
+    "@deepseek-ai/dsh-experimental-api-speech-to-text": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "040a3b92dacb3aef81d9c04e8ea9d1135e09a7b4855217c52afe1a0593af039d",
+      "candidateSha256": "5b35c00a6dc1a448c2cff8d42f55360d5da6ce875d3a322136f660beecea8f7d"
+    },
+    "@deepseek-ai/dsh-experimental-auto-review": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7edc1bc4e880421a0311bd38a5651cfc81202fdf7546972bba593c6552d43fdf",
+      "candidateSha256": "7840007b0f76f09a16ac3f625429911b4ee5d75eb9f98246588bc4107c69a386"
+    },
+    "@deepseek-ai/dsh-experimental-badge-skill-bundle": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "4c31b591ecb3cdd4b58f96804608e43499f8ddb252521eba667ce76b8a4dd0b2"
+    },
+    "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6f5983067bc7435356800d1e29dff84d693e2c569c553a25175c09b29e8983ea"
+    },
+    "@deepseek-ai/dsh-experimental-browser-use-playwright-mcp": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "d2e981727abb21ff4d9c32b7ecec95928511c47dffb8161f52b0dbc35697c3be"
+    },
+    "@deepseek-ai/dsh-experimental-browser-use-runtime": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "545b9e25ef1282912d0c047e669d80a84a4f3a0a89319bd8097f35bc78f90041"
+    },
+    "@deepseek-ai/dsh-experimental-browser-use-stagehand-native": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "9016f79a0b3b08d331be6363d3dd45fe32e4bb0512bc98018164b4a50c30659b"
+    },
+    "@deepseek-ai/dsh-experimental-claude-code-mods": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "d20a2b3a07ee4db04ac8af0f13c2f5599980dd7343527100825eb14511cc1278"
     },
     "@deepseek-ai/dsh-experimental-client-ui-agent-team": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "31c6a0fdc4a2d06a0996cc954c1f2cdb645b268b7415a5a05eec77cb59224732",
-      "candidateSha256": "2f8adba269bc5b22ff8c82cfefaf9ae9e18f5098a409811b85c5a4382d479d8e"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "41d0c1090273eda524435b46520a3bb718ef6b3ead357b93ed80466f74a200fd",
+      "candidateSha256": "f4d5e9691d7e44106f274af310fa3050f03fc3667631beb886d9db9346b49a23"
     },
-    "@deepseek-ai/dsh-root": {
+    "@deepseek-ai/dsh-experimental-client-ui-claude-code-mods": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "103e1968d7adafe5e9e169fa1477760c892070595409c6bd3136ae598a012015"
+    },
+    "@deepseek-ai/dsh-experimental-client-ui-cot-translation": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "a272b216df76c87df92a7730e538d0053b660ea8653ec1670f2c9646e0f9040d"
+    },
+    "@deepseek-ai/dsh-experimental-client-ui-voice-input": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "515c5b9d65da8482757c51299dcae1725f7619c8f9ecfeee9dccc6f9d9c152db",
-      "candidateSha256": "90da28b2ebe7b113da2397a7cbb6a37882c03fa11fbd9a8c872017ed95c09869"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "94bd36f4c28c8ef42a47b619f35f3a00c56fa9358c98a96950f08d1e0072a7be",
+      "candidateSha256": "b4d08a24ab69cbdc7499389636ac2c2de3dacd80b44ff79a634999af168521df"
+    },
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "dc98d65f15fed1cad77f15ff6426739b62bb4b121c022fe0516f451af907eb39",
+      "candidateSha256": "c4cc1596e261274d3397860d1c212f6b3d7545719a1bec731adbd7d1720add8c"
+    },
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-native": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6b18c07a69bd23e9121e98695433b2768774820b5ac7fca04f5ebf57931ddc01"
+    },
+    "@deepseek-ai/dsh-experimental-cot-translation-bundle": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "3a43badd21f41afd3d09b711be3b8804ff8c6f0c616a396c1b310b2a7aa3e06d"
+    },
+    "@deepseek-ai/dsh-experimental-inspector": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "820ccaa88fac286c008d66590c32f6eea7b221b4bd270c13da33fd750ded7298",
+      "candidateSha256": "752390307212b2a450571a015eaecd34b85c21df614fb09090f5fc3a84e415f6"
+    },
+    "@deepseek-ai/dsh-experimental-inspector-profile": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f0a508ce311f05cd7e600be4ef9d3737e9bc4202351ffe18f034f904c8cd17da",
+      "candidateSha256": "688eaeb20da388c9f76cfdb86d4cae5acf270a464e916e490f85b85bcb7215c4"
+    },
+    "@deepseek-ai/dsh-experimental-ptc-runtime-python": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "165cae5b450650b1d533fd2b4d459d00e40e474c37480f357de976cc5d4561c1"
+    },
+    "@deepseek-ai/dsh-experimental-ralph-bundle": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "1e1df78d3673c62021942de72ca8993ecef0ac93f1ee44fb951af7c6d5a3ec02"
+    },
+    "@deepseek-ai/dsh-experimental-session-inspector": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5d72bf707b885a0c0bb5dd8f66d97b5b327d6923726d4232c7716756c7172e0d",
+      "candidateSha256": "78d40984adb789ae5f5b6be0f37cc03a63bda98741b42ac2ed9a05004881b59c"
+    },
+    "@deepseek-ai/dsh-experimental-session-search": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "b55257ddd5820f5f0bdbd87b26f6487238a6d08dd2359ff0a8aa550c7414e645"
+    },
+    "@deepseek-ai/dsh-experimental-session-titles-bundle": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "ccc6232cd4a70dc40b5343d0a04144d6a1ba5d38d449ee5145d46add1cdb9044"
+    },
+    "@deepseek-ai/dsh-experimental-speech-to-text": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "8bd8c0bcf067dbb4eb9e3522d796bb3414195c7dd10bdc48e5c9bb3cc7712361",
+      "candidateSha256": "1ebe34ef626e1efdf078eb7bfca7ad2b7d9f6dbe28966c6e100f12d624c50f47"
+    },
+    "@deepseek-ai/dsh-experimental-speech-to-text-sensevoice": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "34196ba04c3c09fd4b32676d14806c8a1995f42aa93311be45f966cee5705db8",
+      "candidateSha256": "7652b553582cdbcc25e74ca6f85bf7645b29b92a2831175a35a7e19915f3a084"
+    },
+    "@deepseek-ai/dsh-experimental-terminal-bundle": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "bb79369e0ce9fa32f76d525d13f0b9ad8fca2cf258bcbbe4ff8d5db6a07691e2"
+    },
+    "@deepseek-ai/dsh-experimental-tool-agent-team": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4d18b15332336219f019c7103282efee81e45eb894e8bc1e1a17b032358b755a",
+      "candidateSha256": "12e6357fcd4e59dddab25351a6b58d99052da6f91dfd425fb315e334ebad22f0"
+    },
+    "@deepseek-ai/dsh-experimental-tool-worktree": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "0021140975a2d3aeb2a9faab08551cf9253c4466afeda7683182e1e47e59946c"
+    },
+    "@deepseek-ai/dsh-experimental-translator": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "a8c6a983ec632a0ab03b6b1356f1e25ec5acb79c26247a283f56810387e3875b"
+    },
+    "@deepseek-ai/dsh-experimental-voice-input-bundle": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f73b4fd2d40677f5854c090b5a525b2b107039768eabe847bf2919c0e2f87d30",
+      "candidateSha256": "1b6bdd0f7d299f2ad0f5acf28e60a59205b9f9e39d849cab0670cfe2fc5b4174"
+    },
+    "@deepseek-ai/dsh-experimental-webworker-packer": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "57e9ff24ec1de98aa638aff13a605121e1ca4be5dcd266fdfd133233fa49d0b1"
+    },
+    "@deepseek-ai/dsh-experimental-webworker-runtime": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "84ca2c17f0451d47d86a90e7ffc5389536b5eea04295af5cc63ebc9f972dd64a"
+    },
+    "@deepseek-ai/dsh-experimental-worktree": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6822bd4fa9b02a8e470c60d49b007296508423d221f7fcb2a18aa0add00b584d"
+    },
+    "@deepseek-ai/dsh-file-reference": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e01079918804d579cd6d4353a669520b1f1f458ce885f70c1b672cc335e654d4",
+      "candidateSha256": "9d6206685fe899ee1a5a00e5000b5b9230e6f5309023b5e14c09865f9dc0e651"
+    },
+    "@deepseek-ai/dsh-file-reference-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "12edc7e7b17b6621553b4d250182b1a6f65035335981be2a4d2e598851bebd42",
+      "candidateSha256": "199e2fac4eb16ffae46e7d36be14386c868bbbd2bc15b1e3e498bfde79dd2e8a"
+    },
+    "@deepseek-ai/dsh-fs": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "df4e18a55c8ec58776bd49c1ac91b4f821c3df1b19e0a391c50b727adf6aeb1c"
+    },
+    "@deepseek-ai/dsh-fs-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "687df215f7d623e931c06d2c97cd796cb11e464f5cfe8a3bf0a1b06f20b55f89",
+      "candidateSha256": "3ac79b49c5e6787d18c9038f035695b3769264e1eab3d523eeeefa550ac53313"
+    },
+    "@deepseek-ai/dsh-fs-observation-policy": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c26fb40222b150df4b545382d262a23be4eeb63ab46482a4bf5a268ec66e85c9",
+      "candidateSha256": "0842eaeb99bd648399ee2a9ac9cb739f3bc806f019aa64dfb221c11494439987"
+    },
+    "@deepseek-ai/dsh-fs-sandbox": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c8009a72817f75bde0b402df53c0dc2713a148b8f8f46c0d16d5dfe45b43d26f",
+      "candidateSha256": "5bccff5ce97770fa2d4f0e89690487272e4e2d99fa91c66de5b0d17797a852a7"
+    },
+    "@deepseek-ai/dsh-fs-ssh": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "bddb1fb25f0af4ce91a538e9701bbfaf66c0d7538f530f5ae67162aa9afb86d0"
+    },
+    "@deepseek-ai/dsh-goal": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "42b41293dc6ce3a31cc3b8d77935f5ef7227632a68d4b5ca5889bd67d3085b0c",
+      "candidateSha256": "e3389c0b6dd3bd4586a08f5c4ab1a09835c08c967e0630151f3f1d01edc75895"
+    },
+    "@deepseek-ai/dsh-goal-round-driver": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "55270015f1b76f2a618326fb67d1cd0cb8ff12a0da85c5131bc29bb7c652a8a4",
+      "candidateSha256": "ff74cd31609ad800ba551fa2b6039478174c7d960920dfd2983a3f16f00148dd"
+    },
+    "@deepseek-ai/dsh-headless": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4a06df523abe780fbf40b6664c9459c6a0c2214832302cfbda19de5bbbf41ce4",
+      "candidateSha256": "083927ab0677d6b76a1efda57e5add35d450ef0469ca564c698f32983c873aed"
+    },
+    "@deepseek-ai/dsh-hmr": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "27533c7e1ba2eb4b0f085e77566119a19019f57e8f1c69b0b90d27544b12e0fa",
+      "candidateSha256": "841d258476287217e39642d96cb831663bf439caacdf13ff897829f20452ac0a"
+    },
+    "@deepseek-ai/dsh-home-paths": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bda471b5e4fd1a65e58b868e3a95419e5b24f44b783c7c8fa621b1f16b59e0c3",
+      "candidateSha256": "65a97f81b28f7570d7aeb3a7078e7c389f403bd5b522a41ebcaafb47071813b3"
+    },
+    "@deepseek-ai/dsh-hook-protocol": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6217b0d3416a31cd80b099c3fa872a733381583b55c576e604f69b4af891052b"
+    },
+    "@deepseek-ai/dsh-hooks-claude-code": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a2c91b0ec68f02c9dde949cb54f7304d7f8e66906dfb2f03bcd47cf9108b4f75",
+      "candidateSha256": "c7339aab33d59fdff535c3fa551dde9de4d0f29af37ddef65f8e4a1aa4cfc0d1"
+    },
+    "@deepseek-ai/dsh-hooks-codex": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "eb1cfa380488c3c85ef67a6b73ebc09a872c23a4b010a2a63b51fe171212578c",
+      "candidateSha256": "3a1983e22a8d840c2174038702a86390829ebb86ec3667b6e4fb4ffbbd26b673"
+    },
+    "@deepseek-ai/dsh-host-directory-picker": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "60e07d613d560455bae88edc764c144b5f32a622a93a99a1fe93f74ec8636470",
+      "candidateSha256": "82cc87ccb361a7f9af62508b1134a680a13046260f410673eeab7f18af84349a"
+    },
+    "@deepseek-ai/dsh-host-directory-picker-auto": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "27d98b8f59dbdc4762f3ca5af89777b67b9264add50e3d6ca799306b4395b8e5",
+      "candidateSha256": "cd46e13370a818217c84e3fbf669ea6b649932866644bc70977008972b642173"
+    },
+    "@deepseek-ai/dsh-host-directory-picker-browse": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a5c71509fa134b621062d67b57b5a6b040870f04c3b1466e48dc3d159ee23541",
+      "candidateSha256": "f568f6dd294208c9e921d839f6232fd12240d262c411cb5cfaa290b6db8aaa0b"
+    },
+    "@deepseek-ai/dsh-host-directory-picker-native": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3dbca2ea8bcbeadbb05eaf66447b9d2102f658c859bf8647ff29913cbc6ef010",
+      "candidateSha256": "89877d9f10bdba5a674e79969e3529aae7ae8a255d99ca9dc629ff2be15ce01b"
+    },
+    "@deepseek-ai/dsh-host-frontend-static": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "be80a74ffb7403fd98ed79df7e890815133dd7b9a064290ecaf8797ec3d3d70d",
+      "candidateSha256": "66fa3d2164426265353b35c93971818b1b8e782136f0ac3bff260afb72e2b53c"
+    },
+    "@deepseek-ai/dsh-host-open-in-app": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "092b6f72940544f7c21313d341b427f73308b8760d675b46a0574710b3211d40",
+      "candidateSha256": "9681d7290ad75dfe385d19bbf1c47209695eb40a235dab532c456bd8e4880422"
+    },
+    "@deepseek-ai/dsh-host-plugin-inventory": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5b11f738681f3d561d05bc86f67ebc6976693c39c11793828e1a8ae8d06846f4",
+      "candidateSha256": "1a6e155001d9b60c9df9fa30b40f6e84660eda88e979f4d4afee102e2948870e"
+    },
+    "@deepseek-ai/dsh-host-product-telemetry-otel": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "189728ef09a0145c399cd1a82d31e0fe482a9af7f0acebf6f368fc65c84873d8",
+      "candidateSha256": "24d81b7a4bafbd30abd940de01b674b3569150f93c31ead5d22e77bad707df34"
+    },
+    "@deepseek-ai/dsh-host-webserver": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cde3e3b1e0e07d4989cca84ffbd41c5e4e26c545c4c9ad1f3fcacd8e8ba99a5f",
+      "candidateSha256": "3091b8de7210380163e53a22a21cee98eb9b6733a2cc80605b227711a2c26bf7"
+    },
+    "@deepseek-ai/dsh-http-proxy": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "78fc16dff6febffd8b365d557f48b54895a36648df9948ef29dcfcf999d60ebe",
+      "candidateSha256": "d353da24988224887a970b35633da2ff9577ad8b72c4743d21354c03fc6da561"
+    },
+    "@deepseek-ai/dsh-invariants": {
+      "mode": "add",
+      "candidateVersion": "0.1.6-alpha.2",
+      "candidateSha256": "eaed7c367d8a1a5f6e7822d3d41d4078389b6d628952f87fa04538723a02a343"
+    },
+    "@deepseek-ai/dsh-jobs": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "46c6b26fee8cab2a2aa4fb77dad11b4fcd76bdf694be7ace3791290ff0c63b9d"
+    },
+    "@deepseek-ai/dsh-jobs-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3b893e9c1dc14b5d2827cc787cc5800a9bd7e13b09e40574c8a47e0746210090",
+      "candidateSha256": "ca0cfe17ab4a1d5513e5b726c311ed9446788ec8e346aa899eeea9fbbbe042b8"
+    },
+    "@deepseek-ai/dsh-launch-environment": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "862000538a67af0830e96d369f8d3351bc289171dbc658709e29d3bbd735f9fb",
+      "candidateSha256": "f319f4a5fc54ba78f372dbf61fea5036da822d56fc16dd1efe4b19a99e106c9d"
+    },
+    "@deepseek-ai/dsh-lazy-require": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "20c9ad6a55f48b8a1093152e7afa2036de54f542036d4ee3c711ba937843fb20",
+      "candidateSha256": "e2d5067aa0fb4e9ea021e6c59ec7a1a220bd04c2814066648352f1645acb986c"
+    },
+    "@deepseek-ai/dsh-llm": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4bf250b72b402d0b65811fe73695216e4d6e5127779cc94bdd244e3f83868d86",
+      "candidateSha256": "245b6d5d10d598138c1f0bfc6797144b5d45096f7d831669bbf72efe4e123982"
+    },
+    "@deepseek-ai/dsh-llm-deepseek": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "40ec62d65e2e7408e52506651defab6b2002651c28518e6bd0246cd10beeddb9"
+    },
+    "@deepseek-ai/dsh-llm-deepseek-account": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "02fcc9ad00eaeb5e1d7879885175f3e9ee33b09787465c2d2f763938413fc4cb",
+      "candidateSha256": "06551e998fbeeeb069465671c15168a1d1b4a7a06d6519d9c8c7b78f7f4c5102"
+    },
+    "@deepseek-ai/dsh-llm-deepseek-api-key": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3e81c8e5da65e96b3c211db796a61ec47cdc70c877457e07622b2a2d6aabab34",
+      "candidateSha256": "5f1c1607ba30f0ea92a5dfd1c0ba0976eff154fc1d2101d1034e2b2b3cade409"
+    },
+    "@deepseek-ai/dsh-llm-mock-server": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "d297798c1732d2accb49acffe919946d9f6b798eb5f80125cea498d252e26881"
+    },
+    "@deepseek-ai/dsh-llm-pi-ai": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b1117db300dff4015584b0ba480051408569951cda1cf91ce1b0fd18f054af8e",
+      "candidateSha256": "25cce6bdacad636c33607418484d8edd5803fcd60eb65f1a41b1ff0677188447"
+    },
+    "@deepseek-ai/dsh-llm-replay": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "1f040bf2539444f7b4ee39076f3eb80f387c781796e5b3a930609173ecdddbb5"
+    },
+    "@deepseek-ai/dsh-llm-retry": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b6d26edc7ce5bc90f754dc96a7ff1aa4d343d1e40416db65dc47c71a68ba3299",
+      "candidateSha256": "afda7b4556ff678e9aa230b2d6001281a37bbc9cb157851b06b9fed5bc7769d0"
+    },
+    "@deepseek-ai/dsh-loader-smoke": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "7680d6fe04c6ff3b61a612e730c5e9551032af6fe82d20fa38f1c7966f3b37a1"
+    },
+    "@deepseek-ai/dsh-lsp": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "0fe9483f9d0464c88449c25bfab3fba384a98354311def4ce3d21715d23b4111"
+    },
+    "@deepseek-ai/dsh-lsp-stdio": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "2dd629fe023f5e457ee75ef43840a6030c5d7f1adbef7020e14074e08343be47"
+    },
+    "@deepseek-ai/dsh-mcp-client": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0e01174211db1640579c54de4e137e2e390b2440ed64dc311224432db8c8b2a0",
+      "candidateSha256": "c7cec0e650c94948a53e9593adbd4168a0d011b8b9bff78ec094b744e87dfb17"
+    },
+    "@deepseek-ai/dsh-mcp-resources": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "281231e72122e16893dd37af406e7c396628dbf482f9bc516d80946600480b52",
+      "candidateSha256": "b0ab2608f91418c7aa5a84d24af9af4f578b18fe68d3d91991fb88d841a2a35d"
+    },
+    "@deepseek-ai/dsh-message-feedback": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ef47c52a9d1743725110dd464775a8e1828106343bff388b889d16ff4c1f7733",
+      "candidateSha256": "9266db799bd1bcfac9f5b6d3ee7072b1e7badce9c3f56e85b5bdbd0501676695"
+    },
+    "@deepseek-ai/dsh-native-command": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3ee98c1d306a0fd95658c650046c9c0c1aaebaf995064d063da17cfe9b701e08",
+      "candidateSha256": "28bc53529627097376aead39ddd8aada975f9fcc415ad7e62a4a4fe4d8942b58"
+    },
+    "@deepseek-ai/dsh-office-to-pdf": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9472b43d3af0184a48db1a07bf8af95d85df6488ad01fef04feb299301b43789",
+      "candidateSha256": "efe5532fa9a9a068bdf28e463cdcb9285e5c2d9e28754ce8cc98af297f7f6d4e"
+    },
+    "@deepseek-ai/dsh-otel": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f6e56a6b21e0253e2699cfa781cb67f5cb1d8ecc662821df65ba312e64f3caea",
+      "candidateSha256": "d3e200257c8f37bbe52765a4676c8068be069070bafa174b879be46c2ec6fc47"
+    },
+    "@deepseek-ai/dsh-output-retention": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "64e04683a457585036b7eec753cc3bfd4cd24221f3bb3683d3a2d5250b2695dd"
+    },
+    "@deepseek-ai/dsh-package-manifest": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d1e474d6c566823c60f064cd984f42efc43fe44364e01078ee2e01b0bb137029",
+      "candidateSha256": "66170c769cdcd4fe0b505e24cdd56f7736455ac3375c573384cf789dbcdaa91e"
+    },
+    "@deepseek-ai/dsh-permission-presets": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "b8a8faad5d7c509cdfc3598f4a80383396ff361a2719a4d3a45a04c72c4b9177"
+    },
+    "@deepseek-ai/dsh-persona": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9723e34a3775faf38fdbc85421b79c9a32535834e7a115c72ed15e493435d973",
+      "candidateSha256": "3ab13f5a58701c505c799cfd4c0850b67f01b84885823073b6278ed6f5d6fb8b"
+    },
+    "@deepseek-ai/dsh-plan-mode": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "40ff2f5bd4c54e3ab590eddf2727ca5f5e48486d495334261740514fcea3615d",
+      "candidateSha256": "5ed3dc9fb4cf67bd2154498115cf2e5d959e6c81ad440394b95a3d3c6216d75f"
+    },
+    "@deepseek-ai/dsh-plugin-manager": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "01d30f2a1b601dd02d2ebed8c6551963759eb0c69cf9fcbb39eab30c7b2bc89f",
+      "candidateSha256": "ec90540786c422fd212686082565e552b720fee7d4b14b368e6a7cdc86b22aa2"
+    },
+    "@deepseek-ai/dsh-plugin-package-inventory-deepseek": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "58a1bd246cadc65f1494e077a9d0d74be7938c67e1af1624ce96618fa7f568ba",
+      "candidateSha256": "c85e6bf2e24ab9c97f9ca96f250bba857c81fe7a7ee062b119902db9d4053c04"
+    },
+    "@deepseek-ai/dsh-ptc-runtime": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "07455c5221d15228631cd142a71315004b48a3085be0f6ba0a9d36eb977b2870"
+    },
+    "@deepseek-ai/dsh-ptc-runtime-node": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a7d00d6901916ca5b754c2c5c7ec416930549f80a1115b3695662489eaa93908",
+      "candidateSha256": "4fe5656c3ccc55f6023f493767371a7200b168d89f3605a97b8b1128e8c826eb"
+    },
+    "@deepseek-ai/dsh-pwsh-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "024dd6003d995b7277e839aea5710ff513922a52a9aa98a52bed6728d27842b5",
+      "candidateSha256": "57e4f73494a5d77fff283f675f056d412dbf0a6d35cb8bdc7e6ecb4344848f10"
+    },
+    "@deepseek-ai/dsh-pwsh-sandbox": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d9a84454d361471c6936877ac02f4a69c0a9aacf8f19a690b70a7b1ecf5c099f",
+      "candidateSha256": "60b579db36c8cc9ef92dba07ae44d7e20d2c6eefa88870a78bafb7d7db31cdfc"
+    },
+    "@deepseek-ai/dsh-remote-mock": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "27acd20fe4c42220754675ba01ced8c7f8fcc32391a0d88690e0620c6a3eb6ee"
+    },
+    "@deepseek-ai/dsh-repeat-tool-reminder": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "805e57c493638daefa16fea4b2f767eefabc4824af4f3d14961ca1eb192dbdac"
+    },
+    "@deepseek-ai/dsh-sandbox": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "081e676ed757725c3d01bfa50275b8b2ff4b4bedcf15ec29b7ee9eed87d93e37"
+    },
+    "@deepseek-ai/dsh-sandbox-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "714aaa1e9234f9e86c3c5683a08a524a6d44e45f778f093d0c49f1b493833556",
+      "candidateSha256": "73088b177a8c59d8f1ebd398dfb7f5a26dc78e1353d467854465fa48cd05603b"
+    },
+    "@deepseek-ai/dsh-sandbox-policy": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cfb2a633b90fd3daa9c288ffcc50cdcf244be782a557dbb04c32c4a543e9d178",
+      "candidateSha256": "99456ab835ec724ee4f177f3e924a1f647a609a5385cf54ab5b0a10cd67195ca"
+    },
+    "@deepseek-ai/dsh-sandbox-ssh": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "3e5bc2fc8a6afee7a5b2ee1991a4f44acbfb7721363bc3a31ab05dddecad3a96"
+    },
+    "@deepseek-ai/dsh-sandbox-windows-acl": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6e729d625bd23f7b5948e49b52039fa1ebabca605dca1644eb7bef9eafc63d7f",
+      "candidateSha256": "29d405cb28c38b6b98e4b8aca3faea5dc27f17ea0e538165625667fb113c993d"
+    },
+    "@deepseek-ai/dsh-schedule": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "000da3233e0731100bbe5359a0ec0f300b4c31f58dbc753a89db7a83756b17ba",
+      "candidateSha256": "251f618eec5d15cc730da32cd0492681e201e88cc5200e0b1f5a3aae911095cd"
+    },
+    "@deepseek-ai/dsh-scope": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "1bbcf0993cfdf24ee91ac1014cd27d0de489102f632f7c1b16e1fb3231978ed9"
+    },
+    "@deepseek-ai/dsh-sdk-app": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f0d45f0f7151910cb6202cf62c3c29e40aa24e8788021b56849082a5ffe00860",
+      "candidateSha256": "394f66165ae3f327858d0afa6824131a9906c651314c912f4b29e818f0c945b7"
+    },
+    "@deepseek-ai/dsh-sdk-client": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e2dffa31f2c398b1c78a6beddf09d7c2a2baf7b3c38d98c2966cecf16eda7951"
+    },
+    "@deepseek-ai/dsh-sdk-jsonrpc-server": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c543834b326f62aa181f6d1cca3c31b2aae328ba6d602d64b433a28e82cc5679",
+      "candidateSha256": "aa2435239796a5b84aa9c9a0b97c5d01918e9ecc24cb880685a95c16a49e381d"
+    },
+    "@deepseek-ai/dsh-sdk-minimal": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c863d59c509f10690be3643cc76aa183d26bba0d405492a6054da06ac7f96199",
+      "candidateSha256": "686ea8872b362cd5866790c198f67595af18337975d467b1c80f107d504f0fa0"
+    },
+    "@deepseek-ai/dsh-sdk-protocol": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "9a440517b0496d065c2df56f32074b32c19bc939b26bea5b45f8e5669bf884ff"
+    },
+    "@deepseek-ai/dsh-session": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d850edbcbc126ec429be9dafa5a951718b79023b035733ea06f6e3505473d14f",
+      "candidateSha256": "837e151a19936fb7c7c00564e18528a410cdc05ffee4585d72849fcd29601b73"
+    },
+    "@deepseek-ai/dsh-session-checkpoint-policy": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e29c65c110140f4f281bfde3a9bf38dbbf65be8f240bdb662051ccbe4f89a0bc"
+    },
+    "@deepseek-ai/dsh-session-format": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "60f011e5ee002c4a56a1caf7880592c6074c1fa5e23bdc21d05d057951db3132",
+      "candidateSha256": "c9544b62fa44ece4f60ec99e4728a0f55779803f7b02a4d85daa8dda2a2c0653"
+    },
+    "@deepseek-ai/dsh-session-format-catalog": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "974aea761c9251370d06afad368d2bb159a19b7d275fdfaecf5f3edd433b27bd",
+      "candidateSha256": "7e2c2b5e41ecfd9ea6a3f6fd90d38d3272ba239025994c8472d299caf527014b"
+    },
+    "@deepseek-ai/dsh-session-format-v0-to-v1": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "8e9f2778062a4c627e8d2c86235c9276aba81c13aa82d8a39e22621367c4610a",
+      "candidateSha256": "4940e50b93b4c3ed083e8e38299667a60a5d671f9d1711c88ca3b89bb3e028dc"
+    },
+    "@deepseek-ai/dsh-session-format-v1-to-v2": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "bb844c216cd847182dabd3c668a17f724c0c0dd36d7545a43f69e71f5bc9557f",
+      "candidateSha256": "9987de6d6b17b4701abe1c516da35793f5feeb4fbbc7f866ab2d5320498905d7"
+    },
+    "@deepseek-ai/dsh-session-format-v2-to-v3": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3f93ed5c02417495cc5c349ed0385a72a139359dca1ee21ee145fbfb020450d6",
+      "candidateSha256": "5c0d54742519ce2ad15040bd552d853f98a9e3cd2108f51f7be459b2154ed546"
+    },
+    "@deepseek-ai/dsh-session-format-v3-to-v4": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a0388a9988d06e486cacc9f4ff0ffcbb312d33121f294420260a6d1fe9b7ea95",
+      "candidateSha256": "374a1e570f8076707018117938efa1e3f237a386a0b7058fbcbef181aa0e30c4"
+    },
+    "@deepseek-ai/dsh-session-log-deepseek": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5e69769f2b2d2e0bfb90c58d6fc5373c678836b3331cf942c57d2302aa1c700e",
+      "candidateSha256": "e686052e80db8bec1b3ba4bbbd91f1f276364cc355ab330d01c7a652b107bc39"
     },
     "@deepseek-ai/dsh-session-log-export": {
       "mode": "replace",
-      "baselineVersion": "0.1.6-alpha.1",
-      "candidateVersion": "0.1.6-alpha.1",
-      "baselineSha256": "64dbf53ff87adb00608bd018c0515018ca1ef7b3cee526bb57e51d325bd3fcad",
-      "candidateSha256": "1d2ad9297ca733b356fcce0a8cd328ce4f5ddaa120aa5f4715d76ee1fd2e3942"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "50ae4f1de103815e46860a7eb902c82990661f9c80b006af8a1f4ca3b3c0c8b5",
+      "candidateSha256": "35fcda254ee98741d59b477a02f054a114f90bced366ce61984bf2a33ac7c94e"
     },
-    "@huanlin/dsh-plugin-better-locale": {
+    "@deepseek-ai/dsh-session-persistence": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "868f4eb65d3ff5191e257c717151643f9baa747e41af2bf758d089db0a6d7253"
+    },
+    "@deepseek-ai/dsh-session-persistence-jsonl": {
       "mode": "replace",
-      "baselineVersion": "0.4.1",
-      "candidateVersion": "0.4.3",
-      "baselineSha256": "96d063cef1be9a32187db8c8a834c7344c9382b7f8374ee323558b336943f201",
-      "candidateSha256": "48969618c33cbf6cc38003d7e0f2ee72f0732a7e6ecbec5c3b71904ffe2c683c"
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d456a3883182bb26e64033f050c9f66a72d3dbe6febfec9bcf13fa163a189edc",
+      "candidateSha256": "16cd5e09b4400c985338e67cb732dd12d87cd60d25c5a70cbb6e2a62e17e5580"
+    },
+    "@deepseek-ai/dsh-session-projection": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e5f43d5d1cd72263c0cc7b50220fc331b84f4b7dc907ccce191940917c9c2993",
+      "candidateSha256": "0042919b7dc8d103be1e3d273ed65e3fa4671efdb1727b264dddd8b380af0885"
+    },
+    "@deepseek-ai/dsh-session-projection-cache": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5b707684fc50b4374b13ddce5f5711fc4b2c3f445b6659ad3dbde825eb9ed1e1",
+      "candidateSha256": "98f7b714ebb5a6bee8374a9cb11ff5dad386f5685577a31753176a65b37d65e7"
+    },
+    "@deepseek-ai/dsh-session-query": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "afa8f1382468671a0f418caccae65269d2f12f55b63ab871752bfec5cc757ef9"
+    },
+    "@deepseek-ai/dsh-session-query-sqlite": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7e80a36a7fcfa25aba4395faed84ed6fd36075cc7d036bbd15f0ef8e48bffa14",
+      "candidateSha256": "fd960de5d4035f1e28804ed9f4aa364acdee96d0ba0797fd63a6f410ac45ca67"
+    },
+    "@deepseek-ai/dsh-session-reference": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6210552fbe7dabfc50de7bc5d248fdde5bdf298f61a76b6a6f3c0a219b56a449",
+      "candidateSha256": "e096f5f6fe17aa2824ed5ee6ec2e2a746eb3133310f253dceb2228129b69dd6f"
+    },
+    "@deepseek-ai/dsh-session-snapshot": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6ceef3a3d051c49b8ab2295257d8094be83b8c4773e49085e0591cd2ac3e4645"
+    },
+    "@deepseek-ai/dsh-session-stats": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "2404df40d8bb3e592786b307da739ebb5fb79e8bebc6b61a8c774d4752f329ea",
+      "candidateSha256": "ef71d9afb8c14161053d57dee581851dc37ffa886c0a8e68e1e625eae39b967b"
+    },
+    "@deepseek-ai/dsh-session-telemetry": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "33ca40999660797ae39c2ff2b032d5b5aaf2101e376c71579ae2d3489b5facee"
+    },
+    "@deepseek-ai/dsh-session-telemetry-otel": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a11aeaf2320d99cb28539bdd0bcce3522adfe791b079179c5bc4c6348e6b19c2",
+      "candidateSha256": "8bbd95980d80af950c44e340c43c16f3dcd6098860f1f5483c6ab0135beee58d"
+    },
+    "@deepseek-ai/dsh-session-title": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "32491004687fab14e9d5d80105201565669d985594a7cfb0e5df53169b650b30",
+      "candidateSha256": "c2f356a06949722c238df2b89078185bb76f1910fb04afeb52c150afbb38bd59"
+    },
+    "@deepseek-ai/dsh-session-title-all-prompts-llm": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "b828b5b03d507feb8c86304d21d2cacf9b1dacbf166393d9be7b734c0bea0951"
+    },
+    "@deepseek-ai/dsh-session-title-first-prompt-llm": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "d8acdc88e1555c43b49b28961c3e2b43be2e2698c4c3a021e2cb16934a58f6e1",
+      "candidateSha256": "72293baf2a5394ef7a1e9c52e4372ee49881c053217f232d0b2617c877b3803c"
+    },
+    "@deepseek-ai/dsh-session-title-llm": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "5ec4fa5d7e3b04e71c0ab927e8177292f8deecc71866038629d07f970261109d"
+    },
+    "@deepseek-ai/dsh-session-turn-outline": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0a40f77f25471dc21b29c13cf0a7bc665164fbc75989df94fafff61694d072de",
+      "candidateSha256": "b4c0a5fed34599d748c8c2d3c971d8d79299594cbd25e88f28b2a0c39514409a"
+    },
+    "@deepseek-ai/dsh-settings": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "c5fdc8140bf6392f3d1ecae285b387960b49fed7779d4a183605e38e3f3fc6bb",
+      "candidateSha256": "21d151205e9599d986256ed67664a236863045e1ec907721104e795b3f11b1f0"
+    },
+    "@deepseek-ai/dsh-shell": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "298d4d6056b884f5914c4332a2cd19c1772c88da5fa2bf4228bb55760ccb5787"
+    },
+    "@deepseek-ai/dsh-shell-env": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "b4ac4c18460fa0becb926d263c0a5aea14a7cc6426fec110365d1a0258aff0a8"
+    },
+    "@deepseek-ai/dsh-skill": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "57359be93f96c115d8d14767bc82a475f6774b56017f63297fbc68ce2feec0cd",
+      "candidateSha256": "56bcb4a6db1aac86d0340335a5562b0474388d1aedcdab7f1ec2dd6ff9794cd8"
+    },
+    "@deepseek-ai/dsh-skill-badge": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "12d018ea661662bcf12b49fb05ccf72992f7333299de88955d4e6b8e05a6a717",
+      "candidateSha256": "1dce99489a9c4efc08a3c5571e27e0f6a919133b7d66c8217b864c380652d82b"
+    },
+    "@deepseek-ai/dsh-skill-filesystem": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "457ba802c227dbb4822b5ee8c8e162371ed0bd6df23eefbaad40a0c8fbb945fe",
+      "candidateSha256": "25083268d583b4662f8396d49d69ee7abcd929d8235ea7141566a7c302243b20"
+    },
+    "@deepseek-ai/dsh-skill-office": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7f221ac43b88122e7a951425442d4e69a54b6f127ce8befb44be15e61fc45872",
+      "candidateSha256": "b6f3153a800725ad3504e5484ee7d8dfe46dcac1da7e971c63c19480b7ad9d5f"
+    },
+    "@deepseek-ai/dsh-spill": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6515f7872b78dda14581a297c27516cee6064ee3b02fda4f63e01c4d8b0807b3"
+    },
+    "@deepseek-ai/dsh-spill-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a8e1e90715b76ce9d6fa1700270ef8d9c536ee4a940f42db6a5a3aad5471bb5e",
+      "candidateSha256": "2bbbc0ededac7d96e8ebeb1de9895eddfdf37a73d0ab98bdadd790a05784f327"
+    },
+    "@deepseek-ai/dsh-spill-policy": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "db72db0176d74b038627a9edfc5b8a114c470f4b8ae602ab571d7e8783698121"
+    },
+    "@deepseek-ai/dsh-ssh": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "c70e8d350aa7f835184f065abb48fe51833e4746419d1e5013bca8f51c6ef5ea"
+    },
+    "@deepseek-ai/dsh-ssh-helper-runtime": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e09e5d6eaca2c0737a735c64105a64a09b27020bda57904d24672c2f95ac814f"
+    },
+    "@deepseek-ai/dsh-storage": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e8daa044adee41e7c53648fbdc02f014aed48ec09f4efffa7528f086b08b1393",
+      "candidateSha256": "8c962fd42af4967899646884e0910cb2d8df7a7fab5a51e0c8378a0b967395c7"
+    },
+    "@deepseek-ai/dsh-storage-domain": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4e467511cbc0737c9f0da0205ecd3345c238b221d929f83e3e181746cba2b6d0",
+      "candidateSha256": "0987ca7efa1e1719277ff9d17e97620a15219e7da90f4125852295adf557c5f1"
+    },
+    "@deepseek-ai/dsh-storage-json": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5277f1efa96389419e240d9bebf3fd68eb2f9d773d0e96656b5151245aa475cc",
+      "candidateSha256": "1dd04414df2becb1295a83881da294a91f6dd54ad584a0a5574051aec3f52577"
+    },
+    "@deepseek-ai/dsh-storage-sqlite": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "a92e3791a2942988f125c4142c158c94f2a381f59a71dd6a2bd7ff51ffb382b8"
+    },
+    "@deepseek-ai/dsh-subagent": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "7393bd16ef7c1096edac8375cd32766501440f58f91675ef1ce447035ed9cedc"
+    },
+    "@deepseek-ai/dsh-subagent-acp": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "3f59cf94d2e7be580510dedc7a17db322936b5968b874a17f083b39bf8fe6fb0"
+    },
+    "@deepseek-ai/dsh-subagent-claude-code": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "fa1b4401b1b9df36bb1d9dbf5add2f5a74d8a38b9f4bef4533c12ff75d9d0aaf"
+    },
+    "@deepseek-ai/dsh-subagent-codex": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "de92166ce07e66133f519aac4bd5e5de71c8151bac975eb436324f2c62f37045"
+    },
+    "@deepseek-ai/dsh-subagent-dsh-sdk": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "4446f231dd9e1f09932fe2e93090ff6bb0293799503e6f64b75ed5a88610186f"
+    },
+    "@deepseek-ai/dsh-subagent-fork-in-process": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "6ed5a3226f82f2b32afdede3c08cc29e84eccc79ed7fa793cfbcb1ab85f798e9"
+    },
+    "@deepseek-ai/dsh-subagent-spawn-in-process": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e4f0543244d6ce48a66e06943502294359d5e1cebf01ac374ef2f0d9aaf154d9"
+    },
+    "@deepseek-ai/dsh-subprocess": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "23899b8ca3154463737e783ee541944b54ce817104c218a2efb2f55bd78be654",
+      "candidateSha256": "91b5d74b2e48fe17b33d9c33155d4c38087f54e83ce4ceac967e93d26606c119"
+    },
+    "@deepseek-ai/dsh-subprocess-local": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5a348761a380125e3f3e28e36c828cd0c194d24df23901c1938cdfbda6d926e5",
+      "candidateSha256": "5512c9ca9653d72c84b76e48e5df073e9fd95ed5c5761ed6dbec19470273f0f5"
+    },
+    "@deepseek-ai/dsh-subprocess-ssh": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "c393e30844f0c2726bf2b1f8537705c18e7f769cde0c3258642f0354d67c38b8"
+    },
+    "@deepseek-ai/dsh-system-prompt": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7e08472f645211c7fa10c79a739ec794d13077a51af26d92d58cda2e7f406b22",
+      "candidateSha256": "1f5378ca8c9877772cb241ab9c5860419e89c7f83746eb8162918b1c0b125b5a"
+    },
+    "@deepseek-ai/dsh-terminal": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e241a7bbb7cd16cb2ec4c9bbfbf9d387a25a3b8bbb73a4fbfdc803de7780b913",
+      "candidateSha256": "446fee571dec8b30767b89a46f4ca8f738e25fc2a473fe24930031cde3cc8ccb"
+    },
+    "@deepseek-ai/dsh-terminal-bash": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b685a07bca8465abe2723777cfeae27a7899787f4a128a018b6e9dfa47f4cf3f",
+      "candidateSha256": "52033fbd77f3ae12609a9140201ef7b18934c3af086a415b474c708ff5fb8453"
+    },
+    "@deepseek-ai/dsh-time-context": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "fc85d0c06a50288dc6afa815470d6e7f8e26ed0af0194ff86ede835f6862480f",
+      "candidateSha256": "6980e6ff535f21b9f5d9421b90fc26ee25c33f26cabae7dc7a4e42f790f04926"
+    },
+    "@deepseek-ai/dsh-timeout": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "aca5ff2ca230ebb5756765f64e8873a2cba7b6a185e953fb681928c578fa4335",
+      "candidateSha256": "976502f921c9350f1619cbaa0a4d840c309b251e80415209f573881fc4a6bd7e"
+    },
+    "@deepseek-ai/dsh-tmux-context": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "f9048019be54e1ce5779fdaef5f9b6aa3818641365f8910b99105e473e581df2",
+      "candidateSha256": "a7d9f68cafa09ca232d979db414da1579839fdb524871a8e9c651d1cc18181eb"
+    },
+    "@deepseek-ai/dsh-token-meter": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "8ffc7f3263e34c5713147d92281ed3dc142fb3a7600203d895340fb91fd161f5",
+      "candidateSha256": "d22af20d9a2541e6896171623345c3baa790eb10fed66796a4bdb91837bb7666"
+    },
+    "@deepseek-ai/dsh-tool-ask-user": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5a6c4afe681e95feeb90e212e2759aa0f6393f986034fd176917913c56eb633a",
+      "candidateSha256": "e287d841f6535f763e659d4ab1f1b7ba8c26cd695bb8913810a9168b707a5e49"
+    },
+    "@deepseek-ai/dsh-tool-bash": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "04ce2318814890204e705c86c187627363d57981410ffb78a649075f1053e022",
+      "candidateSha256": "78e38bb082b09cdfdae15aa8a0b3a5e7b3a785b2eb568097821786d8774af571"
+    },
+    "@deepseek-ai/dsh-tool-bash-persistent": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5f4fd2649cae440a4edcc7dd85f33cf9c1fc0fe3a4afdd86ad3fb4c60b30ee19",
+      "candidateSha256": "60b4254bf7384218b2a5f2776b8f484603d27c6d8d0725a91cdf26be68883702"
+    },
+    "@deepseek-ai/dsh-tool-call-timeout-policy": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "166145494bb03c593baa79ae42921b17f47c9e2aa64a8ef78346185aa098d43f"
+    },
+    "@deepseek-ai/dsh-tool-cordis": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "2d30990748f6a362ac1b0dc086a7b6ee3b96027140ad544b758f29796f68bd7c",
+      "candidateSha256": "0b5d2e93e8cfab2ad4fd1385625827de07b1d8a8da9607b3cfc08d7650bbbe2e"
+    },
+    "@deepseek-ai/dsh-tool-fs": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "752abe6fa5ab6eb85c391f17afafc8d3ebd7bdbea1c827333e8964af750ddf49",
+      "candidateSha256": "67ceee8bcc4078fbf2105806e9b0c975127136cf407e6ee13ccdc0f50cd15ce8"
+    },
+    "@deepseek-ai/dsh-tool-fs-search": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a464e4a9e7fac3cff76231bbbaa2399ccfea3dbf39da6a6d4a560250d1ea221a",
+      "candidateSha256": "dd413c1fdab5bb287a5f37596b336c9235475984a3066490a1ae86d8fa1d7eca"
+    },
+    "@deepseek-ai/dsh-tool-goal": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3de682ad7790b82e459c056c880a04ecc393495cb1ca4317b0f3735159ec72b5",
+      "candidateSha256": "e6c6a88a3d5a363d186e7ccdb576c0deef1b011ad1eab6a5c8c03994d5c36ed8"
+    },
+    "@deepseek-ai/dsh-tool-jobs": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3a763eec7c0dfb62e15f3216d3b2604dba6e03efffe010f29ec6da941715b73b",
+      "candidateSha256": "503182ee38c61b7269c9f9f46f7ddf6243835da5702a74e91c0f302dcd49fc68"
+    },
+    "@deepseek-ai/dsh-tool-lsp": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "06769773567fccd09eab230d52c55212c26e6bb1eb4e683839d5a7a1097e7262"
+    },
+    "@deepseek-ai/dsh-tool-present": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3eb02bd4b56602f62a129d7ef380fdb4c0b47deb82c85263678e6d5a4601d008",
+      "candidateSha256": "bf339b96a1f278369bcbce429a73285ca45444c2c4dbca848e95e426cbbbdc47"
+    },
+    "@deepseek-ai/dsh-tool-pwsh": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4d48e6e494b6915d32178c6f2e3db416dea051aae809acfccc8a9d12c9b51d4f",
+      "candidateSha256": "c861978c931439a14eb0b2efc080fbde269ce1c083581b5d05f7f23c9cd017a5"
+    },
+    "@deepseek-ai/dsh-tool-pwsh-persistent": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "37453ea2011e9468b8943d19ed30ee9be19f1c74ec74bedcd54bc95c4d3c2b18",
+      "candidateSha256": "6b0ef88bb36b161b5ca2e629afabdeb1a6fa952144e5fd86c3b71a6eb09ccf9c"
+    },
+    "@deepseek-ai/dsh-tool-ralph": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b225968fdec5e6ea4efcfdad6b0f0b5215c358ef8d7489ec5a8b644dc7481676",
+      "candidateSha256": "c6e6f91e3889b0e5c099cafcd2f81b5d9e3a70d1c51b076abbebb574bef4c20e"
+    },
+    "@deepseek-ai/dsh-tool-schedule": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0e8dc9ec36eb3551f6fb298c424891345bc9ebf8fde527447fb2bd2a34de2ba6",
+      "candidateSha256": "7f7c91ea37837bc290f9bced74ac231a68b1967c88824228c3dfdb993da4cc48"
+    },
+    "@deepseek-ai/dsh-tool-session-query": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5d1bf1a59accf1a7e80f42147c9c29ddb4b4c074d4f2541b8d6720c21666919f",
+      "candidateSha256": "4a6defbd47caa0bad2b03f726a212363d5520550183be5edaf9010d8eb5d72a0"
+    },
+    "@deepseek-ai/dsh-tool-skill": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3fb8c67f49f3dfb6ef87a7170db9dd5f71f27b7222cd4a787b092e54389ed193",
+      "candidateSha256": "fc96d2e9bbe139e033897bcc0bf539912ca0101222699a44ce0b0765fac36c5b"
+    },
+    "@deepseek-ai/dsh-tool-str-replace-editor": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "10f1d0afabded29a94e9b14f4d1aaf4deb8824582314f07ea5654225abfe4f0d",
+      "candidateSha256": "4d0721610cd8292a8261674b51bcceb929b693be7e9d78b2b672dac25cb9044e"
+    },
+    "@deepseek-ai/dsh-tool-subagent": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "4895ffeea1743770408ce4bb2ff2f7a1bed9da11b4bc1400d6ae05d9d5458694",
+      "candidateSha256": "8127d3e186614d5c3c0705609323cc9295b7d8cf58530a2635454f335b5ee48e"
+    },
+    "@deepseek-ai/dsh-tool-subagent-control": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "98f4ef36d5967aab5d6754f0f27a55f8eb131c5e6fdd52ed4c73edceeb5db42b",
+      "candidateSha256": "893c0f3174f8c10cca1f067944916fe7ff908cac798e0b00b92761b376844867"
+    },
+    "@deepseek-ai/dsh-tool-terminal": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "f931c4ba09cbc3f50f70848615aaa84b81f72953bd967998d3aca9ed73311b12"
+    },
+    "@deepseek-ai/dsh-tool-todo": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "5f0c7ed753a97c6bded0a601da011c5fef81ce8294176b2e724245143fd66320",
+      "candidateSha256": "94451aeebc015942979fdf9c884244973ed4316715c64e3789e7c9cba29d402a"
+    },
+    "@deepseek-ai/dsh-tool-web": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "22ec84a25a96eaaf00482d08d29695e61a224260382bac7c29074c058a2a3d3f",
+      "candidateSha256": "a0cca014464fa356849c64b3f1675675ef395fcf2681c7f93ac654427f9836b1"
+    },
+    "@deepseek-ai/dsh-tool-workflow": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9e092750c12c5309eff1956563aeccf732f6f9a29e8d6cba871359b9c456211c",
+      "candidateSha256": "ed333052c77d32cbd54913bc308fafc69c4aa08a1183950ca43cd21fa58bf6d5"
+    },
+    "@deepseek-ai/dsh-tool-working-directory": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "aec9b6e6fe2e3ac05ed06c2cc5fb3d1cf337b7764cadedfda0aac9cbbbd02898"
+    },
+    "@deepseek-ai/dsh-tool-workspace-dependencies": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "933a324caa3522a1c8e2d49d82bb29cb378ab4924cb1901f81567422e64b2c66",
+      "candidateSha256": "2b3cf6a48fbf9ebea99f2d95aed2689d311f7c894008414e318a2a0e41f98d38"
+    },
+    "@deepseek-ai/dsh-tools": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "e31f40beed14244732f265e6800a0069fdb35334df6dea7833a6569fb21bd927",
+      "candidateSha256": "cd2f4865b6a376fd6f46863f64d6ce9556bdba2bb95c77b6abc9ee7c8b11ac3a"
+    },
+    "@deepseek-ai/dsh-typert-generator": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "f3fa940920878bcf608d199794c22b1ea40ded42bb40173e3352737b4758b9be"
+    },
+    "@deepseek-ai/dsh-typert-loader": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "2f33454fcf5806927368e0016876edbd0b8d6b8192fa6f17e676d52c87561ede",
+      "candidateSha256": "cba8d4dae6215c62a7e59b8e6d0d12be25ff3ff9b5d8f1d06d600159e59a9817"
+    },
+    "@deepseek-ai/dsh-typert-protocol": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "7348941d5b3b359840cf5f5cdbd9743e5d1e5ae619567cc66db0630bbee2849e",
+      "candidateSha256": "25d97516d0b0fc3037344d1e275e8dff9eb0ad2b11a1964d9047af78e0528663"
+    },
+    "@deepseek-ai/dsh-typert-registry": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a8502981f2a717cd2d1e494ea6fc8f1e8fd9f712d882ad2420df809190267706",
+      "candidateSha256": "e42e18e102e45cdf21b8d8afe8b2933b1f6c400f20fadc05d79f5d496a6b55d4"
+    },
+    "@deepseek-ai/dsh-user-approval": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "aefd74d6fe90fd59382fb71653e2f4d55135a33dce6544915030ef5e283ebc51"
+    },
+    "@deepseek-ai/dsh-user-questions": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "98b59164e0d4836158f5137b8806bf8d1b4d652e7fc8918fdfc5f394e974df6b",
+      "candidateSha256": "32ee956c3f8749bdfe7094bc3b0e11ed28c9c0541a4a0b87a62375cd3f6d3062"
+    },
+    "@deepseek-ai/dsh-util-code-language": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9cb31a5456fbd83bd88e5c287f825da7c3afcfc0312d072249006885704e984e",
+      "candidateSha256": "132bfb37df245c616cfc6d5c385cb420ee7c126af17aab0a6f9bcaf07936f3c3"
+    },
+    "@deepseek-ai/dsh-util-crypto": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "80678f275d6a11af2c208042841bfdf4fcf0060743f0326d752376eb386b5d55",
+      "candidateSha256": "7f41a3a2fbacf5cb36592d688d7b16b381d02a31c7f87ba25b4427db2b9461df"
+    },
+    "@deepseek-ai/dsh-util-time": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "67cdb43752e0c6a1fe760d6b13d4ae80f88441f6c94305c864ea23aa9731c43a"
+    },
+    "@deepseek-ai/dsh-util-values": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "6d139266814193077d0e8ac307900c19a7d2fc57a8612388e5073ef13a295a87",
+      "candidateSha256": "99e9b4bfeee50604a727dd3c37ca968cbf316cdd9705d4fa93fffe81a83522f6"
+    },
+    "@deepseek-ai/dsh-util-workspace-path": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "c339a63abfe4a3c625f077ede0cace9bafe52739545b252857159e1b2f2dbdd7"
+    },
+    "@deepseek-ai/dsh-web": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "9496e382af58d13ea777dc5825d8c962a069003a9553d82fee5bf448ff53dd46",
+      "candidateSha256": "6fc35d0d95049ad2be35850577e707ce2884a1c3e8835ad2e370d766fc63e163"
+    },
+    "@deepseek-ai/dsh-web-app": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "01db7995e637e80e50477cfdfb8d7268e4323f370b598e03963c183dc73d8324",
+      "candidateSha256": "39f43c96dc319d38914d3257a6728c7e554ea25e207256ccccdb03e845ffd5c7"
+    },
+    "@deepseek-ai/dsh-web-fetch-http": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "15c2e09e8e329b9f474411361de78c1e85b1d548a18903de7acf7fa18807a0b7",
+      "candidateSha256": "228eacf507de81dd16ede9a3cdc9b33fe7a5bf84b212b65e448c5121c5aa417e"
+    },
+    "@deepseek-ai/dsh-web-frontend": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "47940bb84760b863e239b89c24da81298e4676486fac723f447c394c4ead1765"
+    },
+    "@deepseek-ai/dsh-web-search-deepseek": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0c056db202452c9a68b206f56d848b65908b06545b19a3f1248ff65286493b53",
+      "candidateSha256": "cf37750d02151221a6100abdbb29124f3f585fc5ec618e89cb904c78caf979f9"
+    },
+    "@deepseek-ai/dsh-web-search-exa": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "3c929e2b32ff77ae349cfca7ba1acaf63f803c6e9bb6409e2ca8b79ebc47359f",
+      "candidateSha256": "7b3a36f1394698eae4588754ab89a456259c052ef823091de752147a1bc23a85"
+    },
+    "@deepseek-ai/dsh-web-search-perplexity": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "a1e42d50305a509a6847fa376ebd634d19c2c280e3eca37795c57f5fa9becbb6"
+    },
+    "@deepseek-ai/dsh-webhook": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "cc463180293bc0c773895df1acf796ceb8fd7901d7a7ba7f9aa76ea71676b0d6",
+      "candidateSha256": "d7c6241dbf85a013ba7b4d9fa76af5ed3a5735f9ecedb38d968eeb30630f6863"
+    },
+    "@deepseek-ai/dsh-webhook-github": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "b6a8462471fef8c1e896ee42b89e613c9c4cb69a43ac3ac1e45b554dc8f8f9ce",
+      "candidateSha256": "4ce5be20c54e8cdf90852a3abc81b6fcb22834af88175fea453ee24685a1d9a7"
+    },
+    "@deepseek-ai/dsh-win32-process": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "a3ef8e295c1b0fc12cfea16882c7216e769100908466009ce7303c5b85927d58",
+      "candidateSha256": "91a9fdd8ba024dad6ae71d8fc39a42af9ef3b4e3a30d6d206ea23f6efe3eb66f"
+    },
+    "@deepseek-ai/dsh-workflow": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "1fe67373a6422930b154f9cb4ac67b359c939305aeb5fc1c0fd4e1f00854e9a6"
+    },
+    "@deepseek-ai/dsh-workflow-ptc": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "ffcd720ec920be7175c9998beb9fdfbd323ff65c940f5894e376c3c456fa8b36",
+      "candidateSha256": "c90876dea8407e7496e325c38b45ee1fd693bf89d0e3a6fa61f0f90a12e7da0e"
+    },
+    "@deepseek-ai/dsh-working-directory": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.2",
+      "candidateSha256": "e40d483561e7d543ad2d6577b448b863d67f65818d46be0dd65f1cdd4d764ff9"
+    },
+    "@deepseek-ai/dsh-workspace": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "48a15c672616e6ed1390fb1f7184efa250f479a0dd65d7661ba1c38270b61343",
+      "candidateSha256": "28863291def072cf4f500222460a3ec796f205d5d7b6e61c4ad04b723347ccc6"
+    },
+    "@deepseek-ai/dsh-workspace-changes": {
+      "mode": "replace",
+      "baselineVersion": "0.2.1-alpha.1",
+      "candidateVersion": "0.2.1-alpha.2",
+      "baselineSha256": "0d859fbf9574df92d8968df8b3431e674ce160b2fedb5aab224c28530c49a668",
+      "candidateSha256": "ff543cc55dabf25945fe804266961c50c495142e85fb7aad535ec98377a17817"
+    },
+    "@deepseek-ai/libreoffice-kit": {
+      "mode": "add",
+      "candidateVersion": "0.1.5",
+      "candidateSha256": "569ac9852ca561eb68d33192093771d3153025650ee977c4f87b9870214dcc73"
+    },
+    "@deepseek-ai/libreoffice-kit-wasm": {
+      "mode": "add",
+      "candidateVersion": "0.1.5",
+      "candidateSha256": "ac5490956b505c7de8211e632019f90bd11104e14cdc8b98932abc8b9a3d0a33"
+    },
+    "@deepseek-ai/node-addon-system": {
+      "mode": "add",
+      "candidateVersion": "0.1.2",
+      "candidateSha256": "83ea281566c2e79375a31be52703dfb20d7e159e10b334f6b74398ebb2eb9585"
+    },
+    "@deepseek-ai/node-addon-system-linux-x64": {
+      "mode": "add",
+      "candidateVersion": "0.1.2",
+      "candidateSha256": "d17639c3f32b49306160cea272363fe212758b02a52d55fb9f8dd2cc8c6661f5"
+    },
+    "@sparkelf/dsh-client-ui-permission-presets": {
+      "mode": "add",
+      "candidateVersion": "0.2.1-alpha.1",
+      "candidateSha256": "433b568d3db8dae196e76ad84936603d96c8bb13478428c753628f78e72e4dfd"
+    },
+    "@sparkelf/dsh-client-ui-skill-center": {
+      "mode": "remove",
+      "baselineVersion": "0.2.1-alpha.14",
+      "baselineSha256": "b0b99f94dec737ba4ab88986b5c471fda5710ce5b0fcc67c941459dc9fe20f66"
+    },
+    "@sparkelf/dsh-mobile-bridge": {
+      "mode": "replace",
+      "baselineVersion": "0.2.18",
+      "candidateVersion": "0.2.16",
+      "baselineSha256": "50c2c57f9dc8a6f1e4f139fae4cf3e415fc047324857d99de969dd3aa427d0c0",
+      "candidateSha256": "16361945ba0b7f2afb1b9f1230290fbcd7f3d8cef3c006eba5f2958e68101410"
+    },
+    "@sparkelf/dsh-plugin-backup": {
+      "mode": "remove",
+      "baselineVersion": "0.2.1-alpha.14",
+      "baselineSha256": "dc1c90be72568fab72b98efb14cd885fbc020891cdf4854a65c741bfb6ab28bf"
+    },
+    "@sparkelf/dsh-plugin-mcp-credentials": {
+      "mode": "remove",
+      "baselineVersion": "0.2.1-alpha.14",
+      "baselineSha256": "f6de01b6c49a8b728cd14122c52f9362fa7a250941d2983e64fb3cb34c472b99"
     },
     "@sparkelf/dsh-plus": {
       "mode": "replace",
-      "baselineVersion": "0.2.0-rc.3",
-      "candidateVersion": "0.2.0-rc.5",
-      "baselineSha256": "d56ca737b5cbe765b13a0a969adecf10287550d9ec902007f31f68a222dcd754",
-      "candidateSha256": "d9d704f0a9bbf0dd945a63913496750be6687f94ddc301471114aff5cfba54fc"
+      "baselineVersion": "0.2.1-alpha.14",
+      "candidateVersion": "0.2.1-alpha.25",
+      "baselineSha256": "9454f0060d43bd07c9bc00718c425a1039f8e763858763c77daa0dda7576da72",
+      "candidateSha256": "521b95e8ae0a41b94e5be8a8a63a570a2a4e494684a42722fb09949f6c432c7e"
+    },
+    "@sparkelf/dsh-plus-standalone": {
+      "mode": "remove",
+      "baselineVersion": "0.2.1-alpha.14",
+      "baselineSha256": "2c4e4a5117a77229f9ee5c4094c026f0cf60c0086feac10d28ec978c7530a45a"
     },
     "dsh-better-sidebar": {
       "mode": "replace",
-      "baselineVersion": "0.19.1",
-      "candidateVersion": "0.19.1",
-      "baselineSha256": "ade547d0270f99769764d7fcadeed9a1081cc3f8d4fc7af12d3e9f0db2d6414b",
-      "candidateSha256": "4f44c21688d20ceb57e7717176201aaf3e46c088bb4e689cebaee9de3e5beecb"
+      "baselineVersion": "0.24.1",
+      "candidateVersion": "0.24.1",
+      "baselineSha256": "0d0401e0f565d69b4927f71be977382dfe0b9f36b1bd53220fd8101b259e2f47",
+      "candidateSha256": "985e886767817774a5263f4f000f2843b014e4bd5190136097e852bdb1d78b28"
+    },
+    "dshmarket": {
+      "mode": "remove",
+      "baselineVersion": "1.66.9",
+      "baselineSha256": "95cd03ed6d1e4344501de1ee861dfd2887689e2592521acc9902d78b755a6a28"
+    },
+    "semver": {
+      "mode": "remove",
+      "baselineVersion": "7.8.5",
+      "baselineSha256": "09c759426e88e72593bf5bbea20823e90fc4cc889bdc3c6ad1f8dd71022bfbcb"
+    },
+    "yaml": {
+      "mode": "remove",
+      "baselineVersion": "2.9.1",
+      "baselineSha256": "b480a663b8b966f2392c17414d8a686b10e00e36420eec70cd50f379b01ce90d"
     }
   }
 }
