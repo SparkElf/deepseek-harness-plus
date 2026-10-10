@@ -1,4 +1,10 @@
+# A patch row inherits the `inject` of the row it names rather than declaring its own,
+# so this row states both services. `webStartup` is the current provider; `webRuntime` is
+# the pre-alpha.2 name the dsh-web-app patch republishes for the third-party bundles that
+# still inject it (dsh-better-sidebar, dsh-video-preview). Reading the old service keeps
+# this layer working whichever of the two a deployment's web-app patch provides.
 - id: connection
+  inject: [webStartup, webRuntime]
   config:
     trustedHosts: !!js ctx.webRuntime.trustedHosts
     browserAuthentication: disabled
