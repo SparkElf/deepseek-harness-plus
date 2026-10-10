@@ -599,3 +599,50 @@ pnpm 因此拒绝——与插件版本无关。
 同时注意**标记字符串别撞车**：我用 `MARKER` 做标记，而 0.25.0 里本来就有 5 处
 `SETTINGS_NAV_MARKER`，于是「标记已落地」的计数完全失真，得出了相反结论。
 用 `PROBE_UNIQUE_<随机>` 这类不可能撞车的字符串。
+
+### 宿主 mirror 不会打 npm 补丁（镜像会）
+
+DataOps 镜像用 `materialize-npm-patches.mjs` 把 `patchedDependencies` 写进 profile，
+pnpm 在 install 时打补丁。**但宿主侧的 `dsh-plus-mirror` 不做这件事** ——
+它把补丁目录搬进 profile（`.dsh-plus/patches/`），却不写 `patchedDependencies`，
+也不跑 `dsh-plus apply`。
+
+实测 2026-10-11：
+
+| 部署 | better-sidebar | `mediaCwd` | `catalogRequests` |
+|---|---|---|---|
+| 021a5（上一个） | 0.24.1 | 3 | 3 |
+| 021a2（mirror 新建） | 0.25.0 | **0** | **0** |
+
+021a2 的 `lib/index.js` 与官方 0.25.0 **逐字节相同**（md5 `e6c2a9925acf`），
+说明补丁完全没打上；而它的 `.dsh-plus/patches/` 里躺着 0.2.0-rc.23 时代的旧补丁目录
+（`combined/dsh-better-sidebar%400.19.1/`），是从上一版 carry 来的残留。
+
+**判据**（比看版本号可靠）：
+
+```sh
+P=<profile>/node_modules/dsh-better-sidebar
+for pair in "lib/index.js:mediaCwd" "lib/index.js:htmlCwd" "lib/client.js:catalogRequests"; do
+  f=${pair%%:*}; k=${pair##*:}
+  echo "  $f $k = $(grep -c "$k" "$P/$f" 2>/dev/null || echo 0)"
+done
+# 全 0 且 md5 与官方包相同 = 补丁没打
+md5sum "$P/lib/index.js" <(tar -xzOf <官方tgz> package/lib/index.js) 2>/dev/null | awk '{print "  "$1}'
+```
+
+**为什么 `dsh-plus apply` 用不了**：它要求一个 HEAD 等于发行版 base revision 的
+官方 DSH git checkout（`--dsh-root`），registry 安装没有 checkout。
+
+**影响评估要实测，不要从字节推断**：021a2 缺三个补丁，但侧边栏下载实测 **200**
+（相对路径与绝对路径都返回文件内容），所以「Failed to fetch」不复现 ——
+缺的是路径解析的边界处理，不是主路径。判定故障是否存在的依据是请求结果，不是文件 diff。
+
+**防回归**：给镜像加断言，让补丁丢失时构建失败而不是静默通过：
+
+```dockerfile
+RUN set -eux; \
+    sidebar="${DSH_INSTALL_HOME}/profiles/${DSH_PROFILE_NAME}/node_modules/dsh-better-sidebar"; \
+    grep -q htmlCwd "${sidebar}/lib/index.js"; \
+    grep -q mediaCwd "${sidebar}/lib/index.js"; \
+    grep -q catalogRequests "${sidebar}/lib/client.js"
+```
