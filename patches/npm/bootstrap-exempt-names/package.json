@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-bootstrap-exempt-names",
-  "version": "0.2.1-alpha.22",
+  "version": "0.2.1-alpha.23",
   "description": "Data-only exact official-source patch exempting DSH_OFFICE_FONT_DIR from the bootstrap-only prefix rule, so a deployment may set it from a .env",
   "publishConfig": {
     "access": "public"
