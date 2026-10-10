@@ -687,3 +687,48 @@ ss -lptnH 'sport = :3080' | grep -oE 'pid=[0-9]+'           # 再读 /proc/<pid>
 
 **通用规则**：任何「重建 / 覆盖」型命令，先确认目标是否是当前正在使用的那一份。这与「必须建在
 已合并的 revision 上」是同一件事的两面：一个约束来源，一个约束目标。
+
+
+### tarball 直供镜像：能做到什么，做不到什么
+
+**目标**：让镜像构建消费 `release:pack` 的字节，不等 npm 发布窗口。
+
+**做法**（三层，缺一不可）：
+
+| 层 | 文件 | 作用 |
+|---|---|---|
+| 索引 | `index-tarballs.mjs` | 读打包目录，给出每包名/版本/digest + 集合 digest |
+| 传参 | `build-and-verify.mjs --release-tarballs <dir>` | 作为 build context 传入，并打印版本与 digest |
+| 消费 | `Dockerfile` + `repoint-tarball-deps.mjs` | 用 tarball 装 standalone，并把 `@sparkelf/*` 映射到各自 tarball |
+
+**四个必须踩过才知道的约束**：
+
+1. **Dockerfile 必须真的引用 context**。只传 `--build-context` 但 Dockerfile 不 `COPY --from`，
+   等于没做——构建照旧走 registry，而且没有任何报错。
+2. **context 必须无条件提供**。BuildKit 对 `COPY --from=<named context>` 要求 context 存在；
+   没喂 tarball 时要传**空目录**，不能省略。
+3. **直接依赖不能出现在 overrides 里**。npm 报
+   `EOVERRIDE: Override for <pkg>@file:... conflicts with direct dependency`。
+   standalone 是通过命令行参数装的（不在 manifest 的 `dependencies` 里），所以要把它的名字
+   **显式传给映射脚本**。
+4. **只有本仓库的包能映射**。第三方（dsh-genui、better-sidebar、dshmarket、semver、yaml 等 9 个）
+   属于别的发布者，不该被重打包。
+
+**边界要如实说**：这消掉的是**我们自己的发布窗口依赖**，不是 registry 依赖。
+判据用**空 cache + `--offline`**：
+
+```sh
+npm install --offline --cache /tmp/empty --no-audit --no-fund --ignore-scripts <tarball>
+# 空 cache 时失败在第三方包上 → 这是诚实的边界，不是缺陷
+```
+
+**验证方式**：不要只跑完整构建（30+ 分钟），把 Dockerfile 的 install 步骤**逐字复现**到临时目录：
+
+```sh
+# 写入与 Dockerfile 相同的根 manifest，然后跑同一个分支
+node repoint-tarball-deps.mjs package.json <tarball-dir> "@sparkelf/dsh-dataops-standalone"
+npm install --no-audit --no-fund --ignore-scripts "<standalone tarball>"
+```
+
+实测结果：1174 包，standalone 与 dsh-plus 均 `0.2.1-alpha.27`，27 个 `@sparkelf` 包；
+`--offline` 重装退出码 0 且日志里 registry 出现 **0** 次。
