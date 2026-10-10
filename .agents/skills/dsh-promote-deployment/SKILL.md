@@ -504,3 +504,37 @@ while [ ! -f /tmp/gen-done ]; do sleep 10; done
 ```
 
 会话内的 `nohup ... &` **会被 supervisor 重启带走**，`systemd-run` 不会。
+
+### 一个「修复」脚本可能什么都没修，却报成功
+
+`dsh-plus-allow-builds` 的职责是把发行版记录的 native 构建许可写入 profile 的
+`pnpm-workspace.yaml`。它**只处理已存在的 `allowBuilds:` 块**：
+
+```js
+if (changed === 0) console.log('dsh-plus-allow-builds: every entry already answered')
+```
+
+而 pnpm **只在它有话要问时才写这个块**。于是「块不存在」和「块已全部作答」在脚本看来完全一样 ——
+它打印 `every entry already answered` 后**什么都不写**，紧接着的
+`pnpm install` 继续以 `ERR_PNPM_IGNORED_BUILDS` 失败。
+
+2026-10-11 实测：alpha.2 镜像**连续两次**停在这一步，日志完全一样：
+
+```
+[mirror] resolving the profile's allowBuilds placeholders
+dsh-plus-allow-builds: every entry already answered
+[mirror] installing again with the build decisions in place
+[ERR_PNPM_IGNORED_BUILDS] Ignored build scripts: koffi@3.1.1, node-pty@1.2.0-beta.15, ...
+```
+
+**判据**：脚本报成功时，核对目标文件是否真的变了：
+
+```sh
+grep -A 11 "^allowBuilds" <profile>/pnpm-workspace.yaml || echo "块不存在 —— 脚本没有写入"
+```
+
+**修法**：块不存在时从发行版整块写出，而不是只在已有块内作答。
+
+**一般规则**：一个修复脚本报「无需修改」时，要区分「已经正确」和「它没找到目标」。
+后者必须报错或主动创建，不能算成功 —— 否则它把失败推迟到下游，而下游的报错指向别处
+（这里是 pnpm 的 `ERR_PNPM_IGNORED_BUILDS`，看起来像 profile 的问题，其实是修复没做）。
