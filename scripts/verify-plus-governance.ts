@@ -259,7 +259,7 @@ function main(): void {
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.11.3',
+    '@changfenhuang/dsh-genui': '0.11.4',
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
     '@sparkelf/dsh-plugin-supervisor': '0.1.9',
@@ -268,7 +268,7 @@ function main(): void {
     '@sparkelf/dsh-ssh-manager': '0.7.4',
     '@sparkelf/dsh-api-client': '0.5.3',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.24.1',
+    'dsh-better-sidebar': '0.25.0',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
@@ -285,7 +285,7 @@ function main(): void {
     // The mobile face is the companion gateway this deployment runs; it needs neither a
     // host step nor a client build of its own. 0.2.16 keeps the minted pairing identity across
     // reads, so an already-paired phone is no longer addressed to a bridge the relay replaced.
-    '@sparkelf/dsh-mobile-bridge': '0.2.16',
+    '@sparkelf/dsh-mobile-bridge': '0.2.18',
     // The quant workbench registers its tools and its own sidebar page.
     '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
     // Some OpenAI-compatible routes advertise image input but cannot read the array form of
@@ -296,7 +296,7 @@ function main(): void {
     // nearest preceding user message in the model-visible projection, leaving the durable log
     // untouched. Its `providers` list is empty here, so a profile changes behavior only by
     // naming the routes that need it.
-    '@sparkelf/dsh-image-hoist': '0.1.1',
+    '@sparkelf/dsh-image-hoist': '0.1.3',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.
@@ -308,10 +308,10 @@ function main(): void {
     '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-alpha.1',
     // The auto-review preset is registered by that bundle, but its product label and glyph live
     // in the permission-presets client, which knows only the three built-in names: the preset
-    // renders as its raw machine value in an English locale and carries no icon. The package is
-    // named as a profile dependency so the distribution owns the bytes it patches, and the patch
-    // package supplies the fourth label and glyph until upstream ships them.
-    '@sparkelf/dsh-client-ui-permission-presets': '0.2.1-alpha.1',
+    // renders as its raw machine value in an English locale and carries no icon. The client is
+    // a dsh-source patch target, so the republished override carries those bytes; naming it here
+    // as well installed the same client twice under two names, and both copies register the
+    // one module id the official name owns.
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')

@@ -53,7 +53,7 @@ entries:
     source:
       kind: npm
       spec: dsh-better-sidebar
-    pinned: 0.19.1
+    pinned: 0.25.0
     interest: Native right-sidebar tabs, file tree, editor, terminal, and side chat
     owner: omdsh-dev
     localPatches:
@@ -77,10 +77,9 @@ entries:
       # The on-screen-session patch retired at dsh-better-sidebar 0.21.1: the package now
       # derives it from mountedSessions(ctx) instead of sessions.list.current, which is what
       # the patch substituted (omdsh-dev/DSH-better-sidebar#715, PR #716).
-      - package: "@sparkelf/dsh-patch-better-sidebar-browser-url-seed"
-        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
-        retireWhen: dsh-better-sidebar carries a link's url seed onto the tab it
-          opens (omdsh-dev/DSH-better-sidebar#717, PR #718)
+      # The url-seed patch retired at dsh-better-sidebar 0.25.0: the package now reads
+      # `seed.path ?? seed.url` and `params?.path ?? params?.url`, which is what the patch
+      # substituted (omdsh-dev/DSH-better-sidebar#717, PR #718).
     plusBundle: true
   - name: "@deepseek-ai/dsh-agent-presets"
     source:

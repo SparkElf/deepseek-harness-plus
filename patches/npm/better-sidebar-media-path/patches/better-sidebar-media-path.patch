@@ -1,16 +1,18 @@
 diff --git a/lib/index.js b/lib/index.js
+index 7ce4ed1..1236d42 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -4370,6 +4370,11 @@
+@@ -7001,7 +7001,12 @@ function apply(ctx, config) {
  				const sessionId = url.searchParams.get("sessionId");
  				const raw = url.searchParams.get("path");
  				if (sessionId === null || raw === null) throw new SidebarError("bad-request", "sessionId and path are required");
--				const path = await ensureWorkspacePath(await sessionCwdOf(ctx, sessionId, url.searchParams.get("cwd") ?? void 0), raw);
+-				const path = await ensureWorkspacePath(await activeWorktreeRootOf(ctx, sessionId, await sessionCwdOf(ctx, sessionId, url.searchParams.get("cwd") ?? void 0)), raw);
 +				// The client sends the path it displays, which is workspace-relative when the file
 +				// lies inside the session; cwd rides in the query for exactly this. An absolute path
 +				// that already names a real file is used as sent.
-+				const mediaCwd = await sessionCwdOf(ctx, sessionId, url.searchParams.get("cwd") ?? void 0);
++				const mediaCwd = await activeWorktreeRootOf(ctx, sessionId, await sessionCwdOf(ctx, sessionId, url.searchParams.get("cwd") ?? void 0));
 +				const requested = isAbsolute(raw) ? raw : join(mediaCwd, raw);
 +				const path = await ensureWorkspacePath(mediaCwd, requested);
  				const info = await stat(path);
  				if (!info.isFile() || info.size > resolved.mediaLimit) throw new SidebarError("fs-error", "not a file or too large", 400);
+ 				const type = mediaTypeForPath(path);
