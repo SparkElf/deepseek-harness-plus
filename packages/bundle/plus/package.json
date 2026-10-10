@@ -84,7 +84,7 @@
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
-        "@sparkelf/dsh-image-hoist": "0.1.2",
+        "@sparkelf/dsh-image-hoist": "0.1.3",
         "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1"
       },
       "allowBuilds": {

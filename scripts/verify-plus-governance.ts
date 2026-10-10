@@ -296,7 +296,7 @@ function main(): void {
     // nearest preceding user message in the model-visible projection, leaving the durable log
     // untouched. Its `providers` list is empty here, so a profile changes behavior only by
     // naming the routes that need it.
-    '@sparkelf/dsh-image-hoist': '0.1.2',
+    '@sparkelf/dsh-image-hoist': '0.1.3',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.

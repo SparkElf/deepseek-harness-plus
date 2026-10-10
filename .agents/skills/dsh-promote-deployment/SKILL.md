@@ -270,3 +270,89 @@ nohup npx tsx scripts/standalone/generate-manifest.ts \
 
 **在生成器跑完之前读 manifest 会读到半写状态**（本次因此误判过一次「52 个 alpha.2」）。
 等进程真正退出再读。
+
+### 改插件前先确认哪一份是权威源码
+
+2026-10-10 实测踩坑：`@sparkelf/dsh-image-hoist` 在 `/root/projects/` 下**有两份副本**：
+
+| 路径 | 性质 |
+|---|---|
+| `dsh-plugins-plus/packages/image-hoist/` | **权威源码**，被 git 跟踪，带 `repository` / `scripts` / `devDependencies` |
+| `dsh-image-hoist/`（`/root/projects/` 顶层） | 手工拷贝的散件，**未被任何仓库跟踪**，缺 `repository` 且 peer 范围被简化成 `"*"` |
+
+我在散件上改了并发布了 `0.1.2` —— peer 范围降级成通配、丢掉 `repository`，
+导致 harness 仓库的 `gen-third-party-notices` 预提交钩子直接失败
+（`cannot resolve repository for @sparkelf/dsh-image-hoist`）。版本号已消耗，只能发 `0.1.3`。
+
+**发版前先确认权威位置**：
+
+```sh
+# 被 git 跟踪的那份才是源码；未跟踪的同名目录是散件
+cd /root/projects/dsh-plugins-plus && git ls-files packages/<name> | head
+git -C /root/projects ls-files dsh-<name>   # 空 = 未跟踪，不要用它发版
+```
+
+发版后的元数据也要核对 —— 缺失的字段往往在发布被拒时才暴露：
+
+```sh
+npm view --registry=https://registry.npmjs.org <pkg>@<version> repository peerDependencies dsh --json
+```
+
+### 无 src 的插件：lib/ 就是源码
+
+`dsh-plugins-plus` 里多数包有 `src/` 且带 `prepack: pnpm run build`，`lib/` 被 `.gitignore` 忽略。
+但 `image-hoist` **没有 `src/`** —— 它的 `lib/index.js` 是手写源码、直接入库发布。
+判断一个包属于哪种：
+
+```sh
+ls packages/<name>/src 2>/dev/null || echo "无 src → lib 是源码，无 prepack"
+node -p "JSON.stringify(require('./packages/<name>/package.json').scripts)"
+```
+
+### 生成器不能是非确定的，否则它自己的门禁会间歇失败
+
+`resolvePeerOverrides` 遍历插件、对每个插件问 registry 拿 peer；`publishedPeers` 在 `npm view`
+失败时**静默返回 `{}`**。于是一次瞬时超时会让某个插件的 peer 改由**另一个声明同一 peer 的插件**
+插入 —— 集合完全相同，**顺序不同**。而生成器的 `--check` 用 `JSON.stringify` 比较：
+
+```ts
+const stale = owned.filter(key => JSON.stringify(previous[key]) !== JSON.stringify(manifest[key]))
+```
+
+`JSON.stringify` 对对象键顺序敏感，所以这个门禁会**间歇性失败**，且报错只说
+`is stale in overrides, dshPlusStandalone`，不指出差别只是顺序。
+
+诊断方法 —— 连跑两次，比较集合与顺序：
+
+```sh
+npx tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out /tmp/a.json
+npx tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out /tmp/b.json
+node -e "
+const a=require('/tmp/a.json'), b=require('/tmp/b.json');
+console.log('集合相同:', JSON.stringify(Object.keys(a.overrides).sort())===JSON.stringify(Object.keys(b.overrides).sort()));
+console.log('顺序相同:', JSON.stringify(Object.keys(a.overrides))===JSON.stringify(Object.keys(b.overrides)));
+"
+```
+
+修法是在**输出处**排序（`overrides` 与 `peerOverrides` 都按 name 排），让产物只由输入决定：
+
+```ts
+...Object.fromEntries([...overrides].sort((l, r) => l.name.localeCompare(r.name)).map(e => [e.name, e.version])),
+```
+
+注意：**改生成器后必须重新生成两份 manifest**，否则 `--check` 会因排序变化而失败 —— 这本身
+就是这条规则生效的证据。
+
+### 改完依赖必须重新生成，且生成器很慢
+
+`profile.dependencies` 一改（升级插件、加/删条目），两份 standalone manifest 立即过期。生成器
+为每个 override 查一次 registry，实测单份约 3–5 分钟。**必须后台跑**，并在**进程真正退出后**再读文件：
+
+```sh
+nohup npx tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus \
+  --out packages/standalone/plus-standalone/package.json > /tmp/gen.log 2>&1 &
+# 用 pgrep 确认退出，不要靠 sleep 猜
+while pgrep -f generate-manifest >/dev/null; do sleep 10; done
+```
+
+写文件发生在**最后一步**，中途读会拿到半写内容（本次因此误判过两次）。
