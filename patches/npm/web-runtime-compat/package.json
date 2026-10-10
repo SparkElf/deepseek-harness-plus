@@ -1,14 +1,14 @@
 {
-  "name": "@sparkelf/dsh-patch-ptc-mcp-schema-types",
+  "name": "@sparkelf/dsh-patch-web-runtime-compat",
   "version": "0.2.1-alpha.22",
-  "description": "Data-only exact official-source patch preserving MCP parameter types in the TypeScript PTC SDK",
+  "description": "Data-only exact official-source patch republishing the bind-dependent webRuntime service beside its alpha.2 successor",
   "publishConfig": {
     "access": "public"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
-    "directory": "patches/npm/ptc-mcp-schema-types"
+    "directory": "patches/npm/web-runtime-compat"
   },
   "type": "module",
   "files": [
@@ -19,16 +19,16 @@
     "formatVersion": 1,
     "variants": [
       {
-        "id": "ptc-mcp-validation-schema-types",
-        "dsh": ">=0.2.0-rc.2",
+        "id": "web-runtime-service-compat",
+        "dsh": ">=0.2.1-alpha.2",
         "target": {
           "kind": "dsh-source",
           "baseRevision": "6851e496285b2c9670066fdd142e7e46da586649",
           "paths": [
-            "packages/core/tools/"
+            "packages/bundle/web-app/"
           ]
         },
-        "file": "./patches/ptc-mcp-schema-types.patch"
+        "file": "./patches/web-runtime-compat.patch"
       }
     ]
   }

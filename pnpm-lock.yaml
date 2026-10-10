@@ -1661,9 +1661,6 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
-      '@sparkelf/dsh-patch-auto-review-preset-label':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/auto-review-preset-label
       '@sparkelf/dsh-patch-better-sidebar-browser-url-seed':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-browser-url-seed
@@ -1724,6 +1721,9 @@ importers:
       '@sparkelf/dsh-patch-ui-settings-compact-phone':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/ui-settings-compact-phone
+      '@sparkelf/dsh-patch-web-runtime-compat':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/web-runtime-compat
       '@sparkelf/dsh-patch-workspace-storage-restore':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/workspace-storage-restore
@@ -9550,7 +9550,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-session@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-scope@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.20
+        specifier: workspace:0.2.1-alpha.22
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -9653,7 +9653,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-session@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-scope@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.20
+        specifier: workspace:0.2.1-alpha.22
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -11426,8 +11426,6 @@ importers:
 
   patches/npm/approval-allow-policy: {}
 
-  patches/npm/auto-review-preset-label: {}
-
   patches/npm/better-sidebar-browser-url-seed: {}
 
   patches/npm/better-sidebar-html-preview-path: {}
@@ -11467,6 +11465,8 @@ importers:
   patches/npm/state-dot-brand-blue: {}
 
   patches/npm/ui-settings-compact-phone: {}
+
+  patches/npm/web-runtime-compat: {}
 
   patches/npm/workspace-storage-restore: {}
 

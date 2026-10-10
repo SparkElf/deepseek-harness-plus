@@ -1,5 +1,5 @@
 diff --git a/apps/web/tests/access-confirmation.e2e.ts b/apps/web/tests/access-confirmation.e2e.ts
-index a47cad6..6c05516 100644
+index f97978d346..edab518be0 100644
 --- a/apps/web/tests/access-confirmation.e2e.ts
 +++ b/apps/web/tests/access-confirmation.e2e.ts
 @@ -151,6 +151,12 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
@@ -16,7 +16,7 @@ index a47cad6..6c05516 100644
      const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
      await dialog.waitFor({ timeout: 10_000 })
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index d87bf4c..901bf5f 100644
+index 72ebfb69c2..b61f6a61f8 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
 @@ -323,6 +323,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
@@ -34,20 +34,20 @@ index d87bf4c..901bf5f 100644
      const composerBounds = await page.locator('[data-composer-card]').first().boundingBox()
      expect(modelMenuBounds!.width).toBeLessThan(composerBounds!.width)
 diff --git a/packages/client/ui-layout/README.md b/packages/client/ui-layout/README.md
-index acc75b5..0a47e29 100644
+index 43c61b89d1..8fa5117005 100644
 --- a/packages/client/ui-layout/README.md
 +++ b/packages/client/ui-layout/README.md
 @@ -56,7 +56,7 @@ The presenter consumes resolved theme snapshots and projects them onto the docum
  
  `selectPanel(id)` checks the live `main` registry before changing selection; an absent key throws and leaves the current panel intact. `beginNavigation()` returns an abort signal for an asynchronous UI navigation. A later call, a valid panel selection (including repeated selection), or layout disposal aborts that signal without cancelling underlying Session creation. Consumers check the signal before committing navigation or moving drafts.
  
--One registration declares the frame slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `ctx.layout.panelInfo` and the standard `usePanelInfo` hook share the same selection source; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
-+One registration declares the frame slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `ctx.layout.panelInfo` and the standard `usePanelInfo` hook share the same selection source; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
+-One registration declares the frame slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `ctx.layout.panelInfo` and the standard `usePanelInfo` hook share the same selection source; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, font-list, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
++One registration declares the frame slots and binds `ctx.layout` methods `selectPanel`, `toggleSidebar`, `openRightbar(track, fullscreen)`, and `closeRightbar`. One root store separates `panelInfo` selection from `layoutInfo` measurements, width preferences, and presentation reports. `ctx.layout.panelInfo` and the standard `usePanelInfo` hook share the same selection source; AppFrame subscribes to the stable layout object. The `rightbar` owner supplies actual `width`, `viewportWidth`, and normal-presentation eligibility `canShow`; insufficient room causes a deterministic close, never automatic reopening on widening. Fullscreen hides the width handle without releasing a track the occupant retains. AppFrame keeps the column containers mounted. The center column marks its DOM owner so portaled composer menus can stay inside its horizontal bounds. The right column's root controller renders `rightbar.session` through `SessionProvider` only while the Conversation is selected; its unmount report releases the track. The independent title component uses the selected Session title only while the Conversation is visible, with the build-configured product title or localized `common.brand.localBuild` as its fallback; locale revisions update that fallback. The theme presenter is a second effect: pure DOM writes from resolved snapshots — initial state through the getter once, then event-driven only, with no React path. It applies palette, font-size, font-list, and token variables before measuring the rendered background as the single color authority. Fullscreen presentation suppresses grid and handle transitions; its occupant reports the new columns only after covering the frame. Fullscreen exit keeps transitions suppressed while the frame installs its destination geometry: close removes the right track, and restore retains it. Subsequent normal geometry actions restore ordinary transitions.
  
  </details>
  
 diff --git a/packages/client/ui-layout/src/client/AppFrame.tsx b/packages/client/ui-layout/src/client/AppFrame.tsx
-index 5614947..e3fc26d 100644
+index 5614947447..e3fc26d707 100644
 --- a/packages/client/ui-layout/src/client/AppFrame.tsx
 +++ b/packages/client/ui-layout/src/client/AppFrame.tsx
 @@ -33,7 +33,7 @@ export type AppFrameProps =
@@ -60,7 +60,7 @@ index 5614947..e3fc26d 100644
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.module.css b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
-index f4f42cb..3b01c1a 100644
+index f4f42cb9cc..3b01c1a887 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.module.css
 @@ -94,7 +94,9 @@
@@ -75,10 +75,10 @@ index f4f42cb..3b01c1a 100644
    min-width: min(240px, calc(100vw - 32px));
    max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index fbeda5d..1857d75 100644
+index 8d37dab5e3..43e1d320f1 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -217,13 +217,25 @@ export function ModelSelect(
+@@ -219,13 +219,25 @@ export function ModelSelect(
        const rect = triggerRef.current?.getBoundingClientRect()
        if (rect === undefined) return
        const MARGIN = 12
@@ -108,10 +108,10 @@ index fbeda5d..1857d75 100644
      // First run measures the hidden pre-render (same commit as `open`), so
      // the card lands placed before anything paints.
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index 470c852..40998a1 100644
+index b077cc9093..b8bbc7a284 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-@@ -315,23 +315,30 @@ describe('ModelSelect reasoning effort', () => {
+@@ -323,23 +323,30 @@ describe('ModelSelect reasoning effort', () => {
      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
      try {
@@ -148,7 +148,7 @@ index 470c852..40998a1 100644
        // Interactions inside the trigger subtree or the portaled card stay open.
        expect(fireEvent.mouseDown(menu)).toBe(true)
 diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
-index f34e2b1..c5db564 100644
+index 0281c41a24..f44f20a8fc 100644
 --- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 +++ b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 @@ -1,4 +1,4 @@
@@ -157,7 +157,7 @@ index f34e2b1..c5db564 100644
  import type { ReactNode } from 'react'
  import clsx from 'clsx'
  import {
-@@ -80,6 +80,8 @@ export function PermissionSelect({
+@@ -81,6 +81,8 @@ export function PermissionSelect({
    const catalog = usePermissionCatalog(state => state.value)
    const [pick, setPick] = useState<string | null>(null)
    const [open, setOpen] = useState(false)
@@ -166,7 +166,7 @@ index f34e2b1..c5db564 100644
    const [confirmation, setConfirmation] = useState<string | null>(null)
    const [acknowledged, setAcknowledged] = useState(false)
  
-@@ -172,8 +174,12 @@ export function PermissionSelect({
+@@ -171,8 +173,12 @@ export function PermissionSelect({
          onClose={() => { setOpen(false) }}
          side="top"
          portal
@@ -178,9 +178,9 @@ index f34e2b1..c5db564 100644
 +            }}
              type="button"
              className={css.trigger}
-             aria-label={t('mode', { name: currentAccessibleLabel })}
+             aria-label={t('mode', { name: currentLabel })}
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index 9ce34c7..15b8360 100644
+index c4f3467c8e..304b055e38 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -46,7 +46,7 @@ Check this table before writing a control in a feature package. A plugin cannot
@@ -193,7 +193,7 @@ index 9ce34c7..15b8360 100644
  | `Pill` | Selectable capsule button for view switchers and filters; takes `active` and `onClick`. |
  | `SegmentedTabs` | Controlled equal-width tabs with a sliding indicator and Left/Right, Home, and End navigation. The caller supplies labels, tab/panel ids, and panel content. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index 92a8de2..a9dcf91 100644
+index 48cec6c9c3..ab4f647a7b 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
 @@ -25,7 +25,7 @@ kind: "package-library"
@@ -206,7 +206,7 @@ index 92a8de2..a9dcf91 100644
  弹窗自动进入及弹窗、菜单回焦，包括通过 Esc 和应用关闭快捷键触发的回焦，均使用 `focusWithoutRing(element, options?)`，在 Tab 或方向键导航恢复正常焦点样式前抑制外轮廓线。弹窗容器仍不绘制焦点外框。原有边框、阴影和错误状态保持不变。用 `data-modal-autofocus` 标记弹窗的初始控件，让模态层先保存触发控件，再移动焦点。随弹窗挂载的控件不得使用 React `autoFocus`，因为它会在保存触发控件前执行。弹窗容器获得焦点时，Tab 和 Shift+Tab 分别进入第一个和最后一个可聚焦控件。
  
 diff --git a/packages/client/ui-primitives/src/Menu.tsx b/packages/client/ui-primitives/src/Menu.tsx
-index fd5b655..cd0a7ea 100644
+index fd5b655d5c..cd0a7ead05 100644
 --- a/packages/client/ui-primitives/src/Menu.tsx
 +++ b/packages/client/ui-primitives/src/Menu.tsx
 @@ -1,5 +1,5 @@
@@ -296,7 +296,7 @@ index fd5b655..cd0a7ea 100644
    // Opening remembers where the keyboard was, so closing can hand it back to
    // that control — an anchor wrapping several (a split button) cannot be asked
 diff --git a/packages/client/ui-primitives/tests/atoms.client.spec.tsx b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
-index bc48ea0..767b60a 100644
+index bc48ea0d38..767b60a7a6 100644
 --- a/packages/client/ui-primitives/tests/atoms.client.spec.tsx
 +++ b/packages/client/ui-primitives/tests/atoms.client.spec.tsx
 @@ -504,6 +504,33 @@ describe('Menu', () => {

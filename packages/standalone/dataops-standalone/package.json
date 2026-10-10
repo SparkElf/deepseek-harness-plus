@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-dataops-standalone",
   "description": "Install and run a DataOps AI workspace from the registry, without the capabilities an intranet deployment must not run.",
-  "version": "0.2.1-alpha.20",
+  "version": "0.2.1-alpha.22",
   "publishConfig": {
     "access": "public"
   },
@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.20",
+    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.22",
     "@changfenhuang/dsh-genui": "0.11.3",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
@@ -68,7 +68,7 @@
     "@deepseek-ai/dsh-agent": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-skill": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.2.1-alpha.1",
-    "@deepseek-ai/dsh-session": "0.2.1-alpha.1",
+    "@deepseek-ai/dsh-session": "npm:@sparkelf/dsh-session@0.2.1-alpha.1",
     "@deepseek-ai/dsh-invariants": "0.2.0-rc.2",
     "@deepseek-ai/dsh-util-values": "0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-store": "0.2.1-alpha.1",
@@ -115,7 +115,8 @@
     "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-alpha.1",
     "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-alpha.1",
-    "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1"
+    "@deepseek-ai/dsh-api-terminal-controller": "npm:@sparkelf/dsh-api-terminal-controller@0.2.1-alpha.1",
+    "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.1-alpha.1"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.2"
@@ -309,10 +310,10 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.20",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.20",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.20",
-      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.20"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.22",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.22",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.22",
+      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.22"
     }
   }
 }

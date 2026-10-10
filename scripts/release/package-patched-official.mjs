@@ -72,6 +72,7 @@ export const PATCHED_WORKSPACES = [
   'packages/client/ui-settings-models',
   'packages/client/ui-settings-general',
   'packages/client/ui-sidebar-documentpreview',
+  'packages/core/session',
   'packages/client/ui-trajectory',
   // Same incompatibility as api/terminal-controller: the published official builds of
   // these two carry a typert manifest generated before the alpha.2 loader required a
@@ -79,6 +80,10 @@ export const PATCHED_WORKSPACES = [
   // plugin tree.
   'packages/core/tools',
   'packages/interaction/user-approval',
+  // The web-runtime compatibility patch edits this workspace, so a registry installation
+  // has to take its replacement build rather than the official one: a source patch cannot
+  // reach a published package, which carries built lib/ and no src/.
+  'packages/bundle/web-app',
   'packages/bundle/base',
   'packages/host/open-in-app',
   'packages/llm/llm-pi-ai',
