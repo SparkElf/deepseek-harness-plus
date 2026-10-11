@@ -241,11 +241,80 @@ cmd_build() {
   step "creating the profile from the standalone manifest"
   local standalone
   standalone="$("$NODE_BIN/node" -e "process.stdout.write(require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').name+'@'+require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').version)")"
+  # `plugin add` writes a skeleton profile whose bundle list is the launcher's default, and the
+  # distribution only rewrites it from `@sparkelf/dsh-plus`'s own installer - which reads the
+  # *published* package, so a bundle this repository added is absent until it is republished. The
+  # standalone manifest is the artifact this build just generated from the distribution, so it is
+  # what the profile is written from: dependencies and bundles both, before the install that reads
+  # them. Measured 2026-10-11: without this the profile kept one bundle where the manifest named
+  # twenty-one, and every capability only the bundles mount was absent while the build passed.
+  "$NODE_BIN/node" - "$mirror/profiles/plus/package.json" "$PLUS_REPO/packages/standalone/plus-standalone/package.json" <<'PROFILE'
+const { existsSync, readFileSync, writeFileSync } = require("node:fs")
+const { dirname, join } = require("node:path")
+const [profilePath, standalonePath] = process.argv.slice(2)
+const standalone = JSON.parse(readFileSync(standalonePath, "utf8"))
+const declaration = standalone.dshPlusStandalone
+if (declaration === undefined) throw new Error(standalonePath + " declares no dshPlusStandalone")
+// The skeleton holds launcher defaults this build does not choose, so only the two lists the
+// distribution owns are replaced and everything else the skeleton wrote is left alone.
+const profile = existsSync(profilePath) ? JSON.parse(readFileSync(profilePath, "utf8")) : {}
+profile.name = "dsh-profile-plus"
+profile.private = true
+profile.type = "module"
+// `workspace:` ranges name packages this repository publishes and are kept in the manifest so the
+// repository constraint gate accepts it; `pnpm pack` rewrites them to published versions for the
+// registry installation. This profile is written from the source tree rather than from a packed
+// tarball, so no rewrite happened and the protocol has to go: pnpm rejects it here with
+// ERR_PNPM_WORKSPACE_PKG_NOT_FOUND, because the profile is not a member of this workspace.
+const published = (spec) => String(spec).replace(/^workspace:/u, "")
+// The profile names the standalone package itself, because that is the release this deployment is
+// pinned to and what `plugin add` was asked to install. A build writes this before that add runs, so
+// the entry is added here rather than inherited from the skeleton it has not written yet.
+const distributionDependencies = Object.fromEntries(
+  Object.entries(standalone.dependencies ?? {}).map(([name, spec]) => [name, published(spec)]),
+)
+distributionDependencies["@sparkelf/dsh-plus"] = standalone.version
+distributionDependencies[standalone.name] = standalone.version
+profile.dependencies = { ...(profile.dependencies ?? {}), ...distributionDependencies }
+profile.dsh = { ...(profile.dsh ?? {}), profile: { ...(profile.dsh?.profile ?? {}), bundles: declaration.bundles } }
+writeFileSync(profilePath, JSON.stringify(profile, null, 2) + "\n")
+// The workspace settings matter as much as the manifest, and they are written here for the same
+// reason: nothing else in this build writes them. `hoisted` is what makes the patch packages
+// reachable - under pnpm's default symlinked layout a dependency's own dependencies live in the
+// virtual store, so `materialize-npm-patches` looks for the distribution's patch packages at the
+// profile root and finds none.
+//
+// Written as text rather than through a YAML library, because this runs before the profile has a
+// node_modules and cannot import one: the schema here is three top-level keys this file owns.
+const workspacePath = join(dirname(profilePath), "pnpm-workspace.yaml")
+const workspace = existsSync(workspacePath) ? readFileSync(workspacePath, "utf8") : ""
+const workspaceLines = workspace.split("\n")
+const hasKey = (key) => workspaceLines.some((line) => line.startsWith(key + ":"))
+const additions = []
+if (!hasKey("packages")) additions.push("packages:", "  - .")
+if (!hasKey("nodeLinker")) additions.push("nodeLinker: hoisted")
+if (!hasKey("autoInstallPeers")) additions.push("autoInstallPeers: false")
+if (additions.length > 0) {
+  const separator = workspace === "" || workspace.endsWith("\n") ? "" : "\n"
+  writeFileSync(workspacePath, workspace + separator + additions.join("\n") + "\n")
+}
+console.log("  [mirror] profile declares " + String(Object.keys(profile.dependencies).length) + " dependencies and " + String(declaration.bundles.length) + " bundles")
+PROFILE
   # The add is expected to report ignored build scripts on a first install: pnpm writes a
   # placeholder into the profile's allowBuilds and refuses the install, which is what the step
   # below answers. The failure is therefore not fatal, but the command must not wait for input
   # either: its stdin is /dev/null so an interactive prompt ends the process instead of hanging.
-  ( cd "$mirror" && DSH_HOME="$mirror" "$NODE_BIN/node" apps/cli/lib/bin.js plugin --profile plus add "$standalone" < /dev/null || true )
+  #
+  # A registry that cannot be reached produces the same exit status as that expected refusal, so the
+  # two are told apart by what the profile holds afterwards. Measured 2026-10-11: an unreachable
+  # registry left this step incomplete, and the build failed twenty minutes later at the mount check,
+  # which named the symptom rather than the cause.
+  if ! ( cd "$mirror" && DSH_HOME="$mirror" "$NODE_BIN/node" apps/cli/lib/bin.js plugin --profile plus add "$standalone" < /dev/null ); then
+    if [ ! -f "$mirror/profiles/plus/package.json" ]; then
+      echo "  [mirror] the profile was never created; a registry this install needs is unreachable" >&2
+      exit 1
+    fi
+  fi
 
   # pnpm answers every un-reviewed native build with a placeholder in the profile's
   # pnpm-workspace.yaml and then refuses the install, so the profile is never created on
