@@ -861,3 +861,40 @@ if (process.argv[1] !== undefined
 **症状速查**:服务「启动成功但不监听端口」+ 日志停在无关警告 → 先看 `profile/package.json` 的
 `dsh.profile.bundles` 数量。**1 就是坏构建**(launcher 默认骨架 `["@deepseek-ai/dsh-base"]`),
 正常是 19–20。
+
+
+### 「装了但没生效」的三种形状,以及三道对应的门禁
+
+本次会话连续三次遇到同一形状的故障:**东西装了,检查全过,功能不存在。** 三种成因不同,但都靠"计数/对账"
+才能发现,而不是靠状态码。
+
+| # | 形状 | 症状 | 门禁 |
+|---|---|---|---|
+| 1 | 包声明 `dsh.bundle` 但不在 `profile.bundles` | 插件装了从不加载 | `verify:mount-declarations` |
+| 2 | profile 骨架没被 manifest 覆写 | 服务启动但不监听端口 | `verify-profile-bundles` |
+| 3 | npm 补丁进了 `patchedDependencies` 才有用 | 补丁包装着,字节没变 | `verify:npm-patches` + 标记核对 |
+
+**(1) 两份表从未比对**。`dshPlus.profile.dependencies` 说装什么,`dshPlus.profile.bundles` 说挂什么。
+auto-review bundle 从 alpha.11 起就在第一份、**从来没进过第二份**(只有 dataops variant 的
+`includeBundles` 加了它),所以 3080 的权限菜单少一项,而 dataops 镜像有。
+
+**修法是让不一致当场失败**,判据是:
+
+```
+遍历已安装 profile → 找每个声明 dsh.bundle 的包
+若它被安装、却不在 dsh.profile.bundles → 失败
+```
+
+**关键:必须读已安装的 profile,不能读仓库。** 这些都是已发布的包,我第一版在 `packages/` 和
+`node_modules/` 下找 manifest,**33 个里只找到 3 个** —— 恰好漏掉它要抓的那一个。
+
+**(2) 症状速查**:服务「启动成功但不监听端口」+ 日志停在无关警告 → 看
+`profile/package.json` 的 `dsh.profile.bundles` 数量。**1 就是坏构建**(launcher 默认骨架
+`["@deepseek-ai/dsh-base"]`),正常 19–21。
+
+**(3) 宿主 mirror 与工作区镜像走两条路径**:镜像有 `materialize-npm-patches.mjs`,宿主**从来没调用**。
+而**已安装的补丁包与已应用的补丁无法区分**,所以后续每道断言都过。补丁必须在**应用它的那次 install
+之前**物化 —— 之后加会与 lockfile 冲突,pnpm 拒绝下次 frozen install。
+
+**判据(通用)**:任何"装了什么"与"用什么"分列两处的配置,**需要一道对账门禁**,否则漏项永远不会
+自己暴露。而且对账必须读**实际生效的那一份**(已安装的树/已应用的字节),不能读声明。
