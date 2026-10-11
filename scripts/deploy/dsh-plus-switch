@@ -69,8 +69,16 @@ if [ "${DSH_SWITCH_DETACHED:-}" != "1" ] && [ "${1:-}" != "--foreground" ]; then
   echo "[switch] warning: systemd-run unavailable; a stop may terminate this switch" >&2
 fi
 
-if [ ! -d "$MIRROR/profile" ]; then
-  echo "dsh-plus-switch: $MIRROR has no profile directory" >&2
+# A mirror keeps its profile at `profile` or `profiles/<name>` depending on the build that made
+# it. Every tree the current build produces uses the latter, so a check that only looked at
+# `profile` refused a switch onto a freshly built mirror. Measured 2026-10-11.
+profileDirectory=
+for candidate in "$MIRROR/profile" "$MIRROR/profiles/plus"; do
+  if [ -d "$candidate" ]; then profileDirectory="$candidate"; break; fi
+done
+
+if [ -z "$profileDirectory" ]; then
+  echo "dsh-plus-switch: $MIRROR has no profile directory (looked in profile and profiles/plus)" >&2
   exit 2
 fi
 

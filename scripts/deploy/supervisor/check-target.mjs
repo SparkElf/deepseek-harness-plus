@@ -55,12 +55,21 @@ const notes = []
 
 // 1. Materialisation. Every one of these is required to boot, and their absence is the
 //    defect that stopped the service on 2026-09-24.
+// A mirror keeps its profile at `profile` or `profiles/<name>` depending on the build that made it,
+// and every tree the current build produces uses the latter. Resolved by testing the candidates
+// rather than by naming one, so a mirror built either way is checked rather than reported empty.
+// Measured 2026-10-11: with only `profile` here, a freshly built tree was refused as unmaterialised
+// while the tree it was replacing used the same layout.
+const profileDirectory = ['profile', join('profiles', 'plus')]
+  .map((relative) => join(mirror, relative))
+  .find((candidate) => existsSync(join(candidate, 'package.json')))
+  ?? join(mirror, 'profile')
 const required = [
   ['the served CLI entry', join(mirror, 'apps', 'cli', 'lib', 'bin.js')],
   ['the release tree manifest', join(mirror, 'apps', 'cli', 'package.json')],
-  ['the profile manifest', join(mirror, 'profile', 'package.json')],
-  ['the profile cordis root', join(mirror, 'profile', 'cordis.yml')],
-  ['the installed distribution', join(mirror, 'profile', 'node_modules', '@sparkelf', 'dsh-plus', 'package.json')],
+  ['the profile manifest', join(profileDirectory, 'package.json')],
+  ['the profile cordis root', join(profileDirectory, 'cordis.yml')],
+  ['the installed distribution', join(profileDirectory, 'node_modules', '@sparkelf', 'dsh-plus', 'package.json')],
 ]
 for (const [what, path] of required) {
   if (!existsSync(path)) blockers.push({ kind: 'unmaterialised', what, path })
@@ -93,7 +102,7 @@ if (blockers.length === 0 && !skipImports) {
   const probe = '/root/.dsh/supervisor/check-plugin-imports.mjs'
   if (!existsSync(probe)) notes.push('import probe unavailable; materialisation is the only evidence')
   else {
-    const result = spawnSync(process.execPath, [probe, '--profile', join(mirror, 'profile')], {
+    const result = spawnSync(process.execPath, [probe, '--profile', profileDirectory], {
       encoding: 'utf8',
       timeout: 300_000,
     })
