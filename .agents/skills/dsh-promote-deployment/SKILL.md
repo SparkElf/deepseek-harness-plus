@@ -16,7 +16,7 @@ The deployment already owns this procedure. Read these before running anything, 
 | `dsh-plus-build <mirror>` | `pnpm install` twice (a patch that adds a dependency changes the graph, and only a second install links it), then `pnpm run build --profile official`, then verify the brand record and that no workspace with dependencies lacks `node_modules`. |
 | `dsh-plus-switch` | Move the served release to another mirror, tracking phases. |
 | `dsh-plus-refresh rebuild \| accept \| restart \| all` | Rebuild the mirror, record the profile as accepted, restart, or all three in that order. |
-| `dsh-plus-mirror create --tag <official-tag> --mirror <path> --runtime <version>` | Extract an official tag into a fresh mirror, apply this repository's reviewed patches, typecheck them, regenerate the standalone manifests, build, create the profile, write the compatibility exemptions, relink the scope, and repair shadowed packages. `dsh-plus-mirror check --mirror <path>` reports the scope verdict. |
+| `dsh-plus-mirror build --tag <official-tag> --into <path> --runtime <version>` | Extract an official tag into a fresh release tree, apply this repository's reviewed patches, typecheck them, regenerate the standalone manifests, build, create the profile, write the compatibility exemptions, relink the scope, and repair shadowed packages. `dsh-plus-mirror check --mirror <path>` reports the scope verdict. |
 | `dsh-plus-exemptions --runtime <version> [--out <path>]` | Derive the profile's `compatibility.json`: every plugin whose published peer ranges cannot match the runtime. |
 | `repair-shadowed-scope.mjs --release <mirror>` | Replace real directories that shadow a release package with links to its source. |
 | `dsh-3080-restart` | Restart through the supervisor: repair profile scope, prove module uniqueness, re-accept the fingerprint, restart, then verify the client modules and the connection surface. |
@@ -39,7 +39,7 @@ So promoting onto a new official revision has a prerequisite the mirror build ca
 
 This packages each patched official workspace, verifies the packaged output against the workspace it came from, and publishes. It is one command because those steps must not be separated — every reported defect came from a package that packaged cleanly and was verified against a list its author had written rather than against its source.
 
-Run it before `dsh-plus-mirror create`. Without it the promotion has no runtime to point at, and `dsh-plugin-backup`-style peer mismatches are the least of the symptoms.
+Run it before `dsh-plus-mirror build`. Without it the promotion has no runtime to point at, and `dsh-plugin-backup`-style peer mismatches are the least of the symptoms.
 
 ### Driving the Windows desktop from a WSL deployment
 
@@ -64,7 +64,7 @@ Measured 2026-09-29: a hand-written model provider, permission presets, theme, a
 
 ### One command
 
-`dsh-plus-mirror create` performs the whole sequence below. Each of its steps was added after a promotion failed on it: a hunk that applied but stopped compiling, a standalone manifest whose peer overrides no longer matched, a profile install the compatibility gate rejected, and a scope the check reported DEFECTIVE because real directories shadowed it. The step-by-step sections that follow explain what each one does and how to diagnose it; run them by hand only to repair a mirror the command could not finish.
+`dsh-plus-mirror build` performs the whole sequence below. Each of its steps was added after a promotion failed on it: a hunk that applied but stopped compiling, a standalone manifest whose peer overrides no longer matched, a profile install the compatibility gate rejected, and a scope the check reported DEFECTIVE because real directories shadowed it. The step-by-step sections that follow explain what each one does and how to diagnose it; run them by hand only to repair a mirror the command could not finish.
 
 ## Promotion order
 
@@ -649,13 +649,13 @@ RUN set -eux; \
 
 ### 重建镜像时绝不能指向正在服务的树
 
-`dsh-plus-mirror create --mirror <dir>` 会清空并重建 `<dir>`。若 `<dir>` 是当前服务的树，
+`dsh-plus-mirror build --into <dir>` 会清空并重建 `<dir>`。若 `<dir>` 是当前服务的树，
 它会覆盖**调用者自己的运行时**——包括正在执行这条命令的那个进程。
 
 实测 2026-10-11：在 3080 的会话里执行
 
 ```sh
-/root/.dsh/dsh-plus-mirror create --tag dsh-v0.2.1-alpha.2 \
+/root/.dsh/dsh-plus-mirror build --tag dsh-v0.2.1-alpha.2 \
   --mirror /root/.dsh/releases/plus/plus-021a2 \   # 3080 正在服务这棵树
   --runtime 0.2.1-alpha.2
 ```
@@ -668,7 +668,7 @@ RUN set -eux; \
 
 ```sh
 # 1. 建到新目录（不影响在跑的）
-/root/.dsh/dsh-plus-mirror create --tag dsh-v0.2.1-alpha.2 \
+/root/.dsh/dsh-plus-mirror build --tag dsh-v0.2.1-alpha.2 \
   --mirror /root/.dsh/releases/plus/plus-021a28 --runtime 0.2.1-alpha.2
 
 # 2. 确认新树完整
@@ -786,7 +786,7 @@ dsh-plus-status --json   # 供脚本消费
 pnpm run verify:plus-mirror-promotion -- --mirror <release>   # 仓库侧,拒绝在用 release
 ```
 
-`dsh-plus-mirror create` 也内置了同一道前置拒绝(退出码 2,`--force` 可绕过)。
+`dsh-plus-mirror build` 也内置了同一道前置拒绝(退出码 2,`--force` 可绕过)。
 
 **手写探测最容易踩的自匹配**:用 `ps` 找"哪些 release 在用"时,探测命令**自己的参数**里就写着待查的
 release 名,不排除就会把每个 release 都报成在用。实测过 —— 修正前每个都报 in use。
