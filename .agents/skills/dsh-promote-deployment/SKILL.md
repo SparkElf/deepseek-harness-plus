@@ -790,3 +790,48 @@ pnpm run verify:plus-mirror-promotion -- --mirror <release>   # 仓库侧,拒绝
 
 **手写探测最容易踩的自匹配**:用 `ps` 找"哪些 release 在用"时,探测命令**自己的参数**里就写着待查的
 release 名,不排除就会把每个 release 都报成在用。实测过 —— 修正前每个都报 in use。
+
+
+### 装成符号链接会让 CLI 门禁静默失效（含它自己的自救逻辑）
+
+**任何用这种写法做入口判断的脚本，装成符号链接后整个 CLI 块都不执行：**
+
+```js
+if (import.meta.url === `file://${process.argv[1]}`) { /* 永不执行 */ }
+```
+
+Node 会把 `import.meta.url` **realpath**，而 `process.argv[1]` 保留你敲进去的路径。链接安装时两者不等
+→ 整块跳过 → **静默退出 0**。
+
+**为什么这次是灾难级的**：调用方把「退出码 0」读成「检查通过/不在使用」。于是
+
+```
+release-in-use.mjs 装成符号链接
+  → 静默退出 0
+  → dsh-plus-mirror 认为目标不在使用
+  → rm -rf 执行，删掉 3080 正在服务的 release 树
+  → 3080 的 cwd 变成 (deleted)，本会话工具运行时一并消失
+```
+
+**正确写法**（仓库 `scripts/rescope-vendor.ts` 早就是这么写的，双边 realpath）：
+
+```js
+import { realpathSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+if (process.argv[1] !== undefined
+    && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) { ... }
+```
+
+**受影响的已知文件**：`release-in-use.mjs`、`profile-guard.mjs`、`generate-manifest.ts`、
+`verify-runtime-closure.ts`、`verify-plus-mirror-promotion.ts`。用
+`grep -rn 'import.meta.url === .file://\${process.argv\[1\]}'` 自查。
+
+**安装部署工具用复制，不要链接**：
+
+- 链接还有个独立危害：线上工具**跟着工作树走**。实测切到旧分支后，链接的 `dsh-plus-mirror`
+  **直接悬空** —— 而切分支正是需要它的时刻。
+- 复制 + `--check` 漂移报告：不会悄悄不一致，且把部署与检出解耦。
+
+**判据**：新增任何有 CLI 入口的脚本后，**必须经符号链接调用一次并断言退出码**。
+"它能跑"和"它在链接下能跑"是两件事，而部署目录正是链接最常见的地方。
