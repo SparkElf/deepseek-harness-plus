@@ -72,16 +72,26 @@ function livePaths() {
     } catch { /* absent is not evidence of anything */ }
   }
   try {
-    // Excluded by process id, not by name. The probe carries the release it is testing in its own
-    // arguments, so it matches its own search; a name check only works while the file keeps the
-    // name it was written under. Measured: called through a differently named link, the name check
-    // missed the probe and every release under test came back in use.
-    const listing = execFileSync("ps", ["-eo", "pid,args"], { encoding: "utf8" })
-    const self = new Set([String(process.pid), String(process.ppid)])
+    // Excluded by process id, not by name, and along the whole ancestry rather than one level.
+    // The probe carries the release it is testing in its own arguments and so does every shell that
+    // wrapped it, because the caller passes the path through them. Measured twice: a name check
+    // missed a probe invoked through a link, and a two-entry `{self, parent}` set missed the
+    // `bash -c` grandparent, which refused a build into a directory that did not exist yet.
+    const listing = execFileSync("ps", ["-eo", "pid,ppid,args"], { encoding: "utf8" })
+    const rows = new Map()
     for (const line of listing.split("\n")) {
-      const pid = /^\s*(\d+)/u.exec(line)
-      if (pid !== null && self.has(pid[1])) continue
-      for (const path of pathsIn(line.slice(pid?.[0]?.length ?? 0))) found.push({ source: "running process", path })
+      const row = /^\s*(\d+)\s+(\d+)\s+(.*)$/u.exec(line)
+      if (row === null) continue
+      rows.set(row[1], { parent: row[2], args: row[3] })
+    }
+    const ancestry = new Set()
+    for (let pid = String(process.pid); pid !== undefined && pid !== "0" && !ancestry.has(pid);) {
+      ancestry.add(pid)
+      pid = rows.get(pid)?.parent
+    }
+    for (const [pid, row] of rows) {
+      if (ancestry.has(pid)) continue
+      for (const path of pathsIn(row.args)) found.push({ source: "running process", path })
     }
   } catch { /* ps unavailable is not evidence of anything */ }
   // A systemd unit for the service names its release in ExecStart, and it is what will restart it.
