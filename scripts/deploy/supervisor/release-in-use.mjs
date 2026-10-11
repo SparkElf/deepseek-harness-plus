@@ -72,11 +72,16 @@ function livePaths() {
     } catch { /* absent is not evidence of anything */ }
   }
   try {
-    const listing = execFileSync("ps", ["-eo", "args"], { encoding: "utf8" })
+    // Excluded by process id, not by name. The probe carries the release it is testing in its own
+    // arguments, so it matches its own search; a name check only works while the file keeps the
+    // name it was written under. Measured: called through a differently named link, the name check
+    // missed the probe and every release under test came back in use.
+    const listing = execFileSync("ps", ["-eo", "pid,args"], { encoding: "utf8" })
+    const self = new Set([String(process.pid), String(process.ppid)])
     for (const line of listing.split("\n")) {
-      // The probe and the shell running it both carry the release names under test.
-      if (line.includes("release-in-use")) continue
-      for (const path of pathsIn(line)) found.push({ source: "running process", path })
+      const pid = /^\s*(\d+)/u.exec(line)
+      if (pid !== null && self.has(pid[1])) continue
+      for (const path of pathsIn(line.slice(pid?.[0]?.length ?? 0))) found.push({ source: "running process", path })
     }
   } catch { /* ps unavailable is not evidence of anything */ }
   // A systemd unit for the service names its release in ExecStart, and it is what will restart it.
