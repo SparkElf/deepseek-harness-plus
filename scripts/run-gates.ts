@@ -319,6 +319,11 @@ function ciSharedStaticGates(): Gate[] {
     // consumer receives. Drift here ships an intranet image the reviewed reduction no
     // longer describes, so it is checked beside the manifest it is derived from.
     pnpmScript('standalone-variants', 'verify:standalone-variants', { label: 'standalone variants' }),
+    // pnpm refuses an inexact patch, but GNU patch and `git apply --3way` both reconcile one, so a
+    // patch whose hunk headers drifted from its target keeps passing every build that does not use
+    // pnpm. Measured: a header from the previous version survived a retarget, the mirror build
+    // reported success, and only the image build failed - thirty minutes in.
+    pnpmScript('npm-patches', 'verify:npm-patches', { label: 'npm patch fit' }),
   ]
 }
 
