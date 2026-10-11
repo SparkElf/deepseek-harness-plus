@@ -1,0 +1,14 @@
+import net from 'node:net';
+import { createHash } from 'node:crypto';
+const port = Number(process.argv[2] ?? 3080);
+const key = createHash('sha1').update(String(Math.random())).digest('base64').slice(0, 22) + '==';
+const req = ['GET /api/remote.mux HTTP/1.1','Host: 127.0.0.1:' + port,'Upgrade: websocket','Connection: Upgrade','Sec-WebSocket-Key: ' + key,'Sec-WebSocket-Version: 13','',''].join('\r\n');
+const sock = net.connect(port, '127.0.0.1');
+let done = false;
+const finish = (msg) => { if (done) return; done = true; console.log(msg); try { sock.destroy(); } catch {} };
+sock.setTimeout(8000);
+sock.on('connect', () => sock.write(req));
+sock.on('data', (c) => { if (c.toString('latin1').includes('101')) finish('WebSocket 101 OK'); });
+sock.on('timeout', () => finish('TLS/TCP timeout'));
+sock.on('error', (e) => finish('WebSocket ERR ' + e.code));
+setTimeout(() => finish('WebSocket 无响应'), 10000);

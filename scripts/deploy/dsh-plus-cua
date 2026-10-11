@@ -1,0 +1,137 @@
+#!/usr/bin/env node
+/**
+ * Configure the computer-use provider against a Windows Cua Driver, from WSL.
+ *
+ * The provider spawns its driver over stdio, so it runs whatever path it is given in this
+ * process's own environment. Under WSL that environment can execute a Windows executable
+ * directly, which is what lets a Linux deployment drive the Windows desktop: the path has to
+ * be the /mnt/<drive>/... form, because the C:\ form is not an executable this process can
+ * spawn.
+ *
+ * The driver itself owns the desktop connection. It reaches the desktop through a Windows
+ * named pipe served by a daemon in the interactive session, so the daemon must already be
+ * running there; this tool only proves the executable answers an MCP handshake.
+ *
+ * Usage: dsh-plus-cua --profile <dir> [--check] [--exe <path>]
+ */
+import { existsSync, readFileSync, writeFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { parseArgs } from 'node:util'
+import { execFileSync } from 'node:child_process'
+
+const { values } = parseArgs({
+  options: {
+    profile: { type: 'string' },
+    exe: { type: 'string' },
+    check: { type: 'boolean', default: false },
+  },
+})
+
+if (values.profile === undefined) {
+  console.error('usage: dsh-plus-cua --profile <dir> [--check] [--exe <path>]')
+  process.exit(2)
+}
+
+const ROW_ID = 'computer-use-cua-driver-mcp'
+
+/**
+ * Find the driver executable on the Windows drives this WSL instance mounts.
+ *
+ * Cua installs per user, so the user directory is discovered rather than assumed: a deployment
+ * may run as any account, and the installer is per-account.
+ *
+ * @returns the first executable found, or undefined.
+ */
+function discover() {
+  if (values.exe !== undefined) return values.exe
+  const users = '/mnt/c/Users'
+  if (!existsSync(users)) return undefined
+  for (const user of readdirSync(users)) {
+    const exe = join(users, user, 'AppData/Local/Programs/Cua/cua-driver/bin/cua-driver.exe')
+    if (existsSync(exe)) return exe
+  }
+  return undefined
+}
+
+/**
+ * Confirm the executable completes an MCP handshake.
+ *
+ * @param exe - the executable to probe.
+ * @returns true when the handshake returned a result.
+ */
+function handshake(exe) {
+  const initialize = JSON.stringify({
+    jsonrpc: '2.0', id: 1, method: 'initialize',
+    params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'dsh-plus-cua', version: '1' } },
+  })
+  try {
+    const out = execFileSync(exe, ['mcp'], { input: initialize + '\n', encoding: 'utf8', timeout: 30000 })
+    return out.includes('"result"')
+  } catch {
+    return false
+  }
+}
+
+const exe = discover()
+if (exe === undefined) {
+  console.error('dsh-plus-cua: no cua-driver.exe under /mnt/c/Users/*/AppData/Local/Programs/Cua')
+  process.exit(1)
+}
+console.log('dsh-plus-cua: driver ' + exe)
+if (!handshake(exe)) {
+  console.error('dsh-plus-cua: the driver did not answer an MCP initialize; is the Windows daemon running?')
+  process.exit(1)
+}
+console.log('dsh-plus-cua: MCP handshake OK')
+
+const layer = join(values.profile, 'cordis.patch.yml')
+if (!existsSync(layer)) {
+  console.error('dsh-plus-cua: no patch layer at ' + layer)
+  process.exit(1)
+}
+const text = readFileSync(layer, 'utf8')
+const configured = text.includes(ROW_ID) && text.includes('/mnt/c/')
+if (values.check) {
+  console.log(configured ? 'dsh-plus-cua: the profile configures this driver' : 'dsh-plus-cua: the profile does not configure this driver')
+  process.exit(configured ? 0 : 1)
+}
+if (configured) {
+  console.log('dsh-plus-cua: already configured')
+  process.exit(0)
+}
+
+/**
+ * Set the pathLength under the computer-use row, keeping the rest of the layer.
+ *
+ * A line edit rather than a YAML round trip: the layer carries comments that explain each row,
+ * and re-serializing would discard them.
+ *
+ * @param source - the layer's current text.
+ * @param command - the executable path to write.
+ * @returns the layer text with the command set.
+ */
+function setCommand(source, command) {
+  const lines = source.split('\n')
+  const row = lines.findIndex((line) => line.trim() === '- id: ' + ROW_ID)
+  if (row < 0) throw new Error('the layer has no ' + ROW_ID + ' row')
+  let end = lines.length
+  for (let i = row + 1; i < lines.length; i += 1) {
+    if (/^\s*-\s+id:/.test(lines[i])) { end = i; break }
+  }
+  const block = lines.slice(row, end)
+  const at = block.findIndex((line) => /^\s+command:/.test(line))
+  if (at >= 0) {
+    block[at] = '        command: ' + command
+  } else {
+    const nameAt = block.findIndex((line) => /^\s+name:/.test(line))
+    block.splice(nameAt + 1, 0, '      config:', '        command: ' + command, '        args: [mcp]')
+  }
+  return [...lines.slice(0, row), ...block, ...lines.slice(end)].join('\n')
+}
+
+const after = setCommand(text, exe)
+if (text !== after) {
+  writeFileSync(layer + '.pre-cua-' + String(Date.now()), text)
+  writeFileSync(layer, after)
+  console.log('dsh-plus-cua: wrote the command into ' + layer)
+}

@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+/**
+ * Repair the profile scope a release mirror serves.
+ *
+ * A mirror resolves its @deepseek-ai packages through the profile's node_modules, and each
+ * entry should be a link into the mirror's own sources. Two states break that:
+ *
+ *   - a shipped name with no entry at all — a plugin importing it fails to load;
+ *   - a shipped name present as a real directory, which is an older published copy pnpm
+ *     installed because a dependency pinned it. Two copies of one package give the client
+ *     two module instances: the slot it registers has no component, and the browser reports
+ *     React error #130 in that slot rather than a resolution failure.
+ *
+ * Measured 2026-09-30: a mirror held 78 links where the release it replaced held 329, and the
+ * Agent Teams panel rendered its loading state in every row.
+ *
+ * Usage: dsh-plus-scope --mirror <dir> [--check]
+ */
+import { existsSync, lstatSync, readdirSync, readFileSync, rmSync, symlinkSync } from 'node:fs'
+import { join } from 'node:path'
+import { parseArgs } from 'node:util'
+
+const { values } = parseArgs({ options: { mirror: { type: 'string' }, check: { type: 'boolean', default: false } } })
+if (values.mirror === undefined) {
+  console.error('usage: dsh-plus-scope --mirror <dir> [--check]')
+  process.exit(2)
+}
+const mirror = values.mirror
+const profile = join(mirror, 'profile')
+const scope = join(profile, 'node_modules/@deepseek-ai')
+if (!existsSync(scope)) { console.error('dsh-plus-scope: no scope at ' + scope); process.exit(2) }
+
+/**
+ * Every package the mirror vendors, by name, with the directory that declares it.
+ *
+ * The directory name is not always the package name, so the manifest decides which name a
+ * directory answers to.
+ *
+ * @returns a name to source-directory map.
+ */
+function shipped() {
+  const found = new Map()
+  const walk = (dir, depth) => {
+    if (depth > 3 || !existsSync(dir)) return
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === 'node_modules') continue
+      const child = join(dir, entry.name)
+      const manifest = join(child, 'package.json')
+      if (existsSync(manifest)) {
+        try {
+          const name = JSON.parse(readFileSync(manifest, 'utf8')).name
+          if (typeof name === 'string' && name.startsWith('@deepseek-ai/') && !found.has(name)) found.set(name, child)
+        } catch { /* a manifest that cannot be parsed declares nothing */ }
+      }
+      walk(child, depth + 1)
+    }
+  }
+  for (const root of ['packages', 'vendor', 'apps', 'native']) walk(join(mirror, root), 1)
+  return found
+}
+
+const vendors = shipped()
+let present = 0
+let links = 0
+let missing = 0
+let replaced = 0
+const needs = []
+for (const [name, source] of vendors) {
+  const at = join(scope, name.slice('@deepseek-ai/'.length))
+  let entry
+  try { entry = lstatSync(at) } catch { entry = undefined }
+  if (entry === undefined) { missing += 1; needs.push([at, source, 'absent']); continue }
+  if (entry.isSymbolicLink()) { links += 1; continue }
+  present += 1
+  needs.push([at, source, 'installed copy'])
+}
+console.log('dsh-plus-scope: ' + mirror)
+console.log('  vendors ' + String(vendors.size) + ' package(s): ' + String(links) + ' linked, ' + String(present) + ' installed copies, ' + String(missing) + ' absent')
+for (const [at, source, why] of needs) console.log('  ' + why + ': ' + at.slice(scope.length + 1) + ' -> ' + source.slice(mirror.length + 1))
+if (needs.length === 0) { console.log('  the scope resolves every vendored package from the mirror'); process.exit(0) }
+if (values.check) process.exit(1)
+
+// A vendored package must resolve from the mirror, so an installed copy is removed rather than
+// kept: it is an older published version, and the mirror's own source is what the release is.
+for (const [at, source] of needs) {
+  rmSync(at, { recursive: true, force: true })
+  symlinkSync(source, at, 'dir')
+  replaced += 1
+}
+console.log('  repaired ' + String(replaced) + ' entry(ies)')
+console.log('  reinstall with --frozen-lockfile after this, or pnpm will restore the copies')
