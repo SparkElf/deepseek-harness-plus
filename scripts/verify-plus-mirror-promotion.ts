@@ -11,7 +11,7 @@
  * touch this path? A file that exists in the repository does not count — the mirror is
  * rebuilt from patch payloads, so only a patch reproduces a change into it.
  *
- * It also refuses a mirror that the running deployment is using. `dsh-plus-mirror create` begins by
+ * It also refuses a mirror that the running deployment is using. `dsh-plus-mirror build` begins by
  * removing its target, so aiming a rebuild at the served tree removes the service runtime and every
  * process loaded from it - including, when the command is issued from a session that tree serves,
  * the tool the command needs to repair its own mistake. Measured 2026-10-11: the rebuild took 3080
