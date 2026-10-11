@@ -19,10 +19,11 @@
  * Usage: tsx scripts/standalone/generate-manifest.ts --distribution <dir> --out <file> [--variant <id>]
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { realpathSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { resolvePeerOverrides } from './peer-overrides.ts'
+import { fileURLToPath } from 'node:url'
 
 /** Published name of the placeholder an omitted capability is overridden onto. */
 export const OMITTED_PLACEHOLDER_PACKAGE = '@sparkelf/dsh-omitted'
@@ -347,4 +348,4 @@ function main(): void {
   for (const entry of overrides) console.info('  override ' + entry.name + '@' + entry.version + ' because ' + entry.reason)
 }
 
-if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main()

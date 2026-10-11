@@ -16,6 +16,7 @@
 import { realpathSync } from "node:fs"
 import { resolve } from "node:path"
 import { execFileSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 
 /**
  * Normalize a path that may not exist yet.
@@ -109,7 +110,13 @@ export function releasesInUse() {
   return new Map([...unique].map(([release, sources]) => [release, [...sources].sort()]))
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Both sides are resolved, because Node realpaths `import.meta.url` for an ES module while
+// `process.argv[1]` keeps the path that was typed. A symlinked install - which is how the
+// deployment home consumes these files - compares a real path against a link path, so the block
+// below never runs and the process exits 0 without checking anything. Measured 2026-10-11: the
+// guard went quiet, its caller read exit 0 as "not in use", and the rebuild this check exists to
+// refuse removed the release tree serving the session that issued it.
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = process.argv.slice(2)
   const index = args.indexOf("--release")
   const by = index === -1 || args[index + 1] === undefined ? undefined : releasesInUse().get(normalize(args[index + 1]))
