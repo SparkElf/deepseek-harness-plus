@@ -249,9 +249,11 @@ cmd_build() {
   # them. Measured 2026-10-11: without this the profile kept one bundle where the manifest named
   # twenty-one, and every capability only the bundles mount was absent while the build passed.
   "$NODE_BIN/node" - "$mirror/profiles/plus/package.json" "$PLUS_REPO/packages/standalone/plus-standalone/package.json" <<'PROFILE'
-const { existsSync, readFileSync, writeFileSync } = require("node:fs")
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs")
 const { dirname, join } = require("node:path")
 const [profilePath, standalonePath] = process.argv.slice(2)
+// This runs before `plugin add`, which is what would otherwise create the directory.
+mkdirSync(dirname(profilePath), { recursive: true })
 const standalone = JSON.parse(readFileSync(standalonePath, "utf8"))
 const declaration = standalone.dshPlusStandalone
 if (declaration === undefined) throw new Error(standalonePath + " declares no dshPlusStandalone")
