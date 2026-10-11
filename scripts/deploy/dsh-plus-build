@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#
+# Build one Plus mirror so that the Web client carries the official brand.
+#
+#   dsh-plus-build <mirror-path>
+#
+# Why this exists instead of "pnpm install && pnpm build:web":
+#
+# The client brand is chosen at build time by DSH_CLIENT_BUILD_PROFILE. Only
+# scripts/build.ts injects it, through OFFICIAL_CLIENT_BUILD_ENVIRONMENT in
+# scripts/client-build-environment.ts, and it does so for --profile official.
+# Running the Web filter directly (build:web) skips that injection, so
+# ui-brand-official's guard - "if DSH_CLIENT_BUILD_PROFILE !== 'official' return" -
+# never registers the official slots and the sidebar falls back to the locale's
+# "DSH Local Build". Measured on plus-rc30: build:web produced 240 client artifacts
+# and no .dsh-build/client-build-environment.json, and the sidebar read
+# "DSH 本地构建"; "pnpm run build --profile official" produced 248 artifacts, wrote
+# the record with DSH_CLIENT_BUILD_PROFILE=official, and the sidebar reads
+# "deepseek HARNESS".
+#
+# The install runs twice on purpose. The first installs the checkout's own
+# dependency graph; a patch that adds a dependency to a workspace manifest changes
+# that graph, and only a second install creates the new workspace-local links.
+# Measured: skipping it left packages/experimental/agent-team/node_modules absent,
+# and the Agent Teams plugins then failed to import with ERR_MODULE_NOT_FOUND for
+# @deepseek-ai/schemastery.
+set -euo pipefail
+
+NODE_BIN=/root/.nvm/versions/node/v24.18.0/bin
+export PATH="$NODE_BIN:$PATH"
+
+# Registry the mirror's installs resolve from. The China mirror is the default because a
+# promotion runs from a mainland host and registry.npmjs.org stalls there: measured on the
+# 0.2.0-rc.1 promotion, an install against npmjs.org sat for nine minutes without resolving a
+# single package, while the same install against npmmirror.com finished in seconds. Override
+# with DSH_PLUS_REGISTRY when a release is too new for the mirror to have synced.
+export DSH_PLUS_REGISTRY="${DSH_PLUS_REGISTRY:-https://registry.npmmirror.com}"
+export npm_config_registry="$DSH_PLUS_REGISTRY"
+
+MIRROR="${1:-}"
+if [ -z "$MIRROR" ] || [ ! -d "$MIRROR" ]; then
+  echo "usage: dsh-plus-build <mirror-path>" >&2
+  exit 2
+fi
+
+cd "$MIRROR"
+echo "[build] mirror: $MIRROR"
+
+# 1. Install the checkout's graph, then again so patch-added dependencies get links.
+echo "[build] install (1/2)"
+pnpm install --no-frozen-lockfile
+echo "[build] install (2/2, so patch-added dependencies link)"
+pnpm install --no-frozen-lockfile
+
+# 2. Build the official client profile. This is what sets DSH_CLIENT_BUILD_PROFILE.
+#    A mirror with no web bundle answers 404 on /, so it is part of the same step.
+echo "[build] build --profile official"
+pnpm run build --profile official
+
+# 3. Verify the brand came from the profile rather than the locale fallback, and
+#    that no workspace lost its dependency links.
+RECORD="$MIRROR/.dsh-build/client-build-environment.json"
+if [ ! -f "$RECORD" ]; then
+  echo "[build] FAIL: $RECORD missing - the client was built without the official profile" >&2
+  exit 1
+fi
+PROFILE="$("$NODE_BIN/node" -p "require('$RECORD').environment.DSH_CLIENT_BUILD_PROFILE" 2>/dev/null || true)"
+if [ "$PROFILE" != "official" ]; then
+  echo "[build] FAIL: DSH_CLIENT_BUILD_PROFILE is '$PROFILE', expected 'official'" >&2
+  exit 1
+fi
+echo "[build] brand profile: $PROFILE"
+
+MISSING=0
+while IFS= read -r manifest; do
+  directory="$(dirname "$manifest")"
+  dependencies="$("$NODE_BIN/node" -p "Object.keys(require('$manifest').dependencies ?? {}).length" 2>/dev/null || echo 0)"
+  [ "$dependencies" -gt 0 ] || continue
+  if [ ! -d "$directory/node_modules" ]; then
+    echo "[build] FAIL: $directory declares dependencies but has no node_modules" >&2
+    MISSING=$((MISSING + 1))
+  fi
+done < <(find "$MIRROR/packages" -maxdepth 3 -name package.json 2>/dev/null)
+[ "$MISSING" -eq 0 ] || exit 1
+echo "[build] workspace links: complete"
+
+echo "[build] ok"

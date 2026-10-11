@@ -1,0 +1,93 @@
+#!/usr/bin/env node
+/**
+ * Resolve the placeholder `allowBuilds` entries a profile install leaves behind.
+ *
+ * pnpm refuses to run a dependency's install scripts until each name is answered, and
+ * it writes the question into the profile's `pnpm-workspace.yaml`:
+ *
+ *   allowBuilds:
+ *     koffi: set this to true or false
+ *
+ * The plugin install then fails with ERR_PNPM_IGNORED_BUILDS, so a fresh profile never
+ * finishes without a decision per name. The distribution already records which native
+ * builds it wants, in `dshPlus.profile.allowBuilds`, and `dsh-plus` writes that into
+ * the profile it manages — but a profile this repository creates directly gets the
+ * placeholders instead.
+ *
+ * This applies the distribution's decision to a profile, and answers any name the
+ * distribution does not mention with `false`: an unknown native build is not something
+ * the distribution reviewed, and declining it keeps the install reproducible.
+ *
+ * Usage: dsh-plus-allow-builds --profile <dir> [--check]
+ */
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { join } from 'node:path'
+
+const argv = process.argv.slice(2)
+let profile
+let checkOnly = false
+let distribution = '/root/projects/deepseek-harness-plus/packages/bundle/plus/package.json'
+for (let i = 0; i < argv.length; i += 1) {
+  if (argv[i] === '--profile') { profile = argv[i + 1]; i += 1; continue }
+  if (argv[i] === '--distribution') { distribution = argv[i + 1]; i += 1; continue }
+  if (argv[i] === '--check') { checkOnly = true; continue }
+  throw new Error('unknown option: ' + argv[i])
+}
+if (profile === undefined) throw new Error('usage: dsh-plus-allow-builds --profile <dir> [--distribution <package.json>] [--check]')
+
+const workspacePath = join(profile, 'pnpm-workspace.yaml')
+if (!existsSync(workspacePath)) throw new Error('no pnpm-workspace.yaml in ' + profile)
+
+let decided = {}
+try {
+  const manifest = JSON.parse(readFileSync(distribution, 'utf8'))
+  decided = manifest.dshPlus?.profile?.allowBuilds ?? {}
+} catch { /* the distribution is unreachable; every unknown name is declined below */ }
+
+const text = readFileSync(workspacePath, 'utf8')
+const lines = text.split('\n')
+let inBlock = false
+let changed = 0
+let answered = 0
+// pnpm only writes the block once it has a question to ask, so a profile that never
+// reached that point has no block to answer. Writing it from the distribution applies
+// the same decision the loop below applies to each name.
+const hasBlock = lines.some(line => /^allowBuilds:/.test(line))
+if (!hasBlock) {
+  const entries = Object.keys(decided).sort()
+  if (entries.length > 0) {
+    lines.push('allowBuilds:')
+    for (const name of entries) lines.push('  ' + JSON.stringify(name) + ': ' + (decided[name] === true ? 'true' : 'false'))
+    lines.push('')
+    changed = entries.length
+    answered = entries.length
+  }
+}
+for (let i = 0; i < lines.length; i += 1) {
+  const line = lines[i]
+  if (/^allowBuilds:/.test(line)) { inBlock = true; continue }
+  if (inBlock && /^\S/.test(line) && !/^allowBuilds:/.test(line)) inBlock = false
+  if (!inBlock) continue
+  const match = /^(\s+)(['"]?)([^'":]+)\2:\s*(.*)$/.exec(line)
+  if (match === null) continue
+  const indent = match[1]
+  const quote = match[2]
+  const name = match[3]
+  const value = match[4].trim()
+  if (value === 'true' || value === 'false') continue
+  // A name the distribution answered keeps that answer; anything else declines, because
+  // an unreviewed native build is what reproducibility cannot accept.
+  const answer = decided[name] === true
+  lines[i] = indent + quote + name + quote + ': ' + (answer ? 'true' : 'false')
+  changed += 1
+  if (Object.prototype.hasOwnProperty.call(decided, name)) answered += 1
+}
+
+if (changed === 0) {
+  console.log('dsh-plus-allow-builds: every entry already answered')
+} else if (checkOnly) {
+  console.log('dsh-plus-allow-builds: ' + String(changed) + ' entry(ies) would be answered')
+} else {
+  writeFileSync(workspacePath, lines.join('\n'))
+  console.log('dsh-plus-allow-builds: answered ' + String(changed) + ' entry(ies), ' + String(answered) + ' from the distribution')
+}

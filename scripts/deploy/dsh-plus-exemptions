@@ -1,0 +1,121 @@
+#!/usr/bin/env node
+/**
+ * Write the profile compatibility exemptions a runtime version needs.
+ *
+ * The plugin compatibility gate refuses to install a plugin whose published
+ * peerDependencies cannot match the running DSH version, and it reads its grants from
+ * `<profile>/compatibility.json`. A plugin published against an older runtime carries
+ * ranges like `^0.1.6-alpha.1` that a 0.x caret cannot widen, so a distribution that
+ * moves onto a new runtime needs one exemption per such plugin or the profile install
+ * is rejected outright:
+ *
+ *   Plugin @sparkelf/dsh-plugin-backup@0.2.0-rc.36 is incompatible with dsh 0.2.0-rc.1
+ *
+ * The distribution's peer-override generator covers the standalone manifest, not the
+ * profile, and it deliberately skips @sparkelf names. This derives the profile list the
+ * same way the gate evaluates it: read every candidate plugin's published
+ * peerDependencies and keep the ones the runtime does not satisfy.
+ *
+ * Usage: dsh-plus-exemptions --runtime <version> [--manifest <standalone package.json>]
+ *                            [--out <compatibility.json>] [--check]
+ */
+import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
+import semver from '/root/projects/deepseek-harness-plus/node_modules/semver/index.js'
+
+const argv = process.argv.slice(2)
+let runtime
+let manifestPath = '/root/projects/deepseek-harness-plus/packages/standalone/plus-standalone/package.json'
+let out
+let checkOnly = false
+for (let i = 0; i < argv.length; i += 1) {
+  if (argv[i] === '--runtime') { runtime = argv[i + 1]; i += 1; continue }
+  if (argv[i] === '--manifest') { manifestPath = argv[i + 1]; i += 1; continue }
+  if (argv[i] === '--out') { out = argv[i + 1]; i += 1; continue }
+  if (argv[i] === '--check') { checkOnly = true; continue }
+  throw new Error('unknown option: ' + argv[i])
+}
+if (runtime === undefined) throw new Error('usage: dsh-plus-exemptions --runtime <version> [--manifest <path>] [--out <path>] [--check]')
+if (!existsSync(manifestPath)) throw new Error('manifest does not exist: ' + manifestPath)
+
+/** The distribution's own version, so an internal workspace spec resolves to it. */
+const distribution = JSON.parse(readFileSync(manifestPath, 'utf8'))
+
+/**
+ * One specifier to query: a published name@version.
+ *
+ * A workspace spec names a package this repository publishes, and the version it
+ * resolves to is the one the distribution pins in the same manifest.
+ *
+ * @param name - dependency name.
+ * @param spec - declared range, possibly a workspace protocol.
+ * @returns a specifier npm accepts, or undefined when no exact version is knowable.
+ */
+function publishedSpec(name, spec) {
+  if (typeof spec !== 'string') return undefined
+  const exact = /^(?:workspace:)?([0-9][^\s]*)$/.exec(spec)
+  if (exact !== null) return name + '@' + exact[1]
+  return undefined
+}
+
+const candidates = []
+for (const [name, spec] of Object.entries(distribution.dependencies ?? {})) {
+  if (name.startsWith('@deepseek-ai/dsh')) continue
+  const published = publishedSpec(name, spec)
+  if (published !== undefined) candidates.push(published)
+}
+
+/** Peer ranges one published plugin declares. */
+function peersOf(spec) {
+  try {
+    const raw = execFileSync('npm', ['view', spec, 'peerDependencies', '--json', '--registry', 'https://registry.npmjs.org'], {
+      encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30_000,
+    })
+    if (raw.trim() === '') return {}
+    const parsed = JSON.parse(raw)
+    const record = Array.isArray(parsed) ? parsed[0] : parsed
+    if (record === null || typeof record !== 'object' || Array.isArray(record)) return {}
+    const peers = {}
+    for (const [k, v] of Object.entries(record)) peers[k] = String(v)
+    return peers
+  } catch { return {} }
+}
+
+const exemptions = {}
+for (const spec of candidates) {
+  const separator = spec.lastIndexOf('@')
+  const name = spec.slice(0, separator)
+  const version = spec.slice(separator + 1)
+  const peers = peersOf(spec)
+  const unsatisfied = Object.entries(peers).filter(([peerName, range]) => {
+    if (!peerName.startsWith('@deepseek-ai/dsh-')) return false
+    try { return !semver.satisfies(runtime, range, { includePrerelease: true }) } catch { return false }
+  })
+  if (unsatisfied.length === 0) continue
+  exemptions[name + '@' + version] = [runtime]
+  console.log('  ' + name + '@' + version + ' -> ' + String(unsatisfied.length) + ' peer(s) cannot match ' + runtime)
+}
+
+// A grant already recorded for another runtime stays: the file is the profile's own
+// record, and removing a grant the operator added by hand would be a silent downgrade.
+if (out !== undefined && existsSync(out)) {
+  try {
+    const existing = JSON.parse(readFileSync(out, 'utf8'))
+    for (const [key, versions] of Object.entries(existing)) {
+      if (exemptions[key] === undefined && Array.isArray(versions)) exemptions[key] = versions
+    }
+  } catch { /* an unreadable file authorizes nothing; the rewrite replaces it */ }
+}
+
+const text = JSON.stringify(Object.fromEntries(Object.entries(exemptions).sort(([a], [b]) => a.localeCompare(b))), null, 2) + '\n'
+if (checkOnly) {
+  console.log('dsh-plus-exemptions: ' + String(Object.keys(exemptions).length) + ' exemption(s) would be written')
+} else if (out === undefined) {
+  process.stdout.write(text)
+} else {
+  // The profile directory may not exist yet when this runs before the profile install.
+  mkdirSync(dirname(out), { recursive: true })
+  writeFileSync(out, text)
+  console.log('dsh-plus-exemptions: wrote ' + String(Object.keys(exemptions).length) + ' exemption(s) to ' + out)
+}

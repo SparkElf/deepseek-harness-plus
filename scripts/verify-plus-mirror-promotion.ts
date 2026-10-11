@@ -22,7 +22,7 @@
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, readlinkSync } from 'node:fs'
+import { realpathSync, existsSync, readFileSync, readdirSync, readlinkSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -140,4 +140,4 @@ function main(): void {
   console.info('verify-plus-mirror-promotion: all ' + String(changes.length) + ' local change(s) have a patch')
 }
 
-if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main()

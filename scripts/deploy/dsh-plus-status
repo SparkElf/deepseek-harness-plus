@@ -1,0 +1,136 @@
+#!/usr/bin/env bash
+#
+# Report the state of the running Plus deployment.
+#
+#   dsh-plus-status            the served release, its version, its patches, and its health
+#   dsh-plus-status --json     the same facts as JSON
+#
+# Why this exists instead of a runbook:
+#
+# Diagnosing a Plus deployment means answering the same six questions every time - which tree is
+# serving, what version it carries, whether the npm patches landed, whether the service is up,
+# whether that tree is the one in use, and whether its profile is complete. Each was a separate
+# shell pipeline, and each pipeline could report the wrong thing on its own: a version read from the
+# wrong tree, a patch marker counted in a file that ships it already, an HTTP probe that answered
+# from a stale process. One command answers them together, from one resolved tree.
+#
+# The replay hazards this avoids, each measured:
+#   - counting a marker a pristine package already carries, which reads as "the patch landed"
+#   - reading a version from a tree the service does not use
+#   - treating HTTP 200 as healthy when the page failed to boot
+#   - matching the probe process itself when looking for a release in use
+
+set -u
+NODE_BIN=/root/.nvm/versions/node/v24.18.0/bin
+export PATH="$NODE_BIN:$PATH"
+DSH_HOME="${DSH_HOME:-/root/.dsh}"
+RELEASES="$DSH_HOME/releases/plus"
+PORT="${DSH_PLUS_PORT:-3080}"
+
+usage() { sed -n '2,10p' "$0"; exit "${1:-0}"; }
+
+json=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --json) json=1; shift ;;
+    -h|--help|"") usage 0 ;;
+    *) echo "unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+
+# The tree the service actually runs from, resolved from the process rather than assumed: the
+# profile link and the process can disagree after a failed switch, and the process is what serves.
+serving=""
+pid=""
+if command -v ss >/dev/null 2>&1; then
+  pid="$(ss -lptnH "sport = :$PORT" 2>/dev/null | grep -oE "pid=[0-9]+" | head -1 | cut -d= -f2)"
+fi
+if [ -n "$pid" ] && [ -r "/proc/$pid/cmdline" ]; then
+  serving="$(tr '\0' ' ' < "/proc/$pid/cmdline" | grep -oE "$RELEASES/[^ ]+" | head -1 | sed "s|\($RELEASES/[^/]*\).*|\1|")"
+fi
+link="$(readlink -f "$DSH_HOME/profiles/plus" 2>/dev/null | sed "s|\($RELEASES/[^/]*\).*|\1|")"
+
+# HTTP is a liveness check, not a health check: a service can answer while its client bundles fail
+# to load. The title is read so an error page is not counted as healthy.
+http="000"
+title=""
+body="$(curl -s --max-time 6 "http://127.0.0.1:$PORT/" 2>/dev/null)" || true
+if [ -n "$body" ]; then
+  http="$(curl -s -o /dev/null -w "%{http_code}" --max-time 6 "http://127.0.0.1:$PORT/" 2>/dev/null)"
+  title="$(printf '%s' "$body" | grep -oE "<title>[^<]*</title>" | head -1 | sed "s|</\?title>||g")"
+fi
+
+# Client bundles, counted from the served page: a release whose plugins fail to mount serves a
+# page with fewer of them, which is invisible to an HTTP status check.
+bundles="0"
+if [ -n "$body" ]; then
+  bundles="$(printf '%s' "$body" | grep -oE "dsh-[a-z-]+/client\.js" | sort -u | wc -l | tr -d " ")"
+fi
+
+version=""
+patches=""
+entries=""
+if [ -n "$serving" ] && [ -d "$serving/profiles/plus/node_modules" ]; then
+  profile="$serving/profiles/plus"
+  version="$(node -e "try{process.stdout.write(require('$profile/node_modules/@sparkelf/dsh-plus/package.json').version)}catch(e){}" 2>/dev/null)"
+  # The three better-sidebar patches. Counted per patch, and reported as present only when every
+  # one is, because a partially applied set is the failure that looks like success.
+  sidebar="$profile/node_modules/dsh-better-sidebar"
+  hit=0
+  for pair in "lib/index.js:mediaCwd" "lib/index.js:htmlCwd" "lib/client.js:catalogRequests"; do
+    file="${pair%%:*}"; key="${pair##*:}"
+    if [ -f "$sidebar/$file" ] && grep -q "$key" "$sidebar/$file" 2>/dev/null; then
+      hit=$((hit + 1))
+    fi
+  done
+  patches="$hit/3"
+  entries="$(ls "$serving" 2>/dev/null | wc -l | tr -d " ")"
+fi
+
+# The floor the profile declares, which is what the plugin gate compares against.
+floor=""
+wrapper="$DSH_HOME/releases/plus/$(basename "${serving:-none}")/profiles/plus/package.json"
+if [ -f "$wrapper" ]; then
+  floor="$(node -e "const p=require('$wrapper');process.stdout.write(String(p.dependencies?.['@sparkelf/dsh-plus']??''))" 2>/dev/null)"
+fi
+
+if [ "$json" = "1" ]; then
+  node -e "
+    process.stdout.write(JSON.stringify({
+      serving: process.argv[1] || null,
+      profileLink: process.argv[2] || null,
+      pid: process.argv[3] || null,
+      http: Number(process.argv[4]),
+      title: process.argv[5] || null,
+      clientBundles: Number(process.argv[6]),
+      dshPlus: process.argv[7] || null,
+      sidebarPatches: process.argv[8] || null,
+      releaseEntries: Number(process.argv[9]),
+    }, null, 2) + String.fromCharCode(10))
+  " "$serving" "$link" "$pid" "$http" "$title" "$bundles" "$version" "$patches" "$entries"
+  exit 0
+fi
+
+echo "serving:      ${serving:-（未在跑）}"
+echo "profile link: ${link:-（无）}"
+echo "pid:          ${pid:-（无）}"
+echo "http:         $http${title:+  ($title)}"
+echo "bundles:      $bundles client bundle(s) on the served page"
+echo "dsh-plus:     ${version:-（读不到）}"
+echo "sidebar:      $patches patch marker(s) present"
+echo "release:      $entries entries"
+
+# A disagreement between the link and the process is how a failed switch looks from outside: the
+# version a probe reads and the version the product runs come from different trees.
+if [ -n "$serving" ] && [ -n "$link" ] && [ "$serving" != "$link" ]; then
+  echo "" >&2
+  echo "WARNING: the profile link and the running process name different releases." >&2
+  echo "  link:    $link" >&2
+  echo "  process: $serving" >&2
+  exit 1
+fi
+if [ -z "$serving" ]; then
+  echo "" >&2
+  echo "WARNING: nothing is listening on port $PORT." >&2
+  exit 1
+fi

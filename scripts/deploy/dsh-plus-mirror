@@ -1,0 +1,281 @@
+#!/usr/bin/env bash
+#
+# Build a promotable Plus release mirror from an official DSH tag.
+#
+#   dsh-plus-mirror create --tag <official-git-tag> --mirror <path> [--runtime <version>] [--force]
+#   dsh-plus-mirror check  --mirror <path>
+#
+# Why this exists instead of a runbook:
+#
+# Promoting a Plus deployment onto a new official release is a fixed sequence the
+# operator otherwise repeats by hand, and three of its steps fail only after the
+# expensive build has already run:
+#
+#   1. the official tag has to be extracted into a fresh mirror,
+#   2. this repository's reviewed patches have to apply to it,
+#   3. the standalone manifest's peer overrides have to be regenerated for the new
+#      runtime, or the profile install is rejected by the plugin compatibility gate,
+#   4. the build has to run through `dsh-plus-build` so the client brand is injected,
+#   5. the profile has to be created from the standalone manifest,
+#   6. the @deepseek-ai scope has to be relinked to the mirror's own sources, and every
+#      real directory that shadows a linked package replaced by the link, or the
+#      profile reports DEFECTIVE and every tool call fails,
+#   7. the profile's compatibility exemptions have to name the plugins whose published
+#      peer ranges cannot match the new runtime.
+#
+# Every one of those was discovered by watching a promotion fail. The step that is
+# easy to miss is 3: the distribution's own patch set carries peer ranges that were
+# resolved when it was published, so a new runtime needs new exemptions and the
+# regeneration only covers the standalone manifest, not the profile.
+#
+# Measured on the 0.2.0-rc.1 promotion: patching needed one signature fix, the
+# exemption list grew from 5 to 14 entries, and the scope check reported nine shadowed
+# directories that no script repaired.
+set -euo pipefail
+
+NODE_BIN=/root/.nvm/versions/node/v24.18.0/bin
+export PATH="$NODE_BIN:$PATH"
+
+# Registry the mirror's installs resolve from. The China mirror is the default because a
+# promotion runs from a mainland host and registry.npmjs.org stalls there: measured on the
+# 0.2.0-rc.1 promotion, an install against npmjs.org sat for nine minutes without resolving a
+# single package, while the same install against npmmirror.com finished in seconds. Override
+# with DSH_PLUS_REGISTRY when a release is too new for the mirror to have synced.
+# The mirror is built from a mainland host, where the default mirror is the fast path for
+# most packages. It also serves a handful of optional cross-platform tarballs by redirect the
+# client cannot follow, so a fallback registry is available for those.
+export DSH_PLUS_REGISTRY="${DSH_PLUS_REGISTRY:-https://registry.npmmirror.com}"
+export DSH_PLUS_REGISTRY_FALLBACK="${DSH_PLUS_REGISTRY_FALLBACK:-https://registry.npmjs.org}"
+export npm_config_registry="$DSH_PLUS_REGISTRY"
+PLUS_REPO=${PLUS_REPO:-/root/projects/deepseek-harness-plus}
+
+usage() {
+  sed -n '2,14p' "$0"
+  exit "${1:-0}"
+}
+
+# Report a step and its outcome, so an interrupted run says where it stopped.
+step() { echo "  [mirror] $*"; }
+
+# Refuse to remove a release a running deployment is using.
+#
+# create starts by deleting its target. Aimed at the tree a live service runs from, that removes
+# the service runtime and every process loaded from it - including, when the command was issued
+# from a session served by that tree, the very tool the command needs to repair its own mistake.
+# Measured 2026-10-11: the rebuild took 3080 to 404 and left the issuing session unable to run any
+# command for five rounds. The check is conservative by design: a wrong refusal costs --force, a
+# wrong acceptance costs the running deployment.
+assert_not_in_use() {
+  local target="$1" force="$2" output="" status=0
+  output="$("$NODE_BIN/node" /root/.dsh/supervisor/release-in-use.mjs --release "$target" 2>&1)" || status=$?
+  [ "$status" -eq 0 ] && return 0
+  echo "$output" >&2
+  if [ "$force" = "1" ]; then
+    echo "  [mirror] --force given: rebuilding a live release anyway" >&2
+    return 0
+  fi
+  cat >&2 <<EOF
+
+refusing to rebuild a release that is in use.
+
+create removes its target, and the paths above currently name it. If any of them is the
+deployment serving this session, the removal also takes the tool that would repair it.
+
+Build into a new directory and switch to it instead:
+
+    dsh-plus-mirror create --tag <tag> --mirror <mirror>-next --runtime <version>
+    dsh-plus-switch <mirror>-next
+
+Pass --force only when the target is genuinely not the running deployment.
+EOF
+  exit 2
+}
+
+# ── create ────────────────────────────────────────────────────────────────────
+cmd_create() {
+  local tag="" mirror="" runtime="" force="0"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --tag) tag="$2"; shift 2 ;;
+      --mirror) mirror="$2"; shift 2 ;;
+      --runtime) runtime="$2"; shift 2 ;;
+      --force) force="1"; shift ;;
+      *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+  done
+  [ -n "$tag" ] && [ -n "$mirror" ] || usage 2
+  [ -d "$PLUS_REPO" ] || { echo "PLUS_REPO does not exist: $PLUS_REPO" >&2; exit 2; }
+
+  cd "$PLUS_REPO"
+  git rev-parse -q --verify "refs/tags/$tag" >/dev/null || {
+    echo "tag $tag is not present; fetch it first:" >&2
+    echo "  git fetch upstream refs/tags/$tag:refs/tags/$tag" >&2
+    exit 2
+  }
+
+  # Before the removal, not after: the damage this prevents is the removal itself.
+  assert_not_in_use "$mirror" "$force"
+
+  step "extracting $tag into $mirror"
+  rm -rf "$mirror"
+  mkdir -p "$mirror"
+  git archive "$tag" | tar -x -C "$mirror"
+  # The patch application below uses git apply, so the tree needs an index.
+  ( cd "$mirror" && git init -q . && git add -A && git -c user.email=mirror@local -c user.name=mirror commit -qm "official $tag" )
+
+  step "applying the reviewed dsh-source patches"
+  local applied=0 failed=""
+  for manifest in "$PLUS_REPO"/patches/npm/*/package.json; do
+    local dir patch
+    dir="$(dirname "$manifest")"
+    # Only a source patch lands in the mirror; an npm patch targets a third party.
+    local kind
+    kind="$("$NODE_BIN/node" -e "const m=require('$manifest');const v=m.dshPatch?.variants?.[0]?.target?.kind;process.stdout.write(v??'')" 2>/dev/null || true)"
+    [ "$kind" = "dsh-source" ] || continue
+    patch="$(ls "$dir"/patches/*.patch 2>/dev/null | head -n1)"
+    [ -n "$patch" ] || continue
+    if ( cd "$mirror" && git apply --3way "$patch" >/dev/null 2>&1 ); then
+      applied=$((applied + 1))
+    else
+      failed="$failed $(basename "$dir")"
+    fi
+  done
+  step "patches applied: $applied"
+  [ -z "$failed" ] || { echo "  [mirror] FAILED patches:$failed" >&2; exit 1; }
+
+  # A patch that stops compiling is the failure the release boundary cannot see: git
+  # apply reconciles a moved hunk by context, so a signature the patch calls still has
+  # to exist. The host face compiles the packages these patches touch.
+  step "typechecking the patched tree (host face)"
+  if ! ( cd "$mirror" && npx tsc -b tsconfig.host.json >/tmp/dsh-plus-mirror-tsc.log 2>&1 ); then
+    echo "  [mirror] typecheck failed; see /tmp/dsh-plus-mirror-tsc.log" >&2
+    tail -n 20 /tmp/dsh-plus-mirror-tsc.log >&2
+    exit 1
+  fi
+
+  if [ -n "$runtime" ]; then
+    step "regenerating the standalone manifest for runtime $runtime"
+    "$NODE_BIN/npx" tsx scripts/standalone/generate-manifest.ts \
+      --distribution packages/bundle/plus \
+      --out packages/standalone/plus-standalone/package.json \
+      --runtime-version "$runtime"
+    "$NODE_BIN/npx" tsx scripts/standalone/generate-manifest.ts \
+      --distribution packages/bundle/plus \
+      --out packages/standalone/dataops-standalone/package.json \
+      --runtime-version "$runtime" --variant dataops
+  fi
+
+  step "building the mirror (brand profile official)"
+  /root/.dsh/dsh-plus-build "$mirror"
+
+  step "creating the profile from the standalone manifest"
+  local standalone
+  standalone="$("$NODE_BIN/node" -e "process.stdout.write(require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').name+'@'+require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').version)")"
+  # The add is expected to report ignored build scripts on a first install: pnpm writes a
+  # placeholder into the profile's allowBuilds and refuses the install, which is what the step
+  # below answers. The failure is therefore not fatal, but the command must not wait for input
+  # either: its stdin is /dev/null so an interactive prompt ends the process instead of hanging.
+  ( cd "$mirror" && DSH_HOME="$mirror" "$NODE_BIN/node" apps/cli/lib/bin.js plugin --profile plus add "$standalone" < /dev/null || true )
+
+  # pnpm answers every un-reviewed native build with a placeholder in the profile's
+  # pnpm-workspace.yaml and then refuses the install, so the profile is never created on
+  # the first pass. The distribution records its decision; this applies it and installs
+  # again, which is also the pass that creates the workspace links.
+  step "resolving the profile's allowBuilds placeholders"
+  "$NODE_BIN/node" /root/.dsh/dsh-plus-allow-builds \
+    --profile "$mirror/profiles/plus" \
+    --distribution "$PLUS_REPO/packages/bundle/plus/package.json"
+
+  step "installing again with the build decisions in place"
+  ( cd "$mirror/profiles/plus" && pnpm install --no-frozen-lockfile < /dev/null )
+
+  step "relinking the @deepseek-ai scope to the mirror's sources"
+  "$NODE_BIN/node" /root/.dsh/supervisor/relink-release.mjs --release "$mirror" --profile "$mirror/profiles/plus"
+
+  # The profile's scope must cover every package the mirror's own sources declare, not just
+  # the ones the standalone manifest lists. A first relink from a freshly created profile
+  # links the manifest's set; the mirror ships far more, and a package that resolves through
+  # the profile rather than the tree (a plugin's own dependency on another @deepseek-ai
+  # package, for instance) is absent until this second pass. Measured 2026-09-30: a profile
+  # built without it held 78 links where the previous release held 329, and computer-use and
+  # the schedule UI were among the packages a plugin could not resolve.
+  step "relinking again over the mirror's full source set"
+  "$NODE_BIN/node" /root/.dsh/supervisor/relink-release.mjs --release "$mirror" --profile "$mirror/profiles/plus"
+
+  # The patch directories are the reviewed patches applied to published plugin packages, and
+  # the profile is what the launcher patches against. They live under the profile rather than
+  # the tree, so a newly created profile starts without them and every patched plugin loads
+  # unpatched. Measured 2026-09-30: the previous release carried 18 patch directories and the
+  # new one none, which silently cost the Office preview, the sidebar, and the mobile journal.
+  # The state to carry lives in the release that is currently serving, which is whatever
+  # profiles/plus resolves to -- not a sibling of the mirror being built. Deriving it from the
+  # serving link is what makes this correct for a mirror at any path.
+  step "carrying the reviewed patch directories into the profile"
+  local serving
+  serving="$(readlink -f /root/.dsh/profiles/plus 2>/dev/null || true)"
+  # A mirror keeps its profile at profiles/plus, so both sides are named directly rather than
+  # through a fixed child name.
+  if [ -n "$serving" ] && [ -d "$mirror/profiles/plus" ]; then
+    "$NODE_BIN/node" /root/.dsh/supervisor/carry-profile-state.mjs \
+      --from-profile "$serving" \
+      --to-profile "$mirror/profiles/plus" || true
+  else
+    echo "  no serving profile to carry from; the mirror keeps its own layer" >&2
+  fi
+
+  # The carried composition writes dependencies the profile did not have when the install above
+  # ran, and carry-profile-state reports exactly that ("the profile needs an install for the
+  # added dependencies") without installing them. A dependency added by hand -- a file: entry for
+  # a local plugin, for instance -- therefore stayed declared and absent: the patch layer mounted
+  # it by name, the module was never there, and the plugin silently did nothing. Measured
+  # 2026-10-05: dsh-image-hoist was declared in every profile and installed in none.
+  step "installing the carried dependencies"
+  ( cd "$mirror/profiles/plus" && pnpm install --no-frozen-lockfile < /dev/null )
+
+  # The compatibility gate evaluates the profile's grants, not the standalone
+  # manifest's peer overrides: a plugin whose published range cannot match the new
+  # runtime is rejected outright until an exemption names it. Deriving the list keeps
+  # it in step with whatever the distribution currently pins.
+  step "writing the profile compatibility exemptions"
+  "$NODE_BIN/node" /root/.dsh/dsh-plus-exemptions \
+    --runtime "${runtime:-}" \
+    --manifest "$PLUS_REPO/packages/standalone/plus-standalone/package.json" \
+    --out "$mirror/profiles/plus/compatibility.json"
+
+  # The profile lives at profiles/plus, not at the `profile` the repair defaults to, so the
+  # path is passed explicitly. Without it the repair finds no scope, reports "nothing to
+  # repair", and the profile keeps the registry copies of every @deepseek-ai package: a
+  # mirror in which `dsh-host-webserver` is alpha.1 beside an alpha.2 `dsh-web-app`, whose
+  # `isWildcardHost` import then fails the whole tree.
+  step "repairing shadowed packages"
+  "$NODE_BIN/node" /root/.dsh/supervisor/repair-shadowed-scope.mjs \
+    --release "$mirror" --profile "$mirror/profiles/plus" || true
+
+  # The workspace links the repair just made point at the release sources, which import
+  # third-party packages that only the release root's own install provides.
+  step "installing the release root"
+  ( cd "$mirror" && pnpm install --no-frozen-lockfile < /dev/null ) || true
+
+  step "done: $mirror"
+  step "promote it with: dsh-plus-switch $mirror"
+}
+
+# ── check ─────────────────────────────────────────────────────────────────────
+cmd_check() {
+  local mirror=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --mirror) mirror="$2"; shift 2 ;;
+      *) echo "unknown option: $1" >&2; exit 2 ;;
+    esac
+  done
+  [ -n "$mirror" ] || usage 2
+  "$NODE_BIN/node" /root/.dsh/supervisor/check-profile-scope.mjs --release "$mirror" | tail -n 4
+}
+
+case "${1:-}" in
+  create) shift; cmd_create "$@" ;;
+  check) shift; cmd_check "$@" ;;
+  -h|--help|"") usage 0 ;;
+  *) echo "unknown command: $1" >&2; usage 2 ;;
+esac

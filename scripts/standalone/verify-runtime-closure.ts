@@ -11,9 +11,10 @@
  * Usage: tsx scripts/standalone/verify-runtime-closure.ts --root <node_modules root>
  */
 
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { realpathSync, existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { fileURLToPath } from 'node:url'
 
 /** One undeclared import found in a built package. */
 interface DeclarationGap {
@@ -96,4 +97,4 @@ function main(): void {
   console.info('verify-runtime-closure: every official import in the runtime tree resolves.')
 }
 
-if (process.argv[1] !== undefined && import.meta.url === `file://${process.argv[1]}`) main()
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) main()

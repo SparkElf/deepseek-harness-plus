@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+#
+# 稳定重启 3080。
+#
+#   dsh-3080-restart              通过 supervisor 重启 web（推荐）
+#   dsh-3080-restart --unit       连同 systemd 单元一起重启
+#   dsh-3080-restart --status     只查看状态
+#
+# 为什么走 supervisor 而不是 systemctl：
+#   systemd 单元跑的是 supervisor，web 只是它的子进程。
+#   systemctl restart 会把 supervisor 和 web 一起杀掉，control socket
+#   随之消失，重启期间所有连接被拒 —— 这正是「重启后连不上」的来源。
+#   supervisor 的 restart 只回收 web 子进程，supervisor 常驻，
+#   socket 不断，还能捕获并恢复会话。
+#
+# 改动 profile（依赖/原生二进制）后，必须先 accept 指纹，再重启：
+#   profile-guard 会拒绝启动指纹不符的 profile。
+#
+set -uo pipefail
+
+NODE=/root/.nvm/versions/node/v24.18.0/bin/node
+SUPV=/root/.dsh/profiles/plus/node_modules/@sparkelf/dsh-plugin-supervisor/runtime/bin.mjs
+MANIFEST=/root/.dsh/supervisor/runtime.json
+SOCK=/root/.dsh/supervisor/runtime.sock
+GUARD=/root/.dsh/supervisor/profile-guard.mjs
+PROFILE=/root/.dsh/releases/plus/plus-rc30/profile
+PROFILE_LINK=/root/.dsh/profiles/plus
+STATE=/root/.dsh/supervisor/accepted-profile.json
+UNIT=deepseek-harness-plus.service
+PORT=3080
+LOG=/root/.dsh/dsh-3080-restart.log
+VERIFY=/root/.dsh/verify-client.mjs
+
+MODE=supervisor
+case "${1:-}" in
+  --unit)   MODE=unit ;;
+  --status) MODE=status ;;
+  --help|-h) sed -n "2,18p" "$0"; exit 0 ;;
+esac
+
+: > "$LOG"
+# Work output belongs in the log; a status query answers on the terminal, and a
+# silent --status is indistinguishable from a hung command.
+if [ "$MODE" != status ]; then exec >> "$LOG" 2>&1; fi
+
+step() { echo "[$(date +%H:%M:%S)] $*"; }
+fail() { step "FAILED: $*"; exit 1; }
+
+sup() { "$NODE" "$SUPV" --manifest "$MANIFEST" "$@" 2>&1; }
+
+if [ "$MODE" = status ]; then
+  step "=== 状态 ==="
+  step "  unit: $(systemctl is-active $UNIT)"
+  step "  supervisor pid: $(pgrep -f "supervisor/runtime/bin.mjs" | head -1)"
+  step "  web pid: $(pgrep -f "port $PORT" | head -1)"
+  step "  socket: $([ -S $SOCK ] && echo 存在 || echo 不存在)"
+  step "  HTTP: $(curl -s -o /dev/null -w "%{http_code}" --noproxy "*" --max-time 5 http://127.0.0.1:$PORT/)"
+  step "--- supervisor status ---"
+  sup status | grep -E "state|webPid|port" | sed "s/^/   /"
+  exit 0
+fi
+
+step "=== 重启 $PORT（模式: $MODE） ==="
+
+# 1-3. 统一闸门：修 profile scope、证明模块唯一、必要时重新 accept 指纹
+# 三件事按此顺序做，accept 永远排在两种缺陷检查之后 —— 见 preflight-start.mjs 顶部注释。
+step "1) 预检 + 修复（profile scope / 模块唯一性 / 指纹）"
+"$NODE" /root/.dsh/supervisor/preflight-start.mjs || fail "预检未通过（原因见上一行）"
+NEED_ACCEPT=no
+
+# 4. 重启
+if [ "$MODE" = unit ]; then
+  step "4) systemctl restart $UNIT（整单元）"
+  systemctl reset-failed "$UNIT" 2>/dev/null || true
+  systemctl restart "$UNIT" || fail "systemctl restart 失败"
+  for i in $(seq 1 60); do
+    sleep 2
+    [ -S "$SOCK" ] && [ "$(curl -s -o /dev/null -w "%{http_code}" --noproxy "*" --max-time 3 http://127.0.0.1:$PORT/ 2>/dev/null)" = 200 ] && break
+  done
+else
+  step "4) supervisor restart（只回收 web 子进程）"
+  if [ ! -S "$SOCK" ]; then
+    step "   control socket 不存在，回退到整单元重启"
+    systemctl reset-failed "$UNIT" 2>/dev/null || true
+    systemctl restart "$UNIT" || fail "systemctl restart 失败"
+    for i in $(seq 1 60); do sleep 2; [ -S "$SOCK" ] && break; done
+  fi
+  OUT=$(sup restart)
+  echo "$OUT" | grep -E "restart.complete|restart.preparing|ready.listening" | sed "s/^/   /"
+fi
+
+READY=no
+for i in $(seq 1 60); do
+  if [ "$(curl -s -o /dev/null -w "%{http_code}" --noproxy "*" --max-time 3 http://127.0.0.1:$PORT/ 2>/dev/null)" = 200 ]; then READY=yes; break; fi
+  sleep 2
+done
+[ "$READY" = yes ] || fail "$PORT 未就绪"
+step "   端口就绪"
+
+# 5. 客户端加载验证
+step "5) 验证客户端模块"
+if [ -f "$VERIFY" ]; then
+  V=$("$NODE" "$VERIFY" "http://127.0.0.1:$PORT/" 2>&1)
+  echo "$V" | sed "s/^/   /"
+  case "$V" in *OK*) : ;; *) fail "客户端模块验证失败" ;; esac
+  step "   客户端正常"
+fi
+
+# 6. 连接面验证（HTTP + WS，这才是页面真正依赖的）
+step "6) 验证连接面"
+WS=$("$NODE" /root/.dsh/ws-check.mjs "$PORT" 2>&1 | tail -1)
+step "   $WS"
+case "$WS" in *101*) : ;; *) fail "WebSocket 不可用：$WS" ;; esac
+
+step "7) 状态"
+step "   unit=$(systemctl is-active $UNIT) sup=$(pgrep -f "supervisor/runtime/bin.mjs" | head -1) web=$(pgrep -f "port $PORT" | head -1)"
+step "=== 完成 ==="
