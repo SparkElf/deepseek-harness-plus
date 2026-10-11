@@ -50,3 +50,34 @@ The verifier fingerprints runtime JavaScript, CSS, JSON, YAML, WebAssembly, and 
 - After the production closure gate passes, run `dsh-plus-profile-guard accept` and only then switch the profile.
 - Install the guard at `$DSH_HOME/supervisor/profile-guard.mjs`; systemd must run it through `ExecStartPre` before importing Supervisor code from `$DSH_HOME/profiles/plus`.
 - An automatic updater may materialize a candidate, but it cannot become the accepted startup profile without a new closure gate and explicit acceptance.
+
+## Check The Running Deployment
+
+`dsh-plus-status` answers the questions a promotion is verified against, from one resolved tree, so
+a probe cannot read a version from a release the service does not use:
+
+```sh
+dsh-plus-status          # human-readable
+dsh-plus-status --json   # for a script
+```
+
+It reports the serving release, the profile link, the pid, HTTP status and page title, the client
+bundle count on the served page, the `@sparkelf/dsh-plus` version, the better-sidebar patch count,
+and the release's entry count. It exits non-zero when the profile link and the running process name
+different releases, or when nothing listens on the port - the two ways a failed switch looks from
+outside while a probe still reports a version.
+
+Two properties this exists to keep straight, both measured:
+
+- **A patch count is per patch, not per marker.** A released package can already contain a string a
+  patch also writes, so counting occurrences reads as "the patch landed" on a pristine package.
+  The command reports how many of the three patches are present, so a partial set cannot look whole.
+- **HTTP 200 is liveness, not health.** A release whose client bundles fail to mount still answers.
+  The bundle count comes from the served page, so a page that boots without its plugins is visible.
+
+Before any promotion, confirm the target is not the release in use. A promotion removes and rebuilds
+its mirror, and aimed at the served tree that takes the runtime of every process loaded from it:
+
+```sh
+pnpm run verify:plus-mirror-promotion -- --mirror /root/.dsh/releases/plus/<release>
+```
