@@ -259,6 +259,20 @@ cmd_build() {
   step "installing again with the build decisions in place"
   ( cd "$mirror/profiles/plus" && pnpm install --no-frozen-lockfile < /dev/null )
 
+  # The profile is created by `plugin add`, which writes a skeleton from the launcher defaults and
+  # then overwrites it with the manifest. When that overwrite does not happen the build still
+  # succeeds and the profile keeps the skeleton - one bundle where the manifest names twenty. The
+  # service then starts, never listens, and every plugin no bundle names is installed but never
+  # mounted, which no later step detects. Measured 2026-10-11: that tree reached the served release
+  # and had to be repaired by hand.
+  step "checking the profile mounts what the manifest declares"
+  if ! "$NODE_BIN/node" "$DSH_HOME/supervisor/verify-profile-bundles.mjs" \
+      --profile "$mirror/profiles/plus" \
+      --manifest "$PLUS_REPO/packages/standalone/plus-standalone/package.json"; then
+    echo "  [mirror] refusing to finish: the built profile does not mount the declared bundles" >&2
+    exit 1
+  fi
+
   step "relinking the @deepseek-ai scope to the mirror's sources"
   "$NODE_BIN/node" /root/.dsh/supervisor/relink-release.mjs --release "$mirror" --profile "$mirror/profiles/plus"
 
