@@ -26,6 +26,8 @@ import { IMAGE_BODY_ID } from '../src/client/image/index.ts'
 import { PdfBody } from '../src/client/pdf/PdfBody.tsx'
 import { PDF_BODY_ID } from '../src/client/pdf/index.ts'
 import { CodeBody } from '../src/client/code/CodeBody.tsx'
+import { DiagramBody } from '../src/client/diagram/DiagramBody.tsx'
+import { DRAWIO_BODY_ID, XMIND_BODY_ID } from '../src/client/diagram/index.ts'
 import { en, zh } from '../src/client/locales.ts'
 import type { textFace } from '../src/client/face.ts'
 import type { TextStore } from '../src/client/store.ts'
@@ -98,6 +100,8 @@ describe('ui-sidebar-documentpreview apply', () => {
       ['sidebar.right.tab.document', IMAGE_BODY_ID, 'sidebarImage', ImageBody],
       ['sidebar.right.tab.document', PDF_BODY_ID, 'sidebarPdf', PdfBody],
       ['sidebar.right.tab.document', '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/code', 'sidebarCodePreview', CodeBody],
+      ['sidebar.right.tab.document', DRAWIO_BODY_ID, 'documentDiagram', DiagramBody],
+      ['sidebar.right.tab.document', XMIND_BODY_ID, 'documentDiagram', DiagramBody],
     ])
     expect(registered[0]?.store).toBeDefined()
     expect(typeof registered[0]?.inject).toBe('function')
