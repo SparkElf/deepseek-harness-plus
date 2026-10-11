@@ -300,6 +300,20 @@ if (additions.length > 0) {
   const separator = workspace === "" || workspace.endsWith("\n") ? "" : "\n"
   writeFileSync(workspacePath, workspace + separator + additions.join("\n") + "\n")
 }
+// The launcher boots from this file and `check-target.mjs` refuses a mirror without it, so it is
+// written here rather than left for a first start the switch will already have refused. The content
+// is the launcher's own template: the tree is composed from the bundles, and this file is an empty
+// entry list that names no plugins of its own.
+const cordisPath = join(dirname(profilePath), "cordis.yml")
+if (!existsSync(cordisPath)) {
+  writeFileSync(cordisPath, [
+    "# dsh profile root — an empty entry list. The tree is composed as patches:",
+    "# each bundle in package.json's dsh.profile.bundles, then cordis.patch.yml, then any",
+    "# --patch overlays. Edit cordis.patch.yml, not this file.",
+    "[]",
+    "",
+  ].join("\n"))
+}
 console.log("  [mirror] profile declares " + String(Object.keys(profile.dependencies).length) + " dependencies and " + String(declaration.bundles.length) + " bundles")
 PROFILE
   # The add is expected to report ignored build scripts on a first install: pnpm writes a
