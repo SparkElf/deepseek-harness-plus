@@ -324,6 +324,12 @@ function ciSharedStaticGates(): Gate[] {
     // pnpm. Measured: a header from the previous version survived a retarget, the mirror build
     // reported success, and only the image build failed - thirty minutes in.
     pnpmScript('npm-patches', 'verify:npm-patches', { label: 'npm patch fit' }),
+    // The mirror selects patches by globbing the directory, so the reviewed set and the applied set
+    // are two facts that nothing compared. A directory added without a declaration is applied
+    // unreviewed; a declaration left behind is skipped silently. A source patch also names the
+    // official revision it was written against, which no one compared to the base the distribution
+    // now pins - so after a base upgrade a stale anchor kept applying under `git apply --3way`.
+    pnpmScript('patch-manifest', 'verify:patch-manifest', { label: 'patch package manifest' }),
   ]
 }
 
