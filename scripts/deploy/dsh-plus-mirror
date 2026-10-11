@@ -256,6 +256,16 @@ cmd_build() {
     --profile "$mirror/profiles/plus" \
     --distribution "$PLUS_REPO/packages/bundle/plus/package.json"
 
+  # The npm patches have to reach the workspace before the install that applies them. pnpm keys
+  # them by name@version in patchedDependencies, and an entry added after an install disagrees with
+  # the lockfile that install wrote, which makes pnpm refuse the next frozen install. Measured
+  # 2026-10-11: the host mirror never ran this step at all, so three reviewed better-sidebar patches
+  # were installed as packages and never applied, and the served tree ran the unpatched plugin.
+  step "writing the npm patch configuration into the profile"
+  "$NODE_BIN/node" "$DSH_HOME/supervisor/materialize-npm-patches.mjs" \
+    --profile "$mirror/profiles/plus" \
+    --distribution "$mirror/profiles/plus/node_modules/@sparkelf/dsh-plus"
+
   step "installing again with the build decisions in place"
   ( cd "$mirror/profiles/plus" && pnpm install --no-frozen-lockfile < /dev/null )
 
