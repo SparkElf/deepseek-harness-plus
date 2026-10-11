@@ -119,7 +119,7 @@ while read -r link; do
   else
     echo "[switch]   cannot resolve $name (no package directory named $short)" >&2
   fi
-done < <(find "$MIRROR/profile/node_modules" -maxdepth 4 -type l 2>/dev/null)
+done < <(find "$profileDirectory/node_modules" -maxdepth 4 -type l 2>/dev/null)
 step repair-links "done repaired=$repaired"
 
 # What is serving now, so a failure after the stop can be undone. Captured before the stop
@@ -192,8 +192,11 @@ trap settle_on_exit EXIT
 #    so there is no window in which a fresh supervisor could read a stale in-memory copy.
 
 step link start
-ln -sfn "$MIRROR/profile" "$PROFILE_LINK"
-step link "done -> $MIRROR/profile"
+# The resolved directory, not `$MIRROR/profile`: pointing the link at a path that does not exist
+# leaves the guard reading a missing profile and the switch rolls back. Measured 2026-10-11, after
+# the directory check above was already fixed - only the link still named the old layout.
+ln -sfn "$profileDirectory" "$PROFILE_LINK"
+step link "done -> $profileDirectory"
 
 # 2. Record the profile so the guard accepts the reload.
 step accept start
