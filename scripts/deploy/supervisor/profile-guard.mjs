@@ -7,7 +7,7 @@ import {
   renameSync, rmSync, symlinkSync, writeFileSync,
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const RUNTIME_FILE = /\.(?:cjs|diff|js|json|mjs|patch|wasm|ya?ml)$/u
 const LF = String.fromCharCode(10)
@@ -137,7 +137,12 @@ function required(value, name) {
   return value
 }
 
-if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Both sides are resolved, because Node realpaths `import.meta.url` for an ES module while
+// `process.argv[1]` keeps the path that was typed. Through a symlink the comparison is false, so
+// this block never runs and the process exits 0 - which the systemd unit reads as a passing
+// pre-start check. Measured 2026-10-11: the guard reported success while the accepted profile had
+// in fact been modified, and only the direct path returned the refusal.
+if (process.argv[1] !== undefined && realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))) {
   const args = parse(process.argv.slice(2))
   const statePath = required(args.state, 'state')
   try {
