@@ -64,7 +64,7 @@ SOURCE="$REPO/scripts/deploy"
 # Explicit lists: a file added to the directory is not installed by accident, and a file removed
 # from it is reported as drift rather than left installed.
 COMMANDS="dsh-3080-restart dsh-plus-allow-builds dsh-plus-build dsh-plus-cua dsh-plus-exemptions dsh-plus-mirror dsh-plus-refresh dsh-plus-scope dsh-plus-status dsh-plus-switch verify-client.mjs ws-check.mjs"
-SUPERVISOR="carry-profile-state.mjs check-plugin-imports.mjs check-profile-scope.mjs check-target.mjs preflight-start.mjs profile-guard.mjs release-in-use.mjs relink-release.mjs repair-cli-links.mjs repair-shadowed-scope.mjs"
+SUPERVISOR="carry-profile-state.mjs check-plugin-imports.mjs check-profile-scope.mjs check-target.mjs preflight-start.mjs profile-guard.mjs release-in-use.mjs relink-release.mjs repair-cli-links.mjs repair-shadowed-scope.mjs verify-profile-bundles.mjs"
 
 # One check per file, shared by both placements. The mode decides whether a symlink is required or
 # forbidden; content is compared either way, which follows the link to the file it names.
