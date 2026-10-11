@@ -11,12 +11,18 @@
  * touch this path? A file that exists in the repository does not count — the mirror is
  * rebuilt from patch payloads, so only a patch reproduces a change into it.
  *
+ * It also refuses a mirror that the running deployment is using. `dsh-plus-mirror create` begins by
+ * removing its target, so aiming a rebuild at the served tree removes the service runtime and every
+ * process loaded from it - including, when the command is issued from a session that tree serves,
+ * the tool the command needs to repair its own mistake. Measured 2026-10-11: the rebuild took 3080
+ * to 404 and left the issuing session unable to run any command for five rounds.
+ *
  * Usage:
  *   tsx scripts/verify-plus-mirror-promotion.ts --mirror <path> [--patches <path>]
  */
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, readlinkSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -35,6 +41,40 @@ function localChanges(mirror: string): string[] {
     paths.push(path)
   }
   return paths
+}
+
+/**
+ * Every release directory a running process or the profile link currently names.
+ *
+ * A process names its own release in argv and keeps using that tree for its whole life, which makes
+ * it the strongest evidence available without asking the service. The search itself is excluded:
+ * this command carries the mirror path under test in its own arguments, so counting that would
+ * report every mirror as in use. Measured - without the exclusion the check always refused.
+ * @returns absolute release directories, one entry per distinct user.
+ */
+function releasesInUse(): Set<string> {
+  const found = new Set<string>()
+  // A release is the first two segments under releases/, because that is the tree a rebuild
+  // removes. A trailing quote is stripped: systemd quotes ExecStart arguments.
+  const remember = (text: string): void => {
+    for (const match of text.matchAll(/\/root\/\.dsh\/releases\/([^\/\s"]+\/[^\/\s"]+)/gu)) {
+      if (match[1] !== undefined) found.add(resolve('/root/.dsh/releases', match[1]))
+    }
+  }
+  try {
+    remember(readlinkSync('/root/.dsh/profiles/plus'))
+  } catch {
+    // No profile link means no launcher resolved one, which is not evidence of anything.
+  }
+  try {
+    for (const line of execFileSync('ps', ['-eo', 'args'], { encoding: 'utf8' }).split('\n')) {
+      if (line.includes('verify-plus-mirror-promotion')) continue
+      remember(line)
+    }
+  } catch {
+    // ps unavailable is not evidence of anything.
+  }
+  return found
 }
 
 /** Every repository path any patch payload touches. */
@@ -70,7 +110,19 @@ function main(): void {
   const patchesIndex = argv.indexOf('--patches')
   const patchesArgument = argv[patchesIndex + 1]
   if (patchesIndex >= 0 && patchesArgument === undefined) throw new Error('--patches requires a path')
-  const patchRoot = patchesArgument === undefined ? defaultPatchRoot : resolve(patchesArgument)
+  // The index is what says the option was given: without it, `argv[index + 1]` reads whatever
+  // follows in the list, which is a later option for any invocation that omits `--patches`.
+  const patchRoot = patchesIndex < 0 || patchesArgument === undefined ? defaultPatchRoot : resolve(patchesArgument)
+
+  if (releasesInUse().has(mirror)) {
+    console.error('verify-plus-mirror-promotion: ' + mirror + ' is the release a running deployment is using')
+    console.error('')
+    console.error('A promotion removes this tree and rebuilds it, which takes the service runtime and every')
+    console.error('process loaded from it - including the tool that would repair the removal.')
+    console.error('Build into a new directory and switch to it instead.')
+    process.exitCode = 1
+    return
+  }
 
   const changes = localChanges(mirror)
   const covered = patchedPaths(patchRoot)
