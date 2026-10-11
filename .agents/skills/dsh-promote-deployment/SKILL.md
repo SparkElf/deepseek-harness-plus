@@ -760,3 +760,33 @@ git show --stat HEAD | tail -5                  # 提交实际包含什么
 **规则**：`reset --hard` / `checkout -f` 之前，先确认工作树没有未提交的成果；
 有就先 `git stash` 或先提交。合并后**从远端读回**验证，不要信本地命令的成功输出
 （`git show origin/main:<path> | grep -c <keyword>`）。
+
+
+### 先用 CLI,不要手写探测
+
+**诊断部署状态之前,先读这一节,不要现写 shell 管道。**
+
+```sh
+dsh-plus-status          # 一条命令回答全部:哪棵树在服务/版本/补丁/健康/bundle 数/树是否完整
+dsh-plus-status --json   # 供脚本消费
+```
+
+它存在的原因是**两条探测会把失败读成成功**:
+
+| 手写探测 | 为什么错 |
+|---|---|
+| `grep -c <标记>` 数补丁落地 | 已发布的包可能**本来就含**那个字符串。实测:0.25.0 的 `SETTINGS_NAV_MARKER` 本来就有 5 处,读出来是"补丁已落" |
+| `curl -o /dev/null -w %{http_code}` | **200 只代表活着**。客户端 bundle 挂载失败时页面照样返回 200。实测:3080 曾返回 200 而那棵树一个补丁都没有 |
+
+所以状态命令按**补丁个数**报(`0/3`),并从**被服务的页面**数 bundle —— 部分应用不能看起来像全应用。
+
+**破坏性操作之前先确认目标不在用**:
+
+```sh
+pnpm run verify:plus-mirror-promotion -- --mirror <release>   # 仓库侧,拒绝在用 release
+```
+
+`dsh-plus-mirror create` 也内置了同一道前置拒绝(退出码 2,`--force` 可绕过)。
+
+**手写探测最容易踩的自匹配**:用 `ps` 找"哪些 release 在用"时,探测命令**自己的参数**里就写着待查的
+release 名,不排除就会把每个 release 都报成在用。实测过 —— 修正前每个都报 in use。
