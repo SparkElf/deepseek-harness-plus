@@ -330,6 +330,11 @@ function ciSharedStaticGates(): Gate[] {
     // official revision it was written against, which no one compared to the base the distribution
     // now pins - so after a base upgrade a stale anchor kept applying under `git apply --3way`.
     pnpmScript('patch-manifest', 'verify:patch-manifest', { label: 'patch package manifest' }),
+    // Installing a package that declares `dsh.bundle` and not naming it in the mount list leaves its
+    // capability absent while every health check passes. Measured: the auto-review bundle had been in
+    // the plus dependencies since 0.2.1-alpha.11 and never in the plus bundles, so `autoAdmit` was
+    // never injected and the permission menu shipped three options instead of four.
+    pnpmScript('mount-declarations', 'verify:mount-declarations', { label: 'bundle mount declarations' }),
   ]
 }
 
