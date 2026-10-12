@@ -259,7 +259,9 @@ function main(): void {
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    '@changfenhuang/dsh-genui': '0.11.4',
+    // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
+    // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
+    '@sparkelf/dsh-genui': '0.11.4-patch.1',
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
     '@sparkelf/dsh-plugin-supervisor': '0.1.9',
