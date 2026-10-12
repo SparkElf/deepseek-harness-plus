@@ -259,9 +259,6 @@ function main(): void {
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
   const expectedProfileDependencies = {
-    // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
-    // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
-    '@sparkelf/dsh-genui': '0.11.4-patch.1',
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
     '@sparkelf/dsh-plugin-supervisor': '0.1.9',
@@ -308,12 +305,12 @@ function main(): void {
     // it is what makes `auto` selectable at all -- permissionPresets keeps that name reserved
     // until an integration registers for it.
     '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-alpha.1',
-    // The auto-review preset is registered by that bundle, but its product label and glyph live
-    // in the permission-presets client, which knows only the three built-in names: the preset
-    // renders as its raw machine value in an English locale and carries no icon. The client is
-    // a dsh-source patch target, so the republished override carries those bytes; naming it here
-    // as well installed the same client twice under two names, and both copies register the
-    // one module id the official name owns.
+    // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
+    // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
+    '@sparkelf/dsh-genui': '0.11.4-patch.1',
+    // The sidebar previews .drawio and .xmind through this plugin's own viewer; the official
+    // document preview ships no diagram renderer.
+    '@sparkelf/dsh-client-ui-diagram-viewer': '0.2.1-alpha.28',
   }
   if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
     throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
