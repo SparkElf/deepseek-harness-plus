@@ -1682,6 +1682,9 @@ importers:
       '@sparkelf/dsh-patch-composer-popover-boundaries':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/composer-popover-boundaries
+      '@sparkelf/dsh-patch-diagram-preview':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/diagram-preview
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/legacy-code-preset
@@ -11439,6 +11442,8 @@ importers:
   patches/npm/browser-auth-mode: {}
 
   patches/npm/composer-popover-boundaries: {}
+
+  patches/npm/diagram-preview: {}
 
   patches/npm/legacy-code-preset: {}
 
