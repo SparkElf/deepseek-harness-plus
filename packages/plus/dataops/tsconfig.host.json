@@ -34,6 +34,9 @@
     },
     {
       "path": "../mcp-credentials"
+    },
+    {
+      "path": "../../skill/skill"
     }
   ]
 }

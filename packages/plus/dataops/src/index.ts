@@ -6,10 +6,13 @@
  */
 import { createHash, randomBytes } from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { readFile } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
 import type { Context, Fiber } from '@deepseek-ai/cordis'
 import type { Branded } from '@deepseek-ai/dsh-brand'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import z from '@deepseek-ai/schemastery'
+import { BUNDLED_SKILL_RANK } from '@deepseek-ai/dsh-skill'
 import { credentialRef, type CredentialRef, type ResolvedCredential } from '@deepseek-ai/dsh-credentials'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -31,7 +34,7 @@ const McpClient = {
 /** Cordis plugin name for the standalone DataOps integration. */
 export const name = 'mcp-dataops'
 /** Services required by the standalone authorization and MCP composition. */
-export const inject = ['connection', 'credentials', 'webServer', 'tools']
+export const inject = ['connection', 'credentials', 'webServer', 'tools', 'skills']
 
 const CLIENT_ID = 'deepseek-harness-plus'
 const SCOPE = 'openid dataops.mcp'
@@ -269,6 +272,39 @@ function parseAccountResponse(value: unknown): AccountResponse {
   }
 }
 
+/** The skill this plugin contributes: how to answer a DataOps data question. */
+const QUERY_SKILL_NAME = 'dataops-query'
+/** Location of the skill document inside the published package. */
+const QUERY_SKILL_FILE = new URL('../skills/dataops-query/SKILL.md', import.meta.url)
+/** Package root, which the skill loads its relative resources against. */
+const QUERY_SKILL_ROOT = fileURLToPath(new URL('../', import.meta.url))
+
+/**
+ * Describe the query skill to the catalog without reading it.
+ *
+ * The description repeats what the skill file declares, because a catalog listing must
+ * answer whether the skill applies before its content is loaded.
+ */
+const QUERY_SKILL = {
+  name: QUERY_SKILL_NAME,
+  description:
+    '用户问数、取数、查数据、要报表时使用。包含选表策略（优先总表；有地域区分时先大后小）、取数前与用户确认资源清单、以及超时时主动分批次。',
+  invocation: { modelInvocable: true, userInvocable: true },
+  provider: name,
+  source: 'bundled',
+  resourceBase: { kind: 'directory', path: QUERY_SKILL_ROOT },
+  rank: BUNDLED_SKILL_RANK,
+  locator: QUERY_SKILL_FILE,
+} as const
+
+/** Serve the query skill to the catalog. */
+const querySkillProvider = {
+  name: QUERY_SKILL_NAME,
+  list: () => Promise.resolve([QUERY_SKILL]),
+  async get() {
+    return { ...QUERY_SKILL, content: await readFile(QUERY_SKILL_FILE, 'utf8') }
+  },
+}
 /**
  * Compose the DataOps browser authorization routes and generic MCP child.
  * @param ctx - Cordis context with credentials, Web routes, and tool registry.
@@ -296,6 +332,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   }
   const targetRef = parseTargetRef(resolvedTarget.value)
 
+  // The query skill ships with the plugin: a data question is the plugin's own subject,
+  // so its guidance travels with the integration rather than the deployment profile.
+  ctx.skills.registerProvider(() => querySkillProvider)
   const pending = new Map<string, PendingAuthorization>()
   const lifecycleAbort = new AbortController()
   const activeOperations = new Set<Promise<unknown>>()
