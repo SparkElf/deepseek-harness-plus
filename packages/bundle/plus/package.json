@@ -57,7 +57,7 @@
         "dsh-better-sidebar",
         "@sparkelf/dsh-office-viewer-fonts",
         "dsh-video-preview",
-        "@changfenhuang/dsh-genui",
+        "@sparkelf/dsh-genui",
         "@sparkelf/dsh-plugin-supervisor",
         "@sparkelf/dsh-plus",
         "dsh-sql-workbench",
@@ -66,10 +66,10 @@
         "dsh-right-bg-anim",
         "@sparkelf/dsh-mobile-bridge",
         "@sparkelf/dsh-quant",
-        "@sparkelf/dsh-image-hoist"
+        "@sparkelf/dsh-image-hoist",
+        "@sparkelf/dsh-client-ui-diagram-viewer"
       ],
       "dependencies": {
-        "@changfenhuang/dsh-genui": "0.11.4",
         "@sparkelf/dsh-mineru": "0.1.4",
         "@sparkelf/dsh-officecli": "0.1.4",
         "@sparkelf/dsh-plugin-supervisor": "0.1.9",
@@ -86,7 +86,9 @@
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
         "@sparkelf/dsh-image-hoist": "0.1.3",
-        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1"
+        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
+        "@sparkelf/dsh-genui": "0.11.4-patch.1",
+        "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
