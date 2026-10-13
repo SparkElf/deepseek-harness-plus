@@ -1,5 +1,5 @@
 diff --git a/lib/client.js b/lib/client.js
-index f1756a2..3844bf3 100644
+index f1756a2..3b5f40d 100644
 --- a/lib/client.js
 +++ b/lib/client.js
 @@ -4183,7 +4183,7 @@ window.__ModuleLoader__.load({
@@ -19,24 +19,22 @@ index f1756a2..3844bf3 100644
  			"explorerCopied": "nArs4W_explorerCopied",
  			"editorTreeSearch": "nArs4W_editorTreeSearch",
  			"tabBadge": "nArs4W_tabBadge",
-@@ -5885,6 +5886,28 @@ window.__ModuleLoader__.load({
+@@ -5885,6 +5886,26 @@ window.__ModuleLoader__.load({
  		function badgeToneOf(tone) {
  			return tone === "copied" ? "added" : tone;
  		}
 +		/**
-+		 * Compact last-modified label for one explorer row.
++		 * Last-modified label for one explorer row: month, day, hour, minute.
 +		 *
-+		 * A same-day file shows a time and an older one a date: the row is 28px tall and
-+		 * the label shares its line with a name that already ellipsizes, so it stays
-+		 * short. The tooltip carries the full stamp.
++		 * The row is 28px tall and the label shares its line with a name that already
++		 * ellipsizes, so the month and day stay two digits and the year is omitted.
++		 * The tooltip carries the full stamp.
 +		 */
 +		function formatModified(mtimeMs) {
 +			const date = new Date(mtimeMs);
 +			if (Number.isNaN(date.getTime())) return "";
-+			const now = new Date();
-+			const sameDay = date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 +			const pad = (value) => String(value).padStart(2, "0");
-+			return sameDay ? `${pad(date.getHours())}:${pad(date.getMinutes())}` : `${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
++			return `${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
 +		}
 +		/**
 +		 * Full last-modified time for the row's tooltip.
@@ -48,7 +46,7 @@ index f1756a2..3844bf3 100644
  		/** The archive progress line's percentage (`0/0` — an empty selection — is 0%). */
  		function archivePercent(progress) {
  			if (progress.total <= 0) return 0;
-@@ -6043,6 +6066,11 @@ window.__ModuleLoader__.load({
+@@ -6043,6 +6064,11 @@ window.__ModuleLoader__.load({
  						title: gitToneLabel(gitTone),
  						children: gitLetter
  					}),
@@ -60,7 +58,7 @@ index f1756a2..3844bf3 100644
  					copied ? /* @__PURE__ */ (0, react_jsx_runtime.jsx)("span", {
  						className: sidebar_module_css_default.explorerCopied,
  						children: t("copied")
-@@ -6101,6 +6129,11 @@ window.__ModuleLoader__.load({
+@@ -6101,6 +6127,11 @@ window.__ModuleLoader__.load({
  						size: 12,
  						className: sidebar_module_css_default.explorerSymlink
  					}),
