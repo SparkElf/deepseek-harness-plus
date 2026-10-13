@@ -1664,6 +1664,9 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
+      '@sparkelf/dsh-patch-better-locale-peer-range':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/better-locale-peer-range
       '@sparkelf/dsh-patch-better-sidebar-file-mtime':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-file-mtime
@@ -11434,6 +11437,8 @@ importers:
         version: link:../../typert/protocol
 
   patches/npm/approval-allow-policy: {}
+
+  patches/npm/better-locale-peer-range: {}
 
   patches/npm/better-sidebar-file-mtime: {}
 
