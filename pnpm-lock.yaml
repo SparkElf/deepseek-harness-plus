@@ -1697,9 +1697,6 @@ importers:
       '@sparkelf/dsh-patch-llm-pi-ai-npm-transport':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/llm-pi-ai-npm-transport
-      '@sparkelf/dsh-patch-llm-pi-ai-transport-truncation':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/llm-pi-ai-transport-truncation
       '@sparkelf/dsh-patch-mobile-journal-generation':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/mobile-journal-generation
@@ -11462,8 +11459,6 @@ importers:
   patches/npm/legacy-code-preset: {}
 
   patches/npm/llm-pi-ai-npm-transport: {}
-
-  patches/npm/llm-pi-ai-transport-truncation: {}
 
   patches/npm/mobile-journal-generation: {}
 
