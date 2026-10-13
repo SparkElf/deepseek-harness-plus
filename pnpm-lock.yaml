@@ -1664,6 +1664,9 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
+      '@sparkelf/dsh-patch-better-sidebar-file-mtime':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/better-sidebar-file-mtime
       '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-html-preview-path
@@ -11428,6 +11431,8 @@ importers:
         version: link:../../typert/protocol
 
   patches/npm/approval-allow-policy: {}
+
+  patches/npm/better-sidebar-file-mtime: {}
 
   patches/npm/better-sidebar-html-preview-path: {}
 
