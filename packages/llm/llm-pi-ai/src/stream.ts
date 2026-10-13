@@ -56,6 +56,12 @@ function classifyPiAiError(message: string): string {
   // finish_reason`). The connection dropped mid-response, so this is a transport
   // truncation, not a model-level error.
   if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
+  // A gateway in front of the provider relays the same condition in its own words:
+  // the upstream response stream was interrupted, cut short, or dropped. Measured
+  // 2026-10-13 against a `d1api` route through `sub2api`: the message reached the
+  // model as an unclassified PI_AI_ERROR, which the default retry set excludes, so
+  // a truncated response ended the turn instead of being retried.
+  if (/upstream response stream|response stream (?:was )?(?:interrupted|aborted|closed|dropped)/i.test(message)) return 'TRANSPORT'
   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
     || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
     // undici renders a mid-stream socket drop as a bare `terminated` (its
