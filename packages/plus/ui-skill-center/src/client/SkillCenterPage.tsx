@@ -124,13 +124,13 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
         />
         <div className={css.cardActions}>
           {skill.path === undefined || skill.linked === true ? null : (
-            <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
+            <Button variant="outline" size="sm" onClick={() => { onDelete(skill) }}>
               {t('action.delete')}
-            </button>
+            </Button>
           )}
-          <button type="button" className={css.button} onClick={() => { setOpen(true) }}>
+          <Button variant="outline" size="sm" onClick={() => { setOpen(true) }}>
             {t('action.showDetail')}
-          </button>
+          </Button>
         </div>
       </div>
       <Modal
