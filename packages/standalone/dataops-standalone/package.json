@@ -34,7 +34,7 @@
   "private": false,
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.28",
+    "@sparkelf/dsh-plus": "workspace:0.2.1-alpha.29",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
     "@sparkelf/dsh-plugin-supervisor": "0.1.9",
@@ -319,11 +319,11 @@
       }
     ],
     "omittedPackages": {
-      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.28",
-      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.28",
-      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.28",
-      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.28",
-      "@sparkelf/dsh-quant": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.28"
+      "@deepseek-ai/dsh-computer-use": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.29",
+      "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.29",
+      "@deepseek-ai/dsh-web-search-exa": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.29",
+      "@sparkelf/dsh-mobile-bridge": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.29",
+      "@sparkelf/dsh-quant": "npm:@sparkelf/dsh-omitted@0.2.1-alpha.29"
     }
   }
 }
