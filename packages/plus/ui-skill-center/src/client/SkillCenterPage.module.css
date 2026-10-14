@@ -118,14 +118,14 @@
 }
 
 .group {
-  margin-top: 32px;
+  margin-top: 28px;
 }
 
 .groupTitle {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0 0 4px;
+  margin: 0 0 12px;
   font-size: 15px;
   font-weight: 500;
   line-height: 22px;
@@ -143,54 +143,56 @@
   color: var(--dsw-alias-label-caption);
 }
 
+/* Two fixed columns and a gutter, as the plugin market's own grid reads: a card is a
+   surface with a header row, a body, and a footer, and an auto-fill count changed the
+   card's proportions with the viewport instead of holding them. */
 .cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* The hover surface reaches 8px past the content on both sides while the row's
-   content stays aligned with the page header, as the official rows do. */
+/* The market card: its own surface and border on the page background, parts stacked with
+   one gutter, unstretched so leftover row height lands in the gutter rather than inside
+   the card. */
 .card {
   min-width: 0;
-  margin: 0 -8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-self: start;
+  padding: 12px 14px;
+  border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
 }
 
-.card:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
+/* The header row: glyph, then the name block. */
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .cardIcon {
-  display: inline-flex;
+  display: grid;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
 }
 
 /* A row from another workspace is present but is not the subject of this view. */
 .cardForeign {
   opacity: 0.72;
-}
-
-.cardMain {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 /* The workspace a project skill came from, beside its name. */
@@ -206,17 +208,29 @@
   vertical-align: middle;
 }
 
+/* The name carries the card, so it is the one thing sized up; everything else is a
+   signature under it, as the market card reads. */
 .cardTitle {
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 500;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The title row holds the name and the workspace badge; the badge is the only part
+   allowed to shrink away, because the name is what identifies the card. */
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .cardDesc {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-secondary);
   display: -webkit-box;
@@ -238,13 +252,16 @@
   margin-top: 2px;
 }
 
+/* The same quiet chrome as the market's own tag: an 11px label in a hairline capsule,
+   present without competing with the name. */
 .mark {
   padding: 1px 6px;
   border-radius: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  border: 1px solid var(--dsw-alias-border-l3);
   font-size: 11px;
   line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
+  white-space: nowrap;
 }
 
 .markOn {
@@ -262,11 +279,25 @@
   color: var(--dsw-alias-state-error-primary);
 }
 
+/* The actions sit on the card's bottom edge, so cards of different heights still line
+   their controls up across a grid row. */
 .cardEnd {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   flex: none;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+/* The description, the when-to-use line, and the marks keep the card's body together
+   above the actions. */
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .switch {

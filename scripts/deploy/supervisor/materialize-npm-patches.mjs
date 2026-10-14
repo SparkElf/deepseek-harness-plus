@@ -223,16 +223,132 @@ for (const patch of selected) {
   groups.set(key, group)
 }
 
+/**
+ * One parsed patch: the per-file sections it touches, in file order.
+ *
+ * pnpm applies a patch with its own applier, not `git apply`, and that applier reads each file
+ * section's own header. Files are collected first so every hunk for one file lands in one
+ * section, in ascending order.
+ * @param text - one patch file's content.
+ * @returns the file sections, each with its header lines, hunks, and target path.
+ */
+function patchSections(text) {
+  const sections = []
+  let current = null
+  const lines = text.split(String.fromCharCode(10))
+  if (lines[lines.length - 1] === '') lines.pop()
+  for (const line of lines) {
+    // A file section starts at its `--- a/<path>` line and holds every hunk that follows until
+    // the next one, including after a `diff --git` of its own. Restarting the section at that
+    // header split one file's hunks across two sections that each carried the same path, which
+    // pnpm then refused.
+    if (line.startsWith('--- ')) {
+      current = { path: line.slice(4).replace(/^[ab]\//u, '').trim(), hunks: [], hunk: null }
+      sections.push(current)
+      continue
+    }
+    if (current === null) continue
+    if (line.startsWith('@@')) {
+      current.hunk = [line]
+      current.hunks.push(current.hunk)
+      continue
+    }
+    // A hunk ends at the next header. The blank line a trailing newline leaves behind is not
+    // part of the body: counting it made pnpm reject the merged patch with "hunk header
+    // integrity check failed" while git apply accepted the same bytes.
+    if (current.hunk !== null
+      && (line.startsWith(' ') || line.startsWith('+') || line.startsWith('-') || line.startsWith('\\'))) {
+      current.hunk.push(line)
+    }
+  }
+  return sections
+}
+
+/**
+ * A hunk header's two line counts: how many lines it removes and how many it writes.
+ * @param hunk - one hunk, as its header line plus its body lines.
+ * @returns the header's two starts and two counts.
+ */
+function hunkCounts(hunk) {
+  const header = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/u.exec(hunk[0])
+  return {
+    oldStart: Number(header?.[1] ?? '0'),
+    oldCount: header?.[2] === undefined ? 1 : Number(header[2]),
+    newStart: Number(header?.[3] ?? '0'),
+    newCount: header?.[4] === undefined ? 1 : Number(header[4]),
+  }
+}
+
+/**
+ * Merge the patches targeting one package into the single file pnpm reads.
+ *
+ * Concatenating the files does not work. pnpm applies a patch with its own applier rather than
+ * `git apply`, and it resolves one file section at a time, so a second section for a path reads
+ * the file the first section already changed. Measured 2026-10-14: a combined file of the
+ * explorer last-modified patch plus the three existing better-sidebar patches failed every
+ * install attempt with `ERR_PNPM_PATCH_FAILED`, while each patch applied alone succeeded and
+ * `git apply` accepted the concatenation.
+ *
+ * The merged hunks also have to be renumbered. Every patch was written against the unmodified
+ * file, so a patch that runs after an earlier one moves down by however much that earlier patch
+ * grew the file. The gap comes from the line counts a hunk header states, not from counting its
+ * body: a hunk whose context lines the two sides do not share would drift by one per hunk. This
+ * is the shape the distribution's own `dsh-plus apply` writes.
+ *
+ * @param patches - the group's patches, in the order the distribution lists them.
+ * @returns the merged patch text.
+ */
+function mergePatches(patches) {
+  const byPath = new Map()
+  for (const patch of patches) {
+    for (const section of patchSections(readFileSync(patch.source, 'utf8'))) {
+      // The patches arrive in the distribution's order, so a file's sections stay in the order
+      // those patches were written.
+      const entry = byPath.get(section.path) ?? []
+      byPath.set(section.path, entry)
+      entry.push(section)
+    }
+  }
+  const out = []
+  for (const [path, sections] of byPath) {
+    out.push('diff --git a/' + path + ' b/' + path)
+    out.push('--- a/' + path)
+    out.push('+++ b/' + path)
+    // Each section is shifted by the growth of the sections whose hunks sit above it, so the
+    // sections are ordered by where they land in the file rather than by which patch wrote them.
+    // Keeping the patch order moved a patch's hunks below an earlier patch's, and the "+" side
+    // then pointed at the wrong lines.
+    sections.sort((left, right) => hunkCounts(left.hunks[0]).oldStart - hunkCounts(right.hunks[0]).oldStart)
+    let shift = 0
+    for (const section of sections) {
+      for (const hunk of section.hunks) {
+        const counts = hunkCounts(hunk)
+        const trailer = hunk[0].slice(hunk[0].indexOf('@@', 2) + 2)
+        hunk[0] = '@@ -' + String(counts.oldStart)
+          + (counts.oldCount === 1 ? '' : ',' + String(counts.oldCount))
+          + ' +' + String(counts.newStart + shift)
+          + (counts.newCount === 1 ? '' : ',' + String(counts.newCount))
+          + ' @@' + trailer
+      }
+      shift += section.hunks.reduce((grow, hunk) => {
+        const counts = hunkCounts(hunk)
+        return grow + counts.newCount - counts.oldCount
+      }, 0)
+    }
+    out.push(...sections.flatMap(section => section.hunks.flat()))
+  }
+  return out.join(String.fromCharCode(10)) + String.fromCharCode(10)
+}
+
 const patchedDependencies = {}
 for (const [key, group] of groups) {
   const destination = group.length === 1
     ? join(patchRoot, group[0].name, 'patch.patch')
     : join(patchRoot, 'combined', key.replaceAll('/', '%2F') + '.patch')
   mkdirSync(dirname(destination), { recursive: true })
-  writeFileSync(destination, group.map(patch => {
-    const content = readFileSync(patch.source, 'utf8')
-    return content.endsWith(String.fromCharCode(10)) ? content : content + String.fromCharCode(10)
-  }).join(''))
+  writeFileSync(destination, group.length === 1
+    ? readFileSync(group[0].source, 'utf8')
+    : mergePatches(group))
   patchedDependencies[key] = relative(profileDirectory, destination).replaceAll('\\', '/')
   console.log('  ' + key + ' <- ' + group.map(patch => patch.id).join(' + '))
 }

@@ -86,42 +86,42 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   return (
     <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
       <div className={css.cardHead}>
-        <span className={css.cardIcon}><IconSkillOutlineRegular size={22} /></span>
-        <div className={css.cardMain}>
-          <div className={css.cardTitle}>
-            {skill.name}
-            {skill.workspaceName === undefined ? null : (
-              <span className={css.workspaceBadge}>{skill.workspaceName}</span>
-            )}
-          </div>
-          <div className={css.cardDesc}>{skill.description}</div>
-          {skill.whenToUse === undefined ? null : (
-            <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
-          )}
-          <div className={css.cardMarks}>
-            <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-              {t('skill.modelInvocable')}
-            </span>
-            <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-              {t('skill.userInvocable')}
-            </span>
-            {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
-          </div>
-        </div>
-        <div className={css.cardEnd}>
-          <button
-            type="button"
-            className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
-            aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
-            aria-pressed={skill.modelInvocable}
-            onClick={() => { onToggle(skill, !skill.modelInvocable) }}
-          />
-          {skill.path === undefined || skill.linked === true ? null : (
-            <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
-              {t('action.delete')}
-            </button>
+        <span className={css.cardIcon}><IconSkillOutlineRegular size={16} /></span>
+        <div className={css.cardTitleRow}>
+          <div className={css.cardTitle}>{skill.name}</div>
+          {skill.workspaceName === undefined ? null : (
+            <span className={css.workspaceBadge}>{skill.workspaceName}</span>
           )}
         </div>
+      </div>
+      <div className={css.cardBody}>
+        <div className={css.cardDesc}>{skill.description}</div>
+        {skill.whenToUse === undefined ? null : (
+          <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
+        )}
+        <div className={css.cardMarks}>
+          <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+            {t('skill.modelInvocable')}
+          </span>
+          <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+            {t('skill.userInvocable')}
+          </span>
+          {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
+        </div>
+      </div>
+      <div className={css.cardEnd}>
+        <button
+          type="button"
+          className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
+          aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
+          aria-pressed={skill.modelInvocable}
+          onClick={() => { onToggle(skill, !skill.modelInvocable) }}
+        />
+        {skill.path === undefined || skill.linked === true ? null : (
+          <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
+            {t('action.delete')}
+          </button>
+        )}
       </div>
     </li>
   )
@@ -333,7 +333,7 @@ export function SkillCenterPage({
         </div>
       ))}
 
-      {renderSlot('skill-center.section', {})}
+      {renderSlot('skill-center.section', { query })}
     </div>
   )
 }
