@@ -1,22 +1,21 @@
 /**
  * Skill center page.
  *
- * The page, its header, and its rows follow the official plugin panel's
- * measurements — the same 28px page inset, 20px title, 48px framed glyph, and
- * borderless rows whose hover surface reaches past the content — so the panel
- * reads as one of the shell's own. Every colour comes from the shared alias
- * tokens.
+ * The page, its header, and its cards follow the official plugin panel's
+ * measurements — the same page inset, 20px title, and card surface — so the
+ * panel reads as one of the shell's own. Every colour comes from the shared
+ * alias tokens.
  */
 
 .page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   box-sizing: border-box;
   height: 100%;
   overflow: auto;
-  padding: 28px clamp(24px, 4vw, 48px) 48px;
+  padding: 24px clamp(24px, 4vw, 40px) 40px;
   color: var(--dsw-alias-label-primary);
 }
 
@@ -27,7 +26,7 @@
 
 .pageHead {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
@@ -37,13 +36,6 @@
   font-size: 20px;
   font-weight: 500;
   line-height: 28px;
-}
-
-.pageIntro {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--dsw-alias-label-secondary);
 }
 
 .toolbar {
@@ -118,39 +110,33 @@
 }
 
 .group {
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .groupTitle {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0 0 12px;
-  font-size: 15px;
+  margin: 0 0 10px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 20px;
 }
 
 .groupCount {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--dsw-alias-label-tertiary);
 }
 
-.groupHint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--dsw-alias-label-caption);
-}
-
-/* Two fixed columns and a gutter, as the plugin market's own grid reads: a card is a
-   surface with a header row, a body, and a footer, and an auto-fill count changed the
-   card's proportions with the viewport instead of holding them. */
+/* The track fills the column with as many cards as fit at a readable card width. Two
+   columns stretched each card to roughly half the column and left a one-line card
+   mostly empty; a three-column track keeps a card near the width of its own content. */
 .cards {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
   align-items: start;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -163,11 +149,11 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   align-self: start;
-  padding: 12px 14px;
+  padding: 12px;
   border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--dsw-alias-bg-layer-1);
 }
 
@@ -211,8 +197,8 @@
 /* The name carries the card, so it is the one thing sized up; everything else is a
    signature under it, as the market card reads. */
 .cardTitle {
-  font-size: 15px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -243,6 +229,10 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-caption);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .cardMarks {

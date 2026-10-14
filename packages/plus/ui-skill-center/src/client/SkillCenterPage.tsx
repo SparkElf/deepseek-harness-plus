@@ -44,7 +44,6 @@ type WorkspaceSeat = (selector: (snapshot: { items: readonly WorkspaceRow[] }) =
 interface Group {
   key: string
   title: string
-  hint: string
   skills: SkillEntry[]
 }
 
@@ -232,10 +231,7 @@ export function SkillCenterPage({
   return (
     <div className={css.page}>
       <header className={css.pageHead}>
-        <div>
-          <h1 className={css.pageTitle}>{t('panel')}</h1>
-          <p className={css.pageIntro}>{t('panel.intro')}</p>
-        </div>
+        <h1 className={css.pageTitle}>{t('panel')}</h1>
         <div className={css.toolbar}>
           <button
             type="button"
@@ -317,7 +313,6 @@ export function SkillCenterPage({
           <h2 className={css.groupTitle}>
             {group.title}
             <span className={css.groupCount}>{group.skills.length}</span>
-            <span className={css.groupHint}>{group.hint}</span>
           </h2>
           <ul className={css.cards}>
             {group.skills.map(skill => (
