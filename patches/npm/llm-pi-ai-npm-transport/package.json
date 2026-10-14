@@ -28,7 +28,7 @@
         "target": {
           "kind": "npm",
           "name": "@sparkelf/dsh-llm-pi-ai",
-          "range": ">=0.2.0 <0.3.0"
+          "range": ">=0.2.0-0 <0.3.0"
         },
         "file": "./patches/llm-pi-ai-npm-transport.patch"
       }

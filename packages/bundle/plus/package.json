@@ -194,7 +194,6 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-locale-peer-range": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-file-mtime": "workspace:>=0.2.1-alpha.1",

@@ -48,7 +48,7 @@
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
-    "@sparkelf/dsh-image-hoist": ">=0.1.3",
+    "@sparkelf/dsh-image-hoist": "0.1.3",
     "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
     "@sparkelf/dsh-genui": "0.11.4-patch.1",
     "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28",

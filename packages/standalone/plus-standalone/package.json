@@ -49,7 +49,7 @@
     "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
     "@sparkelf/dsh-mobile-bridge": "0.2.18",
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
-    "@sparkelf/dsh-image-hoist": ">=0.1.3",
+    "@sparkelf/dsh-image-hoist": "0.1.3",
     "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
     "@sparkelf/dsh-genui": "0.11.4-patch.1",
     "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28",
@@ -116,7 +116,7 @@
       {
         "name": "@deepseek-ai/dsh-api-session-controller",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.9 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-brand",
@@ -196,12 +196,12 @@
       {
         "name": "@deepseek-ai/dsh-host-webserver",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.9 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-invariants",
         "version": "0.2.0-rc.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.9 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-llm",
@@ -216,7 +216,7 @@
       {
         "name": "@deepseek-ai/dsh-session",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-plugin-supervisor@0.1.9 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-settings",
