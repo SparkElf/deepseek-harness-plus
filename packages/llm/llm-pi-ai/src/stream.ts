@@ -61,7 +61,14 @@ function classifyPiAiError(message: string): string {
   // 2026-10-13 against a `d1api` route through `sub2api`: the message reached the
   // model as an unclassified PI_AI_ERROR, which the default retry set excludes, so
   // a truncated response ended the turn instead of being retried.
-  if (/upstream response stream|response stream (?:was )?(?:interrupted|aborted|closed|dropped)/i.test(message)) return 'TRANSPORT'
+  //
+  // A second gateway reports it as a snake_case code followed by a description
+  // (`upstream_stream_incomplete: upstream sent an error event`), which the
+  // sentence-shaped pattern above does not match: its words are joined by
+  // underscores, not spaces. Measured 2026-10-14 on this deployment's own route —
+  // the run failed with PI_AI_ERROR and no retry. Separators are matched as
+  // either form so one pattern covers both gateways.
+  if (/upstream[_ ]response[_ ]stream|upstream[_ ]stream[_ ]incomplete|response stream (?:was )?(?:interrupted|aborted|closed|dropped)/i.test(message)) return 'TRANSPORT'
   if (/\b(?:network|connection|socket|fetch)\b|\bECONN[A-Z]+\b/i.test(message)
     || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
     // undici renders a mid-stream socket drop as a bare `terminated` (its
