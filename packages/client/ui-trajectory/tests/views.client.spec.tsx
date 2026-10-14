@@ -382,11 +382,16 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
         }
       })()
       : injected
+    // A view receives the slot renderer its own outlet was handed, so a view that declares
+    // children slots can compose them. The fixture registers none of those slots, so the
+    // nested call resolves to nothing — what omitting the prop had made a throw instead.
+    const nestedRenderSlot: ConversationSessionProps['renderSlot'] = () => null
     const viewProps: ConvViewProps = { ...owner, ...standardProps }
     return (
       <View
         {...viewProps}
         {...injectedProps}
+        renderSlot={nestedRenderSlot as never}
         key={key}
       />
     )

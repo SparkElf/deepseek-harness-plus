@@ -17,6 +17,10 @@
   overflow: auto;
   padding: 24px clamp(24px, 4vw, 40px) 40px;
   color: var(--dsw-alias-label-primary);
+  /* The page paints the l2 surface rung, so a revealed scrollbar uses the l2 pair
+     rather than the l1 default it would otherwise inherit. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .page > * {
@@ -152,7 +156,7 @@
   gap: 10px;
   align-self: start;
   padding: 12px;
-  border: 1px solid var(--dsw-alias-border-l2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 10px;
   background: var(--dsw-alias-bg-layer-1);
 }
@@ -172,6 +176,7 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
 }
@@ -351,6 +356,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-bg-layer-1);
   transition: transform 120ms ease;
 }
