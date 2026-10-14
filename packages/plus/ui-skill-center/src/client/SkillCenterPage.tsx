@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Button,
+  IconChevronDownOutlineRegular,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
   IconSkillOutlineRegular,
@@ -78,10 +79,19 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   onToggle(skill: SkillEntry, enabled: boolean): void
   onDelete(skill: SkillEntry): void
 }): ReactNode {
+  const [open, setOpen] = useState(false)
   // A project skill can come from a workspace other than the one being viewed — the
   // listing spans every workspace a session names — so its origin is shown rather
   // than left to look like it belongs to the workspace on screen.
   const foreign = skill.isActiveWorkspace === false && skill.workspaceName !== undefined
+  // What a user opens a card to read, in the order that answers "where does this come from and
+  // when does it fire". A bundled skill has neither a when-to-use line nor a path — it ships
+  // inside the runtime — so its level and provider are what the disclosure can state.
+  const details: { key: SkillCenterLocaleKey; value: string }[] = []
+  if (skill.whenToUse !== undefined) details.push({ key: 'detail.whenToUse', value: skill.whenToUse })
+  details.push({ key: 'detail.source', value: skill.level })
+  if (skill.provider !== undefined) details.push({ key: 'detail.provider', value: skill.provider })
+  if (skill.path !== undefined) details.push({ key: 'detail.path', value: skill.path })
   return (
     <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
       <div className={css.cardHead}>
@@ -95,9 +105,6 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
       </div>
       <div className={css.cardBody}>
         <div className={css.cardDesc}>{skill.description}</div>
-        {skill.whenToUse === undefined ? null : (
-          <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
-        )}
         <div className={css.cardMarks}>
           <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
             {t('skill.modelInvocable')}
@@ -108,6 +115,25 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
           {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
         </div>
       </div>
+      <button
+        type="button"
+        className={open ? css.detailToggle + ' ' + css.detailToggleOpen : css.detailToggle}
+        aria-expanded={open}
+        onClick={() => { setOpen(value => !value) }}
+      >
+        {open ? t('action.hideDetail') : t('action.showDetail')}
+        <IconChevronDownOutlineRegular size={12} className={css.detailChevron} />
+      </button>
+      {open ? (
+        <dl className={css.detail}>
+          {details.map(item => (
+            <div className={css.detailRow} key={item.key}>
+              <dt className={css.detailLabel}>{t(item.key)}</dt>
+              <dd className={css.detailValue}>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
       <div className={css.cardEnd}>
         <button
           type="button"

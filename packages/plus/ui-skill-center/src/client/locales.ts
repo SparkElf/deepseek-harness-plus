@@ -13,6 +13,12 @@ export interface SkillCenterLocale {
   'action.refresh': string
   'action.create': string
   'action.delete': string
+  'action.showDetail': string
+  'action.hideDetail': string
+  'detail.whenToUse': string
+  'detail.source': string
+  'detail.provider': string
+  'detail.path': string
   'action.cancel': string
   'action.confirm': string
   'state.loading': string
@@ -45,6 +51,12 @@ export const zh: SkillCenterLocale = {
   'action.refresh': '刷新',
   'action.create': '新建技能',
   'action.delete': '删除',
+  'action.showDetail': '详情',
+  'action.hideDetail': '收起',
+  'detail.whenToUse': '何时使用',
+  'detail.source': '来源',
+  'detail.provider': '提供方',
+  'detail.path': '位置',
   'action.cancel': '取消',
   'action.confirm': '确定',
   'state.loading': '正在加载技能…',
@@ -74,6 +86,12 @@ export const en: SkillCenterLocale = {
   'action.refresh': 'Refresh',
   'action.create': 'New skill',
   'action.delete': 'Delete',
+  'action.showDetail': 'Details',
+  'action.hideDetail': 'Hide',
+  'detail.whenToUse': 'When to use',
+  'detail.source': 'Source',
+  'detail.provider': 'Provider',
+  'detail.path': 'Location',
   'action.cancel': 'Cancel',
   'action.confirm': 'Confirm',
   'state.loading': 'Loading skills…',

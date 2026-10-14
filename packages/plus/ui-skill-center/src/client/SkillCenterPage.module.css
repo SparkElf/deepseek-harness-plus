@@ -242,31 +242,94 @@
   margin-top: 2px;
 }
 
-/* The same quiet chrome as the market's own tag: an 11px label in a hairline capsule,
-   present without competing with the name. */
+/* A flat tinted label: no border, so the fill carries the tone and a row of them reads as
+   one quiet strip rather than three outlined boxes. */
 .mark {
-  padding: 1px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
-  border: 1px solid var(--dsw-alias-border-l3);
   font-size: 11px;
   line-height: 16px;
-  color: var(--dsw-alias-label-secondary);
+  font-weight: 500;
   white-space: nowrap;
 }
 
 .markOn {
-  border-color: var(--dsw-alias-state-business-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
   color: var(--dsw-alias-state-business-primary);
 }
 
 .markOff {
-  border-color: var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-caption);
 }
 
 .markDanger {
-  border-color: var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
   color: var(--dsw-alias-state-error-primary);
+}
+
+/* The disclosure sits under the body and above the actions; it spans the card so the whole
+   lower edge is the target, as the official skill row's own disclosure is. */
+.detailToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.detailToggle:hover {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.detailToggle:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.detailChevron {
+  transition: transform 120ms ease;
+}
+
+.detailToggleOpen .detailChevron {
+  transform: rotate(180deg);
+}
+
+/* The opened facts, one label over its value, separated by a hairline from the toggle. */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.detailValue {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
 }
 
 /* The actions sit on the card's bottom edge, so cards of different heights still line
