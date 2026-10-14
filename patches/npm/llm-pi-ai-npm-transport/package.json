@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-llm-pi-ai-npm-transport",
   "description": "Data-only patch teaching the published @sparkelf/dsh-llm-pi-ai build that a gateway-truncated response stream is a transport failure, so the default retry set retries it",
-  "version": "0.2.1-alpha.28",
+  "version": "0.2.1-alpha.29",
   "publishConfig": {
     "access": "public"
   },

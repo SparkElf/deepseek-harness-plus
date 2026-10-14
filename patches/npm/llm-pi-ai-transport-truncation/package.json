@@ -1,6 +1,6 @@
 {
   "name": "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
-  "version": "0.2.1-alpha.28",
+  "version": "0.2.1-alpha.29",
   "description": "Classify a gateway-truncated response stream as TRANSPORT so the default retry policy retries it",
   "publishConfig": {
     "access": "public"

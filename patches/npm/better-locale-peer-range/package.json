@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-locale-peer-range",
   "description": "Data-only patch widening dsh-plugin-better-locale's dsh-client-locale peer from a 0.1.x range to >=0.1.7-rc.2, so DSH 0.2.x satisfies it",
-  "version": "0.2.1-alpha.28",
+  "version": "0.2.1-alpha.29",
   "publishConfig": {
     "access": "public"
   },
