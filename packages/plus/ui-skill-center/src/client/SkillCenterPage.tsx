@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Button,
-  IconChevronDownOutlineRegular,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
   IconSkillOutlineRegular,
@@ -115,25 +114,6 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
           {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
         </div>
       </div>
-      <button
-        type="button"
-        className={open ? css.detailToggle + ' ' + css.detailToggleOpen : css.detailToggle}
-        aria-expanded={open}
-        onClick={() => { setOpen(value => !value) }}
-      >
-        {open ? t('action.hideDetail') : t('action.showDetail')}
-        <IconChevronDownOutlineRegular size={12} className={css.detailChevron} />
-      </button>
-      {open ? (
-        <dl className={css.detail}>
-          {details.map(item => (
-            <div className={css.detailRow} key={item.key}>
-              <dt className={css.detailLabel}>{t(item.key)}</dt>
-              <dd className={css.detailValue}>{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
       <div className={css.cardEnd}>
         <button
           type="button"
@@ -142,12 +122,36 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
           aria-pressed={skill.modelInvocable}
           onClick={() => { onToggle(skill, !skill.modelInvocable) }}
         />
-        {skill.path === undefined || skill.linked === true ? null : (
-          <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
-            {t('action.delete')}
+        <div className={css.cardActions}>
+          {skill.path === undefined || skill.linked === true ? null : (
+            <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
+              {t('action.delete')}
+            </button>
+          )}
+          <button type="button" className={css.button} onClick={() => { setOpen(true) }}>
+            {t('action.showDetail')}
           </button>
-        )}
+        </div>
       </div>
+      <Modal
+        open={open}
+        onClose={() => { setOpen(false) }}
+        title={skill.name}
+        closeLabel={t('action.close')}
+        className={css.dialog as string}
+        footer={(
+          <Button variant="outline" onClick={() => { setOpen(false) }}>{t('action.close')}</Button>
+        )}
+      >
+        <dl className={css.detail}>
+          {details.map(item => (
+            <div className={css.detailRow} key={item.key}>
+              <dt className={css.detailLabel}>{t(item.key)}</dt>
+              <dd className={css.detailValue}>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Modal>
     </li>
   )
 }

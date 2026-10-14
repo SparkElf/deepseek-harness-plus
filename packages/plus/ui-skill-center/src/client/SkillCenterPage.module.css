@@ -242,74 +242,44 @@
   margin-top: 2px;
 }
 
-/* A flat tinted label: no border, so the fill carries the tone and a row of them reads as
-   one quiet strip rather than three outlined boxes. */
+/* A flat filled label: no border and no outline, so the fill alone carries the tone and a row
+   of them reads as one strip rather than a line of boxes. Neutral labels take the tinted
+   platform fill; the status colours tint from their own state token. */
+/* Flat, borderless, and one fill for every label: the strip states facts quietly and never
+   draws an outline or a second palette. #ECF1FC is the product's own label fill, which the
+   shared alias set does not carry. */
 .mark {
   padding: 2px 7px;
+  border: 0;
   border-radius: 4px;
+  background: #ECF1FC;
+  color: var(--dsw-alias-state-business-primary);
   font-size: 11px;
   line-height: 16px;
   font-weight: 500;
   white-space: nowrap;
 }
 
-.markOn {
-  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
-  color: var(--dsw-alias-state-business-primary);
-}
-
-.markOff {
-  background: var(--dsw-alias-bg-layer-2);
-  color: var(--dsw-alias-label-caption);
-}
-
+.markOff,
 .markDanger {
-  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
-  color: var(--dsw-alias-state-error-primary);
+  background: #ECF1FC;
 }
 
-/* The disclosure sits under the body and above the actions; it spans the card so the whole
-   lower edge is the target, as the official skill row's own disclosure is. */
-.detailToggle {
-  display: inline-flex;
-  align-self: flex-start;
-  align-items: center;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary);
-  cursor: pointer;
-}
-
-.detailToggle:hover {
-  color: var(--dsw-alias-label-secondary);
-}
-
-.detailToggle:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: 1px;
-}
-
-.detailChevron {
-  transition: transform 120ms ease;
-}
-
-.detailToggleOpen .detailChevron {
-  transform: rotate(180deg);
-}
-
-/* The opened facts, one label over its value, separated by a hairline from the toggle. */
+/* The opened facts, one label over its value, read in the card's own dialog. */
 .detail {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
   margin: 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+/* The detail button takes the card's bottom-right corner, so every card lines its controls up
+   on one edge across a grid row. */
+.cardActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
 }
 
 .detailRow {
