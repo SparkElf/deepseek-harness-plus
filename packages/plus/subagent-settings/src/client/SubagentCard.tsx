@@ -3,7 +3,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
-import { Button, IconChevronDownOutline14, Input, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Button, IconChevronDownOutlineRegular, Input, Menu } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SubagentSettingsLocaleKey } from './locales.ts'
 import type {
   SubagentEntryView, SubagentSettingsNamespace,
@@ -220,7 +220,7 @@ function EntryEditor({ value: draft, writable, saving, t, onChange, onReset }: E
                 onClick={() => { setDepthMenuOpen(current => !current) }}
               >
                 {depthItems.find(item => item.id === depthId)?.label ?? depthId}
-                <IconChevronDownOutline14 />
+                <IconChevronDownOutlineRegular />
               </button>
             )}
             items={depthItems}
