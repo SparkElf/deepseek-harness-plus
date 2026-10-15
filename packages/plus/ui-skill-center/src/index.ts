@@ -1,7 +1,8 @@
 /**
  * Skill center — host half. Serves the skill-center data source over the
- * `/api/dsh-skill-center` route family: list grouped by source, enable or disable
- * model invocation, create, delete into a recoverable trash, and health.
+ * `/api/dsh-skill-center` route family: list grouped by source, read one skill's
+ * body, enable or disable model invocation, create, delete into a recoverable
+ * trash, and health.
  *
  * Reading goes through the official `ctx.skills` registry, so the catalog, its
  * provider precedence, and its hot reload are the harness's rather than a second
@@ -38,6 +39,7 @@ export const ROUTES = {
   setEnabled: '/api/dsh-skill-center/set-enabled',
   create: '/api/dsh-skill-center/create',
   delete: '/api/dsh-skill-center/delete',
+  content: '/api/dsh-skill-center/content',
   health: '/api/dsh-skill-center/health',
   translationProgress: '/api/dsh-skill-center/translation-progress',
 } as const
@@ -322,6 +324,17 @@ export function localSkillRoots(
 }
 
 /**
+ * Strip the leading YAML frontmatter from a skill file.
+ *
+ * @param source - the skill file's complete content.
+ * @returns the body below the closing delimiter, or the whole file when it declares none.
+ */
+export function stripFrontmatter(source: string): string {
+  const match = /^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/.exec(source)
+  return match === null ? source : source.slice(match[0].length)
+}
+
+/**
  * Read `disable-model-invocation` from a skill file.
  * @param source - the skill file's content.
  * @returns the flag when the frontmatter declares it, otherwise undefined.
@@ -529,6 +542,49 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
   return { cwd, projectRoots, complete: snapshot.complete, groups }
 }
 
+/**
+ * The content handler: one skill's instruction body, without its frontmatter.
+ *
+ * The registry's summaries carry metadata only, so the body is read from the file
+ * the name resolves to. The path the panel listed is preferred — the row already
+ * names its own file, and the panel lists skills from workspaces other than the one
+ * being viewed — then the registry's resolution, then the configured translation
+ * set's own copy, which is what answers for a bundled skill.
+ *
+ * @param listedPath - the path the listing served with the row, when the caller sent one.
+ */
+async function handleContent(
+  deps: SkillRoutesDeps,
+  name: string,
+  listedPath: string | undefined,
+  cwd: string,
+): Promise<{ name: string; content: string }> {
+  const candidates: string[] = []
+  if (listedPath !== undefined && listedPath !== '') candidates.push(listedPath)
+  // The registry resolution is tried as well but must not be the only attempt: a bundled
+  // skill serves its body from inside an installed package, and a provider that raises
+  // must still reach the fallback below.
+  try {
+    const resolved = await deps.pathOf(name, cwd)
+    if (resolved !== undefined && !candidates.includes(resolved)) candidates.push(resolved)
+  } catch {
+    // The fallback below resolves by name and needs no path.
+  }
+  if (deps.translationRoot !== undefined) candidates.push(join(deps.translationRoot, name, SKILL_FILE))
+  for (const candidate of candidates) {
+    let source: string
+    try {
+      source = await readFile(candidate, 'utf8')
+    } catch {
+      // A candidate that is absent or unreadable is the normal case for a skill that
+      // resolved from the other source; the next candidate answers instead.
+      continue
+    }
+    return { name, content: stripFrontmatter(source) }
+  }
+  throw new Error('skill "' + name + '" has no readable ' + SKILL_FILE)
+}
+
 /** The set-enabled handler: rewrite the skill's frontmatter flag. */
 async function handleSetEnabled(deps: SkillRoutesDeps, body: Record<string, unknown>, cwd: string): Promise<unknown> {
   const name = requireString(body.name, 'name')
@@ -644,6 +700,21 @@ export function makeRoutes(deps: SkillRoutesDeps): WebRoute[] {
         } catch (error) {
           deps.logger.warn(error)
           writeJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+        }
+      },
+    },
+    {
+      kind: 'exact',
+      path: ROUTES.content,
+      handler: async (req, res) => {
+        try {
+          const params = new URL(req.url ?? '/', 'http://localhost').searchParams
+          const name = params.get('name') ?? ''
+          if (name === '') throw new Error('missing name')
+          writeJson(res, 200, await handleContent(deps, name, params.get('path') ?? undefined, currentCwd(deps, req)))
+        } catch (error) {
+          deps.logger.warn(error)
+          writeJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
         }
       },
     },

@@ -11,6 +11,7 @@ const API = {
   setEnabled: '/api/dsh-skill-center/set-enabled',
   create: '/api/dsh-skill-center/create',
   remove: '/api/dsh-skill-center/delete',
+  content: '/api/dsh-skill-center/content',
   translationProgress: '/api/dsh-skill-center/translation-progress',
 } as const
 
@@ -19,6 +20,12 @@ export interface SkillEntryTranslation {
   title: string
   description: string
   summary: string
+}
+
+/** One skill's instruction body, as the content route serves it. */
+export interface SkillContent {
+  name: string
+  content: string
 }
 
 /** Translated share of the skill set, as the translation script recorded it. */
@@ -103,6 +110,21 @@ export class SkillApi {
   /** Delete a skill by moving it into the recoverable trash. */
   async remove(name: string, path: string): Promise<{ ok: true; moved: string }> {
     return this.request(API.remove, { method: 'POST', body: { name, path } })
+  }
+
+  /**
+   * One skill's instruction body, without the YAML frontmatter the card already
+   * shows as metadata.
+   *
+   * The path the list served travels back with the request: a row from another
+   * workspace is read from the file that was listed rather than from whatever the
+   * viewing workspace's registry resolves by name.
+   */
+  async content(name: string, path?: string, cwd?: string): Promise<SkillContent> {
+    const params = new URLSearchParams({ name })
+    if (path !== undefined && path !== '') params.set('path', path)
+    if (cwd !== undefined && cwd !== '') params.set('cwd', cwd)
+    return this.request<SkillContent>(API.content + '?' + params.toString())
   }
 
   /**

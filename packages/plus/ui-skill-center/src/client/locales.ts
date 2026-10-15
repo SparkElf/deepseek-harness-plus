@@ -20,11 +20,14 @@ export interface SkillCenterLocale {
   'detail.source': string
   'detail.provider': string
   'detail.path': string
+  'detail.content': string
   'action.cancel': string
   'action.confirm': string
   'state.loading': string
   'state.empty': string
   'state.failed': string
+  'content.loading': string
+  'content.failed': string
   'skill.enabled': string
   'skill.disabled': string
   'skill.modelInvocable': string
@@ -59,11 +62,14 @@ export const zh: SkillCenterLocale = {
   'detail.source': '来源',
   'detail.provider': '提供方',
   'detail.path': '位置',
+  'detail.content': '技能内容',
   'action.cancel': '取消',
   'action.confirm': '确定',
   'state.loading': '正在加载技能…',
   'state.empty': '该分组暂无技能',
   'state.failed': '技能列表加载失败',
+  'content.loading': '正在读取技能正文…',
+  'content.failed': '技能正文加载失败',
   'skill.enabled': '已启用',
   'skill.disabled': '已停用',
   'skill.modelInvocable': '模型可调用',
@@ -95,11 +101,14 @@ export const en: SkillCenterLocale = {
   'detail.source': 'Source',
   'detail.provider': 'Provider',
   'detail.path': 'Location',
+  'detail.content': 'Skill content',
   'action.cancel': 'Cancel',
   'action.confirm': 'Confirm',
   'state.loading': 'Loading skills…',
   'state.empty': 'No skills in this group',
   'state.failed': 'Could not load the skill list',
+  'content.loading': 'Loading the skill content…',
+  'content.failed': 'Could not load the skill content',
   'skill.enabled': 'Enabled',
   'skill.disabled': 'Disabled',
   'skill.modelInvocable': 'Model invocable',
