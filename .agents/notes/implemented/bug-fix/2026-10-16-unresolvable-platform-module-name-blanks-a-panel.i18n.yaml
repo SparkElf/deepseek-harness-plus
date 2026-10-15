@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-16-unresolvable-platform-module-name-blanks-a-panel.md
-2026-10-16-unresolvable-platform-module-name-blanks-a-panel.md: 852173ae215f6b5b0fa5aedccfdcfdaa18138f85
-2026-10-16-unresolvable-platform-module-name-blanks-a-panel.zh.md: 1a05e5270f2631a2a46ea6c2dfd62dfbc0e47350
+2026-10-16-unresolvable-platform-module-name-blanks-a-panel.md: bb2d46a58afab7ea58a744878cb115df16e5385a
+2026-10-16-unresolvable-platform-module-name-blanks-a-panel.zh.md: e838db11af83631bd22f01ba700a92e3b11029d8

@@ -39,7 +39,8 @@ Status: implemented
 报出的是两次构建之间的差异，而不是本仓的缺陷。
 
 `scripts/check-skill-center-panel.mjs` 在真实浏览器里打开面板，断言真正要紧的结果：卡片渲染出来、
-console 里没有 React #130 或 slot entry crashed、搜索框能收窄并恢复列表、没有翻译批次停在半途。
+console 里没有 React #130 或 slot entry crashed、搜索框是共享的 Input 原子且 focus 描边为品牌色、能收窄并恢复列表、
+每张卡片恰好一段简介、详情弹窗能渲染技能正文且已剥离 frontmatter、没有翻译批次停在半途。
 批次完成后面板会按设计隐藏该进度条，所以检查断言的是「不存在未完成的计数」，而不是「进度条存在」。
 
 两者分别暴露为 `pnpm run verify:platform-module-exports` 与 `pnpm run verify:skill-center-panel`。

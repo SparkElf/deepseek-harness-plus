@@ -47,9 +47,10 @@ bundle reports the difference between two builds rather than a defect in this re
 
 `scripts/check-skill-center-panel.mjs` opens the panel in a real browser and asserts the outcome
 that matters: cards render, no React #130 or crashed slot entry reaches the console, the search box
-narrows and restores the list, and no translation batch is left incomplete. The panel is hidden at
-a complete batch by design, so the check asserts the absence of a partial count rather than the
-presence of the bar.
+is the shared Input atom with a brand-coloured focus ring and narrows and restores the list, every
+card carries exactly one line of copy, the detail dialog renders the skill body with its frontmatter
+stripped, and no translation batch is left incomplete. The panel is hidden at a complete batch by
+design, so the check asserts the absence of a partial count rather than the presence of the bar.
 
 Both are exposed as `pnpm run verify:platform-module-exports` and
 `pnpm run verify:skill-center-panel`. Neither is registered in `scripts/run-gates.ts`: the export

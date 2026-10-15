@@ -87,16 +87,84 @@ try {
   const search = page.locator('input[placeholder*="Search skills"], input[placeholder*="搜索技能"]').first()
   const hasSearch = await search.count()
   check('search box present', hasSearch === 1, 'matches=' + String(hasSearch))
-  if (hasSearch === 1 && cards > 0) {
-    await search.fill('genui')
-    await page.waitForTimeout(1200)
-    const filtered = await page.locator('li[class*="card"]').count()
-    await search.fill('')
-    await page.waitForTimeout(800)
-    const restored = await page.locator('li[class*="card"]').count()
-    check('search box narrows the list and restores it',
-      filtered > 0 && filtered < cards && restored === cards,
-      'filtered=' + String(filtered) + ' restored=' + String(restored) + ' total=' + String(cards))
+
+  // The shared Input atom wraps the native input beside a leading icon, and its focus ring is the
+  // brand colour. A locally styled control would satisfy "a search box exists" while skipping both.
+  if (hasSearch === 1) {
+    const atom = await search.evaluate((element) => {
+      const wrap = element.parentElement
+      const icon = wrap === null ? null : wrap.firstElementChild
+      return { children: wrap === null ? -1 : wrap.children.length,
+               icon: icon !== null && icon.querySelector !== null && icon.querySelector('svg') !== null }
+    })
+    check('search box is the shared Input atom (icon + input in one wrapper)',
+      atom.children === 2 && atom.icon, JSON.stringify(atom))
+
+    await search.focus()
+    await page.waitForTimeout(300)
+    const ring = await search.evaluate((element) => {
+      // The token is declared on an ancestor rather than on :root, so walk up for it; a bare
+      // :root lookup returns empty and would make the comparison vacuously true.
+      let node = element
+      let brand = ''
+      while (node !== null && brand === '') {
+        brand = getComputedStyle(node).getPropertyValue('--dsw-alias-state-business-primary').trim()
+        node = node.parentElement
+      }
+      const probe = document.createElement('span')
+      probe.style.color = brand === '' ? 'inherit' : brand
+      document.body.appendChild(probe)
+      const resolved = getComputedStyle(probe).color
+      probe.remove()
+      return { border: getComputedStyle(element.parentElement).borderColor, resolved }
+    })
+    check('search box focus ring is the brand colour',
+      ring.resolved !== '' && ring.border === ring.resolved, JSON.stringify(ring))
+    await page.screenshot({ path: resolve(out, 'skill-center-' + tag + '-search.png') })
+    await search.blur()
+
+    if (cards > 0) {
+      await search.fill('genui')
+      await page.waitForTimeout(1200)
+      const filtered = await page.locator('li[class*="card"]').count()
+      await search.fill('')
+      await page.waitForTimeout(800)
+      const restored = await page.locator('li[class*="card"]').count()
+      check('search box narrows the list and restores it',
+        filtered > 0 && filtered < cards && restored === cards,
+        'filtered=' + String(filtered) + ' restored=' + String(restored) + ' total=' + String(cards))
+    }
+  }
+
+  // One line of copy per card: the summary, without the description the card used to repeat. A
+  // second body paragraph is the defect this asserts against, so both class names are counted.
+  const summaries = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('li[class*="card"]')]
+    return { total: cards.length,
+             one: cards.filter(card => card.querySelectorAll('[class*="cardSummary"]').length === 1
+               && card.querySelectorAll('[class*="cardDesc"]').length === 0).length }
+  })
+  check('every card carries exactly one line of copy',
+    summaries.total > 0 && summaries.one === summaries.total, JSON.stringify(summaries))
+
+  // The detail dialog serves the skill's own SKILL.md body, frontmatter stripped.
+  const details = page.getByText(/^(Details|详情)$/)
+  if (await details.count() > 0) {
+    await details.first().click()
+    await page.waitForTimeout(2500)
+    const body = await page.evaluate(() => {
+      const pre = document.querySelector('pre[data-skill-body]')
+      if (pre === null) return { found: false }
+      const text = pre.innerText
+      return { found: true, chars: text.length, frontmatter: /^\s*---/.test(text) }
+    })
+    check('detail dialog renders the skill body',
+      body.found && body.chars > 200 && !body.frontmatter, JSON.stringify(body))
+    await page.screenshot({ path: resolve(out, 'skill-center-' + tag + '-detail.png') })
+    const close = page.getByRole('button', { name: /Close|关闭/ })
+    if (await close.count() > 0) { await close.first().click(); await page.waitForTimeout(600) }
+  } else {
+    check('detail dialog renders the skill body', false, 'no Details control found')
   }
 
   check('no page error', pageErrors.length === 0, JSON.stringify(pageErrors.slice(0, 3)))
