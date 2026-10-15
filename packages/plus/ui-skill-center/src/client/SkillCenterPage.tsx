@@ -18,7 +18,7 @@ import {
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './slot-contract.ts'
 import css from './SkillCenterPage.module.css'
-import { SkillApi, type ListPayload, type SkillEntry } from './api.ts'
+import { SkillApi, type ListPayload, type SkillEntry, type TranslationProgress } from './api.ts'
 import type { SkillCenterLocaleKey } from './locales.ts'
 
 /** What the panel needs from its slot: the dictionary resolver. */
@@ -96,14 +96,17 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
       <div className={css.cardHead}>
         <span className={css.cardIcon}><IconSkillOutlineRegular size={16} /></span>
         <div className={css.cardTitleRow}>
-          <div className={css.cardTitle}>{skill.name}</div>
+          <div className={css.cardTitle}>{skill.i18n?.title ?? skill.name}</div>
           {skill.workspaceName === undefined ? null : (
             <span className={css.workspaceBadge}>{skill.workspaceName}</span>
           )}
         </div>
       </div>
       <div className={css.cardBody}>
-        <div className={css.cardDesc}>{skill.description}</div>
+        <div className={css.cardDesc}>{skill.i18n?.description ?? skill.description}</div>
+        {skill.i18n === undefined ? null : (
+          <div className={css.cardSummary}>{skill.i18n.summary}</div>
+        )}
         <div className={css.cardMarks}>
           <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
             {t('skill.modelInvocable')}
@@ -169,6 +172,7 @@ export function SkillCenterPage({
   const api = useMemo(() => new SkillApi(), [])
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
+  const [progress, setProgress] = useState<TranslationProgress | undefined>(undefined)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ name: '', description: '', whenToUse: '', content: '', root: 'user' as 'user' | 'project' })
   // `ui-workspace` publishes this seat through `slots.provideRoot`, so every root-scope
@@ -196,6 +200,16 @@ export function SkillCenterPage({
 
   useEffect(() => { void load() }, [load])
 
+  // Progress is read once per panel open: the translation script rewrites its record as it
+  // advances, and reloading is what a user checking a running batch already does.
+  useEffect(() => {
+    let cancelled = false
+    void api.translationProgress()
+      .then((p) => { if (!cancelled) setProgress(p) })
+      .catch(() => { /* Absent progress leaves the bar hidden; nothing else depends on it. */ })
+    return () => { cancelled = true }
+  }, [api])
+
   const groups: Group[] = useMemo(() => {
     if (state.kind !== 'ready') return []
     const q = query.trim().toLowerCase()
@@ -203,9 +217,14 @@ export function SkillCenterPage({
     return state.payload.groups
       .map(g => ({
         ...g,
+        // The card renders Chinese when a translation exists, so the search has to match
+        // it; the English values stay searchable because the model still routes on them.
         skills: g.skills.filter(s =>
           s.name.toLowerCase().includes(q)
           || s.description.toLowerCase().includes(q)
+          || (s.i18n?.title ?? '').toLowerCase().includes(q)
+          || (s.i18n?.description ?? '').toLowerCase().includes(q)
+          || (s.i18n?.summary ?? '').toLowerCase().includes(q)
           || (s.whenToUse ?? '').toLowerCase().includes(q)),
       }))
       .filter(g => g.skills.length > 0)
@@ -328,6 +347,19 @@ export function SkillCenterPage({
         value={query}
         onChange={(e) => { setQuery(e.target.value) }}
       />
+
+      {progress === undefined ? null : (
+        <div className={css.progressRow}>
+          <span className={css.progressLabel}>{t('translate.label')}</span>
+          <span className={css.progressTrack}>
+            <span
+              className={css.progressFill}
+              style={{ width: String(progress.total === 0 ? 0 : Math.round(progress.done / progress.total * 100)) + '%' }}
+            />
+          </span>
+          <span className={css.progressCount}>{progress.done} / {progress.total}</span>
+        </div>
+      )}
 
       {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
       {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}

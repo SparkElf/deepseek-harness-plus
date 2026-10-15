@@ -11,7 +11,23 @@ const API = {
   setEnabled: '/api/dsh-skill-center/set-enabled',
   create: '/api/dsh-skill-center/create',
   remove: '/api/dsh-skill-center/delete',
+  translationProgress: '/api/dsh-skill-center/translation-progress',
 } as const
+
+/** Chinese copy for one skill, when a translation file exists beside it. */
+export interface SkillEntryTranslation {
+  title: string
+  description: string
+  summary: string
+}
+
+/** Translated share of the skill set, as the translation script recorded it. */
+export interface TranslationProgress {
+  total: number
+  done: number
+  current: string | null
+  finishedAt: string | null
+}
 
 /** One skill entry as the host serves it. */
 export interface SkillEntry {
@@ -28,6 +44,8 @@ export interface SkillEntry {
   workspaceRoot?: string
   workspaceName?: string
   isActiveWorkspace?: boolean
+  /** Chinese copy rendered in place of the English values; the registry keeps its own. */
+  i18n?: SkillEntryTranslation
 }
 
 /** One group as the host serves it. */
@@ -85,6 +103,15 @@ export class SkillApi {
   /** Delete a skill by moving it into the recoverable trash. */
   async remove(name: string, path: string): Promise<{ ok: true; moved: string }> {
     return this.request(API.remove, { method: 'POST', body: { name, path } })
+  }
+
+  /**
+   * The translated share of the skill set, or undefined when the host has not
+   * been told where the translations live (the route then answers `{}`).
+   */
+  async translationProgress(): Promise<TranslationProgress | undefined> {
+    const body = await this.request<{ progress?: TranslationProgress }>(API.translationProgress)
+    return body.progress
   }
 
   private async request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
