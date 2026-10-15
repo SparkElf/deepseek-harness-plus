@@ -12,7 +12,7 @@ import {
   Button,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
-  IconSearchOutline16,
+  IconSearchOutlineRegular,
   IconSkillOutlineRegular,
   Input,
   Modal,
@@ -382,14 +382,16 @@ export function SkillCenterPage({
           focus ring rather than a second local control. */}
       <Input
         className={css.search as string}
-        icon={<IconSearchOutline16 />}
+        icon={<IconSearchOutlineRegular />}
         placeholder={t('search.placeholder')}
         aria-label={t('search.placeholder')}
         value={query}
         onChange={(e) => { setQuery(e.target.value) }}
       />
 
-      {progress === undefined ? null : (
+      {/* The bar reports a running batch; once every skill is indexed it has nothing
+          left to say, so it leaves the header to the search field. */}
+      {progress === undefined || progress.done >= progress.total ? null : (
         <div className={css.progressRow}>
           <span className={css.progressLabel}>{t('translate.label')}</span>
           <span className={css.progressTrack}>
