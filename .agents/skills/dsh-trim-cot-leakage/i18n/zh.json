@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "fb49a23b7f42ce952299c2bed38016466007a8da",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:23.490Z"
+  },
+  "title": "裁剪思维链泄漏",
+  "description": "审计或修正读起来像泄漏推理记录的文本：失效的设计会话引用（如 (decision N)）、审计条目编号、未提交稿的 §N；变更叙述（\"used to\"、\"no longer\"、\"this cut\"）；栈或评审视角（\"this stack 中后续的 PR\"、\"rejected in review\"）；面向评审者的辩护；控制流叙述；以及注释、JSDoc、文档或 Agent Note 中含糊的规划残留。",
+  "summary": "识别并修正思维链泄漏文本——视角停留在编写会话而非仓库的内容，如死引用、变更叙述、栈与评审视角、面向评审者的辩护、控制流叙述和规划残留；给出单一判定测试、八类分类法、保留规则与审计流程。"
+}

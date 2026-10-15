@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "7e6a985614b5ebd1c841b678090e0c4fe5d07aab",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:52.686Z"
+  },
+  "title": "合并堆叠 PR",
+  "description": "当需要将一串相互依赖的 GitHub PR（A ← B ← C，每个基于下一个）落地到 master、合并基础分支为另一个未合并 PR 的 PR，或请求提到 \"stacked PRs\"、\"PR stack\"、\"dependent PRs\" 时使用。要求每条同仓库依赖链在落地前使用 GitHub 官方堆叠 PR 功能。",
+  "summary": "通过 GitHub 原生 stack 对象与 gh stack merge 落地依赖 PR 栈：校验官方堆叠支持、用 GraphQL 确认栈成员与顺序、按需 rebase 或 merge-forward、合并前预检整条范围，并禁止逐个 gh pr merge 与手动改基。覆盖 stack link、sync、rebase、merge 及跨 fork 硬停止。"
+}

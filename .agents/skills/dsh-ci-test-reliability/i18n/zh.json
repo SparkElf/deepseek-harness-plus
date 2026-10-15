@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "d9fd0f1700476f8fc9bb6f90f3824ce8a8304de6",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:40.728Z"
+  },
+  "title": "CI 测试可靠性",
+  "description": "设计、评审与诊断 DeepSeek Harness 中可能在 CI 并发、共享主机资源、时钟、进程全局状态、子进程、网络监听或异步清理下非确定性失败的测试与 fixture；新增或改动此类测试、排查 flaky CI、评审测试隔离时使用；选择推送命令另用 dsh-pre-push-checks。",
+  "summary": "讲如何让 DSH 测试在真实 CI 拓扑下保持正确：按资源所有权原子分配端口、临时目录与命名空间，隔离进程全局状态并精确还原，尊重 Windows 与 POSIX 语义差异，按 lane 预算设定超时并同步等待状态，而非固定 sleep。"
+}

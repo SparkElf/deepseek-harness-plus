@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "ef20de80977249e8ab213ee088ed6601d56ff277",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:38.100Z"
+  },
+  "title": "归档 Agent Note",
+  "description": "在 deepseek-harness 中新增、审查、精简、归档、恢复或审阅 Agent Note 时使用；检查新 note 是否取代现有活跃记录，按未来决策价值对已实现 note 分类，删除不再能阻止常见谬误的被拒 note，并应用固定的 archived/{kind} 三元组与 manifest 规则。",
+  "summary": "规范 Agent Note 的归档与生命周期管理：新增时检查取代关系，按未来决策价值分类已实现 note，保留或删除被拒 note，执行 archived/{kind} 三元组的移动、封存与 manifest 校验，并运行归档验证器与相关检查后汇报结果。"
+}

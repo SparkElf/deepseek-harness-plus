@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "fbd5d262e17428f6bcc0b286e433b9250a86a600",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:14.618Z"
+  },
+  "title": "DeepSeek Harness 性能优化",
+  "description": "用于调查或优化 DeepSeek Harness 性能、设计真实合成基准或 CI 性能门禁、分析长 Session 或 Web 响应性，或将性能 PR 证据转化为可测量且保持行为的修复。",
+  "summary": "指导把笼统的提速需求转化为可复现的用户路径测量与小而有据的修复：确立范围与当前依据、排查用户路径并对候选项排序、先构建真实合成基准，再用测量卡记录负载、时钟、内存与行为约束，避免无据改动。"
+}

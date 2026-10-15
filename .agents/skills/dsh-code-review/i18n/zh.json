@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "7453e110ef66e48bdaab1719e07d894e4764e7f8",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:43.471Z"
+  },
+  "title": "DeepSeek-Harness PR 审查",
+  "description": "在审查 deepseek-harness 仓库的 PR 时使用：引导审查者遵循本仓库规范（AGENTS.md 约定、防御性模式、ADR、质量门禁）及代码本身无法体现的审查专项检查。",
+  "summary": "指导审查 DeepSeek-Harness 的 PR：先核实基准与 head 并跑 change-scope，再依据 AGENTS.md、防御性模式、文档规范等审查阻塞项（文档同步、注册清理、invariant 语义、UI 文案本地化）与人工检查（接口契约、生命周期并发、能力适配、范围必要性）。"
+}
