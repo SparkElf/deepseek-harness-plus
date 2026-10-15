@@ -20,8 +20,14 @@
  * Usage:
  *   node scripts/check-browser-platform-module-exports.mjs [--host-bundle <file>] [--plugins-root <dir>]
  *
- * Point `--host-bundle` at the bundle a deployment actually serves to check a plugin against the
- * copy it will receive there; the default is this repository's own `apps/web/dist`.
+ * `--host-bundle` must name the bundle the deployment being checked actually serves. The default is
+ * this repository's own `apps/web/dist`, which is built against this repository's source and so
+ * exports the drawn-size and published spellings side by side; a run against it cannot report the
+ * mismatch this check exists to find and passes whatever the plugins reference. The run prints that
+ * limitation on stderr whenever `--host-bundle` is omitted.
+ *
+ * A deployment's served bundle is the one to reach for, for example
+ * `$DSH_HOME/releases/<line>/<release>/apps/web/dist/assets/index-*.js`.
  */
 import { existsSync, globSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -109,11 +115,17 @@ function main() {
     return index === -1 ? undefined : args[index + 1]
   }
   const repositoryRoot = resolve(import.meta.dirname, '..')
-  const hostBundle = optionOf('--host-bundle') ?? newestHostBundle(repositoryRoot)
+  const requestedBundle = optionOf('--host-bundle')
+  const hostBundle = requestedBundle ?? newestHostBundle(repositoryRoot)
   if (hostBundle === undefined || !existsSync(hostBundle)) {
     console.error('check-browser-platform-module-exports: no host bundle at apps/web/dist/assets/index-*.js')
     console.error('  build the web application first (pnpm run build:web); an unchecked tree is not a passing tree')
     return 1
+  }
+  if (requestedBundle === undefined) {
+    console.error('check-browser-platform-module-exports: no --host-bundle, so this checked the repository\'s own')
+    console.error('  build, which exports both spellings and cannot report a release-boundary mismatch.')
+    console.error('  Point --host-bundle at the bundle a deployment serves to check what it will receive.')
   }
   const pluginsRoot = resolve(optionOf('--plugins-root') ?? resolve(repositoryRoot, 'packages'))
   const bundles = globSync('**/lib/client.js', { cwd: pluginsRoot }).map(file => resolve(pluginsRoot, file)).sort()
