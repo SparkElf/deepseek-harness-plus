@@ -383,15 +383,16 @@ function mount(fixture: Awaited<ReturnType<typeof bench>>) {
       })()
       : injected
     // A view receives the slot renderer its own outlet was handed, so a view that declares
-    // children slots can compose them. The fixture registers none of those slots, so the
-    // nested call resolves to nothing — what omitting the prop had made a throw instead.
+    // child slots can compose them. This fixture registers none of those slots, so the nested
+    // call resolves to nothing — what omitting the prop had made a throw instead. The renderer
+    // rides the spread: ConvViewProps declares the view's own runtime share, not the session's
+    // renderSlot seat, so a literal attribute is an excess property the checker rejects.
     const nestedRenderSlot: ConversationSessionProps['renderSlot'] = () => null
-    const viewProps: ConvViewProps = { ...owner, ...standardProps }
+    const viewProps = { ...owner, ...standardProps, renderSlot: nestedRenderSlot }
     return (
       <View
         {...viewProps}
         {...injectedProps}
-        renderSlot={nestedRenderSlot as never}
         key={key}
       />
     )
