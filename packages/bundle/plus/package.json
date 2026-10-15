@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-alpha.28",
+  "version": "0.2.1-alpha.29",
   "publishConfig": {
     "access": "public"
   },
@@ -85,7 +85,6 @@
         "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.0-rc.2",
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
-        "@sparkelf/dsh-image-hoist": "0.1.3",
         "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
         "@sparkelf/dsh-genui": "0.11.4-patch.1",
         "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28"
@@ -156,6 +155,8 @@
     },
     "patchPackages": [
       "@sparkelf/dsh-patch-approval-allow-policy",
+      "@sparkelf/dsh-patch-better-locale-peer-range",
+      "@sparkelf/dsh-patch-better-sidebar-file-mtime",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
       "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
@@ -164,6 +165,8 @@
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-diagram-preview",
       "@sparkelf/dsh-patch-legacy-code-preset",
+      "@sparkelf/dsh-patch-llm-pi-ai-npm-transport",
+      "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
       "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-office-preview-stable-load",
       "@sparkelf/dsh-patch-officecli-deliverables",
@@ -190,8 +193,9 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-better-locale-peer-range": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-better-sidebar-file-mtime": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.1-alpha.1",
@@ -200,6 +204,8 @@
     "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-diagram-preview": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-llm-pi-ai-npm-transport": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.1-alpha.1",
@@ -219,7 +225,8 @@
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.1",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
-    "yaml": ">=2.9.0"
+    "yaml": ">=2.9.0",
+    "@sparkelf/dsh-image-hoist": ">=0.1.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

@@ -44,7 +44,6 @@ type WorkspaceSeat = (selector: (snapshot: { items: readonly WorkspaceRow[] }) =
 interface Group {
   key: string
   title: string
-  hint: string
   skills: SkillEntry[]
 }
 
@@ -79,50 +78,80 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
   onToggle(skill: SkillEntry, enabled: boolean): void
   onDelete(skill: SkillEntry): void
 }): ReactNode {
+  const [open, setOpen] = useState(false)
   // A project skill can come from a workspace other than the one being viewed — the
   // listing spans every workspace a session names — so its origin is shown rather
   // than left to look like it belongs to the workspace on screen.
   const foreign = skill.isActiveWorkspace === false && skill.workspaceName !== undefined
+  // What a user opens a card to read, in the order that answers "where does this come from and
+  // when does it fire". A bundled skill has neither a when-to-use line nor a path — it ships
+  // inside the runtime — so its level and provider are what the disclosure can state.
+  const details: { key: SkillCenterLocaleKey; value: string }[] = []
+  if (skill.whenToUse !== undefined) details.push({ key: 'detail.whenToUse', value: skill.whenToUse })
+  details.push({ key: 'detail.source', value: skill.level })
+  if (skill.provider !== undefined) details.push({ key: 'detail.provider', value: skill.provider })
+  if (skill.path !== undefined) details.push({ key: 'detail.path', value: skill.path })
   return (
     <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
       <div className={css.cardHead}>
-        <span className={css.cardIcon}><IconSkillOutlineRegular size={22} /></span>
-        <div className={css.cardMain}>
-          <div className={css.cardTitle}>
-            {skill.name}
-            {skill.workspaceName === undefined ? null : (
-              <span className={css.workspaceBadge}>{skill.workspaceName}</span>
-            )}
-          </div>
-          <div className={css.cardDesc}>{skill.description}</div>
-          {skill.whenToUse === undefined ? null : (
-            <div className={css.cardWhenToUse}>{skill.whenToUse}</div>
-          )}
-          <div className={css.cardMarks}>
-            <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-              {t('skill.modelInvocable')}
-            </span>
-            <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
-              {t('skill.userInvocable')}
-            </span>
-            {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
-          </div>
-        </div>
-        <div className={css.cardEnd}>
-          <button
-            type="button"
-            className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
-            aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
-            aria-pressed={skill.modelInvocable}
-            onClick={() => { onToggle(skill, !skill.modelInvocable) }}
-          />
-          {skill.path === undefined || skill.linked === true ? null : (
-            <button type="button" className={css.button} onClick={() => { onDelete(skill) }}>
-              {t('action.delete')}
-            </button>
+        <span className={css.cardIcon}><IconSkillOutlineRegular size={16} /></span>
+        <div className={css.cardTitleRow}>
+          <div className={css.cardTitle}>{skill.name}</div>
+          {skill.workspaceName === undefined ? null : (
+            <span className={css.workspaceBadge}>{skill.workspaceName}</span>
           )}
         </div>
       </div>
+      <div className={css.cardBody}>
+        <div className={css.cardDesc}>{skill.description}</div>
+        <div className={css.cardMarks}>
+          <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+            {t('skill.modelInvocable')}
+          </span>
+          <span className={skill.userInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
+            {t('skill.userInvocable')}
+          </span>
+          {skill.linked === true ? <span className={css.mark + ' ' + css.markDanger}>{t('skill.linked')}</span> : null}
+        </div>
+      </div>
+      <div className={css.cardEnd}>
+        <button
+          type="button"
+          className={skill.modelInvocable ? css.switch + ' ' + css.switchOn : css.switch}
+          aria-label={skill.modelInvocable ? t('skill.disabled') : t('skill.enabled')}
+          aria-pressed={skill.modelInvocable}
+          onClick={() => { onToggle(skill, !skill.modelInvocable) }}
+        />
+        <div className={css.cardActions}>
+          {skill.path === undefined || skill.linked === true ? null : (
+            <Button variant="outline" size="sm" onClick={() => { onDelete(skill) }}>
+              {t('action.delete')}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => { setOpen(true) }}>
+            {t('action.showDetail')}
+          </Button>
+        </div>
+      </div>
+      <Modal
+        open={open}
+        onClose={() => { setOpen(false) }}
+        title={skill.name}
+        closeLabel={t('action.close')}
+        className={css.dialog as string}
+        footer={(
+          <Button variant="outline" onClick={() => { setOpen(false) }}>{t('action.close')}</Button>
+        )}
+      >
+        <dl className={css.detail}>
+          {details.map(item => (
+            <div className={css.detailRow} key={item.key}>
+              <dt className={css.detailLabel}>{t(item.key)}</dt>
+              <dd className={css.detailValue}>{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </Modal>
     </li>
   )
 }
@@ -232,10 +261,7 @@ export function SkillCenterPage({
   return (
     <div className={css.page}>
       <header className={css.pageHead}>
-        <div>
-          <h1 className={css.pageTitle}>{t('panel')}</h1>
-          <p className={css.pageIntro}>{t('panel.intro')}</p>
-        </div>
+        <h1 className={css.pageTitle}>{t('panel')}</h1>
         <div className={css.toolbar}>
           <button
             type="button"
@@ -317,7 +343,6 @@ export function SkillCenterPage({
           <h2 className={css.groupTitle}>
             {group.title}
             <span className={css.groupCount}>{group.skills.length}</span>
-            <span className={css.groupHint}>{group.hint}</span>
           </h2>
           <ul className={css.cards}>
             {group.skills.map(skill => (
@@ -333,7 +358,7 @@ export function SkillCenterPage({
         </div>
       ))}
 
-      {renderSlot('skill-center.section', {})}
+      {renderSlot('skill-center.section', { query })}
     </div>
   )
 }

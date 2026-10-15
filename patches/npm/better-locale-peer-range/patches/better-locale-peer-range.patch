@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index d89a0bc..b7ac3e2 100644
+--- a/package.json
++++ b/package.json
+@@ -41,7 +41,7 @@
+   },
+   "peerDependencies": {
+     "@deepseek-ai/cordis": "^4.0.1",
+-    "@deepseek-ai/dsh-client-locale": "^0.1.5-rc.2"
++    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2"
+   },
+   "peerDependenciesMeta": {
+     "@deepseek-ai/cordis": {

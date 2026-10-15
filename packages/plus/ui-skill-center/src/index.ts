@@ -53,7 +53,6 @@ export interface Config {
 interface SourceGroup {
   readonly key: string
   readonly title: string
-  readonly hint: string
 }
 
 /**
@@ -61,13 +60,13 @@ interface SourceGroup {
  * group; anything matching no convention lands in the custom group.
  */
 const SOURCE_GROUPS: readonly SourceGroup[] = [
-  { key: 'bundled', title: '系统内置', hint: '随 Harness 一同安装，对所有项目生效' },
-  { key: 'project-dsh', title: '项目 .dsh/skills', hint: '位于项目目录，仅对该工作区生效' },
-  { key: 'project-agents', title: '项目 .agents/skills', hint: '位于项目目录，随项目提交，对协作者共享' },
-  { key: 'custom', title: '自定义目录', hint: '由本插件的 customSkillDirs 配置' },
-  { key: 'user-dsh', title: '用户 ~/.dsh/skills', hint: '在用户 dsh 目录下，对本机所有项目生效' },
-  { key: 'user-agents', title: '用户 ~/.agents/skills', hint: '在用户 agents 目录下，对本机所有项目生效' },
-  { key: 'runtime', title: '运行时注册', hint: '由已安装的插件在运行时注册' },
+  { key: 'bundled', title: '系统内置' },
+  { key: 'project-dsh', title: '项目 .dsh/skills' },
+  { key: 'project-agents', title: '项目 .agents/skills' },
+  { key: 'custom', title: '自定义目录' },
+  { key: 'user-dsh', title: '用户 ~/.dsh/skills' },
+  { key: 'user-agents', title: '用户 ~/.agents/skills' },
+  { key: 'runtime', title: '运行时注册' },
 ]
 
 /** A skill row as the panel receives it. */
@@ -91,7 +90,6 @@ export interface SkillEntry {
 export interface GroupPayload {
   key: string
   title: string
-  hint: string
   skills: SkillEntry[]
 }
 
@@ -449,7 +447,7 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
   const groups: GroupPayload[] = []
   for (const g of SOURCE_GROUPS) {
     const skills = (byGroup.get(g.key) ?? []).sort((a, b) => a.name.localeCompare(b.name))
-    if (skills.length > 0) groups.push({ key: g.key, title: g.title, hint: g.hint, skills })
+    if (skills.length > 0) groups.push({ key: g.key, title: g.title, skills })
   }
   return { cwd, projectRoots, complete: snapshot.complete, groups }
 }

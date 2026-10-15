@@ -34,7 +34,6 @@ export interface SkillEntry {
 export interface GroupPayload {
   key: string
   title: string
-  hint: string
   skills: SkillEntry[]
 }
 

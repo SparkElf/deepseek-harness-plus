@@ -35,7 +35,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) | SEE LICENSE IN README.md |
 | [`@anthropic-ai/sdk`](https://github.com/anthropics/anthropic-sdk-typescript) | MIT |
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
-| [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@deepseek-ai/dsh-computer-use`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@deepseek-ai/dsh-experimental-auto-review`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
@@ -59,7 +58,9 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-api-client`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-client-ui-diagram-viewer`](https://github.com/SparkElf/deepseek-harness-plus) | MIT |
 | [`@sparkelf/dsh-dataops-managed`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@sparkelf/dsh-image-hoist`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mineru`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@sparkelf/dsh-mobile-bridge`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
@@ -166,6 +167,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | --- | --- |
 | [`@aws-sdk/client-s3`](https://github.com/aws/aws-sdk-js-v3) | Apache-2.0 |
 | [`@braintree/sanitize-url`](https://github.com/braintree/sanitize-url) | MIT |
+| [`@changfenhuang/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@electron/notarize`](https://github.com/electron/notarize) | MIT |
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |

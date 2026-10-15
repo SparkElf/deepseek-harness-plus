@@ -247,8 +247,9 @@ function main(): void {
   // silently excludes every 0.2.1 prerelease. Requiring the floor to admit the pinned runtime
   // states the relationship the promotion has to preserve.
   const compatibilityFloor = minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
+  const profileOverrides = object(profile.overrides, 'dshPlus.profile.overrides')
   const republished = new Set(
-    Object.values(object(object(profile, 'dshPlus.profile').overrides, 'dshPlus.profile.overrides'))
+    Object.values(profileOverrides)
       .map(value => /@([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/.exec(string(value, 'dshPlus.profile.overrides'))?.[1])
       .filter((version): version is string => version !== undefined))
   if (republished.size === 0) throw new Error('dshPlus.profile.overrides must pin the republished runtime')
@@ -287,15 +288,6 @@ function main(): void {
     '@sparkelf/dsh-mobile-bridge': '0.2.18',
     // The quant workbench registers its tools and its own sidebar page.
     '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
-    // Some OpenAI-compatible routes advertise image input but cannot read the array form of
-    // `function_call_output.output`. They price a tool result's image as one base64 text run
-    // and never show it to the model, and they answer a plausible wrong number instead of
-    // failing: a 502 KB PNG measured 466,303 prompt tokens on such a route against 991 when
-    // the same bytes ride on the user message. The plugin moves tool-result images onto the
-    // nearest preceding user message in the model-visible projection, leaving the durable log
-    // untouched. Its `providers` list is empty here, so a profile changes behavior only by
-    // naming the routes that need it.
-    '@sparkelf/dsh-image-hoist': '0.1.3',
     // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
     // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
     // web-profile bundle that official removed in 9f21d7842a.
@@ -340,8 +332,27 @@ function main(): void {
   for (const name of Object.keys(profileDependencies)) {
     if (dependencies[name] !== undefined) throw new Error(name + ' must not have two dependency owners')
   }
-  const ownsRuntimePackage = (name: string): boolean =>
-    dependencies[name] !== undefined || profileDependencies[name] !== undefined
+  /**
+   * Whether the distribution owns a runtime package, counting the name it publishes it under.
+   *
+   * A republished package installs through an npm alias, so a name only appears as an alias
+   * target: the profile declares `@deepseek-ai/dsh-llm-pi-ai: npm:@sparkelf/dsh-llm-pi-ai@…` in
+   * its overrides, and a patch for the republished build names `@sparkelf/dsh-llm-pi-ai`. Reading
+   * the alias target as an owner is what keeps such a patch admissible. The comparison is on the
+   * package name alone, because the alias carries the version that moves with every release.
+   *
+   * @param name - package name a patch target or profile bundle names.
+   * @returns whether any dependency or override map declares it, directly or as an alias target.
+   */
+  const ownsRuntimePackage = (name: string): boolean => {
+    for (const source of [dependencies, profileDependencies, profileOverrides]) {
+      for (const [declared, spec] of Object.entries(source)) {
+        if (declared === name) return true
+        if (typeof spec === 'string' && /^npm:(@[^/]+\/[^@]+)@/.exec(spec)?.[1] === name) return true
+      }
+    }
+    return false
+  }
   for (const bundle of bundles) {
     if (bundle.startsWith('@deepseek-ai/') || bundle === distribution.name) continue
     if (!ownsRuntimePackage(bundle)) throw new Error('distribution must own external profile bundle ' + bundle)

@@ -42,7 +42,9 @@ describe('highlightToHtml', () => {
     'xml', 'lua',
   ]
 
-  it('lazily loads every read-card grammar: plain first, highlighted after load', async () => {
+  // 24 grammars, each behind its own dynamic import: under the full parallel suite they load
+  // against a busy worker pool and routinely pass the 5s default, so the test states its own.
+  it('lazily loads every read-card grammar: plain first, highlighted after load', { timeout: 30_000 }, async () => {
     const registered = Promise.withResolvers<undefined>()
     // Registration notifications, not a private polling deadline, establish readiness.
     const stop = subscribeGrammarLoaded(() => {

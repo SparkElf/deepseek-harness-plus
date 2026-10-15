@@ -1664,6 +1664,12 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
+      '@sparkelf/dsh-patch-better-locale-peer-range':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/better-locale-peer-range
+      '@sparkelf/dsh-patch-better-sidebar-file-mtime':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/better-sidebar-file-mtime
       '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-sidebar-html-preview-path
@@ -1688,6 +1694,12 @@ importers:
       '@sparkelf/dsh-patch-legacy-code-preset':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/legacy-code-preset
+      '@sparkelf/dsh-patch-llm-pi-ai-npm-transport':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/llm-pi-ai-npm-transport
+      '@sparkelf/dsh-patch-llm-pi-ai-transport-truncation':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/llm-pi-ai-transport-truncation
       '@sparkelf/dsh-patch-mobile-journal-generation':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/mobile-journal-generation
@@ -6116,7 +6128,7 @@ importers:
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
     devDependencies:
       '@deepseek-ai/cordis':
@@ -6752,7 +6764,7 @@ importers:
         specifier: workspace:^
         version: link:../../util/native-command
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
     devDependencies:
       '@deepseek-ai/cordis':
@@ -8021,7 +8033,7 @@ importers:
         specifier: workspace:^
         version: link:../../subprocess/win32-process
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
     devDependencies:
       '@deepseek-ai/cordis':
@@ -8575,7 +8587,7 @@ importers:
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
     devDependencies:
       '@deepseek-ai/cordis':
@@ -9556,7 +9568,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-session@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-scope@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.28
+        specifier: workspace:0.2.1-alpha.29
         version: link:../../bundle/plus
       '@sparkelf/dsh-query-result-analysis':
         specifier: 0.1.4
@@ -9656,7 +9668,7 @@ importers:
         specifier: 0.1.9
         version: 0.1.9(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-invariants@0.1.7-rc.2(@deepseek-ai/cordis@vendor+cordis))(@deepseek-ai/dsh-session@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-scope@0.2.1-alpha.1(@deepseek-ai/cordis@vendor+cordis)))
       '@sparkelf/dsh-plus':
-        specifier: workspace:0.2.1-alpha.28
+        specifier: workspace:0.2.1-alpha.29
         version: link:../../bundle/plus
       '@sparkelf/dsh-quant':
         specifier: 0.91.0-sparkelf.13
@@ -10390,7 +10402,7 @@ importers:
         specifier: workspace:^
         version: link:../win32-process
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
       node-pty:
         specifier: 1.2.0-beta.15
@@ -10412,7 +10424,7 @@ importers:
   packages/subprocess/win32-process:
     dependencies:
       koffi:
-        specifier: ^3.1.0
+        specifier: '>=3.1.0 <3.3.0'
         version: 3.1.1
     devDependencies:
       '@deepseek-ai/cordis':
@@ -11429,6 +11441,10 @@ importers:
 
   patches/npm/approval-allow-policy: {}
 
+  patches/npm/better-locale-peer-range: {}
+
+  patches/npm/better-sidebar-file-mtime: {}
+
   patches/npm/better-sidebar-html-preview-path: {}
 
   patches/npm/better-sidebar-media-path: {}
@@ -11444,6 +11460,10 @@ importers:
   patches/npm/diagram-preview: {}
 
   patches/npm/legacy-code-preset: {}
+
+  patches/npm/llm-pi-ai-npm-transport: {}
+
+  patches/npm/llm-pi-ai-transport-truncation: {}
 
   patches/npm/mobile-journal-generation: {}
 

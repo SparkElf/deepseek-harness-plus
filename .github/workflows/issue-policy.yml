@@ -16,14 +16,18 @@ jobs:
     name: Issue policy
     runs-on: ubuntu-latest
     steps:
+      - name: Skip upstream issue policy outside the official repository
+        if: ${{ github.repository != 'deepseek-harness/deepseek-harness' }}
+        run: echo "Upstream Project issue policy is not applicable to ${{ github.repository }}."
       - name: Check out trusted policy
+        if: ${{ github.repository == 'deepseek-harness/deepseek-harness' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
       - name: Create Project read token
         id: app-token
-        if: ${{ github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.type != 'App' }}
+        if: ${{ github.repository == 'deepseek-harness/deepseek-harness' && github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.type != 'App' }}
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
         with:
           client-id: ${{ vars.DSH_ISSUE_APP_CLIENT_ID }}
@@ -33,7 +37,7 @@ jobs:
           permission-issues: read
           permission-organization-projects: read
       - name: Validate pull request
-        if: ${{ github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.type != 'App' }}
+        if: ${{ github.repository == 'deepseek-harness/deepseek-harness' && github.event.pull_request.user.type != 'Bot' && github.event.pull_request.user.type != 'App' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PROJECT_TOKEN: ${{ steps.app-token.outputs.token }}

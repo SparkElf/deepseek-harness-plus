@@ -60,6 +60,9 @@ entries:
       - package: "@sparkelf/dsh-patch-ui-settings-compact-phone"
         upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
         retireWhen: dsh-client-ui-settings-general lays out its navigation for a narrow viewport
+      - package: "@sparkelf/dsh-patch-better-sidebar-file-mtime"
+        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
+        retireWhen: dsh-better-sidebar shows each explorer row's last-modified time
       - package: "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar requests the catalog projection of every
@@ -250,6 +253,47 @@ entries:
       - package: "@sparkelf/dsh-patch-office-preview-stable-load"
         upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
         retireWhen: The office face returns stable callbacks, or its body stops depending on them
+      # The sidebar previews .drawio and .xmind through its own diagram renderer; without it
+      # the tab reports an unsupported file and the user loses the diagram face.
+      - package: "@sparkelf/dsh-patch-diagram-preview"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: The official document preview ships its own draw.io and XMind renderer
+    plusBundle: false
+  - name: "@deepseek-ai/dsh-llm-pi-ai-transport"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/DeepSeek-Harness.git
+    pinned: 6851e496285b2c9670066fdd142e7e46da586649
+    interest: A gateway-truncated response stream is retried instead of failing the turn
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official DSH retries a transport-truncated stream itself
+    plusBundle: false
+  - name: "@sparkelf/dsh-llm-pi-ai"
+    source:
+      kind: npm
+      spec: "@sparkelf/dsh-llm-pi-ai"
+    pinned: 0.2.1-alpha.2
+    interest: The republished pi-ai build carries the transport retry into a packed profile
+    owner: SparkElf
+    localPatches:
+      - package: "@sparkelf/dsh-patch-llm-pi-ai-npm-transport"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: The republished pi-ai build ships the transport retry without a patch
+    plusBundle: false
+  - name: "@huanlin/dsh-plugin-better-locale"
+    source:
+      kind: npm
+      spec: "@huanlin/dsh-plugin-better-locale"
+    pinned: 0.4.3
+    interest: The locale pack widens its client-locale peer so it mounts beside a republished UI
+    owner: huanlin
+    localPatches:
+      - package: "@sparkelf/dsh-patch-better-locale-peer-range"
+        upstreamUrl: https://github.com/huanlin/dsh-plugin-better-locale
+        retireWhen: The locale pack declares a client-locale peer range that admits the republished UI
     plusBundle: false
   - name: "@deepseek-ai/dsh-session-export-chinese-copy"
     source:

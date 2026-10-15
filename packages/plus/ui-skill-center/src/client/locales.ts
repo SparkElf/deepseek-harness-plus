@@ -8,13 +8,17 @@
 /** Every string this plugin renders. */
 export interface SkillCenterLocale {
   'panel': string
-  'panel.intro': string
   'search.placeholder': string
-  'search.clear': string
   'search.noMatches': string
   'action.refresh': string
   'action.create': string
   'action.delete': string
+  'action.showDetail': string
+  'action.close': string
+  'detail.whenToUse': string
+  'detail.source': string
+  'detail.provider': string
+  'detail.path': string
   'action.cancel': string
   'action.confirm': string
   'state.loading': string
@@ -42,13 +46,17 @@ export type SkillCenterLocaleKey = keyof SkillCenterLocale
 /** Simplified Chinese dictionary. */
 export const zh: SkillCenterLocale = {
   'panel': '技能中心',
-  'panel.intro': '浏览已加载的技能，启用或停用模型调用',
   'search.placeholder': '搜索技能…',
-  'search.clear': '清除搜索',
   'search.noMatches': '无匹配技能',
   'action.refresh': '刷新',
   'action.create': '新建技能',
   'action.delete': '删除',
+  'action.showDetail': '详情',
+  'action.close': '关闭',
+  'detail.whenToUse': '何时使用',
+  'detail.source': '来源',
+  'detail.provider': '提供方',
+  'detail.path': '位置',
   'action.cancel': '取消',
   'action.confirm': '确定',
   'state.loading': '正在加载技能…',
@@ -73,13 +81,17 @@ export const zh: SkillCenterLocale = {
 /** English dictionary. */
 export const en: SkillCenterLocale = {
   'panel': 'Skill Center',
-  'panel.intro': 'Browse loaded skills and control model invocation',
   'search.placeholder': 'Search skills…',
-  'search.clear': 'Clear search',
   'search.noMatches': 'No matching skills',
   'action.refresh': 'Refresh',
   'action.create': 'New skill',
   'action.delete': 'Delete',
+  'action.showDetail': 'Details',
+  'action.close': 'Close',
+  'detail.whenToUse': 'When to use',
+  'detail.source': 'Source',
+  'detail.provider': 'Provider',
+  'detail.path': 'Location',
   'action.cancel': 'Cancel',
   'action.confirm': 'Confirm',
   'state.loading': 'Loading skills…',

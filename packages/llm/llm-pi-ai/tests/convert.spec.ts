@@ -937,6 +937,15 @@ describe('mapStopReason / mapUsage', () => {
     'OpenAI Responses stream ended before a terminal response event',
     'openrouter stream ended without a terminal event',
     'Stream ended without finish_reason',
+    // A gateway relay in front of the provider reports the same truncation in its own
+    // words. Measured 2026-10-13: this wording reached the model as an unclassified
+    // PI_AI_ERROR, which the default retry set excludes, so a truncated response ended
+    // the turn instead of being retried.
+    'Upstream response stream was interrupted',
+    // A second gateway states the same condition as a snake_case code. Measured
+    // 2026-10-14: the sentence-shaped wording above does not match it, so the run
+    // failed with PI_AI_ERROR and no retry.
+    'upstream_stream_incomplete: upstream sent an error event',
   ])('maps pi-ai transport wording %j', (errorMessage) => {
     expect(mapStopReason(assistant({ stopReason: 'error', errorMessage })))
       .toMatchObject({ kind: 'error', failure: { code: 'TRANSPORT' } })

@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-better-locale-peer-range",
+  "description": "Data-only patch widening dsh-plugin-better-locale's dsh-client-locale peer from a 0.1.x range to >=0.1.7-rc.2, so DSH 0.2.x satisfies it",
+  "version": "0.2.1-alpha.29",
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/better-locale-peer-range"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    "./patches/better-locale-peer-range.patch": "./patches/better-locale-peer-range.patch"
+  },
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "better-locale-peer-range",
+        "dsh": ">=0.2.0-rc.2",
+        "target": {
+          "kind": "npm",
+          "name": "@huanlin/dsh-plugin-better-locale",
+          "range": ">=0.4.0 <0.5.0"
+        },
+        "file": "./patches/better-locale-peer-range.patch"
+      }
+    ]
+  }
+}

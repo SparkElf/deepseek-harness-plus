@@ -1,23 +1,26 @@
 /**
  * Skill center page.
  *
- * The page, its header, and its rows follow the official plugin panel's
- * measurements — the same 28px page inset, 20px title, 48px framed glyph, and
- * borderless rows whose hover surface reaches past the content — so the panel
- * reads as one of the shell's own. Every colour comes from the shared alias
- * tokens.
+ * The page, its header, and its cards follow the official plugin panel's
+ * measurements — the same page inset, 20px title, and card surface — so the
+ * panel reads as one of the shell's own. Every colour comes from the shared
+ * alias tokens.
  */
 
 .page {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 16px;
   box-sizing: border-box;
   height: 100%;
   overflow: auto;
-  padding: 28px clamp(24px, 4vw, 48px) 48px;
+  padding: 24px clamp(24px, 4vw, 40px) 40px;
   color: var(--dsw-alias-label-primary);
+  /* The page paints the l2 surface rung, so a revealed scrollbar uses the l2 pair
+     rather than the l1 default it would otherwise inherit. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .page > * {
@@ -27,7 +30,7 @@
 
 .pageHead {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
@@ -37,13 +40,6 @@
   font-size: 20px;
   font-weight: 500;
   line-height: 28px;
-}
-
-.pageIntro {
-  margin: 4px 0 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--dsw-alias-label-secondary);
 }
 
 .toolbar {
@@ -81,26 +77,6 @@
   display: inline-flex;
 }
 
-.button {
-  height: 32px;
-  padding: 0 12px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.button:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.button:focus-visible {
-  outline: 2px solid var(--dsw-alias-brand-primary);
-  outline-offset: 1px;
-}
-
 .search {
   box-sizing: border-box;
   width: 100%;
@@ -117,80 +93,79 @@
   color: var(--dsw-alias-label-tertiary);
 }
 
+/* No top margin: the page's own flex gap already separates sibling groups, and stating it
+   here as well doubled the space between them. */
 .group {
-  margin-top: 32px;
+  min-width: 0;
 }
 
 .groupTitle {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0 0 4px;
-  font-size: 15px;
+  margin: 0 0 8px;
+  font-size: 14px;
   font-weight: 500;
-  line-height: 22px;
+  line-height: 20px;
 }
 
 .groupCount {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 400;
   color: var(--dsw-alias-label-tertiary);
 }
 
-.groupHint {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--dsw-alias-label-caption);
-}
-
+/* The track fills the column with as many cards as fit at a readable card width. Two
+   columns stretched each card to roughly half the column and left a one-line card
+   mostly empty; a three-column track keeps a card near the width of its own content. */
 .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  align-items: start;
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* The hover surface reaches 8px past the content on both sides while the row's
-   content stays aligned with the page header, as the official rows do. */
+/* The market card: its own surface and border on the page background, parts stacked with
+   one gutter, unstretched so leftover row height lands in the gutter rather than inside
+   the card. */
 .card {
   min-width: 0;
-  margin: 0 -8px;
-  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: start;
+  padding: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
 }
 
-.card:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
+/* The header row: glyph, then the name block. */
 .cardHead {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 8px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .cardIcon {
-  display: inline-flex;
+  display: grid;
   flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: 10px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  corner-shape: round;
+  background: var(--dsw-alias-bg-layer-2);
   color: var(--dsw-alias-label-secondary);
 }
 
 /* A row from another workspace is present but is not the subject of this view. */
 .cardForeign {
   opacity: 0.72;
-}
-
-.cardMain {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 /* The workspace a project skill came from, beside its name. */
@@ -206,17 +181,29 @@
   vertical-align: middle;
 }
 
+/* The name carries the card, so it is the one thing sized up; everything else is a
+   signature under it, as the market card reads. */
 .cardTitle {
   font-size: 14px;
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The title row holds the name and the workspace badge; the badge is the only part
+   allowed to shrink away, because the name is what identifies the card. */
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .cardDesc {
-  font-size: 13px;
+  font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-secondary);
   display: -webkit-box;
@@ -229,6 +216,10 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--dsw-alias-label-caption);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .cardMarks {
@@ -238,35 +229,85 @@
   margin-top: 2px;
 }
 
+/* A flat filled label: no border and no outline, so the fill alone carries the tone and a row
+   of them reads as one strip rather than a line of boxes. Neutral labels take the tinted
+   platform fill; the status colours tint from their own state token. */
+/* Flat, borderless, and one fill for every label: the strip states facts quietly and never
+   draws an outline or a second palette. #ECF1FC is the product's own label fill, which the
+   shared alias set does not carry. */
 .mark {
-  padding: 1px 6px;
+  padding: 2px 7px;
+  border: 0;
   border-radius: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
+  background: #ECF1FC;
+  color: var(--dsw-alias-state-business-primary);
   font-size: 11px;
   line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.markOn {
-  border-color: var(--dsw-alias-state-business-primary);
-  color: var(--dsw-alias-state-business-primary);
+.markOff,
+.markDanger {
+  background: #ECF1FC;
 }
 
-.markOff {
-  border-color: var(--dsw-alias-border-l4);
+/* The opened facts, one label over its value, read in the card's own dialog. */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+/* The detail button takes the card's bottom-right corner, so every card lines its controls up
+   on one edge across a grid row. */
+.cardActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: 11px;
+  line-height: 16px;
   color: var(--dsw-alias-label-caption);
 }
 
-.markDanger {
-  border-color: var(--dsw-alias-state-error-primary);
-  color: var(--dsw-alias-state-error-primary);
+.detailValue {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
 }
 
+/* The actions sit on the card's bottom edge, so cards of different heights still line
+   their controls up across a grid row. */
 .cardEnd {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   flex: none;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+/* The description, the when-to-use line, and the marks keep the card's body together
+   above the actions. */
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
 
 .switch {
@@ -297,6 +338,7 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
+  corner-shape: round;
   background: var(--dsw-alias-bg-layer-1);
   transition: transform 120ms ease;
 }

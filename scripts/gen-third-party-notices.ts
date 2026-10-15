@@ -94,6 +94,10 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   '@sparkelf/dsh-plugin-better-sidebar-office': { repo: 'https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office' },
   '@huanlin/dsh-plugin-better-locale': { repo: 'https://github.com/HuanLinOTO/dsh-plugin-better-locale' },
   'dsh-sql-workbench': { repo: 'https://github.com/SparkElf/dsh-sql-workbench' },
+  // Published by this repository's plus release, but the packed manifest carries no
+  // `repository` field: the package lived at packages/plus/diagram-viewer before it moved
+  // to a release of its own.
+  '@sparkelf/dsh-client-ui-diagram-viewer': { repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
   // No `license` field in the published manifest; the tarball's LICENSE.txt is the MIT text.
 }
 

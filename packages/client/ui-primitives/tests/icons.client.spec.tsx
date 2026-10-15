@@ -16,9 +16,19 @@ const icons = Object.fromEntries(
 ) as Record<string, (p: primitives.IconProps) => React.JSX.Element>
 const iconNames = Object.keys(icons)
 
+// The published 0.1.7 and 0.2.0 lines name a glyph by its weight (`<Name>Regular`) where this
+// source names it by drawn size; each such alias re-exports a glyph already in the artwork set.
+const PUBLISHED_NAME_ALIASES = [
+  'IconChevronDownOutlineRegular',
+  'IconPlusOutlineRegular',
+  'IconRefreshOutlineRegular',
+  'IconSkillOutlineRegular',
+]
+
 describe('ic_ds_ icon set', () => {
-  it('exports the full icon set (46 deepsuite + 21 figma extracts + eight product glyphs outside those sets)', () => {
-    expect(iconNames.length).toBe(75)
+  it('exports 46 deepsuite + 21 figma extracts + eight product glyphs, plus the published-name aliases', () => {
+    expect(iconNames.length).toBe(75 + PUBLISHED_NAME_ALIASES.length)
+    expect(iconNames.filter(name => name.endsWith('Regular')).sort()).toEqual(PUBLISHED_NAME_ALIASES)
   })
 
   it.each(iconNames)('%s renders an svg with currentColor fills and no hardcoded palette', (name) => {

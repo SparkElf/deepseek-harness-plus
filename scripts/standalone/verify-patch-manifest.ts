@@ -18,6 +18,7 @@
  */
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Read one option value, or undefined when it is absent.
@@ -69,7 +70,10 @@ function readPatches(patchRoot: string): PatchEntry[] {
 }
 
 const args = process.argv.slice(2)
-const repo = resolve(option(args, '--repo') ?? '/root/projects/deepseek-harness-plus')
+// The default repository is the one this script lives in: a literal checkout path would make the
+// gate pass only on the machine that path happens to name, and fail everywhere else.
+const scriptRoot = fileURLToPath(new URL('../..', import.meta.url))
+const repo = resolve(option(args, '--repo') ?? scriptRoot)
 const distribution = join(repo, 'packages/bundle/plus/package.json')
 const patchRoot = join(repo, 'patches/npm')
 if (!existsSync(distribution)) throw new Error('verify-patch-manifest: no ' + distribution)
