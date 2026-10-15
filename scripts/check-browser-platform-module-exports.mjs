@@ -18,19 +18,19 @@
  * `IconSearchOutlineRegular` and not the `16` spelling.
  *
  * Usage:
- *   node scripts/check-browser-platform-module-exports.mjs [--host-bundle <file>] [--plugins-root <dir>]
+ *   node scripts/check-browser-platform-module-exports.mjs --served [--plugins-root <dir>]
+ *   node scripts/check-browser-platform-module-exports.mjs --host-bundle <file> [--plugins-root <dir>]
  *
- * `--host-bundle` must name the bundle the deployment being checked actually serves. The default is
- * this repository's own `apps/web/dist`, which is built against this repository's source and so
- * exports the drawn-size and published spellings side by side; a run against it cannot report the
- * mismatch this check exists to find and passes whatever the plugins reference. The run prints that
- * limitation on stderr whenever `--host-bundle` is omitted.
- *
- * A deployment's served bundle is the one to reach for, for example
- * `$DSH_HOME/releases/<line>/<release>/apps/web/dist/assets/index-*.js`.
+ * The bundle to check is the one the deployment being checked actually serves. `--served` resolves
+ * that through the running profile link (`$DSH_HOME/profiles/<profile>`, following the symlink
+ * into its release); `--host-bundle` names one directly. A run that names neither is refused,
+ * because this repository's own `apps/web/dist` is built against this repository's source and
+ * exports the drawn-size and published spellings side by side -- a result from that plane cannot
+ * show the release-boundary mismatch this check exists to find.
  */
-import { existsSync, globSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, globSync, readFileSync, realpathSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { basename, dirname, join, resolve } from 'node:path'
 
 /** The platform module whose exports a plugin must be able to resolve. */
 export const PLATFORM_MODULE = '@deepseek-ai/dsh-client-ui-primitives'
@@ -116,19 +116,35 @@ function main() {
   }
   const repositoryRoot = resolve(import.meta.dirname, '..')
   const requestedBundle = optionOf('--host-bundle')
-  const hostBundle = requestedBundle ?? newestHostBundle(repositoryRoot)
+  const served = args.includes('--served')
+  // A repository build is only ever read when a caller names that file explicitly; neither flag
+  // means the plane under test is unstated, and an unstated plane is not a passing one.
+  const hostBundle = requestedBundle ?? (served ? servedHostBundle() : undefined)
   if (hostBundle === undefined || !existsSync(hostBundle)) {
-    console.error('check-browser-platform-module-exports: no host bundle at apps/web/dist/assets/index-*.js')
-    console.error('  build the web application first (pnpm run build:web); an unchecked tree is not a passing tree')
+    if (served) {
+      console.error('check-browser-platform-module-exports: --served found no bundle under the running profile link')
+      console.error('  set DSH_HOME / DSH_PROFILE, or name the file with --host-bundle <file>')
+      return 1
+    }
+    if (requestedBundle !== undefined) {
+      console.error('check-browser-platform-module-exports: no host bundle at ' + requestedBundle)
+      return 1
+    }
+    console.error('check-browser-platform-module-exports: no host bundle named')
+    console.error('  pass --served to check the running deployment, or --host-bundle <file> to name one')
+    console.error('  the repository\'s own build exports both spellings, so a result from it cannot')
+    console.error('  show the release-boundary mismatch this check exists to find')
     return 1
   }
-  if (requestedBundle === undefined) {
-    console.error('check-browser-platform-module-exports: no --host-bundle, so this checked the repository\'s own')
-    console.error('  build, which exports both spellings and cannot report a release-boundary mismatch.')
-    console.error('  Point --host-bundle at the bundle a deployment serves to check what it will receive.')
-  }
   const pluginsRoot = resolve(optionOf('--plugins-root') ?? resolve(repositoryRoot, 'packages'))
-  const bundles = globSync('**/lib/client.js', { cwd: pluginsRoot }).map(file => resolve(pluginsRoot, file)).sort()
+  // The default corpus is the `@sparkelf` family this fork publishes and installs. A package
+  // outside it is built and shipped by the distribution's own line, so its `lib/` here is a
+  // different artifact from the one a deployment serves and judging it against a deployment's
+  // bundle reports differences between two builds rather than a defect in this repository.
+  const bundles = globSync('**/lib/client.js', { cwd: pluginsRoot })
+    .filter(file => isPublishedFamily(join(pluginsRoot, file)))
+    .map(file => resolve(pluginsRoot, file))
+    .sort()
   if (bundles.length === 0) {
     console.error('check-browser-platform-module-exports: no built client bundle under ' + pluginsRoot)
     console.error('  an empty corpus is a failure, not a pass')
@@ -169,6 +185,53 @@ function main() {
 function newestHostBundle(repositoryRoot) {
   const candidates = globSync('apps/web/dist/assets/index-*.js', { cwd: repositoryRoot })
     .map(file => resolve(repositoryRoot, file))
+    .filter(file => existsSync(file))
+  return candidates.sort().at(-1)
+}
+
+/**
+ * Whether a built client bundle belongs to the package family this fork publishes.
+ *
+ * The manifest names the family, so the decision is the package's own scope rather than a path
+ * convention that a moved directory would silently change.
+ * @param clientBundle - absolute path of a built `lib/client.js`.
+ * @returns true when the owning manifest is scoped `@sparkelf`.
+ */
+function isPublishedFamily(clientBundle) {
+  const manifest = join(dirname(dirname(clientBundle)), 'package.json')
+  if (!existsSync(manifest)) return false
+  try {
+    return String(JSON.parse(readFileSync(manifest, 'utf8')).name).startsWith('@sparkelf/')
+  } catch {
+    // A manifest that cannot be parsed names no family, and an unowned bundle is not judged here.
+    return false
+  }
+}
+
+/**
+ * The host bundle the running deployment serves, for `--served`.
+ *
+ * The running profile is a link into a release, and the application that release serves is its own
+ * `apps/web/dist`. Resolving through the link rather than choosing a release by timestamp is what
+ * makes this the bundle a request receives: several releases sit side by side with identical
+ * filenames, and only the linked one is served.
+ * @returns absolute path, or undefined when no profile link resolves to a release.
+ */
+function servedHostBundle() {
+  const dshHome = resolve(process.env.DSH_HOME ?? join(homedir(), '.dsh'))
+  const profileLink = resolve(dshHome, 'profiles', process.env.DSH_PROFILE ?? 'plus')
+  if (!existsSync(profileLink)) return undefined
+  // Walk up from the link target to the directory holding `profiles`, whose parent is the release.
+  let target = realpathSync(profileLink)
+  let release
+  for (;;) {
+    if (basename(target) === 'profiles') { release = dirname(target); break }
+    const parent = dirname(target)
+    if (parent === target) return undefined
+    target = parent
+  }
+  const candidates = globSync('apps/web/dist/assets/index-*.js', { cwd: release })
+    .map(file => resolve(release, file))
     .filter(file => existsSync(file))
   return candidates.sort().at(-1)
 }
