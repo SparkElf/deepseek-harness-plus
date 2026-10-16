@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "663762c55d2836863dffce08bc7e74f69a3a18f8",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:01.095Z"
+  },
+  "title": "DSH 推送前检查",
+  "description": "用于在 deepseek-harness 分支上推送、强制推送、标记可审查或声称检查通过之前，以及 gh stack sync 发布重写分支之后，选取覆盖待推送 diff 的最小测试与检查，避免习惯性跑全量测试。",
+  "summary": "先核对检出、分支与基线并生成变更范围报告，再按改动类型选择最窄的测试、快照、构建或 e2e 证据，聚焦受影响源码的单元覆盖率，并避免重复已通过的检查；不含全量仓库套件与 CI 平台矩阵。"
+}

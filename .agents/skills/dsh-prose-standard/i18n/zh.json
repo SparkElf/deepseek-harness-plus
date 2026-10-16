@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "bb8347823b99fb8c871c697032b2bf33d1bcea43",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:07.086Z"
+  },
+  "title": "DSH 文案规范",
+  "description": "在 deepseek-harness 仓库撰写、审查、恢复、精简或审计文案时使用，包括判断 Markdown、JSDoc、代码与测试注释、提示词、描述、诊断信息及 CLI 或 UI 字符串中何处需要文档或注释。",
+  "summary": "规定如何保留契约性信息并删除推理转写、重复与修饰，覆盖公开 JSDoc、内部与模块注释、测试、实操手册、README、Agent Note 等位置必需写明的契约，并约定输入、排除范围与生成物的处理。"
+}

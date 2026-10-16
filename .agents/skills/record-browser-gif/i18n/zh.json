@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "9222144902149ed91b689be4a9537803ba076e4b",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:39.624Z"
+  },
+  "title": "录制浏览器 GIF",
+  "description": "使用可用的浏览器控制流程录制浏览器或 Web UI 交互演示并编码为优化 GIF；为每个改变用户可见 GUI 行为的 PR 附上从真实服务器与模型流程录制的 GIF。",
+  "summary": "把浏览器或 Web UI 交互演示录成简短真实的本地 GIF：按 PR 准备构建与服务、隔离浏览器状态，用浏览器控制或 Playwright Videos 录制，编码后经 gh --attach 附加到 PR，或推送到 assets 分支。"
+}

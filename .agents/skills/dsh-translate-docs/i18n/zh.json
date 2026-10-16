@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "5e5ec7d87129b1e5c07a491b81ffc5b5cad2d496",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:20.379Z"
+  },
+  "title": "双语文档翻译流程",
+  "description": "仅当用户明确点名 dsh-translate-docs 时手动运行：生成简报、委派子代理翻译散文、整篇文档翻译与限定范围的配对校验。",
+  "summary": "指导维护 foo.md 与 foo.zh.md 双语配对一致的工作流：按变更类型分流为简报驱动的增量更新、整篇新配对翻译、删除或改名处理，并给出简报生成、机械 diff、子代理委派与配对校验命令。"
+}

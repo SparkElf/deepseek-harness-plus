@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "96e2b60a8b2c6f613cc6ec421de969eb562a5db7",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:46.149Z"
+  },
+  "title": "DSH 文档编写",
+  "description": "创建、重组、审查、审计或迁移 DeepSeek Harness Markdown 文档、包 README 与文档网站，涵盖按受众分层、kind 映射 YAML 元数据、双语行对齐、摘要/目录导航、事实核验与仓库校验。用于新增或修订 DSH 文档、docs-tree 组织、文档质量审计与字数预算、网站页面发布及双语结构变更。",
+  "summary": "规定 DSH 文档标准：页面需可检索、新人可读、对 agent 与维护者足够精确，并让文档网站成为仓库 Markdown 的可测投影。含工作流程、事实核验（必须实际运行）、kind 与模板、文风与质量准则、语料审计、字数预算、网站发布与校验。"
+}

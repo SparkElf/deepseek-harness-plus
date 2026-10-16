@@ -1,7 +1,8 @@
 /**
  * Skill center — host half. Serves the skill-center data source over the
- * `/api/dsh-skill-center` route family: list grouped by source, enable or disable
- * model invocation, create, delete into a recoverable trash, and health.
+ * `/api/dsh-skill-center` route family: list grouped by source, read one skill's
+ * body, enable or disable model invocation, create, delete into a recoverable
+ * trash, and health.
  *
  * Reading goes through the official `ctx.skills` registry, so the catalog, its
  * provider precedence, and its hot reload are the harness's rather than a second
@@ -23,6 +24,8 @@ import type { WebRoute } from '@deepseek-ai/dsh-host-webserver'
 // `inject` list names, so the plugin body reads them with their declarations.
 import type { SkillSummary } from '@deepseek-ai/dsh-skill'
 import type {} from '@deepseek-ai/dsh-session'
+import { readSkillTranslation, readTranslationProgress } from './translations.ts'
+import type { SkillTranslation } from './translations.ts'
 
 /** Stable cordis plugin name. */
 export const name = 'ui-skill-center'
@@ -36,7 +39,9 @@ export const ROUTES = {
   setEnabled: '/api/dsh-skill-center/set-enabled',
   create: '/api/dsh-skill-center/create',
   delete: '/api/dsh-skill-center/delete',
+  content: '/api/dsh-skill-center/content',
   health: '/api/dsh-skill-center/health',
+  translationProgress: '/api/dsh-skill-center/translation-progress',
 } as const
 
 /** Plugin configuration. */
@@ -47,6 +52,14 @@ export interface Config {
   dshHome?: string
   /** User agents config root; defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
+  /**
+   * Skill set whose `<skill>/i18n/zh.json` files supply the panel's Chinese copy.
+   *
+   * A skill that resolves through a symlink into another repository keeps its
+   * translation in that repository, not in the deployment, so this names the
+   * checkout that holds the translated set. Unset means English only.
+   */
+  translationRoot?: string
 }
 
 /** One source group, in display order. */
@@ -69,6 +82,13 @@ const SOURCE_GROUPS: readonly SourceGroup[] = [
   { key: 'runtime', title: '运行时注册' },
 ]
 
+/** Chinese copy for one skill, rendered in place of the English values. */
+export interface SkillEntryTranslation {
+  title: string
+  description: string
+  summary: string
+}
+
 /** A skill row as the panel receives it. */
 export interface SkillEntry {
   name: string
@@ -84,6 +104,13 @@ export interface SkillEntry {
   workspaceRoot?: string
   workspaceName?: string
   isActiveWorkspace?: boolean
+  /**
+   * Chinese copy, when a translation file exists beside the skill.
+   *
+   * Kept apart from `description` rather than replacing it: the registry value is
+   * what the model routes on, and the panel must stay able to show it.
+   */
+  i18n?: SkillEntryTranslation
 }
 
 /** One rendered group. */
@@ -297,6 +324,17 @@ export function localSkillRoots(
 }
 
 /**
+ * Strip the leading YAML frontmatter from a skill file.
+ *
+ * @param source - the skill file's complete content.
+ * @returns the body below the closing delimiter, or the whole file when it declares none.
+ */
+export function stripFrontmatter(source: string): string {
+  const match = /^---\r?\n[\s\S]*?\r?\n---[ \t]*\r?\n?/.exec(source)
+  return match === null ? source : source.slice(match[0].length)
+}
+
+/**
  * Read `disable-model-invocation` from a skill file.
  * @param source - the skill file's content.
  * @returns the flag when the frontmatter declares it, otherwise undefined.
@@ -370,6 +408,8 @@ export interface SkillRoutesDeps {
   pathOf(name: string, cwd: string): Promise<string | undefined>
   activeSessionCwds(): string[]
   logger: { warn(error: unknown): void }
+  /** Skill set holding the `<skill>/i18n/zh.json` files; unset disables translation. */
+  translationRoot?: string
 }
 
 /** The registry summary this route family reads, re-exported for its callers. */
@@ -400,16 +440,61 @@ async function readJson(req: IncomingMessage, maxBytes: number): Promise<Record<
   return parsed as Record<string, unknown>
 }
 
+/**
+ * Chinese copy for every skill the list will render, keyed by skill name.
+ *
+ * The registry omits the skill file path from its summaries, so each one is resolved
+ * through `pathOf`, which consults the catalog `collect()` already cached. A skill
+ * whose path or translation is missing simply has no entry here and renders in English.
+ *
+ * @param deps - the routes' dependencies.
+ * @param skills - skill names to look up.
+ * @param cwd - the viewing context the registry resolves against.
+ * @returns the translations found, keyed by name.
+ */
+async function translationsFor(
+  deps: SkillRoutesDeps,
+  skills: readonly { name: string; path?: string }[],
+  cwd: string,
+): Promise<Map<string, SkillTranslation>> {
+  const found = new Map<string, SkillTranslation>()
+  const root = deps.translationRoot
+  await Promise.all(skills.map(async ({ name, path: known }) => {
+    let path = known
+    if (path === undefined) {
+      try {
+        path = await deps.pathOf(name, cwd)
+      } catch {
+        // A provider that raises still leaves the configured fallback available, so this
+        // does not return: the fallback below resolves by name and needs no path.
+        path = undefined
+      }
+    }
+    // The file beside the skill needs no configuration, so it is read first; an unconfigured
+    // `translationRoot` only removes the fallback, not the lookup. A bundled skill resolves
+    // inside an installed package, where the translation repository is not, so an unresolved
+    // path must still reach the fallback rather than skip the skill.
+    const beside = await readSkillTranslation(path)
+    const translation = beside ?? (root === undefined
+      ? undefined
+      : await readSkillTranslation(join(root, name, 'SKILL.md')))
+    if (translation !== undefined) found.set(name, translation)
+  }))
+  return found
+}
+
 /** The list handler: group the registry snapshot and the local roots together. */
 async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPayload> {
   const projectRoots = [...new Set(deps.activeSessionCwds().map(findProjectRoot).concat(findProjectRoot(cwd)))]
   const snapshot = await deps.snapshotProject(cwd)
   const byGroup = new Map<string, SkillEntry[]>(SOURCE_GROUPS.map(g => [g.key, []]))
   const seen = new Set<string>()
+  const translations = await translationsFor(deps, snapshot.skills.map(s => ({ name: s.name })), cwd)
   for (const skill of snapshot.skills) {
     // The summary carries the discovery source but not the file path, so the
     // group is derived from the source the registry already resolved.
     const level = levelOfSource(skill.source, skill.provider)
+    const i18n = translations.get(skill.name)
     const entry: SkillEntry = {
       name: skill.name,
       description: skill.description,
@@ -418,6 +503,7 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
       modelInvocable: skill.invocation.modelInvocable,
       userInvocable: skill.invocation.userInvocable,
       ...skill.whenToUse === undefined ? {} : { whenToUse: skill.whenToUse },
+      ...i18n === undefined ? {} : { i18n },
     }
     seen.add(level + ':' + skill.name)
     ;(byGroup.get(level) ?? byGroup.get('custom'))?.push(entry)
@@ -429,6 +515,9 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
     for (const skill of await scanSkillRoot(root.path, root.level, root.workspace)) {
       if (seen.has(root.level + ':' + skill.name)) continue
       seen.add(root.level + ':' + skill.name)
+      const i18n = await readSkillTranslation(skill.path) ?? (deps.translationRoot === undefined
+        ? undefined
+        : await readSkillTranslation(join(deps.translationRoot, skill.name, 'SKILL.md')))
       byGroup.get(root.level)?.push({
         name: skill.name,
         description: skill.description,
@@ -441,6 +530,7 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
         ...skill.workspaceRoot === undefined ? {} : { workspaceRoot: skill.workspaceRoot },
         ...skill.workspaceName === undefined ? {} : { workspaceName: skill.workspaceName },
         ...skill.isActiveWorkspace === undefined ? {} : { isActiveWorkspace: skill.isActiveWorkspace },
+        ...i18n === undefined ? {} : { i18n },
       })
     }
   }
@@ -450,6 +540,49 @@ async function handleList(deps: SkillRoutesDeps, cwd: string): Promise<ListPaylo
     if (skills.length > 0) groups.push({ key: g.key, title: g.title, skills })
   }
   return { cwd, projectRoots, complete: snapshot.complete, groups }
+}
+
+/**
+ * The content handler: one skill's instruction body, without its frontmatter.
+ *
+ * The registry's summaries carry metadata only, so the body is read from the file
+ * the name resolves to. The path the panel listed is preferred — the row already
+ * names its own file, and the panel lists skills from workspaces other than the one
+ * being viewed — then the registry's resolution, then the configured translation
+ * set's own copy, which is what answers for a bundled skill.
+ *
+ * @param listedPath - the path the listing served with the row, when the caller sent one.
+ */
+async function handleContent(
+  deps: SkillRoutesDeps,
+  name: string,
+  listedPath: string | undefined,
+  cwd: string,
+): Promise<{ name: string; content: string }> {
+  const candidates: string[] = []
+  if (listedPath !== undefined && listedPath !== '') candidates.push(listedPath)
+  // The registry resolution is tried as well but must not be the only attempt: a bundled
+  // skill serves its body from inside an installed package, and a provider that raises
+  // must still reach the fallback below.
+  try {
+    const resolved = await deps.pathOf(name, cwd)
+    if (resolved !== undefined && !candidates.includes(resolved)) candidates.push(resolved)
+  } catch {
+    // The fallback below resolves by name and needs no path.
+  }
+  if (deps.translationRoot !== undefined) candidates.push(join(deps.translationRoot, name, SKILL_FILE))
+  for (const candidate of candidates) {
+    let source: string
+    try {
+      source = await readFile(candidate, 'utf8')
+    } catch {
+      // A candidate that is absent or unreadable is the normal case for a skill that
+      // resolved from the other source; the next candidate answers instead.
+      continue
+    }
+    return { name, content: stripFrontmatter(source) }
+  }
+  throw new Error('skill "' + name + '" has no readable ' + SKILL_FILE)
 }
 
 /** The set-enabled handler: rewrite the skill's frontmatter flag. */
@@ -548,6 +681,18 @@ export function makeRoutes(deps: SkillRoutesDeps): WebRoute[] {
     { kind: 'exact', path: ROUTES.health, handler: (_req, res) => writeJson(res, 200, { ok: true }) },
     {
       kind: 'exact',
+      path: ROUTES.translationProgress,
+      handler: async (_req, res) => {
+        // The translation script rewrites this file as it advances, so the panel
+        // reads it per request rather than caching it at mount.
+        const progress = deps.translationRoot === undefined
+          ? undefined
+          : await readTranslationProgress(deps.translationRoot)
+        writeJson(res, 200, progress === undefined ? {} : { progress })
+      },
+    },
+    {
+      kind: 'exact',
       path: ROUTES.list,
       handler: async (req, res) => {
         try {
@@ -555,6 +700,21 @@ export function makeRoutes(deps: SkillRoutesDeps): WebRoute[] {
         } catch (error) {
           deps.logger.warn(error)
           writeJson(res, 500, { error: error instanceof Error ? error.message : String(error) })
+        }
+      },
+    },
+    {
+      kind: 'exact',
+      path: ROUTES.content,
+      handler: async (req, res) => {
+        try {
+          const params = new URL(req.url ?? '/', 'http://localhost').searchParams
+          const name = params.get('name') ?? ''
+          if (name === '') throw new Error('missing name')
+          writeJson(res, 200, await handleContent(deps, name, params.get('path') ?? undefined, currentCwd(deps, req)))
+        } catch (error) {
+          deps.logger.warn(error)
+          writeJson(res, 400, { error: error instanceof Error ? error.message : String(error) })
         }
       },
     },
@@ -611,6 +771,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       .map(s => s.header.cwd)
       .filter((c): c is string => typeof c === 'string' && c !== ''),
     logger: { warn: (error: unknown) => { ctx.logger.warn(error) } },
+    ...config.translationRoot === undefined ? {} : { translationRoot: config.translationRoot },
   }
   for (const route of makeRoutes(deps)) ctx.effect(() => ctx.webServer.register(route), 'ui-skill-center: route ' + route.path)
 }

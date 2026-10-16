@@ -952,3 +952,5 @@ export const IconPlusOutlineRegular = IconPlusOutline16
 export const IconRefreshOutlineRegular = IconRefreshOutline16
 /** See IconSkillOutlineRegular. */
 export const IconChevronDownOutlineRegular = IconChevronDownOutline14
+/** See IconSkillOutlineRegular. */
+export const IconSearchOutlineRegular = IconSearchOutline16

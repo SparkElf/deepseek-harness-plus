@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "6ee736796c5ab961a3256a55d3109a65fcf0e490",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:48.432Z"
+  },
+  "title": "寻找简化点",
+  "description": "在 deepseek-harness 仓库中寻找非显而易见的简化候选，删除冗余注释与重实现型文档，撰写提议的 Agent Note 或内联 TODO/FIXME/XXX，审计或合并被取代的 Agent Note，或吸收其他 PR 的简化思路。",
+  "summary": "把宽泛的“找可简化之处”请求转化为有证据的 Agent Note，涵盖死代码、重复、过度设计、先加后删、依赖可替代的手写实现，以及注释、文档、Agent Note 的审计与合并，并给出并行调研与候选判定标准。"
+}

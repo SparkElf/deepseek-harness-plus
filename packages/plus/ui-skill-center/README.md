@@ -14,7 +14,8 @@ A skill center for the dsh Web sidebar: browses loaded skills grouped by source,
 ## What it does
 
 - **Sidebar entry** "Skill Center" opens a panel, registered through the official `sidebar.panellist` slot and the keyed `main` page slot — the same slots the Plugins panel uses, so the shell owns the row, label, and selected state.
-- **Skills list**: skills grouped by discovery source (bundled / runtime / `~/.agents/skills` / `~/.dsh/skills` / project `.agents/skills` / project `.dsh/skills` / custom roots), with a search box that filters by name, description, or when-to-use.
+- **Skills list**: skills grouped by discovery source (bundled / runtime / `~/.agents/skills` / `~/.dsh/skills` / project `.agents/skills` / project `.dsh/skills` / custom roots). A card carries the skill's summary — its translated one when a translation sits beside the skill, otherwise the registry description — and a search box filters by name, description, summary, or when-to-use.
+- **Details**: a card opens the skill's own `SKILL.md` body in a scrolling block, under the metadata row. The body is read when the dialog opens, so a long skill costs nothing until it is asked for.
 - **Enable / disable**: rewrites `disable-model-invocation` in the skill's YAML frontmatter. The field is edited in place rather than re-serialized, so comments, key order, and the body survive.
 - **Create**: writes a standard `SKILL.md` under the user or project root.
 - **Delete**: moves the skill into a `.trash` sibling directory, where it can be restored.
@@ -33,7 +34,7 @@ A skill center for the dsh Web sidebar: browses loaded skills grouped by source,
 
 Reading goes through the official `ctx.skills` registry, so the catalog and its hot reload are the harness's rather than a second scanner's. The registry's summaries deliberately omit file paths — they are invocation-neutral metadata — so a write resolves the path through `ctx.skills.get()` when an action actually needs to touch a file. `collect()` caches the catalog those calls share, so the resolve is not a second scan.
 
-The three writes have no official equivalent; the registry is read-only.
+The three writes have no official equivalent; the registry is read-only. The content route resolves the file the panel listed first, then through `ctx.skills.get()`, then through the configured `translationRoot`: a bundled skill serves its body from inside an installed package, where the registry reports a path or a provider raises, so one source is never the only answer.
 
 Every colour, border, and label weight comes from the shared alias tokens (`--dsw-alias-*`), and the sidebar glyph is `IconSkillOutline16` from `@deepseek-ai/dsh-client-ui-primitives`, so the panel and its row match the official panels beside them.
 
@@ -54,7 +55,7 @@ None; no string this package owns reaches a model request, so a request's cachea
 No runtime invariant companion is published. The package owns no durable package-local state: the route handlers read the skill registry and write skill files, and every observable outcome is covered by the route tests.
 
 - **Deletion refuses a symlinked skill**: a skill discovered through a symlink has no single owning directory to move, so the delete action is withheld for it.
-- **The list omits file paths**: whether a skill can be deleted is therefore not known until the delete is attempted, which then reports it.
+- **The list omits file paths**: a registry-served row has no path, so the panel can neither offer its deletion nor read its body by path; whether either applies is known only when the action is attempted.
 - **Grouping follows the discovery source label, not the file path**: a provider that reports an unrecognized source lands in the custom group.
 
 <a id="dev-note"></a>

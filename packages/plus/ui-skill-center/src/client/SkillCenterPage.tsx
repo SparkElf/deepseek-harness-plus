@@ -12,13 +12,15 @@ import {
   Button,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
+  IconSearchOutlineRegular,
   IconSkillOutlineRegular,
+  Input,
   Modal,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './slot-contract.ts'
 import css from './SkillCenterPage.module.css'
-import { SkillApi, type ListPayload, type SkillEntry } from './api.ts'
+import { SkillApi, type ListPayload, type SkillEntry, type TranslationProgress } from './api.ts'
 import type { SkillCenterLocaleKey } from './locales.ts'
 
 /** What the panel needs from its slot: the dictionary resolver. */
@@ -53,6 +55,12 @@ type LoadState =
   | { kind: 'ready'; payload: ListPayload }
   | { kind: 'failed'; message: string }
 
+/** How the detail dialog is currently showing one skill's body. */
+type BodyState =
+  | { kind: 'loading' }
+  | { kind: 'ready'; content: string }
+  | { kind: 'failed'; message: string }
+
 /**
  * One labelled create-form field.
  * @param props - the field's label and the control it wraps.
@@ -68,17 +76,35 @@ function DraftField({ label, children }: { label: string; children: ReactNode })
 }
 
 /**
- * One skill row.
- * @param props - the entry, its toggle, and its delete action.
+ * One skill row, with the dialog that shows the skill's own Markdown.
+ * @param props - the entry, the API client and viewing context its body is read
+ * with, its toggle, and its delete action.
  * @returns the row.
  */
-function SkillCard({ skill, t, onToggle, onDelete }: {
+function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
   skill: SkillEntry
+  api: SkillApi
+  cwd: string | undefined
   t: (key: SkillCenterLocaleKey) => string
   onToggle(skill: SkillEntry, enabled: boolean): void
   onDelete(skill: SkillEntry): void
 }): ReactNode {
   const [open, setOpen] = useState(false)
+  const [body, setBody] = useState<BodyState>({ kind: 'loading' })
+  // The body is read when the dialog opens rather than with the list: the listing spans
+  // every workspace a session names, and pulling every skill's Markdown would cost a read
+  // per row for text most rows never show.
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    setBody({ kind: 'loading' })
+    void api.content(skill.name, skill.path, cwd)
+      .then((payload) => { if (!cancelled) setBody({ kind: 'ready', content: payload.content }) })
+      .catch((error: unknown) => {
+        if (!cancelled) setBody({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
+      })
+    return () => { cancelled = true }
+  }, [open, api, skill.name, skill.path, cwd])
   // A project skill can come from a workspace other than the one being viewed — the
   // listing spans every workspace a session names — so its origin is shown rather
   // than left to look like it belongs to the workspace on screen.
@@ -96,14 +122,16 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
       <div className={css.cardHead}>
         <span className={css.cardIcon}><IconSkillOutlineRegular size={16} /></span>
         <div className={css.cardTitleRow}>
-          <div className={css.cardTitle}>{skill.name}</div>
+          <div className={css.cardTitle}>{skill.i18n?.title ?? skill.name}</div>
           {skill.workspaceName === undefined ? null : (
             <span className={css.workspaceBadge}>{skill.workspaceName}</span>
           )}
         </div>
       </div>
       <div className={css.cardBody}>
-        <div className={css.cardDesc}>{skill.description}</div>
+        {/* One line of copy on a card: the summary a translation carries, and the
+            registry description when there is no translation to summarize. */}
+        <div className={css.cardSummary}>{skill.i18n?.summary ?? skill.description}</div>
         <div className={css.cardMarks}>
           <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
             {t('skill.modelInvocable')}
@@ -151,6 +179,18 @@ function SkillCard({ skill, t, onToggle, onDelete }: {
             </div>
           ))}
         </dl>
+        {/* What the dialog is opened for: the skill's own Markdown, as the file
+            holds it. Plain text, so nothing in a skill body can restyle the panel. */}
+        <section className={css.body}>
+          <h3 className={css.bodyLabel}>{t('detail.content')}</h3>
+          {body.kind === 'loading' ? <p className={css.bodyStatus}>{t('content.loading')}</p> : null}
+          {body.kind === 'failed' ? (
+            <p className={css.bodyError}>{t('content.failed')}: {body.message}</p>
+          ) : null}
+          {body.kind === 'ready' ? (
+            <pre className={css.bodyPre} data-skill-body={skill.name}>{body.content}</pre>
+          ) : null}
+        </section>
       </Modal>
     </li>
   )
@@ -169,6 +209,7 @@ export function SkillCenterPage({
   const api = useMemo(() => new SkillApi(), [])
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [query, setQuery] = useState('')
+  const [progress, setProgress] = useState<TranslationProgress | undefined>(undefined)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ name: '', description: '', whenToUse: '', content: '', root: 'user' as 'user' | 'project' })
   // `ui-workspace` publishes this seat through `slots.provideRoot`, so every root-scope
@@ -196,6 +237,16 @@ export function SkillCenterPage({
 
   useEffect(() => { void load() }, [load])
 
+  // Progress is read once per panel open: the translation script rewrites its record as it
+  // advances, and reloading is what a user checking a running batch already does.
+  useEffect(() => {
+    let cancelled = false
+    void api.translationProgress()
+      .then((p) => { if (!cancelled) setProgress(p) })
+      .catch(() => { /* Absent progress leaves the bar hidden; nothing else depends on it. */ })
+    return () => { cancelled = true }
+  }, [api])
+
   const groups: Group[] = useMemo(() => {
     if (state.kind !== 'ready') return []
     const q = query.trim().toLowerCase()
@@ -203,9 +254,14 @@ export function SkillCenterPage({
     return state.payload.groups
       .map(g => ({
         ...g,
+        // The card renders Chinese when a translation exists, so the search has to match
+        // it; the English values stay searchable because the model still routes on them.
         skills: g.skills.filter(s =>
           s.name.toLowerCase().includes(q)
           || s.description.toLowerCase().includes(q)
+          || (s.i18n?.title ?? '').toLowerCase().includes(q)
+          || (s.i18n?.description ?? '').toLowerCase().includes(q)
+          || (s.i18n?.summary ?? '').toLowerCase().includes(q)
           || (s.whenToUse ?? '').toLowerCase().includes(q)),
       }))
       .filter(g => g.skills.length > 0)
@@ -322,12 +378,31 @@ export function SkillCenterPage({
         </div>
       </Modal>
 
-      <input
-        className={css.search}
+      {/* The shared input atom, so the box carries the panel's icon, radius, and
+          focus ring rather than a second local control. */}
+      <Input
+        className={css.search as string}
+        icon={<IconSearchOutlineRegular />}
         placeholder={t('search.placeholder')}
+        aria-label={t('search.placeholder')}
         value={query}
         onChange={(e) => { setQuery(e.target.value) }}
       />
+
+      {/* The bar reports a running batch; once every skill is indexed it has nothing
+          left to say, so it leaves the header to the search field. */}
+      {progress === undefined || progress.done >= progress.total ? null : (
+        <div className={css.progressRow}>
+          <span className={css.progressLabel}>{t('translate.label')}</span>
+          <span className={css.progressTrack}>
+            <span
+              className={css.progressFill}
+              style={{ width: String(progress.total === 0 ? 0 : Math.round(progress.done / progress.total * 100)) + '%' }}
+            />
+          </span>
+          <span className={css.progressCount}>{progress.done} / {progress.total}</span>
+        </div>
+      )}
 
       {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
       {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}
@@ -349,6 +424,8 @@ export function SkillCenterPage({
               <SkillCard
                 key={group.key + ':' + skill.name}
                 skill={skill}
+                api={api}
+                cwd={state.kind === 'ready' ? state.payload.cwd : scope}
                 t={t}
                 onToggle={(s, enabled) => { void toggle(s, enabled) }}
                 onDelete={(s) => { void remove(s) }}

@@ -22,6 +22,7 @@ const PUBLISHED_NAME_ALIASES = [
   'IconChevronDownOutlineRegular',
   'IconPlusOutlineRegular',
   'IconRefreshOutlineRegular',
+  'IconSearchOutlineRegular',
   'IconSkillOutlineRegular',
 ]
 

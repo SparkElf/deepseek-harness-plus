@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "c9ced1d13f86d1cade20db3517783ba212816fb6",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:40:04.074Z"
+  },
+  "title": "DSH 部署升级",
+  "description": "在把运行中的 DSH 部署提升到新 release、构建或切换 release mirror、重启其 supervisor，或诊断版本号已更新但行为仍旧的部署时使用。",
+  "summary": "说明如何把运行中的 DSH 部署迁移到新 release：release mirror 构建、republish 补丁包、profile overrides 与兼容豁免、接受与重启顺序，以及如何验证运行时包版本确实已更新。强调复用仓库自带工具，不要手写第二份流程。"
+}

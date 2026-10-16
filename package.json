@@ -186,6 +186,8 @@
     "test:plus-web": "pnpm run build && playwright test --config tests/plus-web/playwright.config.mjs",
     "verify:standalone-manifest": "tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out packages/standalone/plus-standalone/package.json --check",
     "verify:mount-declarations": "tsx scripts/standalone/verify-mount-declarations.ts --profile ${DSH_HOME:-/root/.dsh}/profiles/plus",
+    "verify:platform-module-exports": "node scripts/check-browser-platform-module-exports.mjs --served",
+    "verify:skill-center-panel": "node scripts/check-skill-center-panel.mjs",
     "verify:patch-manifest": "tsx scripts/standalone/verify-patch-manifest.ts",
     "verify:npm-patches": "node scripts/standalone/verify-npm-patches.mjs",
     "verify:standalone-variants": "tsx scripts/standalone/generate-manifest.ts --distribution packages/bundle/plus --out packages/standalone/dataops-standalone/package.json --variant dataops --check",
