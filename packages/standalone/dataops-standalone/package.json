@@ -59,7 +59,7 @@
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0",
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
-    "@sparkelf/dsh-dataops-managed": "0.3.17",
+    "@sparkelf/dsh-dataops-managed": "0.3.19",
     "@sparkelf/dsh-query-result-analysis": "0.1.4"
   },
   "overrides": {
@@ -230,7 +230,7 @@
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-dataops-managed@0.3.17 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-dataops-managed@0.3.19 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar-right",
