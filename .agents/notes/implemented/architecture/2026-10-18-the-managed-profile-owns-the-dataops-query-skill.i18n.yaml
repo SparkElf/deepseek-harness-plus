@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/architecture/2026-10-18-the-managed-profile-owns-the-dataops-query-skill.md
+2026-10-18-the-managed-profile-owns-the-dataops-query-skill.md: d97819ce0df89560c802ab1ae05ba168533747fc
+2026-10-18-the-managed-profile-owns-the-dataops-query-skill.zh.md: 47f5315b2e88ab318cc5e5d0e8a2e63ceb878b01

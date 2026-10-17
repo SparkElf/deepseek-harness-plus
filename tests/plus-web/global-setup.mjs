@@ -141,7 +141,6 @@ function packageDirectories() {
   const local = [
     'packages/bundle/plus',
     'packages/plus/backup',
-    'packages/plus/dataops',
     'packages/plus/mcp-credentials',
     'packages/plus/subagent-settings',
   ]
