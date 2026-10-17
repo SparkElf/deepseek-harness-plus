@@ -1620,7 +1620,7 @@ export interface Config {
   /**
    * The preset table: name → knob bundle. Defaults to `workspace-write`
    * (workspace-write + ask) and `danger-full-access` (danger-full-access +
-   * never). The name `custom` is reserved for the derived not-a-preset state.
+   * allow). The name `custom` is reserved for the derived not-a-preset state.
    */
   presets?: Record<string, PresetSpec>
   /**
@@ -3246,8 +3246,12 @@ export interface Config {
  * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
  *   deterministically. The strict headless stance (CI, unattended runs) and
  *   the policy whose outcome is knowable without asking.
+ * - `'allow'` — never prompt anyone either, and resolve every ask
+ *   `'allowed-once'` instead. The full-access stance: an operation that
+ *   would have asked is admitted, which is what `danger-full-access` means
+ *   and what `'never'` cannot express.
  */
-export type ApprovalPolicy = 'ask' | 'never'
+export type ApprovalPolicy = 'ask' | 'never' | 'allow'
 ```
 
 来源：[`packages/interaction/user-approval/src/index.ts:126`](../packages/interaction/user-approval/src/index.ts)
@@ -3467,10 +3471,18 @@ export interface Config {
   dshHome?: string
   /** User agents config root; defaults to `$DSH_AGENTS_HOME` or `~/.agents`. */
   agentsHome?: string
+  /**
+   * Skill set whose `<skill>/i18n/zh.json` files supply the panel's Chinese copy.
+   *
+   * A skill that resolves through a symlink into another repository keeps its
+   * translation in that repository, not in the deployment, so this names the
+   * checkout that holds the translated set. Unset means English only.
+   */
+  translationRoot?: string
 }
 ```
 
-来源： [`packages/plus/ui-skill-center/src/index.ts:43`](../packages/plus/ui-skill-center/src/index.ts)
+来源： [`packages/plus/ui-skill-center/src/index.ts:48`](../packages/plus/ui-skill-center/src/index.ts)
 
 <a id="sparkelfdsh-plugin-backup"></a>
 
@@ -3487,34 +3499,6 @@ export interface Config {
 ```
 
 来源： [`packages/plus/backup/src/index.ts:17`](../packages/plus/backup/src/index.ts)
-
-<a id="sparkelfdsh-plugin-dataops"></a>
-
-## `@sparkelf/dsh-plugin-dataops`
-
-需要： `connection` · `credentials` · `webServer` · `tools`
-
-```ts config-catalog
-/** Configuration for one standalone DataOps target and delegated MCP connection. */
-export interface Config {
-  /** DataOps origin, for example `https://dataops.example.com`. */
-  baseUrl: string
-  /** Local MCP tool namespace. */
-  serverName: string
-  /** Access-token credential reference for the standalone DataOps grant. */
-  credentialRef: string
-  /** Persistent DSH target identity credential; generated once and never cleared by disconnect. */
-  targetCredentialRef: string
-  /** Explicit HTTP or HTTPS DSH browser origin for non-loopback Web deployments. */
-  callbackOrigin?: string
-  /** Per-MCP-tool timeout forwarded to the generic mcp-client. */
-  toolCallTimeoutMs: number
-  /** Whether an immediately attempted MCP connection failure rejects this plugin. */
-  failOnStartupError: boolean
-}
-```
-
-来源： [`packages/plus/dataops/src/index.ts:49`](../packages/plus/dataops/src/index.ts)
 
 <a id="sparkelfdsh-plugin-mcp-credentials"></a>
 

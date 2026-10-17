@@ -462,7 +462,6 @@
       "@sparkelf/dsh-dataops-standalone": ["./packages/standalone/dataops-standalone/src"],
       "@sparkelf/dsh-omitted": ["./packages/plus/omitted/src"],
       "@sparkelf/dsh-plugin-backup": ["./packages/plus/backup/src"],
-      "@sparkelf/dsh-plugin-dataops": ["./packages/plus/dataops/src"],
       "@sparkelf/dsh-plugin-mcp-credentials": ["./packages/plus/mcp-credentials/src"],
       "@sparkelf/dsh-plugin-subagent-settings": ["./packages/plus/subagent-settings/src"],
       "@sparkelf/dsh-plus": ["./packages/bundle/plus/src"],
