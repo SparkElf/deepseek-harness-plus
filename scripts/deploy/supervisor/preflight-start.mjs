@@ -184,11 +184,31 @@ else {
   if (repaired.status !== 0) refuse('a known defect could not be repaired: ' + lines.join(' | '))
 }
 
+// 0b. Package-manager trace. A `pnpm add`/`pnpm install` run inside the profile
+// rewrites the dependency graph: it deletes the release's pre-linked nested node_modules
+// (including apps/cli's own, which takes `commander` with it) and turns @deepseek-ai
+// symlinks into real directories. The running service survives in memory, so the damage is
+// invisible until a restart -- exactly when it hurts. Measured 2026-10-16. The scope check
+// below repairs what it finds; this step names the cause so the repair is not mistaken for
+// the defect.
+if (DRY) say('package-manager trace check skipped (dry run)')
+else {
+  const cliModules = join(release, 'apps', 'cli', 'node_modules')
+  if (existsSync(cliModules)) say('package-manager trace ok: apps/cli/node_modules present')
+  else {
+    say('defect: ' + cliModules + ' is missing -- a package manager rewrote the release tree')
+    say('         See /root/.dsh/PROFILE-PNPM-INCIDENT-20261016.md for the repair')
+  }
+}
+
 // 1. Profile scope: one module instance per @deepseek-ai package.
 let scopeHealthy
 if (DRY) say('scope check skipped (dry run)')
 else {
-  const checked = run(CHECKER, ['--release', release, '--json'], 120_000)
+  // `--profile` is passed explicitly: both helpers default to `<release>/profile`, which
+    // does not exist (the real directory is `<release>/profiles/plus`). Leaving it out made
+    // the check read an empty scope and report a missing directory as healthy.
+    const checked = run(CHECKER, ['--release', release, '--profile', profileRoot, '--json'], 120_000)
   let report
   try { report = JSON.parse(checked.stdout) } catch { report = undefined }
   if (report === undefined) {
@@ -203,12 +223,12 @@ else {
       (broken.length === 0 ? '' : ' unresolved deps: ' + broken.join(', ')))
     if (!existsSync(REPAIR)) refuse('the scope defect is present and ' + REPAIR + ' is missing')
     const backup = join('/root/.dsh/backups', 'profile-scope-auto-' + stamp())
-    const repaired = run(REPAIR, ['--release', release, '--backup', backup], 600_000)
+    const repaired = run(REPAIR, ['--release', release, '--profile', profileRoot, '--backup', backup], 600_000)
     if (repaired.status !== 0) {
       refuse('scope repair failed (exit ' + String(repaired.status) + '): ' + repaired.stderr.trim().slice(-400))
     }
     say('repaired: originals preserved under ' + join(backup, 'manifest.json'))
-    const recheck = run(CHECKER, ['--release', release, '--json'], 120_000)
+    const recheck = run(CHECKER, ['--release', release, '--profile', profileRoot, '--json'], 120_000)
     let again
     try { again = JSON.parse(recheck.stdout) } catch { again = undefined }
     if (again === undefined || again.healthy !== true) {
@@ -221,7 +241,7 @@ else {
         const linked = run(NESTED, ['--release', release], 300_000)
         for (const line of (linked.stdout ?? '').split(LF).filter(Boolean)) say(line)
         if (linked.status === 0) {
-          const relinked = run(CHECKER, ['--release', release, '--json'], 120_000)
+          const relinked = run(CHECKER, ['--release', release, '--profile', profileRoot, '--json'], 120_000)
           let settled
           try { settled = JSON.parse(relinked.stdout) } catch { settled = undefined }
           if (settled !== undefined && settled.healthy === true) {

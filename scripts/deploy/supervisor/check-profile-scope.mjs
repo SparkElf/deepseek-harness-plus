@@ -27,7 +27,20 @@ const args = process.argv.slice(2)
 const arg = (n, d) => { const i = args.indexOf('--' + n); return i < 0 ? d : args[i + 1] }
 const release = arg('release')
 if (!release) { console.error('usage: check-profile-scope.mjs --release <dir> [--profile <dir>] [--json]'); process.exit(2) }
-const profile = arg('profile', path.join(release, 'profile'))
+// The profile directory is `<release>/profiles/plus` (plural, one level down), and
+// `/root/.dsh/profiles/plus` is a symlink to it. Defaulting to `<release>/profile`
+// pointed at a directory that does not exist, so a bare run read an empty scope and
+// reported `healthy: true` with `scopeEntryCount: 0` -- a false negative that would
+// wave a broken profile straight through. Prefer the symlink, then the real path, and
+// refuse rather than reporting health for a directory that is not there.
+function resolveProfileDir(releaseDir) {
+  const link = '/root/.dsh/profiles/plus'
+  for (const candidate of [link, path.join(releaseDir, 'profiles', 'plus')]) {
+    try { if (fs.existsSync(candidate)) return fs.realpathSync(candidate) } catch {}
+  }
+  return path.join(releaseDir, 'profile')
+}
+const profile = arg('profile', resolveProfileDir(release))
 const asJson = args.includes('--json')
 
 /** Every @deepseek-ai/<name> the release ships, from its own manifests. */
