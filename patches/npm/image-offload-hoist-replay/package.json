@@ -1,0 +1,37 @@
+{
+  "name": "@sparkelf/dsh-patch-image-offload-hoist-replay",
+  "version": "0.2.1-rc.2",
+  "description": "Read sessions whose image/offload decisions were recorded against hoisted image positions: replay leniently when the log carries image/hoist rows, and fold detached reads with the mounted message projections",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "patches/npm/image-offload-hoist-replay"
+  },
+  "type": "module",
+  "files": [
+    "patches/*.patch"
+  ],
+  "license": "MIT",
+  "dshPatch": {
+    "formatVersion": 1,
+    "variants": [
+      {
+        "id": "image-offload-hoist-replay",
+        "dsh": ">=0.2.1-rc.2",
+        "target": {
+          "kind": "dsh-source",
+          "baseRevision": "687f282e8625c6b8d11ff58211a90524be2e4317",
+          "paths": [
+            "packages/compaction/compaction-image-offload/",
+            "packages/session-query/session-query/",
+            "packages/session-query/session-query-sqlite/"
+          ]
+        },
+        "file": "./patches/image-offload-hoist-replay.patch"
+      }
+    ]
+  }
+}

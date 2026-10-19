@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-19-image-offload-recorded-against-hoisted-positions.md
+2026-10-19-image-offload-recorded-against-hoisted-positions.md: bf8c866c9ab362066ad75ffd6c5fe4b7ac005651
+2026-10-19-image-offload-recorded-against-hoisted-positions.zh.md: af84a0c494dc47bcfaffffe949e73c5bad2707be

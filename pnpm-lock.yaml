@@ -11395,6 +11395,8 @@ importers:
 
   patches/npm/diagram-preview: {}
 
+  patches/npm/image-offload-hoist-replay: {}
+
   patches/npm/legacy-code-preset: {}
 
   patches/npm/llm-pi-ai-npm-transport: {}

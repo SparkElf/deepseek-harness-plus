@@ -164,6 +164,7 @@
       "@sparkelf/dsh-patch-browser-auth-mode",
       "@sparkelf/dsh-patch-composer-popover-boundaries",
       "@sparkelf/dsh-patch-diagram-preview",
+      "@sparkelf/dsh-patch-image-offload-hoist-replay",
       "@sparkelf/dsh-patch-legacy-code-preset",
       "@sparkelf/dsh-patch-llm-pi-ai-npm-transport",
       "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
