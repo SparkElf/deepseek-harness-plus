@@ -23,7 +23,7 @@
         "dsh": ">=0.2.0-rc.2",
         "target": {
           "kind": "dsh-source",
-          "baseRevision": "6851e496285b2c9670066fdd142e7e46da586649",
+          "baseRevision": "687f282e8625c6b8d11ff58211a90524be2e4317",
           "paths": [
             "packages/session-query/session-log-export/src/client/"
           ]

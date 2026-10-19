@@ -16,10 +16,10 @@ index f97978d346..edab518be0 100644
      const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
      await dialog.waitFor({ timeout: 10_000 })
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index 72ebfb69c2..b61f6a61f8 100644
+index e8d1867f69..3d0f045b79 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
-@@ -323,6 +323,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -387,6 +387,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
      await trigger.waitFor({ timeout: 15_000 })
      expect(await trigger.evaluate(element => getComputedStyle(element).fontWeight)).toBe('400')
      await trigger.click()
@@ -75,10 +75,10 @@ index f4f42cb9cc..3b01c1a887 100644
    min-width: min(240px, calc(100vw - 32px));
    max-width: min(420px, calc(100vw - 32px));
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index 8d37dab5e3..43e1d320f1 100644
+index c497bcbe77..457ca47126 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -219,13 +219,25 @@ export function ModelSelect(
+@@ -222,13 +222,25 @@ export function ModelSelect(
        const rect = triggerRef.current?.getBoundingClientRect()
        if (rect === undefined) return
        const MARGIN = 12
@@ -105,18 +105,18 @@ index 8d37dab5e3..43e1d320f1 100644
 +        : { minWidth: Math.min(264, availableWidth), maxWidth: availableWidth }
 +      setMenuPos({ left: x, top: y, ...bounds })
      }
-     // First run measures the hidden pre-render (same commit as `open`), so
-     // the card lands placed before anything paints.
+     place()
+     window.addEventListener('scroll', place, true)
 diff --git a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-index b077cc9093..b8bbc7a284 100644
+index 54c606f636..7fc36a2c64 100644
 --- a/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
 +++ b/packages/client/ui-model-selection/tests/model-select.client.spec.tsx
-@@ -323,23 +323,30 @@ describe('ModelSelect reasoning effort', () => {
+@@ -395,14 +395,19 @@ describe('ModelSelect reasoning effort', () => {
      Object.defineProperty(HTMLElement.prototype, 'offsetWidth', { configurable: true, get: () => 200 })
      Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get: () => 300 })
      try {
--      const { container } = render(<ModelSelect
-+      const { container } = render(<div data-dsh-center-col><ModelSelect
+-      const { container } = render(<ModelSelect renderSlot={renderLabel}
++      const { container } = render(<div data-dsh-center-col><ModelSelect renderSlot={renderLabel}
          locked={false}
          available
          directory={createSnapshotStore(state())}
@@ -133,20 +133,6 @@ index b077cc9093..b8bbc7a284 100644
        const trigger = screen.getByRole('button', { name: /选择模型/ })
        fireEvent.click(trigger)
        const menu = screen.getByRole('menu')
-       // Outside the composer subtree — column overflow clips cannot crop it.
-       expect(container.contains(menu)).toBe(false)
-       expect(menu.parentElement).toBe(document.body)
--      // jsdom anchor rects are all zero, so the measured 200x300 card clamps
--      // to the 12px viewport margin on both axes.
--      expect(menu.style.left).toBe('12px')
-+      // The owner column is narrower than the viewport, so the measured
-+      // 200x300 card keeps the 12px column inset instead of spilling over the
-+      // sidebar; vertically only the viewport clamps.
-+      expect(menu.style.left).toBe('292px')
-+      expect(menu.style.maxWidth).toBe('216px')
-       expect(menu.style.top).toBe('12px')
-       // Interactions inside the trigger subtree or the portaled card stay open.
-       expect(fireEvent.mouseDown(menu)).toBe(true)
 diff --git a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx b/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
 index 0281c41a24..f44f20a8fc 100644
 --- a/packages/client/ui-permission-presets/src/client/PermissionSelect.tsx
@@ -180,7 +166,7 @@ index 0281c41a24..f44f20a8fc 100644
              className={css.trigger}
              aria-label={t('mode', { name: currentLabel })}
 diff --git a/packages/client/ui-primitives/README.md b/packages/client/ui-primitives/README.md
-index c4f3467c8e..304b055e38 100644
+index 5b29187be1..8c0bd60f8d 100644
 --- a/packages/client/ui-primitives/README.md
 +++ b/packages/client/ui-primitives/README.md
 @@ -46,7 +46,7 @@ Check this table before writing a control in a feature package. A plugin cannot
@@ -193,7 +179,7 @@ index c4f3467c8e..304b055e38 100644
  | `Pill` | Selectable capsule button for view switchers and filters; takes `active` and `onClick`. |
  | `SegmentedTabs` | Controlled equal-width tabs with a sliding indicator and Left/Right, Home, and End navigation. The caller supplies labels, tab/panel ids, and panel content. |
 diff --git a/packages/client/ui-primitives/README.zh.md b/packages/client/ui-primitives/README.zh.md
-index 48cec6c9c3..ab4f647a7b 100644
+index c1593e273b..01969f4705 100644
 --- a/packages/client/ui-primitives/README.zh.md
 +++ b/packages/client/ui-primitives/README.zh.md
 @@ -25,7 +25,7 @@ kind: "package-library"

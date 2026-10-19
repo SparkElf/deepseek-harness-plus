@@ -184,7 +184,7 @@
       "@sparkelf/dsh-patch-wsl-native-open"
     ],
     "sourceBase": {
-      "revision": "6851e496285b2c9670066fdd142e7e46da586649"
+      "revision": "687f282e8625c6b8d11ff58211a90524be2e4317"
     }
   },
   "dependencies": {
