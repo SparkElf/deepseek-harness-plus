@@ -1,13 +1,8 @@
 diff --git a/packages/api/session-controller/src/agent.ts b/packages/api/session-controller/src/agent.ts
-index 3f0fa77944..f05a3169d5 100644
+index aaacc886e7..3c43d428ea 100644
 --- a/packages/api/session-controller/src/agent.ts
 +++ b/packages/api/session-controller/src/agent.ts
-@@ -12,10 +12,13 @@ import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
- import type { Session, SessionId } from '@deepseek-ai/dsh-session'
- import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
- import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
--import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-+import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+@@ -18,6 +18,9 @@ import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
  import type {} from '@deepseek-ai/dsh-typert-registry'
  import type { ModelSelection } from './types.ts'
  
@@ -17,7 +12,7 @@ index 3f0fa77944..f05a3169d5 100644
  /** Cold Session identity absent from persistence. */
  export class ApiSessionNotFound extends Error {}
  
-@@ -386,7 +389,15 @@ export class ApiSessionAgentController {
+@@ -389,7 +392,15 @@ export class ApiSessionAgentController {
      if (presets === undefined) {
        return { setup: (_agentCtx, agent) => { this.installSelection(agent) } }
      }
@@ -35,21 +30,21 @@ index 3f0fa77944..f05a3169d5 100644
        agentPreset: resolvedId,
        setup: async (agentCtx, agent) => {
 diff --git a/packages/api/session-controller/tests/agent.host.spec.ts b/packages/api/session-controller/tests/agent.host.spec.ts
-index 4756ae45b0..a8612e6d14 100644
+index 40dceeefb9..9441c9832f 100644
 --- a/packages/api/session-controller/tests/agent.host.spec.ts
 +++ b/packages/api/session-controller/tests/agent.host.spec.ts
 @@ -9,6 +9,7 @@ import SessionStore, { SESSION_FORMAT_VERSION, SessionLogOffset, SessionId } fro
- import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
+ import type { SessionHeader } from '@deepseek-ai/dsh-session'
  import { SessionAlreadyOwnedError } from '@deepseek-ai/dsh-session-persistence'
  import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
 +import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
  import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
  import { afterEach, describe, expect, it, vi } from 'vitest'
  import {
-@@ -445,6 +446,38 @@ describe('ApiSession create or adoption', () => {
-     expect(resume).toHaveBeenCalledWith(expect.objectContaining({ resumeSessionId: meta.id }))
+@@ -359,4 +360,61 @@ describe('ApiSession creation', () => {
+     await expect(agents.createSession({ cwd: join(file, 'child'), reusable: () => true }))
+       .rejects.toThrow('failed to ensure project directory')
    })
- 
 +  it('resumes a persisted legacy code session through the ptc composition', async () => {
 +    const { ctx, agents } = await harness()
 +    const meta = { ...header('stored-legacy-code'), agentPreset: 'code' }
@@ -82,13 +77,6 @@ index 4756ae45b0..a8612e6d14 100644
 +    expect(resumed.session.header.agentPreset).toBe('code')
 +  })
 +
-   it('rejects an ownership race before resume and a persisted cwd conflict', async () => {
-     const child = await harness()
-     const childMeta = header('resume-child-race')
-@@ -484,4 +517,29 @@ describe('ApiSession create or adoption', () => {
-     await expect(agents.ensureSession(SessionId('mkdir-failure'), join(file, 'child'), false))
-       .rejects.toThrow('failed to ensure project directory')
-   })
 +
 +  it('falls back from a missing legacy code preset to ptc', async () => {
 +    const { ctx, agents } = await harness()
@@ -142,10 +130,10 @@ index 26fdcfcbf6..25dd5a95bc 100644
    )
  }
 diff --git a/packages/client/ui-agent-preset/tests/components.client.spec.tsx b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
-index a900483d4c..bb8eca6cae 100644
+index 79cc930e01..1e9c5f25d2 100644
 --- a/packages/client/ui-agent-preset/tests/components.client.spec.tsx
 +++ b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
-@@ -344,6 +344,12 @@ describe('the session-header label', () => {
+@@ -400,6 +400,12 @@ describe('the session-header label', () => {
      expect(screen.getByTitle(en.headerHint).textContent).toBe('mine')
    })
  

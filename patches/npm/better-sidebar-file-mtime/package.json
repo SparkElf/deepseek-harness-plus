@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-patch-better-sidebar-file-mtime",
   "description": "Data-only patch showing each explorer row's last-modified time in dsh-better-sidebar",
-  "version": "0.2.1-alpha.29",
+  "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
   },

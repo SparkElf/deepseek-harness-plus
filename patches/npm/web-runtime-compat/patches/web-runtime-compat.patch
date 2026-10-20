@@ -1,25 +1,24 @@
 diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
-index 28e078bd31..67f8c01043 100644
+index b93b559620..8b40aae24d 100644
 --- a/packages/bundle/web-app/src/index.ts
 +++ b/packages/bundle/web-app/src/index.ts
-@@ -15,6 +15,7 @@
+@@ -14,13 +14,14 @@
+ 
  import { spawn, type ChildProcess } from 'node:child_process'
  import { createRequire } from 'node:module'
- import { isIP } from 'node:net'
 +import { networkInterfaces } from 'node:os'
  import { dirname, join } from 'node:path'
- import { fileURLToPath } from 'node:url'
  import type { Context } from '@deepseek-ai/cordis'
-@@ -22,7 +23,7 @@ import z from '@deepseek-ai/schemastery'
- import { addHarnessSourceSection, auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
+ import z from '@deepseek-ai/schemastery'
+ import { auditStartupEntries } from '@deepseek-ai/dsh-app-boot'
  import type {} from '@deepseek-ai/dsh-client-connection'
  import * as FrontendStatic from '@deepseek-ai/dsh-host-frontend-static'
--import { isLoopbackHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
-+import { isLoopbackHost, isWildcardHost, normalizeBindAddress } from '@deepseek-ai/dsh-host-webserver'
+-import { bindUrlHost, isLoopbackHost } from '@deepseek-ai/dsh-host-webserver'
++import { bindUrlHost, isLoopbackHost, isWildcardHost } from '@deepseek-ai/dsh-host-webserver'
  import { launchedThroughSsh, launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
  import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
  import type {} from '@deepseek-ai/cordis-plugin-loader'
-@@ -60,6 +61,17 @@ export interface Config {
+@@ -70,6 +71,17 @@ export interface Config {
     * Absent or YAML `null` advertises the bind-address URL.
     */
    publicUrl?: string
@@ -37,7 +36,7 @@ index 28e078bd31..67f8c01043 100644
  }
  
  export const Config: z<Config> = z.object({
-@@ -67,6 +79,7 @@ export const Config: z<Config> = z.object({
+@@ -77,6 +89,7 @@ export const Config: z<Config> = z.object({
    printUrl: z.boolean().default(true),
    surfaceContext: z.boolean().default(true),
    publicUrl: z.transform(z.string(), value => parsePublicUrl(value).href),
@@ -45,9 +44,9 @@ index 28e078bd31..67f8c01043 100644
  })
  
  /** Environment variable naming the advertised URL of this Web GUI. */
-@@ -245,6 +258,36 @@ export function apply(ctx: Context, config: Config): void {
-   // through a local forwarding address that this process cannot derive.
-   const handoffBrowser = config.openBrowser && !launchedThroughSsh(launchEnvironmentOf(ctx))
+@@ -204,6 +217,36 @@ export function apply(ctx: Context, config: Config): void {
+   const appRootUrl = (): string => publicUrl ?? ctx.webServer.getOrigin()
+   ctx.provide('webApp', { getAdvertisedUrl: appRootUrl } satisfies WebApp)
    ctx.plugin(FrontendStatic, { distIndex: internals.resolveDistIndex() })
 +
 +  // WEB_RUNTIME_COMPAT: alpha.2 renamed the bind-dependent service from
@@ -80,5 +79,5 @@ index 28e078bd31..67f8c01043 100644
 +  })
 +
    if (config.surfaceContext) {
-     ctx.inject(['systemPrompt'], (promptCtx) => {
-       addHarnessSourceSection(promptCtx, SOURCE_ROOT)
+     ctx.inject(['shellEnv'], (runtimeCtx) => {
+       runtimeCtx.shellEnv.register({
