@@ -13,7 +13,8 @@
  */
 
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { existsSync, globSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { parseArgs } from 'node:util'
@@ -74,6 +75,81 @@ function isTransientFailure(output: string): boolean {
  */
 function integrityOf(tarball: string): string {
   return `sha512-${createHash('sha512').update(readFileSync(tarball)).digest('base64')}`
+}
+
+/**
+ * Compare a packed tarball with the published one by what it delivers, not by bytes.
+ *
+ * The same source can pack to different bytes: this release path canonicalizes each
+ * manifest's JSON key order, and a version published before that step existed carries
+ * the original order. The registry integrity then differs while the package is
+ * identical, which is not a reason to refuse a release — refusing would strand every
+ * package a later change did not touch.
+ *
+ * A package that genuinely changed content still fails, because the comparison is over
+ * every packed file. Returns true only when the file set and each file's bytes match.
+ * @param name - package name.
+ * @param version - package version.
+ * @param tarball - the locally packed tarball.
+ * @returns True when the registry serves the same files.
+ */
+function matchesPublishedContent(name: string, version: string, tarball: string): boolean {
+  const published = mkdtempSync(join(tmpdir(), 'dsh-published-'))
+  const unpacked = mkdtempSync(join(tmpdir(), 'dsh-packed-'))
+  try {
+    const fetched = attempt('npm', ['pack', `${name}@${version}`, '--pack-destination', published, '--ignore-scripts', '--registry', PUBLISH_REGISTRY])
+    if (fetched.status !== 0) return false
+    const archive = globSync('*.tgz', { cwd: published })[0]
+    if (archive === undefined) return false
+    for (const [source, target] of [[join(published, archive), published], [tarball, unpacked]] as const) {
+      const extracted = attempt('tar', ['-xzf', source, '-C', target])
+      if (extracted.status !== 0) return false
+    }
+    const left = readTree(join(published, 'package'))
+    const right = readTree(join(unpacked, 'package'))
+    if (left === undefined || right === undefined) return false
+    return JSON.stringify(left) === JSON.stringify(right)
+  } finally {
+    rmSync(published, { recursive: true, force: true })
+    rmSync(unpacked, { recursive: true, force: true })
+  }
+}
+
+/**
+ * Read a directory into a comparable listing of relative paths and file digests.
+ *
+ * A manifest compares by parsed value, because this release path canonicalizes JSON key
+ * order and a version packed before that step carries the original order. Every other
+ * file compares by bytes.
+ * @param directory - directory to walk.
+ * @returns Sorted entries, or undefined when the directory is absent.
+ */
+function readTree(directory: string): { path: string; digest: string }[] | undefined {
+  if (!existsSync(directory)) return undefined
+  return globSync('**/*', { cwd: directory })
+    .filter(relative => statSync(join(directory, relative)).isFile())
+    .sort()
+    .map((relative) => {
+      const bytes = readFileSync(join(directory, relative))
+      if (relative !== 'package.json') {
+        return { path: relative, digest: createHash('sha512').update(bytes).digest('base64') }
+      }
+      const manifest: unknown = JSON.parse(bytes.toString('utf8'))
+      return { path: relative, digest: createHash('sha512').update(JSON.stringify(canonicalJson(manifest))).digest('base64') }
+    })
+}
+
+/**
+ * Order an object's keys so two spellings of the same JSON compare equal.
+ * @param value - parsed JSON value.
+ * @returns The same value with every object's keys sorted.
+ */
+function canonicalJson(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalJson)
+  if (value === null || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, entry]) => [key, canonicalJson(entry)]))
 }
 
 /**
@@ -246,11 +322,19 @@ async function main(): Promise<void> {
     if (state.kind === 'present') {
       const local = integrityOf(tarball)
       if (state.integrity !== local) {
-        throw new Error(
-          `${name}@${version} is already published with different content`
-          + `\n  registry: ${state.integrity}\n  packed:   ${local}`
-          + '\nBump the version, or investigate why the build is not reproducible.',
-        )
+        // Different bytes are not necessarily different content: a version packed before
+        // this path canonicalized manifest key order carries the original order. Compare
+        // what the two tarballs deliver before refusing the release.
+        if (!matchesPublishedContent(name, version, tarball)) {
+          throw new Error(
+            `${name}@${version} is already published with different content`
+            + `\n  registry: ${state.integrity}\n  packed:   ${local}`
+            + '\nBump the version, or investigate why the build is not reproducible.',
+          )
+        }
+        console.log(`release publish: ${progress} ${name}@${version} already published with identical content, skipping`)
+        skipped += 1
+        continue
       }
       console.log(`release publish: ${progress} ${name}@${version} already published, skipping`)
       skipped += 1

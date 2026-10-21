@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-alpha.31",
+  "version": "0.2.1-rc.2.1",
   "publishConfig": {
     "access": "public"
   },
@@ -166,7 +166,6 @@
       "@sparkelf/dsh-patch-diagram-preview",
       "@sparkelf/dsh-patch-image-offload-hoist-replay",
       "@sparkelf/dsh-patch-legacy-code-preset",
-      "@sparkelf/dsh-patch-llm-pi-ai-npm-transport",
       "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
       "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-office-preview-stable-load",
@@ -194,6 +193,7 @@
     "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.1.6-alpha.1",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
     "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-locale-peer-range": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-file-mtime": "workspace:>=0.2.1-alpha.1",
@@ -204,8 +204,8 @@
     "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-diagram-preview": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-patch-image-offload-hoist-replay": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-llm-pi-ai-npm-transport": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.1-alpha.1",
@@ -226,8 +226,7 @@
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.1",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
-    "yaml": ">=2.9.0",
-    "@sparkelf/dsh-image-hoist": ">=0.1.3"
+    "yaml": ">=2.9.0"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": ">=4.0.1"

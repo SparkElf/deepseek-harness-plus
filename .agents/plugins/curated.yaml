@@ -148,6 +148,11 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
         retireWhen: Official session-query skips a session whose stored log it cannot
           migrate, and publishes each indexed session before reading the next
+      - package: "@sparkelf/dsh-patch-image-offload-hoist-replay"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official image/offload replay resolves its recorded positions against
+          the projections a detached reader mounts, so a decision recorded beneath a
+          request-time image projection folds identically live and cold
     plusBundle: false
   - name: "@deepseek-ai/dsh-client-connection-browser-authentication"
     source:
@@ -278,10 +283,7 @@ entries:
     pinned: 0.2.1-alpha.2
     interest: The republished pi-ai build carries the transport retry into a packed profile
     owner: SparkElf
-    localPatches:
-      - package: "@sparkelf/dsh-patch-llm-pi-ai-npm-transport"
-        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
-        retireWhen: The republished pi-ai build ships the transport retry without a patch
+    localPatches: []
     plusBundle: false
   - name: "@huanlin/dsh-plugin-better-locale"
     source:
