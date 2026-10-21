@@ -44,6 +44,34 @@ export const RECONNECT_DEFAULTS: Required<ReconnectConfig> = Object.freeze({
   maxAttempts: 10,
 })
 
+/**
+ * How long to wait before trying again after the server rejected our credentials.
+ *
+ * A rejected credential is not an outage: retrying within seconds cannot help, because the
+ * credential only changes when somebody signs in again. Backing off on a minutes-long curve
+ * keeps the tools registered (a credential outage is recoverable without a reload) and makes
+ * the recovery automatic — the first attempt after a fresh sign-in succeeds.
+ */
+const AUTH_RETRY_INITIAL_MS = 60_000
+/** Ceiling for the credential-rejection retry curve. */
+const AUTH_RETRY_MAX_MS = 300_000
+
+/**
+ * Whether a connection failure means "the server refused our credentials".
+ *
+ * The MCP SDK reports HTTP status as `code` on its transport error; 401 and 403 are both
+ * refusals of the credential, not signs of a flaky link. Everything else — refused connection,
+ * DNS, timeout, 5xx — is treated as an outage and keeps the existing backoff.
+ *
+ * @param error - Whatever the transport threw.
+ * @returns `true` when retrying cannot fix it without a new credential.
+ */
+const isCredentialRefusal = (error: unknown): boolean => {
+  if (typeof error !== 'object' || error === null) return false
+  const code = (error as { code?: unknown }).code
+  return code === 401 || code === 403
+}
+
 // The SDK's stdio transport owns two two-second termination grace periods.
 // Keep one additional second for the process-close event that proves the old
 // generation is gone; timing out fails closed instead of overlapping children.
@@ -144,6 +172,8 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
   let reconnectTimer: NodeJS.Timeout | undefined
   /** Consecutive failed connection attempts within the current outage. */
   let failedAttempts = 0
+  /** Consecutive attempts made since the server last refused our credentials. */
+  let credentialAttempts = 0
   /** When the current generation finished connect + initial sync; undefined while down. */
   let connectedAt: number | undefined
   /** The real error from the first connection attempt, for startup-await diagnostics. */
@@ -170,11 +200,11 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
   }
 
   /** One disconnect decision per generation: the isCurrent guard makes racing close/error signals idempotent. */
-  function generationDown(generation: Client): void {
+  function generationDown(generation: Client, cause?: unknown): void {
     if (!isCurrent(generation)) return
     client = undefined
     clientClosed = undefined
-    scheduleReconnect()
+    scheduleReconnect(cause)
   }
 
   /** Wait for the transport-owned close signal without letting a broken transport wedge teardown forever. */
@@ -189,7 +219,24 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
     })
   }
 
-  function scheduleReconnect(): void {
+  function scheduleReconnect(cause?: unknown): void {
+    if (isCredentialRefusal(cause)) {
+      // The server refused the credential. Retrying on the outage curve cannot help — the
+      // credential only changes when somebody signs in again — and spending the outage budget
+      // here used to unregister every tool until the plugin or the Host was restarted. Keep the
+      // registered tools, which fail with the transport error while the connection is down, and
+      // check back on a minutes-long curve so a fresh sign-in recovers on its own.
+      credentialAttempts += 1
+      const delayMs = Math.min(AUTH_RETRY_MAX_MS, AUTH_RETRY_INITIAL_MS * 2 ** (credentialAttempts - 1))
+      ctx.logger.warn(`${label}: credential rejected by the server; keeping registered tools and retrying in ${delayMs}ms (attempt ${credentialAttempts})`)
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = undefined
+        settling = connectGeneration(false)
+      }, delayMs)
+      reconnectTimer.unref()
+      return
+    }
+    credentialAttempts = 0
     const lostEstablishedConnection = connectedAt !== undefined
     if (!policy.enabled) {
       const message = lostEstablishedConnection
@@ -291,7 +338,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
         ctx.logger.error(`${label}: failed generation did not close within ${GENERATION_CLOSE_TIMEOUT_MS}ms — reconnect stopped to avoid overlapping server processes; reload the plugin or restart the Host to retry`)
         return
       }
-      generationDown(generation)
+      generationDown(generation, error)
       return
     }
     attemptSettled = true
@@ -301,6 +348,7 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
     }
     if (!isCurrent(generation)) return
     connectedAt = Date.now()
+    credentialAttempts = 0
     if (failedAttempts > 0) ctx.logger.info(`${label}: reconnected and re-synced tools (attempt ${failedAttempts}/${policy.maxAttempts})`)
   }
 
