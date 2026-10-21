@@ -77,6 +77,52 @@ const isCredentialRefusal = (error: unknown): boolean => {
 // generation is gone; timing out fails closed instead of overlapping children.
 const GENERATION_CLOSE_TIMEOUT_MS = 5_000
 
+/** What the supervisor should do after one failed connection attempt. */
+export type ReconnectPlan =
+  | { readonly kind: 'disabled'; readonly established: boolean }
+  | { readonly kind: 'giveup' }
+  | { readonly kind: 'retry'; readonly delayMs: number; readonly credential: boolean }
+
+/**
+ * Decide the next move after a failed connection attempt.
+ *
+ * Pure on purpose: the interesting rule here is the one that used to be wrong — a refused
+ * credential was spent against the outage budget, so ten quick retries unregistered every tool
+ * and left the server unusable until the process restarted. Separating the decision from the
+ * timers and the tool bookkeeping makes that rule testable without a server.
+ *
+ * @param input - The failure cause, the policy, and the counters that survive between attempts.
+ * @returns The plan; `retry` carries the delay and whether the credential curve was used.
+ */
+export const planReconnect = (input: {
+  readonly cause?: unknown
+  readonly policy: ResolvedReconnectPolicy
+  readonly established: boolean
+  readonly failedAttempts: number
+  readonly credentialAttempts: number
+  readonly stableForMs?: number
+}): ReconnectPlan => {
+  if (isCredentialRefusal(input.cause)) {
+    const attempt = input.credentialAttempts + 1
+    return {
+      kind: 'retry',
+      credential: true,
+      delayMs: Math.min(AUTH_RETRY_MAX_MS, AUTH_RETRY_INITIAL_MS * 2 ** (attempt - 1)),
+    }
+  }
+  if (!input.policy.enabled) return { kind: 'disabled', established: input.established }
+  // A connection that stayed up past the stability window (= maxDelayMs, the longest backoff
+  // spacing) ended the previous outage: start a fresh budget.
+  const reset = input.stableForMs !== undefined && input.stableForMs >= input.policy.maxDelayMs
+  const failedAttempts = (reset ? 0 : input.failedAttempts) + 1
+  if (failedAttempts > input.policy.maxAttempts) return { kind: 'giveup' }
+  return {
+    kind: 'retry',
+    credential: false,
+    delayMs: Math.min(input.policy.maxDelayMs, input.policy.initialDelayMs * 2 ** (failedAttempts - 1)),
+  }
+}
+
 /** Fully resolved reconnect policy captured at plugin load. */
 export type ResolvedReconnectPolicy = Readonly<Required<ReconnectConfig>>
 
@@ -220,37 +266,24 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
   }
 
   function scheduleReconnect(cause?: unknown): void {
-    if (isCredentialRefusal(cause)) {
-      // The server refused the credential. Retrying on the outage curve cannot help — the
-      // credential only changes when somebody signs in again — and spending the outage budget
-      // here used to unregister every tool until the plugin or the Host was restarted. Keep the
-      // registered tools, which fail with the transport error while the connection is down, and
-      // check back on a minutes-long curve so a fresh sign-in recovers on its own.
-      credentialAttempts += 1
-      const delayMs = Math.min(AUTH_RETRY_MAX_MS, AUTH_RETRY_INITIAL_MS * 2 ** (credentialAttempts - 1))
-      ctx.logger.warn(`${label}: credential rejected by the server; keeping registered tools and retrying in ${delayMs}ms (attempt ${credentialAttempts})`)
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = undefined
-        settling = connectGeneration(false)
-      }, delayMs)
-      reconnectTimer.unref()
-      return
-    }
-    credentialAttempts = 0
-    const lostEstablishedConnection = connectedAt !== undefined
-    if (!policy.enabled) {
-      const message = lostEstablishedConnection
+    const established = connectedAt !== undefined
+    const stableForMs = connectedAt === undefined ? undefined : Date.now() - connectedAt
+    const plan = planReconnect({
+      ...cause === undefined ? {} : { cause },
+      policy,
+      established,
+      failedAttempts,
+      credentialAttempts,
+      ...stableForMs === undefined ? {} : { stableForMs },
+    })
+    if (plan.kind === 'disabled') {
+      const message = plan.established
         ? 'connection lost and reconnect is disabled — registered tools will fail until an HMR reload or Host restart'
         : 'connection failed and reconnect is disabled — no tools were registered; reload the plugin or restart the Host to connect'
       ctx.logger.error(`${label}: ${message}`)
       return
     }
-    // A connection that stayed up past the stability window (= maxDelayMs, the
-    // longest backoff spacing) ended the previous outage: start a fresh budget.
-    if (connectedAt !== undefined && Date.now() - connectedAt >= policy.maxDelayMs) failedAttempts = 0
-    connectedAt = undefined
-    failedAttempts += 1
-    if (failedAttempts > policy.maxAttempts) {
+    if (plan.kind === 'giveup') {
       // Enqueue the give-up disposal so it cannot race an in-flight sync's
       // phase-2 swap (which checks isCurrent inside the queue).
       syncChain = syncChain.then(() => {
@@ -260,13 +293,26 @@ export function startConnection(ctx: Context, config: Config, policy: ResolvedRe
       ctx.logger.error(`${label}: giving up after ${policy.maxAttempts} consecutive failed reconnect attempts — tools unregistered; reload the plugin or restart the Host to reconnect`)
       return
     }
-    const delayMs = Math.min(policy.maxDelayMs, policy.initialDelayMs * 2 ** (failedAttempts - 1))
-    const action = lostEstablishedConnection ? 'connection lost; reconnecting' : 'connection failed; retrying'
-    ctx.logger.warn(`${label}: ${action} in ${delayMs}ms (attempt ${failedAttempts}/${policy.maxAttempts})`)
+    if (plan.credential) {
+      // The server refused the credential. Retrying on the outage curve cannot help — the
+      // credential only changes when somebody signs in again — and spending the outage budget
+      // here used to unregister every tool until the plugin or the Host was restarted. Keep the
+      // registered tools, which fail with the transport error while the connection is down, and
+      // check back on a minutes-long curve so a fresh sign-in recovers on its own.
+      credentialAttempts += 1
+      ctx.logger.warn(`${label}: credential rejected by the server; keeping registered tools and retrying in ${plan.delayMs}ms (attempt ${credentialAttempts})`)
+    } else {
+      credentialAttempts = 0
+      if (stableForMs !== undefined && stableForMs >= policy.maxDelayMs) failedAttempts = 0
+      failedAttempts += 1
+      const action = established ? 'connection lost; reconnecting' : 'connection failed; retrying'
+      ctx.logger.warn(`${label}: ${action} in ${plan.delayMs}ms (attempt ${failedAttempts}/${policy.maxAttempts})`)
+    }
+    connectedAt = undefined
     reconnectTimer = setTimeout(() => {
       reconnectTimer = undefined
       settling = connectGeneration(false)
-    }, delayMs)
+    }, plan.delayMs)
     // An armed reconnect timer must never hold the process open on its own.
     reconnectTimer.unref()
   }
