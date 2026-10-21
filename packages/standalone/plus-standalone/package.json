@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus-standalone",
   "description": "Install and run DeepSeek Harness Plus from the registry: no source checkout and no build.",
-  "version": "0.2.1-rc.2.1",
+  "version": "0.2.1-rc.2.2",
   "publishConfig": {
     "access": "public"
   },
@@ -33,16 +33,16 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/dsh": "workspace:>=0.2.1-alpha.2",
-    "@sparkelf/dsh-plus": "workspace:0.2.1-rc.2.1",
+    "@sparkelf/dsh-plus": "workspace:0.2.1-rc.2.2",
     "@sparkelf/dsh-mineru": "0.1.4",
     "@sparkelf/dsh-officecli": "0.1.4",
     "@sparkelf/dsh-plugin-supervisor": "0.1.9",
-    "dsh-sql-workbench": "0.5.2",
+    "dsh-sql-workbench": "0.5.3",
     "@sparkelf/dsh-workbench-vault": "0.1.2",
     "@sparkelf/dsh-ssh-manager": "0.7.4",
     "@sparkelf/dsh-api-client": "0.5.3",
     "@huanlin/dsh-plugin-better-locale": "0.4.3",
-    "dsh-better-sidebar": "0.25.0",
+    "dsh-better-sidebar": "0.28.0",
     "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
     "dsh-video-preview": "0.1.4",
     "dsh-right-bg-anim": "1.1.0",
@@ -50,7 +50,7 @@
     "@sparkelf/dsh-mobile-bridge": "0.2.18",
     "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
     "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
-    "@sparkelf/dsh-genui": "0.11.4-patch.1",
+    "@sparkelf/dsh-genui": "0.13.0-sparkelf.3",
     "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28",
     "@deepseek-ai/dsh-computer-use": ">=0.1.6-alpha.1",
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.1.6-alpha.1",
@@ -106,12 +106,17 @@
       {
         "name": "@deepseek-ai/dsh-agent",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-agent-instructions",
         "version": "0.2.1-alpha.2",
         "reason": "@deepseek-ai/dsh-experimental-auto-review@0.2.1-alpha.1 declares 0.2.1-alpha.1, which 0.2.1-alpha.2 does not satisfy"
+      },
+      {
+        "name": "@deepseek-ai/dsh-agent-loop",
+        "version": "0.2.1-alpha.2",
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-api-session-controller",
@@ -126,62 +131,62 @@
       {
         "name": "@deepseek-ai/dsh-client-locale",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-store",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-chat",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-conversation",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-input-trigger",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-primitives",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.28.0 declares ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-renderer",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-session",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-settings",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.28.0 declares ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-sidebar-right",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-slots",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-client-ui-tool",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-computer-use",
@@ -206,7 +211,7 @@
       {
         "name": "@deepseek-ai/dsh-llm",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-sql-workbench@0.5.2 declares 0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-sql-workbench@0.5.3 declares >=0.1.7-rc.2, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-permission-presets",
@@ -221,7 +226,7 @@
       {
         "name": "@deepseek-ai/dsh-settings",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.28.0 declares ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-skill",
@@ -231,7 +236,7 @@
       {
         "name": "@deepseek-ai/dsh-subagent",
         "version": "0.2.1-alpha.2",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.2.0-rc.2, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.28.0 declares ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@deepseek-ai/dsh-system-prompt",
@@ -251,12 +256,12 @@
       {
         "name": "@deepseek-ai/dsh-util-values",
         "version": "0.2.1-alpha.2",
-        "reason": "@sparkelf/dsh-genui@0.11.4-patch.1 declares ^0.1.2-rc.1 || ^0.1.5-alpha.1 || ^0.1.6-alpha.1 || ^0.1.7-alpha.1 || >=0.2.0-rc.1 <0.3.0-0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "@sparkelf/dsh-genui@0.13.0-sparkelf.3 declares ^0.2.0-rc.1 || ^0.2.1-rc.1, which 0.2.1-alpha.2 does not satisfy"
       },
       {
         "name": "@huanlin/dsh-plugin-better-locale",
         "version": "0.4.3",
-        "reason": "dsh-better-sidebar@0.25.0 declares ^0.1.0, which 0.2.1-alpha.2 does not satisfy"
+        "reason": "dsh-better-sidebar@0.28.0 declares ^0.1.0, which 0.2.1-alpha.2 does not satisfy"
       }
     ],
     "omittedPackages": {}
@@ -265,6 +270,7 @@
   "overrides": {
     "@deepseek-ai/dsh-agent": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-agent-instructions": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-agent-loop": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.2.1-rc.2",
     "@deepseek-ai/dsh-brand": "0.2.1-alpha.2",
     "@deepseek-ai/dsh-client-locale": "0.2.1-alpha.2",

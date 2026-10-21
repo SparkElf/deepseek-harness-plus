@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-rc.2.1",
+  "version": "0.2.1-rc.2.2",
   "publishConfig": {
     "access": "public"
   },
@@ -73,12 +73,12 @@
         "@sparkelf/dsh-mineru": "0.1.4",
         "@sparkelf/dsh-officecli": "0.1.4",
         "@sparkelf/dsh-plugin-supervisor": "0.1.9",
-        "dsh-sql-workbench": "0.5.2",
+        "dsh-sql-workbench": "0.5.3",
         "@sparkelf/dsh-workbench-vault": "0.1.2",
         "@sparkelf/dsh-ssh-manager": "0.7.4",
         "@sparkelf/dsh-api-client": "0.5.3",
         "@huanlin/dsh-plugin-better-locale": "0.4.3",
-        "dsh-better-sidebar": "0.25.0",
+        "dsh-better-sidebar": "0.28.0",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
@@ -86,7 +86,7 @@
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
         "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-alpha.1",
-        "@sparkelf/dsh-genui": "0.11.4-patch.1",
+        "@sparkelf/dsh-genui": "0.13.0-sparkelf.3",
         "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28"
       },
       "allowBuilds": {
@@ -156,7 +156,6 @@
     "patchPackages": [
       "@sparkelf/dsh-patch-approval-allow-policy",
       "@sparkelf/dsh-patch-better-locale-peer-range",
-      "@sparkelf/dsh-patch-better-sidebar-file-mtime",
       "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
       "@sparkelf/dsh-patch-better-sidebar-media-path",
       "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
@@ -196,7 +195,6 @@
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-locale-peer-range": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-sidebar-file-mtime": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.1-alpha.1",

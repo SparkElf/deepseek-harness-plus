@@ -60,9 +60,6 @@ entries:
       - package: "@sparkelf/dsh-patch-ui-settings-compact-phone"
         upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
         retireWhen: dsh-client-ui-settings-general lays out its navigation for a narrow viewport
-      - package: "@sparkelf/dsh-patch-better-sidebar-file-mtime"
-        upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
-        retireWhen: dsh-better-sidebar shows each explorer row's last-modified time
       - package: "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load"
         upstreamUrl: https://github.com/omdsh-dev/DSH-better-sidebar
         retireWhen: dsh-better-sidebar requests the catalog projection of every
