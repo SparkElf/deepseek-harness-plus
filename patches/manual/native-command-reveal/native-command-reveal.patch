@@ -1,0 +1,36 @@
+diff --git a/lib/index.js b/lib/index.js
+index d240c4e..f848556 100644
+--- a/lib/index.js
++++ b/lib/index.js
+@@ -1,4 +1,4 @@
+-import { execFile } from "node:child_process";
++import { execFile, spawn } from "node:child_process";
+ import { homedir, release, tmpdir } from "node:os";
+ import { dirname, extname, isAbsolute, join, relative, sep } from "node:path";
+ import { pathToFileURL } from "node:url";
+@@ -141,12 +141,19 @@ function explorerTarget(windowsPath) {
+ * @throws The runner's failure unless it is Explorer's delegate exit 1.
+ */
+ async function runExplorer(args, signal, run) {
+-	try {
+-		await run("explorer.exe", args, signal, "visible");
+-	} catch (error) {
+-		signal.throwIfAborted();
+-		if (!(error instanceof Error) || !("code" in error) || error.code !== 1) throw error;
+-	}
++	// Explorer hands the request to the already-running desktop process and then does not
++	// exit under WSL, so awaiting its termination leaves the caller's request open forever
++	// and the UI sits on "revealing the file" with nothing to report. Hand the argv over and
++	// resolve as soon as the process exists; nothing downstream reads its exit status, and a
++	// genuine failure to start still surfaces through the spawn error.
++	await new Promise((resolve, reject) => {
++		const child = spawn("explorer.exe", args, { detached: true, stdio: "ignore", windowsHide: false });
++		child.once("error", reject);
++		child.once("spawn", () => {
++			child.unref();
++			resolve();
++		});
++	});
+ }
+ /**
+ * Open one Windows-resolvable path through Explorer, the shell that owns the
