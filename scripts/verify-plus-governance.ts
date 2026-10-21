@@ -263,12 +263,12 @@ function main(): void {
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
     '@sparkelf/dsh-plugin-supervisor': '0.1.9',
-    'dsh-sql-workbench': '0.5.2',
+    'dsh-sql-workbench': '0.5.3',
     '@sparkelf/dsh-workbench-vault': '0.1.2',
     '@sparkelf/dsh-ssh-manager': '0.7.4',
     '@sparkelf/dsh-api-client': '0.5.3',
     '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.25.0',
+    'dsh-better-sidebar': '0.28.0',
     // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
     // document tab now renders Office and spreadsheets itself, so the third-party
     // previewer is redundant. The government font assets stay, and reach the official
@@ -299,7 +299,7 @@ function main(): void {
     '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-alpha.1',
     // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
     // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
-    '@sparkelf/dsh-genui': '0.11.4-patch.1',
+    '@sparkelf/dsh-genui': '0.13.0-sparkelf.3',
     // The sidebar previews .drawio and .xmind through this plugin's own viewer; the official
     // document preview ships no diagram renderer.
     '@sparkelf/dsh-client-ui-diagram-viewer': '0.2.1-alpha.28',

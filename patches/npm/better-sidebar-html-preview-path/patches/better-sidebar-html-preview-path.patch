@@ -1,8 +1,8 @@
 diff --git a/lib/index.js b/lib/index.js
-index 7ce4ed1..d682739 100644
+index a87bddb..e207d4d 100644
 --- a/lib/index.js
 +++ b/lib/index.js
-@@ -7043,8 +7043,16 @@ function apply(ctx, config) {
+@@ -9209,8 +9209,16 @@ function apply(ctx, config) {
  					writeError(res, new SidebarError("bad-request", decoded.message, decoded.status));
  					return;
  				}
@@ -18,6 +18,6 @@ index 7ce4ed1..d682739 100644
 +				const joinedIsFile = await stat(joined).then((info) => info.isFile(), () => false);
 +				const path = isAbsolute(raw) && !joinedIsFile ? raw : joined;
 +				const absolute = await ensureWorkspacePath(htmlCwd, path);
- 				const info = await stat(absolute);
- 				if (!info.isFile() || info.size > resolved.mediaLimit) throw new SidebarError("fs-error", "not a file or too large", 400);
+ 				const info = await statFileForRoute(absolute);
+ 				if (!info.isFile()) throw new SidebarError("fs-error", "not a file", 400);
  				const type = mediaTypeForPath(absolute);
