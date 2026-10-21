@@ -1,0 +1,88 @@
+diff --git a/lib/types/project-message.js b/lib/types/project-message.js
+index 3deeb2e..e373f90 100755
+--- a/lib/types/project-message.js
++++ b/lib/types/project-message.js
+@@ -7,19 +7,24 @@ import { deepFreeze } from '@deepseek-ai/dsh-util-values';
+  * @returns an immutable message with the same identity and selected images marked.
+  * @throws when a selected occurrence is missing or already offloaded.
+  */
+-export function offloadMessageImages(message, indexes) {
++export function offloadMessageImages(message, indexes, positionsAreAuthoritative = true) {
++    const wanted = new Set(indexes);
+     let imageIndex = 0;
+-    let selected = 0;
++    let applied = 0;
+     const visit = (blocks) => {
+         let next;
+         for (const [index, block] of blocks.entries()) {
+             let projected = block;
+             if (block.type === 'image') {
+-                if (imageIndex === indexes[selected]) {
+-                    if (block.offloaded === true)
+-                        throw new Error(`image/offload: image index ${imageIndex} is already offloaded`);
+-                    projected = { ...block, offloaded: true };
+-                    selected += 1;
++                if (wanted.has(imageIndex)) {
++                    if (block.offloaded === true) {
++                        if (positionsAreAuthoritative)
++                            throw new Error(`image/offload: image index ${imageIndex} is already offloaded`);
++                    }
++                    else {
++                        projected = { ...block, offloaded: true };
++                    }
++                    applied += 1;
+                 }
+                 imageIndex += 1;
+             }
+@@ -30,8 +35,10 @@ export function offloadMessageImages(message, indexes) {
+         return next ?? blocks;
+     };
+     const content = visit(message.content);
+-    if (selected !== indexes.length)
+-        throw new Error(`image/offload: image index ${indexes[selected]} does not exist`);
++    if (positionsAreAuthoritative && applied !== indexes.length)
++        throw new Error(`image/offload: image index ${indexes[applied]} does not exist`);
++    if (applied === 0)
++        return message;
+     return deepFreeze({ ...message, content });
+ }
+ //# sourceMappingURL=project-message.js.map
+\ No newline at end of file
+diff --git a/lib/types/projection.js b/lib/types/projection.js
+index 81d0eeb..d1f362d 100755
+--- a/lib/types/projection.js
++++ b/lib/types/projection.js
+@@ -8,6 +8,16 @@ function isRecord(value) {
+ function isIndex(value) {
+     return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && !Object.is(value, -0);
+ }
++/**
++ * Whether this fold window carries a request-time decision that moved image positions.
++ *
++ * A log holding one has projection-dependent positions, so a recorded selection that no
++ * longer resolves describes a different arrangement rather than a writer bug. Rows of that
++ * kind are recorded as `ignorable` for the same reason.
++ */
++function carriesHoistDecisions(events) {
++    return events.some(event => event.type === 'image/hoist');
++}
+ /** Atomic validation and reconstruction shared by live sessions and detached replay. */
+ export const imageOffloadProjection = {
+     type: 'image/offload',
+@@ -18,6 +28,7 @@ export const imageOffloadProjection = {
+         }
+         const messages = new Map();
+         const nodes = new Set(context.nodes);
++        const positionsAreAuthoritative = !carriesHoistDecisions(context.events);
+         for (const target of data['targets']) {
+             if (!isRecord(target) || Object.keys(target).length !== 2 || !isIndex(target['seq'])
+                 || !Array.isArray(target['imageIndexes']) || target['imageIndexes'].length === 0) {
+@@ -41,7 +52,7 @@ export const imageOffloadProjection = {
+             }
+             const message = context.messages.get(seq)
+                 ?? (source.type === 'user/message' ? source.data : source.data.message);
+-            messages.set(seq, offloadMessageImages(message, target['imageIndexes']));
++            messages.set(seq, offloadMessageImages(message, target['imageIndexes'], positionsAreAuthoritative));
+         }
+         return messages;
+     },
