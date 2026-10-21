@@ -283,10 +283,7 @@ entries:
     pinned: 0.2.1-alpha.2
     interest: The republished pi-ai build carries the transport retry into a packed profile
     owner: SparkElf
-    localPatches:
-      - package: "@sparkelf/dsh-patch-llm-pi-ai-npm-transport"
-        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
-        retireWhen: The republished pi-ai build ships the transport retry without a patch
+    localPatches: []
     plusBundle: false
   - name: "@huanlin/dsh-plugin-better-locale"
     source:

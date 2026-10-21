@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.2.1",
   "publishConfig": {
     "access": "public"
   },
@@ -166,7 +166,6 @@
       "@sparkelf/dsh-patch-diagram-preview",
       "@sparkelf/dsh-patch-image-offload-hoist-replay",
       "@sparkelf/dsh-patch-legacy-code-preset",
-      "@sparkelf/dsh-patch-llm-pi-ai-npm-transport",
       "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
       "@sparkelf/dsh-patch-mobile-journal-generation",
       "@sparkelf/dsh-patch-office-preview-stable-load",
@@ -207,7 +206,6 @@
     "@sparkelf/dsh-patch-diagram-preview": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-image-offload-hoist-replay": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-llm-pi-ai-npm-transport": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.1-alpha.1",
