@@ -148,6 +148,11 @@ entries:
         upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
         retireWhen: Official session-query skips a session whose stored log it cannot
           migrate, and publishes each indexed session before reading the next
+      - package: "@sparkelf/dsh-patch-image-offload-hoist-replay"
+        upstreamUrl: https://github.com/deepseek-ai/DeepSeek-Harness
+        retireWhen: Official image/offload replay resolves its recorded positions against
+          the projections a detached reader mounts, so a decision recorded beneath a
+          request-time image projection folds identically live and cold
     plusBundle: false
   - name: "@deepseek-ai/dsh-client-connection-browser-authentication"
     source:
