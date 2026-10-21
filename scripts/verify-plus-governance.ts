@@ -281,7 +281,7 @@ function main(): void {
     // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
     // that creates named teammates and shares a durable task board. It needs its
     // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
-    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.0-rc.2',
+    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.1-rc.2',
     // The mobile face is the companion gateway this deployment runs; it needs neither a
     // host step nor a client build of its own. 0.2.16 keeps the minted pairing identity across
     // reads, so an already-paired phone is no longer addressed to a bridge the relay replaced.
@@ -296,7 +296,7 @@ function main(): void {
     // operation and routes each tool call through a reviewer instead of a person, and publishing
     // it is what makes `auto` selectable at all -- permissionPresets keeps that name reserved
     // until an integration registers for it.
-    '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-alpha.1',
+    '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-rc.2',
     // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
     // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
     '@sparkelf/dsh-genui': '0.13.0-sparkelf.3',
