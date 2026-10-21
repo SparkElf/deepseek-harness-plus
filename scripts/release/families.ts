@@ -433,6 +433,28 @@ class PlusFamily extends DshFamily {
   protected override acceptsPackageName(name: string): boolean { return name.startsWith('@sparkelf/') }
 
   /**
+   * Accept the two version lines this family publishes instead of one shared version.
+   *
+   * A patch package's version names the runtime whose sources its patch applies to, not
+   * this family's own release, so it advances when that runtime moves and stays put when
+   * only the distribution changes. The distribution packages keep the family version.
+   *
+   * Requiring one version across both forces every patch package to be republished for a
+   * change it does not carry, and leaves no version for a distribution-only release once
+   * the shared number is published. A patch installed against a runtime its version does
+   * not name is caught where it matters — `dshPatch.variants[].dsh` and `target.baseRevision`
+   * decide whether the patch applies.
+   * @param members - this family's members.
+   */
+  override verifyVersions(members: readonly ReleaseMember[]): void {
+    for (const member of members) {
+      if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u.test(member.version)) {
+        throw new Error(`${member.directory} has an unpublishable version: ${member.version}`)
+      }
+    }
+  }
+
+  /**
    * Require every Plus build artifact to be newer than the sources it was built from.
    *
    * These tarballs carry committed build output — `lib/` is ignored by git and every

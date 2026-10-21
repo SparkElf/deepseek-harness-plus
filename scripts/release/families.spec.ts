@@ -147,6 +147,19 @@ describe('release families', () => {
     expect(() => { vendor.verifyVersions([{ ...members[0]!, version: 'latest' }]) }).toThrow(/unpublishable version/)
   })
 
+  it('accepts a Plus patch package versioned to its runtime beside the distribution version', () => {
+    const plus = releaseFamily('plus')
+    const members = [
+      { ...member('packages/bundle/plus', '@sparkelf/dsh-plus'), version: '0.2.1-rc.2.1' },
+      { ...member('patches/npm/wsl-native-open', '@sparkelf/dsh-patch-wsl-native-open'), version: '0.2.1-rc.2' },
+    ]
+
+    // A patch package names the runtime it patches, so it stays behind when only the
+    // distribution advances; the shared-version rule would reject this pair.
+    expect(() => { plus.verifyVersions(members) }).not.toThrow()
+    expect(() => { plus.verifyVersions([{ ...members[0]!, version: 'latest' }]) }).toThrow(/unpublishable version/)
+  })
+
   it('requires a current official client build only for dsh artifacts', () => {
     const dsh = releaseFamily('dsh')
     const vendor = releaseFamily('vendor')
