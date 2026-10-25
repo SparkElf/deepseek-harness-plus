@@ -42,6 +42,32 @@ export interface SkillCenterLocale {
   'create.rootUser': string
   'create.rootProject': string
   'delete.confirm': string
+  'plaza.statusLocal': string
+  'plaza.statusPending': string
+  'plaza.statusApproved': string
+  'plaza.statusRejected': string
+  'plaza.sharedTag': string
+  'plaza.share': string
+  'plaza.resubmit': string
+  'plaza.unshare': string
+  'plaza.unavailable': string
+  'plaza.failed': string
+  'plaza.dialogTitle': string
+  'plaza.tags': string
+  'plaza.tagsPlaceholder': string
+  'plaza.instruction': string
+  'plaza.submit': string
+  'plaza.unshareConfirm': string
+  'plaza.reason': string
+  'plaza.contentLoading': string
+  'plaza.visibility': string
+  'plaza.visibilityGlobal': string
+  'plaza.visibilityDepartment': string
+  'plaza.visibilityPrivate': string
+  'plaza.department': string
+  'plaza.scopeForbidden': string
+  'plaza.scopeHintAdmin': string
+  'plaza.scopeHintUser': string
 }
 
 /** Locale keys, for callers that resolve them dynamically. */
@@ -84,6 +110,32 @@ export const zh: SkillCenterLocale = {
   'create.rootUser': '用户级',
   'create.rootProject': '项目级',
   'delete.confirm': '删除后可从 .trash 恢复。确定删除？',
+  'plaza.statusLocal': '未共享',
+  'plaza.statusPending': '待审核',
+  'plaza.statusApproved': '已上架',
+  'plaza.statusRejected': '已驳回',
+  'plaza.sharedTag': '已共享',
+  'plaza.share': '上架',
+  'plaza.resubmit': '重新提交',
+  'plaza.unshare': '取消共享',
+  'plaza.unavailable': '共享服务未就绪，暂时无法上架',
+  'plaza.failed': '共享操作失败',
+  'plaza.dialogTitle': '上架到技能广场',
+  'plaza.tags': '标签',
+  'plaza.tagsPlaceholder': '用逗号分隔，例如：数据,SQL',
+  'plaza.instruction': '技能内容',
+  'plaza.submit': '提交审核',
+  'plaza.unshareConfirm': '确定取消共享？',
+  'plaza.reason': '审核意见',
+  'plaza.contentLoading': '正在读取技能内容…',
+  'plaza.visibility': '可见范围',
+  'plaza.visibilityGlobal': '全局（所有人可见）',
+  'plaza.visibilityDepartment': '部门专属',
+  'plaza.visibilityPrivate': '私有（仅自己可见）',
+  'plaza.department': '部门',
+  'plaza.scopeForbidden': '无权选择该范围，请改用部门专属或私有',
+  'plaza.scopeHintAdmin': '超管/管理员可选全局或任意部门',
+  'plaza.scopeHintUser': '普通用户/部门管理员只能选本部门或私有',
 }
 
 /** English dictionary. */
@@ -123,4 +175,30 @@ export const en: SkillCenterLocale = {
   'create.rootUser': 'User',
   'create.rootProject': 'Project',
   'delete.confirm': 'Deleting moves it into .trash, where it can be restored. Delete?',
+  'plaza.statusLocal': 'Local',
+  'plaza.statusPending': 'Pending review',
+  'plaza.statusApproved': 'Published',
+  'plaza.statusRejected': 'Rejected',
+  'plaza.sharedTag': 'Shared',
+  'plaza.share': 'Publish',
+  'plaza.resubmit': 'Resubmit',
+  'plaza.unshare': 'Unshare',
+  'plaza.unavailable': 'Sharing service is not ready; publishing is disabled',
+  'plaza.failed': 'Sharing action failed',
+  'plaza.dialogTitle': 'Publish to skill plaza',
+  'plaza.tags': 'Tags',
+  'plaza.tagsPlaceholder': 'Comma separated, e.g. data, SQL',
+  'plaza.instruction': 'Skill content',
+  'plaza.submit': 'Submit for review',
+  'plaza.unshareConfirm': 'Stop sharing this skill?',
+  'plaza.reason': 'Review note',
+  'plaza.contentLoading': 'Loading skill content…',
+  'plaza.visibility': 'Visibility',
+  'plaza.visibilityGlobal': 'Global (everyone)',
+  'plaza.visibilityDepartment': 'Department only',
+  'plaza.visibilityPrivate': 'Private (only me)',
+  'plaza.department': 'Department',
+  'plaza.scopeForbidden': 'You cannot use that visibility; pick department or private',
+  'plaza.scopeHintAdmin': 'Super admins/admins may publish globally or to any department',
+  'plaza.scopeHintUser': 'Users and department admins may publish to their own department or privately',
 }

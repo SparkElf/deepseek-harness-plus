@@ -101,17 +101,20 @@ afterEach(async () => {
 })
 
 describe('Schedule tool protocol', () => {
-  it('registers three exclusive generic tools and disposes them together', async () => {
+  it('registers the management tools exclusively and disposes them together', async () => {
     const test = await harness()
-    expect(['schedule_create', 'schedule_list', 'schedule_delete'].map(name => test.ctx.tools.get(name)?.name))
-      .toEqual(['schedule_create', 'schedule_list', 'schedule_delete'])
+    const names = [
+      'schedule_create', 'schedule_list', 'schedule_delete', 'schedule_get', 'schedule_update',
+      'schedule_pause', 'schedule_resume', 'schedule_run_now', 'schedule_logs', 'schedule_list_all',
+    ]
+    expect(names.map(name => test.ctx.tools.get(name)?.name)).toEqual(names)
     const outputSchema = test.ctx.tools.get('schedule_create')?.output.schema as {
       oneOf?: Array<{ properties?: { code?: { const?: string }; operation?: { enum?: string[] } } }>
     }
     const persistenceError = outputSchema.oneOf?.find(schema =>
       schema.properties?.code?.const === 'persistence_uncertain')
-    expect(persistenceError?.properties?.operation?.enum).toEqual(['create', 'list', 'delete'])
-    for (const name of ['schedule_create', 'schedule_list', 'schedule_delete']) {
+    expect(persistenceError?.properties?.operation?.enum).toEqual(['create', 'list', 'delete', 'get', 'update', 'pause', 'resume', 'run', 'logs', 'list_all'])
+    for (const name of names) {
       expect(test.ctx.tools.executionMode({ signal, callId: ToolCallId(name), name, arguments: {}, agent: test.agent }))
         .toEqual({ kind: 'exclusive' })
     }
@@ -123,9 +126,7 @@ describe('Schedule tool protocol', () => {
       .toEqual({ card: 'generic', title: 'Delete reminder', kind: 'other', rawInput: 'schedule-1' })
     test.disposeTools()
     test.disposeTools()
-    expect(test.ctx.tools.get('schedule_create')).toBeUndefined()
-    expect(test.ctx.tools.get('schedule_list')).toBeUndefined()
-    expect(test.ctx.tools.get('schedule_delete')).toBeUndefined()
+    for (const name of names) expect(test.ctx.tools.get(name)).toBeUndefined()
   })
 
   it('rolls back earlier tool registrations when a later name conflicts', async () => {
@@ -174,6 +175,7 @@ describe('Schedule tool protocol', () => {
       afterSeconds: 30,
       scheduledAt: '2026-08-05T12:00:30.000Z',
       state: 'scheduled',
+      enabled: true,
       deliveryMode: 'session-local',
     })
     expect(test.flushes.count).toBe(2)
@@ -219,6 +221,7 @@ describe('Schedule tool protocol', () => {
       prompt: 'join meeting',
       scheduledAt: '2026-08-06T01:00:00.000Z',
       state: 'scheduled',
+      enabled: true,
       deliveryMode: 'session-local',
     })
     expect(value(await execute(test, 'schedule_create', {
@@ -267,6 +270,7 @@ describe('Schedule tool protocol', () => {
       everySeconds: 300,
       scheduledAt: '2026-08-05T12:05:00.000Z',
       state: 'scheduled',
+      enabled: true,
       deliveryMode: 'session-local',
     })
     vi.setSystemTime(new Date('2026-08-05T12:06:00.000Z'))

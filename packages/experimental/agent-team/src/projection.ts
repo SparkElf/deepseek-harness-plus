@@ -71,6 +71,10 @@ const teamMemberSnapshotSchema = z.object({
   provider: z.string(),
   context: z.enum(['fresh', 'fork']),
   phase: z.enum(['provisioning', 'active', 'failed']),
+  modelProvider: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
+  reasoningEffort: z.string().min(1).optional(),
+  archived: z.boolean().optional(),
   error: z.string().optional(),
 }).strict() as z.ZodType<TeamMemberSnapshot>
 
@@ -246,11 +250,19 @@ function applyCurrentTeamEvent(state: TeamState, event: TeamSessionEvent): void 
       }
       if (prior === undefined) {
         if (member.phase !== 'provisioning') throw new Error(`teammate "${member.name}" must begin provisioning`)
+        if (member.archived === true) throw new Error(`teammate "${member.name}" must not begin archived`)
       } else {
         if (prior.name !== member.name || prior.provider !== member.provider || prior.context !== member.context) {
           throw new Error(`teammate "${member.id}" changed immutable identity fields`)
         }
-        if (prior.phase !== 'provisioning' || member.phase === 'provisioning') {
+        if (prior.archived === true) {
+          throw new Error(`teammate "${member.name}" changed after archival`)
+        }
+        if (prior.phase === 'provisioning') {
+          if (member.phase === 'provisioning' || member.archived === true) {
+            throw new Error(`teammate "${member.name}" has an invalid ${prior.phase} -> ${member.phase} transition`)
+          }
+        } else if (prior.phase !== member.phase) {
           throw new Error(`teammate "${member.name}" has an invalid ${prior.phase} -> ${member.phase} transition`)
         }
       }

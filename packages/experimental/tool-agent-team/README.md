@@ -1,5 +1,5 @@
 ---
-description: "Nine tools that let the model create, message, and coordinate teammates, for compositions mounting the experimental Team plugins."
+description: "Eleven tools that let the model create, model-switch, archive, message, and coordinate teammates, for compositions mounting the experimental Team plugins."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package lets the model create named teammates, send them messages, inspect availability, wait for progress, interrupt stuck work, and coordinate through a shared task board. Every team member receives the same nine tools and guidance for coordinating in a shared workspace. Choose it when the model should operate a team only after you explicitly request one. It replaces legacy subagent controls with the same tool names, so compositions that need both must disable the legacy definitions. The package is published under its experimental name and provides no stability guarantee.
+This package lets the model create named teammates, choose or change their models, archive finished ones, send them messages, inspect availability, wait for progress, interrupt stuck work, and coordinate through a shared task board. Every team member receives the same eleven tools and guidance for coordinating in a shared workspace. Choose it when the model should operate a team only after you explicitly request one. It replaces legacy subagent controls with the same tool names, so compositions that need both must disable the legacy definitions. The package is published under its experimental name and provides no stability guarantee.
 
 ## Table of Contents
 
@@ -25,7 +25,7 @@ This package lets the model create named teammates, send them messages, inspect 
 <a id="use-this-package"></a>
 ## Use this package
 
-Add this package on top of `@deepseek-ai/dsh-experimental-agent-team` when the model should run a team through tools. Once mounted, every team member — the Lead and each teammate — gets the same nine tools plus a policy paragraph that states its own role and name.
+Add this package on top of `@deepseek-ai/dsh-experimental-agent-team` when the model should run a team through tools. Once mounted, every team member — the Lead and each teammate — gets the same eleven tools plus a policy paragraph that states its own role and name.
 
 ### When to choose it
 
@@ -54,14 +54,16 @@ Try it by asking the Lead model: "create a teammate named reviewer to check the 
 
 ### What the model can do
 
-The nine tools group into four capabilities:
+The eleven tools group into six capabilities:
 
-- **Create a teammate** — `spawn_teammate` takes a name, a description, and the initial task; only the Lead can call it.
+- **Create a teammate** — `spawn_teammate` takes a name, a description, the initial task, and optional `provider`, `model`, and `reasoning_effort`; each omitted route value is inherited from the Lead. Only the Lead can call it.
+- **Change a model** — `update_teammate` changes a member's provider, model, or reasoning effort; the durable change applies to that member's next request, including after it resumes.
+- **Archive a teammate** — `archive_teammate` removes a member from the active roster while keeping its Session, history, name, and roster slot.
 - **Send messages** — `send_message` steers a running member at its nearest step boundary, starts an idle member, and cold-resumes an inactive teammate.
-- **See and wait** — `list_agents` shows the roster with live status; `wait_agent` waits for the next team change; `interrupt_agent` stops a teammate's current turn (Lead only).
+- **See and wait** — `list_agents` shows the roster with live status and durable model fields, optionally including archived members; `wait_agent` waits for the next team change; `interrupt_agent` stops a teammate's current turn (Lead only).
 - **Manage the task board** — `team_task_create`, `team_task_list`, `team_task_get`, and `team_task_update` add, browse, read, and update shared tasks.
 
-Any member can message any other member and use the task board; only the Lead creates and interrupts teammates. Task updates keep the domain's owner and revision checks, so an outdated edit is rejected instead of overwriting newer work.
+Any member can message any other member and use the task board; only the Lead creates, updates, archives, and interrupts teammates. Task updates keep the domain's owner and revision checks, so an outdated edit is rejected instead of overwriting newer work.
 
 ### What success and failure look like
 
@@ -91,12 +93,12 @@ The [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-
 
 | File | Role |
 |---|---|
-| [`src/index.ts`](src/index.ts) | Plugin entry: config, the fixed policy text, and the nine scoped tool registrations |
+| [`src/index.ts`](src/index.ts) | Plugin entry: config, the fixed policy text, and the eleven scoped tool registrations |
 | — | No runtime invariant companion is published; the Team service owns durable and authorization relations. |
 
 ### Policy and tools
 
-One `team:policy` section on the member scope teaches each member its role and the coordination rules; the fixed text and the nine tool registrations are declared in [`src/index.ts`](src/index.ts). The nine tool schemas appear only in Team member scopes, so non-Team subagents keep the default catalog. Scoped registrations with the same names as the legacy global continuable-subagent controls shadow those globals for team members only.
+One `team:policy` section on the member scope teaches each member its role and the coordination rules; the fixed text and the eleven tool registrations are declared in [`src/index.ts`](src/index.ts). The eleven tool schemas appear only in Team member scopes, so non-Team subagents keep the default catalog. Scoped registrations with the same names as the legacy global continuable-subagent controls shadow those globals for team members only.
 
 ### Scoped registration and teardown
 
@@ -115,6 +117,7 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Agent Teams subsystem](../../../docs/subsystems/agent-team.md) — durable Team types and service API.
 - [Generated tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-agent-team) — every tool schema the model receives.
 - [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-05-agent-teams.md) — model-facing, scoping, and isolation decisions.
+- [Member model selection and archival Agent Note](../../../.agents/notes/implemented/feature/2026-10-22-team-member-model-routes-and-archival.md) — route fields, update timing, and archival rules behind the new schemas.
 
 -----
 
@@ -125,7 +128,7 @@ Read these pages when the package-level contract is not enough. They move from t
 
 #### What the model sees
 
-One stable policy section states the exact Team role/name/id, the explicit-delegation requirement, shared-cwd behavior, filesystem stale-version recovery, Bash/formatter/codegen risk, task and write-scope coordination, Steer delivery, the no-retry mailbox rule, and the Lead's duty to wait before answering. The nine Team schemas from `spawn_teammate` through `team_task_update` appear only in Team member scopes.
+One stable policy section states the exact Team role/name/id, the explicit-delegation requirement, shared-cwd behavior, filesystem stale-version recovery, Bash/formatter/codegen risk, task and write-scope coordination, Steer delivery, the no-retry mailbox rule, and the Lead's duty to wait before answering. The eleven Team schemas from `spawn_teammate` through `team_task_update` appear only in Team member scopes. `spawn_teammate` and `update_teammate` expose the optional LLM route fields, `list_agents` exposes durable model fields plus `include_archived`, and `archive_teammate` retires a member without deleting it.
 
 #### Token effect
 
@@ -145,6 +148,8 @@ These limits describe what the policy and tools cannot guarantee for a team. The
 - **Prompt policy is coordination, not confinement** — it cannot stop Bash or external processes from writing overlapping files.
 - **No autonomous team creation** — ordinary tasks do not trigger delegation unless the user explicitly requests it.
 - **No Web controls** — browser roster and task-board presentation is outside this runtime package.
+- **Route changes apply on the next request** — an update never interrupts an in-flight model call; a running member keeps the stream that already started.
+- **Archived members keep their name and slot** — archiving is not deletion, and a message queued before archival is never delivered to the retired member.
 - **Experimental prototype with no stability promise** — the package is public, but its schemas can change freely while it incubates.
 
 <a id="dev-note"></a>

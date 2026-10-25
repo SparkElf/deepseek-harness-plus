@@ -356,16 +356,28 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'its root, Team identity, role, and model-facing name.',
       },
       {
-        signature: 'listMembers(agent: Agent): TeamMemberView[]',
+        signature: 'listMembers(agent: Agent, includeArchived: boolean = false): TeamMemberView[]',
         description: 'List the runtime-enriched roster visible to one Team member.',
-        parameters: [{ name: 'agent', description: 'exact live Team member.' }],
+        parameters: [{ name: 'agent', description: 'exact live Team member.' }, { name: 'includeArchived', description: 'whether archived teammates are retained in the result.' }],
         returns: 'Lead and teammate rows in creation order.',
       },
       {
         signature: 'async spawnTeammate(caller: Agent, request: SpawnTeammateRequest): Promise<SpawnTeammateResult>',
         description: 'Create one named, continuable direct child of the Team Lead.',
-        parameters: [{ name: 'caller', description: 'exact live Lead Agent.' }, { name: 'request', description: 'immutable name, description, prompt, context mode, provider, and cancellation.' }],
+        parameters: [{ name: 'caller', description: 'exact live Lead Agent.' }, { name: 'request', description: 'immutable identity, prompt, context mode, subagent provider, LLM route, and cancellation.' }],
         returns: 'the active roster row.',
+      },
+      {
+        signature: 'async updateTeammate(caller: Agent, request: UpdateTeammateRequest): Promise<TeamMemberView>',
+        description: 'Change one teammate\'s durable LLM route.',
+        parameters: [{ name: 'caller', description: 'exact live Lead Agent.' }, { name: 'request', description: 'target name and replacement provider, model, or reasoning effort.' }],
+        returns: 'the committed member row.',
+      },
+      {
+        signature: 'async archiveTeammate(caller: Agent, targetName: string): Promise<TeamMemberView>',
+        description: 'Archive one teammate while retaining its Session, name, and roster slot.',
+        parameters: [{ name: 'caller', description: 'exact live Lead Agent.' }, { name: 'targetName', description: 'durable teammate name.' }],
+        returns: 'the archived member row.',
       },
       {
         signature: 'async sendMessage(caller: Agent, request: SendTeamMessageRequest): Promise<SendTeamMessageResult>',
@@ -3662,7 +3674,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'ApprovalPolicy',
-    declaration: 'export type ApprovalPolicy = \'ask\' | \'never\';',
+    declaration: 'export type ApprovalPolicy = \'ask\' | \'never\' | \'allow\';',
   },
   {
     name: 'ApprovalRequest',
@@ -5670,7 +5682,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SpawnTeammateRequest',
-    declaration: 'export interface SpawnTeammateRequest {\n    readonly name: string;\n    readonly description: string;\n    readonly prompt: ContentBlock[];\n    readonly context: \'fresh\' | \'fork\';\n    readonly provider: string;\n    readonly signal: AbortSignal;\n}',
+    declaration: 'export interface SpawnTeammateRequest {\n    readonly name: string;\n    readonly description: string;\n    readonly prompt: ContentBlock[];\n    readonly context: \'fresh\' | \'fork\';\n    readonly provider: string;\n    readonly modelProvider?: string;\n    readonly model?: string;\n    readonly reasoningEffort?: string;\n    readonly signal: AbortSignal;\n}',
   },
   {
     name: 'SpawnTeammateResult',
@@ -5894,7 +5906,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'TeamMemberView',
-    declaration: 'export interface TeamMemberView {\n    readonly id: SessionId;\n    readonly name: string;\n    readonly role: \'lead\' | \'teammate\';\n    readonly status: \'running\' | \'idle\' | \'inactive\' | \'provisioning\' | \'failed\';\n    readonly description?: string;\n    readonly provider?: string;\n    readonly context?: \'fresh\' | \'fork\';\n    readonly model?: string;\n    readonly diagnostics: string[];\n}',
+    declaration: 'export interface TeamMemberView {\n    readonly id: SessionId;\n    readonly name: string;\n    readonly role: \'lead\' | \'teammate\';\n    readonly status: \'running\' | \'idle\' | \'inactive\' | \'provisioning\' | \'failed\';\n    readonly description?: string;\n    readonly provider?: string;\n    readonly context?: \'fresh\' | \'fork\';\n    readonly model?: string;\n    readonly modelProvider?: string;\n    readonly reasoningEffort?: string;\n    readonly archived?: boolean;\n    readonly diagnostics: string[];\n}',
   },
   {
     name: 'TeamMessageId',
@@ -6239,6 +6251,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TypertTypeModel',
     declaration: 'export interface TypertTypeModel {\n    readonly name: string;\n    readonly declaration: string;\n}',
+  },
+  {
+    name: 'UpdateTeammateRequest',
+    declaration: 'export interface UpdateTeammateRequest {\n    readonly target: string;\n    readonly modelProvider?: string;\n    readonly model?: string;\n    readonly reasoningEffort?: string;\n}',
   },
   {
     name: 'UpdateTeamTaskRequest',

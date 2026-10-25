@@ -6,7 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { ToolCallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import { scopeOf } from '@deepseek-ai/dsh-scope'
 import { SessionId } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
@@ -28,6 +28,8 @@ const TOOL_NAMES = [
   'list_agents',
   'wait_agent',
   'interrupt_agent',
+  'update_teammate',
+  'archive_teammate',
   'team_task_create',
   'team_task_list',
   'team_task_get',
@@ -52,7 +54,11 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-async function setup(script: ConstructorParameters<typeof MockAdapter>[0], legacyControl = false) {
+async function setup(
+  script: ConstructorParameters<typeof MockAdapter>[0],
+  legacyControl = false,
+  reasoning?: ConstructorParameters<typeof MockAdapter>[1],
+) {
   const ctx = new Context()
   await mountAgentLoopTestDependencies(ctx)
   const storageRoot = mkdtempSync(join(tmpdir(), 'dsh-tool-team-'))
@@ -66,10 +72,10 @@ async function setup(script: ConstructorParameters<typeof MockAdapter>[0], legac
   await ctx.plugin(SubagentFork, { providerName: 'fork' })
   await ctx.plugin(TeamService)
   const fiber = await ctx.plugin(toolTeam)
-  const adapter = new MockAdapter(script)
+  const adapter = new MockAdapter(script, reasoning)
   ctx.llm.registerAdapter(['mock'], adapter)
   const lead = await ctx.agentLoop.create(SessionId('tool-team-lead'), { provider: 'mock', model: 'mock' })
-  return { ctx, lead, fiber }
+  return { ctx, lead, fiber, adapter }
 }
 
 function execute(
@@ -454,5 +460,146 @@ describe('dsh-tool-team', () => {
     const childId = spawnedChildId(result)
     await vi.waitFor(() => { expect(ctx.agents.get(childId)).toBeUndefined() }, { timeout: 5_000 })
     expect(ctx.agentTeams.listMembers(lead)[1]).toMatchObject({ provider: 'team-fresh' })
+  })
+
+  it('spawns teammates on explicit or inherited LLM routes', async () => {
+    const { ctx, lead, adapter } = await setup(
+      [textResponse('model done'), textResponse('inherited done')],
+      false,
+      { efforts: [{ id: ReasoningEffortId('max'), name: 'Max' }] },
+    )
+    const explicit = await execute(ctx, lead, 'spawn_teammate', {
+      name: 'model-worker',
+      description: 'model worker',
+      prompt: 'finish',
+      provider: 'mock',
+      model: 'worker-model',
+      reasoning_effort: 'max',
+    })
+    expect(explicit.isError).toBe(false)
+    const explicitId = spawnedChildId(explicit)
+    expect(JSON.parse(text(explicit))).toMatchObject({
+      member: { model: 'worker-model', modelProvider: 'mock', reasoningEffort: 'max' },
+    })
+    await waitNoAgent(ctx, explicitId)
+    const roster = JSON.parse(text(await execute(ctx, lead, 'list_agents', {}))) as Array<Record<string, unknown>>
+    expect(roster.find(row => row.name === 'model-worker')).toMatchObject({
+      status: 'inactive',
+      model: 'worker-model',
+      modelProvider: 'mock',
+      reasoningEffort: 'max',
+    })
+    expect(adapter.requests.find(request => request.sessionId === explicitId)).toMatchObject({
+      provider: 'mock',
+      model: 'worker-model',
+      reasoningEffort: 'max',
+    })
+
+    const inherited = await execute(ctx, lead, 'spawn_teammate', {
+      name: 'inherited-worker',
+      description: 'inherits the lead route',
+      prompt: 'finish',
+    })
+    expect(inherited.isError).toBe(false)
+    const inheritedId = spawnedChildId(inherited)
+    await waitNoAgent(ctx, inheritedId)
+    const inheritedRoster = JSON.parse(text(await execute(ctx, lead, 'list_agents', {}))) as Array<Record<string, unknown>>
+    expect(inheritedRoster.find(row => row.name === 'inherited-worker')).toMatchObject({
+      status: 'inactive',
+      model: 'mock',
+      modelProvider: 'mock',
+    })
+  })
+
+  it('updates an inactive teammate model and applies it on cold resume', async () => {
+    const { ctx, lead, adapter } = await setup([textResponse('first'), textResponse('second')])
+    const spawned = await execute(ctx, lead, 'spawn_teammate', {
+      name: 'switch-worker',
+      description: 'switch model',
+      prompt: 'finish once',
+      provider: 'mock',
+      model: 'model-a',
+    })
+    const childId = spawnedChildId(spawned)
+    await waitNoAgent(ctx, childId)
+
+    const updated = await execute(ctx, lead, 'update_teammate', {
+      target: 'switch-worker',
+      model: 'model-b',
+    })
+    expect(updated.isError).toBe(false)
+    expect(JSON.parse(text(updated))).toMatchObject({
+      name: 'switch-worker',
+      status: 'inactive',
+      modelProvider: 'mock',
+      model: 'model-b',
+    })
+    const listed = JSON.parse(text(await execute(ctx, lead, 'list_agents', {}))) as Array<Record<string, unknown>>
+    expect(listed.find(row => row.name === 'switch-worker')).toMatchObject({ model: 'model-b' })
+
+    const sent = await execute(ctx, lead, 'send_message', { target: 'switch-worker', message: 'continue' })
+    expect(sent.isError).toBe(false)
+    await vi.waitFor(() => {
+      expect(adapter.requests.filter(request => request.sessionId === childId)).toHaveLength(2)
+    }, { timeout: 5_000 })
+    const requests = adapter.requests.filter(request => request.sessionId === childId)
+    expect(requests[1]).toMatchObject({ provider: 'mock', model: 'model-b' })
+    expect(JSON.stringify(requests[1]!.messages)).toContain('model changed')
+    await waitNoAgent(ctx, childId)
+
+    const effortUpdate = await execute(ctx, lead, 'update_teammate', {
+      target: 'switch-worker',
+      provider: 'mock',
+      reasoning_effort: 'max',
+    })
+    expect(effortUpdate.isError).toBe(false)
+    expect(JSON.parse(text(effortUpdate))).toMatchObject({
+      modelProvider: 'mock',
+      model: 'model-b',
+      reasoningEffort: 'max',
+    })
+  }, 20_000)
+
+  it('archives a teammate out of the active roster while keeping history and rejecting traffic', async () => {
+    const { ctx, lead } = await setup(['hang'])
+    const spawned = await execute(ctx, lead, 'spawn_teammate', {
+      name: 'archive-worker',
+      description: 'archive worker',
+      prompt: 'wait',
+    })
+    const childId = spawnedChildId(spawned)
+    await waitRunning(ctx, childId)
+
+    const archived = await execute(ctx, lead, 'archive_teammate', { target: 'archive-worker' })
+    expect(archived.isError).toBe(false)
+    expect(JSON.parse(text(archived))).toMatchObject({ name: 'archive-worker', archived: true })
+    await waitNoAgent(ctx, childId)
+
+    const roster = JSON.parse(text(await execute(ctx, lead, 'list_agents', {}))) as Array<Record<string, unknown>>
+    expect(roster.some(row => row.name === 'archive-worker')).toBe(false)
+    const archivedRoster = JSON.parse(text(await execute(ctx, lead, 'list_agents', {
+      include_archived: true,
+    }))) as Array<Record<string, unknown>>
+    expect(archivedRoster.find(row => row.name === 'archive-worker')).toMatchObject({
+      archived: true,
+      model: 'mock',
+    })
+
+    const denied = await execute(ctx, lead, 'send_message', { target: 'archive-worker', message: 'late' })
+    expect(denied.isError).toBe(true)
+    expect(text(denied)).toContain('archived')
+    const deniedInterrupt = await execute(ctx, lead, 'interrupt_agent', { target: 'archive-worker' })
+    expect(deniedInterrupt.isError).toBe(true)
+    expect(text(deniedInterrupt)).toContain('archived')
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'archive-worker', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_ARCHIVED' })
+
+    const handle = await ctx.sessionPersistence.open(childId, 'read')
+    try {
+      const stored = await handle.read()
+      expect(stored.events.some(event => event.type === 'user/message')).toBe(true)
+    } finally {
+      await handle.close()
+    }
   })
 })

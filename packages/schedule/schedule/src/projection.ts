@@ -48,6 +48,7 @@ const scheduleProjectionStateSchema = z.object({
   inheritedEventCount: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).transform(SessionLogOffset),
   active: scheduleRecords,
   seenIds: z.array(scheduleId),
+  paused: z.array(scheduleId),
 }).strict().superRefine((state, context) => {
   const seen = new Set(state.seenIds)
   if (seen.size !== state.seenIds.length) {
@@ -63,13 +64,22 @@ const scheduleProjectionStateSchema = z.object({
     }
     active.add(record.id)
   }
+  const paused = new Set(state.paused)
+  if (paused.size !== state.paused.length) {
+    context.addIssue({ code: 'custom', message: 'paused Schedule ids must be unique' })
+  }
+  for (const id of state.paused) {
+    if (!active.has(id)) {
+      context.addIssue({ code: 'custom', message: 'every paused Schedule id must be active' })
+    }
+  }
 }) as unknown as z.ZodType<ScheduleProjectionState>
 
 /** Projection definition sharing the Schedule domain's strict transition authority. */
 export const scheduleProjectionDefinition = {
   key: 'schedule',
   stateSchema: scheduleProjectionStateSchema,
-  init: (_header, inheritedEventCount) => ({ inheritedEventCount, active: [], seenIds: [] }),
+  init: (_header, inheritedEventCount) => ({ inheritedEventCount, active: [], seenIds: [], paused: [] }),
   apply: (state, event) => {
     if (event.seq < state.inheritedEventCount || event.type !== 'schedule/change') return state
     return {
@@ -81,7 +91,7 @@ export const scheduleProjectionDefinition = {
     viewSchema: scheduleRecords,
     view: state => state.active,
   },
-  stateVersion: 2,
+  stateVersion: 3,
 } satisfies ProjectionDefinition<'schedule', ScheduleProjectionState>
 
 declare module '@deepseek-ai/dsh-session-projection/types' {

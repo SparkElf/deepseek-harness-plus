@@ -3,6 +3,7 @@
  * @module @deepseek-ai/dsh-schedule
  */
 
+import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
@@ -33,7 +34,10 @@ type DueDecision =
 
 /** Select one due one-shot, one complete fixed-rate batch, or the next wake. */
 function dueDecision(folded: FoldedSchedules, now: number): DueDecision {
-  const indexed = folded.active.map((record, index) => ({ record, index }))
+  const paused = new Set(folded.paused)
+  const indexed = folded.active
+    .filter(record => !paused.has(record.id))
+    .map((record, index) => ({ record, index }))
   const byTargetThenCreate = (
     left: { readonly record: { readonly scheduledAt: string }; readonly index: number },
     right: { readonly record: { readonly scheduledAt: string }; readonly index: number },
@@ -283,6 +287,18 @@ export class ScheduleRuntime {
               operation: 'dispatch',
               id: decision.record.id,
             })
+            this.agent.session.append('schedule/change', {
+              version: 1,
+              operation: 'run',
+              run: {
+                runId: randomUUID(),
+                scheduleId: decision.record.id,
+                at: new Date(decisionNow).toISOString(),
+                status: 'dispatched',
+                trigger: 'due',
+                durationMs: 0,
+              },
+            })
           } else {
             for (const reminder of decision.reminders) {
               this.agent.session.append('schedule/change', {
@@ -290,6 +306,18 @@ export class ScheduleRuntime {
                 operation: 'dispatch',
                 id: reminder.record.id,
                 acceptedAt: decision.acceptedAt,
+              })
+              this.agent.session.append('schedule/change', {
+                version: 1,
+                operation: 'run',
+                run: {
+                  runId: randomUUID(),
+                  scheduleId: reminder.record.id,
+                  at: decision.acceptedAt,
+                  status: 'dispatched',
+                  trigger: 'due',
+                  durationMs: 0,
+                },
               })
             }
           }

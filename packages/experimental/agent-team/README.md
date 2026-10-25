@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`dsh-experimental-agent-team` turns one coding session into a small working team: the session's agent becomes the Lead, creates named teammates for delegated work, exchanges durable messages with them, and tracks shared tasks on a common board. Messages and task state survive crashes, reloads, and interruptions, so a teammate that was offline receives its queued messages when it resumes. It provides no tools of its own — mount the sibling `dsh-experimental-tool-agent-team` so the model can create teammates, message them, and use the task board. It is published under its experimental name, carries no stability promise, and needs durable session storage to activate.
+`dsh-experimental-agent-team` turns one coding session into a small working team: the session's agent becomes the Lead, creates named teammates for delegated work, exchanges durable messages with them, and tracks shared tasks on a common board. Each teammate can run on an LLM route chosen at creation, and an archived teammate leaves the active roster without losing its Session or history. Messages and task state survive crashes, reloads, and interruptions, so a teammate that was offline receives its queued messages when it resumes. It provides no tools of its own — mount the sibling `dsh-experimental-tool-agent-team` so the model can create teammates, choose their models, message them, and use the task board. It is published under its experimental name, carries no stability promise, and needs durable session storage to activate.
 
 ## Table of Contents
 
@@ -62,7 +62,13 @@ Ask the Lead to create a teammate: give it a unique lowercase name such as `revi
 
 The roster shows every member with its role (`lead` or `teammate`) and current status: `running`, `idle`, `inactive` (a member that exists but is not loaded), `provisioning`, or `failed`. A member that is not loaded receives its messages when it wakes.
 
-Only the Lead can create teammates or interrupt them.
+Each teammate also carries a durable LLM route. `spawn_teammate` accepts `provider`, `model`, and `reasoning_effort`; every omitted value is inherited from the Lead's current route, so the common case of changing only the model needs only `model`. The roster reports the durable `model` and `modelProvider` for loaded and inactive members alike. `update_teammate` changes the provider, model, or effort of an existing member; the change is durable, a live member adopts it on its next step, and an inactive member adopts it when it next resumes. Changing the provider or model without naming an effort restores the selected model's default effort.
+
+Only the Lead can create, update, archive, or interrupt teammates.
+
+### Archiving
+
+`archive_teammate` retires a teammate without deleting anything. An archived member leaves the default roster and cannot receive messages or interruption; its Session, conversation history, name, and roster slot remain, and `list_agents` can still show it with `include_archived: true`. Names are still never reused, and archived members still count toward `maxMembers`. Archiving a live teammate stops its current Activation after the archive record commits.
 
 ### Messages between teammates
 
@@ -114,7 +120,8 @@ The [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-
 | File | Role |
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin entry: `Config` schema, service registration, recovery scheduling |
-| [`src/roster.ts`](src/roster.ts) | Team identity, membership resolution, provisioning, and roster teardown |
+| [`src/roster.ts`](src/roster.ts) | Team identity, membership resolution, provisioning, model-route changes, archival, and roster teardown |
+| [`src/model-selection.ts`](src/model-selection.ts) | Installs and releases Agent-scoped model-selection listeners for live members |
 | [`src/mailbox.ts`](src/mailbox.ts) | Durable queue, target-local dispatch, acknowledgement, and recovery |
 | [`src/task-board.ts`](src/task-board.ts) | Task CAS commands, DAG validation, and derived views |
 | [`src/journal.ts`](src/journal.ts) | Serialized Lead-log transactions and commit notification |
@@ -126,6 +133,14 @@ The [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-
 ### Team identity and roster
 
 Every ordinary runtime root is the implicit Lead of a Team whose `TeamId` equals its `SessionId`; there is no creation event, and durable state begins with the first member, message, or task record. `spawnTeammate()` first appends and flushes a `provisioning` member record, then asks the configured provider to create the reserved child; a provider failure appends a durable `failed` member. A fresh child starts with no Lead history; a fork child captures the Lead's completed-turn prefix once. Recovery reconciles an unterminated provisioning record against the child's independently persisted Session: a matching direct-parent and continuable descriptor plus a recorded initial user message produces `active`, and anything else produces `failed`. If recovery wins a same-process race, the creator accepts the terminal state or reports `TEAM_PROVISIONING_CONFLICT` and drains the child. Names are reserved by the first provisioning record and never reused.
+
+### Member model routes
+
+The `provisioning` member record stores the effective LLM route (`modelProvider`, `model`, and optional `reasoningEffort`). Those fields are optional in the version-2 payload, so logs written before member model selection replay unchanged; such a legacy member reports only its live Session route. At creation the route is explicit or inherited from the Lead's latest request header, falling back to the Lead's creation options before its first request. `updateTeammate()` appends a new whole member snapshot under the Lead-log serializer. A live Agent receives the route through the Agent-scoped model-selection listeners installed by the service; an inactive member receives it when its Session starts, before its first queued prompt is admitted. The continuation descriptor still freezes the spawn-time route, so the durable Team route overrides it on every activation. Installed listeners are released with the Team runtime or the member Agent.
+
+### Archival
+
+`archiveTeammate()` commits `archived: true` as a whole member snapshot, then releases any live Activation. The projection treats archival as terminal: no later member event may change an archived row. Roster reads omit archived rows unless asked for them, and target resolution rejects them with `TEAM_MEMBER_ARCHIVED`. Mailbox dispatch never cold-resumes an archived target, so a message queued before archival stays queued instead of waking a retired member.
 
 ### Durable mailbox
 
@@ -161,6 +176,7 @@ Read these pages when the package-level contract is not enough. They move from t
 - [Agent Teams subsystem](../../../docs/subsystems/agent-team.md) — durable Team types and the `ctx.agentTeams` service API.
 - [tool-agent-team package](../tool-agent-team/README.md) — the tools that let the model create, message, and coordinate teammates.
 - [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-05-agent-teams.md) — identity, mailbox, task, and shared-checkout decisions.
+- [Member model selection and archival Agent Note](../../../.agents/notes/implemented/feature/2026-10-22-team-member-model-routes-and-archival.md) — durable route ownership, activation timing, and archival semantics.
 - [Experimental package decision](../../../.agents/notes/implemented/architecture/2026-08-18-experimental-agent-teams-packages.md) — placement, publication, and dependency isolation.
 
 -----
@@ -187,6 +203,20 @@ Each peer delivery adds the sender prefix plus message content to the target his
 
 Peer messages append after the target's reusable history prefix. Cold resume reuses the persisted conversation before appending a previously undelivered item.
 
+### Member route changes
+
+#### What the model sees
+
+A successful `update_teammate` changes the provider, model, and effort used by the member's next request. A provider or model change also adds the shared model-selection notice to that request, naming the previous and new routes.
+
+#### Token effect
+
+One short user-role notice per provider or model change, appended after the member's existing history. Effort-only changes add no notice.
+
+#### KV Cache effect
+
+The notice and the changed request header land after the reusable prefix; earlier turns stay reusable up to that point.
+
 ## Known Limitations and Deferred Work
 
 <a id="known-limitations-and-deferred-work"></a>
@@ -197,7 +227,9 @@ These limits describe what a team cannot do yet or what needs special operationa
 - **Experimental prototype with no stability promise** — the package is public, but its contracts can change freely while it incubates.
 - **One process and one shared checkout** — members share cwd and observe edits immediately; this package provides no worktree, remote member, merge, or filesystem lock.
 - **Advisory write scopes** — Bash, formatters, code generators, and direct external writers can bypass filesystem version checks; Leads must coordinate ownership and review the final diff.
-- **Flat immutable roster** — only the Lead creates direct teammates; there is no nested Team, rename, deletion, or name reuse.
+- **Flat immutable roster** — only the Lead creates direct teammates; there is no nested Team, rename, unarchive, or name reuse.
+- **Archived members keep identity and mail** — archiving never deletes a Session, frees a name, or releases the member slot; a message queued before archival is never delivered to the retired member.
+- **Host-only resume bypasses Team routes** — a teammate Session resumed without a live Lead (for example, opened directly by a host) runs on the route frozen in its continuation descriptor, not on a later `update_teammate` route.
 - **No automatic ownership release** — idle, interruption, process exit, and failed work do not release a task owner.
 - **Mailbox is not cross-process exactly-once** — concurrent harness processes over one Team are unsupported.
 

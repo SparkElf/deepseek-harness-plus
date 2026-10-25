@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-`dsh-experimental-agent-team` 把一个编码会话变成一个小型工作团队：会话中的 agent 成为 Lead，创建具名 teammate 处理委派的工作，与它们交换持久消息，并在公共任务板上跟踪共享任务。消息与任务状态能挺过崩溃、reload 与中断，因此离线的 teammate 会在恢复后收到排队的消息。它本身不提供任何工具——请挂载兄弟包 `dsh-experimental-tool-agent-team`，让模型能够创建 teammate、给它们发消息并使用任务板。它以实验性名称公开发布、不承诺稳定性，并且需要持久会话存储才能激活。
+`dsh-experimental-agent-team` 把一个编码会话变成一个小型工作团队：会话中的 agent 成为 Lead，创建具名 teammate 处理委派的工作，与它们交换持久消息，并在公共任务板上跟踪共享任务。每个 teammate 都可以使用创建时选定的 LLM 路由；归档的 teammate 会离开活动 roster，但保留其 Session 与历史。消息与任务状态能挺过崩溃、reload 与中断，因此离线的 teammate 会在恢复后收到排队的消息。它本身不提供任何工具——请挂载兄弟包 `dsh-experimental-tool-agent-team`，让模型能够创建 teammate、选择它们的模型、给它们发消息并使用任务板。它以实验性名称公开发布、不承诺稳定性，并且需要持久会话存储才能激活。
 
 ## 目录
 
@@ -62,7 +62,13 @@ kind: "package-reference"
 
 roster 显示每个成员的职责（`lead` 或 `teammate`）与当前状态：`running`、`idle`、`inactive`（存在但未加载的成员）、`provisioning` 或 `failed`。未加载的成员会在唤醒后收到其消息。
 
-只有 Lead 可以创建 teammate 或中断它们。
+每个 teammate 还携带一条持久的 LLM 路由。`spawn_teammate` 接受 `provider`、`model` 与 `reasoning_effort`；每个省略的值都从 Lead 的当前路由继承，因此最常见的「只换模型」只需提供 `model`。roster 对已加载与 inactive 成员都会报告持久化的 `model` 与 `modelProvider`。`update_teammate` 修改现有成员的 provider、model 或 effort；变更持久保存，live 成员在下一步采用，inactive 成员在下次恢复时采用。改变 provider 或 model 而未指定 effort 时，会恢复所选模型的默认 effort。
+
+只有 Lead 可以创建、更新、归档或中断 teammate。
+
+### 归档
+
+`archive_teammate` 让 teammate 退役而不删除任何内容。归档成员离开默认 roster，也不能再收到消息或中断；其 Session、对话历史、名字与 roster 名额都会保留，`list_agents` 仍可通过 `include_archived: true` 显示它。名字仍然永不复用，归档成员也仍然占用 `maxMembers` 名额。归档 live teammate 时，会在归档记录提交后停止其当前 Activation。
 
 ### teammate 之间的消息
 
@@ -114,7 +120,8 @@ Lead 可以停止 teammate 的当前轮次，而不会删除其排队的消息�
 | 文件 | 职责 |
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口：`Config` schema、服务注册、恢复调度 |
-| [`src/roster.ts`](src/roster.ts) | Team 身份、成员关系解析、provisioning 与 roster 拆除 |
+| [`src/roster.ts`](src/roster.ts) | Team 身份、成员关系解析、provisioning、模型路由变更、归档与 roster 拆除 |
+| [`src/model-selection.ts`](src/model-selection.ts) | 为 live 成员安装并释放 Agent 作用域的 model-selection 监听器 |
 | [`src/mailbox.ts`](src/mailbox.ts) | 持久队列、目标本地投递、确认与恢复 |
 | [`src/task-board.ts`](src/task-board.ts) | 任务 CAS 命令、DAG 校验与派生视图 |
 | [`src/journal.ts`](src/journal.ts) | 串行化的 Lead 日志事务与提交通知 |
@@ -126,6 +133,14 @@ Lead 可以停止 teammate 的当前轮次，而不会删除其排队的消息�
 ### Team 身份与 roster
 
 每个普通运行时 root 都是一个隐式 Team 的 Lead，其 `TeamId` 等于 `SessionId`；不存在创建事件，持久状态从第一条成员、消息或任务记录开始。`spawnTeammate()` 先追加并 flush 一条 `provisioning` 成员记录，再要求配置的 provider 创建预留 child；provider 失败会追加一条持久的 `failed` 成员。fresh child 不携带 Lead 历史；fork child 只捕获一次 Lead 的已完成 turn 前缀。恢复把未终结的 provisioning 记录对照 child 独立持久化的 Session 进行对账：直接 parent 与 continuable descriptor 匹配、且初始用户消息已记录则产生 `active`，其他任何情况都产生 `failed`。如果恢复在同进程竞争中先完成，creator 会接受终态，或报告 `TEAM_PROVISIONING_CONFLICT` 并 drain 该 child。名字由第一条 provisioning 记录保留，且永不复用。
+
+### 成员模型路由
+
+`provisioning` 成员记录保存生效的 LLM 路由（`modelProvider`、`model` 与可选的 `reasoningEffort`）。这些字段在 version-2 payload 中是可选的，因此成员模型选择之前写入的日志可以原样回放；这类旧成员只报告其 live Session 路由。创建时路由可以显式指定，或从 Lead 最近的 request header 继承；Lead 尚未发起请求时回退到其创建 options。`updateTeammate()` 在 Lead 日志串行化器下追加一份新的完整成员快照。live Agent 通过服务安装的 Agent 作用域 model-selection 监听器接收该路由；inactive 成员在其 Session 启动时、首条排队 prompt 准入之前接收。continuation descriptor 仍冻结创建时的路由，因此持久 Team 路由会在每次激活时覆盖它。已安装的监听器随 Team 运行时或成员 Agent 一起释放。
+
+### 归档
+
+`archiveTeammate()` 以完整成员快照提交 `archived: true`，然后释放任何 live Activation。投影把归档视为终态：之后的成员事件都不能修改已归档行。roster 读取默认省略归档行，除非显式要求；target 解析会以 `TEAM_MEMBER_ARCHIVED` 拒绝它们。mailbox 投递绝不会冷恢复已归档目标，因此归档前排队的消息会保持排队，而不会唤醒退役成员。
 
 ### 持久 mailbox
 
@@ -161,6 +176,7 @@ dispose 会关闭准入、中止并等待已获准的创建与 mailbox dispatch 
 - [Agent Teams 子系统](../../../docs/subsystems/agent-team.zh.md)——持久 Team 类型与 `ctx.agentTeams` 服务 API。
 - [tool-agent-team 包](../tool-agent-team/README.zh.md)——让模型创建、消息与协调 teammate 的工具。
 - [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-05-agent-teams.zh.md)——身份、mailbox、任务与共享 checkout 决策。
+- [成员模型选择与归档 Agent Note](../../../.agents/notes/implemented/feature/2026-10-22-team-member-model-routes-and-archival.zh.md)——持久路由归属、生效时机与归档语义。
 - [实验包决策](../../../.agents/notes/implemented/architecture/2026-08-18-experimental-agent-teams-packages.zh.md)——位置、公开发布与依赖隔离。
 
 -----
@@ -187,6 +203,20 @@ dispose 会关闭准入、中止并等待已获准的创建与 mailbox dispatch 
 
 Peer 消息追加在 target 可复用历史前缀之后。冷恢复会先复用持久对话，再追加尚未投递的消息。
 
+### 成员路由变更
+
+#### 模型看到什么
+
+成功的 `update_teammate` 会改变成员下一次请求所用的 provider、model 与 effort。provider 或 model 变更还会把共享的 model-selection 通知加入该请求，说明旧路由与新路由。
+
+#### Token 影响
+
+每次 provider 或 model 变更会新增一条简短的用户角色通知，追加在成员既有历史之后。仅 effort 变更不会新增通知。
+
+#### KV Cache 影响
+
+通知与变更后的 request header 落在可复用前缀之后；此前的 turn 直到该点仍然可复用。
+
 ## 已知限制与延期工作
 
 <a id="known-limitations-and-deferred-work"></a>
@@ -197,7 +227,9 @@ Peer 消息追加在 target 可复用历史前缀之后。冷恢复会先复用�
 - **实验原型，无稳定性承诺**——本包公开发布，但孵化期间约定仍可自由变更。
 - **单进程、共享 checkout**——成员共享 cwd，修改立即可见；本包不提供 worktree、远端成员、merge 或文件锁。
 - **write scope 仅作提示**——Bash、formatter、代码生成器与直接外部写入可以绕过文件版本检查；Lead 必须协调 owner 并检查最终 diff。
-- **扁平且不可变的 roster**——只有 Lead 可以创建直接 teammate；不支持嵌套 Team、重命名、删除或名字复用。
+- **扁平且不可变的 roster**——只有 Lead 可以创建直接 teammate；不支持嵌套 Team、重命名、取消归档或名字复用。
+- **归档成员保留身份与邮件**——归档绝不删除 Session、释放名字或释放成员名额；归档前排队的消息绝不会投递给退役成员。
+- **仅宿主恢复会绕过 Team 路由**——在没有 live Lead 的情况下恢复 teammate Session（例如由宿主直接打开）时，会使用其 continuation descriptor 中冻结的路由，而不是之后的 `update_teammate` 路由。
 - **不会自动释放 owner**——idle、interrupt、进程退出与工作失败都不会释放任务 owner。
 - **mailbox 不保证跨进程 exactly-once**——不支持多个 harness 进程并发操作同一 Team。
 

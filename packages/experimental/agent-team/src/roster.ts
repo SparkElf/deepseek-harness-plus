@@ -3,7 +3,8 @@
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'
+import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import { foldSubagentDescriptor } from '@deepseek-ai/dsh-subagent'
@@ -11,6 +12,7 @@ import type { ContinuableStart } from '@deepseek-ai/dsh-subagent'
 import { errorMessage, TeamError } from './error.ts'
 import type { TeamJournal } from './journal.ts'
 import type { TeamRuntimeLifecycle } from './lifecycle.ts'
+import type { TeamMemberModelSelection } from './model-selection.ts'
 import { readPersistedSession } from './persisted.ts'
 import type { TeamState } from './projection.ts'
 import { messageAccepted } from './session-message.ts'
@@ -20,10 +22,123 @@ import type {
   SpawnTeammateResult,
   TeamMemberSnapshot,
   TeamMemberView,
+  UpdateTeammateRequest,
 } from './types.ts'
 import { requiredText } from './validation.ts'
 
 const MEMBER_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
+
+/** Resolve the Lead's current LLM route from its latest request header, then creation options. */
+function leadSelection(root: Agent): ModelSelection | undefined {
+  const config = root.session.requestHeader()?.config
+  const provider = config?.provider ?? root.options.provider
+  const model = config?.model ?? root.options.model
+  if (provider === undefined || model === undefined) return undefined
+  const reasoningEffort = config?.reasoningEffort ?? root.options.reasoningEffort
+  return { provider, model, ...reasoningEffort === undefined ? {} : { reasoningEffort } }
+}
+
+/** Convert one durable member route into a live model selection. */
+function memberSelection(member: TeamMemberSnapshot): ModelSelection | undefined {
+  if (member.modelProvider === undefined || member.model === undefined) return undefined
+  return {
+    provider: member.modelProvider,
+    model: member.model,
+    ...member.reasoningEffort === undefined
+      ? {}
+      : { reasoningEffort: ReasoningEffortId(member.reasoningEffort) },
+  }
+}
+
+/** Normalize one optional model-facing route value. */
+function selectionText(value: string | undefined, field: string): string | undefined {
+  if (value === undefined) return undefined
+  const text = value.trim()
+  if (text.length === 0) {
+    throw new TeamError(`teammate LLM ${field} must be non-empty`, 'TEAM_INVALID_MODEL_SELECTION')
+  }
+  return text
+}
+
+/**
+ * Resolve the teammate route at spawn. An explicit value wins; a missing
+ * provider or model inherits the Lead's current route, and a route change
+ * without an explicit effort restores the selected model's default.
+ */
+function spawnSelection(
+  lead: ModelSelection | undefined,
+  request: SpawnTeammateRequest,
+): ModelSelection {
+  const requestedProvider = selectionText(request.modelProvider, 'provider')
+  const requestedModel = selectionText(request.model, 'model')
+  const requestedEffort = selectionText(request.reasoningEffort, 'reasoning effort')
+  if (requestedProvider === undefined && requestedModel === undefined && requestedEffort === undefined) {
+    if (lead === undefined) {
+      throw new TeamError(
+        'teammate LLM selection requires a Lead provider and model to inherit',
+        'TEAM_INVALID_MODEL_SELECTION',
+      )
+    }
+    return lead
+  }
+  const provider = requestedProvider ?? lead?.provider
+  const model = requestedModel ?? lead?.model
+  if (provider === undefined || model === undefined) {
+    throw new TeamError(
+      'teammate LLM selection requires an effective provider and model, and the Lead has none to inherit',
+      'TEAM_INVALID_MODEL_SELECTION',
+    )
+  }
+  const routeChanged = (requestedProvider !== undefined && requestedProvider !== lead?.provider)
+    || (requestedModel !== undefined && requestedModel !== lead?.model)
+  const reasoningEffort = requestedEffort !== undefined
+    ? requestedEffort
+    : routeChanged ? undefined : lead?.reasoningEffort
+  return {
+    provider,
+    model,
+    ...reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(reasoningEffort) },
+  }
+}
+
+/**
+ * Resolve one teammate update over its durable route, falling back to the
+ * Lead's current route for a member created before member model selection.
+ */
+function updatedSelection(
+  current: ModelSelection | undefined,
+  lead: ModelSelection | undefined,
+  request: UpdateTeammateRequest,
+): ModelSelection {
+  const requestedProvider = selectionText(request.modelProvider, 'provider')
+  const requestedModel = selectionText(request.model, 'model')
+  const requestedEffort = selectionText(request.reasoningEffort, 'reasoning effort')
+  if (requestedProvider === undefined && requestedModel === undefined && requestedEffort === undefined) {
+    throw new TeamError(
+      'update requires a provider, a model, or a reasoning effort',
+      'TEAM_INVALID_MODEL_SELECTION',
+    )
+  }
+  const baseline = current ?? lead
+  const provider = requestedProvider ?? baseline?.provider
+  const model = requestedModel ?? baseline?.model
+  if (provider === undefined || model === undefined) {
+    throw new TeamError(
+      'teammate LLM selection requires an effective provider and model',
+      'TEAM_INVALID_MODEL_SELECTION',
+    )
+  }
+  const routeChanged = (requestedProvider !== undefined && requestedProvider !== baseline?.provider)
+    || (requestedModel !== undefined && requestedModel !== baseline?.model)
+  const reasoningEffort = requestedEffort !== undefined
+    ? requestedEffort
+    : routeChanged ? undefined : baseline?.reasoningEffort
+  return {
+    provider,
+    model,
+    ...reasoningEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(reasoningEffort) },
+  }
+}
 
 /** Caller identity inside one implicit Team. */
 export interface TeamMembership {
@@ -48,7 +163,13 @@ export function resolveActiveMember(
   const name = rawName.trim()
   if (name === 'lead') return { id: root.id, name }
   const member = state.members.find(candidate => candidate.name === name)
-  if (member === undefined || member.phase !== 'active') {
+  if (member === undefined) {
+    throw new TeamError(`active teammate "${name}" not found`, 'TEAM_MEMBER_NOT_FOUND')
+  }
+  if (member.archived === true) {
+    throw new TeamError(`teammate "${name}" is archived`, 'TEAM_MEMBER_ARCHIVED')
+  }
+  if (member.phase !== 'active') {
     throw new TeamError(`active teammate "${name}" not found`, 'TEAM_MEMBER_NOT_FOUND')
   }
   return { id: member.id, name }
@@ -62,12 +183,14 @@ export class TeamRoster {
    * @param ctx - Team service context with Agent, Session, persistence, and subagent services.
    * @param journal - authoritative Lead-log transaction owner.
    * @param lifecycle - shared Team runtime admission cutoff.
+   * @param selection - live Agent model-selection owner shared with the service.
    * @param maxMembers - maximum immutable roster entries per Team.
    */
   constructor(
     private readonly ctx: Context,
     private readonly journal: TeamJournal,
     private readonly lifecycle: TeamRuntimeLifecycle,
+    private readonly selection: TeamMemberModelSelection,
     private readonly maxMembers: number,
   ) {}
 
@@ -124,39 +247,42 @@ export class TeamRoster {
   /**
    * List the runtime-enriched roster visible to one Team member.
    * @param membership - exact caller membership resolved by this roster.
+   * @param includeArchived - whether archived members are retained in the result.
    * @returns Lead and teammate rows in creation order.
    */
-  list(membership: TeamMembership): TeamMemberView[] {
+  list(membership: TeamMembership, includeArchived = false): TeamMemberView[] {
     const { root } = membership
     const state = this.journal.state(root)
+    const route = leadSelection(root)
     const result: TeamMemberView[] = [{
       id: root.id,
       name: 'lead',
       role: 'lead',
       status: root.status,
-      ...root.options.model === undefined ? {} : { model: root.options.model },
+      ...route === undefined ? {} : {
+        model: route.model,
+        modelProvider: route.provider,
+        ...route.reasoningEffort === undefined ? {} : { reasoningEffort: String(route.reasoningEffort) },
+      },
       diagnostics: [],
     }]
     for (const member of state.members) {
-      const live = this.ctx.agents.get(member.id)
-      const model = live?.options.model ?? root.options.model
-      result.push({
-        id: member.id,
-        name: member.name,
-        role: 'teammate',
-        status: member.phase === 'failed'
-          ? 'failed'
-          : member.phase === 'provisioning'
-            ? 'provisioning'
-            : live?.status ?? 'inactive',
-        description: member.description,
-        provider: member.provider,
-        context: member.context,
-        ...model === undefined ? {} : { model },
-        diagnostics: member.error === undefined ? [] : [member.error],
-      })
+      if (member.archived === true && !includeArchived) continue
+      result.push(this.memberView(member))
     }
     return result
+  }
+
+  /**
+   * Install the durable route on one newly started member Agent.
+   * @param agent - exact live Agent whose Session just started.
+   */
+  installSelection(agent: Agent): void {
+    const membership = this.tryMembership(agent)
+    if (membership?.role !== 'teammate') return
+    const member = this.journal.state(membership.root).members.find(candidate => candidate.id === agent.id)
+    if (member === undefined || member.phase === 'failed' || member.archived === true) return
+    this.selection.apply(agent, memberSelection(member))
   }
 
   /**
@@ -215,6 +341,80 @@ export class TeamRoster {
   }
 
   /**
+   * Change one teammate's durable LLM route. A live Agent applies the route to
+   * its next prompt assembly; an inactive member applies it when its Session
+   * starts again.
+   * @param caller - exact live Lead Agent.
+   * @param request - target name and replacement provider, model, or effort.
+   * @returns the committed member row.
+   */
+  async update(caller: Agent, request: UpdateTeammateRequest): Promise<TeamMemberView> {
+    if (this.lifecycle.disposed) throw new TeamError('Agent Teams service is disposing', 'TEAM_DISPOSED')
+    const membership = this.membership(caller)
+    if (membership.role !== 'lead') {
+      throw new TeamError('only the Team Lead can update teammates', 'TEAM_LEAD_REQUIRED')
+    }
+    const root = membership.root
+    const member = await this.journal.transact(root.id, async () => {
+      const state = this.journal.state(root)
+      const current = this.requireTeammate(state, request.target, 'updated')
+      if (current.phase !== 'active') {
+        throw new TeamError(`teammate "${current.name}" has no active Session to update`, 'TEAM_MEMBER_NOT_ACTIVE')
+      }
+      const route = updatedSelection(memberSelection(current), leadSelection(root), request)
+      const { reasoningEffort: _previousEffort, ...rest } = current
+      const next: TeamMemberSnapshot = {
+        ...rest,
+        modelProvider: route.provider,
+        model: route.model,
+        ...route.reasoningEffort === undefined ? {} : { reasoningEffort: String(route.reasoningEffort) },
+      }
+      await this.journal.appendAndFlush(root, 'team/member', {
+        version: 2,
+        teamId: TeamId(root.id),
+        member: next,
+      })
+      return next
+    })
+    const live = this.ctx.agents.get(member.id)
+    if (live !== undefined) this.selection.apply(live, memberSelection(member))
+    return this.memberView(member)
+  }
+
+  /**
+   * Archive one teammate. The durable row keeps its Session, name, and member
+   * slot while leaving active roster reads; a live Activation is released
+   * after the archive commits.
+   * @param caller - exact live Lead Agent.
+   * @param targetName - durable teammate name.
+   * @returns the archived member row.
+   */
+  async archive(caller: Agent, targetName: string): Promise<TeamMemberView> {
+    if (this.lifecycle.disposed) throw new TeamError('Agent Teams service is disposing', 'TEAM_DISPOSED')
+    const membership = this.membership(caller)
+    if (membership.role !== 'lead') {
+      throw new TeamError('only the Team Lead can archive teammates', 'TEAM_LEAD_REQUIRED')
+    }
+    const root = membership.root
+    const member = await this.journal.transact(root.id, async () => {
+      const state = this.journal.state(root)
+      const current = this.requireTeammate(state, targetName, 'archived')
+      if (current.phase === 'provisioning') {
+        throw new TeamError(`teammate "${current.name}" is still provisioning`, 'TEAM_MEMBER_PROVISIONING')
+      }
+      const next: TeamMemberSnapshot = { ...current, archived: true }
+      await this.journal.appendAndFlush(root, 'team/member', {
+        version: 2,
+        teamId: TeamId(root.id),
+        member: next,
+      })
+      return next
+    })
+    await this.stopTeammates(root, [member.id])
+    return this.memberView(member)
+  }
+
+  /**
    * Group exact live roster children by their current Lead for runtime teardown.
    * @returns each live Lead and the roster child ids currently in the Agent registry.
    */
@@ -256,6 +456,7 @@ export class TeamRoster {
     const root = membership.root
     const name = this.memberName(request.name)
     const description = requiredText(request.description, 'description', 200)
+    const route = spawnSelection(leadSelection(root), request)
     const childId = brandString<SessionId>(randomUUID())
     const member: TeamMemberSnapshot = {
       id: childId,
@@ -264,6 +465,9 @@ export class TeamRoster {
       provider: requiredText(request.provider, 'provider', 200),
       context: request.context,
       phase: 'provisioning',
+      modelProvider: route.provider,
+      model: route.model,
+      ...route.reasoningEffort === undefined ? {} : { reasoningEffort: String(route.reasoningEffort) },
     }
 
     await this.journal.transact(root.id, async () => {
@@ -286,6 +490,11 @@ export class TeamRoster {
         request: {
           prompt: request.prompt,
           parent: root,
+          agentOptions: {
+            provider: route.provider,
+            model: route.model,
+            ...route.reasoningEffort === undefined ? {} : { reasoningEffort: route.reasoningEffort },
+          },
         },
         signal,
       })
@@ -432,20 +641,44 @@ export class TeamRoster {
     }
   }
 
-  /** Build one runtime member row after successful creation. */
-  private memberView(member: TeamMemberSnapshot & { readonly phase: 'active' }): TeamMemberView {
+  /** Build one runtime member row from its durable snapshot. */
+  private memberView(member: TeamMemberSnapshot): TeamMemberView {
     const live = this.ctx.agents.get(member.id)
+    const model = member.model ?? live?.options.model
     return {
       id: member.id,
       name: member.name,
       role: 'teammate',
-      status: live?.status ?? 'inactive',
+      status: member.phase === 'failed'
+        ? 'failed'
+        : member.phase === 'provisioning'
+          ? 'provisioning'
+          : live?.status ?? 'inactive',
       description: member.description,
       provider: member.provider,
       context: member.context,
-      ...live?.options.model === undefined ? {} : { model: live.options.model },
-      diagnostics: [],
+      ...model === undefined ? {} : { model },
+      ...member.modelProvider === undefined ? {} : { modelProvider: member.modelProvider },
+      ...member.reasoningEffort === undefined ? {} : { reasoningEffort: member.reasoningEffort },
+      ...member.archived === true ? { archived: true } : {},
+      diagnostics: member.error === undefined ? [] : [member.error],
     }
+  }
+
+  /** Resolve one non-archived teammate snapshot for a Lead-only mutation. */
+  private requireTeammate(state: TeamState, rawName: string, operation: string): TeamMemberSnapshot {
+    const name = rawName.trim()
+    if (name === 'lead') {
+      throw new TeamError('the Team Lead cannot be changed as a teammate', 'TEAM_INVALID_TARGET')
+    }
+    const member = state.members.find(candidate => candidate.name === name)
+    if (member === undefined) {
+      throw new TeamError(`teammate "${name}" not found`, 'TEAM_MEMBER_NOT_FOUND')
+    }
+    if (member.archived === true) {
+      throw new TeamError(`teammate "${name}" is archived and cannot be ${operation}`, 'TEAM_MEMBER_ARCHIVED')
+    }
+    return member
   }
 
   /** Validate a never-reused model-facing teammate name. */

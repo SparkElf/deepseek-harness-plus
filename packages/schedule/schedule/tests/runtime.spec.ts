@@ -207,6 +207,27 @@ describe('Schedule timer and admission runtime', () => {
     await vi.advanceTimersByTimeAsync(60_000)
     await settle()
     expect(test.followed).toHaveLength(1)
+    const runs = test.agent.session.snapshotEvents()
+      .filter(event => event.type === 'schedule/change' && event.data.operation === 'run')
+    expect(runs).toMatchObject([{ data: { run: { status: 'dispatched', trigger: 'due' } } }])
+    runtime.requestDrive()
+    await settle()
+    expect(test.followed).toHaveLength(1)
+    await runtime.dispose()
+  })
+
+  it('does not dispatch a paused overdue reminder until it is resumed', async () => {
+    const test = await harness()
+    appendAfter(test, 'schedule-1', 1, Date.now() - 1_000)
+    test.agent.session.append('schedule/change', { version: 1, operation: 'pause', id: ScheduleId('schedule-1') })
+    const runtime = runtimeFor(test)
+    runtime.start()
+    await settle()
+    expect(test.followed).toEqual([])
+    expect(test.agent.session.snapshotEvents().filter(event =>
+      event.type === 'schedule/change' && event.data.operation === 'dispatch')).toEqual([])
+
+    test.agent.session.append('schedule/change', { version: 1, operation: 'resume', id: ScheduleId('schedule-1') })
     runtime.requestDrive()
     await settle()
     expect(test.followed).toHaveLength(1)

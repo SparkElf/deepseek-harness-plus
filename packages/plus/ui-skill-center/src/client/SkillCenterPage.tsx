@@ -22,6 +22,13 @@ import type {} from './slot-contract.ts'
 import css from './SkillCenterPage.module.css'
 import { SkillApi, type ListPayload, type SkillEntry, type TranslationProgress } from './api.ts'
 import type { SkillCenterLocaleKey } from './locales.ts'
+import { PlazaUnavailableError, type PlazaSkill } from './api.ts'
+import { canSubmit, shareOf, type PlazaShare } from './plaza.ts'
+import {
+  allowedVisibilities, ownDepartment, readAccountIdentity, readSavedScope,
+  sanitizeChoice, scopeRole, scopeStorageKey, writeSavedScope,
+  type Department, type PlazaVisibility, type ReviewScope,
+} from './scope.ts'
 
 /** What the panel needs from its slot: the dictionary resolver. */
 export interface SkillCenterPageProps {
@@ -81,13 +88,18 @@ function DraftField({ label, children }: { label: string; children: ReactNode })
  * with, its toggle, and its delete action.
  * @returns the row.
  */
-function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
+function SkillCard({ skill, api, cwd, t, share, shareBusy, shareDisabled, onToggle, onDelete, onShare, onUnshare }: {
   skill: SkillEntry
   api: SkillApi
   cwd: string | undefined
   t: (key: SkillCenterLocaleKey) => string
+  share: PlazaShare
+  shareBusy: boolean
+  shareDisabled: boolean
   onToggle(skill: SkillEntry, enabled: boolean): void
   onDelete(skill: SkillEntry): void
+  onShare(skill: SkillEntry): void
+  onUnshare(skill: SkillEntry, id: number): void
 }): ReactNode {
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState<BodyState>({ kind: 'loading' })
@@ -109,6 +121,9 @@ function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
   // listing spans every workspace a session names — so its origin is shown rather
   // than left to look like it belongs to the workspace on screen.
   const foreign = skill.isActiveWorkspace === false && skill.workspaceName !== undefined
+  const shareLabel = share.status === 'approved' ? t('plaza.statusApproved')
+    : share.status === 'pending' ? t('plaza.statusPending')
+      : share.status === 'rejected' ? t('plaza.statusRejected') : t('plaza.statusLocal')
   // What a user opens a card to read, in the order that answers "where does this come from and
   // when does it fire". A bundled skill has neither a when-to-use line nor a path — it ships
   // inside the runtime — so its level and provider are what the disclosure can state.
@@ -118,7 +133,7 @@ function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
   if (skill.provider !== undefined) details.push({ key: 'detail.provider', value: skill.provider })
   if (skill.path !== undefined) details.push({ key: 'detail.path', value: skill.path })
   return (
-    <li className={foreign ? css.card + ' ' + css.cardForeign : css.card}>
+    <li className={foreign ? css.card + ' ' + css.cardForeign : css.card} data-skill-name={skill.name} data-plaza-status={share.status}>
       <div className={css.cardHead}>
         <span className={css.cardIcon}><IconSkillOutlineRegular size={16} /></span>
         <div className={css.cardTitleRow}>
@@ -126,12 +141,22 @@ function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
           {skill.workspaceName === undefined ? null : (
             <span className={css.workspaceBadge}>{skill.workspaceName}</span>
           )}
+          <span
+            className={css.plazaBadge + ' ' + (share.status === 'approved' ? css.plazaBadgeApproved : share.status === 'rejected' ? css.plazaBadgeRejected : share.status === 'pending' ? css.plazaBadgePending : css.plazaBadgeLocal)}
+            data-plaza-status={share.status}
+          >
+            {shareLabel}
+          </span>
+          {share.status === 'approved' ? <span className={css.plazaSharedTag} data-plaza-shared>{t('plaza.sharedTag')}</span> : null}
         </div>
       </div>
       <div className={css.cardBody}>
         {/* One line of copy on a card: the summary a translation carries, and the
             registry description when there is no translation to summarize. */}
         <div className={css.cardSummary}>{skill.i18n?.summary ?? skill.description}</div>
+        {share.status === 'rejected' && share.record?.reviewNote !== undefined ? (
+          <div className={css.plazaReason}>{t('plaza.reason')}: {share.record.reviewNote}</div>
+        ) : null}
         <div className={css.cardMarks}>
           <span className={skill.modelInvocable ? css.mark + ' ' + css.markOn : css.mark + ' ' + css.markOff}>
             {t('skill.modelInvocable')}
@@ -151,6 +176,16 @@ function SkillCard({ skill, api, cwd, t, onToggle, onDelete }: {
           onClick={() => { onToggle(skill, !skill.modelInvocable) }}
         />
         <div className={css.cardActions}>
+          {canSubmit(share.status) ? (
+            <Button variant="primary" size="sm" disabled={shareBusy || shareDisabled} onClick={() => { onShare(skill) }}>
+              {share.status === 'rejected' ? t('plaza.resubmit') : t('plaza.share')}
+            </Button>
+          ) : null}
+          {share.sharedByMe && share.record !== undefined ? (
+            <Button variant="outline" size="sm" disabled={shareBusy} onClick={() => { if (share.record !== undefined) onUnshare(skill, share.record.id) }}>
+              {t('plaza.unshare')}
+            </Button>
+          ) : null}
           {skill.path === undefined || skill.linked === true ? null : (
             <Button variant="outline" size="sm" onClick={() => { onDelete(skill) }}>
               {t('action.delete')}
@@ -212,6 +247,25 @@ export function SkillCenterPage({
   const [progress, setProgress] = useState<TranslationProgress | undefined>(undefined)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ name: '', description: '', whenToUse: '', content: '', root: 'user' as 'user' | 'project' })
+  // Sharing is DataOps state, fetched through the same-origin bridge. A 503
+  // keeps every card local and disables publishing rather than inventing a
+  // pending/approved status.
+  const [plaza, setPlaza] = useState<
+    | { kind: 'loading' }
+    | { kind: 'ready'; records: Map<string, PlazaSkill> }
+    | { kind: 'unavailable' }
+    | { kind: 'failed'; message: string }
+  >({ kind: 'loading' })
+  const [shareTarget, setShareTarget] = useState<SkillEntry | null>(null)
+  const [shareInstruction, setShareInstruction] = useState('')
+  const [shareTags, setShareTags] = useState('')
+  const [shareLoading, setShareLoading] = useState(false)
+  const [shareBusy, setShareBusy] = useState(false)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [reviewScope, setReviewScope] = useState<ReviewScope | undefined>(undefined)
+  const [departments, setDepartments] = useState<Department[]>([])
+  const [shareVisibility, setShareVisibility] = useState<PlazaVisibility>('private')
+  const [shareDepartment, setShareDepartment] = useState<string | undefined>(undefined)
   // `ui-workspace` publishes this seat through `slots.provideRoot`, so every root-scope
   // component receives it; the type is read from the runtime share rather than
   // hand-declared, because this package does not own the seat's declaration.
@@ -235,7 +289,32 @@ export function SkillCenterPage({
     }
   }, [api, scope])
 
+  const loadPlaza = useCallback(async (): Promise<void> => {
+    try {
+      const rows = await api.plazaMine()
+      setPlaza({ kind: 'ready', records: new Map(rows.map(row => [row.name, row])) })
+    } catch (error) {
+      if (error instanceof PlazaUnavailableError) setPlaza({ kind: 'unavailable' })
+      else setPlaza({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
+    }
+  }, [api])
+
   useEffect(() => { void load() }, [load])
+  useEffect(() => { void loadPlaza() }, [loadPlaza])
+  useEffect(() => {
+    let cancelled = false
+    void api.reviewContext()
+      .then(async (scope) => {
+        if (cancelled) return
+        setReviewScope(scope)
+        if (scope.canReviewGlobal === true) {
+          const rows = await api.departments()
+          if (!cancelled) setDepartments(rows)
+        }
+      })
+      .catch(() => { /* No review context: private is the only safe option. */ })
+    return () => { cancelled = true }
+  }, [api])
 
   // Progress is read once per panel open: the translation script rewrites its record as it
   // advances, and reloading is what a user checking a running batch already does.
@@ -247,6 +326,16 @@ export function SkillCenterPage({
     return () => { cancelled = true }
   }, [api])
 
+  const plazaRecords = plaza.kind === 'ready' ? plaza.records : new Map<string, PlazaSkill>()
+  const visibilityOptions = allowedVisibilities(reviewScope)
+  const role = scopeRole(reviewScope)
+  const ownCode = ownDepartment(reviewScope)
+  const departmentChoices = role === 'admin' && departments.length > 0
+    ? departments
+    : (reviewScope?.departmentPath ?? []).filter(node => node.code !== '')
+  const selectableDepartments = role === 'admin'
+    ? departmentChoices
+    : ownCode === undefined ? [] : [{ code: ownCode, name: departmentChoices.find(node => node.code === ownCode)?.name ?? ownCode }]
   const groups: Group[] = useMemo(() => {
     if (state.kind !== 'ready') return []
     const q = query.trim().toLowerCase()
@@ -287,6 +376,91 @@ export function SkillCenterPage({
       setState({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
     }
   }, [api, load, t])
+
+  const openShare = useCallback((skill: SkillEntry): void => {
+    setShareTarget(skill)
+    setShareInstruction('')
+    setShareTags('')
+    setShareError(null)
+    const saved = readSavedScope(window.localStorage, scopeStorageKey(readAccountIdentity()))
+    const choice = sanitizeChoice(saved, reviewScope, departments)
+    setShareVisibility(choice.visibility)
+    setShareDepartment(choice.departmentCode)
+    setShareLoading(true)
+    void api.content(skill.name, skill.path, scope)
+      .then((payload) => { setShareInstruction(payload.content) })
+      .catch((error: unknown) => { setShareError(t('plaza.failed') + ': ' + (error instanceof Error ? error.message : String(error))) })
+      .finally(() => { setShareLoading(false) })
+  }, [api, departments, reviewScope, scope, t])
+
+  useEffect(() => {
+    if (shareTarget === null || reviewScope === undefined) return
+    const saved = readSavedScope(window.localStorage, scopeStorageKey(readAccountIdentity()))
+    const choice = sanitizeChoice(saved, reviewScope, departments)
+    setShareVisibility(choice.visibility)
+    setShareDepartment(choice.departmentCode)
+  }, [reviewScope, departments, shareTarget])
+
+  const closeShare = useCallback((): void => {
+    if (shareBusy) return
+    setShareTarget(null)
+    setShareError(null)
+  }, [shareBusy])
+
+  const submitShare = useCallback(async (): Promise<void> => {
+    if (shareTarget === null) return
+    if (shareInstruction.trim() === '') {
+      setShareError(t('plaza.instruction') + ' required')
+      return
+    }
+    setShareBusy(true)
+    setShareError(null)
+    try {
+      const tags = shareTags.split(/[,，]/u).map(tag => tag.trim()).filter(tag => tag !== '')
+      const choice = {
+        visibility: shareVisibility,
+        ...(shareVisibility === 'department' && shareDepartment !== undefined ? { departmentCode: shareDepartment } : {}),
+      }
+      await api.plazaSubmit({
+        name: shareTarget.name,
+        description: shareTarget.description,
+        instruction: shareInstruction,
+        ...(tags.length === 0 ? {} : { tags }),
+        ...choice,
+      })
+      writeSavedScope(window.localStorage, scopeStorageKey(readAccountIdentity()), choice)
+      setShareTarget(null)
+      await loadPlaza()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (shareVisibility === 'global' && /403|forbidden|权限/i.test(message)) {
+        const fallback = sanitizeChoice({ visibility: 'department' }, reviewScope, departments)
+        setShareVisibility(fallback.visibility)
+        setShareDepartment(fallback.departmentCode)
+        setShareError(t('plaza.scopeForbidden'))
+      } else {
+        setShareError(error instanceof PlazaUnavailableError ? t('plaza.unavailable') : t('plaza.failed') + ': ' + message)
+      }
+    } finally {
+      setShareBusy(false)
+    }
+  }, [api, departments, loadPlaza, reviewScope, shareDepartment, shareInstruction, shareTags, shareTarget, shareVisibility, t])
+
+  const unshare = useCallback(async (_skill: SkillEntry, id: number): Promise<void> => {
+    if (!window.confirm(t('plaza.unshareConfirm'))) return
+    setShareBusy(true)
+    setShareError(null)
+    try {
+      await api.plazaUnshare(id)
+      await loadPlaza()
+    } catch (error) {
+      setShareError(error instanceof PlazaUnavailableError
+        ? t('plaza.unavailable')
+        : t('plaza.failed') + ': ' + (error instanceof Error ? error.message : String(error)))
+    } finally {
+      setShareBusy(false)
+    }
+  }, [api, loadPlaza, t])
 
   /** Bind one draft key to a change handler. */
   const set = useCallback((key: 'name' | 'description' | 'whenToUse' | 'content') =>
@@ -378,6 +552,86 @@ export function SkillCenterPage({
         </div>
       </Modal>
 
+      <Modal
+        open={shareTarget !== null}
+        onClose={closeShare}
+        title={t('plaza.dialogTitle')}
+        closeLabel={t('action.close')}
+        className={css.dialog as string}
+        footer={(
+          <>
+            <Button variant="outline" disabled={shareBusy} onClick={closeShare}>{t('action.cancel')}</Button>
+            <Button variant="primary" disabled={shareBusy || shareLoading} onClick={() => { void submitShare() }}>{t('plaza.submit')}</Button>
+          </>
+        )}
+      >
+        {shareTarget === null ? null : (
+          <div className={css.form} data-share-dialog={shareTarget.name}>
+            <DraftField label={t('create.name')}>
+              <input className={css.input} value={shareTarget.name} readOnly />
+            </DraftField>
+            <DraftField label={t('create.description')}>
+              <input className={css.input} value={shareTarget.description} readOnly />
+            </DraftField>
+            <DraftField label={t('plaza.tags')}>
+              <input className={css.input} value={shareTags} placeholder={t('plaza.tagsPlaceholder')} onChange={(event) => { setShareTags(event.target.value) }} />
+            </DraftField>
+
+            <DraftField label={t('plaza.visibility')}>
+              <select
+                className={css.input}
+                value={shareVisibility}
+                data-share-visibility
+                onChange={(event) => {
+                  const visibility = event.target.value as PlazaVisibility
+                  setShareVisibility(visibility)
+                  if (visibility === 'department') {
+                    setShareDepartment(shareDepartment ?? ownCode ?? selectableDepartments[0]?.code)
+                  }
+                }}
+              >
+                {visibilityOptions.includes('global') ? <option value="global">{t('plaza.visibilityGlobal')}</option> : null}
+                {visibilityOptions.includes('department') ? <option value="department">{t('plaza.visibilityDepartment')}</option> : null}
+                <option value="private">{t('plaza.visibilityPrivate')}</option>
+              </select>
+            </DraftField>
+            {shareVisibility === 'department' ? (
+              <DraftField label={t('plaza.department')}>
+                <select
+                  className={css.input}
+                  value={shareDepartment ?? selectableDepartments[0]?.code ?? ''}
+                  data-share-department
+                  disabled={role !== 'admin' || selectableDepartments.length <= 1}
+                  onChange={(event) => { setShareDepartment(event.target.value) }}
+                >
+                  {selectableDepartments.map(department => (
+                    <option key={department.code} value={department.code}>{department.name}</option>
+                  ))}
+                </select>
+              </DraftField>
+            ) : null}
+            <div className={css.plazaScopeHint}>{role === 'admin' ? t('plaza.scopeHintAdmin') : t('plaza.scopeHintUser')}</div>
+            <DraftField label={t('plaza.instruction')}>
+              <textarea
+                className={css.textarea}
+                value={shareInstruction}
+                readOnly={shareLoading}
+                placeholder={shareLoading ? t('plaza.contentLoading') : undefined}
+                onChange={(event) => { setShareInstruction(event.target.value) }}
+              />
+            </DraftField>
+            {shareError === null ? null : <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>}
+          </div>
+        )}
+      </Modal>
+
+      {plaza.kind === 'unavailable' ? (
+        <div className={css.status} role="status" data-plaza-unavailable>{t('plaza.unavailable')}</div>
+      ) : null}
+      {shareError !== null && shareTarget === null ? (
+        <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>
+      ) : null}
+
       {/* The shared input atom, so the box carries the panel's icon, radius, and
           focus ring rather than a second local control. */}
       <Input
@@ -427,8 +681,13 @@ export function SkillCenterPage({
                 api={api}
                 cwd={state.kind === 'ready' ? state.payload.cwd : scope}
                 t={t}
+                share={shareOf(skill.name, plazaRecords)}
+                shareBusy={shareBusy}
+                shareDisabled={plaza.kind === 'unavailable'}
                 onToggle={(s, enabled) => { void toggle(s, enabled) }}
                 onDelete={(s) => { void remove(s) }}
+                onShare={openShare}
+                onUnshare={(s, id) => { void unshare(s, id) }}
               />
             ))}
           </ul>

@@ -88,6 +88,8 @@ export class TeamMailbox {
     const membership = this.roster.tryMembership(agent)
     if (membership === undefined) return
     const state = this.journal.state(membership.root)
+    if (membership.role === 'teammate'
+      && state.members.find(member => member.id === agent.id)?.archived === true) return
     const messages = state.messages.filter(message =>
       !state.delivered.includes(message.id)
       && (membership.role === 'lead' || message.targetId === agent.id))
@@ -257,6 +259,11 @@ export class TeamMailbox {
         if (recorded) {
           await this.markDelivered(root, message.id, message.targetId)
           return true
+        }
+        // Archiving is final for delivery: a queued item never cold-resumes an
+        // archived member, so an archived target keeps no new Activation.
+        if (this.journal.state(root).members.find(member => member.id === message.targetId)?.archived === true) {
+          return false
         }
       }
       await steerHostSubagentPrompt(this.ctx.subagents, root, message.targetId, content, source, signal)

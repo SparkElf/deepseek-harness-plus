@@ -4,6 +4,7 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { ScheduleAccessConfig } from './types.ts'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-session-persistence'
 // Type-only: resolves ctx.sessionProjections for the optional projection child.
@@ -32,6 +33,12 @@ export {
 } from './domain.ts'
 export { registerScheduleTools } from './tools.ts'
 
+/** Schedule plugin configuration. */
+export interface Config {
+  /** Deployment role and owner labels used by management-tool authorization. */
+  readonly access?: ScheduleAccessConfig
+}
+
 /** Cordis function-plugin name. */
 export const name = 'schedule'
 /** Services required before future root agents can receive Schedule. */
@@ -40,7 +47,7 @@ export const inject = ['agents', 'sessions', 'tools', 'sessionPersistence']
 type OwnerCleanup = () => void | Promise<void>
 
 /** Install Schedule only for root agents published after this plugin loads. */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config = {}): void {
   ctx.inject(['sessionProjections'], (projectionCtx) => {
     projectionCtx.sessionProjections.register(scheduleProjectionDefinition)
   })
@@ -53,7 +60,7 @@ export function apply(ctx: Context): void {
       if (stopping || runtimes.has(agent) || !ctx.agents.roots().includes(agent)) return
       const runtime = new ScheduleRuntime(ctx, agent)
       const cleanup: OwnerCleanup = agent.ctx.effect(() => {
-        const disposeTools = registerScheduleTools(ctx, agent.ctx, agent, () => { runtime.requestDrive() })
+        const disposeTools = registerScheduleTools(ctx, agent.ctx, agent, () => { runtime.requestDrive() }, config.access)
         const stopStatus = agent.ctx.on('agent/status', ({ status }) => {
           if (status === 'idle' && agent.session.snapshotEvents().some(event => event.type === 'schedule/change')) {
             runtime.requestDrive()

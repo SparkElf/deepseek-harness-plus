@@ -60,7 +60,7 @@ function created(record: ScheduleRecord, seq: SessionSeq): SessionEvent {
 describe('Schedule Session projection', () => {
   it('matches an empty replay, preserves creation order, and applies every terminal transition', () => {
     let projected: ScheduleProjectionState = scheduleProjectionDefinition.init(RESTORE_HEADER, SessionLogOffset(0))
-    expect(projected).toEqual({ inheritedEventCount: 0, active: [], seenIds: [] })
+    expect(projected).toEqual({ inheritedEventCount: 0, active: [], seenIds: [], paused: [] })
     expect(scheduleProjectionDefinition.wire.view(projected)).toEqual(foldScheduleEvents([]).active)
 
     const events: SessionEvent[] = [
@@ -140,7 +140,7 @@ describe('Schedule Session projection', () => {
       SessionLogOffset(0),
     )
     expect(resumed.snapshot.values.schedule?.map(record => record.id)).toEqual(['two'])
-    expect(resumed.checkpoint.schedule).toMatchObject({ ver: 2, seq: 2 })
+    expect(resumed.checkpoint.schedule).toMatchObject({ ver: 3, seq: 2 })
 
     expect(() => ctx.sessionProjections.restore(
       {},

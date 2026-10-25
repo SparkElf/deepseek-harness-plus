@@ -3,17 +3,18 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { Agent, AgentOptions } from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import { SessionLogOffset, SessionId, type Session, type SessionEvent } from '@deepseek-ai/dsh-session'
 import JsonlSessionPersistence from '@deepseek-ai/dsh-session-persistence-jsonl'
 import SubagentService from '@deepseek-ai/dsh-subagent'
 import { deliverSubagentPrompt, type HostPromptDeliverer } from '@deepseek-ai/dsh-subagent/internal'
 import * as SubagentFork from '@deepseek-ai/dsh-subagent-fork-in-process'
 import * as SubagentSpawn from '@deepseek-ai/dsh-subagent-spawn-in-process'
-import { MockAdapter, textResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
+import { MockAdapter, textResponse, toolCallResponse } from '../../../core/agent-loop/tests/mock-adapter.ts'
 import TeamService, { TeamError, TeamId, TeamMessageId, TeamTaskId } from '../src/index.ts'
 import { TeamRuntimeLifecycle } from '../src/lifecycle.ts'
 import { teamProjectionDefinition } from '../src/projection.ts'
@@ -58,6 +59,7 @@ async function storedEvents(ctx: Context, id: SessionId): Promise<readonly Sessi
 async function setup(
   script: ConstructorParameters<typeof MockAdapter>[0],
   config: ConstructorParameters<typeof TeamService>[1] = {},
+  leadOptions: AgentOptions = { provider: 'mock', model: 'mock' },
 ) {
   const ctx = new Context()
   await mountAgentLoopTestDependencies(ctx)
@@ -72,7 +74,7 @@ async function setup(
   const teamFiber = await ctx.plugin(TeamService, config)
   const adapter = new MockAdapter(script)
   ctx.llm.registerAdapter(['mock'], adapter)
-  const lead = await ctx.agentLoop.create(SessionId('lead'), { provider: 'mock', model: 'mock' })
+  const lead = await ctx.agentLoop.create(SessionId('lead'), leadOptions)
   return { ctx, lead, adapter, storageRoot, teamFiber }
 }
 
@@ -86,11 +88,14 @@ interface TeamServiceInternals {
     checkpointInitialPrompt(childId: SessionId, messageId: string, signal: AbortSignal): Promise<void>
     reconcileProvisioning(root: Agent, signal: AbortSignal): Promise<void>
     liveChildrenByRoot(): Map<Agent, SessionId[]>
+    installSelection(agent: Agent): void
+    stopTeammates(root: Agent, childIds: readonly SessionId[]): Promise<void>
   }
   readonly mailbox: {
     tryDispatch(root: Agent, message: TeamMessageSnapshot, signal: AbortSignal): Promise<boolean>
     serializeDispatch(message: TeamMessageSnapshot, operation: () => Promise<boolean>): Promise<boolean>
     markDelivered(root: Agent, messageId: ReturnType<typeof TeamMessageId>, targetId: SessionId): Promise<void>
+    recoverFor(agent: Agent, signal: AbortSignal): Promise<void>
   }
   readonly journal: {
     state(root: Agent): unknown
@@ -109,7 +114,13 @@ function spawn(
   ctx: Context,
   lead: Agent,
   name: string,
-  options: { context?: 'fresh' | 'fork'; provider?: string } = {},
+  options: {
+    context?: 'fresh' | 'fork'
+    provider?: string
+    modelProvider?: string
+    model?: string
+    reasoningEffort?: string
+  } = {},
 ) {
   const context = options.context ?? 'fresh'
   return ctx.agentTeams.spawnTeammate(lead, {
@@ -118,8 +129,35 @@ function spawn(
     prompt: content(`${name} initial`),
     context,
     provider: options.provider ?? (context === 'fork' ? 'fork' : 'spawn'),
+    ...options.modelProvider === undefined ? {} : { modelProvider: options.modelProvider },
+    ...options.model === undefined ? {} : { model: options.model },
+    ...options.reasoningEffort === undefined ? {} : { reasoningEffort: options.reasoningEffort },
     signal: SIGNAL,
   })
+}
+
+/**
+ * Adapter that holds its first request until the test changes the member route,
+ * then answers with one tool call so the same turn reaches a second request.
+ */
+class RouteGateAdapter extends LlmAdapter {
+  readonly requests: GenerateOptions[] = []
+  private readonly gate = Promise.withResolvers<undefined>()
+
+  /** Release the first request and continue the turn. */
+  release(): void {
+    this.gate.resolve(undefined)
+  }
+
+  async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    this.requests.push(options)
+    if (this.requests.length === 1) {
+      await this.gate.promise
+      for (const chunk of toolCallResponse('route-gate-call', 'team_task_list', {})) yield chunk
+      return
+    }
+    for (const chunk of textResponse('route gate finished')) yield chunk
+  }
 }
 
 async function waitNoAgent(ctx: Context, id: SessionId): Promise<void> {
@@ -395,8 +433,8 @@ describe('Team identity and provisioning', () => {
       messageId: createUserMessage({ content: content('accepted'), source: { kind: 'user' } }).id,
     }))
     const inactive = await spawn(first.ctx, first.lead, 'instant-worker')
-    expect(inactive.member).toMatchObject({ status: 'inactive', diagnostics: [] })
-    expect(inactive.member).not.toHaveProperty('model')
+    expect(inactive.member).toMatchObject({ status: 'inactive', diagnostics: [], model: 'mock' })
+    expect(inactive.member).not.toHaveProperty('reasoningEffort')
 
     const second = await setup([])
     vi.spyOn(teamInternals(second.ctx).roster, 'checkpointInitialPrompt').mockResolvedValueOnce()
@@ -544,6 +582,330 @@ describe('Team identity and provisioning', () => {
     expect(second.ctx.agentTeams.tryMembership(child.agent)).toBeUndefined()
     journal.state = state
     await child.dispose()
+  })
+})
+
+describe('Team member model selection and archival', () => {
+  it('persists an inherited or explicit LLM route for inactive rows', async () => {
+    const { ctx, lead } = await setup([textResponse('inherited'), textResponse('explicit')])
+    const inherited = await spawn(ctx, lead, 'inherited-worker')
+    await waitNoAgent(ctx, inherited.member.id)
+    expect(inherited.member).toMatchObject({ modelProvider: 'mock', model: 'mock' })
+    expect(ctx.agentTeams.listMembers(lead)[1]).toMatchObject({
+      name: 'inherited-worker',
+      status: 'inactive',
+      modelProvider: 'mock',
+      model: 'mock',
+    })
+
+    const explicit = await spawn(ctx, lead, 'explicit-worker', {
+      modelProvider: 'mock',
+      model: 'worker-model',
+    })
+    await waitNoAgent(ctx, explicit.member.id)
+    expect(ctx.agentTeams.listMembers(lead)[2]).toMatchObject({
+      name: 'explicit-worker',
+      status: 'inactive',
+      modelProvider: 'mock',
+      model: 'worker-model',
+    })
+  })
+
+  it('applies a live route update to the next step of the same turn', async () => {
+    const { ctx, lead } = await setup([])
+    const adapter = new RouteGateAdapter()
+    ctx.llm.registerAdapter(['gate'], adapter)
+    const started = await spawn(ctx, lead, 'live-route', { modelProvider: 'gate', model: 'model-a' })
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(1) }, { timeout: 5_000 })
+    expect(adapter.requests[0]).toMatchObject({ provider: 'gate', model: 'model-a' })
+
+    const updated = await ctx.agentTeams.updateTeammate(lead, {
+      target: 'live-route',
+      model: 'model-b',
+    })
+    expect(updated).toMatchObject({ modelProvider: 'gate', model: 'model-b', status: 'running' })
+    expect(ctx.agentTeams.listMembers(lead)[1]).toMatchObject({ modelProvider: 'gate', model: 'model-b' })
+
+    adapter.release()
+    await vi.waitFor(() => { expect(adapter.requests).toHaveLength(2) }, { timeout: 5_000 })
+    expect(adapter.requests[1]).toMatchObject({ provider: 'gate', model: 'model-b' })
+    const messages = JSON.stringify(adapter.requests[1]!.messages)
+    expect(messages).toContain('model changed')
+    expect(messages).toContain('model-a')
+    expect(messages).toContain('model-b')
+    await waitNoAgent(ctx, started.member.id)
+    expect(durable(lead).members[0]).toMatchObject({ modelProvider: 'gate', model: 'model-b' })
+  })
+
+  it('applies an inactive route update when the member cold-resumes', async () => {
+    const { ctx, lead } = await setup([])
+    const cold = new MockAdapter([textResponse('first'), textResponse('second')])
+    ctx.llm.registerAdapter(['cold'], cold)
+    const started = await spawn(ctx, lead, 'cold-route', { modelProvider: 'cold', model: 'cold-a' })
+    await waitNoAgent(ctx, started.member.id)
+    expect(ctx.agentTeams.listMembers(lead)[1]).toMatchObject({ status: 'inactive', model: 'cold-a' })
+
+    const updated = await ctx.agentTeams.updateTeammate(lead, {
+      target: 'cold-route',
+      model: 'cold-b',
+    })
+    expect(updated).toMatchObject({ status: 'inactive', modelProvider: 'cold', model: 'cold-b' })
+
+    await ctx.agentTeams.sendMessage(lead, {
+      target: 'cold-route',
+      content: content('continue'),
+      signal: SIGNAL,
+    })
+    await vi.waitFor(() => { expect(cold.requests).toHaveLength(2) }, { timeout: 5_000 })
+    expect(cold.requests[1]).toMatchObject({ provider: 'cold', model: 'cold-b' })
+    expect(JSON.stringify(cold.requests[1]!.messages)).toContain('model changed')
+    await waitNoAgent(ctx, started.member.id)
+  })
+
+  it('archives a teammate, rejects later traffic, and keeps its history and slot', async () => {
+    const { ctx, lead } = await setup(['hang', textResponse('remaining done')], { maxMembers: 2 })
+    const started = await spawn(ctx, lead, 'archived-worker')
+    await waitRunning(ctx, started.member.id)
+
+    await expect(ctx.agentTeams.archiveTeammate(lead, 'archived-worker'))
+      .resolves.toMatchObject({ name: 'archived-worker', archived: true })
+    await waitNoAgent(ctx, started.member.id)
+    expect(ctx.agentTeams.listMembers(lead).map(row => row.name)).toEqual(['lead'])
+    expect(ctx.agentTeams.listMembers(lead, true).map(row => row.name)).toEqual(['lead', 'archived-worker'])
+
+    await expect(ctx.agentTeams.sendMessage(lead, {
+      target: 'archived-worker',
+      content: content('late message'),
+      signal: SIGNAL,
+    })).rejects.toMatchObject({ code: 'TEAM_MEMBER_ARCHIVED' })
+    expect(() => ctx.agentTeams.interrupt(lead, 'archived-worker'))
+      .toThrow(expect.objectContaining({ code: 'TEAM_MEMBER_ARCHIVED' }))
+    await expect(ctx.agentTeams.updateTeammate(lead, {
+      target: 'archived-worker',
+      model: 'other-model',
+    })).rejects.toMatchObject({ code: 'TEAM_MEMBER_ARCHIVED' })
+    await expect(ctx.agentTeams.archiveTeammate(lead, 'archived-worker'))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_ARCHIVED' })
+    await expect(spawn(ctx, lead, 'archived-worker'))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_NAME_TAKEN' })
+
+    const remaining = await spawn(ctx, lead, 'remaining-worker')
+    await waitNoAgent(ctx, remaining.member.id)
+    await expect(spawn(ctx, lead, 'over-limit')).rejects.toMatchObject({ code: 'TEAM_MEMBER_LIMIT' })
+
+    const handle = await ctx.sessionPersistence.open(started.member.id, 'read')
+    try {
+      const stored = await handle.read()
+      expect(stored.events.some(event => event.type === 'user/message')).toBe(true)
+    } finally {
+      await handle.close()
+    }
+  })
+  it('inherits missing route fields from the Lead and rejects unusable selections', async () => {
+    const { ctx, lead } = await setup([
+      textResponse('model only'),
+      textResponse('provider only'),
+      textResponse('same route'),
+    ])
+    const modelOnly = await spawn(ctx, lead, 'model-only', { model: 'lead-provider-model' })
+    expect(modelOnly.member).toMatchObject({ modelProvider: 'mock', model: 'lead-provider-model' })
+    await waitNoAgent(ctx, modelOnly.member.id)
+
+    const providerOnly = await spawn(ctx, lead, 'provider-only', { modelProvider: 'mock' })
+    expect(providerOnly.member).toMatchObject({ modelProvider: 'mock', model: 'mock' })
+    await waitNoAgent(ctx, providerOnly.member.id)
+
+    const sameRoute = await spawn(ctx, lead, 'same-route', { modelProvider: 'mock', model: 'mock' })
+    expect(sameRoute.member).toMatchObject({ modelProvider: 'mock', model: 'mock' })
+    expect(sameRoute.member).not.toHaveProperty('reasoningEffort')
+    await waitNoAgent(ctx, sameRoute.member.id)
+
+    await expect(spawn(ctx, lead, 'empty-model', { model: '   ' }))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_MODEL_SELECTION' })
+  })
+
+  it('resolves updates against the member route and reports unusable members', async () => {
+    const { ctx, lead } = await setup([])
+    const legacy = {
+      id: SessionId('legacy-child'),
+      name: 'legacy-worker',
+      description: 'legacy worker',
+      provider: 'spawn',
+      context: 'fresh' as const,
+    }
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...legacy, phase: 'provisioning' },
+    })
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...legacy, phase: 'active' },
+    })
+    const failed = {
+      id: SessionId('failed-child'),
+      name: 'failed-worker',
+      description: 'failed worker',
+      provider: 'spawn',
+      context: 'fresh' as const,
+    }
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...failed, phase: 'provisioning' },
+    })
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...failed, phase: 'failed', error: 'creation failed' },
+    })
+    await ctx.sessions.flush(lead.session)
+
+    const updated = await ctx.agentTeams.updateTeammate(lead, { target: 'legacy-worker', model: 'legacy-model' })
+    expect(updated).toMatchObject({ modelProvider: 'mock', model: 'legacy-model' })
+    const providerOnly = await ctx.agentTeams.updateTeammate(lead, { target: 'legacy-worker', modelProvider: 'mock' })
+    expect(providerOnly).toMatchObject({ modelProvider: 'mock', model: 'legacy-model' })
+    const effortOnly = await ctx.agentTeams.updateTeammate(lead, { target: 'legacy-worker', reasoningEffort: 'max' })
+    expect(effortOnly).toMatchObject({ modelProvider: 'mock', model: 'legacy-model', reasoningEffort: 'max' })
+    const sameRoute = await ctx.agentTeams.updateTeammate(lead, { target: 'legacy-worker', model: 'legacy-model' })
+    expect(sameRoute).toMatchObject({ modelProvider: 'mock', model: 'legacy-model', reasoningEffort: 'max' })
+
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'legacy-worker' }))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_MODEL_SELECTION' })
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'lead', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_TARGET' })
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'missing', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_NOT_FOUND' })
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'failed-worker', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_NOT_ACTIVE' })
+  })
+
+  it('rejects route resolution when neither the member nor the Lead has a route', async () => {
+    const { ctx, lead } = await setup([], {}, {})
+    const legacy = {
+      id: SessionId('routeless-child'),
+      name: 'routeless-worker',
+      description: 'routeless worker',
+      provider: 'spawn',
+      context: 'fresh' as const,
+    }
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...legacy, phase: 'provisioning' },
+    })
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...legacy, phase: 'active' },
+    })
+    await ctx.sessions.flush(lead.session)
+
+    await expect(ctx.agentTeams.updateTeammate(lead, { target: 'routeless-worker', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_MODEL_SELECTION' })
+    await expect(spawn(ctx, lead, 'routeless-spawn', { model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_MODEL_SELECTION' })
+
+    await expect(spawn(ctx, lead, 'routeless-child'))
+      .rejects.toMatchObject({ code: 'TEAM_INVALID_MODEL_SELECTION' })
+  })
+
+  it('lists a Lead reasoning effort chosen at creation', async () => {
+    const { ctx, lead } = await setup([], {}, {
+      provider: 'mock',
+      model: 'mock',
+      reasoningEffort: ReasoningEffortId('max'),
+    })
+    expect(ctx.agentTeams.listMembers(lead)[0]).toMatchObject({
+      name: 'lead',
+      modelProvider: 'mock',
+      model: 'mock',
+      reasoningEffort: 'max',
+    })
+  })
+
+  it('rejects member route changes from non-Lead callers and after disposal', async () => {
+    const { ctx, lead } = await setup(['hang'])
+    const started = await spawn(ctx, lead, 'member-caller')
+    const worker = await waitRunning(ctx, started.member.id)
+    await expect(ctx.agentTeams.updateTeammate(worker, { target: 'member-caller', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_LEAD_REQUIRED' })
+    await expect(ctx.agentTeams.archiveTeammate(worker, 'member-caller'))
+      .rejects.toMatchObject({ code: 'TEAM_LEAD_REQUIRED' })
+    ctx.agentTeams.interrupt(lead, 'member-caller')
+    await waitNoAgent(ctx, started.member.id)
+
+    const disposed = await setup([])
+    await teamInternals(disposed.ctx).disposeRuntime()
+    await expect(disposed.ctx.agentTeams.updateTeammate(disposed.lead, { target: 'missing', model: 'other' }))
+      .rejects.toMatchObject({ code: 'TEAM_DISPOSED' })
+    await expect(disposed.ctx.agentTeams.archiveTeammate(disposed.lead, 'missing'))
+      .rejects.toMatchObject({ code: 'TEAM_DISPOSED' })
+  })
+
+  it('rejects archiving a provisioning member', async () => {
+    const { ctx, lead } = await setup([])
+    const provisioning = {
+      id: SessionId('provisioning-child'),
+      name: 'provisioning-worker',
+      description: 'provisioning worker',
+      provider: 'spawn',
+      context: 'fresh' as const,
+      phase: 'provisioning' as const,
+    }
+    lead.session.append('team/member', { version: 2, teamId: TeamId(lead.id), member: provisioning })
+    await ctx.sessions.flush(lead.session)
+    await expect(ctx.agentTeams.archiveTeammate(lead, 'provisioning-worker'))
+      .rejects.toMatchObject({ code: 'TEAM_MEMBER_PROVISIONING' })
+  })
+
+  it('ignores the durable route for an archived member on session start and mailbox recovery', async () => {
+    const { ctx, lead } = await setup(['hang'])
+    const started = await spawn(ctx, lead, 'archived-live')
+    await waitRunning(ctx, started.member.id)
+    const member = durable(lead).members[0]
+    if (member === undefined) throw new Error('spawned member is missing')
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...member, archived: true },
+    })
+    await ctx.sessions.flush(lead.session)
+    const worker = ctx.agents.get(started.member.id)
+    if (worker === undefined) throw new Error('spawned member is not live')
+    teamInternals(ctx).roster.installSelection(worker)
+    await teamInternals(ctx).mailbox.recoverFor(worker, SIGNAL)
+    await teamInternals(ctx).roster.stopTeammates(lead, [started.member.id])
+    await waitNoAgent(ctx, started.member.id)
+  })
+
+  it('never cold-resumes an archived member for a queued message', async () => {
+    const { ctx, lead } = await setup([textResponse('done')])
+    const started = await spawn(ctx, lead, 'cold-archived')
+    await waitNoAgent(ctx, started.member.id)
+    const member = durable(lead).members[0]
+    if (member === undefined) throw new Error('spawned member is missing')
+    lead.session.append('team/member', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      member: { ...member, archived: true },
+    })
+    const message: TeamMessageSnapshot = {
+      id: TeamMessageId('cold-archived-message'),
+      senderId: lead.id,
+      senderName: 'lead',
+      targetId: started.member.id,
+      content: content('late message'),
+    }
+    lead.session.append('team/message/queued', {
+      version: 2,
+      teamId: TeamId(lead.id),
+      message,
+    })
+    await ctx.sessions.flush(lead.session)
+    await expect(teamInternals(ctx).mailbox.tryDispatch(lead, message, SIGNAL)).resolves.toBe(false)
+    expect(ctx.agents.get(started.member.id)).toBeUndefined()
   })
 })
 

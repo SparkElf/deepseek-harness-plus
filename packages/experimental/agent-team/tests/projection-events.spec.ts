@@ -128,6 +128,16 @@ describe('Agent Teams projection events', () => {
       teamId: TEAM,
       member: member({ phase: 'failed' }),
     }, SessionSeq(2))])).toThrow(/invalid active -> failed/)
+    expect(() => projectTeam(ROOT, [base, event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({ phase: 'active', archived: true }),
+    }, SessionSeq(1))])).toThrow(/invalid provisioning -> active/)
+    expect(() => projectTeam(ROOT, [event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({ archived: true }),
+    }, SessionSeq(0))])).toThrow(/must not begin archived/)
 
     const duplicateName = member({ id: SessionId('child-b') })
     expect(() => projectTeam(ROOT, [base, event('team/member', {
@@ -135,6 +145,46 @@ describe('Agent Teams projection events', () => {
       teamId: TEAM,
       member: duplicateName,
     }, SessionSeq(1))])).toThrow(/name .* reused/)
+  })
+
+  it('projects member route updates and archival while retaining legacy payloads', () => {
+    const legacy = member()
+    expect(legacy).not.toHaveProperty('model')
+    const base = event('team/member', { version: 2, teamId: TEAM, member: legacy }, SessionSeq(0))
+    const active = event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({
+        phase: 'active',
+        modelProvider: 'mock',
+        model: 'model-a',
+        reasoningEffort: 'max',
+      }),
+    }, SessionSeq(1))
+    const updated = event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({ phase: 'active', modelProvider: 'mock', model: 'model-b' }),
+    }, SessionSeq(2))
+    const archived = event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({ phase: 'active', modelProvider: 'mock', model: 'model-b', archived: true }),
+    }, SessionSeq(3))
+    const state = projectTeam(ROOT, [base, active, updated, archived])
+    expect(state.members[0]).toMatchObject({
+      phase: 'active',
+      modelProvider: 'mock',
+      model: 'model-b',
+      archived: true,
+    })
+    expect(state.members[0]).not.toHaveProperty('reasoningEffort')
+
+    expect(() => projectTeam(ROOT, [base, active, updated, archived, event('team/member', {
+      version: 2,
+      teamId: TEAM,
+      member: member({ phase: 'active', modelProvider: 'mock', model: 'model-c' }),
+    }, SessionSeq(4))])).toThrow(/changed after archival/)
   })
 
   it('enforces task revision continuity', () => {
@@ -278,6 +328,10 @@ describe('Agent Teams projection events', () => {
       {
         ...event('team/member', { version: 2, teamId: TEAM, member: member() }, SessionSeq(0)),
         data: { version: 2, teamId: TEAM, member: member(), unexpected: true },
+      },
+      {
+        ...event('team/member', { version: 2, teamId: TEAM, member: member() }, SessionSeq(0)),
+        data: { version: 2, teamId: TEAM, member: { ...member(), modelProvider: 42 } },
       },
       {
         ...event('team/task', { version: 2, teamId: TEAM, task: task() }, SessionSeq(0)),

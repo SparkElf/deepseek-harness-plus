@@ -41,7 +41,7 @@
 | `@deepseek-ai/dsh-tool-subagent` | `list_subagent_models`、`subagent` | `ctx.tools`、`ctx.subagents`、`ctx.systemPrompt`、`用于模型发现和所选路由校验的 ctx.llm` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的委派工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述默认 schema 关闭模型选择，而发现 schema 则展示为已启用 Session 中可用的固定配套工具。Web preset 会在每个新顶层 Session 创建时读取插件页偏好，并为其子 Session 保留该决定；`subagent_fork` 始终使用固定路由。每个实例通过 `modelSelectionSettings`、`backgroundMode` 与 `enableRunInBackground` 独立控制是否读取模型选择设置及其后台行为。 |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
-| `@deepseek-ai/dsh-experimental-tool-agent-team` | `interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 9 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
+| `@deepseek-ai/dsh-experimental-tool-agent-team` | `archive_teammate`、`interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`update_teammate`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 11 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
 | `@deepseek-ai/dsh-tool-web` | `web_fetch`、`web_search` | `ctx.tools`、`ctx.web`、`ctx.systemPrompt` | `tool/call`、`tool/result` | - | web_search 和 web_fetch 将提供方选择置于 ctx.web 之后，使模型可见 schema 在更换后端时保持稳定。 |
@@ -1792,6 +1792,27 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 ## `@deepseek-ai/dsh-experimental-tool-agent-team`
 
+### `archive_teammate`
+
+归档一名 teammate：它离开活动 roster 并停止接收消息，但其 Session、名字与历史都会保留。名字继续保留，归档成员仍占用成员名额。仅 Team Lead 可用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "string",
+      "description": "Teammate name."
+    }
+  },
+  "required": [
+    "target"
+  ]
+}
+```
+
+来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
 ### `interrupt_agent`
 
 中断一名 teammate 的当前 turn，同时保留其待处理 inbox。仅 Team Lead 可用。
@@ -1815,12 +1836,17 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 ### `list_agents`
 
-列出 Lead 与所有持久 teammate，以及各自当前的运行时状态。
+列出 Lead 与所有持久 teammate，以及各自当前的运行时状态。除非 `include_archived` 为 true，否则省略归档 teammate。`provider` 字段是 subagent provider；`modelProvider` 是 LLM 路由。
 
 ```json
 {
   "type": "object",
-  "properties": {}
+  "properties": {
+    "include_archived": {
+      "type": "boolean",
+      "description": "Include archived teammates. Defaults to false; archived rows keep their history but cannot receive messages."
+    }
+  }
 }
 ```
 
@@ -1854,7 +1880,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 ### `spawn_teammate`
 
-创建一名具名、持久的 teammate。只有 Team Lead 可以调用此工具。
+创建一名具名、持久的 teammate。只有 Team Lead 可以调用此工具。省略 provider、model 与 reasoning_effort 时继承 Lead 的当前路由；只提供其中一部分时，每个缺失值都从 Lead 继承。
 
 ```json
 {
@@ -1879,6 +1905,18 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
         "fresh",
         "fork"
       ]
+    },
+    "provider": {
+      "type": "string",
+      "description": "LLM provider route for the teammate's model. Omit to inherit the Lead's provider."
+    },
+    "model": {
+      "type": "string",
+      "description": "Provider-owned model id for the teammate. Omit to inherit the Lead's model."
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "description": "Adapter-owned reasoning effort for the selected model. Omit to inherit the Lead's effort; changing the route without it uses the model default."
     }
   },
   "required": [
@@ -2058,6 +2096,39 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
 
+### `update_teammate`
+
+修改一名 teammate 的 LLM provider、model 或 reasoning effort。变更会持久保存，并应用到该 teammate 的下一次请求，包括恢复之后。仅 Team Lead 可用。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "target": {
+      "type": "string",
+      "description": "Teammate name."
+    },
+    "provider": {
+      "type": "string",
+      "description": "Replacement LLM provider route. Omit to keep the member's current provider."
+    },
+    "model": {
+      "type": "string",
+      "description": "Replacement provider-owned model id. Omit to keep the member's current model."
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "description": "Replacement adapter-owned reasoning effort. Omit when changing the route to use the new model's default effort."
+    }
+  },
+  "required": [
+    "target"
+  ]
+}
+```
+
+来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
+
 ### `wait_agent`
 
 等待本次调用开始后下一次 teammate 状态、mailbox 或共享任务变更。它绝不会唤醒 inactive member；若没有其他 member 正在 running 或 provisioning，则立即返回 noProgress。唤醒或超时后应重新列出状态，而不是轮询。
@@ -2076,7 +2147,7 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 
 来源：[`packages/experimental/tool-agent-team/src/index.ts`](../packages/experimental/tool-agent-team/src/index.ts)
 
-这 10 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。
+这 11 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。
 
 
 <a id="deepseek-aidsh-tool-todo"></a>
