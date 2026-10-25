@@ -12,9 +12,11 @@ import type {
   EveryScheduleRecord,
   LocalAtInput,
   OneShotScheduleRecord,
+  ScheduleAuditRecord,
   ScheduleChange,
   ScheduleId as ScheduleIdType,
   ScheduleRecord,
+  ScheduleRunRecord,
   ScheduleView,
 } from './types.ts'
 
@@ -93,6 +95,8 @@ export interface FoldedSchedules {
   readonly active: readonly ScheduleRecord[]
   /** Every id ever created in this session-local suffix. */
   readonly seenIds: readonly ScheduleIdType[]
+  /** Active ids whose delivery is paused. */
+  readonly paused: readonly ScheduleIdType[]
 }
 
 /** One latest-only fixed-rate decision derived without enumerating a backlog. */
@@ -458,6 +462,84 @@ function decodeScheduleRecord(value: unknown): ScheduleRecord {
   }
 }
 
+/** Require every required key and no key outside the required-plus-optional set. */
+function hasKeys(value: Record<string, unknown>, required: readonly string[], optional: readonly string[] = []): boolean {
+  const keys = Object.keys(value)
+  return required.every(key => key in value)
+    && keys.every(key => required.includes(key) || optional.includes(key))
+}
+
+/** Decode one strict durable run-log entry. */
+function decodeRunRecord(value: unknown): ScheduleRunRecord {
+  if (!isRecord(value)
+    || !hasKeys(value, ['runId', 'scheduleId', 'at', 'status', 'trigger'], ['error', 'durationMs'])) {
+    throw new ScheduleLogError('schedule run must contain runId, scheduleId, at, status, and trigger, with optional error and durationMs')
+  }
+  if (typeof value['runId'] !== 'string' || value['runId'].length === 0) {
+    throw new ScheduleLogError('schedule run runId must be a non-empty string')
+  }
+  const status = value['status']
+  if (status !== 'dispatched' && status !== 'triggered' && status !== 'failed') {
+    throw new ScheduleLogError('schedule run status must be dispatched, triggered, or failed')
+  }
+  const trigger = value['trigger']
+  if (trigger !== 'due' && trigger !== 'manual') {
+    throw new ScheduleLogError('schedule run trigger must be due or manual')
+  }
+  const error = value['error']
+  if (error !== undefined && typeof error !== 'string') {
+    throw new ScheduleLogError('schedule run error must be a string')
+  }
+  const durationMs = value['durationMs']
+  if (durationMs !== undefined && (!Number.isSafeInteger(durationMs) || (durationMs as number) < 0)) {
+    throw new ScheduleLogError('schedule run durationMs must be a non-negative safe integer')
+  }
+  return Object.freeze({
+    runId: value['runId'],
+    scheduleId: decodeId(value['scheduleId']),
+    at: decodeInstant(value['at']),
+    status,
+    trigger,
+    ...error === undefined ? {} : { error },
+    ...durationMs === undefined ? {} : { durationMs: durationMs as number },
+  })
+}
+
+/** Decode one strict durable audit entry. */
+function decodeAuditRecord(value: unknown): ScheduleAuditRecord {
+  if (!isRecord(value)
+    || !hasKeys(value, ['auditId', 'actor', 'action', 'outcome', 'at'], ['scheduleId', 'detail'])) {
+    throw new ScheduleLogError('schedule audit must contain auditId, actor, action, outcome, and at, with optional scheduleId and detail')
+  }
+  if (typeof value['auditId'] !== 'string' || value['auditId'].length === 0) {
+    throw new ScheduleLogError('schedule audit auditId must be a non-empty string')
+  }
+  if (typeof value['actor'] !== 'string' || value['actor'].length === 0) {
+    throw new ScheduleLogError('schedule audit actor must be a non-empty string')
+  }
+  const action = value['action']
+  if (action !== 'update' && action !== 'pause' && action !== 'resume' && action !== 'run_now') {
+    throw new ScheduleLogError('schedule audit action must be update, pause, resume, or run_now')
+  }
+  const outcome = value['outcome']
+  if (outcome !== 'allowed' && outcome !== 'rejected' && outcome !== 'failed') {
+    throw new ScheduleLogError('schedule audit outcome must be allowed, rejected, or failed')
+  }
+  const detail = value['detail']
+  if (detail !== undefined && typeof detail !== 'string') {
+    throw new ScheduleLogError('schedule audit detail must be a string')
+  }
+  return Object.freeze({
+    auditId: value['auditId'],
+    actor: value['actor'],
+    action,
+    outcome,
+    at: decodeInstant(value['at']),
+    ...value['scheduleId'] === undefined ? {} : { scheduleId: decodeId(value['scheduleId']) },
+    ...detail === undefined ? {} : { detail },
+  })
+}
+
 /**
  * Decode one strict version-1 `schedule/change` payload.
  * @param value - Untrusted durable JSON value.
@@ -488,6 +570,44 @@ export function decodeScheduleChange(value: unknown): ScheduleChange {
         id: decodeId(value['id']),
       })
     }
+    case 'update':
+      if (!hasExactKeys(value, ['version', 'operation', 'schedule'])) {
+        throw new ScheduleLogError('schedule update must contain exactly version, operation, and schedule')
+      }
+      return Object.freeze({
+        version: SCHEDULE_CHANGE_VERSION,
+        operation: 'update',
+        schedule: decodeScheduleRecord(value['schedule']),
+      })
+    case 'pause':
+    case 'resume': {
+      if (!hasExactKeys(value, ['version', 'operation', 'id'])) {
+        throw new ScheduleLogError(`schedule ${value['operation']} must contain exactly version, operation, and id`)
+      }
+      return Object.freeze({
+        version: SCHEDULE_CHANGE_VERSION,
+        operation: value['operation'],
+        id: decodeId(value['id']),
+      })
+    }
+    case 'run':
+      if (!hasExactKeys(value, ['version', 'operation', 'run'])) {
+        throw new ScheduleLogError('schedule run must contain exactly version, operation, and run')
+      }
+      return Object.freeze({
+        version: SCHEDULE_CHANGE_VERSION,
+        operation: 'run',
+        run: decodeRunRecord(value['run']),
+      })
+    case 'audit':
+      if (!hasExactKeys(value, ['version', 'operation', 'audit'])) {
+        throw new ScheduleLogError('schedule audit must contain exactly version, operation, and audit')
+      }
+      return Object.freeze({
+        version: SCHEDULE_CHANGE_VERSION,
+        operation: 'audit',
+        audit: decodeAuditRecord(value['audit']),
+      })
     case 'dispatch': {
       if (hasExactKeys(value, ['version', 'operation', 'id'])) {
         return Object.freeze({
@@ -507,7 +627,7 @@ export function decodeScheduleChange(value: unknown): ScheduleChange {
       throw new ScheduleLogError('schedule dispatch must contain id and optional acceptedAt only')
     }
     default:
-      throw new ScheduleLogError('schedule/change operation must be create, delete, or dispatch')
+      throw new ScheduleLogError('schedule/change operation must be create, delete, dispatch, update, pause, resume, run, or audit')
   }
 }
 
@@ -583,6 +703,7 @@ export function applyScheduleChanges(
 ): FoldedSchedules {
   const active = new Map(folded.active.map(record => [record.id, record]))
   const seen = new Set(folded.seenIds)
+  const paused = new Set(folded.paused)
   for (const change of changes) {
     switch (change.operation) {
       case 'create':
@@ -596,6 +717,30 @@ export function applyScheduleChanges(
         if (!active.delete(change.id)) {
           throw new ScheduleLogError(`schedule delete targets inactive id ${JSON.stringify(change.id)}`)
         }
+        paused.delete(change.id)
+        break
+      case 'update':
+        if (!active.has(change.schedule.id)) {
+          throw new ScheduleLogError(`schedule update targets inactive id ${JSON.stringify(change.schedule.id)}`)
+        }
+        active.set(change.schedule.id, change.schedule)
+        break
+      case 'pause':
+        if (!active.has(change.id)) {
+          throw new ScheduleLogError(`schedule pause targets inactive id ${JSON.stringify(change.id)}`)
+        }
+        if (paused.has(change.id)) {
+          throw new ScheduleLogError(`schedule pause targets already paused id ${JSON.stringify(change.id)}`)
+        }
+        paused.add(change.id)
+        break
+      case 'resume':
+        if (!active.has(change.id)) {
+          throw new ScheduleLogError(`schedule resume targets inactive id ${JSON.stringify(change.id)}`)
+        }
+        if (!paused.delete(change.id)) {
+          throw new ScheduleLogError(`schedule resume targets a reminder that is not paused ${JSON.stringify(change.id)}`)
+        }
         break
       case 'dispatch': {
         const record = active.get(change.id)
@@ -603,10 +748,16 @@ export function applyScheduleChanges(
           throw new ScheduleLogError(`schedule dispatch targets inactive id ${JSON.stringify(change.id)}`)
         }
         const next = dispatchedRecord(record, change)
-        if (next === undefined) active.delete(change.id)
+        if (next === undefined) {
+          active.delete(change.id)
+          paused.delete(change.id)
+        }
         else active.set(change.id, next)
         break
       }
+      case 'run':
+      case 'audit':
+        break
       /* v8 ignore next 3 -- decodeScheduleChange returns a closed operation union. */
       default: {
         const unreachable: never = change
@@ -617,6 +768,7 @@ export function applyScheduleChanges(
   return Object.freeze({
     active: Object.freeze([...active.values()]),
     seenIds: Object.freeze([...seen]),
+    paused: Object.freeze([...paused]),
   })
 }
 
@@ -638,6 +790,7 @@ export function foldScheduleEvents(
   const initial: FoldedSchedules = Object.freeze({
     active: Object.freeze([]),
     seenIds: Object.freeze([]),
+    paused: Object.freeze([]),
   })
   const changes = function* (): Generator<ScheduleChange> {
     for (const event of events.slice(inheritedEventCount)) {
@@ -788,12 +941,14 @@ export function createEveryScheduleRecord(
  * Derive one execution-local management view.
  * @param record - Active durable record.
  * @param now - Wall-clock sample used for its timing state.
+ * @param enabled - Whether the reminder participates in due delivery.
  * @returns Complete session-local view.
  */
-export function scheduleView(record: ScheduleRecord, now: number): ScheduleView {
+export function scheduleView(record: ScheduleRecord, now: number, enabled = true): ScheduleView {
   return Object.freeze({
     ...record,
     state: now >= Date.parse(record.scheduledAt) ? 'overdue' : 'scheduled',
+    enabled,
     deliveryMode: 'session-local',
   })
 }

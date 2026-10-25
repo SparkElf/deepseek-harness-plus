@@ -38,6 +38,11 @@ patch_targets() {
         'node_modules/@deepseek-ai/dsh-native-command' \
         'packages/util/native-command'
       ;;
+    workflow-plaza-tab)
+      printf '%s\n' \
+        'node_modules/@deepseek-ai/dsh-client-ui-schedule' \
+        'packages/client/ui-schedule'
+      ;;
     *) return 1 ;;
   esac
 }
@@ -47,6 +52,8 @@ patch_marker() {
   case "$1" in
     image-offload-lenient-replay) printf '%s' 'positionsAreAuthoritative' ;;
     native-command-reveal) printf '%s' 'child.once("spawn"' ;;
+    # The plaza tab's own locale key: present in lib/client.js only once this patch ran.
+    workflow-plaza-tab) printf '%s' 'statusFilter.plaza' ;;
     *) return 1 ;;
   esac
 }

@@ -14,14 +14,23 @@ interface TeamMemberSnapshot {
   readonly id: SessionId
   readonly name: string
   readonly description: string
+  /** Continuable-subagent provider that created this member. */
   readonly provider: string
   readonly context: 'fresh' | 'fork'
   readonly phase: TeamMemberPhase
+  /** LLM provider route selected for this member; absent on records created before member model selection. */
+  readonly modelProvider?: string
+  /** Provider-owned model id selected for this member; absent on records created before member model selection. */
+  readonly model?: string
+  /** Adapter-owned reasoning effort for {@link model}; absence selects the model's default. */
+  readonly reasoningEffort?: string
+  /** Whether the Lead archived this member; archived members keep their Session, name, and roster slot. */
+  readonly archived?: boolean
   readonly error?: string
 }
 ```
 
-每个 member 都从 `provisioning` 开始，并且只到达一个终态 roster phase：`active` 或 `failed`。运行时 `running`／`idle`／`inactive` 状态单独派生，绝不会重写该记录。
+每个 member 都从 `provisioning` 开始，并且只到达一个终态 roster phase：`active` 或 `failed`。运行时 `running`／`idle`／`inactive` 状态单独派生，绝不会重写该记录。`archived` 与 phase 正交：归档行离开默认 roster 读取，但保留其 Session、名字与成员名额，且归档是终态。可选的 `modelProvider`、`model` 与 `reasoningEffort` 记录持久 LLM 路由；没有这些字段的旧日志仍可读，只报告 live Session 路由。
 
 ## 持久 mailbox
 
@@ -102,17 +111,34 @@ membership(agent: Agent): TeamMembership
 /**
  * List the runtime-enriched roster visible to one Team member.
  * @param agent - exact live Team member.
+ * @param includeArchived - whether archived teammates are retained in the result.
  * @returns Lead and teammate rows in creation order.
  */
-listMembers(agent: Agent): TeamMemberView[]
+listMembers(agent: Agent, includeArchived: boolean = false): TeamMemberView[]
 
 /**
  * Create one named, continuable direct child of the Team Lead.
  * @param caller - exact live Lead Agent.
- * @param request - immutable name, description, prompt, context mode, provider, and cancellation.
+ * @param request - immutable identity, prompt, context mode, subagent provider, LLM route, and cancellation.
  * @returns the active roster row.
  */
 async spawnTeammate(caller: Agent, request: SpawnTeammateRequest): Promise<SpawnTeammateResult>
+
+/**
+ * Change one teammate's durable LLM route.
+ * @param caller - exact live Lead Agent.
+ * @param request - target name and replacement provider, model, or reasoning effort.
+ * @returns the committed member row.
+ */
+async updateTeammate(caller: Agent, request: UpdateTeammateRequest): Promise<TeamMemberView>
+
+/**
+ * Archive one teammate while retaining its Session, name, and roster slot.
+ * @param caller - exact live Lead Agent.
+ * @param targetName - durable teammate name.
+ * @returns the archived member row.
+ */
+async archiveTeammate(caller: Agent, targetName: string): Promise<TeamMemberView>
 
 /**
  * Queue one durable peer message, then attempt immediate delivery.

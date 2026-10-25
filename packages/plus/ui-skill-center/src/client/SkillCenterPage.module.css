@@ -111,7 +111,10 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-  align-items: start;
+  /* Equal-height rows: every card in a row stretches to the tallest, so the
+     action row lands on one line instead of following each card's text. */
+  grid-auto-rows: 1fr;
+  align-items: stretch;
   gap: 12px;
   margin: 0;
   padding: 0;
@@ -126,7 +129,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  align-self: start;
+  height: 100%;
+  min-height: 0;
   padding: 12px;
   border: 0.5px solid var(--dsw-alias-border-l2);
   border-radius: 10px;
@@ -186,6 +190,7 @@
    allowed to shrink away, because the name is what identifies the card. */
 .cardTitleRow {
   display: flex;
+  min-height: 26px;
   align-items: center;
   gap: 8px;
   flex: 1;
@@ -194,6 +199,7 @@
 
 .cardMarks {
   display: flex;
+  min-height: 18px;
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
@@ -237,6 +243,20 @@
   align-items: center;
   gap: 4px;
   flex: none;
+}
+
+/* One action size across the card: the primary 上架/重新提交 button must not be
+   taller than the outline 删除/详情 buttons. Color remains the variant's job. */
+.cardActions button {
+  height: 28px;
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .detailRow {
@@ -388,6 +408,8 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Reserve the two-line box so a one-line summary does not shorten the card. */
+  min-height: 36px;
 }
 
 /* The skill's own Markdown in the detail dialog, as the file holds it. It scrolls
@@ -475,4 +497,59 @@
   color: var(--dsw-alias-label-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+/* Plaza sharing state on a local skill card. */
+.plazaBadge {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.plazaBadgeLocal {
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.plazaBadgePending {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.plazaBadgeApproved {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.plazaBadgeRejected {
+  color: var(--dsw-alias-label-error);
+  background: var(--dsw-alias-bg-secondary);
+}
+
+.plazaSharedTag {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-secondary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.plazaReason {
+  margin-top: 4px;
+  color: var(--dsw-alias-label-error);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Visibility scope hint under the publish dialog's selects. */
+.plazaScopeHint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
 }

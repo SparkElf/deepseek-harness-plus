@@ -1652,6 +1652,9 @@ importers:
 
   packages/bundle/plus:
     dependencies:
+      '@deepseek-ai/dsh-atomic-write':
+        specifier: workspace:^
+        version: link:../../util/atomic-write
       '@deepseek-ai/dsh-tool-session-query':
         specifier: workspace:>=0.2.1-rc.2
         version: link:../../session-query/tool-session-query
@@ -1664,6 +1667,9 @@ importers:
       '@sparkelf/dsh-patch-approval-allow-policy':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/approval-allow-policy
+      '@sparkelf/dsh-patch-atomic-write-zombie-lock-holder':
+        specifier: workspace:>=0.2.1-alpha.1
+        version: link:../../../patches/npm/atomic-write-zombie-lock-holder
       '@sparkelf/dsh-patch-better-locale-peer-range':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-locale-peer-range
@@ -11373,6 +11379,8 @@ importers:
         version: link:../../typert/protocol
 
   patches/npm/approval-allow-policy: {}
+
+  patches/npm/atomic-write-zombie-lock-holder: {}
 
   patches/npm/better-locale-peer-range: {}
 

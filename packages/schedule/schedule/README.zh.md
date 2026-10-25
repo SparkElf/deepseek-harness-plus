@@ -1,5 +1,5 @@
 ---
-description: "面向用户与维护者的会话本地持久提醒说明：schedule_create、schedule_list 与 schedule_delete 工具及 live owner 交付，用于选择、配置或排查本包。"
+description: "面向用户与维护者的会话本地持久提醒说明：create/list/get/update/pause/resume/run_now/logs/delete 工具、管理员跨会话列表、审批与审计，以及 live owner 交付，用于选择、配置或排查本包。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-Schedule 让你向模型请求持久提醒；提醒会作为普通 follow-up 消息返回同一会话。你可以创建延时或绝对时间的一次性提醒、按固定间隔重复提醒、列出待处理提醒，也可以取消提醒。提醒在重启后仍然存在，但交付需要 live 根 agent：已关闭的会话会让提醒保持逾期，直到恢复。交付绝不会使用电子邮件、短信、推送或浏览器通知。启用 Schedule overlay 即可提供提醒工具和活动提醒目录；侧边栏闹钟只是已知活动提醒的尽力而为指示，不证明提醒交付当前正在运行。
+Schedule 让你向模型请求持久提醒；提醒会作为普通 follow-up 消息返回同一会话。你可以创建延时或绝对时间的一次性提醒、按固定间隔重复提醒，然后读取、修改、暂停、恢复、立即运行、查看运行日志和取消提醒。部署还可以为管理员开放按部门限定的跨会话清单。提醒在重启后仍然存在，但交付需要 live 根 agent：已关闭的会话会让提醒保持逾期，直到恢复。交付绝不会使用电子邮件、短信、推送或浏览器通知。启用 Schedule overlay 即可提供提醒工具和活动提醒目录；侧边栏闹钟只是已知活动提醒的尽力而为指示，不证明提醒交付当前正在运行。
 
 ## 目录
 
@@ -47,7 +47,13 @@ dsh web --patch apps/cli/config/examples/schedule/cordis.yml
 
 一次性提醒有两种形式：延时后——例如「30 分钟后」——或绝对时间，可以给出带显式偏移量的时刻，如 `2026-09-01T15:00:00+08:00`，也可以给出带命名时区（如 `Europe/Berlin`）的本地日期与时间（只有加载 time-context overlay 时才应用浏览器时区）。重复提醒按至少 5 分钟的固定间隔运行，并与你首次设置的时间保持对齐。每条提醒都需要在触发时展示的内容。
 
-创建成功会返回带 id、目标时间、状态与交付模式的提醒；`schedule_list` 按创建顺序显示所有待处理提醒；按 id 取消会移除待处理提醒，未知或已结束的 id 会报告 `schedule_not_found` 且不改变任何内容。
+创建成功会返回带 id、目标时间、状态、启用标记与交付模式的提醒；`schedule_list` 按创建顺序显示所有待处理提醒；按 id 取消会移除待处理提醒，未知或已结束的 id 会报告 `schedule_not_found` 且不改变任何内容。
+
+### 管理提醒
+
+`schedule_get` 返回单条提醒及其最近一次运行回执。`schedule_update` 可改 prompt、替换规则（目标时间从当前时刻重新计算）或切换 `enabled`；`schedule_pause` 与 `schedule_resume` 保留记录和历史；`schedule_run_now` 立即排队一次 follow-up 并返回 run id；`schedule_logs` 列出最近运行的时间、状态、触发方式、受控错误与耗时。所有管理写操作都要求审批（`allowed-once`）并追加持久审计回执；没有审批服务时写操作以 `approval_unavailable` 失败关闭。
+
+配置了角色的管理员可以跨 Session 调用 `schedule_list_all`。`super_admin` 与 `admin` 可按 `department`、`user` 过滤；`dept_admin` 被强制限定在本部门，请求其他范围返回 `forbidden`；普通 `user` 只能管理自己的 Session。部署通过插件 `access` 配置提供该策略（角色、默认 owner、可选的逐 Session owner 覆盖）；过滤条件由 Host 校验，模型无法放宽。`schedule_logs` 只有在相同管理员范围内才接受其他 `session_id`。
 
 无法成为提醒的输入——空提示词、多于一个 selector、无效时区、非未来或超出范围的时间、低于 5 分钟的重复间隔——会返回稳定的错误代码而不是成功。生成的[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-schedule)拥有每个工具接受的精确参数。
 
@@ -67,7 +73,7 @@ dsh web --patch apps/cli/config/examples/schedule/cordis.yml
 
 ### 作用域与组合
 
-插件声明 `inject = ['agents', 'sessions', 'tools', 'sessionPersistence']`，因此缺少持久化服务会直接构成组合错误。它只观察加载后发布的 `agent/created` 事件，在这些根 agent 上安装，并通过完全相同的 `agent.ctx` 注册全部三个工具；加载时已经 live 的 agent 与运行时子 agent 永远不会获得 Schedule。
+插件声明 `inject = ['agents', 'sessions', 'tools', 'sessionPersistence']`，因此缺少持久化服务会直接构成组合错误。它只观察加载后发布的 `agent/created` 事件，在这些根 agent 上安装，并通过完全相同的 `agent.ctx` 注册全部十个工具；加载时已经 live 的 agent 与运行时子 agent 永远不会获得 Schedule。
 
 Time-context 不是 Schedule 的依赖。官方 Web overlay 挂载 `@deepseek-ai/dsh-time-context`，让模型能够按浏览器请求本地时区解释自然语言；但模型仍必须向 `schedule_create` 传入显式偏移量或 `time_zone`；Schedule 绝不会从模型上下文导入或推断该值。
 
@@ -88,6 +94,8 @@ Session projection 是可选能力。`ctx.sessionProjections` 存在时，插件
 |---|---|
 | [`src/index.ts`](src/index.ts) | 插件入口：`inject`、`agent/created` 观察、按根的 runtime 与工具安装 |
 | [`src/tools.ts`](src/tools.ts) | 工具定义、preflight、序列化事务、封闭错误联合 |
+| [`src/access.ts`](src/access.ts) | 部署角色/owner 策略、管理员范围、审批门 |
+| [`src/history.ts`](src/history.ts) | 基于 dispatch 与 run 回执的运行日志投影 |
 | [`src/domain.ts`](src/domain.ts) | 严格解码、折叠、时间校验、framing、occurrence 算术 |
 | [`src/runtime.ts`](src/runtime.ts) | live timer owner：maintenance 认领、follow-up、dispatch barrier |
 | [`src/persistence.ts`](src/persistence.ts) | Schedule 对共享会话持久化 barrier 的使用 |
@@ -98,11 +106,11 @@ Session projection 是可选能力。`ctx.sessionProjections` 存在时，插件
 
 ### 持久状态与回放
 
-普通会话折叠完整事件流。fork 只折叠 `session.ownEvents()`，因此子会话永远不会继承父会话的提醒。Schedule projection 从投影注册表接收 Session 的精确 `inheritedEventCount`，并在该切点之后应用同一个 transition 函数。每条 create 记录都携带稳定的会话本地 `ScheduleId`、已 trim 的提示词与四位年份 RFC 3339 UTC `scheduledAt`；`after` 记录还存储 `afterSeconds`，`at` 记录不保留所提交的偏移量或本地字段，`every` 记录存储 `everySeconds`，并把 `scheduledAt` 视为尚未 dispatch 的最早创建锚点对齐发生时点。delete 与一次性 dispatch 只携带 id；`every` dispatch 会附加 `acceptedAt`，回放直接推进到该决策时点之后的第一个锚点对齐目标。
+普通会话折叠完整事件流。fork 只折叠 `session.ownEvents()`，因此子会话永远不会继承父会话的提醒。Schedule projection 从投影注册表接收 Session 的精确 `inheritedEventCount`，并在该切点之后应用同一个 transition 函数。每条 create 记录都携带稳定的会话本地 `ScheduleId`、已 trim 的提示词与四位年份 RFC 3339 UTC `scheduledAt`；`update` 原位替换记录，`pause`/`resume` 把 id 移入/移出暂停集合，`run`/`audit` 是只追加、不改变活动 fold 的回执；`after` 记录还存储 `afterSeconds`，`at` 记录不保留所提交的偏移量或本地字段，`every` 记录存储 `everySeconds`，并把 `scheduledAt` 视为尚未 dispatch 的最早创建锚点对齐发生时点。delete 与一次性 dispatch 只携带 id；`every` dispatch 会附加 `acceptedAt`，回放直接推进到该决策时点之后的第一个锚点对齐目标。
 
 ### 客户端 projection
 
-可选的 `schedule` projection 将 `{ inheritedEventCount, active, seenIds }` 作为严格的纯 JSON 检查点，并且只发布完整的 `active` 数组。其 schema 复用持久 Schedule decoder，拒绝重复或不一致的 id，并让损坏的持久事件通过既有 Session 读取失败传播，而不是发布部分目录。live 惰性构建、事件驱动构建、cold restore、history 读取与 detached Subagent 读取都使用精确 Session 切点与同一套自有后缀 transition。
+可选的 `schedule` projection 将 `{ inheritedEventCount, active, seenIds, paused }` 作为严格的纯 JSON 检查点，并且只发布完整的 `active` 数组。其 schema 复用持久 Schedule decoder，拒绝重复或不一致的 id，并让损坏的持久事件通过既有 Session 读取失败传播，而不是发布部分目录。live 惰性构建、事件驱动构建、cold restore、history 读取与 detached Subagent 读取都使用精确 Session 切点与同一套自有后缀 transition。
 
 projection 只携带持久记录。它不持久化或传输 scheduled／overdue 状态、本地化文本、相对时间、浏览器本地时间、排序状态、popover 状态、runtime 存活或交付回执。[`dsh-client-ui-schedule`](../../client/ui-schedule/README.zh.md) 从完整数组与查看方浏览器时钟派生目录呈现。[`dsh-client-ui-workspace`](../../client/ui-workspace/README.zh.md) 只派生列表值是否为非空数组，因此持久 projection cache 缺失或陈旧时，普通行与搜索结果的闹钟可能短暂漏显或残留。
 
@@ -114,7 +122,7 @@ projection 只携带持久记录。它不持久化或传输 scheduled／overdue 
 
 一条 agent 范围的队列把每项已接纳的管理事务与 live owner 的到期事务从 preflight 到任何 post-append barrier 全程串行化。`schedule_create` 建立检查点、分配永不复用的 id、追加 create 事件，再次建立检查点；被取消的调用方在追加前停止。每次成功的管理 preflight 还会要求 live owner 重新计算，这会在先前的 post-append barrier 返回 `persistence_uncertain` 后恢复所保留的 create 或 delete 批次。
 
-每项从折叠结果读取或作出判断的操作都会先等待 `ctx.sessions.flush(session)`；持久化路径缺失、被拒绝或已分离时返回 `persistence_uncertain`，create 与实际 delete 在追加后还会等待第二个 barrier 再确认变更。只依赖输入形状的失败会在序列化事务之前被验证。输入、时间与持久化失败会返回一组封闭的稳定版本 1 错误代码；该封闭联合及各代码的触发条件位于 [`src/tools.ts`](src/tools.ts)。
+每项从折叠结果读取或作出判断的操作都会先等待 `ctx.sessions.flush(session)`；持久化路径缺失、被拒绝或已分离时返回 `persistence_uncertain`，create 与实际 delete 在追加后还会等待第二个 barrier 再确认变更。只依赖输入形状的失败会在序列化事务之前被验证。输入、时间、授权、审批与持久化失败会返回一组封闭的稳定版本 1 错误代码；该封闭联合及各代码的触发条件位于 [`src/tools.ts`](src/tools.ts)。部署访问策略来自可选的 `access` 插件配置；修改后需重载 profile；没有逐 Session owner 覆盖时，Session 使用配置的默认 owner（或自身 id）。
 
 ### live owner
 

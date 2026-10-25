@@ -10,6 +10,7 @@ import { errorMessage, TeamError } from './error.ts'
 import { TeamJournal } from './journal.ts'
 import { TeamRuntimeLifecycle } from './lifecycle.ts'
 import { TeamMailbox } from './mailbox.ts'
+import { TeamMemberModelSelection } from './model-selection.ts'
 import { teamProjectionDefinition } from './projection.ts'
 import { TeamRoster } from './roster.ts'
 import type { TeamMembership } from './roster.ts'
@@ -27,6 +28,7 @@ import type {
   TeamTaskView,
   TeamView,
   TeamWaitResult,
+  UpdateTeammateRequest,
   UpdateTeamTaskRequest,
 } from './types.ts'
 
@@ -73,6 +75,7 @@ export class TeamService extends TypertRemoteService {
   private readonly activity: TeamActivity
   private readonly lifecycle: TeamRuntimeLifecycle
   private readonly journal: TeamJournal
+  private readonly memberSelection: TeamMemberModelSelection
   private readonly roster: TeamRoster
   private readonly mailbox: TeamMailbox
   private readonly tasks: TeamTaskBoard
@@ -96,7 +99,14 @@ export class TeamService extends TypertRemoteService {
     this.activity = new TeamActivity()
     this.lifecycle = new TeamRuntimeLifecycle(this.config.disposalTimeoutMs)
     this.journal = new TeamJournal(ctx, (root) => { this.activity.notify(TeamId(root.id)) })
-    this.roster = new TeamRoster(ctx, this.journal, this.lifecycle, this.config.maxMembers)
+    this.memberSelection = new TeamMemberModelSelection()
+    this.roster = new TeamRoster(
+      ctx,
+      this.journal,
+      this.lifecycle,
+      this.memberSelection,
+      this.config.maxMembers,
+    )
     this.mailbox = new TeamMailbox(
       ctx,
       this.journal,
@@ -108,7 +118,11 @@ export class TeamService extends TypertRemoteService {
     this.tasks = new TeamTaskBoard(this.journal, this.config.maxTasks)
 
     ctx.on('session/event', (session, event) => { this.mailbox.observeSessionEvent(session, event) })
-    ctx.on('agent/session-start', ({ agent }) => { this.scheduleRecovery(agent) })
+    ctx.on('agent/session-start', ({ agent }) => {
+      this.roster.installSelection(agent)
+      this.scheduleRecovery(agent)
+    })
+    ctx.on('agent/disposed', ({ agent }) => { this.memberSelection.forget(agent) })
     ctx.on('agent/status', ({ agent }) => {
       const membership = this.roster.tryMembership(agent)
       if (membership !== undefined) this.activity.notify(membership.id)
@@ -123,7 +137,10 @@ export class TeamService extends TypertRemoteService {
         }
       }
     }, 'agentTeams.runtimeLifecycle()')
-    for (const agent of ctx.agents.list()) this.scheduleRecovery(agent)
+    for (const agent of ctx.agents.list()) {
+      this.roster.installSelection(agent)
+      this.scheduleRecovery(agent)
+    }
   }
 
   /**
@@ -138,20 +155,41 @@ export class TeamService extends TypertRemoteService {
   /**
    * List the runtime-enriched roster visible to one Team member.
    * @param agent - exact live Team member.
+   * @param includeArchived - whether archived teammates are retained in the result.
    * @returns Lead and teammate rows in creation order.
    */
-  listMembers(agent: Agent): TeamMemberView[] {
-    return this.roster.list(this.roster.membership(agent))
+  listMembers(agent: Agent, includeArchived: boolean = false): TeamMemberView[] {
+    return this.roster.list(this.roster.membership(agent), includeArchived)
   }
 
   /**
    * Create one named, continuable direct child of the Team Lead.
    * @param caller - exact live Lead Agent.
-   * @param request - immutable name, description, prompt, context mode, provider, and cancellation.
+   * @param request - immutable identity, prompt, context mode, subagent provider, LLM route, and cancellation.
    * @returns the active roster row.
    */
   async spawnTeammate(caller: Agent, request: SpawnTeammateRequest): Promise<SpawnTeammateResult> {
     return await this.roster.spawn(caller, request)
+  }
+
+  /**
+   * Change one teammate's durable LLM route.
+   * @param caller - exact live Lead Agent.
+   * @param request - target name and replacement provider, model, or reasoning effort.
+   * @returns the committed member row.
+   */
+  async updateTeammate(caller: Agent, request: UpdateTeammateRequest): Promise<TeamMemberView> {
+    return await this.roster.update(caller, request)
+  }
+
+  /**
+   * Archive one teammate while retaining its Session, name, and roster slot.
+   * @param caller - exact live Lead Agent.
+   * @param targetName - durable teammate name.
+   * @returns the archived member row.
+   */
+  async archiveTeammate(caller: Agent, targetName: string): Promise<TeamMemberView> {
+    return await this.roster.archive(caller, targetName)
   }
 
   /**
@@ -306,6 +344,7 @@ export class TeamService extends TypertRemoteService {
   private async disposeRuntime(): Promise<void> {
     this.lifecycle.close()
     this.activity.close()
+    this.memberSelection.dispose()
 
     const failures: unknown[] = []
     await this.lifecycle.settle(this.roster.pendingCreations(), failures)

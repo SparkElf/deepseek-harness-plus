@@ -14,14 +14,23 @@ interface TeamMemberSnapshot {
   readonly id: SessionId
   readonly name: string
   readonly description: string
+  /** Continuable-subagent provider that created this member. */
   readonly provider: string
   readonly context: 'fresh' | 'fork'
   readonly phase: TeamMemberPhase
+  /** LLM provider route selected for this member; absent on records created before member model selection. */
+  readonly modelProvider?: string
+  /** Provider-owned model id selected for this member; absent on records created before member model selection. */
+  readonly model?: string
+  /** Adapter-owned reasoning effort for {@link model}; absence selects the model's default. */
+  readonly reasoningEffort?: string
+  /** Whether the Lead archived this member; archived members keep their Session, name, and roster slot. */
+  readonly archived?: boolean
   readonly error?: string
 }
 ```
 
-Every member starts in `provisioning` and reaches exactly one terminal roster phase, `active` or `failed`. Runtime `running`/`idle`/`inactive` status is derived separately and never rewrites this record.
+Every member starts in `provisioning` and reaches exactly one terminal roster phase, `active` or `failed`. Runtime `running`/`idle`/`inactive` status is derived separately and never rewrites this record. `archived` is orthogonal to the phase: an archived row leaves default roster reads but keeps its Session, name, and member slot, and archival is terminal. The optional `modelProvider`, `model`, and `reasoningEffort` fields record the durable LLM route; logs written without them remain readable and report only the live Session route.
 
 ## Durable mailbox
 
@@ -102,17 +111,34 @@ membership(agent: Agent): TeamMembership
 /**
  * List the runtime-enriched roster visible to one Team member.
  * @param agent - exact live Team member.
+ * @param includeArchived - whether archived teammates are retained in the result.
  * @returns Lead and teammate rows in creation order.
  */
-listMembers(agent: Agent): TeamMemberView[]
+listMembers(agent: Agent, includeArchived: boolean = false): TeamMemberView[]
 
 /**
  * Create one named, continuable direct child of the Team Lead.
  * @param caller - exact live Lead Agent.
- * @param request - immutable name, description, prompt, context mode, provider, and cancellation.
+ * @param request - immutable identity, prompt, context mode, subagent provider, LLM route, and cancellation.
  * @returns the active roster row.
  */
 async spawnTeammate(caller: Agent, request: SpawnTeammateRequest): Promise<SpawnTeammateResult>
+
+/**
+ * Change one teammate's durable LLM route.
+ * @param caller - exact live Lead Agent.
+ * @param request - target name and replacement provider, model, or reasoning effort.
+ * @returns the committed member row.
+ */
+async updateTeammate(caller: Agent, request: UpdateTeammateRequest): Promise<TeamMemberView>
+
+/**
+ * Archive one teammate while retaining its Session, name, and roster slot.
+ * @param caller - exact live Lead Agent.
+ * @param targetName - durable teammate name.
+ * @returns the archived member row.
+ */
+async archiveTeammate(caller: Agent, targetName: string): Promise<TeamMemberView>
 
 /**
  * Queue one durable peer message, then attempt immediate delivery.

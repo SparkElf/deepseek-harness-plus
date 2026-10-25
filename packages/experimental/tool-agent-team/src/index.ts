@@ -56,6 +56,9 @@ const MEMBER_VIEW_SCHEMA = {
     provider: { type: 'string' },
     context: { type: 'string', enum: ['fresh', 'fork'] },
     model: { type: 'string' },
+    modelProvider: { type: 'string' },
+    reasoningEffort: { type: 'string' },
+    archived: { type: 'boolean' },
     diagnostics: { type: 'array', required: true, items: { type: 'string' } },
   },
 } as const
@@ -172,7 +175,7 @@ function install(agent: Agent, ctx: Context, config: Required<Config>): () => vo
 
     register(scoped.tools.register(defineTool({
       name: 'spawn_teammate',
-      description: 'Create one named, durable teammate. Only the Team Lead may call this tool.',
+      description: 'Create one named, durable teammate. Only the Team Lead may call this tool. Omit provider, model, and reasoning_effort to inherit the Lead\'s current route; supplying only some of them inherits each missing value from the Lead.',
       parameters: {
         name: { type: 'string', required: true, description: 'Unique lower-kebab-case teammate name.' },
         description: { type: 'string', required: true, description: 'Short description of the delegated responsibility.' },
@@ -181,6 +184,18 @@ function install(agent: Agent, ctx: Context, config: Required<Config>): () => vo
           type: 'string',
           enum: ['fresh', 'fork'],
           description: 'fresh starts without Lead history; fork inherits completed Lead turns. Defaults to fresh.',
+        },
+        provider: {
+          type: 'string',
+          description: 'LLM provider route for the teammate\'s model. Omit to inherit the Lead\'s provider.',
+        },
+        model: {
+          type: 'string',
+          description: 'Provider-owned model id for the teammate. Omit to inherit the Lead\'s model.',
+        },
+        reasoning_effort: {
+          type: 'string',
+          description: 'Adapter-owned reasoning effort for the selected model. Omit to inherit the Lead\'s effort; changing the route without it uses the model default.',
         },
       },
       output: jsonOutput(SPAWN_VALUE_SCHEMA),
@@ -193,6 +208,9 @@ function install(agent: Agent, ctx: Context, config: Required<Config>): () => vo
           prompt: [{ type: 'text', text: args.prompt }],
           context,
           provider: context === 'fork' ? config.forkProvider : config.freshProvider,
+          ...args.provider === undefined ? {} : { modelProvider: args.provider },
+          ...args.model === undefined ? {} : { model: args.model },
+          ...args.reasoning_effort === undefined ? {} : { reasoningEffort: args.reasoning_effort },
           signal: exec.signal,
         })
       },
@@ -217,11 +235,63 @@ function install(agent: Agent, ctx: Context, config: Required<Config>): () => vo
 
     register(scoped.tools.register(defineTool({
       name: 'list_agents',
-      description: 'List the Lead and every durable teammate with current runtime status.',
-      parameters: {},
+      description: 'List the Lead and every durable teammate with current runtime status. Archived teammates are omitted unless include_archived is true. The provider field is the subagent provider; modelProvider is the LLM provider route.',
+      parameters: {
+        include_archived: {
+          type: 'boolean',
+          description: 'Include archived teammates. Defaults to false; archived rows keep their history but cannot receive messages.',
+        },
+      },
       output: jsonOutput(MEMBER_LIST_VALUE_SCHEMA),
-      async execute(_args, exec) {
-        return Promise.resolve(ctx.agentTeams.listMembers(callingAgent(exec.agent, 'list_agents')))
+      async execute(args, exec) {
+        return Promise.resolve(ctx.agentTeams.listMembers(
+          callingAgent(exec.agent, 'list_agents'),
+          args.include_archived ?? false,
+        ))
+      },
+    })))
+
+    register(scoped.tools.register(defineTool({
+      name: 'update_teammate',
+      description: 'Change one teammate\'s LLM provider, model, or reasoning effort. The change persists and applies to the teammate\'s next request, including after it resumes. Team Lead only.',
+      parameters: {
+        target: { type: 'string', required: true, description: 'Teammate name.' },
+        provider: {
+          type: 'string',
+          description: 'Replacement LLM provider route. Omit to keep the member\'s current provider.',
+        },
+        model: {
+          type: 'string',
+          description: 'Replacement provider-owned model id. Omit to keep the member\'s current model.',
+        },
+        reasoning_effort: {
+          type: 'string',
+          description: 'Replacement adapter-owned reasoning effort. Omit when changing the route to use the new model\'s default effort.',
+        },
+      },
+      output: jsonOutput(MEMBER_VIEW_SCHEMA),
+      async execute(args, exec) {
+        return await ctx.agentTeams.updateTeammate(callingAgent(exec.agent, 'update_teammate'), {
+          target: args.target,
+          ...args.provider === undefined ? {} : { modelProvider: args.provider },
+          ...args.model === undefined ? {} : { model: args.model },
+          ...args.reasoning_effort === undefined ? {} : { reasoningEffort: args.reasoning_effort },
+        })
+      },
+    })))
+
+    register(scoped.tools.register(defineTool({
+      name: 'archive_teammate',
+      description: 'Archive one teammate: it leaves the active roster and stops receiving messages, while its Session, name, and history remain. Names stay reserved and archived members still count toward the member limit. Team Lead only.',
+      parameters: {
+        target: { type: 'string', required: true, description: 'Teammate name.' },
+      },
+      output: jsonOutput(MEMBER_VIEW_SCHEMA),
+      async execute(args, exec) {
+        return await ctx.agentTeams.archiveTeammate(
+          callingAgent(exec.agent, 'archive_teammate'),
+          args.target,
+        )
       },
     })))
 

@@ -1,0 +1,74 @@
+--- a/lib/client.js
++++ b/lib/client.js
+@@ -6741,10 +6741,22 @@
+ 												setStatusFilter(value);
+ 											},
+ 											children: t(value === "all" ? "statusFilter.all" : `status.${value}`)
+-										}, value))
++										}, value)).concat(props.plazaAvailable?.() === true ? [(0, react_jsx_runtime.jsx)("button", {
++												type: "button",
++												className: clsx(TaskManagerPage_module_css_default.filterTab, statusFilter === "plaza" && TaskManagerPage_module_css_default.filterTabActive),
++												"aria-pressed": statusFilter === "plaza",
++												"data-testid": "task-manager-plaza-tab",
++												onClick: () => {
++													setStatusFilter("plaza");
++												},
++												children: t("statusFilter.plaza")
++											})] : [])
+ 									})
+ 								}),
+-								(0, react_jsx_runtime.jsxs)("div", {
++								statusFilter === "plaza" ? (0, react_jsx_runtime.jsx)("div", {
++									"data-testid": "task-manager-plaza-body",
++									children: props.renderSlot("schedule.manager.tabs", {})
++								}) : (0, react_jsx_runtime.jsxs)("div", {
+ 									className: TaskManagerPage_module_css_default.searchField,
+ 									children: [(0, react_jsx_runtime.jsx)(_deepseek_ai_dsh_client_ui_primitives.Input, {
+ 										type: "search",
+@@ -6768,13 +6780,13 @@
+ 								(0, react_jsx_runtime.jsxs)("div", {
+ 									className: TaskManagerPage_module_css_default.list,
+ 									children: [
+-										selected === void 0 && (0, react_jsx_runtime.jsx)(CatalogFeedback, {
++										statusFilter !== "plaza" && selected === void 0 && (0, react_jsx_runtime.jsx)(CatalogFeedback, {
+ 											status,
+ 											populated: rows.length > 0,
+ 											onRetry,
+ 											t
+ 										}),
+-										status === "ready" && rows.length === 0 && (0, react_jsx_runtime.jsxs)("div", {
++										statusFilter !== "plaza" && status === "ready" && rows.length === 0 && (0, react_jsx_runtime.jsxs)("div", {
+ 											className: TaskManagerPage_module_css_default.empty,
+ 											role: "status",
+ 											children: [
+@@ -7071,6 +7083,7 @@
+ 			"empty.action": "New automation task",
+ 			"statusFilter.label": "Task status",
+ 			"statusFilter.all": "All",
++			"statusFilter.plaza": "Workflow plaza",
+ 			"status.active": "Enabled",
+ 			"status.inactive": "Inactive",
+ 			"detail.label": "Task details",
+@@ -7209,6 +7222,7 @@
+ 			"empty.action": "新建自动化任务",
+ 			"statusFilter.label": "任务状态",
+ 			"statusFilter.all": "全部",
++			"statusFilter.plaza": "工作流广场",
+ 			"status.active": "已开启",
+ 			"status.inactive": "已结束",
+ 			"detail.label": "任务详情",
+@@ -7474,7 +7488,14 @@
+ 				name: "main",
+ 				key: PANEL_ID,
+ 				locale: MANAGER_NS,
++				children: {
++					"schedule.manager.tabs": {
++						kind: "single",
++						scope: "root"
++					}
++				},
+ 				inject: () => ({
++					plazaAvailable: () => ctx.slots.entriesOfSlot("schedule.manager.tabs").length > 0,
+ 					...detail,
+ 					onNewTask: () => {
+ 						ctx.uiWorkspace.startSession();

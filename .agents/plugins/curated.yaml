@@ -431,3 +431,20 @@ entries:
     owner: deepseek-ai
     localPatches: []
     plusBundle: false
+  # A lock whose recorded holder became a zombie could never be taken over: the signal probe
+  # accepts a zombie's PID, so `holderExited` reported a live holder for a process that could
+  # not release it, and every later writer waited out its timeout. `/proc/<pid>/stat` names
+  # that state directly, so the probe consults it on Linux and stays signal-only elsewhere.
+  - name: "@deepseek-ai/dsh-atomic-write"
+    source:
+      kind: git
+      url: https://github.com/deepseek-ai/deepseek-harness.git
+    pinned: 687f282e8625c6b8d11ff58211a90524be2e4317
+    interest: A writer lock records a holder that exited but was not reaped as exited, so its
+      lock is taken over instead of blocking every later writer until timeout
+    owner: deepseek-ai
+    localPatches:
+      - package: "@sparkelf/dsh-patch-atomic-write-zombie-lock-holder"
+        upstreamUrl: https://github.com/deepseek-ai/deepseek-harness
+        retireWhen: dsh-atomic-write's stale-lock takeover treats a zombie holder as exited
+    plusBundle: false

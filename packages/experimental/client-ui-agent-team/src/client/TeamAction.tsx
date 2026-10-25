@@ -292,7 +292,11 @@ export function TeamAction({
                       <StateDot state={member.status === 'running' ? 'ongoing' : member.status === 'failed' ? 'error' : 'done'} />
                       <span className={css.memberText}>
                         <span>{member.name}</span>
-                        <small>{t(memberStatusKey(member.status))}{member.model === undefined ? '' : ` · ${t('model')}: ${member.model}`}</small>
+                        <small>
+                          {t(memberStatusKey(member.status))}
+                          {member.model === undefined ? '' : ` · ${t('model')}: ${member.model}`}
+                          {member.reasoningEffort === undefined ? '' : ` · ${t('effort')}: ${member.reasoningEffort}`}
+                        </small>
                         {member.diagnostics.map(diagnostic => <small key={diagnostic} className={css.diagnostic}>{diagnostic}</small>)}
                       </span>
                     </button>

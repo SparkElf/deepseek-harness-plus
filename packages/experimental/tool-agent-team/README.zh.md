@@ -1,5 +1,5 @@
 ---
-description: "九个让模型创建、发消息与协调 teammate 的工具，供组合实验性 Team 插件的部署方阅读。"
+description: "十一个让模型创建、切换模型、归档、发消息与协调 teammate 的工具，供组合实验性 Team 插件的部署方阅读。"
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本包让模型创建具名 teammate、向它们发送消息、查看可用状态、等待进展、中断卡住的工作，并通过共享任务板协调。每个团队成员都会获得相同的九个工具，以及在共享工作区协调的指引。当模型只应在你明确要求后运行团队时，选择本包。它会取代同名的旧版 subagent 控件，因此同时需要两者的组合必须禁用旧定义。本包以实验性名称公开发布，但不提供稳定性保证。
+本包让模型创建具名 teammate、选择或切换它们的模型、归档已完成的成员、向它们发送消息、查看可用状态、等待进展、中断卡住的工作，并通过共享任务板协调。每个团队成员都会获得相同的十一个工具，以及在共享工作区协调的指引。当模型只应在你明确要求后运行团队时，选择本包。它会取代同名的旧版 subagent 控件，因此同时需要两者的组合必须禁用旧定义。本包以实验性名称公开发布，但不提供稳定性保证。
 
 ## 目录
 
@@ -25,7 +25,7 @@ kind: "package-reference"
 <a id="use-this-package"></a>
 ## 使用本包
 
-当模型应该通过工具运行一支团队时，在 `@deepseek-ai/dsh-experimental-agent-team` 之上挂载本包。挂载后，每个团队成员——Lead 与每个 teammate——都会获得相同的九个工具，外加一段说明自身角色与名字的策略段落。
+当模型应该通过工具运行一支团队时，在 `@deepseek-ai/dsh-experimental-agent-team` 之上挂载本包。挂载后，每个团队成员——Lead 与每个 teammate——都会获得相同的十一个工具，外加一段说明自身角色与名字的策略段落。
 
 ### 何时选择
 
@@ -54,14 +54,16 @@ kind: "package-reference"
 
 ### 模型能做什么
 
-九个工具分为四类能力：
+十一个工具分为六类能力：
 
-- **创建 teammate**——`spawn_teammate` 接收名字、描述与初始任务；只有 Lead 可以调用它。
+- **创建 teammate**——`spawn_teammate` 接收名字、描述、初始任务与可选的 `provider`、`model`、`reasoning_effort`；每个省略的路由值都从 Lead 继承。只有 Lead 可以调用它。
+- **切换模型**——`update_teammate` 修改成员的 provider、model 或 reasoning effort；持久变更会应用到该成员的下一次请求，包括恢复之后。
+- **归档 teammate**——`archive_teammate` 把成员移出活动 roster，同时保留其 Session、历史、名字与 roster 名额。
 - **发送消息**——`send_message` 在最近的步骤边界 Steer running member、启动 idle member，并冷恢复 inactive teammate。
-- **查看与等待**——`list_agents` 显示带实时状态的 roster；`wait_agent` 等待下一次团队变化；`interrupt_agent` 停止 teammate 的当前轮次（仅限 Lead）。
+- **查看与等待**——`list_agents` 显示带实时状态与持久模型字段的 roster，并可选包含归档成员；`wait_agent` 等待下一次团队变化；`interrupt_agent` 停止 teammate 的当前轮次（仅限 Lead）。
 - **管理任务板**——`team_task_create`、`team_task_list`、`team_task_get` 与 `team_task_update` 添加、浏览、读取与更新共享任务。
 
-任何成员都可以给任何其他成员发消息并使用任务板；只有 Lead 可以创建与中断 teammate。任务更新保留领域的 owner 与 revision 校验，因此过期的编辑会被拒绝，而不是覆盖更新的成果。
+任何成员都可以给任何其他成员发消息并使用任务板；只有 Lead 可以创建、更新、归档与中断 teammate。任务更新保留领域的 owner 与 revision 校验，因此过期的编辑会被拒绝，而不是覆盖更新的成果。
 
 ### 成功与失败的表现
 
@@ -91,12 +93,12 @@ kind: "package-reference"
 
 | 文件 | 职责 |
 |---|---|
-| [`src/index.ts`](src/index.ts) | 插件入口：配置、固定策略文本与九个 scoped 工具注册 |
+| [`src/index.ts`](src/index.ts) | 插件入口：配置、固定策略文本与十一个 scoped 工具注册 |
 | — | 不发布运行时不变式伴生入口；Team 服务拥有持久化与授权关系。 |
 
 ### 策略与工具
 
-member scope 上的一个 `team:policy` 段落教每个成员自己的角色与协作规则；固定文本与九个工具注册都声明在 [`src/index.ts`](src/index.ts)。九个工具 schema 只出现在 Team member scope 中，因此非 Team subagent 保持默认目录。与旧全局 continuable-subagent 控件同名的 scoped 注册只会为团队成员覆盖这些全局控件。
+member scope 上的一个 `team:policy` 段落教每个成员自己的角色与协作规则；固定文本与十一个工具注册都声明在 [`src/index.ts`](src/index.ts)。十一个工具 schema 只出现在 Team member scope 中，因此非 Team subagent 保持默认目录。与旧全局 continuable-subagent 控件同名的 scoped 注册只会为团队成员覆盖这些全局控件。
 
 ### 按作用域注册与拆除
 
@@ -115,6 +117,7 @@ member scope 上的一个 `team:policy` 段落教每个成员自己的角色与�
 - [Agent Teams 子系统](../../../docs/subsystems/agent-team.zh.md)——持久 Team 类型与服务 API。
 - [生成的工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-experimental-tool-agent-team)——模型接收的每个工具 schema。
 - [Agent Teams Agent Note](../../../.agents/notes/implemented/feature/2026-08-05-agent-teams.zh.md)——模型侧、scoping 与隔离决策。
+- [成员模型选择与归档 Agent Note](../../../.agents/notes/implemented/feature/2026-10-22-team-member-model-routes-and-archival.zh.md)——新 schema 背后的路由字段、更新时间与归档规则。
 
 -----
 
@@ -125,7 +128,7 @@ member scope 上的一个 `team:policy` 段落教每个成员自己的角色与�
 
 #### 模型看到什么
 
-一段稳定策略会说明确切 Team role／name／id、显式 delegation 要求、共享 cwd 行为、文件 stale-version 恢复、Bash／formatter／codegen 风险、task／write-scope 协调、Steer 投递、mailbox 不重试规则，以及 Lead 必须在回答前等待。`spawn_teammate` 到 `team_task_update` 的九个 Team schema 只出现在 Team member scope。
+一段稳定策略会说明确切 Team role／name／id、显式 delegation 要求、共享 cwd 行为、文件 stale-version 恢复、Bash／formatter／codegen 风险、task／write-scope 协调、Steer 投递、mailbox 不重试规则，以及 Lead 必须在回答前等待。`spawn_teammate` 到 `team_task_update` 的十一个 Team schema 只出现在 Team member scope。`spawn_teammate` 与 `update_teammate` 暴露可选的 LLM 路由字段，`list_agents` 暴露持久模型字段与 `include_archived`，`archive_teammate` 在不删除成员的情况下让其退役。
 
 #### Token 影响
 
@@ -145,6 +148,8 @@ Team 插件 generation、配置、member role／name 与 schema 不变时，前�
 - **提示词策略只负责协调，不负责 confinement**——它无法阻止 Bash 或外部进程写入重叠文件。
 - **不会自主创建 Team**——除非用户明确要求，普通任务不会触发 delegation。
 - **没有 Web 控制功能**——浏览器 roster 与任务板呈现不属于该运行时包。
+- **路由变更在下一次请求生效**——更新不会中断进行中的模型调用；running 成员会继续已经开始的流。
+- **归档成员保留名字与名额**——归档不是删除，归档前排队的消息绝不会投递给退役成员。
 - **实验原型，无稳定性承诺**——本包公开发布，但孵化期间 schema 仍可自由变更。
 
 <a id="dev-note"></a>

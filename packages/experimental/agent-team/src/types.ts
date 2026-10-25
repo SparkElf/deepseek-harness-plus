@@ -48,9 +48,18 @@ export interface TeamMemberSnapshot {
   readonly id: SessionId
   readonly name: string
   readonly description: string
+  /** Continuable-subagent provider that created this member. */
   readonly provider: string
   readonly context: 'fresh' | 'fork'
   readonly phase: TeamMemberPhase
+  /** LLM provider route selected for this member; absent on records created before member model selection. */
+  readonly modelProvider?: string
+  /** Provider-owned model id selected for this member; absent on records created before member model selection. */
+  readonly model?: string
+  /** Adapter-owned reasoning effort for {@link model}; absence selects the model's default. */
+  readonly reasoningEffort?: string
+  /** Whether the Lead archived this member; archived members keep their Session, name, and roster slot. */
+  readonly archived?: boolean
   readonly error?: string
 }
 
@@ -61,9 +70,17 @@ export interface TeamMemberView {
   readonly role: 'lead' | 'teammate'
   readonly status: 'running' | 'idle' | 'inactive' | 'provisioning' | 'failed'
   readonly description?: string
+  /** Continuable-subagent provider that created this member. */
   readonly provider?: string
   readonly context?: 'fresh' | 'fork'
+  /** Durable model id selected for this member, or the live Session route for a legacy record. */
   readonly model?: string
+  /** LLM provider route paired with {@link model}; absent on records created before member model selection. */
+  readonly modelProvider?: string
+  /** Durable reasoning effort paired with {@link model}. */
+  readonly reasoningEffort?: string
+  /** Present only on archived member rows. */
+  readonly archived?: boolean
   readonly diagnostics: string[]
 }
 
@@ -146,8 +163,33 @@ export interface SpawnTeammateRequest {
   readonly description: string
   readonly prompt: ContentBlock[]
   readonly context: 'fresh' | 'fork'
+  /** Continuable-subagent provider that creates the child. */
   readonly provider: string
+  /**
+   * LLM provider route for the teammate. Omitted values inherit the Lead's
+   * current route; an explicit value is used as given.
+   */
+  readonly modelProvider?: string
+  /**
+   * Provider-owned model id for the teammate. Omitted values inherit the
+   * Lead's current model; an explicit value is used as given.
+   */
+  readonly model?: string
+  /** Adapter-owned reasoning effort; omission inherits the Lead's route-owned effort. */
+  readonly reasoningEffort?: string
   readonly signal: AbortSignal
+}
+
+/** Input for changing one teammate's durable LLM route. */
+export interface UpdateTeammateRequest {
+  /** Durable teammate name. */
+  readonly target: string
+  /** Replacement LLM provider route; omitted keeps the member's current provider. */
+  readonly modelProvider?: string
+  /** Replacement provider-owned model id; omitted keeps the member's current model. */
+  readonly model?: string
+  /** Replacement reasoning effort; omission on a route change restores the model default. */
+  readonly reasoningEffort?: string
 }
 
 /** Result after one teammate reaches a durable active or failed edge. */

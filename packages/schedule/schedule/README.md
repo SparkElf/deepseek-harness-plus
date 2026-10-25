@@ -1,5 +1,5 @@
 ---
-description: "Session-local durable reminders: the schedule_create, schedule_list, and schedule_delete tools and live-owner delivery, for users and maintainers choosing, configuring, or debugging the package."
+description: "Session-local durable reminders with create/list/get/update/pause/resume/run-now/logs/delete tools, administrator cross-session listing, approvals and audit, and live-owner delivery, for users and maintainers choosing, configuring, or debugging the package."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Schedule lets you ask the model for durable reminders that return as ordinary follow-up messages in the same conversation. Create one-time reminders for a delay or absolute time, repeat them at fixed intervals, list pending reminders, and cancel them. Reminders survive restarts, but delivery requires a live root agent: closed sessions keep reminders overdue until resumed. Delivery never uses email, SMS, push, or browser notifications. Enable the Schedule overlay to expose the reminder tools and active-reminder catalog; sidebar alarms are best-effort indicators of known active reminders, not proof that reminder delivery is currently running.
+Schedule lets you ask the model for durable reminders that return as ordinary follow-up messages in the same conversation. Create one-time reminders for a delay or absolute time, repeat them at fixed intervals, then read, update, pause, resume, run now, inspect run logs, and cancel them. Deployments can also grant administrators a department-scoped cross-session roster. Reminders survive restarts, but delivery requires a live root agent: closed sessions keep reminders overdue until resumed. Delivery never uses email, SMS, push, or browser notifications. Enable the Schedule overlay to expose the reminder tools and active-reminder catalog; sidebar alarms are best-effort indicators of known active reminders, not proof that reminder delivery is currently running.
 
 ## Table of Contents
 
@@ -47,7 +47,13 @@ Enable the overlay before starting the session you want reminders in: a session 
 
 One-time reminders come in two forms: after a delay — for example "in 30 minutes" — or at an absolute time, given either as an instant with an explicit offset such as `2026-09-01T15:00:00+08:00` or as a local date and time with a named zone such as `Europe/Berlin` (the browser's zone applies only when the time-context overlay is present). Repeating reminders run on a fixed interval of at least 5 minutes and stay aligned to the time you first set them. Every reminder needs content to show when it fires.
 
-A successful create returns the reminder with its id, target time, state, and delivery mode; `schedule_list` shows all pending reminders in the order you created them; canceling by id removes a pending reminder, and an unknown or already-finished id reports `schedule_not_found` without changing anything.
+A successful create returns the reminder with its id, target time, state, enabled flag, and delivery mode; `schedule_list` shows all pending reminders in the order you created them; canceling by id removes a pending reminder, and an unknown or already-finished id reports `schedule_not_found` without changing anything.
+
+### Manage a reminder
+
+`schedule_get` returns one reminder with its latest run receipt. `schedule_update` changes the prompt, replaces the rule (a new target is computed from now), or toggles `enabled`; `schedule_pause` and `schedule_resume` keep the record and its history; `schedule_run_now` queues an immediate follow-up and returns a run id; `schedule_logs` lists recent runs with time, status, trigger, contained error, and duration. Every management write requires an approval (`allowed-once`) and appends a durable audit receipt; without an approval service the write fails closed with `approval_unavailable`.
+
+Administrators configured with a role may call `schedule_list_all` across Sessions. `super_admin` and `admin` may filter by `department` and `user`; `dept_admin` is forced to its own department and receives `forbidden` for any other scope; an ordinary `user` may only manage its own Session. The deployment supplies this policy through the plugin's `access` config (role, default owner, and optional per-Session owner overrides); filters are validated in the Host, never by the model. `schedule_logs` accepts another `session_id` only within the same administrator scope.
 
 Input that cannot become a reminder — an empty prompt, more than one selector, an invalid time zone, a non-future or out-of-range time, a repeating interval below 5 minutes — returns a stable error code instead of succeeding. The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-schedule) owns the exact arguments each tool accepts.
 
@@ -67,7 +73,7 @@ This section explains the design decisions behind the plugin and points at the c
 
 ### Scope and composition
 
-The plugin declares `inject = ['agents', 'sessions', 'tools', 'sessionPersistence']`, so a missing persistence service is a composition error. It observes only `agent/created` events published after it loads, installs on those root Agents, and registers all three tools through the exact `agent.ctx`; Agents already live at load time and runtime children never receive Schedule.
+The plugin declares `inject = ['agents', 'sessions', 'tools', 'sessionPersistence']`, so a missing persistence service is a composition error. It observes only `agent/created` events published after it loads, installs on those root Agents, and registers all ten tools through the exact `agent.ctx`; Agents already live at load time and runtime children never receive Schedule.
 
 Time-context is not a Schedule dependency. The official Web overlay mounts `@deepseek-ai/dsh-time-context` so the model can interpret natural language in the browser's request-local zone, but the model must still pass an explicit offset or `time_zone` to `schedule_create`; Schedule never imports or infers from model context.
 
@@ -88,6 +94,8 @@ The package rests on one separation and three commitments:
 |---|---|
 | [`src/index.ts`](src/index.ts) | Plugin entry: `inject`, `agent/created` observation, per-root runtime and tool installation |
 | [`src/tools.ts`](src/tools.ts) | Tool definitions, preflight, serialized transactions, closed error union |
+| [`src/access.ts`](src/access.ts) | Deployment role/owner policy, administrator scope, approval gate |
+| [`src/history.ts`](src/history.ts) | Durable run-log projection over dispatch and run receipts |
 | [`src/domain.ts`](src/domain.ts) | Strict decoding, fold, time validation, framing, occurrence arithmetic |
 | [`src/runtime.ts`](src/runtime.ts) | Live timer owner: maintenance claim, follow-up, dispatch barrier |
 | [`src/persistence.ts`](src/persistence.ts) | Schedule-owned use of the shared session durability barrier |
@@ -98,11 +106,11 @@ The package rests on one separation and three commitments:
 
 ### Durable state and replay
 
-A normal Session folds its complete event stream. A fork folds only `session.ownEvents()`, so a child never inherits its parent's reminders. The Schedule projection receives the Session's exact `inheritedEventCount` from the projection registry and applies the same transition function after that cut. Every create record carries a stable Session-local `ScheduleId`, the trimmed prompt, and a four-digit-year RFC 3339 UTC `scheduledAt`; an `after` record also stores `afterSeconds`, an `at` record stores no copy of its submitted offset or local fields, and an `every` record stores `everySeconds` with `scheduledAt` as the earliest creation-anchor-aligned occurrence not yet dispatched. Delete and one-shot dispatch carry only the id; an `every` dispatch adds `acceptedAt`, and replay advances directly to the first anchor-aligned target after that decision time.
+A normal Session folds its complete event stream. A fork folds only `session.ownEvents()`, so a child never inherits its parent's reminders. The Schedule projection receives the Session's exact `inheritedEventCount` from the projection registry and applies the same transition function after that cut. Every create record carries a stable Session-local `ScheduleId`, the trimmed prompt, and a four-digit-year RFC 3339 UTC `scheduledAt`; `update` replaces the record in place, `pause`/`resume` move its id in the paused set, and `run`/`audit` are append-only receipts that never alter the active fold; an `after` record also stores `afterSeconds`, an `at` record stores no copy of its submitted offset or local fields, and an `every` record stores `everySeconds` with `scheduledAt` as the earliest creation-anchor-aligned occurrence not yet dispatched. Delete and one-shot dispatch carry only the id; an `every` dispatch adds `acceptedAt`, and replay advances directly to the first anchor-aligned target after that decision time.
 
 ### Client projection
 
-The optional `schedule` projection checkpoints `{ inheritedEventCount, active, seenIds }` as strict plain JSON and publishes only the complete `active` array. Its schema reuses the durable Schedule decoder, rejects duplicate or inconsistent ids, and propagates corrupt durable events through the existing Session read failure instead of publishing a partial catalog. Live lazy build, event-driven build, cold restore, history reads, and detached Subagent reads all use the exact Session cut and the same owned-suffix transition.
+The optional `schedule` projection checkpoints `{ inheritedEventCount, active, seenIds, paused }` as strict plain JSON and publishes only the complete `active` array. Its schema reuses the durable Schedule decoder, rejects duplicate or inconsistent ids, and propagates corrupt durable events through the existing Session read failure instead of publishing a partial catalog. Live lazy build, event-driven build, cold restore, history reads, and detached Subagent reads all use the exact Session cut and the same owned-suffix transition.
 
 The projection carries durable records only. It does not persist or transmit scheduled-versus-overdue status, localized text, relative time, browser-local time, sorting state, popover state, runtime liveness, or delivery receipts. [`dsh-client-ui-schedule`](../../client/ui-schedule/README.md) derives catalog presentation from the complete array and the viewing browser's clock. [`dsh-client-ui-workspace`](../../client/ui-workspace/README.md) derives only whether the list value is a non-empty array, so ordinary and search rows may briefly omit or retain the alarm when the durable projection cache is missing or stale.
 
@@ -114,7 +122,7 @@ Calendar normalization is deterministic. Local times inside a daylight-saving ga
 
 One Agent-scoped queue serializes each accepted management transaction with the live owner's due transaction from preflight through any post-append barrier. `schedule_create` checkpoints, allocates a never-reused id, appends the create event, and checkpoints again; a cancelled caller stops before append. Every successful management preflight also asks the live owner to recompute, which recovers a retained create or delete batch after a previous post-append barrier returned `persistence_uncertain`.
 
-Every read or decision from the fold first awaits `ctx.sessions.flush(session)`; a missing, rejected, or detached persistence path returns `persistence_uncertain`, and create and an actual delete await a second barrier after append before confirming the mutation. Shape-only failures are validated before the serialized transaction. Input, time, and durability failures return a closed set of stable version-1 error codes; the closed union and each code's conditions live in [`src/tools.ts`](src/tools.ts).
+Every read or decision from the fold first awaits `ctx.sessions.flush(session)`; a missing, rejected, or detached persistence path returns `persistence_uncertain`, and create and an actual delete await a second barrier after append before confirming the mutation. Shape-only failures are validated before the serialized transaction. Input, time, authorization, approval, and durability failures return a closed set of stable version-1 error codes; the closed union and each code's conditions live in [`src/tools.ts`](src/tools.ts). The deployment access policy is read from the optional `access` plugin config; changing it requires reloading the profile, and a Session without an explicit owner override uses the configured default owner (or its own id).
 
 ### Live owner
 

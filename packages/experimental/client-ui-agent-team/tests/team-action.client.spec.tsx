@@ -40,6 +40,7 @@ const view: TeamView = {
       role: 'teammate',
       status: 'inactive',
       model: 'model-a',
+      reasoningEffort: 'max',
       diagnostics: [],
     },
   ],
@@ -123,6 +124,7 @@ describe('TeamAction', () => {
     render(<TeamAction {...props(actions({ openTeammate }))} />)
     fireEvent.click(screen.getByRole('button', { name: /Agent Team/u }))
     const worker = await screen.findByRole('button', { name: /worker/u })
+    expect(screen.getByText(/思考强度: max/u)).toBeTruthy()
     expect(screen.getByText('write scopes overlap with task-2')).toBeTruthy()
     fireEvent.click(worker)
     await waitFor(() => { expect(openTeammate).toHaveBeenCalledWith(SESSION, view.members[1]) })
