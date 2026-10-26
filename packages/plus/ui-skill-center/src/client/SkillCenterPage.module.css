@@ -111,9 +111,11 @@
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
-  /* Equal-height rows: every card in a row stretches to the tallest, so the
-     action row lands on one line instead of following each card's text. */
-  grid-auto-rows: 1fr;
+  /* Rows size to their tallest card; `align-items: stretch` then makes every
+     card in that row equal height without constraining the row itself. A
+     `1fr` auto-row was the trap: inside a height-limited parent it shrank the
+     row below the card's content and painted the overflow over the next row. */
+  align-content: start;
   align-items: stretch;
   gap: 12px;
   margin: 0;
@@ -122,14 +124,13 @@
 }
 
 /* The market card: its own surface and border on the page background, parts stacked with
-   one gutter, unstretched so leftover row height lands in the gutter rather than inside
-   the card. */
+   one gutter. The grid stretches it to the row's tallest sibling; the action row uses
+   `margin-top: auto` to stay on the bottom edge. */
 .card {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  height: 100%;
   min-height: 0;
   padding: 12px;
   border: 0.5px solid var(--dsw-alias-border-l2);
