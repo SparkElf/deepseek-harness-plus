@@ -54,15 +54,13 @@ export const CLAUDE_AGENT_SDK_PACKAGE = '@anthropic-ai/claude-agent-sdk'
 /**
  * Third-party plugins the distribution ships under their own copyleft terms.
  *
- * Both are AGPL-3.0: they carry no repository or license field of their own, and the
- * publisher offers no other terms. The distribution is itself public source, so the
- * network-use source obligation these licenses impose is met by publishing this
- * repository; the distribution owner accepted that arrangement rather than dropping
- * the sidebar Office preview and its locale peer.
+ * The locale peer is AGPL-3.0: it carries no repository or license field of its own,
+ * and the publisher offers no other terms. The distribution is itself public source,
+ * so the network-use source obligation this license imposes is met by publishing this
+ * repository.
  */
 export const COPYLEFT_RUNTIME_PACKAGES: readonly string[] = [
   '@huanlin/dsh-plugin-better-locale',
-  '@sparkelf/dsh-plugin-better-sidebar-office',
 ]
 const CLAUDE_PLATFORM_PACKAGE_PREFIX = `${CLAUDE_AGENT_SDK_PACKAGE}-`
 const CLAUDE_PLATFORM_DECLARED_LICENSE = 'SEE LICENSE IN LICENSE.md'
@@ -91,7 +89,6 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   '@modelcontextprotocol/server-filesystem': { license: 'MIT / Apache-2.0', repo: 'https://github.com/modelcontextprotocol/servers' },
   // No repository field in the published manifest.
   'node-addon-require-builtin': { repo: 'https://www.npmjs.com/package/node-addon-require-builtin' },
-  '@sparkelf/dsh-plugin-better-sidebar-office': { repo: 'https://github.com/SparkElf/dsh-plugin-better-sidebar-plugin-office' },
   '@huanlin/dsh-plugin-better-locale': { repo: 'https://github.com/HuanLinOTO/dsh-plugin-better-locale' },
   'dsh-sql-workbench': { repo: 'https://github.com/SparkElf/dsh-sql-workbench' },
   // Published by this repository's plus release, but the packed manifest carries no
