@@ -26,7 +26,8 @@
           "baseRevision": "687f282e8625c6b8d11ff58211a90524be2e4317",
           "paths": [
             "packages/interaction/user-approval/",
-            "packages/bundle/base/"
+            "packages/bundle/base/",
+            "packages/interaction/permission-presets/"
           ]
         },
         "file": "./patches/approval-allow-policy.patch"
