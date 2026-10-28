@@ -74,3 +74,15 @@ index 9a14f04d0b..58f4eaf876 100644
      // Enter the promise chain BEFORE dispatching: a listener that throws
      // SYNCHRONOUSLY (before its first await) must land in the same rejection
      // path as an async one — `Promise.resolve(call())` would let it escape
+diff --git a/packages/interaction/permission-presets/src/index.ts b/packages/interaction/permission-presets/src/index.ts
+--- a/packages/interaction/permission-presets/src/index.ts
++++ b/packages/interaction/permission-presets/src/index.ts
+@@ -116,7 +116,7 @@
+     zod.literal('read-only'),
+     zod.literal('workspace-write'),
+     zod.literal('danger-full-access'),
+   ]).nullable(),
+-  approval: zod.union([zod.literal('ask'), zod.literal('never')]).nullable(),
++  approval: zod.union([zod.literal('ask'), zod.literal('never'), zod.literal('allow')]).nullable(),
+   seeded: zod.boolean(),
+ }).strict()
