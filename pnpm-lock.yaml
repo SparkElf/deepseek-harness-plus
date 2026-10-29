@@ -1664,90 +1664,9 @@ importers:
       '@sparkelf/dsh-image-hoist':
         specifier: '>=0.1.3'
         version: 0.1.3(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-session@0.2.1-rc.2(@deepseek-ai/cordis@vendor+cordis)(@deepseek-ai/dsh-scope@0.2.1-rc.2(@deepseek-ai/cordis@vendor+cordis)))(@deepseek-ai/schemastery@vendor+schemastery)
-      '@sparkelf/dsh-patch-approval-allow-policy':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/approval-allow-policy
-      '@sparkelf/dsh-patch-atomic-write-zombie-lock-holder':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/atomic-write-zombie-lock-holder
       '@sparkelf/dsh-patch-better-locale-peer-range':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../../patches/npm/better-locale-peer-range
-      '@sparkelf/dsh-patch-better-sidebar-html-preview-path':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/better-sidebar-html-preview-path
-      '@sparkelf/dsh-patch-better-sidebar-media-path':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/better-sidebar-media-path
-      '@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/better-sidebar-subagent-catalog-load
-      '@sparkelf/dsh-patch-bootstrap-exempt-names':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/bootstrap-exempt-names
-      '@sparkelf/dsh-patch-browser-auth-mode':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/browser-auth-mode
-      '@sparkelf/dsh-patch-composer-popover-boundaries':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/composer-popover-boundaries
-      '@sparkelf/dsh-patch-diagram-preview':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/diagram-preview
-      '@sparkelf/dsh-patch-image-offload-hoist-replay':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/image-offload-hoist-replay
-      '@sparkelf/dsh-patch-legacy-code-preset':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/legacy-code-preset
-      '@sparkelf/dsh-patch-llm-pi-ai-transport-truncation':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/llm-pi-ai-transport-truncation
-      '@sparkelf/dsh-patch-mobile-journal-generation':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/mobile-journal-generation
-      '@sparkelf/dsh-patch-office-preview-stable-load':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/office-preview-stable-load
-      '@sparkelf/dsh-patch-officecli-deliverables':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/officecli-deliverables
-      '@sparkelf/dsh-patch-ptc-mcp-schema-types':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/ptc-mcp-schema-types
-      '@sparkelf/dsh-patch-responses-reasoning-status':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/responses-reasoning-status
-      '@sparkelf/dsh-patch-session-envelope-ignorable':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/session-envelope-ignorable
-      '@sparkelf/dsh-patch-session-export-chinese':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/session-export-chinese
-      '@sparkelf/dsh-patch-session-format-legacy-restart':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/session-format-legacy-restart
-      '@sparkelf/dsh-patch-session-log-trajectory-toolbar':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/session-log-trajectory-toolbar
-      '@sparkelf/dsh-patch-session-query-unindexable-session':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/session-query-unindexable-session
-      '@sparkelf/dsh-patch-state-dot-brand-blue':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/state-dot-brand-blue
-      '@sparkelf/dsh-patch-ui-settings-compact-phone':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/ui-settings-compact-phone
-      '@sparkelf/dsh-patch-web-runtime-compat':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/web-runtime-compat
-      '@sparkelf/dsh-patch-workspace-storage-restore':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/workspace-storage-restore
-      '@sparkelf/dsh-patch-wsl-native-open':
-        specifier: workspace:>=0.2.1-alpha.1
-        version: link:../../../patches/npm/wsl-native-open
       '@sparkelf/dsh-plugin-backup':
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/backup
@@ -11383,12 +11302,6 @@ importers:
   patches/npm/atomic-write-zombie-lock-holder: {}
 
   patches/npm/better-locale-peer-range: {}
-
-  patches/npm/better-sidebar-html-preview-path: {}
-
-  patches/npm/better-sidebar-media-path: {}
-
-  patches/npm/better-sidebar-subagent-catalog-load: {}
 
   patches/npm/bootstrap-exempt-names: {}
 
