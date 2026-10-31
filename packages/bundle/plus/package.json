@@ -75,7 +75,7 @@
         "@sparkelf/dsh-workbench-vault": "0.1.2",
         "@sparkelf/dsh-ssh-manager": "0.7.5",
         "@sparkelf/dsh-api-client": "0.5.3",
-        "dsh-better-sidebar": "npm:@sparkelf/dsh-better-sidebar@0.29.0-sparkelf.8",
+        "dsh-better-sidebar": "npm:@sparkelf/dsh-better-sidebar@0.29.0-sparkelf.9",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.6",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
