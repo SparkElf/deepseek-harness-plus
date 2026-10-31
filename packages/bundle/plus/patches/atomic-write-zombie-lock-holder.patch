@@ -1,0 +1,53 @@
+diff --git a/packages/util/atomic-write/src/index.ts b/packages/util/atomic-write/src/index.ts
+index 60e2c67b8c..cfe7c7824f 100644
+--- a/packages/util/atomic-write/src/index.ts
++++ b/packages/util/atomic-write/src/index.ts
+@@ -12,6 +12,7 @@
+  */
+ 
+ import { createHash, randomBytes } from 'node:crypto'
++import { readFileSync } from 'node:fs'
+ import { lstat, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+ import { dirname } from 'node:path'
+ import { setTimeout as wait } from 'node:timers/promises'
+@@ -119,13 +120,39 @@ function holderExited(record: string): boolean {
+   if (pid === process.pid) return false
+   try {
+     process.kill(pid, 0)
+-    return false
++    // The signal probe accepts a zombie: its PID is still issued, so `kill` succeeds even
++    // though the holder has exited and will never release the lock. `/proc` reports that
++    // state directly, and a zombie proves the holder is gone.
++    return zombieState(pid)
+   } catch (error) {
+     // EPERM means the process exists under another user.
+     return (error as NodeJS.ErrnoException).code === 'ESRCH'
+   }
+ }
+ 
++/**
++ * Whether `pid` is a zombie: a holder that exited but was not reaped yet.
++ *
++ * Only Linux exposes this, and only through `/proc`: elsewhere the signal probe stays the
++ * whole answer. A read failure proves nothing about the holder, so it reads as "still alive"
++ * and leaves the lock alone, because taking a live holder's lock is the worse misjudgement.
++ * @param pid - the positive int32 PID the lock record names.
++ * @returns true only when `/proc/<pid>/stat` says the process is `Z`.
++ */
++function zombieState(pid: number): boolean {
++  let stat: string
++  try {
++    stat = readFileSync('/proc/' + String(pid) + '/stat', 'utf8')
++  } catch {
++    return false
++  }
++  // The command name sits in parentheses and may contain spaces or parentheses, so the
++  // fields after it are located from the LAST ")" rather than by splitting the whole line.
++  const close = stat.lastIndexOf(')')
++  if (close < 0 || close + 2 >= stat.length) return false
++  return stat.charAt(close + 2) === 'Z'
++}
++
+ /** The lock file's content, or undefined when it cannot be read. */
+ async function readLockRecord(lockPath: string): Promise<string | undefined> {
+   try {

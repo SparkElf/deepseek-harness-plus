@@ -1,0 +1,34 @@
+diff --git a/packages/client/ui-sidebar-documentpreview/src/client/office/OfficeBody.tsx b/packages/client/ui-sidebar-documentpreview/src/client/office/OfficeBody.tsx
+index 5d74774e45..f3ef39a610 100644
+--- a/packages/client/ui-sidebar-documentpreview/src/client/office/OfficeBody.tsx
++++ b/packages/client/ui-sidebar-documentpreview/src/client/office/OfficeBody.tsx
+@@ -1,5 +1,5 @@
+ /** Office presents retained conversion results and font notices around the shared PDF view. */
+-import { useEffect, type ReactNode } from 'react'
++import { useEffect, useRef, type ReactNode } from 'react'
+ import type { PropsLocale, PropsRenderSlots, PropsStore, SlotHookFactory } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { TabId } from '@deepseek-ai/dsh-client-ui-dockkit'
+ import { Button, FileTypeIcon, classifyFileType } from '@deepseek-ai/dsh-client-ui-primitives'
+@@ -49,15 +49,19 @@ export function OfficeBody(props: OfficeBodyProps): ReactNode {
+   const held = props.useStore(state => state.byTab[tab.id])
+   const view = held?.revision === revision ? held : undefined
+   const settled = view?.file !== undefined || view?.failure !== undefined
++  /** Newest load callbacks; the effect below reads the ref so a new identity cannot restart it. */
++  const loadRef = useRef(load)
+   useEffect(() => { retainTab(tab.id, tab.signal) }, [retainTab, tab.id, tab.signal])
+-  // Metadata may replace callbacks without advancing the content revision.
++  // Metadata may replace callbacks without advancing the content revision, and the office face
++  // rebuilds them on every render, so this effect reads the ref instead of depending on `load`.
+   useEffect(() => {
+     if (request === undefined || settled || tab.signal.aborted) return
+     const controller = new AbortController()
+     const signal = AbortSignal.any([controller.signal, tab.signal])
+-    load(tab.id, request.revision, hostFileOf(resourceAddress), signal, request.loaded, request.failed)
++    loadRef.current = load
++    loadRef.current(tab.id, request.revision, hostFileOf(resourceAddress), signal, request.loaded, request.failed)
+     return () => { controller.abort() }
+-  }, [revision, resourceAddress, tab.id, tab.signal, load, settled])
++  }, [revision, resourceAddress, tab.id, tab.signal, settled])
+   const file = view?.file
+   if (request === undefined) return null
+   if (view?.failure !== undefined) {

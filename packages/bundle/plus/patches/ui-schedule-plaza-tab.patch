@@ -1,0 +1,217 @@
+diff --git a/packages/client/ui-schedule/src/client/TaskManagerPage.module.css b/packages/client/ui-schedule/src/client/TaskManagerPage.module.css
+index 7c4acf5a3d..ea9d29e2e3 100644
+--- a/packages/client/ui-schedule/src/client/TaskManagerPage.module.css
++++ b/packages/client/ui-schedule/src/client/TaskManagerPage.module.css
+@@ -149,6 +149,12 @@
+    neutral hairline, the 10px radius, and the mock's `--muted` leading icon. The
+    mock brightens the border on hover and takes the brand stroke on focus
+    rather than drawing a ring around the control. */
++/* The runtime extension tab keeps the page's centered column, so a contributor
++   body lines up with the search field and the task rows. */
++.plazaBody {
++  min-width: 0;
++}
++
+ .searchTools {
+   --task-search-height: 36px;
+   display: flex;
+diff --git a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
+index 3c330c9f26..f7e7b78312 100644
+--- a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
++++ b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
+@@ -5,7 +5,7 @@ import {
+   Button, IconClockOutlineRegular, IconCloseOutlineRegular, IconEllipsisOutlineRegular, IconPlusOutlineRegular,
+   IconSearchOutlineRegular, IconTrashOutlineRegular, Input, Menu, Modal, Tooltip,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+-import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import type { HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+ import type { ScheduleCatalogEntry, ScheduleId } from '@deepseek-ai/dsh-schedule/client'
+ import type { CatalogSnapshot } from './catalog-source.ts'
+@@ -36,14 +36,26 @@ export interface TaskManagerInjected extends TaskDetailInjected {
+    * @returns resolution after the outcome is reported.
+    */
+   readonly onClearEnded: () => Promise<void>
++  /**
++   * Whether a plugin currently contributes the page's runtime extension tab.
++   *
++   * The page reads this while rendering, so a contributor that registers after
++   * the page mounted still makes its tab appear on the next render; with no
++   * contributor the page keeps exactly its three status tabs.
++   * @returns true when the `schedule.manager.tabs` seat has an occupant.
++   */
++  readonly plazaAvailable?: () => boolean
+ }
+ 
+ /** Root-scoped task catalog props derived from the framework and injected actions. */
+ export type TaskManagerPageProps = PropsRuntime<'main'>
+   & InjectFace<TaskManagerInjected>
+   & PropsLocale<'schedule.manager'>
++  // Narrowed to the one seat this page declares; optional so a unit test can
++  // render the page without a slot host, as every other page-level test does.
++  & Partial<PropsRenderSlots<'schedule.manager.tabs'>>
+ 
+-type StatusFilter = 'all' | ScheduleCatalogEntry['status']
++type StatusFilter = 'all' | ScheduleCatalogEntry['status'] | 'plaza'
+ 
+ /**
+  * Render retained tasks with authoritative deletion and timing-only edits.
+@@ -51,7 +63,7 @@ type StatusFilter = 'all' | ScheduleCatalogEntry['status']
+  * @returns the searchable task list beside the selected task's detail.
+  */
+ export function TaskManagerPage(props: TaskManagerPageProps) {
+-  const { useCatalog, onNewTask, onClearEnded, onRetry, t } = props
++  const { useCatalog, onNewTask, onClearEnded, onRetry, plazaAvailable, renderSlot, t } = props
+   const catalog = useCatalog(snapshot => snapshot)
+   const { records, status } = catalog
+   const [search, setSearch] = useState('')
+@@ -85,7 +97,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+   const rows = useMemo(() => {
+     const query = search.trim().toLowerCase()
+     return records.filter(record => (
+-      (statusFilter === 'all' || record.status === statusFilter)
++      (statusFilter === 'all' || (statusFilter !== 'plaza' && record.status === statusFilter))
+       && (record.prompt.toLowerCase().includes(query)
+         || record.sessionId.toLowerCase().includes(query)
+         || taskName(record).toLowerCase().includes(query))
+@@ -202,8 +214,24 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+                     {t(value === 'all' ? 'statusFilter.all' : `status.${value}`)}
+                   </button>
+                 ))}
++                {plazaAvailable?.() === true && (
++                  <button
++                    type="button"
++                    className={clsx(css.filterTab, statusFilter === 'plaza' && css.filterTabActive)}
++                    aria-pressed={statusFilter === 'plaza'}
++                    data-testid="task-manager-plaza-tab"
++                    onClick={() => { setStatusFilter('plaza') }}
++                  >
++                    {t('statusFilter.plaza')}
++                  </button>
++                )}
+               </div>
+             </div>
++            {statusFilter === 'plaza' ? (
++              <div className={css.plazaBody} data-testid="task-manager-plaza-body">
++                {renderSlot?.('schedule.manager.tabs', {})}
++              </div>
++            ) : (<>
+             <div className={css.searchTools}>
+               <div className={css.searchField}>
+                 <Input
+@@ -299,6 +327,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+                 })}
+               </ul>
+             </div>
++            </>)}
+           </div>
+         </div>
+       </div>
+diff --git a/packages/client/ui-schedule/src/client/index.ts b/packages/client/ui-schedule/src/client/index.ts
+index 7dcbc32ee3..cd072150e7 100644
+--- a/packages/client/ui-schedule/src/client/index.ts
++++ b/packages/client/ui-schedule/src/client/index.ts
+@@ -73,6 +73,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+     /** Host task management page and task tab copy. */
+     'schedule.manager': TaskManagerKey
+   }
++  interface SlotMap {
++    /**
++     * One extension body contributed at runtime to the automation-task page.
++     *
++     * The page renders the single occupant as an additional status tab and
++     * supplies no owner props: a contributor owns its own data and needs no
++     * identity from the page. The seat belongs to no Session, so opening the
++     * page never mounts a contributor against an arbitrary conversation.
++     */
++    'schedule.manager.tabs': {
++      kind: 'single'
++      scope: 'root'
++      owner: Record<string, never>
++    }
++  }
+ }
+ 
+ /** Required services for catalogs, ambient Session marks, the right Sidebar, Remote queries, original-Session navigation, and access. */
+@@ -197,8 +212,13 @@ export function apply(ctx: ClientContext): void {
+       name: 'main',
+       key: PANEL_ID,
+       locale: MANAGER_NS,
++      // The automation page is the one first-level page that accepts a runtime
++      // extension tab. Declaring the seat here is what lets a plugin contribute
++      // a tab body without this package importing that plugin.
++      children: { 'schedule.manager.tabs': { kind: 'single', scope: 'root' } },
+       inject: (): TaskManagerInjected => ({
+         ...detail,
++        plazaAvailable: () => ctx.slots.entriesOfSlot('schedule.manager.tabs').length > 0,
+         // The page has no creation form: a new reminder starts in a Session.
+         onNewTask: () => { ctx.uiWorkspace.startSession() },
+         onClearEnded: async () => {
+diff --git a/packages/client/ui-schedule/src/client/task-manager-locales.ts b/packages/client/ui-schedule/src/client/task-manager-locales.ts
+index fffde14568..145b05a825 100644
+--- a/packages/client/ui-schedule/src/client/task-manager-locales.ts
++++ b/packages/client/ui-schedule/src/client/task-manager-locales.ts
+@@ -20,6 +20,7 @@ export const en = {
+   'empty.action': 'New automation task',
+   'statusFilter.label': 'Task status',
+   'statusFilter.all': 'All',
++  'statusFilter.plaza': 'Workflow plaza',
+   'status.active': 'Enabled',
+   'status.inactive': 'Inactive',
+   'detail.label': 'Task details',
+@@ -176,6 +177,7 @@ export const zh: Record<TaskManagerKey, string> = {
+   'empty.action': '新建自动化任务',
+   'statusFilter.label': '任务状态',
+   'statusFilter.all': '全部',
++  'statusFilter.plaza': '工作流广场',
+   'status.active': '已开启',
+   'status.inactive': '已结束',
+   'detail.label': '任务详情',
+@@ -327,6 +329,7 @@ export const ja = {
+   'empty.action': '新規自動化タスク',
+   'statusFilter.label': 'タスクの状態',
+   'statusFilter.all': 'すべて',
++  'statusFilter.plaza': 'ワークフロープラザ',
+   'status.active': '有効',
+   'status.inactive': '無効',
+   'detail.label': 'タスクの詳細',
+@@ -476,6 +479,7 @@ export const es = {
+   'empty.action': 'Nueva tarea de automatización',
+   'statusFilter.label': 'Estado de la tarea',
+   'statusFilter.all': 'Todos',
++  'statusFilter.plaza': 'Plaza de flujos',
+   'status.active': 'Habilitado',
+   'status.inactive': 'Inactivo',
+   'detail.label': 'Detalles de la tarea',
+@@ -628,6 +632,7 @@ export const fr = {
+   'empty.action': "Nouvelle tâche d'automatisation",
+   'statusFilter.label': 'Statut de la tâche',
+   'statusFilter.all': 'Tout',
++  'statusFilter.plaza': 'Place des workflows',
+   'status.active': 'Activé',
+   'status.inactive': 'Inactif',
+   'detail.label': 'Détails de la tâche',
+@@ -780,6 +785,7 @@ export const de = {
+   'empty.action': 'Neue Automatisierungsaufgabe',
+   'statusFilter.label': 'Aufgabenstatus',
+   'statusFilter.all': 'Alle',
++  'statusFilter.plaza': 'Workflow-Plaza',
+   'status.active': 'Aktiviert',
+   'status.inactive': 'Inaktiv',
+   'detail.label': 'Aufgabendetails',
+@@ -932,6 +938,7 @@ export const ru = {
+   'empty.action': 'Новая задача автоматизации',
+   'statusFilter.label': 'Статус задачи',
+   'statusFilter.all': 'Все',
++  'statusFilter.plaza': 'Витрина сценариев',
+   'status.active': 'Включено',
+   'status.inactive': 'Неактивный',
+   'detail.label': 'Подробности задачи',
+@@ -1084,6 +1091,7 @@ export const pt = {
+   'empty.action': 'Nova tarefa de automação',
+   'statusFilter.label': 'Status da tarefa',
+   'statusFilter.all': 'Todos',
++  'statusFilter.plaza': 'Praça de fluxos',
+   'status.active': 'Habilitado',
+   'status.inactive': 'Inativo',
+   'detail.label': 'Detalhes da tarefa',

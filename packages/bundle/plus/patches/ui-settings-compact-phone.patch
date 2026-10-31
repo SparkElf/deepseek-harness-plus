@@ -1,0 +1,76 @@
+diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+--- a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
++++ b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+@@ -246,3 +246,64 @@
+    ui-web base.css's `body > :not(#root)` subtraction covers it wherever it
+    overlaps a chrome row's drag — including above every column, which an in-root
+    overlay could not promise once a chrome row declares drag itself. */
++
++/*
++ * A phone has no room for the desktop two-column shell. The rail keeps its 188px and the panel is
++ * capped at 100vw - 48px, which leaves the content about a hundred pixels: labels wrap to one
++ * character per line and a pairing QR computes to zero. Below this width the panel fills the
++ * viewport and the rail becomes a horizontal strip above the content, so the content keeps the
++ * panel's own width and the phone's safe areas are respected.
++ */
++@media (max-width: 640px) {
++  .overlay {
++    align-items: stretch;
++    justify-content: stretch;
++  }
++
++  .panel {
++    width: 100vw;
++    max-width: 100vw;
++    height: 100vh;
++    height: 100dvh;
++    border-radius: 0;
++  }
++
++  /* The panel stacks vertically so the rail sits above the content instead of beside it. */
++  .panel {
++    flex-direction: column;
++  }
++
++  .nav {
++    flex: none;
++    width: 100%;
++    gap: 10px;
++    padding: max(12px, env(safe-area-inset-top)) 14px 0;
++  }
++
++  .navTitle {
++    padding: 0 2px;
++  }
++
++  /* One scrollable row of destinations instead of a fixed 188px column. */
++  .navList {
++    flex-direction: row;
++    gap: 8px;
++    overflow-x: auto;
++    overflow-y: hidden;
++    scrollbar-width: none;
++    padding-bottom: 4px;
++  }
++
++  .navList::-webkit-scrollbar {
++    display: none;
++  }
++
++  .navCell {
++    flex: 1 0 auto;
++    width: auto;
++    min-height: 44px;
++    white-space: nowrap;
++  }
++
++  /* Takes the space the rail leaves and scrolls its own options. */
++  .content {
++    flex: 1;
++    min-height: 0;
++  }
++
++  .options {
++    padding-bottom: env(safe-area-inset-bottom);
++  }
++}

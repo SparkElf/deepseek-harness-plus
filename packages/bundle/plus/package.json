@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.2-alpha.2.29",
+  "version": "0.2.2-alpha.2.30",
   "publishConfig": {
     "access": "public"
   },
@@ -515,6 +515,21 @@
           "retireWhen": "官方 ui-settings-general 为窄屏提供手机布局后退役"
         },
         {
+          "id": "ui-schedule-plaza-tab",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-schedule/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-schedule"
+            ]
+          },
+          "file": "./patches/ui-schedule-plaza-tab.patch",
+          "retireWhen": "官方 ui-schedule 自动化任务页自行声明并渲染 schedule.manager.tabs 座位后退役"
+        },
+        {
           "id": "web-runtime-compat",
           "dsh": ">=0.2.2-alpha.2",
           "target": {
@@ -605,7 +620,6 @@
         "bundles": [
           "@sparkelf/dsh-mineru",
           "@sparkelf/dsh-officecli",
-          "dshmarket",
           "@sparkelf/dsh-office-viewer-fonts",
           "@sparkelf/dsh-genui",
           "@sparkelf/dsh-plugin-supervisor",
