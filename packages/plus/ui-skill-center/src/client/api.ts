@@ -7,16 +7,32 @@
 
 /** Route paths, mirrored from the host (`src/index.ts` ROUTES). */
 const API = {
-  list: '/api/dsh-skill-center/list',
-  setEnabled: '/api/dsh-skill-center/set-enabled',
-  create: '/api/dsh-skill-center/create',
-  remove: '/api/dsh-skill-center/delete',
-  content: '/api/dsh-skill-center/content',
-  translationProgress: '/api/dsh-skill-center/translation-progress',
-  plaza: '/integrations/dataops/skill-plaza',
-  reviewContext: '/integrations/dataops/review-context',
-  rbac: '/integrations/dataops/rbac',
+  list: 'api/dsh-skill-center/list',
+  setEnabled: 'api/dsh-skill-center/set-enabled',
+  create: 'api/dsh-skill-center/create',
+  remove: 'api/dsh-skill-center/delete',
+  content: 'api/dsh-skill-center/content',
+  translationProgress: 'api/dsh-skill-center/translation-progress',
+  plaza: 'integrations/dataops/skill-plaza',
+  reviewContext: 'integrations/dataops/review-context',
+  rbac: 'integrations/dataops/rbac',
 } as const
+
+/**
+ * Resolve one host route against the document's base URI.
+ *
+ * The same plugin is served at the origin root (`http://host/` → `/api/...`) and
+ * under the DataOps same-origin gateway (`http://host/dsh/` → `/dsh/api/...`).
+ * A leading slash would pin every request to the origin root and 404 inside the
+ * iframe; a relative path keeps both deployments on the route family the host
+ * registered.
+ * @param path - route path relative to the document base.
+ * @returns absolute URL for fetch.
+ */
+const routeUrl = (path: string): string => {
+  const base = typeof document === 'undefined' ? 'http://localhost/' : document.baseURI
+  return new URL(path, base).href
+}
 
 /** Chinese copy for one skill, when a translation file exists beside it. */
 export interface SkillEntryTranslation {
@@ -105,14 +121,14 @@ export class SkillApi {
   /** Fetch the grouped skill list. */
   async list(cwd?: string): Promise<ListPayload> {
     const url = typeof cwd === 'string' && cwd.trim() !== ''
-      ? `${API.list}?cwd=${encodeURIComponent(cwd)}`
-      : API.list
+      ? `${routeUrl(API.list)}?cwd=${encodeURIComponent(cwd)}`
+      : routeUrl(API.list)
     return this.request<ListPayload>(url)
   }
 
   /** Enable or disable a skill by rewriting its frontmatter flag. */
   async setEnabled(name: string, path: string, enabled: boolean): Promise<{ name: string; enabled: boolean }> {
-    return this.request(API.setEnabled, { method: 'POST', body: { name, path, enabled } })
+    return this.request(routeUrl(API.setEnabled), { method: 'POST', body: { name, path, enabled } })
   }
 
   /** Create a skill file under the user or project root. */
@@ -123,12 +139,12 @@ export class SkillApi {
     whenToUse?: string
     content?: string
   }): Promise<{ ok: true; name: string; path: string }> {
-    return this.request(API.create, { method: 'POST', body: payload })
+    return this.request(routeUrl(API.create), { method: 'POST', body: payload })
   }
 
   /** Delete a skill by moving it into the recoverable trash. */
   async remove(name: string, path: string): Promise<{ ok: true; moved: string }> {
-    return this.request(API.remove, { method: 'POST', body: { name, path } })
+    return this.request(routeUrl(API.remove), { method: 'POST', body: { name, path } })
   }
 
   /**
@@ -143,7 +159,7 @@ export class SkillApi {
     const params = new URLSearchParams({ name })
     if (path !== undefined && path !== '') params.set('path', path)
     if (cwd !== undefined && cwd !== '') params.set('cwd', cwd)
-    return this.request<SkillContent>(API.content + '?' + params.toString())
+    return this.request<SkillContent>(routeUrl(API.content) + '?' + params.toString())
   }
 
   /**
@@ -151,7 +167,7 @@ export class SkillApi {
    * been told where the translations live (the route then answers `{}`).
    */
   async translationProgress(): Promise<TranslationProgress | undefined> {
-    const body = await this.request<{ progress?: TranslationProgress }>(API.translationProgress)
+    const body = await this.request<{ progress?: TranslationProgress }>(routeUrl(API.translationProgress))
     return body.progress
   }
 
@@ -164,7 +180,7 @@ export class SkillApi {
     roleCodes?: string[]
     primaryRole?: string
   }> {
-    const response = await fetch(API.reviewContext)
+    const response = await fetch(routeUrl(API.reviewContext))
     const body = await this.readBody(response)
     if (response.status === 503) throw new PlazaUnavailableError('review context is not active')
     if (!response.ok) throw new ApiError(this.errorOf(body, response.status))
@@ -190,7 +206,7 @@ export class SkillApi {
 
   /** The department tree, for administrators publishing to any department. */
   async departments(): Promise<{ code: string; name: string; parentCode?: string | null }[]> {
-    const response = await fetch(API.rbac + '?section=departments')
+    const response = await fetch(routeUrl(API.rbac) + '?section=departments')
     const body = await this.readBody(response)
     // A non-admin may not read the tree; their own department still comes from
     // review-context, so an empty list is a valid answer here.
@@ -211,7 +227,7 @@ export class SkillApi {
    * skill as local with 上架 disabled.
    */
   async plazaMine(): Promise<PlazaSkill[]> {
-    const response = await fetch(API.plaza + '?mine=1')
+    const response = await fetch(routeUrl(API.plaza) + '?mine=1')
     const body = await this.readBody(response)
     if (response.status === 503) throw new PlazaUnavailableError('skill plaza is not active')
     if (!response.ok) throw new ApiError(this.errorOf(body, response.status))
@@ -234,7 +250,7 @@ export class SkillApi {
     visibility?: 'global' | 'department' | 'private'
     departmentCode?: string
   }): Promise<PlazaSkill> {
-    const response = await fetch(API.plaza, {
+    const response = await fetch(routeUrl(API.plaza), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'submit', ...payload }),
@@ -244,7 +260,7 @@ export class SkillApi {
     if (!response.ok && response.status === 400 && this.errorOf(body, response.status).includes('unknown action')) {
       // Older dataops-managed builds exposed the same operation as `share`;
       // keep the card usable there while the backend contract rolls forward.
-      const legacy = await fetch(API.plaza, {
+      const legacy = await fetch(routeUrl(API.plaza), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ action: 'share', ...payload }),
@@ -268,7 +284,7 @@ export class SkillApi {
 
   /** Stop sharing one plaza entry owned by this workspace. */
   async plazaUnshare(id: number): Promise<void> {
-    const response = await fetch(API.plaza, {
+    const response = await fetch(routeUrl(API.plaza), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'unshare', id }),

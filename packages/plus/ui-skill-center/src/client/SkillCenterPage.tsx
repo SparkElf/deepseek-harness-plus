@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Button,
+  IconCloseOutline16,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
   IconSearchOutlineRegular,
@@ -24,6 +25,13 @@ import { SkillApi, type ListPayload, type SkillEntry, type TranslationProgress }
 import type { SkillCenterLocaleKey } from './locales.ts'
 import { PlazaUnavailableError, type PlazaSkill } from './api.ts'
 import { canSubmit, shareOf, type PlazaShare } from './plaza.ts'
+import { ConnectorsTab, type ConnectorLoadState } from './ConnectorsTab.tsx'
+import {
+  HttpConnectorSource,
+  readConnectorCatalogue,
+  type Connector,
+  type ConnectorCapability,
+} from './connectors.ts'
 import {
   allowedVisibilities, ownDepartment, readAccountIdentity, readSavedScope,
   sanitizeChoice, scopeRole, scopeStorageKey, writeSavedScope,
@@ -55,6 +63,12 @@ interface Group {
   title: string
   skills: SkillEntry[]
 }
+
+/** The four top-level sections of the page. */
+type SkillCenterTab = 'builtin' | 'personal' | 'plaza' | 'connectors'
+
+/** Group key the host uses for skills that ship inside the runtime. */
+const BUNDLED_GROUP = 'bundled'
 
 /** How the panel is currently showing the list. */
 type LoadState =
@@ -242,8 +256,13 @@ export function SkillCenterPage({
   ...runtime
 }: PropsRuntime<'main'> & PropsRenderSlots<'skill-center.section'> & SkillCenterPageProps): ReactNode {
   const api = useMemo(() => new SkillApi(), [])
+  const connectorSource = useMemo(() => new HttpConnectorSource(), [])
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
+  const [tab, setTab] = useState<SkillCenterTab>('builtin')
   const [query, setQuery] = useState('')
+  const [connectors, setConnectors] = useState<ConnectorLoadState>({ kind: 'loading' })
+  const [connectorBusyId, setConnectorBusyId] = useState<string | null>(null)
+  const [connectorNotice, setConnectorNotice] = useState<string | null>(null)
   const [progress, setProgress] = useState<TranslationProgress | undefined>(undefined)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ name: '', description: '', whenToUse: '', content: '', root: 'user' as 'user' | 'project' })
@@ -301,6 +320,21 @@ export function SkillCenterPage({
 
   useEffect(() => { void load() }, [load])
   useEffect(() => { void loadPlaza() }, [loadPlaza])
+
+  const loadConnectors = useCallback(async (): Promise<void> => {
+    setConnectors({ kind: 'loading' })
+    setConnectorNotice(null)
+    try {
+      setConnectors({ kind: 'ready', catalogue: await readConnectorCatalogue(connectorSource) })
+    } catch (error) {
+      setConnectors({
+        kind: 'failed',
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }, [connectorSource])
+
+  useEffect(() => { void loadConnectors() }, [loadConnectors])
   useEffect(() => {
     let cancelled = false
     void api.reviewContext()
@@ -355,6 +389,16 @@ export function SkillCenterPage({
       }))
       .filter(g => g.skills.length > 0)
   }, [state, query])
+  const builtinGroups = useMemo(() => groups.filter(group => group.key === BUNDLED_GROUP), [groups])
+  const personalGroups = useMemo(() => groups.filter(group => group.key !== BUNDLED_GROUP), [groups])
+  const countOf = (rows: readonly Group[]): number => rows.reduce((count, group) => count + group.skills.length, 0)
+  const connectorCount = connectors.kind === 'ready' ? connectors.catalogue.connectors.length : 0
+  const tabRows: readonly { value: SkillCenterTab; label: string; count: number }[] = [
+    { value: 'builtin', label: t('tab.builtin'), count: countOf(builtinGroups) },
+    { value: 'personal', label: t('tab.personal'), count: countOf(personalGroups) },
+    { value: 'plaza', label: t('tab.plaza'), count: 0 },
+    { value: 'connectors', label: t('tab.connectors'), count: connectorCount },
+  ]
 
   const toggle = useCallback(async (skill: SkillEntry, enabled: boolean): Promise<void> => {
     if (skill.path === undefined) return
@@ -376,6 +420,65 @@ export function SkillCenterPage({
       setState({ kind: 'failed', message: error instanceof Error ? error.message : String(error) })
     }
   }, [api, load, t])
+
+  const toggleConnector = useCallback(async (connector: Connector, enabled: boolean): Promise<void> => {
+    if (connectors.kind !== 'ready') return
+    setConnectorBusyId(connector.id)
+    setConnectorNotice(null)
+    try {
+      if (connectors.catalogue.demo) {
+        setConnectors({
+          kind: 'ready',
+          catalogue: {
+            demo: true,
+            connectors: connectors.catalogue.connectors.map(row => row.id === connector.id
+              ? { ...row, enabled, connected: enabled }
+              : row),
+          },
+        })
+      } else {
+        const rows = await connectorSource.setEnabled(connector.id, enabled)
+        setConnectors({ kind: 'ready', catalogue: { demo: false, connectors: rows } })
+      }
+    } catch (error) {
+      setConnectorNotice(error instanceof Error ? error.message : String(error))
+    } finally {
+      setConnectorBusyId(null)
+    }
+  }, [connectorSource, connectors])
+
+  const toggleCapability = useCallback(async (
+    connector: Connector,
+    capability: ConnectorCapability,
+    enabled: boolean,
+  ): Promise<void> => {
+    if (connectors.kind !== 'ready') return
+    setConnectorBusyId(connector.id + ':' + capability.id)
+    setConnectorNotice(null)
+    try {
+      if (connectors.catalogue.demo) {
+        setConnectors({
+          kind: 'ready',
+          catalogue: {
+            demo: true,
+            connectors: connectors.catalogue.connectors.map(row => row.id === connector.id
+              ? {
+                ...row,
+                capabilities: row.capabilities.map(item => item.id === capability.id ? { ...item, enabled } : item),
+              }
+              : row),
+          },
+        })
+      } else {
+        const rows = await connectorSource.setCapability(connector.id, capability.id, enabled)
+        setConnectors({ kind: 'ready', catalogue: { demo: false, connectors: rows } })
+      }
+    } catch (error) {
+      setConnectorNotice(error instanceof Error ? error.message : String(error))
+    } finally {
+      setConnectorBusyId(null)
+    }
+  }, [connectorSource, connectors])
 
   const openShare = useCallback((skill: SkillEntry): void => {
     setShareTarget(skill)
@@ -486,215 +589,286 @@ export function SkillCenterPage({
     }
   }, [api, draft, load])
 
-  const total = state.kind === 'ready' ? state.payload.groups.reduce((n, g) => n + g.skills.length, 0) : 0
+  const visibleGroups = tab === 'builtin' ? builtinGroups : personalGroups
+  const visibleTotal = countOf(visibleGroups)
 
   return (
     <div className={css.page}>
-      <header className={css.pageHead}>
-        <h1 className={css.pageTitle}>{t('panel')}</h1>
-        <div className={css.toolbar}>
-          <button
-            type="button"
-            className={css.iconButton}
-            aria-label={t('action.refresh')}
-            title={t('action.refresh')}
-            onClick={() => { void load() }}
-          >
-            <span className={css.iconWrap} aria-hidden="true"><IconRefreshOutlineRegular /></span>
-          </button>
-          <Button
-            variant="primary"
-            size="sm"
-            icon={<IconPlusOutlineRegular size={13} />}
-            onClick={() => { setCreating(v => !v) }}
-          >
-            {t('action.create')}
-          </Button>
-        </div>
-      </header>
-
-      <Modal
-        open={creating}
-        onClose={() => { setCreating(false) }}
-        title={t('create.title')}
-        closeLabel={t('action.cancel')}
-        className={css.dialog as string}
-        footer={(
-          <>
-            <Button variant="outline" autoFocus onClick={() => { setCreating(false) }}>
-              {t('action.cancel')}
+      <div className={css.pageContent}>
+        <header className={css.pageHead}>
+          <h1 className={css.pageTitle}>{t('panel')}</h1>
+          <div className={css.toolbar}>
+            <button
+              type="button"
+              className={css.iconButton}
+              aria-label={t('action.refresh')}
+              title={t('action.refresh')}
+              onClick={() => { void load() }}
+            >
+              <span className={css.iconWrap} aria-hidden="true"><IconRefreshOutlineRegular /></span>
+            </button>
+            <Button
+              variant="primary"
+              size="sm"
+              icon={<IconPlusOutlineRegular size={13} />}
+              onClick={() => { setCreating(v => !v) }}
+            >
+              {t('action.create')}
             </Button>
-            <Button variant="primary" onClick={() => { void submit() }}>
-              {t('action.confirm')}
-            </Button>
-          </>
-        )}
-      >
-        <div className={css.form}>
-          <DraftField label={t('create.name')}>
-            <input className={css.input} value={draft.name} onChange={set('name')} />
-          </DraftField>
-          <DraftField label={t('create.description')}>
-            <input className={css.input} value={draft.description} onChange={set('description')} />
-          </DraftField>
-          <DraftField label={t('create.whenToUse')}>
-            <input className={css.input} value={draft.whenToUse} onChange={set('whenToUse')} />
-          </DraftField>
-          <DraftField label={t('create.content')}>
-            <textarea className={css.textarea} value={draft.content} onChange={set('content')} />
-          </DraftField>
-          <DraftField label={t('create.root')}>
-            <select className={css.input} value={draft.root} onChange={(e) => { setDraft(d => ({ ...d, root: e.target.value === 'project' ? 'project' : 'user' })) }}>
-              <option value="user">{t('create.rootUser')}</option>
-              <option value="project">{t('create.rootProject')}</option>
-            </select>
-          </DraftField>
-        </div>
-      </Modal>
+          </div>
+        </header>
 
-      <Modal
-        open={shareTarget !== null}
-        onClose={closeShare}
-        title={t('plaza.dialogTitle')}
-        closeLabel={t('action.close')}
-        className={css.dialog as string}
-        footer={(
-          <>
-            <Button variant="outline" disabled={shareBusy} onClick={closeShare}>{t('action.cancel')}</Button>
-            <Button variant="primary" disabled={shareBusy || shareLoading} onClick={() => { void submitShare() }}>{t('plaza.submit')}</Button>
-          </>
-        )}
-      >
-        {shareTarget === null ? null : (
-          <div className={css.form} data-share-dialog={shareTarget.name}>
+        <div className={css.tabs} role="tablist" aria-label={t('tab.label')}>
+          {tabRows.map(row => (
+            <button
+              key={row.value}
+              type="button"
+              role="tab"
+              id={'skill-center-tab-' + row.value}
+              aria-selected={tab === row.value}
+              aria-controls={'skill-center-panel-' + row.value}
+              className={tab === row.value ? css.tab + ' ' + css.tabActive : css.tab}
+              data-tab={row.value}
+              onClick={() => {
+                setTab(row.value)
+                if (row.value === 'connectors' && connectors.kind === 'failed') void loadConnectors()
+              }}
+            >
+              {row.label}
+              {row.count === 0 ? null : <span className={css.tabCount}>{row.count}</span>}
+            </button>
+          ))}
+        </div>
+
+        <Modal
+          open={creating}
+          onClose={() => { setCreating(false) }}
+          title={t('create.title')}
+          closeLabel={t('action.cancel')}
+          className={css.dialog as string}
+          footer={(
+            <>
+              <Button variant="outline" autoFocus onClick={() => { setCreating(false) }}>
+                {t('action.cancel')}
+              </Button>
+              <Button variant="primary" onClick={() => { void submit() }}>
+                {t('action.confirm')}
+              </Button>
+            </>
+          )}
+        >
+          <div className={css.form}>
             <DraftField label={t('create.name')}>
-              <input className={css.input} value={shareTarget.name} readOnly />
+              <input className={css.input} value={draft.name} onChange={set('name')} />
             </DraftField>
             <DraftField label={t('create.description')}>
-              <input className={css.input} value={shareTarget.description} readOnly />
+              <input className={css.input} value={draft.description} onChange={set('description')} />
             </DraftField>
-            <DraftField label={t('plaza.tags')}>
-              <input className={css.input} value={shareTags} placeholder={t('plaza.tagsPlaceholder')} onChange={(event) => { setShareTags(event.target.value) }} />
+            <DraftField label={t('create.whenToUse')}>
+              <input className={css.input} value={draft.whenToUse} onChange={set('whenToUse')} />
             </DraftField>
-
-            <DraftField label={t('plaza.visibility')}>
-              <select
-                className={css.input}
-                value={shareVisibility}
-                data-share-visibility
-                onChange={(event) => {
-                  const visibility = event.target.value as PlazaVisibility
-                  setShareVisibility(visibility)
-                  if (visibility === 'department') {
-                    setShareDepartment(shareDepartment ?? ownCode ?? selectableDepartments[0]?.code)
-                  }
-                }}
-              >
-                {visibilityOptions.includes('global') ? <option value="global">{t('plaza.visibilityGlobal')}</option> : null}
-                {visibilityOptions.includes('department') ? <option value="department">{t('plaza.visibilityDepartment')}</option> : null}
-                <option value="private">{t('plaza.visibilityPrivate')}</option>
+            <DraftField label={t('create.content')}>
+              <textarea className={css.textarea} value={draft.content} onChange={set('content')} />
+            </DraftField>
+            <DraftField label={t('create.root')}>
+              <select className={css.input} value={draft.root} onChange={(e) => { setDraft(d => ({ ...d, root: e.target.value === 'project' ? 'project' : 'user' })) }}>
+                <option value="user">{t('create.rootUser')}</option>
+                <option value="project">{t('create.rootProject')}</option>
               </select>
             </DraftField>
-            {shareVisibility === 'department' ? (
-              <DraftField label={t('plaza.department')}>
+          </div>
+        </Modal>
+
+        <Modal
+          open={shareTarget !== null}
+          onClose={closeShare}
+          title={t('plaza.dialogTitle')}
+          headless
+          className={css.publishDialog as string}
+        >
+          <header className={css.dialogHeader}>
+            <h2 className={css.dialogTitle}>{t('plaza.dialogTitle')}</h2>
+            <button type="button" className={css.dialogClose} aria-label={t('action.close')} onClick={closeShare}>
+              <IconCloseOutline16 size={14} />
+            </button>
+          </header>
+          <div className={css.dialogBody} data-publish-body>
+          {shareTarget === null ? null : (
+            <div className={css.form} data-share-dialog={shareTarget.name}>
+              <DraftField label={t('create.name')}>
+                <input className={css.input} value={shareTarget.name} readOnly />
+              </DraftField>
+              <DraftField label={t('create.description')}>
+                <input className={css.input} value={shareTarget.description} readOnly />
+              </DraftField>
+              <DraftField label={t('plaza.tags')}>
+                <input className={css.input} value={shareTags} placeholder={t('plaza.tagsPlaceholder')} onChange={(event) => { setShareTags(event.target.value) }} />
+              </DraftField>
+
+              <DraftField label={t('plaza.visibility')}>
                 <select
                   className={css.input}
-                  value={shareDepartment ?? selectableDepartments[0]?.code ?? ''}
-                  data-share-department
-                  disabled={role !== 'admin' || selectableDepartments.length <= 1}
-                  onChange={(event) => { setShareDepartment(event.target.value) }}
+                  value={shareVisibility}
+                  data-share-visibility
+                  onChange={(event) => {
+                    const visibility = event.target.value as PlazaVisibility
+                    setShareVisibility(visibility)
+                    if (visibility === 'department') {
+                      setShareDepartment(shareDepartment ?? ownCode ?? selectableDepartments[0]?.code)
+                    }
+                  }}
                 >
-                  {selectableDepartments.map(department => (
-                    <option key={department.code} value={department.code}>{department.name}</option>
-                  ))}
+                  {visibilityOptions.includes('global') ? <option value="global">{t('plaza.visibilityGlobal')}</option> : null}
+                  {visibilityOptions.includes('department') ? <option value="department">{t('plaza.visibilityDepartment')}</option> : null}
+                  <option value="private">{t('plaza.visibilityPrivate')}</option>
                 </select>
               </DraftField>
-            ) : null}
-            <div className={css.plazaScopeHint}>{role === 'admin' ? t('plaza.scopeHintAdmin') : t('plaza.scopeHintUser')}</div>
-            <DraftField label={t('plaza.instruction')}>
-              <textarea
-                className={css.textarea}
-                value={shareInstruction}
-                readOnly={shareLoading}
-                placeholder={shareLoading ? t('plaza.contentLoading') : undefined}
-                onChange={(event) => { setShareInstruction(event.target.value) }}
-              />
-            </DraftField>
-            {shareError === null ? null : <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>}
+              {shareVisibility === 'department' ? (
+                <DraftField label={t('plaza.department')}>
+                  <select
+                    className={css.input}
+                    value={shareDepartment ?? selectableDepartments[0]?.code ?? ''}
+                    data-share-department
+                    disabled={role !== 'admin' || selectableDepartments.length <= 1}
+                    onChange={(event) => { setShareDepartment(event.target.value) }}
+                  >
+                    {selectableDepartments.map(department => (
+                      <option key={department.code} value={department.code}>{department.name}</option>
+                    ))}
+                  </select>
+                </DraftField>
+              ) : null}
+              <div className={css.plazaScopeHint}>{role === 'admin' ? t('plaza.scopeHintAdmin') : t('plaza.scopeHintUser')}</div>
+              <DraftField label={t('plaza.instruction')}>
+                <textarea
+                  className={css.textarea}
+                  value={shareInstruction}
+                  readOnly={shareLoading}
+                  placeholder={shareLoading ? t('plaza.contentLoading') : undefined}
+                  onChange={(event) => { setShareInstruction(event.target.value) }}
+                />
+              </DraftField>
+              {shareError === null ? null : <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>}
+            </div>
+          )}
           </div>
-        )}
-      </Modal>
+          <footer className={css.dialogFooter}>
+            <Button variant="outline" disabled={shareBusy} onClick={closeShare}>{t('action.cancel')}</Button>
+            <Button variant="primary" disabled={shareBusy || shareLoading} onClick={() => { void submitShare() }}>{t('plaza.submit')}</Button>
+          </footer>
+        </Modal>
 
-      {plaza.kind === 'unavailable' ? (
-        <div className={css.status} role="status" data-plaza-unavailable>{t('plaza.unavailable')}</div>
-      ) : null}
-      {shareError !== null && shareTarget === null ? (
-        <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>
-      ) : null}
-
-      {/* The shared input atom, so the box carries the panel's icon, radius, and
-          focus ring rather than a second local control. */}
-      <Input
-        className={css.search as string}
-        icon={<IconSearchOutlineRegular />}
-        placeholder={t('search.placeholder')}
-        aria-label={t('search.placeholder')}
-        value={query}
-        onChange={(e) => { setQuery(e.target.value) }}
-      />
-
-      {/* The bar reports a running batch; once every skill is indexed it has nothing
-          left to say, so it leaves the header to the search field. */}
-      {progress === undefined || progress.done >= progress.total ? null : (
-        <div className={css.progressRow}>
-          <span className={css.progressLabel}>{t('translate.label')}</span>
-          <span className={css.progressTrack}>
-            <span
-              className={css.progressFill}
-              style={{ width: String(progress.total === 0 ? 0 : Math.round(progress.done / progress.total * 100)) + '%' }}
+        <div className={css.searchField}>
+          <Input
+            type="search"
+            icon={<IconSearchOutlineRegular />}
+            placeholder={tab === 'connectors' ? t('search.connectorPlaceholder') : t('search.placeholder')}
+            aria-label={tab === 'connectors' ? t('search.connectorPlaceholder') : t('search.placeholder')}
+            value={query}
+            onChange={(e) => { setQuery(e.target.value) }}
+          />
+          {query === '' ? null : (
+            <Button
+              size="sm"
+              variant="ghost"
+              className={css.searchClear}
+              aria-label={t('search.clear')}
+              icon={<IconCloseOutline16 />}
+              onClick={() => { setQuery('') }}
             />
-          </span>
-          <span className={css.progressCount}>{progress.done} / {progress.total}</span>
+          )}
         </div>
-      )}
 
-      {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
-      {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}
-      {state.kind === 'ready' && groups.length === 0 ? (
-        <div className={css.status}>{query.trim() === '' ? t('state.empty') : t('search.noMatches')}</div>
-      ) : null}
-      {state.kind === 'ready' && groups.length > 0 && total === 0 ? (
-        <div className={css.status}>{t('state.empty')}</div>
-      ) : null}
+        {tab !== 'connectors' && plaza.kind === 'unavailable' ? (
+          <div className={css.status} role="status" data-plaza-unavailable>{t('plaza.unavailable')}</div>
+        ) : null}
+        {shareError !== null && shareTarget === null ? (
+          <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>
+        ) : null}
+        {connectorNotice === null ? null : (
+          <div className={css.status + ' ' + css.statusError} role="alert">{connectorNotice}</div>
+        )}
 
-      {groups.map(group => (
-        <div className={css.group} key={group.key}>
-          <h2 className={css.groupTitle}>
-            {group.title}
-            <span className={css.groupCount}>{group.skills.length}</span>
-          </h2>
-          <ul className={css.cards}>
-            {group.skills.map(skill => (
-              <SkillCard
-                key={group.key + ':' + skill.name}
-                skill={skill}
-                api={api}
-                cwd={state.kind === 'ready' ? state.payload.cwd : scope}
-                t={t}
-                share={shareOf(skill.name, plazaRecords)}
-                shareBusy={shareBusy}
-                shareDisabled={plaza.kind === 'unavailable'}
-                onToggle={(s, enabled) => { void toggle(s, enabled) }}
-                onDelete={(s) => { void remove(s) }}
-                onShare={openShare}
-                onUnshare={(s, id) => { void unshare(s, id) }}
+        {/* The bar reports a running batch; once every skill is indexed it has nothing
+            left to say, so it leaves the header to the search field. */}
+        {(tab === 'builtin' || tab === 'personal') && progress !== undefined && progress.done < progress.total ? (
+          <div className={css.progressRow}>
+            <span className={css.progressLabel}>{t('translate.label')}</span>
+            <span className={css.progressTrack}>
+              <span
+                className={css.progressFill}
+                style={{ width: String(progress.total === 0 ? 0 : Math.round(progress.done / progress.total * 100)) + '%' }}
               />
-            ))}
-          </ul>
-        </div>
-      ))}
+            </span>
+            <span className={css.progressCount}>{progress.done} / {progress.total}</span>
+          </div>
+        ) : null}
 
-      {renderSlot('skill-center.section', { query })}
+        <div
+          className={css.tabPanel}
+          id={'skill-center-panel-' + tab}
+          role="tabpanel"
+          aria-labelledby={'skill-center-tab-' + tab}
+          data-tab-panel={tab}
+        >
+          {tab === 'builtin' || tab === 'personal' ? (
+            <>
+              {state.kind === 'loading' ? <div className={css.status}>{t('state.loading')}</div> : null}
+              {state.kind === 'failed' ? <div className={css.status + ' ' + css.statusError}>{t('state.failed')}: {state.message}</div> : null}
+              {state.kind === 'ready' && visibleTotal === 0 ? (
+                <div className={css.status}>{query.trim() === '' ? t('state.empty') : t('search.noMatches')}</div>
+              ) : null}
+
+              {visibleGroups.map(group => (
+                <div className={css.group} key={group.key}>
+                  <h2 className={css.groupTitle}>
+                    {group.title}
+                    <span className={css.groupCount}>{group.skills.length}</span>
+                  </h2>
+                  <ul className={css.cards}>
+                    {group.skills.map(skill => (
+                      <SkillCard
+                        key={group.key + ':' + skill.name}
+                        skill={skill}
+                        api={api}
+                        cwd={state.kind === 'ready' ? state.payload.cwd : scope}
+                        t={t}
+                        share={shareOf(skill.name, plazaRecords)}
+                        shareBusy={shareBusy}
+                        shareDisabled={plaza.kind === 'unavailable'}
+                        onToggle={(s, enabled) => { void toggle(s, enabled) }}
+                        onDelete={(s) => { void remove(s) }}
+                        onShare={openShare}
+                        onUnshare={(s, id) => { void unshare(s, id) }}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {tab === 'plaza' ? (
+            <div className={css.plazaPanel} data-plaza-panel>
+              {renderSlot('skill-center.section', { query }, {
+                fallback: <div className={css.status}>{t('plaza.sectionFallback')}</div>,
+              })}
+            </div>
+          ) : null}
+
+          {tab === 'connectors' ? (
+            <ConnectorsTab
+              state={connectors}
+              query={query}
+              busyId={connectorBusyId}
+              t={t}
+              onRetry={() => { void loadConnectors() }}
+              onToggleConnector={(connector, enabled) => { void toggleConnector(connector, enabled) }}
+              onToggleCapability={(connector, capability, enabled) => { void toggleCapability(connector, capability, enabled) }}
+            />
+          ) : null}
+        </div>
+      </div>
     </div>
   )
 }

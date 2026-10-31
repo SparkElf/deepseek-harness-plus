@@ -72,6 +72,8 @@ function mount(): void {
     useWorkspaces: () => [{ path: '/ws', sessionIds: ['s1'] }],
   } as unknown as ComponentProps<typeof SkillCenterPage>
   render(<SkillCenterPage {...props} />)
+  // The page opens on 内置; the local cards under test live in 个人.
+  fireEvent.click(document.querySelector('[data-tab="personal"]') as HTMLElement)
 }
 
 async function openDialog(): Promise<void> {

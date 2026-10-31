@@ -8,24 +8,26 @@
  */
 
 .page {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
   box-sizing: border-box;
+  width: 100%;
   height: 100%;
   overflow: auto;
-  padding: 24px clamp(24px, 4vw, 40px) 40px;
+  padding: 0 0 48px;
   color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
   /* The page paints the l2 surface rung, so a revealed scrollbar uses the l2 pair
      rather than the l1 default it would otherwise inherit. */
   --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
   --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
-.page > * {
+/* The automation page's centered column: one 960px frame and the same
+   clamp(24-48px) inline inset, so sibling first-level pages share one width. */
+.pageContent {
   width: 100%;
   max-width: 960px;
+  margin: 0 auto;
+  padding: 0 clamp(24px, 4vw, 48px);
 }
 
 .pageHead {
@@ -33,6 +35,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  padding-top: 28px;
+  margin-bottom: 24px;
 }
 
 .pageTitle {
@@ -77,10 +81,136 @@
   display: inline-flex;
 }
 
-/* The shared input atom is inline-flex at its own content width; the page column
-   stretches it, and the page's flex gap spaces it from what follows. */
-.search {
+/* The automation task page's filter strip and pill measurements: 28px box,
+   10px sides, a 14px radius, tertiary label, and the hover fill for both the
+   hovered and selected chip. */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 14px;
+}
+
+.tab {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .tab:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.tabActive {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.tabCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabActive .tabCount {
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The automation page's search box: a 36px field on the 0.5px hairline, a 12px
+   radius, a brighter border on hover, and the brand stroke on focus. The shared
+   Input atom keeps only its leading icon and input inside it. */
+.searchField {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   width: 100%;
+  height: 36px;
+  margin: 0 0 16px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  transition: border-color 0.15s;
+}
+
+@media (hover: hover) {
+  .searchField:hover {
+    border-color: var(--dsw-alias-border-l2);
+  }
+}
+
+.searchField:focus-within {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.searchField > :first-child {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.searchField > :first-child:focus-within {
+  border-color: transparent;
+}
+
+.searchField > :first-child svg {
+  width: 14px;
+  height: 14px;
+}
+
+.searchField input::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.searchField input:focus-visible {
+  outline: none;
+}
+
+.searchField input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchClear {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin-right: -6px;
+  padding: 0;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.tabPanel {
+  min-width: 0;
+}
+
+.plazaPanel {
+  min-width: 0;
 }
 
 /* No top margin: the page's own flex gap already separates sibling groups, and stating it
@@ -339,9 +469,98 @@
 }
 
 /* The create dialog takes the width the official form dialogs use; the shared
-   Modal's own default is the narrow confirm width. */
+   Modal's own default is the narrow confirm width. The portaled dialog states
+   its color scheme explicitly so native select popups and disabled options use
+   the same light/dark palette as the page, not the browser default. */
 .dialog {
   width: min(560px, 100%);
+  color-scheme: light;
+}
+
+:global(body[data-ds-dark-theme]) .dialog {
+  color-scheme: dark;
+}
+
+/* The publish dialog: wide enough for form copy, height-capped to the viewport,
+   a fixed header/footer, and one scrolling body between them. */
+.publishDialog.publishDialog {
+  width: min(720px, calc(100vw - 32px));
+  max-width: 100%;
+  max-height: min(82vh, 760px);
+  gap: 0;
+  padding: 0 0 20px;
+  color-scheme: light;
+}
+
+:global(body[data-ds-dark-theme]) .publishDialog.publishDialog {
+  color-scheme: dark;
+}
+
+.dialogHeader {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 22px 24px 12px;
+}
+
+.dialogTitle {
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.dialogClose {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.dialogClose:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.dialogClose:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 2px;
+}
+
+.dialogBody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 24px;
+  /* The body is the dialog's scrollport, so its revealed bar takes the l2 pair
+     rather than inheriting the page's own bar. */
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
+}
+
+.dialogFooter {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px 0;
+}
+
+/* The publish form's instruction gets the extra room the wider dialog buys;
+   the textarea keeps its own scroll for a body longer than that. */
+.dialogBody .textarea {
+  min-height: 200px;
 }
 
 /* The create form's body inside the modal, which owns the frame. */
@@ -372,6 +591,35 @@
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font-size: 13px;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--dsw-alias-border-l2);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.input:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  background: var(--dsw-alias-bg-secondary);
+  cursor: default;
+}
+
+/* A native select popup is drawn by the browser outside the dialog's DOM box:
+   these option rules plus the ancestor `color-scheme` are what keep the list,
+   its selected row, and a disabled row readable on the dark palette. */
+.input option {
+  background-color: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
+.input option:disabled {
+  color: var(--dsw-alias-label-caption);
 }
 
 .textarea {
@@ -551,6 +799,196 @@
 /* Visibility scope hint under the publish dialog's selects. */
 .plazaScopeHint {
   color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* ---- Connector tab ------------------------------------------------------ */
+
+.connectorTab {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.connectorDemoNote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: var(--dsw-specific-sidebar-fill);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.connectorDemoTag {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.connectorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  align-items: start;
+  gap: 12px;
+}
+
+.connectorCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.connectorHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.connectorIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-module-platform);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.connectorIdentity {
+  flex: 1;
+  min-width: 0;
+}
+
+.connectorName {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.connectorVendor {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.connectorDescription {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.connectorError {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.connectorToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+}
+
+.connectorToggleLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.capabilityList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 10px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.capabilityTitle {
+  margin-bottom: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.capabilityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 6px 0;
+}
+
+.capabilityRow + .capabilityRow {
+  border-top: 0.5px solid var(--dsw-alias-border-l1);
+}
+
+.capabilityCopy {
+  flex: 1;
+  min-width: 0;
+}
+
+.capabilityName {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.capabilityDescription {
+  margin-top: 1px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.capabilityReason {
+  margin-top: 3px;
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.capabilityEmpty {
+  padding: 8px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.connectorFailed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-state-error-primary);
   font-size: 12px;
   line-height: 18px;
 }

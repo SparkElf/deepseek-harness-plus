@@ -52,3 +52,47 @@ describe('SkillCenterPage grid layout', () => {
     expect(declarations('.cards')?.get('align-items')).toBe('stretch')
   })
 })
+
+describe('SkillCenterPage tab and search measurements', () => {
+  it('matches the automation task page pill', () => {
+    const tab = declarations('.tab')
+    expect(tab?.get('height')).toBe('28px')
+    expect(tab?.get('padding')).toBe('0 10px')
+    expect(tab?.get('border-radius')).toBe('14px')
+    expect(tab?.get('color')).toBe('var(--dsw-alias-label-tertiary)')
+    const active = declarations('.tabActive')
+    expect(active?.get('background')).toBe('var(--dsw-alias-interactive-bg-hover)')
+    expect(active?.get('color')).toBe('var(--dsw-alias-label-primary)')
+    expect(declarations('.tab:focus-visible')?.get('outline')).toContain('2px solid')
+  })
+
+  it('matches the automation task page search box', () => {
+    const search = declarations('.searchField')
+    expect(search?.get('height')).toBe('36px')
+    expect(search?.get('border')).toBe('0.5px solid var(--dsw-alias-border-l3)')
+    expect(search?.get('border-radius')).toBe('12px')
+    expect(declarations('.searchField:focus-within')?.get('border-color')).toBe('var(--dsw-alias-state-business-primary)')
+    expect(declarations('.searchField input::placeholder')?.get('color')).toBe('var(--dsw-alias-label-caption)')
+  })
+})
+
+describe('publish dialog frame', () => {
+  it('caps the desktop dialog and gives the body the only scrollport', () => {
+    const dialog = declarations('.publishDialog.publishDialog')
+    expect(dialog?.get('width')).toBe('min(720px, calc(100vw - 32px))')
+    expect(dialog?.get('max-height')).toBe('min(82vh, 760px)')
+    const body = declarations('.dialogBody')
+    expect(body?.get('flex')).toBe('1')
+    expect(body?.get('min-height')).toBe('0')
+    expect(body?.get('overflow-y')).toBe('auto')
+    expect(declarations('.dialogHeader')?.get('flex')).toBe('none')
+    expect(declarations('.dialogFooter')?.get('flex')).toBe('none')
+  })
+
+  it('inherits an explicit color scheme through the portal and styles native options', () => {
+    expect(css).toMatch(/:global\(body\[data-ds-dark-theme\]\) \.dialog \{\s*color-scheme: dark;/u)
+    expect(css).toMatch(/\.input option \{[^}]*background-color: var\(--dsw-alias-bg-layer-2\);[^}]*color: var\(--dsw-alias-label-primary\);/u)
+    expect(css).toMatch(/\.input option:disabled \{[^}]*color: var\(--dsw-alias-label-caption\);/u)
+    expect(declarations('.input:focus-visible')?.get('outline')).toContain('2px solid')
+  })
+})
