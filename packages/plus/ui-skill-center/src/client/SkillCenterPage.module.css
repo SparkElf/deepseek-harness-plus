@@ -973,13 +973,6 @@
   line-height: 16px;
 }
 
-.capabilityEmpty {
-  padding: 8px 0;
-  color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
-  line-height: 18px;
-}
-
 .connectorFailed {
   display: flex;
   align-items: center;

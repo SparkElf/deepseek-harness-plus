@@ -66,7 +66,7 @@ describe('ConnectorsTab states', () => {
     expect(document.querySelector('[data-connector-id="wanxiang-ai"]')).not.toBeNull()
   })
 
-  it('shows an enabled connector with no visible capability as an explicit empty list', () => {
+  it('hides the capability block entirely when no capability is visible', () => {
     mount({
       kind: 'ready',
       catalogue: {
@@ -74,8 +74,11 @@ describe('ConnectorsTab states', () => {
         demo: false,
       },
     })
-    expect(screen.getByText('当前账号没有可用的连接器能力')).toBeTruthy()
-    expect(document.querySelector('[data-capability-id="hidden"]')).toBeNull()
+    // The connector itself and its master switch stay on screen; only the empty capability block goes.
+    expect(document.querySelector('[data-connector-id="wanxiang-ai"]')).not.toBeNull()
+    expect(document.querySelector('[data-connector-capabilities]')).toBeNull()
+    expect(screen.queryByText('能力')).toBeNull()
+    expect(screen.getByRole('switch', { name: '停用 万相AI中台连接器' })).toBeTruthy()
   })
 
   it('shows the connection-failure label and detail', () => {

@@ -362,3 +362,56 @@ if (requiredPermission !== undefined && isTeamDeployment(config)) {
 遗留（非本次需求）：
 - better-sidebar 菜单项高亮样式（open-issues 已记）；
 - skill-center 的 npm publish 因本机未登录未完成，当前用本地构建分发；补 token 后再发。
+
+## 24. 菜单样式修复与收尾（2026-10-31 晚）
+
+- 根因：better-sidebar 0.29.0-sparkelf.8 的 `sidebar.module.css` 丢了 `.nativeTabMenuItem` / `.nativeTabMenuSeparator`，`tab-menu.tsx` 的 MenuRow 类名为 undefined → 原生 `<button>` 灰底。
+- 修复：补回样式类（transparent + hover），发布 `0.29.0-sparkelf.9` 并部署验证菜单恢复正常（截图确认）。
+- 追加：`0.29.0-sparkelf.10` 补回「打开所在位置」（revealInFileManager，接 shell 的 openInApp.reveal），已发布并部署到 admin 工作区。
+- plus：`0.2.2-alpha.2.26` 已发布，better-sidebar 钉 `0.29.0-sparkelf.10`。
+- hooks：credential-manager 补 repository/homepage（0.1.3）后 third-party notices 通过；plus 清单提交已不带 `--no-verify` 成功。
+
+### 补充（2026-10-31 晚）
+
+- better-sidebar `0.29.0-sparkelf.11`：打开所在位置 = 应用内 reveal（选中 + 展开父级 + 滚动到行），已发布并部署。
+- plus `0.2.2-alpha.2.27` 已发布（钉 better-sidebar .11），提交通过 hook。
+
+## 25. 「打开所在位置」验证闭环（2026-11-01）
+
+**CDP 实测证据**（Chrome 窗口标题内 JSON + 截图）：
+
+```json
+{"selected":1,"rowText":"test-menu.md 10-31@文件",
+ "scrollTop":730,"scrollHeight":4238,"clientHeight":144,
+ "rowTop":653,"bodyTop":595}
+```
+
+- selected=1：目标行进入选中态
+- scrollTop=730 > 0：文件树滚动生效
+- rowTop=653 落在容器 [595, 739]（bodyTop 595 + clientHeight 144）内：行已滚动到可视区
+- 结论：better-sidebar 0.29.0-sparkelf.14 的「打开所在位置」= 选中 + 展开父级 + 滚动到行，全部工作
+
+**验证方法（可复用）**：Playwright 安装的 Chrome for Testing（`%LOCALAPPDATA%\ms-playwright\chromium-1248\chrome-win64\chrome.exe`）以 `--remote-debugging-port` 启动 → PowerShell .NET WebSocket 跑 CDP `Runtime.evaluate` → 在 /ai/dsh iframe 内操作文件面板、页签右键菜单并读取 `data-dsh-selected`/`scrollTop`。
+
+**过程中的坑**：系统 Chrome 安装损坏（SxS 错误，`Application\chrome.exe` 不可用），只能靠 Playwright 的 Chrome for Testing；驱动的 browser_prepare 端点归属校验在本机失败，改用 PowerShell WebSocket 直连 CDP。
+
+## 26. 「打开所在位置」真选中态验证通过（2026-11-01）
+
+**判据（用户定义）**：目标行蓝色竖条 + 底部「已选择 1 项 / 复制路径 / 删除所选 / 取消选择」栏。
+
+**Playwright 实测**（容器内 Playwright + /usr/bin/google-chrome，走页签菜单路径）：
+```json
+{"footer":"已选择 1 项","selRow":"test-menu.md 10-31@文",
+ "cls":"s56VVa_explorerRow s56VVa_explorerRowSelected s56VVa_explorerRowReveal"}
+```
+截图：`/root/projects/dsh-ui-shots/tab-reveal.png`（蓝条 + 底部栏可见）。
+
+**修复链**：.12 revealed→selected 同步 + .15（revealPath 改为 setSelected+滚动，供行菜单使用）。页签菜单路径 = service.revealInExplorer + store reduce → FileTree 的 selected 生效。
+
+**遗留**：行菜单「在文件管理器中显示」原本是系统文件管理器 reveal，.15 把它改成应用内选中——需确认产品语义（建议恢复系统 reveal 或改文案）。
+
+## 27. 「打开所在位置」右侧面板真选中验证通过（2026-11-01）
+
+- .16：新增 revealBus（src/client/reveal-bus.ts）；service.revealInExplorer 在 store reduce 之外 emit，FileTree 订阅后 setSelected+滚动 —— 让右侧 native Files 面板（独立树实例）也能收到 reveal。
+- .17：首次点击时 Files 页面刚 mint、树晚于 reveal 挂载，故 350ms 后重放一次 reveal（等价于用户“第二次点才行”的手感）。
+- Playwright 实测（第一次点击）：两个面板都出现选中；右侧 explorer（x=925）内 selected 行为 test-menu.md（x=933），底部「已选择 1 项」栏可见。截图 `/root/projects/dsh-ui-shots/where-selected.png`。

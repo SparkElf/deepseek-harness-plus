@@ -88,7 +88,6 @@ export interface SkillCenterLocale {
   'connector.enable': string
   'connector.disable': string
   'connector.capabilities': string
-  'connector.noCapabilities': string
   'connector.empty': string
   'connector.noMatches': string
   'connector.unavailable': string
@@ -181,7 +180,6 @@ export const zh: SkillCenterLocale = {
   'connector.enable': '启用',
   'connector.disable': '停用',
   'connector.capabilities': '能力',
-  'connector.noCapabilities': '当前账号没有可用的连接器能力',
   'connector.empty': '暂无连接器',
   'connector.noMatches': '无匹配连接器',
   'connector.unavailable': '暂不可用',
@@ -271,7 +269,6 @@ export const en: SkillCenterLocale = {
   'connector.enable': 'Enable',
   'connector.disable': 'Disable',
   'connector.capabilities': 'Capabilities',
-  'connector.noCapabilities': 'This account has no available connector capabilities',
   'connector.empty': 'No connectors',
   'connector.noMatches': 'No matching connectors',
   'connector.unavailable': 'Unavailable',

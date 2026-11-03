@@ -10,7 +10,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   Button,
-  IconCloseOutline16,
   IconPlusOutlineRegular,
   IconRefreshOutlineRegular,
   IconSearchOutlineRegular,
@@ -21,6 +20,7 @@ import {
 import type { PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from './slot-contract.ts'
 import css from './SkillCenterPage.module.css'
+import { CloseGlyph } from './glyphs.tsx'
 import { SkillApi, type ListPayload, type SkillEntry, type TranslationProgress } from './api.ts'
 import type { SkillCenterLocaleKey } from './locales.ts'
 import { PlazaUnavailableError, type PlazaSkill } from './api.ts'
@@ -689,68 +689,68 @@ export function SkillCenterPage({
           <header className={css.dialogHeader}>
             <h2 className={css.dialogTitle}>{t('plaza.dialogTitle')}</h2>
             <button type="button" className={css.dialogClose} aria-label={t('action.close')} onClick={closeShare}>
-              <IconCloseOutline16 size={14} />
+              <CloseGlyph size={14} />
             </button>
           </header>
           <div className={css.dialogBody} data-publish-body>
-          {shareTarget === null ? null : (
-            <div className={css.form} data-share-dialog={shareTarget.name}>
-              <DraftField label={t('create.name')}>
-                <input className={css.input} value={shareTarget.name} readOnly />
-              </DraftField>
-              <DraftField label={t('create.description')}>
-                <input className={css.input} value={shareTarget.description} readOnly />
-              </DraftField>
-              <DraftField label={t('plaza.tags')}>
-                <input className={css.input} value={shareTags} placeholder={t('plaza.tagsPlaceholder')} onChange={(event) => { setShareTags(event.target.value) }} />
-              </DraftField>
+            {shareTarget === null ? null : (
+              <div className={css.form} data-share-dialog={shareTarget.name}>
+                <DraftField label={t('create.name')}>
+                  <input className={css.input} value={shareTarget.name} readOnly />
+                </DraftField>
+                <DraftField label={t('create.description')}>
+                  <input className={css.input} value={shareTarget.description} readOnly />
+                </DraftField>
+                <DraftField label={t('plaza.tags')}>
+                  <input className={css.input} value={shareTags} placeholder={t('plaza.tagsPlaceholder')} onChange={(event) => { setShareTags(event.target.value) }} />
+                </DraftField>
 
-              <DraftField label={t('plaza.visibility')}>
-                <select
-                  className={css.input}
-                  value={shareVisibility}
-                  data-share-visibility
-                  onChange={(event) => {
-                    const visibility = event.target.value as PlazaVisibility
-                    setShareVisibility(visibility)
-                    if (visibility === 'department') {
-                      setShareDepartment(shareDepartment ?? ownCode ?? selectableDepartments[0]?.code)
-                    }
-                  }}
-                >
-                  {visibilityOptions.includes('global') ? <option value="global">{t('plaza.visibilityGlobal')}</option> : null}
-                  {visibilityOptions.includes('department') ? <option value="department">{t('plaza.visibilityDepartment')}</option> : null}
-                  <option value="private">{t('plaza.visibilityPrivate')}</option>
-                </select>
-              </DraftField>
-              {shareVisibility === 'department' ? (
-                <DraftField label={t('plaza.department')}>
+                <DraftField label={t('plaza.visibility')}>
                   <select
                     className={css.input}
-                    value={shareDepartment ?? selectableDepartments[0]?.code ?? ''}
-                    data-share-department
-                    disabled={role !== 'admin' || selectableDepartments.length <= 1}
-                    onChange={(event) => { setShareDepartment(event.target.value) }}
+                    value={shareVisibility}
+                    data-share-visibility
+                    onChange={(event) => {
+                      const visibility = event.target.value as PlazaVisibility
+                      setShareVisibility(visibility)
+                      if (visibility === 'department') {
+                        setShareDepartment(shareDepartment ?? ownCode ?? selectableDepartments[0]?.code)
+                      }
+                    }}
                   >
-                    {selectableDepartments.map(department => (
-                      <option key={department.code} value={department.code}>{department.name}</option>
-                    ))}
+                    {visibilityOptions.includes('global') ? <option value="global">{t('plaza.visibilityGlobal')}</option> : null}
+                    {visibilityOptions.includes('department') ? <option value="department">{t('plaza.visibilityDepartment')}</option> : null}
+                    <option value="private">{t('plaza.visibilityPrivate')}</option>
                   </select>
                 </DraftField>
-              ) : null}
-              <div className={css.plazaScopeHint}>{role === 'admin' ? t('plaza.scopeHintAdmin') : t('plaza.scopeHintUser')}</div>
-              <DraftField label={t('plaza.instruction')}>
-                <textarea
-                  className={css.textarea}
-                  value={shareInstruction}
-                  readOnly={shareLoading}
-                  placeholder={shareLoading ? t('plaza.contentLoading') : undefined}
-                  onChange={(event) => { setShareInstruction(event.target.value) }}
-                />
-              </DraftField>
-              {shareError === null ? null : <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>}
-            </div>
-          )}
+                {shareVisibility === 'department' ? (
+                  <DraftField label={t('plaza.department')}>
+                    <select
+                      className={css.input}
+                      value={shareDepartment ?? selectableDepartments[0]?.code ?? ''}
+                      data-share-department
+                      disabled={role !== 'admin' || selectableDepartments.length <= 1}
+                      onChange={(event) => { setShareDepartment(event.target.value) }}
+                    >
+                      {selectableDepartments.map(department => (
+                        <option key={department.code} value={department.code}>{department.name}</option>
+                      ))}
+                    </select>
+                  </DraftField>
+                ) : null}
+                <div className={css.plazaScopeHint}>{role === 'admin' ? t('plaza.scopeHintAdmin') : t('plaza.scopeHintUser')}</div>
+                <DraftField label={t('plaza.instruction')}>
+                  <textarea
+                    className={css.textarea}
+                    value={shareInstruction}
+                    readOnly={shareLoading}
+                    placeholder={shareLoading ? t('plaza.contentLoading') : undefined}
+                    onChange={(event) => { setShareInstruction(event.target.value) }}
+                  />
+                </DraftField>
+                {shareError === null ? null : <div className={css.status + ' ' + css.statusError} role="alert">{shareError}</div>}
+              </div>
+            )}
           </div>
           <footer className={css.dialogFooter}>
             <Button variant="outline" disabled={shareBusy} onClick={closeShare}>{t('action.cancel')}</Button>
@@ -773,7 +773,7 @@ export function SkillCenterPage({
               variant="ghost"
               className={css.searchClear}
               aria-label={t('search.clear')}
-              icon={<IconCloseOutline16 />}
+              icon={<CloseGlyph />}
               onClick={() => { setQuery('') }}
             />
           )}

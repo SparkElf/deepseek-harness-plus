@@ -28,7 +28,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-function stubFetch(): void {
+function stubFetch(options: { connectorsStatus?: number } = {}): void {
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input)
     if (url.includes('/api/dsh-skill-center/list')) {
@@ -43,7 +43,7 @@ function stubFetch(): void {
     }
     if (url.includes('/api/dsh-skill-center/connectors')) {
       // No bridge route in this profile: the tab must fall back to the demo rows.
-      return new Response('{}', { status: 404 })
+      return new Response('{}', { status: options.connectorsStatus ?? 404 })
     }
     if (url.includes('/api/dsh-skill-center/translation-progress')) return new Response('{}', { status: 200 })
     if (url.includes('/integrations/dataops/review-context')) return new Response('{}', { status: 200 })
@@ -131,6 +131,23 @@ describe('connector tab', () => {
     expect(card.querySelector('[data-connector-capabilities]')).toBeNull()
     expect(document.querySelector('[data-connector-id="work-order"]')).not.toBeNull()
     expect(document.querySelector('[data-connector-catalogue]')?.getAttribute('data-demo')).toBe('true')
+    expect(document.querySelector('[data-connector-glyph]')).not.toBeNull()
+  })
+
+  it('keeps the page mounted with a readable error and retry when the catalogue read fails', async () => {
+    stubFetch({ connectorsStatus: 502 })
+    mount()
+    await waitFor(() => expect(screen.getAllByText('bundled-alpha').length).toBeGreaterThan(0))
+    fireEvent.click(tab('连接器'))
+    await waitFor(() => expect(document.querySelector('[data-connector-failed]')).not.toBeNull())
+    const failed = document.querySelector('[data-connector-failed]') as HTMLElement
+    expect(failed.getAttribute('role')).toBe('alert')
+    expect(failed.textContent).toContain('连接器加载失败')
+    expect(failed.textContent).toContain('HTTP 502')
+    // The tab strip and the connector panel stay mounted: a failed read is a state, not a crash.
+    expect(screen.getAllByRole('tab').length).toBe(4)
+    expect(document.querySelector('[data-tab-panel="connectors"]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: '重试' })).toBeTruthy()
   })
 
   it('reveals only permitted capabilities when enabled and shows unavailable reasons', async () => {

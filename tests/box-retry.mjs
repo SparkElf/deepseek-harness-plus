@@ -1,0 +1,20 @@
+import { chromium } from 'playwright'
+const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox','--disable-dev-shm-usage'] })
+const page = await browser.newPage({ viewport: { width: 1680, height: 1000 }, locale: 'zh-CN' })
+const errs = []
+page.on('pageerror', e => errs.push(String(e).slice(0,140)))
+page.on('response', r => { if (r.url().includes('/api/') && r.status() >= 400) errs.push(`${r.status()} ${r.url().slice(-60)}`) })
+await page.goto('http://127.0.0.1:19999/?test=true', { waitUntil: 'domcontentloaded', timeout: 60000 })
+await page.waitForTimeout(10000)
+await page.locator('input').nth(0).fill('admin', { force: true })
+await page.locator('input[type=password]').fill('DataOps!2026', { force: true })
+await page.getByRole('button', { name: '进入工作台', exact: true }).click({ force: true })
+await page.waitForTimeout(6000)
+await page.goto('http://127.0.0.1:19999/ai/dsh', { waitUntil: 'domcontentloaded', timeout: 60000 })
+await page.waitForTimeout(12000)
+try { await page.getByRole('button', { name: /重试/ }).first().click({ timeout: 5000 }) } catch {}
+await page.waitForTimeout(25000)
+const frame = page.frames().find(f => f.url().includes('/dsh'))
+console.log(JSON.stringify({ frame: Boolean(frame), frameUrls: page.frames().map(f=>f.url().slice(0,80)), errs: errs.slice(0,6), bodyHead: (await page.evaluate(()=>document.body.innerText)).slice(0,200) }, null, 1))
+await page.screenshot({ path: '/root/projects/dsh-ui-shots/box-03-retry.png' })
+await browser.close()

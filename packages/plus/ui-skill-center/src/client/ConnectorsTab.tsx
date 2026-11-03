@@ -7,12 +7,12 @@
 import type { ReactNode } from 'react'
 import {
   Button,
-  IconLinkOutline16,
   Switch,
   Tag,
   type TagTone,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './SkillCenterPage.module.css'
+import { ConnectorGlyph } from './glyphs.tsx'
 import {
   connectorState,
   visibleCapabilities,
@@ -85,7 +85,7 @@ function ConnectorCard({ connector, busy, t, onToggleConnector, onToggleCapabili
       data-connector-enabled={connector.enabled}
     >
       <div className={css.connectorHead}>
-        <span className={css.connectorIcon} aria-hidden="true"><IconLinkOutline16 size={16} /></span>
+        <span className={css.connectorIcon}><ConnectorGlyph /></span>
         <div className={css.connectorIdentity}>
           <div className={css.connectorName}>{connector.name}</div>
           {connector.vendor === undefined ? null : <div className={css.connectorVendor}>{connector.vendor}</div>}
@@ -106,15 +106,13 @@ function ConnectorCard({ connector, busy, t, onToggleConnector, onToggleCapabili
           checked={connector.enabled}
           disabled={busy}
           label={(connector.enabled ? t('connector.disable') : t('connector.enable')) + ' ' + connector.name}
-          onChange={next => { onToggleConnector(connector, next) }}
+          onChange={(next) => { onToggleConnector(connector, next) }}
         />
       </div>
-      {connector.enabled ? (
+      {connector.enabled && capabilities.length > 0 ? (
         <div className={css.capabilityList} data-connector-capabilities>
           <div className={css.capabilityTitle}>{t('connector.capabilities')}</div>
-          {capabilities.length === 0 ? (
-            <div className={css.capabilityEmpty}>{t('connector.noCapabilities')}</div>
-          ) : capabilities.map(capability => {
+          {capabilities.map((capability) => {
             const unavailable = capability.unavailableReason !== undefined
             return (
               <div
@@ -136,7 +134,7 @@ function ConnectorCard({ connector, busy, t, onToggleConnector, onToggleCapabili
                   checked={capability.enabled}
                   disabled={busy || unavailable}
                   label={(capability.enabled ? t('connector.disable') : t('connector.enable')) + ' ' + capability.name}
-                  onChange={next => { onToggleCapability(connector, capability, next) }}
+                  onChange={(next) => { onToggleCapability(connector, capability, next) }}
                 />
               </div>
             )
@@ -157,7 +155,7 @@ export function ConnectorsTab(props: ConnectorsTabProps): ReactNode {
   if (state.kind === 'loading') return <div className={css.status}>{t('connector.loading')}</div>
   if (state.kind === 'failed') {
     return (
-      <div className={css.connectorFailed} role="alert">
+      <div className={css.connectorFailed} role="alert" data-connector-failed>
         <span>{t('connector.failed')}：{state.message}</span>
         <Button variant="outline" size="sm" onClick={onRetry}>{t('connector.retry')}</Button>
       </div>
@@ -179,7 +177,7 @@ export function ConnectorsTab(props: ConnectorsTabProps): ReactNode {
         </div>
       ) : (
         <div className={css.connectorGrid}>
-          {connectors.map(connector => {
+          {connectors.map((connector) => {
             const busy = busyId === connector.id || busyId?.startsWith(connector.id + ':') === true
             return (
               <ConnectorCard
