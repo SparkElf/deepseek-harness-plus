@@ -144,6 +144,8 @@ export class ApiSessionAgentController {
   private readonly resumes = new Map<SessionId, Promise<Agent>>()
   private readonly creations = new Map<SessionId, Promise<Agent>>()
   private readonly selections = new WeakMap<Agent, InstalledSelection>()
+  /** 每个 agent 当前生效的「工具可见性」限制的撤销函数（按模型能力同步）。 */
+  private readonly toolVisibility = new WeakMap<Agent, () => void>()
   private readonly imageAdmissionChains = new WeakMap<Agent, Promise<void>>()
 
   /** @param ctx - Host context carrying Agent, model, persistence, and Typert services. */
@@ -318,6 +320,8 @@ export class ApiSessionAgentController {
     }
     installModelSelection(agent.ctx, selection)
     this.selections.set(agent, selection)
+    // 首次安装也按该模型同步一次工具可见性，别只在「切换模型」时才生效。
+    void this.syncToolVisibility(agent, selection.current)
     return selection
   }
 
@@ -329,6 +333,32 @@ export class ApiSessionAgentController {
   selectForNextRequest(agent: Agent, selection: AgentModelSelection): void {
     agent.session.append('model/selection', selection)
     this.selectionFor(agent).current = selection
+    void this.syncToolVisibility(agent, selection)
+  }
+
+  /**
+   * 按当前模型的输入能力裁剪工具面。
+   *
+   * `read_image` 会把像素作为图像内容送进对话；纯文本模型即使被允许调用也消费不了，
+   * 而它只要出现在工具清单里，模型就会去试、试了必然失败。所以这里用
+   * `ctx.tools.restrict({ deny })` 把工具从**可见集合**里摘掉——不是调用时报错。
+   *
+   * 必须：先撤销旧限制再建新的（模型可能在视觉/文本之间来回切），且只能在
+   * agent 作用域调用（全局 ctx 上会屏蔽所有 agent）。
+   *
+   * @param agent - 目标 agent（其 ctx 是作用域键）。
+   * @param selection - 已提交的模型选择。
+   */
+  private async syncToolVisibility(agent: Agent, selection: AgentModelSelection): Promise<void> {
+    this.toolVisibility.get(agent)?.()
+    this.toolVisibility.delete(agent)
+    try {
+      const info = await this.ctx.llm.resolveModelInfo(selection.provider, selection.model)
+      if (info.inputModalities?.includes('image') === true) return
+      this.toolVisibility.set(agent, agent.ctx.tools.restrict({ deny: ['read_image'] }))
+    } catch {
+      // 模型信息取不到时保持默认（全部可见），不影响主流程。
+    }
   }
 
   /**
