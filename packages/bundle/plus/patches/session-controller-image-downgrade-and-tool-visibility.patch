@@ -1,0 +1,83 @@
+--- a/packages/api/session-controller/src/commands.ts	2026-11-03 00:40:46.207711920 +0800
++++ b/packages/api/session-controller/src/commands.ts	2026-11-03 00:40:46.209868821 +0800
+@@ -83,6 +83,9 @@
+ 
+ /** Implements Session business commands delegated by the Session Controller Remote service. */
+ export class SessionCommandController {
++  /** 每个 agent 当前生效的工具可见性限制的撤销函数（按模型能力同步）。 */
++  private readonly toolVisibility = new WeakMap<Agent, () => void>()
++
+   /**
+    * @param ctx - Host context carrying Agent, model, attachment, title, and Workspace services.
+    * @param agents - sole owner of create, resume, and Agent composition.
+@@ -142,6 +145,31 @@
+   }
+ 
+   /**
++   * 按当前模型的输入能力裁剪工具面。
++   *
++   * `read_image` 会把像素作为图像内容送进对话；纯文本模型即使被允许调用也消费不了，
++   * 而它只要出现在工具清单里，模型就会去试、试了必然失败。这里用
++   * `ctx.tools.restrict({ deny })` 把它从**可见集合**里摘掉——不是调用时报错。
++   *
++   * 只在 agent 作用域调用（全局 ctx 会屏蔽所有 agent）；切换模型时先撤销旧限制。
++   *
++   * @param agent - 目标 agent（其 ctx 是作用域键）。
++   * @param selection - 已提交的模型选择。
++   */
++  private async syncToolVisibility(agent: Agent, selection: AgentModelSelection): Promise<void> {
++    const disposers = this.toolVisibility
++    disposers.get(agent)?.()
++    disposers.delete(agent)
++    try {
++      const info = await this.ctx.llm.resolveModelInfo(selection.provider, selection.model)
++      if (info.inputModalities?.includes('image') === true) return
++      disposers.set(agent, agent.ctx.tools.restrict({ deny: ['read_image'] }))
++    } catch {
++      // 模型信息取不到时保持默认（全部可见），不影响主流程。
++    }
++  }
++
++  /**
+    * Validate and record one Session model selection; save the default in the background.
+    * @param request - Session identity and requested model selection.
+    * @returns the normalized selection recorded for the Session, without waiting for default persistence.
+@@ -160,6 +188,7 @@
+         }
+         await this.ctx.llm.resolveCallConfig(selected)
+         agent.model.select(selected)
++        void this.syncToolVisibility(agent, selected)
+         void this.ctx.agentDefaultModel.saveSelection(selected).catch((error: unknown) => {
+           this.ctx.logger.warn(
+             `session-controller: model selection changed for the Session but the default was not saved: ${String(error)}`,
+@@ -312,20 +341,24 @@
+     const hasImage = admission.content.some(part => part.type === 'image')
+     const admit = async (): Promise<SessionPromptValue> => {
+       try {
++        let promptContent = admission.content
+         if (hasImage) {
+           const current = agent.model.current()
+           if (current !== undefined) {
+             const model = await this.ctx.llm.resolveModelInfo(current.provider, current.model)
+             if (model.inputModalities !== undefined && !model.inputModalities.includes('image')) {
+-              throw new RemoteError(
+-                'session/attachment-invalid',
+-                `Model "${current.model}" does not support image input.`,
+-                { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' },
+-              )
++              // 纯文本模型：不要把整条消息拒掉。图片块降级成一行文字占位，消息照常入队；
++              // 模型看不到像素，但至少用户能发出去，不会卡在输入框。
++              promptContent = admission.content.map(part => part.type === 'image'
++                ? {
++                  type: 'text' as const,
++                  text: '[图片附件已附加。当前模型不支持图像输入，无法查看图片内容；如需处理请改用文件/工具链路。]',
++                }
++                : part)
+             }
+           }
+         }
+-        const content = await this.ctx.attachments.admitPromptContent(admission.content)
++        const content = await this.ctx.attachments.admitPromptContent(promptContent)
+         const message: UserMessage = createUserMessage({ content, source })
+         if (this.ctx.agents.get(agent.id) !== agent) {
+           throw new RemoteError(

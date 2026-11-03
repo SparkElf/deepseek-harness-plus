@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ComponentProps } from 'react'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { SkillCenterPage } from '../src/client/SkillCenterPage.tsx'
 import { zh } from '../src/client/locales.ts'
 import type { SkillEntry } from '../src/client/api.ts'
@@ -59,6 +59,8 @@ function mount(): void {
   render(
     <SkillCenterPage {...props} />,
   )
+  // The page opens on 内置; the local cards under test live in 个人.
+  fireEvent.click(document.querySelector('[data-tab="personal"]') as HTMLElement)
 }
 
 describe('SkillCenterPage plaza cards', () => {

@@ -15,6 +15,7 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
 import { parseDocument } from 'yaml'
+import { readPatchSet } from './patch-set.ts'
 
 /** Profile name a standalone installation owns when its package declares none. */
 export const STANDALONE_PROFILE = 'plus'
@@ -580,29 +581,16 @@ export function applyProfileNpmPatches(distributionDirectory: string, profileDir
     JSON.parse(readFileSync(join(distributionDirectory, 'package.json'), 'utf8')) as unknown,
     'Plus distribution manifest',
   )
-  const plus = requireRecord(manifest.dshPlus, 'dshPlus')
-  const names = plus.patchPackages
-  if (!Array.isArray(names)) throw new Error('dshPlus.patchPackages must be an array')
+  const patchSet = readPatchSet(distributionDirectory, manifest)
   const applied: string[] = []
-  for (const value of names) {
-    if (typeof value !== 'string' || value === '') throw new Error('dshPlus.patchPackages entries must be non-empty strings')
-    const patchPackage = resolveInstalledPackage(distributionDirectory, value)
-    const declaration = requireRecord(patchPackage.manifest.dshPatch, value + ' dshPatch')
-    const variants = declaration.variants
-    if (!Array.isArray(variants)) throw new Error(value + ' dshPatch.variants must be an array')
-    for (const entry of variants) {
-      const variant = requireRecord(entry, value + ' variant')
-      const target = requireRecord(variant.target, value + ' variant target')
-      // Only npm targets reach an installed package; a source target needs the
-      // official checkout, which a standalone installation does not have.
-      if (target.kind !== 'npm') continue
-      const targetName = String(target.name)
-      const patched = resolveInstalledPackage(profileDirectory, targetName)
-      const file = resolve(patchPackage.directory, String(variant.file))
-      if (git(patched.directory, ['apply', '--reverse', '--check', file], true) !== undefined) continue
-      git(patched.directory, ['apply', file])
-      applied.push(value + ' -> ' + targetName)
-    }
+  for (const entry of [...patchSet.entries, ...patchSet.thirdPartyPatches]) {
+    if (entry.target.kind !== 'npm') continue
+    const targetName = entry.target.name
+    const patched = resolveInstalledPackage(profileDirectory, targetName)
+    const file = resolve(distributionDirectory, entry.file)
+    if (git(patched.directory, ['apply', '--reverse', '--check', file], true) !== undefined) continue
+    git(patched.directory, ['apply', file])
+    applied.push(entry.id + ' -> ' + targetName)
   }
   return applied
 }

@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.1-rc.2.4",
+  "version": "0.2.2-alpha.2.46",
   "publishConfig": {
     "access": "public"
   },
@@ -31,7 +31,8 @@
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
-    "README.i18n.yaml"
+    "README.i18n.yaml",
+    "patches/**/*.patch"
   ],
   "license": "MIT",
   "dsh": {
@@ -42,7 +43,7 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.2.1-alpha.2"
+      "dsh": ">=0.2.2-alpha.2"
     },
     "profile": {
       "bundles": [
@@ -53,7 +54,6 @@
         "@sparkelf/dsh-mineru",
         "@sparkelf/dsh-officecli",
         "dshmarket",
-        "@huanlin/dsh-plugin-better-locale",
         "dsh-better-sidebar",
         "@sparkelf/dsh-office-viewer-fonts",
         "dsh-video-preview",
@@ -65,28 +65,41 @@
         "@sparkelf/dsh-api-client",
         "dsh-right-bg-anim",
         "@sparkelf/dsh-mobile-bridge",
-        "@sparkelf/dsh-quant",
-        "@sparkelf/dsh-client-ui-diagram-viewer"
+        "@sparkelf/dsh-quant"
       ],
       "dependencies": {
         "@sparkelf/dsh-mineru": "0.1.4",
         "@sparkelf/dsh-officecli": "0.1.4",
         "@sparkelf/dsh-plugin-supervisor": "0.1.9",
-        "dsh-sql-workbench": "0.5.3",
+        "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
         "@sparkelf/dsh-workbench-vault": "0.1.2",
-        "@sparkelf/dsh-ssh-manager": "0.7.4",
+        "@sparkelf/dsh-ssh-manager": "0.7.5",
         "@sparkelf/dsh-api-client": "0.5.3",
-        "@huanlin/dsh-plugin-better-locale": "0.4.3",
-        "dsh-better-sidebar": "0.28.0",
-        "@sparkelf/dsh-office-viewer-fonts": "0.1.5",
+        "dsh-better-sidebar": "npm:@sparkelf/dsh-better-sidebar@0.29.0-sparkelf.18",
+        "@sparkelf/dsh-office-viewer-fonts": "0.1.6",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
-        "@deepseek-ai/dsh-experimental-agent-team-profile": ">=0.2.1-rc.2",
+        "@deepseek-ai/dsh-experimental-agent-team-profile": "0.2.2-alpha.2",
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
-        "@deepseek-ai/dsh-experimental-auto-review": "0.2.1-rc.2",
-        "@sparkelf/dsh-genui": "0.13.0-sparkelf.3",
-        "@sparkelf/dsh-client-ui-diagram-viewer": "0.2.1-alpha.28"
+        "@sparkelf/dsh-task-bus": "0.1.6",
+        "@deepseek-ai/dsh-experimental-auto-review": "0.2.2-alpha.2",
+        "@sparkelf/dsh-genui": "0.15.0-sparkelf.1",
+        "@deepseek-ai/dsh-anonymous-user-id": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-attachment": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-compaction": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-deepseek-account": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-fs": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-jobs": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-llm-deepseek": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-ptc-runtime": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-sandbox": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-persistence": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-telemetry": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-title-llm": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-shell": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-spill": "0.2.2-alpha.2",
+        "@deepseek-ai/dsh-workflow": "0.2.2-alpha.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -100,33 +113,41 @@
         "ssh2": true
       },
       "overrides": {
-        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.2.1-rc.2",
-        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.2.1-rc.2",
-        "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.2.1-rc.2",
-        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.2.1-rc.2",
-        "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.2.1-rc.2",
-        "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.2.1-rc.2",
-        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.2.1-rc.2",
-        "@deepseek-ai/dsh-session-query-sqlite": "npm:@sparkelf/dsh-session-query-sqlite@0.2.1-rc.2",
-        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.2.1-rc.2",
-        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.2.1-rc.2",
-        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.2.1-rc.2",
-        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.2.1-rc.2",
-        "@deepseek-ai/dsh-user-approval": "npm:@sparkelf/dsh-user-approval@0.2.1-rc.2",
-        "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.1-rc.2",
-        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.1-rc.2",
-        "@deepseek-ai/dsh-session": "npm:@sparkelf/dsh-session@0.2.1-rc.2",
-        "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.1-rc.2"
+        "@deepseek-ai/dsh-api-gateway": "npm:@sparkelf/dsh-api-gateway@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-api-session-controller": "npm:@sparkelf/dsh-api-session-controller@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-connection": "npm:@sparkelf/dsh-client-connection@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-agent-preset": "npm:@sparkelf/dsh-client-ui-agent-preset@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-deliverables": "npm:@sparkelf/dsh-client-ui-deliverables@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-layout": "npm:@sparkelf/dsh-client-ui-layout@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-model-selection": "npm:@sparkelf/dsh-client-ui-model-selection@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-permission-presets": "npm:@sparkelf/dsh-client-ui-permission-presets@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-primitives": "npm:@sparkelf/dsh-client-ui-primitives@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-settings-models": "npm:@sparkelf/dsh-client-ui-settings-models@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-trajectory": "npm:@sparkelf/dsh-client-ui-trajectory@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-host-open-in-app": "npm:@sparkelf/dsh-host-open-in-app@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-llm-pi-ai": "npm:@sparkelf/dsh-llm-pi-ai@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-native-command": "npm:@sparkelf/dsh-native-command@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-format-v0-to-v1": "npm:@sparkelf/dsh-session-format-v0-to-v1@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-log-export": "npm:@sparkelf/dsh-session-log-export@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-query-sqlite": "npm:@sparkelf/dsh-session-query-sqlite@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-tools": "npm:@sparkelf/dsh-tools@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-web-app": "npm:@sparkelf/dsh-web-app@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-web-frontend": "npm:@sparkelf/dsh-web-frontend@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-workspace": "npm:@sparkelf/dsh-workspace@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-user-approval": "npm:@sparkelf/dsh-user-approval@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-base": "npm:@sparkelf/dsh-base@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-settings-general": "npm:@sparkelf/dsh-client-ui-settings-general@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-sidebar-documentpreview": "npm:@sparkelf/dsh-client-ui-sidebar-documentpreview@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session": "npm:@sparkelf/dsh-session@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-app-boot": "npm:@sparkelf/dsh-app-boot@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-permission-presets": "npm:@sparkelf/dsh-permission-presets@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-compaction-image-offload": "npm:@sparkelf/dsh-compaction-image-offload@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-session-query": "npm:@sparkelf/dsh-session-query@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-schedule": "npm:@sparkelf/dsh-client-ui-schedule@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-sidebar-right": "npm:@sparkelf/dsh-client-ui-sidebar-right@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-atomic-write": "npm:@sparkelf/dsh-atomic-write@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-tool-executor-ptc": "npm:@sparkelf/dsh-tool-executor-ptc@0.2.2-alpha.2",
+        "@deepseek-ai/dsh-client-ui-slots": "0.2.2-alpha.2"
       },
       "standaloneVariants": {
         "dataops": {
@@ -137,91 +158,568 @@
             "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp",
             "@deepseek-ai/dsh-web-search-exa",
             "@sparkelf/dsh-mobile-bridge",
-            "@sparkelf/dsh-quant"
+            "@sparkelf/dsh-quant",
+            "dsh-video-preview"
           ],
           "excludeBundles": [],
           "includePackages": {
-            "@sparkelf/dsh-dataops-managed": "0.3.20",
-            "@sparkelf/dsh-query-result-analysis": "0.1.4"
+            "@sparkelf/dsh-dataops-managed": "0.3.21",
+            "@sparkelf/dsh-query-result-analysis": "0.1.4",
+            "@sparkelf/dsh-knowledge-base": "0.1.21",
+            "@sparkelf/dsh-credential-manager": "0.1.0",
+            "@sparkelf/dsh-group-chat": "0.5.1",
+            "@sparkelf/dsh-kb-citation": "0.1.3",
+            "@sparkelf/dsh-task-bus": "0.1.0"
           },
           "includeBundles": [
             "@sparkelf/dsh-dataops-managed",
             "@sparkelf/dsh-query-result-analysis",
-            "@deepseek-ai/dsh-experimental-auto-review"
+            "@deepseek-ai/dsh-experimental-auto-review",
+            "@sparkelf/dsh-knowledge-base",
+            "@sparkelf/dsh-credential-manager",
+            "@sparkelf/dsh-group-chat",
+            "@sparkelf/dsh-kb-citation",
+            "@sparkelf/dsh-task-bus"
           ]
         }
       }
     },
-    "patchPackages": [
-      "@sparkelf/dsh-patch-approval-allow-policy",
-      "@sparkelf/dsh-patch-atomic-write-zombie-lock-holder",
-      "@sparkelf/dsh-patch-better-locale-peer-range",
-      "@sparkelf/dsh-patch-better-sidebar-html-preview-path",
-      "@sparkelf/dsh-patch-better-sidebar-media-path",
-      "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load",
-      "@sparkelf/dsh-patch-bootstrap-exempt-names",
-      "@sparkelf/dsh-patch-browser-auth-mode",
-      "@sparkelf/dsh-patch-composer-popover-boundaries",
-      "@sparkelf/dsh-patch-diagram-preview",
-      "@sparkelf/dsh-patch-image-offload-hoist-replay",
-      "@sparkelf/dsh-patch-legacy-code-preset",
-      "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation",
-      "@sparkelf/dsh-patch-mobile-journal-generation",
-      "@sparkelf/dsh-patch-office-preview-stable-load",
-      "@sparkelf/dsh-patch-officecli-deliverables",
-      "@sparkelf/dsh-patch-ptc-mcp-schema-types",
-      "@sparkelf/dsh-patch-responses-reasoning-status",
-      "@sparkelf/dsh-patch-session-envelope-ignorable",
-      "@sparkelf/dsh-patch-session-export-chinese",
-      "@sparkelf/dsh-patch-session-format-legacy-restart",
-      "@sparkelf/dsh-patch-session-log-trajectory-toolbar",
-      "@sparkelf/dsh-patch-session-query-unindexable-session",
-      "@sparkelf/dsh-patch-state-dot-brand-blue",
-      "@sparkelf/dsh-patch-ui-settings-compact-phone",
-      "@sparkelf/dsh-patch-web-runtime-compat",
-      "@sparkelf/dsh-patch-workspace-storage-restore",
-      "@sparkelf/dsh-patch-wsl-native-open"
-    ],
     "sourceBase": {
-      "revision": "687f282e8625c6b8d11ff58211a90524be2e4317"
+      "revision": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3"
+    },
+    "patchSet": {
+      "formatVersion": 1,
+      "entries": [
+        {
+          "id": "approval-allow-policy",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-base",
+              "@deepseek-ai/dsh-permission-presets",
+              "@deepseek-ai/dsh-user-approval"
+            ],
+            "paths": [
+              "packages/bundle/base/",
+              "packages/interaction/permission-presets/",
+              "packages/interaction/user-approval/"
+            ]
+          },
+          "file": "./patches/approval-allow-policy.patch",
+          "retireWhen": "官方 dsh-user-approval/dsh-permission-presets 接受 allow 审批策略后退役"
+        },
+        {
+          "id": "atomic-write-zombie-lock-holder",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-atomic-write"
+            ],
+            "paths": [
+              "packages/util/atomic-write/"
+            ]
+          },
+          "file": "./patches/atomic-write-zombie-lock-holder.patch",
+          "retireWhen": "官方 atomic-write 在 holder 退出但未回收时也能接管锁后退役"
+        },
+        {
+          "id": "bootstrap-exempt-names",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/boot/app-boot/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-app-boot"
+            ]
+          },
+          "file": "./patches/bootstrap-exempt-names.patch",
+          "retireWhen": "官方 app-boot 允许从 .env 设置 DSH_OFFICE_FONT_DIR 后退役"
+        },
+        {
+          "id": "browser-auth-mode",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/connection/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-connection"
+            ]
+          },
+          "file": "./patches/browser-auth-mode.patch",
+          "retireWhen": "官方 DSH 暴露等价的 profile 级 browser authentication 选择后退役"
+        },
+        {
+          "id": "composer-popover-boundaries",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-web-frontend",
+              "@deepseek-ai/dsh-client-ui-layout",
+              "@deepseek-ai/dsh-client-ui-model-selection",
+              "@deepseek-ai/dsh-client-ui-permission-presets",
+              "@deepseek-ai/dsh-client-ui-primitives"
+            ],
+            "paths": [
+              "apps/web/",
+              "packages/client/ui-layout/",
+              "packages/client/ui-model-selection/",
+              "packages/client/ui-permission-presets/",
+              "packages/client/ui-primitives/"
+            ]
+          },
+          "file": "./patches/composer-popover-boundaries.patch",
+          "retireWhen": "官方 composer 把 permission/model popover 约束在中心列后退役"
+        },
+        {
+          "id": "diagram-preview",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-sidebar-documentpreview/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-sidebar-documentpreview"
+            ]
+          },
+          "file": "./patches/diagram-preview.patch",
+          "retireWhen": "官方 document preview 内置 draw.io/XMind 渲染后退役"
+        },
+        {
+          "id": "image-offload-hoist-replay",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/compaction/compaction-image-offload/",
+              "packages/session-query/session-query-sqlite/",
+              "packages/session-query/session-query/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-compaction-image-offload",
+              "@deepseek-ai/dsh-session-query",
+              "@deepseek-ai/dsh-session-query-sqlite"
+            ]
+          },
+          "file": "./patches/image-offload-hoist-replay.patch",
+          "retireWhen": "官方 session-query/compaction 原生兼容插件 projection 的持久化位置，并跳过不可迁移日志、边读边索引后退役"
+        },
+        {
+          "id": "legacy-code-preset",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-api-session-controller",
+              "@deepseek-ai/dsh-client-ui-agent-preset"
+            ],
+            "paths": [
+              "packages/api/session-controller/",
+              "packages/client/ui-agent-preset/"
+            ]
+          },
+          "file": "./patches/legacy-code-preset.patch",
+          "retireWhen": "官方 session-controller 把历史 code preset 映射到 PTC 后退役"
+        },
+        {
+          "id": "llm-pi-ai-transport-truncation",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/llm/llm-pi-ai/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-llm-pi-ai"
+            ]
+          },
+          "file": "./patches/llm-pi-ai-transport-truncation.patch",
+          "retireWhen": "官方 llm-pi-ai 把网关截断流归类为 TRANSPORT 并重试后退役"
+        },
+        {
+          "id": "mobile-journal-generation",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/api/gateway/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-api-gateway"
+            ]
+          },
+          "file": "./patches/mobile-journal-generation.patch",
+          "retireWhen": "官方 gateway 覆盖 mobile journal 重连代际后退役"
+        },
+        {
+          "id": "office-preview-stable-load",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-sidebar-documentpreview/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-sidebar-documentpreview"
+            ]
+          },
+          "file": "./patches/office-preview-stable-load.patch",
+          "retireWhen": "官方 document preview 在 tab 重渲染间保持 Office 转换后退役"
+        },
+        {
+          "id": "officecli-deliverables",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-deliverables/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-deliverables"
+            ]
+          },
+          "file": "./patches/officecli-deliverables.patch",
+          "retireWhen": "官方 deliverables 投影原生包含 OfficeCLI 原文件后退役"
+        },
+        {
+          "id": "ptc-mcp-schema-types",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-tool-executor-ptc",
+              "@deepseek-ai/dsh-tools"
+            ],
+            "paths": [
+              "packages/core/tool-executor-ptc/",
+              "packages/core/tools/"
+            ]
+          },
+          "file": "./patches/ptc-mcp-schema-types.patch",
+          "retireWhen": "官方 PTC SDK 保留 MCP 参数类型后退役"
+        },
+        {
+          "id": "responses-reasoning-status",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-settings-models",
+              "@deepseek-ai/dsh-llm-pi-ai"
+            ],
+            "paths": [
+              "packages/client/ui-settings-models/",
+              "packages/llm/llm-pi-ai/"
+            ]
+          },
+          "file": "./patches/responses-reasoning-status.patch",
+          "retireWhen": "官方 llm-pi-ai 提供等价的 Responses 输入兼容开关后退役"
+        },
+        {
+          "id": "session-envelope-ignorable",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-session"
+            ],
+            "paths": [
+              "packages/core/session/"
+            ]
+          },
+          "file": "./patches/session-envelope-ignorable.patch",
+          "retireWhen": "官方 Session.append 支持 log-only 事件的 envelope 标记后退役"
+        },
+        {
+          "id": "session-export-chinese",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-session-log-export"
+            ],
+            "paths": [
+              "packages/session-query/session-log-export/"
+            ]
+          },
+          "file": "./patches/session-export-chinese.patch",
+          "retireWhen": "官方简体中文导出文案统一后退役"
+        },
+        {
+          "id": "session-format-legacy-restart",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/session/session-format-v0-to-v1/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-session-format-v0-to-v1"
+            ]
+          },
+          "file": "./patches/session-format-legacy-restart.patch",
+          "retireWhen": "官方 session-format 默认接受已发布的 interrupted-turn restart 模式后退役"
+        },
+        {
+          "id": "session-log-trajectory-toolbar",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-trajectory",
+              "@deepseek-ai/dsh-session-log-export"
+            ],
+            "paths": [
+              "packages/client/ui-trajectory/",
+              "packages/session-query/session-log-export/"
+            ]
+          },
+          "file": "./patches/session-log-trajectory-toolbar.patch",
+          "retireWhen": "官方把 Session 导出入口放进 Trajectory 工具栏后退役"
+        },
+        {
+          "id": "state-dot-brand-blue",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-primitives/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-primitives"
+            ]
+          },
+          "file": "./patches/state-dot-brand-blue.patch",
+          "retireWhen": "官方 ui-primitives 加载动画恢复品牌蓝后退役"
+        },
+        {
+          "id": "ui-settings-compact-phone",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-settings-general/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-settings-general"
+            ]
+          },
+          "file": "./patches/ui-settings-compact-phone.patch",
+          "retireWhen": "官方 ui-settings-general 为窄屏提供手机布局后退役"
+        },
+        {
+          "id": "ui-schedule-plaza-tab",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-schedule/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-schedule"
+            ]
+          },
+          "file": "./patches/ui-schedule-plaza-tab.patch",
+          "retireWhen": "官方 ui-schedule 自动化任务页自行声明并渲染 schedule.manager.tabs 座位后退役"
+        },
+        {
+          "id": "web-runtime-compat",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/bundle/web-app/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-web-app"
+            ]
+          },
+          "file": "./patches/web-runtime-compat.patch",
+          "retireWhen": "官方 web-app 不再需要并存 alpha.2 的 webRuntime 服务后退役"
+        },
+        {
+          "id": "workspace-storage-restore",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/workspace/workspace/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-workspace"
+            ]
+          },
+          "file": "./patches/workspace-storage-restore.patch",
+          "retireWhen": "官方 workspace 提供 storage restore 事务后退役"
+        },
+        {
+          "id": "wsl-native-open",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/host/open-in-app/",
+              "packages/util/native-command/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-host-open-in-app",
+              "@deepseek-ai/dsh-native-command"
+            ]
+          },
+          "file": "./patches/wsl-native-open.patch",
+          "retireWhen": "官方 open-in-app 为 Windows 解释器翻译 POSIX 路径后退役"
+        },
+        {
+          "id": "ui-sidebar-right-global-panel",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-sidebar-right/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-sidebar-right"
+            ]
+          },
+          "file": "./patches/ui-sidebar-right-global-panel.patch",
+          "retireWhen": "官方 ui-sidebar-right 的 RightbarRoot 在 global panel（activePanelId !== null）下渲染 rightbar.session 后退役"
+        },
+        {
+          "id": "dsh-resource-ref-chip",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-primitives/",
+              "packages/client/ui-conversation/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-primitives",
+              "@deepseek-ai/dsh-client-ui-conversation"
+            ]
+          },
+          "file": "./patches/dsh-resource-ref-chip.patch",
+          "retireWhen": "官方 primitives 的 ReferenceIconKind 增加 resource 类型后退役"
+        },
+        {
+          "id": "session-controller-image-downgrade-and-tool-visibility",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-api-session-controller"
+            ],
+            "paths": [
+              "packages/api/session-controller/"
+            ]
+          },
+          "file": "./patches/session-controller-image-downgrade-and-tool-visibility.patch",
+          "retireWhen": "上游 dsh-api-session-controller 支持非视觉模型图片降级与按模型能力裁剪工具面后退役"
+        }
+      ]
+    },
+    "thirdPartyPatches": [],
+    "editions": {
+      "personal": {
+        "label": "个人版",
+        "bundles": [
+          "@sparkelf/dsh-mineru",
+          "@sparkelf/dsh-officecli",
+          "dshmarket",
+          "@sparkelf/dsh-better-sidebar",
+          "@sparkelf/dsh-office-viewer-fonts",
+          "dsh-video-preview",
+          "@sparkelf/dsh-genui",
+          "@sparkelf/dsh-plugin-supervisor",
+          "@sparkelf/dsh-sql-workbench",
+          "@sparkelf/dsh-ssh-manager",
+          "@sparkelf/dsh-api-client",
+          "dsh-right-bg-anim",
+          "@sparkelf/dsh-mobile-bridge",
+          "@sparkelf/dsh-quant"
+        ],
+        "packages": {
+          "@sparkelf/dsh-mineru": "0.1.4",
+          "@sparkelf/dsh-officecli": "0.1.4",
+          "@sparkelf/dsh-plugin-supervisor": "0.1.9",
+          "@sparkelf/dsh-workbench-vault": "0.1.2",
+          "@sparkelf/dsh-ssh-manager": "0.7.5",
+          "@sparkelf/dsh-api-client": "0.5.3",
+          "@sparkelf/dsh-office-viewer-fonts": "0.1.6",
+          "dsh-video-preview": "0.1.4",
+          "dsh-right-bg-anim": "1.1.0",
+          "@sparkelf/dsh-mobile-bridge": "0.2.18",
+          "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
+          "@sparkelf/dsh-genui": "0.15.0-sparkelf.1",
+          "@sparkelf/dsh-sql-workbench": "0.5.4-sparkelf.1",
+          "@sparkelf/dsh-better-sidebar": "0.29.0-sparkelf.18"
+        }
+      },
+      "team": {
+        "label": "团队版",
+        "bundles": [
+          "@sparkelf/dsh-mineru",
+          "@sparkelf/dsh-officecli",
+          "@sparkelf/dsh-office-viewer-fonts",
+          "@sparkelf/dsh-genui",
+          "@sparkelf/dsh-plugin-supervisor",
+          "@sparkelf/dsh-sql-workbench",
+          "@sparkelf/dsh-ssh-manager",
+          "@sparkelf/dsh-api-client",
+          "dsh-right-bg-anim",
+          "@sparkelf/dsh-dataops-managed",
+          "@sparkelf/dsh-query-result-analysis",
+          "@sparkelf/dsh-better-sidebar",
+          "@sparkelf/dsh-credential-manager",
+          "@sparkelf/dsh-knowledge-base",
+          "@sparkelf/dsh-group-chat",
+          "@sparkelf/dsh-ocr",
+          "@sparkelf/dsh-dataops-account",
+          "@sparkelf/dsh-kb-citation",
+          "@sparkelf/dsh-task-bus",
+          "dsh-video-preview"
+        ],
+        "packages": {
+          "@sparkelf/dsh-api-client": "0.5.3",
+          "@sparkelf/dsh-dataops-managed": "0.3.31",
+          "@sparkelf/dsh-genui": "0.15.0-sparkelf.1",
+          "@sparkelf/dsh-knowledge-base": "0.1.28",
+          "@sparkelf/dsh-mineru": "0.1.4",
+          "@sparkelf/dsh-office-viewer-fonts": "0.1.6",
+          "@sparkelf/dsh-officecli": "0.1.4",
+          "@sparkelf/dsh-plugin-supervisor": "0.1.9",
+          "@sparkelf/dsh-ssh-manager": "0.7.5",
+          "@sparkelf/dsh-workbench-vault": "0.1.2",
+          "dsh-right-bg-anim": "1.1.0",
+          "@sparkelf/dsh-task-bus": "0.1.6",
+          "@sparkelf/dsh-credential-manager": "0.1.3",
+          "@sparkelf/dsh-dataops-account": "0.2.0",
+          "@sparkelf/dsh-group-chat": "0.5.1",
+          "@sparkelf/dsh-kb-citation": "0.1.3",
+          "@sparkelf/dsh-ocr": "0.1.0",
+          "@sparkelf/dsh-query-result-analysis": "0.1.4",
+          "@sparkelf/dsh-better-sidebar": "0.29.0-sparkelf.17",
+          "dsh-video-preview": "0.1.4",
+          "@sparkelf/dsh-sql-workbench": "0.5.4-sparkelf.1",
+          "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5"
+        }
+      }
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-computer-use": "workspace:>=0.2.1-rc.2",
-    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "workspace:>=0.2.1-rc.2",
-    "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.2.1-rc.2",
-    "@deepseek-ai/dsh-atomic-write": "workspace:^",
+    "@deepseek-ai/dsh-computer-use": "workspace:>=0.2.2-alpha.2",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "workspace:>=0.2.2-alpha.2",
+    "@deepseek-ai/dsh-tool-session-query": "workspace:>=0.2.2-alpha.2",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1",
-    "@sparkelf/dsh-client-ui-skill-center": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5",
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
-    "@sparkelf/dsh-patch-approval-allow-policy": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-atomic-write-zombie-lock-holder": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-locale-peer-range": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-sidebar-html-preview-path": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-sidebar-media-path": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-better-sidebar-subagent-catalog-load": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-bootstrap-exempt-names": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-browser-auth-mode": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-composer-popover-boundaries": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-diagram-preview": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-image-offload-hoist-replay": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-legacy-code-preset": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-llm-pi-ai-transport-truncation": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-mobile-journal-generation": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-office-preview-stable-load": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-officecli-deliverables": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-ptc-mcp-schema-types": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-responses-reasoning-status": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-session-envelope-ignorable": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-session-export-chinese": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-session-format-legacy-restart": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-session-log-trajectory-toolbar": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-session-query-unindexable-session": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-state-dot-brand-blue": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-ui-settings-compact-phone": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-web-runtime-compat": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-workspace-storage-restore": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-patch-wsl-native-open": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",
     "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.1",
     "dshmarket": ">=1.66.7",
@@ -240,8 +738,8 @@
     "dsh-plus": "lib/bin.js"
   },
   "optionalDependencies": {
-    "@deepseek-ai/dsh-computer-use": ">=0.2.1-rc.2",
-    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.2.1-rc.2",
+    "@deepseek-ai/dsh-computer-use": ">=0.2.2-alpha.2",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": ">=0.2.2-alpha.2",
     "@deepseek-ai/dsh-web-search-exa": "workspace:>=0.1.6-alpha.1"
   }
 }

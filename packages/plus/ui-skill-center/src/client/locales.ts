@@ -8,8 +8,15 @@
 /** Every string this plugin renders. */
 export interface SkillCenterLocale {
   'panel': string
+  'tab.label': string
+  'tab.builtin': string
+  'tab.personal': string
+  'tab.plaza': string
+  'tab.connectors': string
   'search.placeholder': string
+  'search.connectorPlaceholder': string
   'search.noMatches': string
+  'search.clear': string
   'action.refresh': string
   'action.create': string
   'action.delete': string
@@ -68,6 +75,23 @@ export interface SkillCenterLocale {
   'plaza.scopeForbidden': string
   'plaza.scopeHintAdmin': string
   'plaza.scopeHintUser': string
+  'plaza.sectionFallback': string
+  'connector.loading': string
+  'connector.failed': string
+  'connector.retry': string
+  'connector.demo': string
+  'connector.demoTag': string
+  'connector.enabled': string
+  'connector.disabled': string
+  'connector.connected': string
+  'connector.error': string
+  'connector.enable': string
+  'connector.disable': string
+  'connector.capabilities': string
+  'connector.empty': string
+  'connector.noMatches': string
+  'connector.unavailable': string
+  'connector.busy': string
 }
 
 /** Locale keys, for callers that resolve them dynamically. */
@@ -76,8 +100,15 @@ export type SkillCenterLocaleKey = keyof SkillCenterLocale
 /** Simplified Chinese dictionary. */
 export const zh: SkillCenterLocale = {
   'panel': '技能中心',
+  'tab.label': '技能分类',
+  'tab.builtin': '内置',
+  'tab.personal': '个人',
+  'tab.plaza': '技能广场',
+  'tab.connectors': '连接器',
   'search.placeholder': '搜索技能…',
+  'search.connectorPlaceholder': '搜索连接器…',
   'search.noMatches': '无匹配技能',
+  'search.clear': '清空搜索',
   'action.refresh': '刷新',
   'action.create': '新建技能',
   'action.delete': '删除',
@@ -136,13 +167,37 @@ export const zh: SkillCenterLocale = {
   'plaza.scopeForbidden': '无权选择该范围，请改用部门专属或私有',
   'plaza.scopeHintAdmin': '超管/管理员可选全局或任意部门',
   'plaza.scopeHintUser': '普通用户/部门管理员只能选本部门或私有',
+  'plaza.sectionFallback': '技能广场服务未就绪，暂时无法浏览',
+  'connector.loading': '正在加载连接器…',
+  'connector.failed': '连接器加载失败',
+  'connector.retry': '重试',
+  'connector.demo': '当前显示示例连接器，后端接入后自动替换',
+  'connector.demoTag': '示例',
+  'connector.enabled': '已启用',
+  'connector.disabled': '未启用',
+  'connector.connected': '已连接',
+  'connector.error': '连接异常',
+  'connector.enable': '启用',
+  'connector.disable': '停用',
+  'connector.capabilities': '能力',
+  'connector.empty': '暂无连接器',
+  'connector.noMatches': '无匹配连接器',
+  'connector.unavailable': '暂不可用',
+  'connector.busy': '处理中…',
 }
 
 /** English dictionary. */
 export const en: SkillCenterLocale = {
   'panel': 'Skill Center',
+  'tab.label': 'Skill sections',
+  'tab.builtin': 'Built-in',
+  'tab.personal': 'Personal',
+  'tab.plaza': 'Skill plaza',
+  'tab.connectors': 'Connectors',
   'search.placeholder': 'Search skills…',
+  'search.connectorPlaceholder': 'Search connectors…',
   'search.noMatches': 'No matching skills',
+  'search.clear': 'Clear search',
   'action.refresh': 'Refresh',
   'action.create': 'New skill',
   'action.delete': 'Delete',
@@ -201,4 +256,21 @@ export const en: SkillCenterLocale = {
   'plaza.scopeForbidden': 'You cannot use that visibility; pick department or private',
   'plaza.scopeHintAdmin': 'Super admins/admins may publish globally or to any department',
   'plaza.scopeHintUser': 'Users and department admins may publish to their own department or privately',
+  'plaza.sectionFallback': 'The skill plaza is not available yet',
+  'connector.loading': 'Loading connectors…',
+  'connector.failed': 'Could not load connectors',
+  'connector.retry': 'Retry',
+  'connector.demo': 'Showing demo connectors until the backend supplies the catalogue',
+  'connector.demoTag': 'Demo',
+  'connector.enabled': 'Enabled',
+  'connector.disabled': 'Disabled',
+  'connector.connected': 'Connected',
+  'connector.error': 'Connection error',
+  'connector.enable': 'Enable',
+  'connector.disable': 'Disable',
+  'connector.capabilities': 'Capabilities',
+  'connector.empty': 'No connectors',
+  'connector.noMatches': 'No matching connectors',
+  'connector.unavailable': 'Unavailable',
+  'connector.busy': 'Working…',
 }

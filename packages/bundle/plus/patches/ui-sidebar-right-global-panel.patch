@@ -1,0 +1,36 @@
+diff --git a/packages/client/ui-sidebar-right/src/client/index.ts b/packages/client/ui-sidebar-right/src/client/index.ts
+index 99b800b6c8..9b317464e1 100644
+--- a/packages/client/ui-sidebar-right/src/client/index.ts
++++ b/packages/client/ui-sidebar-right/src/client/index.ts
+@@ -138,7 +138,10 @@ export function apply(ctx: ClientContext): void {
+   ctx.effect(() => {
+     const sync = (): void => {
+       const selected = views.source.getSnapshot().find(view => view.selected)
+-      show(layout.panelInfo.getSnapshot().activePanelId === null ? selected?.sessionId : undefined)
++      // The right column stays addressable from a global main panel; the layout
++      // still decides the track's width, so a session tab is named whenever a
++      // Session is selected rather than only while the Conversation is focused.
++      show(selected?.sessionId)
+     }
+     const unsubscribeViews = views.source.subscribe(sync)
+     const unsubscribePanel = layout.panelInfo.subscribe(sync)
+diff --git a/packages/client/ui-sidebar-right/src/client/shell/RightbarRoot.tsx b/packages/client/ui-sidebar-right/src/client/shell/RightbarRoot.tsx
+index 26bedb1d18..bebc73706d 100644
+--- a/packages/client/ui-sidebar-right/src/client/shell/RightbarRoot.tsx
++++ b/packages/client/ui-sidebar-right/src/client/shell/RightbarRoot.tsx
+@@ -31,8 +31,12 @@ function SessionView({ view, visible, SessionProvider, renderSlot, mountView, wi
+  * @param props - frame geometry, view targets and the authorized Session renderer.
+  * @returns the foreground and retained background Sidebars.
+  */
+-export function RightbarRoot({ usePanelInfo, useViews, ...props }: RootProps) {
+-  const visible = usePanelInfo(info => info.activePanelId === null)
++export function RightbarRoot({ useViews, ...props }: RootProps) {
++  // A global main panel (the knowledge base) keeps the right column usable: the
++  // layout already owns whether the track takes width, so gating the Session
++  // content on `activePanelId === null` only made the column render empty there.
++  // Retained views still hide themselves through `view.selected`, so conversation
++  // behaviour is unchanged.
+   const views = useViews(value => value)
+-  return <>{views.map(view => <SessionView key={view.sessionId} {...props} view={view} visible={visible} />)}</>
++  return <>{views.map(view => <SessionView key={view.sessionId} {...props} view={view} visible />)}</>
+ }

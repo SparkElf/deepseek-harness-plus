@@ -335,19 +335,24 @@ export class SessionCommandController {
     const hasImage = request.content.some(part => part.type === 'image')
     const admit = async (): Promise<SessionPromptValue> => {
       try {
+        let admittedContent = request.content
         if (hasImage) {
           const current = this.agents.selectionFor(agent).current
           const model = await this.ctx.llm.resolveModelInfo(current.provider, current.model)
           if (model.inputModalities !== undefined && !model.inputModalities.includes('image')) {
-            throw new RemoteError(
-              'session/attachment-invalid',
-              `Model "${current.model}" does not support image input.`,
-              { reason: 'MODEL_DOES_NOT_SUPPORT_IMAGES' },
-            )
+            // 纯文本模型：不要把整条消息拒掉。图像块降级成一行文字占位，消息照常入队；
+            // 模型能看到"有张图、多大、什么格式"，但看不到像素。工具侧 read_image 对这类
+            // 模型已经会在调用时报错，所以不让它出现在工具清单里（见 tool-fs 的可见性过滤）。
+            admittedContent = request.content.map(part => part.type === 'image'
+              ? {
+                type: 'text' as const,
+                text: '[图片附件已附加。当前模型不支持图像输入，无法查看图片内容；如需处理请改用文件/工具链路。]',
+              }
+              : part)
           }
         }
         const admission = resolvePromptFileReceipts(
-          request.content,
+          admittedContent,
           receiptId => this.ctx.fileUploads.resolve(agent, receiptId),
         )
         const content = await this.ctx.attachments.admitPromptContent(admission.content)

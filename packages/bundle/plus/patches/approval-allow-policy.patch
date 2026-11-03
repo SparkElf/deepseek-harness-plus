@@ -1,0 +1,108 @@
+diff --git a/packages/bundle/base/cordis.patch.yml b/packages/bundle/base/cordis.patch.yml
+index 863d194bf5..2d1a7d4c40 100644
+--- a/packages/bundle/base/cordis.patch.yml
++++ b/packages/bundle/base/cordis.patch.yml
+@@ -259,7 +259,7 @@
+     - id: approval
+       name: '@deepseek-ai/dsh-user-approval'
+       config:
+-        policy: !!js "(process.env.DSH_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'never' : 'ask'"
++        policy: !!js "(process.env.DSH_PERMISSION_MODE ?? 'workspace-write') === 'danger-full-access' ? 'allow' : 'ask'"
+ 
+     - id: permission
+       name: '@deepseek-ai/dsh-permission-presets'
+@@ -273,7 +273,7 @@
+             approval: ask
+           danger-full-access:
+             sandbox: danger-full-access
+-            approval: never
++            approval: allow
+ 
+     - id: shell-env
+       name: '@deepseek-ai/dsh-shell-env'
+diff --git a/packages/interaction/permission-presets/src/index.ts b/packages/interaction/permission-presets/src/index.ts
+index b071d0297a..628f8f42ea 100644
+--- a/packages/interaction/permission-presets/src/index.ts
++++ b/packages/interaction/permission-presets/src/index.ts
+@@ -111,7 +111,7 @@ const permissionStateSchema: zod.ZodType<PermissionProjectionState> = zod.object
+     zod.literal('workspace-write'),
+     zod.literal('danger-full-access'),
+   ]).nullable(),
+-  approval: zod.union([zod.literal('ask'), zod.literal('never')]).nullable(),
++  approval: zod.union([zod.literal('ask'), zod.literal('never'), zod.literal('allow')]).nullable(),
+   seeded: zod.boolean(),
+ }).strict()
+ 
+diff --git a/packages/interaction/user-approval/src/index.ts b/packages/interaction/user-approval/src/index.ts
+index df48aca514..82c3f39f19 100644
+--- a/packages/interaction/user-approval/src/index.ts
++++ b/packages/interaction/user-approval/src/index.ts
+@@ -64,20 +64,27 @@ const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cance
+  * - `'never'` — never prompt anyone: every ask resolves `'rejected'`
+  *   deterministically. The strict headless stance (CI, unattended runs) and
+  *   the policy whose outcome is knowable without asking.
++ * - `'allow'` — never prompt anyone either, and resolve every ask
++ *   `'allowed-once'` instead. The full-access stance: an operation that
++ *   would have asked is admitted, which is what `danger-full-access` means
++ *   and what `'never'` cannot express.
+  */
+-export type ApprovalPolicy = 'ask' | 'never'
++export type ApprovalPolicy = 'ask' | 'never' | 'allow'
+ 
+ /** Every {@link ApprovalPolicy}, for option advertisement and runtime validation of untrusted policy strings. */
+-export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never']
++export const APPROVAL_POLICIES: readonly ApprovalPolicy[] = ['ask', 'never', 'allow']
+ 
+ /** Model-facing statement for the deterministic `'never'` policy. */
+ const NEVER_SENTENCE = 'Approval prompts are disabled in this session: actions that require approval are rejected automatically — do not request sandbox escalation (do not set `sandbox_permissions`).'
+ /** Model-facing statement for an interactive policy that may still fail closed. */
+ const ASK_SENTENCE = 'Approval prompts are enabled in this session: operations that require approval may ask through the configured answerers; without an available answerer, the request fails closed.'
++/** Model-facing statement for the deterministic `'allow'` policy. */
++const ALLOW_SENTENCE = 'Approval policy: allow. Operations that require approval are approved automatically; no prompt is shown and sandbox escalation is permitted.'
+ /** Model-facing policy names in switch notices; a bare `never` reads as "approval is never granted". */
+ const POLICY_NOTICE_NAMES: Readonly<Record<ApprovalPolicy, string>> = {
+   ask: 'ask the user for approval',
+   never: 'never ask the user for approval',
++  allow: 'allow operations without asking',
+ }
+ 
+ interface ApprovalState {
+@@ -90,7 +97,7 @@ const approvalStateDefinition = {
+   key: 'approvalState',
+   stateVersion: 1,
+   stateSchema: zod.object({
+-    policy: zod.enum(['ask', 'never']).nullable(),
++    policy: zod.enum(['ask', 'never', 'allow']).nullable(),
+     turnOpen: zod.boolean(),
+   }),
+   init: (): ApprovalState => ({ policy: null, turnOpen: false }),
+@@ -168,7 +175,7 @@ export class ApprovalService extends Service {
+   static inject = ['sessionProjections']
+ 
+   static Config: z<Config> = z.object({
+-    policy: z.union(['ask', 'never'] as const).default('ask'),
++    policy: z.union(['ask', 'never', 'allow'] as const).default('ask'),
+   })
+ 
+   private approvalProjectionHandle!: ProjectionHandle<ApprovalState>
+@@ -195,7 +202,8 @@ export class ApprovalService extends Service {
+           // A bare assemble() (tests, diagnostics) has no session to state.
+           if (agent === undefined) return ''
+           const policy = effective(agent)
+-          return policy === 'never' ? NEVER_SENTENCE : ASK_SENTENCE
++          if (policy === 'never') return NEVER_SENTENCE
++          return policy === 'allow' ? ALLOW_SENTENCE : ASK_SENTENCE
+         },
+       })
+     })
+@@ -299,6 +307,10 @@ export class ApprovalService extends Service {
+     // documented promise that 'never' rejects deterministically regardless
+     // of registration order — only the service's own request path can.
+     if (this.effectivePolicy(session) === 'never') return 'rejected'
++    // 'allow' is the mirror of 'never' and is decided at the same point for the same
++    // reason: the outcome must not depend on which answerers happen to be composed or on
++    // listener registration order.
++    if (this.effectivePolicy(session) === 'allow') return 'allowed-once'
+     // Enter the promise chain BEFORE dispatching: a listener that throws
+     // SYNCHRONOUSLY (before its first await) must land in the same rejection
+     // path as an async one — `Promise.resolve(call())` would let it escape
