@@ -65,7 +65,8 @@
         "@sparkelf/dsh-api-client",
         "dsh-right-bg-anim",
         "@sparkelf/dsh-mobile-bridge",
-        "@sparkelf/dsh-quant"
+        "@sparkelf/dsh-quant",
+        "@sparkelf/dsh-artifact-app"
       ],
       "dependencies": {
         "@sparkelf/dsh-mineru": "0.1.4",
@@ -99,7 +100,8 @@
         "@deepseek-ai/dsh-session-title-llm": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-shell": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-spill": "0.2.2-alpha.2",
-        "@deepseek-ai/dsh-workflow": "0.2.2-alpha.2"
+        "@deepseek-ai/dsh-workflow": "0.2.2-alpha.2",
+        "@sparkelf/dsh-artifact-app": "^0.1.0"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -643,7 +645,8 @@
           "@sparkelf/dsh-api-client",
           "dsh-right-bg-anim",
           "@sparkelf/dsh-mobile-bridge",
-          "@sparkelf/dsh-quant"
+          "@sparkelf/dsh-quant",
+          "@sparkelf/dsh-artifact-app"
         ],
         "packages": {
           "@sparkelf/dsh-mineru": "0.1.4",
@@ -684,7 +687,8 @@
           "@sparkelf/dsh-dataops-account",
           "@sparkelf/dsh-kb-citation",
           "@sparkelf/dsh-task-bus",
-          "dsh-video-preview"
+          "dsh-video-preview",
+          "@sparkelf/dsh-artifact-app"
         ],
         "packages": {
           "@sparkelf/dsh-api-client": "0.5.3",
