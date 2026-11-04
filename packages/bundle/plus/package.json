@@ -119,7 +119,7 @@
         "@sparkelf/dsh-dataops-account": "0.2.0",
         "@sparkelf/dsh-ocr": "0.1.0",
         "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5",
-        "@deepseek-ai/cordis-plugin-group": "1.1.0"
+        "@deepseek-ai/cordis-plugin-group": "1.0.6-alpha.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
