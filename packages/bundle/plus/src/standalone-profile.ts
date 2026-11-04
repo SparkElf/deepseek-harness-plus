@@ -339,24 +339,30 @@ function installWithRegistryFallback(paths: StandalonePaths): void {
  * @param profileModules - the profile's \`node_modules\` directory.
  */
 export function alignReplacedPackageNames(profileModules: string, omitted: ReadonlySet<string> = new Set()): void {
-  const scoped = join(profileModules, '@deepseek-ai')
-  if (!existsSync(scoped)) return
-  for (const entry of readdirSync(scoped)) {
-    // A placeholder is never mounted, and renaming it would hide which capability was
-    // substituted: the image audit distinguishes an omission by the name it declares.
-    if (omitted.has('@deepseek-ai/' + entry)) continue
-    const manifestPath = join(scoped, entry, 'package.json')
-    if (!existsSync(manifestPath)) continue
+  if (!existsSync(profileModules)) return
+  // A replaced package is installed at the name its loader row declares, but the manifest inside
+  // still names our scope: the client module system requires the directory's package to declare
+  // the directory name, so the panels it renders would never register. Both scopes are walked
+  // because a row can be an unscoped alias (`dsh-better-sidebar`) onto a scoped build.
+  const align = (expected: string, manifestPath: string): void => {
+    if (!existsSync(manifestPath)) return
     const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
-    const expected = '@deepseek-ai/' + entry
-    if (declared.name === expected) continue
-    const replaced = { ...declared, name: expected }
+    if (declared.name === expected || omitted.has(expected)) return
     const temporary = manifestPath + '.dsh-name'
-    writeFileSync(temporary, JSON.stringify(replaced, null, 2) + '\n')
+    writeFileSync(temporary, JSON.stringify({ ...declared, name: expected }, null, 2) + '\n')
     renameSync(temporary, manifestPath)
   }
+  for (const entry of readdirSync(profileModules)) {
+    if (entry.startsWith('.')) continue
+    if (!entry.startsWith('@')) {
+      align(entry, join(profileModules, entry, 'package.json'))
+      continue
+    }
+    for (const scoped of readdirSync(join(profileModules, entry))) {
+      align(entry + '/' + scoped, join(profileModules, entry, scoped, 'package.json'))
+    }
+  }
 }
-
 
 /** The npm registry the distribution installs from by default. */
 const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
