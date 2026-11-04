@@ -233,7 +233,21 @@ function main(): void {
   const compatibility = object(plus.compatibility, 'dshPlus.compatibility')
   minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
   const dependencies = object(distribution.dependencies, 'distribution dependencies')
-  for (const [name, range] of Object.entries(dependencies)) minimumRange(range, 'distribution dependencies.' + name)
+  for (const [name, range] of Object.entries(dependencies)) {
+    // Official packages are held to the exact runtime generation below; the minimum-range rule
+    // applies to the tools and plugins that track their own version lines.
+    if (name.startsWith('@deepseek-ai/dsh')) continue
+    minimumRange(range, 'distribution dependencies.' + name)
+  }
+  // A range on an official package drifts to the newest matching prerelease: under semver's
+  // prerelease rule `0.2.2-rc.1` satisfies `>=0.2.2-alpha.2`, so a distribution that declares one
+  // runtime generation installs another and its own profile comparison fails. Exact versions are
+  // the only form that keeps the package and the runtime it declares in one generation.
+  for (const [name, spec] of Object.entries(dependencies)) {
+    if (!name.startsWith('@deepseek-ai/dsh')) continue
+    if (valid(String(spec)) !== null) continue
+    throw new Error('distribution dependencies.' + name + ' must be an exact version, got ' + String(spec))
+  }
   const profile = object(plus.profile, 'dshPlus.profile')
   const bundles = array(profile.bundles, 'dshPlus.profile.bundles').map((value, index) =>
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
@@ -285,6 +299,11 @@ function main(): void {
       + '; a prerelease floor admits only its own major.minor.patch, so it moves with the runtime')
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
+  for (const [name, spec] of Object.entries(profileDependencies)) {
+    if (!name.startsWith('@deepseek-ai/dsh')) continue
+    if (valid(String(spec)) !== null) continue
+    throw new Error('dshPlus.profile.dependencies.' + name + ' must be an exact version, got ' + String(spec))
+  }
   const expectedProfileDependencies = {
     '@sparkelf/dsh-mineru': '0.1.4',
     '@sparkelf/dsh-officecli': '0.1.4',
