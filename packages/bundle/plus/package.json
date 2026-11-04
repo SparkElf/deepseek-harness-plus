@@ -118,7 +118,8 @@
         "@sparkelf/dsh-kb-citation": "0.1.3",
         "@sparkelf/dsh-dataops-account": "0.2.0",
         "@sparkelf/dsh-ocr": "0.1.0",
-        "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5"
+        "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5",
+        "@deepseek-ai/cordis-plugin-group": "1.1.0"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -611,7 +612,8 @@
           "@sparkelf/dsh-quant",
           "@sparkelf/dsh-genui",
           "@sparkelf/dsh-sql-workbench",
-          "@sparkelf/dsh-better-sidebar"
+          "@sparkelf/dsh-better-sidebar",
+          "@deepseek-ai/cordis-plugin-group"
         ],
         "omit": []
       },
@@ -663,7 +665,8 @@
           "@sparkelf/dsh-better-sidebar",
           "dsh-video-preview",
           "@sparkelf/dsh-sql-workbench",
-          "@sparkelf/dsh-client-ui-skill-center"
+          "@sparkelf/dsh-client-ui-skill-center",
+          "@deepseek-ai/cordis-plugin-group"
         ],
         "omit": []
       },
@@ -733,7 +736,8 @@
           "@sparkelf/dsh-knowledge-base",
           "@sparkelf/dsh-credential-manager",
           "@sparkelf/dsh-group-chat",
-          "@sparkelf/dsh-kb-citation"
+          "@sparkelf/dsh-kb-citation",
+          "@deepseek-ai/cordis-plugin-group"
         ],
         "omit": [
           "@deepseek-ai/dsh-computer-use",
