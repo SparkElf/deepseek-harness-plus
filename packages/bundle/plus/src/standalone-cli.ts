@@ -11,7 +11,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
@@ -60,6 +60,7 @@ import {
   registryOrder,
   readDistributionProfile,
   resolveDistributionDirectory,
+  resolveInvocationAnchor,
   resolvePaths,
   type StandalonePaths,
 } from './standalone-profile.ts'
@@ -93,6 +94,8 @@ interface StartOptions {
    * the per-deployment forwarder package that used to carry the same facts.
    */
   readonly edition: string | undefined
+  /** Packages the caller drops on top of the edition's own exclusions. */
+  readonly exclude: readonly string[]
 }
 
 function parseStartOptions(argv: readonly string[]): StartOptions {
@@ -102,6 +105,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
   let foreground = false
   let capabilities: readonly string[] | undefined
   let edition: string | undefined
+  const exclude: string[] = []
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--port' || token === '-p') {
@@ -127,6 +131,13 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
       index += 1
       continue
     }
+    if (token === '--exclude') {
+      const value = argv[index + 1]
+      if (value === undefined || value === '') throw new Error('--exclude requires a package name')
+      exclude.push(value)
+      index += 1
+      continue
+    }
     if (token === '--capabilities') {
       const value = argv[index + 1]
       if (value === undefined) throw new Error('--capabilities requires a comma-separated list, or an empty string for none')
@@ -147,7 +158,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     throw new Error('unknown option: ' + String(token))
   }
-  return { port, host, open, foreground, capabilities, edition }
+  return { port, host, open, foreground, capabilities, edition, exclude }
 }
 
 /**
@@ -218,12 +229,23 @@ function installationAnchor(): string {
  * @returns absolute path to the invoked command, or this module when argv carries none.
  */
 function declarationAnchor(): string {
-  const invoked = process.argv[1]
-  return invoked === undefined || invoked === '' ? fileURLToPath(import.meta.url) : resolve(invoked)
+  // A global install links the command into a bin directory; the link target is what owning
+  // package resolution must start from.
+  return resolveInvocationAnchor(process.argv[1], fileURLToPath(import.meta.url))
 }
-/** The launcher entry this installation must drive. */
-function launcherEntry(anchor: string): string {
-  return createRequire(anchor).resolve('@deepseek-ai/dsh/lib/bin.js')
+/**
+ * The launcher entry this installation must drive.
+ *
+ * The profile owns the runtime tree, so the launcher is resolved from the profile rather than
+ * from the directory that installed the command: a global distribution has no launcher of its
+ * own, and one resolved from the consumer would be a second copy of the process the profile
+ * mounts.
+ *
+ * @param profileDirectory - profile whose node_modules carries the launcher.
+ * @returns absolute path to the launcher entry.
+ */
+function launcherEntry(profileDirectory: string): string {
+  return createRequire(join(profileDirectory, 'package.json')).resolve('@deepseek-ai/dsh/lib/bin.js')
 }
 
 /** Run the server in this process, inheriting stdio. */
@@ -236,7 +258,6 @@ function runForeground(entry: string, profileName: string, port: number, host: s
 
 async function start(argv: readonly string[]): Promise<number> {
   const options = parseStartOptions(argv)
-  const anchor = installationAnchor()
   // The profile's own name and omissions come from the package that installed this
   // command, which is a different tree position than the dependencies it resolves.
   const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
@@ -275,7 +296,7 @@ async function start(argv: readonly string[]): Promise<number> {
     }
     console.log('pnpm installed.')
   }
-  const created = ensureProfile(paths, installationRoot(), options.edition)
+  const created = ensureProfile(paths, options.edition, options.exclude)
   console.log(created
     ? 'Created the ' + paths.profileName + ' profile at ' + paths.profileDirectory
     : 'Using the existing ' + paths.profileName + ' profile')
@@ -305,7 +326,7 @@ async function start(argv: readonly string[]): Promise<number> {
     }
   }
 
-  const entry = launcherEntry(anchor)
+  const entry = launcherEntry(paths.profileDirectory)
   if (options.foreground) return runForeground(entry, paths.profileName, options.port, options.host, options.open)
 
   const existing = readState(paths.home)
@@ -724,7 +745,7 @@ function install(argv: readonly string[]): number {
   // One axis: the edition names the package and bundle set this deployment installs, and its
   // profile name travels with it. No edition means the full distribution.
   const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
-  const created = ensureProfile(paths, installationRoot(), options.edition, options.exclude)
+  const created = ensureProfile(paths, options.edition, options.exclude)
   console.log((created ? 'Created the ' : 'Using the existing ') + paths.profileName + ' profile at ' + paths.profileDirectory)
   return 0
 }

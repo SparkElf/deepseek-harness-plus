@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
@@ -126,6 +126,29 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
+/**
+ * Resolve the file that was actually invoked from the path the shell was handed.
+ *
+ * A global npm install links `<prefix>/bin/dsh-plus` to the package entry. Resolving
+ * `@sparkelf/dsh-plus` from that link starts at the bin directory, which has no
+ * `node_modules`, so every globally installed command reported the distribution as
+ * missing. The real path is the package file, and the package resolves its own name.
+ *
+ * @param invoked - `process.argv[1]`, or undefined when node ran without a script.
+ * @param fallback - this module's own file, used when there is no script path.
+ * @returns an absolute path that exists, or the input when it cannot be resolved.
+ */
+export function resolveInvocationAnchor(invoked: string | undefined, fallback: string): string {
+  if (invoked === undefined || invoked === '') return realpathSync(fallback)
+  try {
+    return realpathSync(invoked)
+  } catch {
+    // A path the filesystem no longer knows cannot be resolved; the caller's error message is
+    // more useful with what it was given than with a second failure here.
+    return resolve(invoked)
+  }
+}
+
 /** Resolve the DSH home, honouring the environment override the launcher itself reads. */
 export function resolveHome(env: NodeJS.ProcessEnv = process.env): string {
   const configured = env.DSH_HOME
@@ -197,6 +220,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
   readonly omittedPackages: Readonly<Record<string, string>>
+  readonly editions: ReturnType<typeof readDistributionFacts>['editions']
 } {
   const facts = readDistributionFacts(distributionDirectory)
   const projection = projectEdition(facts, editionId, extraExcludes)
@@ -210,6 +234,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
     allowBuilds: projection.allowBuilds,
     overrides: projection.overrides,
     omittedPackages: projection.omittedPackages,
+    editions: facts.editions,
   }
 }
 
@@ -229,13 +254,11 @@ export function readDistributionProfile(distributionDirectory: string, editionId
  * twice; `dsh-plus apply` remains the command that reinstalls after a change.
  *
  * @param paths - resolved standalone paths.
- * @param consumerDirectory - directory whose `node_modules` holds the installation.
  */
-export function installProfilePackages(paths: StandalonePaths, consumerDirectory: string): void {
-  const consumerModules = join(consumerDirectory, 'node_modules')
-  if (!existsSync(consumerModules)) {
-    throw new Error('no node_modules in ' + consumerDirectory + '; run npm install there first')
-  }
+export function installProfilePackages(paths: StandalonePaths): void {
+  // The profile owns its dependency tree: it declares the launcher and every plugin, so it can
+  // install without a consumer tree beside it. A globally installed distribution has none --
+  // its only node_modules is the one npm laid out around the command itself.
   const profileModules = join(paths.profileDirectory, 'node_modules')
   if (existsSync(profileModules)) {
     // A profile installed before the distribution declared overrides still needs the
@@ -458,12 +481,12 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * that installed them.
  *
  * @param paths - resolved standalone paths.
- * @param consumerDirectory - directory whose `node_modules` holds the installed packages.
+ * @param editionId - product edition to materialize.
+ * @param extraExcludes - packages the caller drops on top of the edition's own exclusions.
  * @returns whether this call created the manifest.
  */
 export function ensureProfile(
   paths: StandalonePaths,
-  consumerDirectory: string,
   editionId?: string,
   extraExcludes: readonly string[] = [],
 ): boolean {
@@ -480,7 +503,7 @@ export function ensureProfile(
       distribution.allowBuilds,
       { ...paths.omittedPackages, ...distribution.omittedPackages },
     )
-    installProfilePackages(paths, consumerDirectory)
+    installProfilePackages(paths)
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
@@ -511,7 +534,7 @@ export function ensureProfile(
     distribution.allowBuilds,
     { ...paths.omittedPackages, ...distribution.omittedPackages },
   )
-  installProfilePackages(paths, consumerDirectory)
+  installProfilePackages(paths)
   return true
 }
 
