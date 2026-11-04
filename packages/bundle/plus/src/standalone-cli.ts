@@ -704,14 +704,18 @@ interface InstallOptions {
   readonly edition: string | undefined
   /** Packages the caller drops on top of the edition's own exclusions. */
   readonly exclude: readonly string[]
+  /** Write the profile files without installing the dependency tree. */
+  readonly dryRun: boolean
 }
 
 function parseInstallOptions(argv: readonly string[]): InstallOptions {
   let edition: string | undefined
   const exclude: string[] = []
+  let dryRun = false
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     const value = argv[index + 1]
+    if (token === '--dry-run') { dryRun = true; continue }
     if (token === '--edition') {
       if (value === undefined || value === '') throw new Error('--edition requires a value')
       edition = value
@@ -726,7 +730,7 @@ function parseInstallOptions(argv: readonly string[]): InstallOptions {
     }
     throw new Error('unknown option: ' + String(token))
   }
-  return { edition, exclude }
+  return { edition, exclude, dryRun }
 }
 
 /**
@@ -745,7 +749,7 @@ function install(argv: readonly string[]): number {
   // One axis: the edition names the package and bundle set this deployment installs, and its
   // profile name travels with it. No edition means the full distribution.
   const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
-  const created = ensureProfile(paths, options.edition, options.exclude)
+  const created = ensureProfile(paths, options.edition, options.exclude, options.dryRun)
   console.log((created ? 'Created the ' : 'Using the existing ') + paths.profileName + ' profile at ' + paths.profileDirectory)
   return 0
 }

@@ -483,12 +483,14 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * @param paths - resolved standalone paths.
  * @param editionId - product edition to materialize.
  * @param extraExcludes - packages the caller drops on top of the edition's own exclusions.
+ * @param dryRun - write the profile files without installing their dependency tree.
  * @returns whether this call created the manifest.
  */
 export function ensureProfile(
   paths: StandalonePaths,
   editionId?: string,
   extraExcludes: readonly string[] = [],
+  dryRun = false,
 ): boolean {
   const manifestPath = join(paths.profileDirectory, 'package.json')
   const distribution = readDistributionProfile(paths.distributionDirectory, editionId, extraExcludes)
@@ -503,7 +505,7 @@ export function ensureProfile(
       distribution.allowBuilds,
       { ...paths.omittedPackages, ...distribution.omittedPackages },
     )
-    installProfilePackages(paths)
+    if (!dryRun) installProfilePackages(paths)
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
@@ -534,7 +536,7 @@ export function ensureProfile(
     distribution.allowBuilds,
     { ...paths.omittedPackages, ...distribution.omittedPackages },
   )
-  installProfilePackages(paths)
+  if (!dryRun) installProfilePackages(paths)
   return true
 }
 
