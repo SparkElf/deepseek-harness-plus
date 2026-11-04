@@ -680,7 +680,6 @@
           "@deepseek-ai/dsh-experimental-auto-review",
           "@sparkelf/dsh-mineru",
           "@sparkelf/dsh-officecli",
-          "dshmarket",
           "dsh-better-sidebar",
           "@sparkelf/dsh-office-viewer-fonts",
           "@sparkelf/dsh-genui",
@@ -697,7 +696,9 @@
           "@sparkelf/dsh-credential-manager",
           "@sparkelf/dsh-group-chat",
           "@sparkelf/dsh-kb-citation",
-          "@sparkelf/dsh-task-bus"
+          "@sparkelf/dsh-task-bus",
+          "@sparkelf/dsh-ocr",
+          "@sparkelf/dsh-dataops-account"
         ],
         "packages": [
           "@sparkelf/dsh-mineru",
@@ -737,7 +738,9 @@
           "@sparkelf/dsh-credential-manager",
           "@sparkelf/dsh-group-chat",
           "@sparkelf/dsh-kb-citation",
-          "@deepseek-ai/cordis-plugin-group"
+          "@deepseek-ai/cordis-plugin-group",
+          "@sparkelf/dsh-ocr",
+          "@sparkelf/dsh-dataops-account"
         ],
         "omit": [
           "@deepseek-ai/dsh-computer-use",

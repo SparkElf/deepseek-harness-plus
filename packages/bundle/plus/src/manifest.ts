@@ -323,6 +323,8 @@ export function projectEdition(facts: DistributionFacts, editionId?: string, ext
   const bundles = (edition === undefined
     ? [...facts.bundles]
     : [...new Set(edition.bundles)]).filter(name => !excludedNames.has(name))
+  // Bundle rows resolve from the profile tree, which also carries the runtime's own closure, so
+  // their presence is asserted against the installed tree after the install rather than here.
   for (const name of bundles) {
     if (!facts.bundles.includes(name) && !(edition?.bundles ?? []).includes(name)) {
       throw new Error('edition "' + String(editionId) + '" mounts bundle ' + name + ', which the distribution does not declare')

@@ -269,6 +269,30 @@ export function installProfilePackages(paths: StandalonePaths, omitted: Readonly
   installWithRegistryFallback(paths)
   alignReplacedPackageNames(profileModules, omitted)
   linkNestedBundles(paths, profileModules)
+  assertProfileBundles(paths.profileDirectory)
+}
+
+/**
+ * Assert every bundle row the profile declares resolves in its installed tree.
+ *
+ * A row without an installed package mounts nothing and reports nothing: the client module
+ * system simply never registers it, and every earlier step passes. Reading the rows back from
+ * the manifest on disk rather than from the projection is what makes this cover the tree the
+ * launcher actually boots.
+ *
+ * @param profileDirectory - profile whose node_modules was just installed.
+ */
+export function assertProfileBundles(profileDirectory: string): void {
+  const manifest = JSON.parse(readFileSync(join(profileDirectory, 'package.json'), 'utf8')) as {
+    dsh?: { profile?: { bundles?: string[] } }
+  }
+  const missing: string[] = []
+  for (const name of manifest.dsh?.profile?.bundles ?? []) {
+    if (!existsSync(join(profileDirectory, 'node_modules', name, 'package.json'))) missing.push(name)
+  }
+  if (missing.length > 0) {
+    throw new Error('the profile mounts bundles it did not install: ' + missing.join(', '))
+  }
 }
 
 /**
