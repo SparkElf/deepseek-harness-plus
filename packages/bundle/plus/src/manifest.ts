@@ -242,7 +242,6 @@ export function readDistributionFacts(directory: string): DistributionFacts {
       excludePackages,
     }
   }
-  if (editions['intranet-team'] === undefined) throw new Error('dshPlus.editions.intranet-team is required: the workspace image installs it')
   return {
     name: String(manifest.name),
     version: String(manifest.version),
@@ -394,7 +393,10 @@ export function writeProfileProjection(
   mkdirSync(directory, { recursive: true })
   const dependencies: Record<string, string> = {
     '@sparkelf/dsh-plus': facts.version,
-    '@deepseek-ai/dsh': '>=' + facts.runtimeVersion,
+    // Exact: the republished builds were cut against this runtime, and DSH refuses a row whose
+    // exact peer pins disagree with the process it shares. A range admits the next prerelease and
+    // reintroduces the skew the redirects exist to avoid.
+    '@deepseek-ai/dsh': facts.runtimeVersion,
     ...projection.dependencies,
   }
   writeFileSync(join(directory, 'package.json'), JSON.stringify({

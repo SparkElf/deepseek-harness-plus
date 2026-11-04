@@ -255,7 +255,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
  *
  * @param paths - resolved standalone paths.
  */
-export function installProfilePackages(paths: StandalonePaths): void {
+export function installProfilePackages(paths: StandalonePaths, omitted: ReadonlySet<string> = new Set()): void {
   // The profile owns its dependency tree: it declares the launcher and every plugin, so it can
   // install without a consumer tree beside it. A globally installed distribution has none --
   // its only node_modules is the one npm laid out around the command itself.
@@ -267,7 +267,7 @@ export function installProfilePackages(paths: StandalonePaths): void {
     return
   }
   installWithRegistryFallback(paths)
-  alignReplacedPackageNames(profileModules)
+  alignReplacedPackageNames(profileModules, omitted)
   linkNestedBundles(paths, profileModules)
 }
 
@@ -314,10 +314,13 @@ function installWithRegistryFallback(paths: StandalonePaths): void {
  *
  * @param profileModules - the profile's \`node_modules\` directory.
  */
-export function alignReplacedPackageNames(profileModules: string): void {
+export function alignReplacedPackageNames(profileModules: string, omitted: ReadonlySet<string> = new Set()): void {
   const scoped = join(profileModules, '@deepseek-ai')
   if (!existsSync(scoped)) return
   for (const entry of readdirSync(scoped)) {
+    // A placeholder is never mounted, and renaming it would hide which capability was
+    // substituted: the image audit distinguishes an omission by the name it declares.
+    if (omitted.has('@deepseek-ai/' + entry)) continue
     const manifestPath = join(scoped, entry, 'package.json')
     if (!existsSync(manifestPath)) continue
     const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
@@ -505,7 +508,7 @@ export function ensureProfile(
       distribution.allowBuilds,
       { ...paths.omittedPackages, ...distribution.omittedPackages },
     )
-    if (!dryRun) installProfilePackages(paths)
+    if (!dryRun) installProfilePackages(paths, new Set(Object.keys(distribution.omittedPackages)))
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
@@ -536,7 +539,7 @@ export function ensureProfile(
     distribution.allowBuilds,
     { ...paths.omittedPackages, ...distribution.omittedPackages },
   )
-  if (!dryRun) installProfilePackages(paths)
+  if (!dryRun) installProfilePackages(paths, new Set(Object.keys(distribution.omittedPackages)))
   return true
 }
 
