@@ -238,10 +238,17 @@ export function readDistributionFacts(directory: string): DistributionFacts {
         }
       }
     }
+    const bundles = stringArray(edition.bundles ?? [], 'dshPlus.editions.' + id + '.bundles')
+    // A bundle row whose package is substituted by the omission placeholder cannot mount: the
+    // loader reads the installed manifest and finds a package that declares nothing. The two
+    // lists describe one fact, so an overlap is a generation error rather than a build surprise.
+    for (const name of bundles) {
+      if (omit.includes(name)) throw new Error('edition "' + id + '" mounts ' + name + ' but also omits it')
+    }
     editions[id] = {
       label: text(edition.label, id),
       profile: text(edition.profile, 'plus'),
-      bundles: stringArray(edition.bundles ?? [], 'dshPlus.editions.' + id + '.bundles'),
+      bundles,
       packages: names,
       omit,
       excludePackages,
