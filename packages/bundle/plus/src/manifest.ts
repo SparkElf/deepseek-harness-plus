@@ -333,6 +333,10 @@ export function projectEdition(facts: DistributionFacts, editionId?: string, ext
     if (omittedNames.has(name) || excludedNames.has(name)) continue
     overrides[name] = spec
   }
+  // The launcher is the runtime the republished builds were cut against. A dependency can lose
+  // to hoisting when a sibling range admits a newer prerelease, and a mixed tree is what makes
+  // DSH refuse rows; the override is derived from the same one fact, not a second list.
+  overrides['@deepseek-ai/dsh'] = facts.runtimeVersion
   Object.assign(overrides, omitted)
   return {
     profileName: edition?.profile ?? 'plus',
