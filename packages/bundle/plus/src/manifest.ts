@@ -267,7 +267,9 @@ export function projectEdition(facts: DistributionFacts, editionId?: string): Pr
   }
   const omittedNames = new Set(edition?.omit ?? [])
   const omitted: Record<string, string> = {}
-  for (const name of omittedNames) omitted[name] = 'npm:@sparkelf/dsh-omitted@' + facts.runtimeVersion
+  // The placeholder is a plus-family member, so it carries the distribution version, not the
+  // official runtime one: the two version lines move independently.
+  for (const name of omittedNames) omitted[name] = 'npm:@sparkelf/dsh-omitted@' + facts.version
   const dependencies: Record<string, string> = {}
   const packageNames = edition === undefined ? Object.keys(facts.dependencies) : edition.packages
   for (const name of packageNames) {
