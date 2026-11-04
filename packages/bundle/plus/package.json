@@ -130,8 +130,7 @@
         "@deepseek-ai/dsh-client-store": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-sdk-protocol": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-util-workspace-path": "0.2.2-alpha.2",
-        "@deepseek-ai/dsh-tool-session-query": "0.2.2-alpha.2",
-        "@deepseek-ai/dsh-tool-subagent-control": "0.2.2-alpha.2"
+        "@deepseek-ai/dsh-tool-session-query": "0.2.2-alpha.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -710,8 +709,7 @@
           "@sparkelf/dsh-kb-citation",
           "@sparkelf/dsh-task-bus",
           "@sparkelf/dsh-ocr",
-          "@sparkelf/dsh-dataops-account",
-          "@deepseek-ai/dsh-tool-subagent-control"
+          "@sparkelf/dsh-dataops-account"
         ],
         "packages": [
           "@sparkelf/dsh-mineru",
@@ -753,8 +751,7 @@
           "@sparkelf/dsh-kb-citation",
           "@deepseek-ai/cordis-plugin-group",
           "@sparkelf/dsh-ocr",
-          "@sparkelf/dsh-dataops-account",
-          "@deepseek-ai/dsh-tool-subagent-control"
+          "@sparkelf/dsh-dataops-account"
         ],
         "omit": [
           "@deepseek-ai/dsh-computer-use",
