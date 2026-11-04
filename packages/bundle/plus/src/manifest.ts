@@ -85,6 +85,11 @@ function record(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
+/** A declared value as text, or the fallback when the manifest holds something else. */
+function text(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback
+}
+
 function stringArray(value: unknown, label: string): string[] {
   if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string' || entry === '')) {
     throw new Error(label + ' must be a non-empty string array')
@@ -165,16 +170,16 @@ export function readDistributionFacts(directory: string): DistributionFacts {
     throw new Error('dshPlus.profile.overrides is retired; overrides are derived from dshPlus.patchSet')
   }
   const runtime = record(plus.runtime, 'dshPlus.runtime')
-  const runtimeVersion = String(runtime.version ?? '')
+  const runtimeVersion = text(runtime.version)
   if (valid(runtimeVersion) === null) throw new Error('dshPlus.runtime.version must be an exact version, got: ' + runtimeVersion)
   const omission = record(plus.omission, 'dshPlus.omission')
-  const omissionPackage = String(omission.package ?? '')
-  const omissionVersion = String(omission.version ?? '')
+  const omissionPackage = text(omission.package)
+  const omissionVersion = text(omission.version)
   if (!omissionPackage.startsWith('@sparkelf/') || valid(omissionVersion) === null) {
     throw new Error('dshPlus.omission must name an @sparkelf package and an exact version')
   }
   const compatibility = record(plus.compatibility, 'dshPlus.compatibility')
-  const floor = String(compatibility.dsh ?? '')
+  const floor = text(compatibility.dsh)
   if (validRange(floor) === null) throw new Error('dshPlus.compatibility.dsh must be a semver range')
   const patchSet = record(plus.patchSet, 'dshPlus.patchSet')
   const rawEntries = patchSet.entries
@@ -182,13 +187,13 @@ export function readDistributionFacts(directory: string): DistributionFacts {
   const entries: PatchEntryFacts[] = rawEntries.map((value, index) => {
     const entry = record(value, 'patchSet.entries[' + String(index) + ']')
     const target = record(entry.target, 'patchSet.entries[' + String(index) + '].target')
-    const targetFacts: PatchEntryFacts['target'] = { kind: String(target.kind ?? '') }
+    const targetFacts: PatchEntryFacts['target'] = { kind: text(target.kind) }
     if (target.packages !== undefined) {
       Object.assign(targetFacts, { packages: stringArray(target.packages, 'target.packages') })
     }
     if (target.republish === false) Object.assign(targetFacts, { republish: false })
     if (typeof target.reason === 'string') Object.assign(targetFacts, { reason: target.reason })
-    return { id: String(entry.id ?? ''), target: targetFacts }
+    return { id: text(entry.id), target: targetFacts }
   })
   const { redirects, ids } = deriveRedirects(entries, runtimeVersion)
   const dependencies = stringMap(profile.dependencies, 'dshPlus.profile.dependencies')
@@ -234,8 +239,8 @@ export function readDistributionFacts(directory: string): DistributionFacts {
       }
     }
     editions[id] = {
-      label: String(edition.label ?? id),
-      profile: String(edition.profile ?? 'plus'),
+      label: text(edition.label, id),
+      profile: text(edition.profile, 'plus'),
       bundles: stringArray(edition.bundles ?? [], 'dshPlus.editions.' + id + '.bundles'),
       packages: names,
       omit,
@@ -306,7 +311,13 @@ export function projectEdition(facts: DistributionFacts, editionId?: string, ext
   // stated once in `dshPlus.omission` rather than derived from a version that moves elsewhere.
   for (const name of omittedNames) omitted[name] = facts.omissionSpec
   const dependencies: Record<string, string> = {}
-  const packageNames = edition === undefined ? Object.keys(facts.dependencies) : edition.packages
+  // Official services are shared infrastructure rather than edition members: every edition
+  // installs the ones the distribution reviewed, which is what keeps one version of each service
+  // in the tree. An edition lists only the product packages it owns.
+  const sharedOfficials = Object.keys(facts.dependencies).filter(name => name.startsWith('@deepseek-ai/dsh'))
+  const packageNames = edition === undefined
+    ? [...new Set([...Object.keys(facts.dependencies), ...sharedOfficials])]
+    : [...new Set([...edition.packages, ...sharedOfficials])]
   for (const name of packageNames) {
     if (omittedNames.has(name) || excludedNames.has(name)) continue
     const key = dependencyKey(facts.dependencies, name) ?? name
@@ -416,10 +427,13 @@ export function writeProfileProjection(
     'packages:',
     '  - .',
     'nodeLinker: hoisted',
-    'autoInstallPeers: true',
+    // Official peers come from the exact runtime this profile declares. Installing them from
+    // their own ranges lets a newer prerelease in beside the republished builds, and DSH then
+    // disables every row whose exact peers disagree with the runtime it boots.
+    'autoInstallPeers: false',
     '',
     'overrides:',
-    ...Object.keys(projection.overrides).sort().map(name => '  ' + JSON.stringify(name) + ': ' + projection.overrides[name]),
+    ...Object.keys(projection.overrides).sort().map(name => '  ' + JSON.stringify(name) + ': ' + (projection.overrides[name] ?? '')),
     '',
     'allowBuilds:',
     ...Object.keys(projection.allowBuilds).sort().map(name => '  ' + JSON.stringify(name) + ': ' + String(projection.allowBuilds[name])),

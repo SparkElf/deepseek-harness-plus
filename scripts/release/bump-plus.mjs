@@ -5,10 +5,8 @@
  * \`verify.ts --family plus\` enforces — because a hand-written list of directories missed
  * fifteen of the nineteen members and failed the release before it published anything.
  *
- * Two generated files follow a version change, in this order: the standalone manifest
- * carries each member's version, and the lockfile records the manifest. Updating the
- * lockfile before the manifest leaves it stale, which CI reports as
- * ERR_PNPM_OUTDATED_LOCKFILE against \`packages/standalone/plus-standalone\`.
+ * The lockfile records every member's version, so it is refreshed after the bump; leaving it
+ * behind is what CI reports as ERR_PNPM_OUTDATED_LOCKFILE.
  *
  * Usage:
  *   node scripts/release/bump-plus.mjs <version> [--dry-run]
@@ -18,10 +16,8 @@ import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** Where the generated manifest and its inputs live, relative to the repository root. */
-const MANIFEST_OUT = 'packages/standalone/plus-standalone/package.json'
+/** Where the distribution manifest lives, relative to the repository root. */
 const MANIFEST_DISTRIBUTION = 'packages/bundle/plus'
-const MANIFEST_GENERATOR = 'scripts/standalone/generate-manifest.ts'
 
 const root = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -46,7 +42,6 @@ export function plusMemberManifests() {
   const patterns = [
     'packages/plus/*/package.json',
     'packages/bundle/plus/package.json',
-    'packages/standalone/*/package.json',
     'patches/npm/*/package.json',
   ]
   return patterns
@@ -118,8 +113,6 @@ function main() {
     execFileSync(command, args, { cwd: root, stdio: 'inherit' })
     console.log('bump-plus: ' + name)
   }
-  run('pnpm', ['exec', 'tsx', MANIFEST_GENERATOR, '--distribution', MANIFEST_DISTRIBUTION,
-    '--out', MANIFEST_OUT, '--runtime-version', manifestRuntime()], 'manifest regenerated')
   run('pnpm', ['install', '--lockfile-only'], 'lockfile updated')
 }
 

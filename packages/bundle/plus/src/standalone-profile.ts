@@ -10,7 +10,7 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
@@ -255,7 +255,12 @@ export function readDistributionProfile(distributionDirectory: string, editionId
  *
  * @param paths - resolved standalone paths.
  */
-export function installProfilePackages(paths: StandalonePaths, omitted: ReadonlySet<string> = new Set()): void {
+export function installProfilePackages(
+  paths: StandalonePaths,
+  omitted: ReadonlySet<string> = new Set(),
+  runtimeVersion?: string,
+  registry?: string,
+): void {
   // The profile owns its dependency tree: it declares the launcher and every plugin, so it can
   // install without a consumer tree beside it. A globally installed distribution has none --
   // its only node_modules is the one npm laid out around the command itself.
@@ -266,10 +271,112 @@ export function installProfilePackages(paths: StandalonePaths, omitted: Readonly
     linkNestedBundles(paths, profileModules)
     return
   }
-  installWithRegistryFallback(paths)
+  installWithRegistryFallback(paths.profileDirectory)
+  // A range admits the next prerelease, so the official family lands one generation ahead of
+  // the runtime the republished builds were cut against. Realign, then finish the tree.
+  if (runtimeVersion !== undefined && registry !== undefined) {
+    alignOfficialVersions(paths.profileDirectory, runtimeVersion, registry)
+  }
   alignReplacedPackageNames(profileModules, omitted)
   linkNestedBundles(paths, profileModules)
   assertProfileBundles(paths.profileDirectory)
+}
+
+/** Package names a package declares as peers on the official runtime family. */
+function officialPeers(profileDirectory: string): Set<string> {
+  const peers = new Set<string>()
+  const manifests: string[] = []
+  for (const scope of [join(profileDirectory, 'node_modules'), join(profileDirectory, 'node_modules', '@deepseek-ai')]) {
+    if (!existsSync(scope)) continue
+    for (const entry of readdirSync(scope)) {
+      if (entry.startsWith('.')) continue
+      if (entry.startsWith('@') && entry !== '@deepseek-ai') continue
+      if (entry === '@deepseek-ai') {
+        for (const scoped of readdirSync(scope)) manifests.push(join(scope, scoped, 'package.json'))
+        continue
+      }
+      manifests.push(join(scope, entry, 'package.json'))
+    }
+  }
+  for (const manifestPath of manifests) {
+    if (!existsSync(manifestPath)) continue
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { peerDependencies?: Record<string, string> }
+      for (const peer of Object.keys(manifest.peerDependencies ?? {})) {
+        if (peer.startsWith('@deepseek-ai/dsh') && peer !== '@deepseek-ai/dsh') peers.add(peer)
+      }
+    } catch {
+      // A package whose manifest cannot be read declares no peer this step can act on.
+    }
+  }
+  return peers
+}
+
+/**
+ * Which of the given package versions a registry serves.
+ *
+ * The probe runs in one Node child: one process per name is slow, and the caller needs the
+ * answer before the second install.
+ *
+ * @param names - package names to check.
+ * @param version - exact version each must serve.
+ * @param registry - registry base URL.
+ * @returns the names the registry serves at that version.
+ */
+function servedVersions(names: readonly string[], version: string, registry: string): Set<string> {
+  if (names.length === 0) return new Set()
+  const script = `
+    const [names, version, registry] = JSON.parse(process.argv[1])
+    const base = registry.replace(/\\/$/, '')
+    const queue = [...names]
+    const served = []
+    await Promise.all(Array.from({ length: 10 }, async () => {
+      while (queue.length > 0) {
+        const name = queue.shift()
+        try {
+          const response = await fetch(base + '/' + name.replace('/', '%2f') + '/' + version)
+          if (response.ok) served.push(name)
+        } catch {}
+      }
+    }))
+    process.stdout.write(served.join('\\n'))
+  `
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, JSON.stringify([names, version, registry])], { encoding: 'utf8' })
+  if (result.status !== 0) return new Set()
+  return new Set(result.stdout.split('\n').map(entry => entry.trim()).filter(entry => entry !== ''))
+}
+
+/**
+ * Move the shared official services onto the runtime's exact version.
+ *
+ * The republished builds were cut against one runtime, and DSH disables a row when the exact
+ * peers a plugin declares disagree with the process it shares. Plugins declare those services as
+ * peers, so the names worth pinning are the peers actually installed -- read from the tree and
+ * checked against the registry. The rest of the official family keeps its resolved versions:
+ * pinning everything traded one mismatch for a tree with holes.
+ *
+ * @param profileDirectory - profile whose tree was just installed.
+ * @param runtimeVersion - exact runtime the profile boots.
+ * @param registry - registry the profile installs from.
+ * @returns how many services were realigned.
+ */
+export function alignOfficialVersions(profileDirectory: string, runtimeVersion: string, registry: string): number {
+  const wanted = [...officialPeers(profileDirectory)]
+  const served = servedVersions(wanted, runtimeVersion, registry)
+  if (served.size === 0) return 0
+  const workspacePath = join(profileDirectory, 'pnpm-workspace.yaml')
+  const document = parseDocument(readFileSync(workspacePath, 'utf8'))
+  let changed = 0
+  for (const name of served) {
+    if (document.getIn(['overrides', name]) === runtimeVersion) continue
+    document.setIn(['overrides', name], runtimeVersion)
+    changed += 1
+  }
+  if (changed === 0) return 0
+  writeFileSync(workspacePath, String(document))
+  rmSync(join(profileDirectory, 'pnpm-lock.yaml'), { force: true })
+  installWithRegistryFallback(profileDirectory)
+  return changed
 }
 
 /**
@@ -304,11 +411,11 @@ export function assertProfileBundles(profileDirectory: string): void {
  *
  * @param paths - resolved standalone paths.
  */
-function installWithRegistryFallback(paths: StandalonePaths): void {
+function installWithRegistryFallback(profileDirectory: string): void {
   const registries = registryOrder()
   for (const [index, registry] of registries.entries()) {
     const result = spawnSync('pnpm', ['install', '--no-frozen-lockfile', '--registry', registry], {
-      cwd: paths.profileDirectory,
+      cwd: profileDirectory,
       stdio: 'inherit',
       shell: process.platform === 'win32',
     })
@@ -355,7 +462,23 @@ export function alignReplacedPackageNames(profileModules: string, omitted: Reado
   for (const entry of readdirSync(profileModules)) {
     if (entry.startsWith('.')) continue
     if (!entry.startsWith('@')) {
-      align(entry, join(profileModules, entry, 'package.json'))
+      // An unscoped row is an npm alias onto a scoped build. The package imports its real
+      // scoped name, so renaming it would break its own imports; exposing the scoped name as
+      // a link is what makes both the row and the package resolve.
+      const manifestPath = join(profileModules, entry, 'package.json')
+      if (!existsSync(manifestPath)) continue
+      const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string }
+      if (declared.name === undefined || declared.name === entry) continue
+      const [scope, name] = declared.name.split('/')
+      if (scope === undefined || name === undefined) continue
+      mkdirSync(join(profileModules, scope), { recursive: true })
+      const link = join(profileModules, scope, name)
+      if (existsSync(link)) continue
+      try {
+        symlinkSync(join('..', entry), link, 'junction')
+      } catch {
+        // A concurrent install may have created the same link; the existing one is equivalent.
+      }
       continue
     }
     for (const scoped of readdirSync(join(profileModules, entry))) {
@@ -538,7 +661,14 @@ export function ensureProfile(
       distribution.allowBuilds,
       { ...paths.omittedPackages, ...distribution.omittedPackages },
     )
-    if (!dryRun) installProfilePackages(paths, new Set(Object.keys(distribution.omittedPackages)))
+    if (!dryRun) {
+      installProfilePackages(
+        paths,
+        new Set(Object.keys(distribution.omittedPackages)),
+        distribution.runtimeVersion,
+        registryOrder()[0],
+      )
+    }
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
@@ -569,7 +699,14 @@ export function ensureProfile(
     distribution.allowBuilds,
     { ...paths.omittedPackages, ...distribution.omittedPackages },
   )
-  if (!dryRun) installProfilePackages(paths, new Set(Object.keys(distribution.omittedPackages)))
+  if (!dryRun) {
+    installProfilePackages(
+      paths,
+      new Set(Object.keys(distribution.omittedPackages)),
+      distribution.runtimeVersion,
+      registryOrder()[0],
+    )
+  }
   return true
 }
 

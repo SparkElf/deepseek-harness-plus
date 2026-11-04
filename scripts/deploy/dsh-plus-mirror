@@ -18,10 +18,10 @@
 #
 #   1. the official tag has to be extracted into a fresh mirror,
 #   2. this repository's reviewed patches have to apply to it,
-#   3. the standalone manifest's peer overrides have to be regenerated for the new
+#   3. the distribution's edition projection carries the new version
 #      runtime, or the profile install is rejected by the plugin compatibility gate,
 #   4. the build has to run through `dsh-plus-build` so the client brand is injected,
-#   5. the profile has to be created from the standalone manifest,
+#   5. the profile has to be created from the distribution,
 #   6. the @deepseek-ai scope has to be relinked to the mirror's own sources, and every
 #      real directory that shadows a linked package replaced by the link, or the
 #      profile reports DEFECTIVE and every tool call fails,
@@ -31,7 +31,7 @@
 # Every one of those was discovered by watching a promotion fail. The step that is
 # easy to miss is 3: the distribution's own patch set carries peer ranges that were
 # resolved when it was published, so a new runtime needs new exemptions and the
-# regeneration only covers the standalone manifest, not the profile.
+# the distribution writes the profile itself, so there is nothing to regenerate.
 #
 # Measured on the 0.2.0-rc.1 promotion: patching needed one signature fix, the
 # exemption list grew from 5 to 14 entries, and the scope check reported nine shadowed
@@ -175,9 +175,11 @@ cmd_build() {
   # facts nothing compared: a directory added without a declaration is applied unreviewed, and a
   # declaration whose directory is gone is skipped silently. Both directions are checked before
   # anything is applied, because the alternative is discovering the difference from a running tree.
-  step "checking the reviewed patch set against the directory"
-  if ! "$NODE_BIN/npx" tsx "$PLUS_REPO/scripts/standalone/verify-patch-manifest.ts" --repo "$PLUS_REPO"; then
-    echo "  [mirror] the declared patch set and patches/npm disagree; nothing was applied" >&2
+  step "checking the reviewed patch set"
+  # The patch set is embedded in the distribution and validated when it is read; the directory of
+  # independent patch packages this gate compared against no longer exists.
+  if ! "$NODE_BIN/npx" tsx -e "import('$PLUS_REPO/packages/bundle/plus/src/patch-set.ts').then(m => m.readPatchSet('$PLUS_REPO/packages/bundle/plus', JSON.parse(require('node:fs').readFileSync('$PLUS_REPO/packages/bundle/plus/package.json','utf8'))))"; then
+    echo "  [mirror] the embedded patch set is invalid; nothing was applied" >&2
     exit 1
   fi
 
@@ -223,83 +225,21 @@ cmd_build() {
     exit 1
   fi
 
-  if [ -n "$runtime" ]; then
-    step "regenerating the standalone manifest for runtime $runtime"
-    "$NODE_BIN/npx" tsx scripts/standalone/generate-manifest.ts \
-      --distribution packages/bundle/plus \
-      --out packages/standalone/plus-standalone/package.json \
-      --runtime-version "$runtime"
-    "$NODE_BIN/npx" tsx scripts/standalone/generate-manifest.ts \
-      --distribution packages/bundle/plus \
-      --out packages/standalone/dataops-standalone/package.json \
-      --runtime-version "$runtime" --variant dataops
-  fi
-
   step "building the mirror (brand profile official)"
   /root/.dsh/dsh-plus-build "$mirror"
 
-  step "creating the profile from the standalone manifest"
-  local standalone
-  standalone="$("$NODE_BIN/node" -e "process.stdout.write(require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').name+'@'+require('$PLUS_REPO/packages/standalone/plus-standalone/package.json').version)")"
-  # `plugin add` writes a skeleton profile whose bundle list is the launcher's default, and the
-  # distribution only rewrites it from `@sparkelf/dsh-plus`'s own installer - which reads the
-  # *published* package, so a bundle this repository added is absent until it is republished. The
-  # standalone manifest is the artifact this build just generated from the distribution, so it is
-  # what the profile is written from: dependencies and bundles both, before the install that reads
-  # them. Measured 2026-10-11: without this the profile kept one bundle where the manifest named
-  # twenty-one, and every capability only the bundles mount was absent while the build passed.
-  "$NODE_BIN/node" - "$mirror/profiles/plus/package.json" "$PLUS_REPO/packages/standalone/plus-standalone/package.json" <<'PROFILE'
-const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs")
-const { dirname, join } = require("node:path")
-const [profilePath, standalonePath] = process.argv.slice(2)
-// This runs before `plugin add`, which is what would otherwise create the directory.
-mkdirSync(dirname(profilePath), { recursive: true })
-const standalone = JSON.parse(readFileSync(standalonePath, "utf8"))
-const declaration = standalone.dshPlusStandalone
-if (declaration === undefined) throw new Error(standalonePath + " declares no dshPlusStandalone")
-// The skeleton holds launcher defaults this build does not choose, so only the two lists the
-// distribution owns are replaced and everything else the skeleton wrote is left alone.
-const profile = existsSync(profilePath) ? JSON.parse(readFileSync(profilePath, "utf8")) : {}
-profile.name = "dsh-profile-plus"
-profile.private = true
-profile.type = "module"
-// `workspace:` ranges name packages this repository publishes and are kept in the manifest so the
-// repository constraint gate accepts it; `pnpm pack` rewrites them to published versions for the
-// registry installation. This profile is written from the source tree rather than from a packed
-// tarball, so no rewrite happened and the protocol has to go: pnpm rejects it here with
-// ERR_PNPM_WORKSPACE_PKG_NOT_FOUND, because the profile is not a member of this workspace.
-const published = (spec) => String(spec).replace(/^workspace:/u, "")
-// The profile names the standalone package itself, because that is the release this deployment is
-// pinned to and what `plugin add` was asked to install. A build writes this before that add runs, so
-// the entry is added here rather than inherited from the skeleton it has not written yet.
-const distributionDependencies = Object.fromEntries(
-  Object.entries(standalone.dependencies ?? {}).map(([name, spec]) => [name, published(spec)]),
-)
-distributionDependencies["@sparkelf/dsh-plus"] = standalone.version
-distributionDependencies[standalone.name] = standalone.version
-profile.dependencies = { ...(profile.dependencies ?? {}), ...distributionDependencies }
-profile.dsh = { ...(profile.dsh ?? {}), profile: { ...(profile.dsh?.profile ?? {}), bundles: declaration.bundles } }
-writeFileSync(profilePath, JSON.stringify(profile, null, 2) + "\n")
-// The workspace settings matter as much as the manifest, and they are written here for the same
-// reason: nothing else in this build writes them. `hoisted` is what makes the patch packages
-// reachable - under pnpm's default symlinked layout a dependency's own dependencies live in the
-// virtual store, so `materialize-npm-patches` looks for the distribution's patch packages at the
-// profile root and finds none.
-//
-// Written as text rather than through a YAML library, because this runs before the profile has a
-// node_modules and cannot import one: the schema here is three top-level keys this file owns.
-const workspacePath = join(dirname(profilePath), "pnpm-workspace.yaml")
-const workspace = existsSync(workspacePath) ? readFileSync(workspacePath, "utf8") : ""
-const workspaceLines = workspace.split("\n")
-const hasKey = (key) => workspaceLines.some((line) => line.startsWith(key + ":"))
-const additions = []
-if (!hasKey("packages")) additions.push("packages:", "  - .")
-if (!hasKey("nodeLinker")) additions.push("nodeLinker: hoisted")
-if (!hasKey("autoInstallPeers")) additions.push("autoInstallPeers: false")
-if (additions.length > 0) {
-  const separator = workspace === "" || workspace.endsWith("\n") ? "" : "\n"
-  writeFileSync(workspacePath, workspace + separator + additions.join("\n") + "\n")
-}
+  step "creating the profile from the distribution"
+  # The distribution writes the profile itself now: the generated standalone manifest that used to
+  # carry the dependency and bundle lists no longer exists. A dry run writes the manifest and the
+  # pnpm workspace without installing, which is what this stage needs before `plugin add` runs.
+  DSH_HOME="$mirror" "$NODE_BIN/node" "$PLUS_REPO/packages/bundle/plus/lib/bin.js" \
+    install --edition team --dry-run || {
+      echo "  [mirror] the distribution could not write the profile" >&2
+      exit 1
+    }
+  local profile_dir="$mirror/profiles/plus"
+  local distribution
+  distribution="@sparkelf/dsh-plus@$("$NODE_BIN/node" -p "require('$PLUS_REPO/packages/bundle/plus/package.json').version")"
 // The launcher boots from this file and `check-target.mjs` refuses a mirror without it, so it is
 // written here rather than left for a first start the switch will already have refused. The content
 // is the launcher's own template: the tree is composed from the bundles, and this file is an empty
@@ -325,7 +265,7 @@ PROFILE
   # two are told apart by what the profile holds afterwards. Measured 2026-10-11: an unreachable
   # registry left this step incomplete, and the build failed twenty minutes later at the mount check,
   # which named the symptom rather than the cause.
-  if ! ( cd "$mirror" && DSH_HOME="$mirror" "$NODE_BIN/node" apps/cli/lib/bin.js plugin --profile plus add "$standalone" < /dev/null ); then
+  if ! ( cd "$mirror" && DSH_HOME="$mirror" "$NODE_BIN/node" apps/cli/lib/bin.js plugin --profile plus add "$distribution" < /dev/null ); then
     if [ ! -f "$mirror/profiles/plus/package.json" ]; then
       echo "  [mirror] the profile was never created; a registry this install needs is unreachable" >&2
       exit 1
@@ -363,7 +303,7 @@ PROFILE
   step "checking the profile mounts what the manifest declares"
   if ! "$NODE_BIN/node" "$DSH_HOME/supervisor/verify-profile-bundles.mjs" \
       --profile "$mirror/profiles/plus" \
-      --manifest "$PLUS_REPO/packages/standalone/plus-standalone/package.json"; then
+      --manifest "$PLUS_REPO/packages/bundle/plus/package.json"; then
     echo "  [mirror] refusing to finish: the built profile does not mount the declared bundles" >&2
     exit 1
   fi
@@ -418,7 +358,7 @@ PROFILE
   step "writing the profile compatibility exemptions"
   "$NODE_BIN/node" /root/.dsh/dsh-plus-exemptions \
     --runtime "${runtime:-}" \
-    --manifest "$PLUS_REPO/packages/standalone/plus-standalone/package.json" \
+    --manifest "$PLUS_REPO/packages/bundle/plus/package.json" \
     --out "$mirror/profiles/plus/compatibility.json"
 
   # The profile lives at profiles/plus, not at the `profile` the repair defaults to, so the
