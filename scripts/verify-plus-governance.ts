@@ -247,15 +247,41 @@ function main(): void {
   // silently excludes every 0.2.1 prerelease. Requiring the floor to admit the pinned runtime
   // states the relationship the promotion has to preserve.
   const compatibilityFloor = minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
-  const profileOverrides = object(profile.overrides, 'dshPlus.profile.overrides')
-  const republished = new Set(
-    Object.values(profileOverrides)
-      .map(value => /@([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/.exec(string(value, 'dshPlus.profile.overrides'))?.[1])
-      .filter((version): version is string => version !== undefined))
-  if (republished.size === 0) throw new Error('dshPlus.profile.overrides must pin the republished runtime')
-  for (const version of republished) {
-    if (satisfies(version, compatibilityFloor)) continue
-    throw new Error('dshPlus.compatibility.dsh (' + compatibilityFloor + ') must admit the republished runtime ' + version
+  // The override table is a projection of the patch set, never a stored list. This gate owns the
+  // same contract the generator enforces, so a manifest that reintroduces a hand-maintained table
+  // fails here even before a release tries to publish it.
+  if (profile.overrides !== undefined) {
+    throw new Error('dshPlus.profile.overrides is retired; overrides are derived from dshPlus.patchSet')
+  }
+  if (profile.standaloneVariants !== undefined) {
+    throw new Error('dshPlus.profile.standaloneVariants is retired; rename it to dshPlus.profile.variants')
+  }
+  const runtime = object(plus.runtime, 'dshPlus.runtime')
+  const runtimeVersion = string(runtime.version, 'dshPlus.runtime.version')
+  if (valid(runtimeVersion) === null) throw new Error('dshPlus.runtime.version must be an exact version')
+  const patchSet = object(plus.patchSet, 'dshPlus.patchSet')
+  const patchEntries = array(patchSet.entries, 'dshPlus.patchSet.entries')
+  const redirects = new Map<string, string>()
+  for (const [index, raw] of patchEntries.entries()) {
+    const entry = object(raw, 'dshPlus.patchSet.entries[' + String(index) + ']')
+    const target = object(entry.target, 'dshPlus.patchSet.entries[' + String(index) + '].target')
+    if (target.kind !== 'dsh-source') continue
+    if (target.republish === false) {
+      string(target.reason, 'dshPlus.patchSet.entries[' + String(index) + '].target.reason')
+      continue
+    }
+    for (const [packageIndex, name] of array(target.packages, 'target.packages').entries()) {
+      const official = string(name, 'target.packages[' + String(packageIndex) + ']')
+      if (!official.startsWith('@deepseek-ai/')) throw new Error('patch target ' + official + ' is not an official package')
+      redirects.set(official, 'npm:@sparkelf/' + official.slice('@deepseek-ai/'.length) + '@' + runtimeVersion)
+    }
+  }
+  if (redirects.size === 0) throw new Error('dshPlus.patchSet must republish at least one package')
+  for (const [name, spec] of redirects) {
+    if (!spec.endsWith('@' + runtimeVersion)) throw new Error('redirect for ' + name + ' does not name the runtime version')
+  }
+  if (!satisfies(runtimeVersion, compatibilityFloor)) {
+    throw new Error('dshPlus.compatibility.dsh (' + compatibilityFloor + ') must admit the runtime the redirects name ' + runtimeVersion
       + '; a prerelease floor admits only its own major.minor.patch, so it moves with the runtime')
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')

@@ -15,6 +15,13 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { newerVersion } from './registry-versions.ts'
 import {
+  assertRedirectsPublished,
+  projectEdition,
+  readDistributionFacts,
+  writeProfileProjection,
+  type DistributionFacts,
+} from './manifest.ts'
+import {
   CAPABILITIES,
   CAPABILITY_ENV_FILE,
   CAPABILITY_MARKER,
@@ -52,9 +59,13 @@ import {
   pnpmInstallCommands,
   registryOrder,
   readDistributionProfile,
+  resolveDistributionDirectory,
   resolvePaths,
   type StandalonePaths,
 } from './standalone-profile.ts'
+
+/** Edition the offline build projects when the caller names none. */
+const DEFAULT_EDITION = 'intranet-team'
 
 /** Milliseconds a start waits for the server to answer before reporting failure. */
 const READY_TIMEOUT_MILLISECONDS = 90_000
@@ -75,6 +86,13 @@ interface StartOptions {
    * deployment that must not run them requires.
    */
   readonly capabilities: readonly string[] | undefined
+  /**
+   * Product edition to materialize, or undefined for the full distribution.
+   *
+   * An edition selects the package and bundle set a deployment installs; naming it here replaces
+   * the per-deployment forwarder package that used to carry the same facts.
+   */
+  readonly edition: string | undefined
 }
 
 function parseStartOptions(argv: readonly string[]): StartOptions {
@@ -83,6 +101,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
   let open = true
   let foreground = false
   let capabilities: readonly string[] | undefined
+  let edition: string | undefined
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     if (token === '--port' || token === '-p') {
@@ -101,6 +120,13 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     if (token === '--no-open') { open = false; continue }
     if (token === '--foreground') { foreground = true; continue }
+    if (token === '--edition') {
+      const value = argv[index + 1]
+      if (value === undefined || value === '') throw new Error('--edition requires a value')
+      edition = value
+      index += 1
+      continue
+    }
     if (token === '--capabilities') {
       const value = argv[index + 1]
       if (value === undefined) throw new Error('--capabilities requires a comma-separated list, or an empty string for none')
@@ -121,7 +147,7 @@ function parseStartOptions(argv: readonly string[]): StartOptions {
     }
     throw new Error('unknown option: ' + String(token))
   }
-  return { port, host, open, foreground, capabilities }
+  return { port, host, open, foreground, capabilities, edition }
 }
 
 /**
@@ -213,7 +239,7 @@ async function start(argv: readonly string[]): Promise<number> {
   const anchor = installationAnchor()
   // The profile's own name and omissions come from the package that installed this
   // command, which is a different tree position than the dependencies it resolves.
-  const paths = resolvePaths(declarationAnchor())
+  const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
   // The profile installs its own dependency tree, which needs pnpm. Asking here rather
   // than failing inside the install turns a missing prerequisite into a decision the
   // consumer makes, and the install it can run is the one command that provides it.
@@ -249,7 +275,7 @@ async function start(argv: readonly string[]): Promise<number> {
     }
     console.log('pnpm installed.')
   }
-  const created = ensureProfile(paths, installationRoot())
+  const created = ensureProfile(paths, installationRoot(), options.edition)
   console.log(created
     ? 'Created the ' + paths.profileName + ' profile at ' + paths.profileDirectory
     : 'Using the existing ' + paths.profileName + ' profile')
@@ -651,10 +677,197 @@ async function doctor(): Promise<number> {
   return failures === 0 ? 0 : 1
 }
 
+/** Options `dsh-plus install` accepts. */
+interface InstallOptions {
+  /** Product edition whose manifest to install, or undefined for the distribution default. */
+  readonly edition: string | undefined
+  /** Deployment variant that reduces the distribution, or undefined for the full set. */
+  readonly variant: string | undefined
+}
+
+function parseInstallOptions(argv: readonly string[]): InstallOptions {
+  let edition: string | undefined
+  let variant: string | undefined
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index]
+    const value = argv[index + 1]
+    if (token === '--edition') {
+      if (value === undefined || value === '') throw new Error('--edition requires a value')
+      edition = value
+      index += 1
+      continue
+    }
+    if (token === '--variant') {
+      if (value === undefined || value === '') throw new Error('--variant requires a value')
+      variant = value
+      index += 1
+      continue
+    }
+    throw new Error('unknown option: ' + String(token))
+  }
+  if (edition !== undefined && variant !== undefined) {
+    throw new Error('--edition and --variant select different things; pass one')
+  }
+  return { edition, variant }
+}
+
+/**
+ * Materialize a profile without starting the server.
+ *
+ * The build system installs the distribution once and needs the profile on disk before it
+ * snapshots the image; starting a server to create it would also start a process the image
+ * must then kill.
+ *
+ * @param argv - arguments after the command word.
+ * @returns the process exit code.
+ */
+function install(argv: readonly string[]): number {
+  if (argv.includes('--help') || argv.includes('-h')) { console.log(USAGE); return 0 }
+  const options = parseInstallOptions(argv)
+  // One axis: the edition names the package and bundle set this deployment installs, and its
+  // profile name travels with it. No edition means the full distribution.
+  const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
+  const created = ensureProfile(paths, installationRoot(), options.edition)
+  console.log((created ? 'Created the ' : 'Using the existing ') + paths.profileName + ' profile at ' + paths.profileDirectory)
+  return 0
+}
+
+/** Options `dsh-plus manifest` accepts. */
+interface ManifestOptions {
+  readonly distribution: string | undefined
+  readonly out: string | undefined
+  readonly edition: string | undefined
+  readonly runtime: string | undefined
+  readonly registry: string
+  readonly verify: boolean
+  readonly check: boolean
+}
+
+function parseManifestOptions(argv: readonly string[]): ManifestOptions {
+  let distribution: string | undefined
+  let out: string | undefined
+  // The DataOps workspace image is the only build consumer of this command, so its edition is
+  // the default; a generic caller states the edition it wants.
+  let edition: string | undefined = DEFAULT_EDITION
+  let runtime: string | undefined
+  let registry = 'https://registry.npmjs.org'
+  let verify = false
+  let check = false
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index]
+    const value = argv[index + 1]
+    if (token === '--distribution') { if (value === undefined) throw new Error('--distribution requires a value'); distribution = value; index += 1; continue }
+    if (token === '--out') { if (value === undefined) throw new Error('--out requires a value'); out = value; index += 1; continue }
+    if (token === '--edition') { if (value === undefined) throw new Error('--edition requires a value'); edition = value; index += 1; continue }
+    if (token === '--runtime') { if (value === undefined) throw new Error('--runtime requires a value'); runtime = value; index += 1; continue }
+    if (token === '--registry') { if (value === undefined) throw new Error('--registry requires a value'); registry = value; index += 1; continue }
+    if (token === '--verify') { verify = true; continue }
+    if (token === '--check') { check = true; continue }
+    throw new Error('unknown option: ' + String(token))
+  }
+  return { distribution, out, edition, runtime, registry, verify, check }
+}
+
+/**
+ * Write or verify the profile manifest a build installs.
+ *
+ * `--out` names the profile directory. `--check` compares what is there against a fresh
+ * projection instead of writing, so a committed profile cannot drift from the distribution.
+ *
+ * @param argv - arguments after the command word.
+ * @returns the process exit code.
+ */
+async function manifest(argv: readonly string[]): Promise<number> {
+  const options = parseManifestOptions(argv)
+  const directory = options.distribution ?? resolveDistributionDirectory(declarationAnchor())
+  const facts: DistributionFacts = options.runtime === undefined
+    ? readDistributionFacts(directory)
+    : { ...readDistributionFacts(directory), runtimeVersion: options.runtime }
+  const projection = projectEdition(facts, options.edition)
+  if (options.verify) await assertRedirectsPublished(facts.redirects, options.registry)
+  if (options.out === undefined) throw new Error('manifest requires --out <directory>')
+  if (options.check) {
+    const written = join(options.out, 'package.json')
+    if (!existsSync(written)) throw new Error('manifest: ' + written + ' does not exist; run the generator')
+    const actual = JSON.parse(readFileSync(written, 'utf8')) as {
+      dependencies?: Record<string, string>
+      dsh?: { profile?: { bundles?: string[] } }
+    }
+    const expectedDependencies: Record<string, string> = {
+      '@sparkelf/dsh-plus': facts.version,
+      '@deepseek-ai/dsh': '>=' + facts.runtimeVersion,
+      ...projection.dependencies,
+    }
+    const drift: string[] = []
+    for (const [name, spec] of Object.entries(expectedDependencies)) {
+      if (actual.dependencies?.[name] !== spec) drift.push('dependency ' + name)
+    }
+    for (const name of Object.keys(actual.dependencies ?? {})) {
+      if (expectedDependencies[name] === undefined) drift.push('extra dependency ' + name)
+    }
+    for (const bundle of projection.bundles) {
+      if (!(actual.dsh?.profile?.bundles ?? []).includes(bundle)) drift.push('bundle ' + bundle)
+    }
+    if (drift.length > 0) throw new Error('manifest: ' + written + ' is stale in ' + drift.join(', '))
+    console.log('manifest: ' + written + ' matches the distribution')
+    return 0
+  }
+  writeProfileProjection(options.out, facts, options.edition)
+  console.log(JSON.stringify({
+    profile: projection.profileName,
+    runtime: facts.runtimeVersion,
+    bundles: projection.bundles.length,
+    dependencies: Object.keys(projection.dependencies).length,
+    redirects: Object.keys(facts.redirects).length,
+    overrides: Object.keys(projection.overrides).length,
+    omitted: Object.keys(projection.omittedPackages),
+  }))
+  return 0
+}
+
+/**
+ * Print the distribution facts a build or a release gate consumes.
+ *
+ * @param argv - accepts `--distribution <dir>` only.
+ * @returns the process exit code.
+ */
+function inspect(argv: readonly string[]): number {
+  let directory: string | undefined
+  for (let index = 0; index < argv.length; index += 1) {
+    if (argv[index] !== '--distribution') throw new Error('unknown option: ' + String(argv[index]))
+    directory = argv[index + 1]
+    if (directory === undefined) throw new Error('--distribution requires a value')
+    index += 1
+  }
+  const facts = readDistributionFacts(directory ?? resolveDistributionDirectory(declarationAnchor()))
+  console.log(JSON.stringify({
+    name: facts.name,
+    version: facts.version,
+    runtime: facts.runtimeVersion,
+    profile: facts.name,
+    bundles: facts.bundles,
+    dependencies: facts.dependencies,
+    redirects: facts.redirects,
+    redirectPatch: facts.redirectIds,
+    editions: Object.entries(facts.editions).map(([id, edition]) => ({
+      id,
+      label: edition.label,
+      profile: edition.profile,
+      bundles: edition.bundles.length,
+      packages: edition.packages.length,
+      omit: edition.omit.length,
+    })),
+  }, null, 2))
+  return 0
+}
+
 const USAGE = [
   'Usage: dsh-plus <command> [options]',
   '',
   'Commands:',
+  '  install       materialize the profile without starting the server',
+  '  manifest      write or verify the profile manifest a build installs',
+  '  inspect       print the distribution facts as JSON',
   '  start         start the server (first run creates the profile)',
   '  stop          stop the server',
   '  status        report whether the server is running',
@@ -662,11 +875,23 @@ const USAGE = [
   '  update        move to a newer distribution release',
   '  doctor        check this installation',
   '',
+  'install options:',
+  '  --edition <id>  product edition to materialize (personal, team, intranet-team)',
+  '',
+  'manifest options:',
+  '  --out <dir>          profile directory to write',
+  '  --edition <id>       product edition to project (default: ' + DEFAULT_EDITION + ')',
+  '  --runtime <version>  override the runtime version the redirects name',
+  '  --registry <url>     registry checked by --verify',
+  '  --verify             fail unless every redirect target is published',
+  '  --check              compare --out with a fresh projection instead of writing',
+  '',
   'start options:',
   '  --port <n>     port to prefer (default ' + String(DEFAULT_PORT) + '; a taken port moves to the next free one)',
   '  --host <h>     interface to bind (default 127.0.0.1)',
   '  --no-open      do not open a browser',
   '  --foreground   run in this terminal instead of in the background',
+  '  --edition <id> product edition to materialize',
   '',
   'capabilities options:',
   '  --enable <ids>   enable the comma-separated capability ids',
@@ -690,6 +915,9 @@ export async function runStandaloneCli(argv: readonly string[]): Promise<number>
     console.log(USAGE)
     return 0
   }
+  if (command === 'install') return install(rest)
+  if (command === 'manifest') return await manifest(rest)
+  if (command === 'inspect') return inspect(rest)
   if (command === 'start') return await start(rest)
   if (command === 'stop') return stop()
   if (command === 'status') return status()

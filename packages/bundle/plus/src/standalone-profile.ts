@@ -15,6 +15,7 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
 import { parseDocument } from 'yaml'
+import { projectEdition, readDistributionFacts } from './manifest.ts'
 import { readPatchSet } from './patch-set.ts'
 
 /** Profile name a standalone installation owns when its package declares none. */
@@ -125,11 +126,6 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function requireStringArray(value: unknown, label: string): string[] {
-  if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string')) throw new Error(label + ' must be a string array')
-  return value as string[]
-}
-
 /** Resolve the DSH home, honouring the environment override the launcher itself reads. */
 export function resolveHome(env: NodeJS.ProcessEnv = process.env): string {
   const configured = env.DSH_HOME
@@ -190,54 +186,30 @@ export function resolveDistributionDirectory(anchor: string): string {
   throw new Error('@sparkelf/dsh-plus resolved outside ' + resolve(dirname(anchor)) + ' (found ' + resolved + '); run this command from the directory that installed it')
 }
 
-/** The reviewed bundle order and pins the installed distribution declares. */
-export function readDistributionProfile(distributionDirectory: string): {
+/** The reviewed bundle order and pins the installed distribution declares, for one variant. */
+export function readDistributionProfile(distributionDirectory: string, editionId?: string): {
   readonly name: string
+  readonly version: string
+  readonly dshRange: string
+  readonly runtimeVersion: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
-  readonly dshRange: string
-  readonly version: string
+  readonly omittedPackages: Readonly<Record<string, string>>
 } {
-  const manifest = requireRecord(
-    JSON.parse(readFileSync(join(distributionDirectory, 'package.json'), 'utf8')) as unknown,
-    'Plus distribution manifest',
-  )
-  const plus = requireRecord(manifest.dshPlus, 'dshPlus')
-  const profile = requireRecord(plus.profile, 'dshPlus.profile')
-  const rawDependencies = requireRecord(profile.dependencies, 'dshPlus.profile.dependencies')
-  const rawAllowBuilds = requireRecord(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
-  const dependencies: Record<string, string> = {}
-  for (const [name, spec] of Object.entries(rawDependencies)) {
-    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.dependencies.' + name + ' must be a non-empty string')
-    dependencies[name] = spec
-  }
-  const allowBuilds: Record<string, boolean> = {}
-  for (const [name, allowed] of Object.entries(rawAllowBuilds)) {
-    if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
-    allowBuilds[name] = allowed
-  }
-  // An override substitutes our republished build for an official package by name: the
-  // built code imports the official specifier, so the installed location has to keep
-  // that name while its contents come from ours.
-  const overrides: Record<string, string> = {}
-  const rawOverrides = profile.overrides === undefined
-    ? {}
-    : requireRecord(profile.overrides, 'dshPlus.profile.overrides')
-  for (const [name, spec] of Object.entries(rawOverrides)) {
-    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
-    overrides[name] = spec
-  }
-  const compatibility = requireRecord(plus.compatibility, 'dshPlus.compatibility')
+  const facts = readDistributionFacts(distributionDirectory)
+  const projection = projectEdition(facts, editionId)
   return {
-    name: String(manifest.name),
-    bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
-    dependencies,
-    allowBuilds,
-    overrides,
-    dshRange: String(compatibility.dsh),
-    version: String(manifest.version),
+    name: facts.name,
+    version: facts.version,
+    dshRange: '>=' + facts.runtimeVersion,
+    runtimeVersion: facts.runtimeVersion,
+    bundles: projection.bundles,
+    dependencies: projection.dependencies,
+    allowBuilds: projection.allowBuilds,
+    overrides: projection.overrides,
+    omittedPackages: projection.omittedPackages,
   }
 }
 
@@ -447,15 +419,29 @@ function linkBundle(consumerModules: string, name: string, source: string): void
 }
 
 /** Resolve every path a command needs, without creating anything. */
-export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env): StandalonePaths {
+export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env, editionId?: string): StandalonePaths {
   const home = resolveHome(env)
-  const declaration = readStandaloneDeclaration(anchor)
+  const distributionDirectory = resolveDistributionDirectory(anchor)
+  // An edition is a fact of the distribution now, so the profile name and the omission set come
+  // from it. Without one, a legacy forwarder package may still declare them; the distribution's
+  // own default profile is the fallback.
+  let profileName = STANDALONE_PROFILE
+  let omittedPackages: Readonly<Record<string, string>> = {}
+  if (editionId !== undefined) {
+    const projection = projectEdition(readDistributionFacts(distributionDirectory), editionId)
+    profileName = projection.profileName
+    omittedPackages = projection.omittedPackages
+  } else {
+    const declaration = readStandaloneDeclaration(anchor)
+    profileName = declaration.profileName
+    omittedPackages = declaration.omittedPackages
+  }
   return {
     home,
-    profileName: declaration.profileName,
-    omittedPackages: declaration.omittedPackages,
-    profileDirectory: join(home, 'profiles', declaration.profileName),
-    distributionDirectory: resolveDistributionDirectory(anchor),
+    profileName,
+    omittedPackages,
+    profileDirectory: join(home, 'profiles', profileName),
+    distributionDirectory,
   }
 }
 
@@ -475,21 +461,30 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * @param consumerDirectory - directory whose `node_modules` holds the installed packages.
  * @returns whether this call created the manifest.
  */
-export function ensureProfile(paths: StandalonePaths, consumerDirectory: string): boolean {
+export function ensureProfile(
+  paths: StandalonePaths,
+  consumerDirectory: string,
+  editionId?: string,
+): boolean {
   const manifestPath = join(paths.profileDirectory, 'package.json')
-  const distribution = readDistributionProfile(paths.distributionDirectory)
+  const distribution = readDistributionProfile(paths.distributionDirectory, editionId)
   if (existsSync(manifestPath)) {
     // The workspace carries decisions the distribution owns — overrides and the build
     // script allowlist — and a distribution release changes them. Rewriting on every
     // start is what lets an upgraded installation receive the new values; a profile
     // written once keeps whatever its own release decided and can never be corrected.
-    writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
+    writeProfileOverrides(
+      paths.profileDirectory,
+      distribution.overrides,
+      distribution.allowBuilds,
+      { ...paths.omittedPackages, ...distribution.omittedPackages },
+    )
     installProfilePackages(paths, consumerDirectory)
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
   const manifest = {
-    name: 'dsh-profile-' + STANDALONE_PROFILE,
+    name: 'dsh-profile-' + paths.profileName,
     private: true,
     type: 'module',
     dependencies: {
@@ -509,7 +504,12 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
   // The overrides must reach the workspace before the install that reads them.
-  writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
+  writeProfileOverrides(
+    paths.profileDirectory,
+    distribution.overrides,
+    distribution.allowBuilds,
+    { ...paths.omittedPackages, ...distribution.omittedPackages },
+  )
   installProfilePackages(paths, consumerDirectory)
   return true
 }
