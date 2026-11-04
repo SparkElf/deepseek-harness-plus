@@ -187,7 +187,7 @@ export function resolveDistributionDirectory(anchor: string): string {
 }
 
 /** The reviewed bundle order and pins the installed distribution declares, for one variant. */
-export function readDistributionProfile(distributionDirectory: string, editionId?: string): {
+export function readDistributionProfile(distributionDirectory: string, editionId?: string, extraExcludes: readonly string[] = []): {
   readonly name: string
   readonly version: string
   readonly dshRange: string
@@ -199,7 +199,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
   readonly omittedPackages: Readonly<Record<string, string>>
 } {
   const facts = readDistributionFacts(distributionDirectory)
-  const projection = projectEdition(facts, editionId)
+  const projection = projectEdition(facts, editionId, extraExcludes)
   return {
     name: facts.name,
     version: facts.version,
@@ -465,9 +465,10 @@ export function ensureProfile(
   paths: StandalonePaths,
   consumerDirectory: string,
   editionId?: string,
+  extraExcludes: readonly string[] = [],
 ): boolean {
   const manifestPath = join(paths.profileDirectory, 'package.json')
-  const distribution = readDistributionProfile(paths.distributionDirectory, editionId)
+  const distribution = readDistributionProfile(paths.distributionDirectory, editionId, extraExcludes)
   if (existsSync(manifestPath)) {
     // The workspace carries decisions the distribution owns — overrides and the build
     // script allowlist — and a distribution release changes them. Rewriting on every

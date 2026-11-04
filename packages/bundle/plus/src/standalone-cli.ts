@@ -681,13 +681,13 @@ async function doctor(): Promise<number> {
 interface InstallOptions {
   /** Product edition whose manifest to install, or undefined for the distribution default. */
   readonly edition: string | undefined
-  /** Deployment variant that reduces the distribution, or undefined for the full set. */
-  readonly variant: string | undefined
+  /** Packages the caller drops on top of the edition's own exclusions. */
+  readonly exclude: readonly string[]
 }
 
 function parseInstallOptions(argv: readonly string[]): InstallOptions {
   let edition: string | undefined
-  let variant: string | undefined
+  const exclude: string[] = []
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index]
     const value = argv[index + 1]
@@ -697,18 +697,15 @@ function parseInstallOptions(argv: readonly string[]): InstallOptions {
       index += 1
       continue
     }
-    if (token === '--variant') {
-      if (value === undefined || value === '') throw new Error('--variant requires a value')
-      variant = value
+    if (token === '--exclude') {
+      if (value === undefined || value === '') throw new Error('--exclude requires a package name')
+      exclude.push(value)
       index += 1
       continue
     }
     throw new Error('unknown option: ' + String(token))
   }
-  if (edition !== undefined && variant !== undefined) {
-    throw new Error('--edition and --variant select different things; pass one')
-  }
-  return { edition, variant }
+  return { edition, exclude }
 }
 
 /**
@@ -727,7 +724,7 @@ function install(argv: readonly string[]): number {
   // One axis: the edition names the package and bundle set this deployment installs, and its
   // profile name travels with it. No edition means the full distribution.
   const paths = resolvePaths(declarationAnchor(), process.env, options.edition)
-  const created = ensureProfile(paths, installationRoot(), options.edition)
+  const created = ensureProfile(paths, installationRoot(), options.edition, options.exclude)
   console.log((created ? 'Created the ' : 'Using the existing ') + paths.profileName + ' profile at ' + paths.profileDirectory)
   return 0
 }
@@ -737,6 +734,7 @@ interface ManifestOptions {
   readonly distribution: string | undefined
   readonly out: string | undefined
   readonly edition: string | undefined
+  readonly exclude: readonly string[]
   readonly runtime: string | undefined
   readonly registry: string
   readonly verify: boolean
@@ -749,6 +747,7 @@ function parseManifestOptions(argv: readonly string[]): ManifestOptions {
   // The DataOps workspace image is the only build consumer of this command, so its edition is
   // the default; a generic caller states the edition it wants.
   let edition: string | undefined = DEFAULT_EDITION
+  const exclude: string[] = []
   let runtime: string | undefined
   let registry = 'https://registry.npmjs.org'
   let verify = false
@@ -759,13 +758,14 @@ function parseManifestOptions(argv: readonly string[]): ManifestOptions {
     if (token === '--distribution') { if (value === undefined) throw new Error('--distribution requires a value'); distribution = value; index += 1; continue }
     if (token === '--out') { if (value === undefined) throw new Error('--out requires a value'); out = value; index += 1; continue }
     if (token === '--edition') { if (value === undefined) throw new Error('--edition requires a value'); edition = value; index += 1; continue }
+    if (token === '--exclude') { if (value === undefined) throw new Error('--exclude requires a package name'); exclude.push(value); index += 1; continue }
     if (token === '--runtime') { if (value === undefined) throw new Error('--runtime requires a value'); runtime = value; index += 1; continue }
     if (token === '--registry') { if (value === undefined) throw new Error('--registry requires a value'); registry = value; index += 1; continue }
     if (token === '--verify') { verify = true; continue }
     if (token === '--check') { check = true; continue }
     throw new Error('unknown option: ' + String(token))
   }
-  return { distribution, out, edition, runtime, registry, verify, check }
+  return { distribution, out, edition, exclude, runtime, registry, verify, check }
 }
 
 /**
@@ -783,7 +783,7 @@ async function manifest(argv: readonly string[]): Promise<number> {
   const facts: DistributionFacts = options.runtime === undefined
     ? readDistributionFacts(directory)
     : { ...readDistributionFacts(directory), runtimeVersion: options.runtime }
-  const projection = projectEdition(facts, options.edition)
+  const projection = projectEdition(facts, options.edition, options.exclude)
   if (options.verify) await assertRedirectsPublished({ ...facts.redirects, ...projection.omittedPackages }, options.registry)
   if (options.out === undefined) throw new Error('manifest requires --out <directory>')
   if (options.check) {
@@ -812,7 +812,7 @@ async function manifest(argv: readonly string[]): Promise<number> {
     console.log('manifest: ' + written + ' matches the distribution')
     return 0
   }
-  writeProfileProjection(options.out, facts, options.edition)
+  writeProfileProjection(options.out, facts, options.edition, options.exclude)
   console.log(JSON.stringify({
     profile: projection.profileName,
     runtime: facts.runtimeVersion,
@@ -877,10 +877,12 @@ const USAGE = [
   '',
   'install options:',
   '  --edition <id>  product edition to materialize (personal, team, intranet-team)',
+  '  --exclude <pkg> drop a package and its bundle row (repeatable)',
   '',
   'manifest options:',
   '  --out <dir>          profile directory to write',
   '  --edition <id>       product edition to project (default: ' + DEFAULT_EDITION + ')',
+  '  --exclude <pkg>      drop a package and its bundle row (repeatable)',
   '  --runtime <version>  override the runtime version the redirects name',
   '  --registry <url>     registry checked by --verify',
   '  --verify             fail unless every redirect target is published',
@@ -892,6 +894,7 @@ const USAGE = [
   '  --no-open      do not open a browser',
   '  --foreground   run in this terminal instead of in the background',
   '  --edition <id> product edition to materialize',
+  '  --exclude <pkg> drop a package and its bundle row (repeatable)',
   '',
   'capabilities options:',
   '  --enable <ids>   enable the comma-separated capability ids',

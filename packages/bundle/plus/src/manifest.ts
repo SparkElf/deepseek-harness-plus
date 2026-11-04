@@ -61,6 +61,13 @@ export interface ProfileEdition {
   readonly packages: readonly string[]
   /** Capabilities the edition must not run, substituted with the omission placeholder. */
   readonly omit: readonly string[]
+  /**
+   * Packages the edition does not install or mount at all.
+   *
+   * Unlike `omit`, nothing is substituted: the capability is absent rather than replaced. A
+   * deployment uses it to drop an optional capability the image supplies another way.
+   */
+  readonly excludePackages: readonly string[]
 }
 
 /** A profile projected for one edition. */
@@ -212,12 +219,27 @@ export function readDistributionFacts(directory: string): DistributionFacts {
         throw new Error('edition "' + id + '" omits ' + name + ', which the distribution does not declare')
       }
     }
+    const excludePackages = stringArray(edition.excludePackages ?? [], 'dshPlus.editions.' + id + '.excludePackages')
+    for (const name of excludePackages) {
+      if (dependencies[name] === undefined && !stringArray(edition.bundles ?? [], 'x').includes(name)) {
+        throw new Error('edition "' + id + '" excludes ' + name + ', which it does not install or mount')
+      }
+      if (omit.includes(name)) throw new Error('edition "' + id + '" both excludes and omits ' + name)
+      // A hard dependency would keep the package in the tree through another spec, so the
+      // exclusion would look applied while the install still fetched it.
+      for (const [other, spec] of Object.entries(dependencies)) {
+        if (/^npm:/u.test(spec) && spec.includes(name + '@')) {
+          throw new Error('edition "' + id + '" excludes ' + name + ' but ' + other + ' aliases it')
+        }
+      }
+    }
     editions[id] = {
       label: String(edition.label ?? id),
       profile: String(edition.profile ?? 'plus'),
       bundles: stringArray(edition.bundles ?? [], 'dshPlus.editions.' + id + '.bundles'),
       packages: names,
       omit,
+      excludePackages,
     }
   }
   if (editions['intranet-team'] === undefined) throw new Error('dshPlus.editions.intranet-team is required: the workspace image installs it')
@@ -269,10 +291,15 @@ function dependencyKey(dependencies: Readonly<Record<string, string>>, name: str
  * @param editionId - edition to project, or undefined for the full distribution.
  * @returns the profile's dependencies, bundles, and override table.
  */
-export function projectEdition(facts: DistributionFacts, editionId?: string): ProfileProjection {
+export function projectEdition(facts: DistributionFacts, editionId?: string, extraExcludes: readonly string[] = []): ProfileProjection {
   const edition = editionId === undefined ? undefined : facts.editions[editionId]
   if (editionId !== undefined && edition === undefined) {
     throw new Error('unknown edition "' + editionId + '"; declared: ' + (Object.keys(facts.editions).join(', ') || '(none)'))
+  }
+  const excludedNames = new Set([...(edition?.excludePackages ?? []), ...extraExcludes])
+  for (const name of excludedNames) {
+    const declared = facts.dependencies[name] !== undefined || facts.bundles.includes(name)
+    if (!declared) throw new Error('exclude names ' + name + ', which the distribution does not install or mount')
   }
   const omittedNames = new Set(edition?.omit ?? [])
   const omitted: Record<string, string> = {}
@@ -282,7 +309,7 @@ export function projectEdition(facts: DistributionFacts, editionId?: string): Pr
   const dependencies: Record<string, string> = {}
   const packageNames = edition === undefined ? Object.keys(facts.dependencies) : edition.packages
   for (const name of packageNames) {
-    if (omittedNames.has(name)) continue
+    if (omittedNames.has(name) || excludedNames.has(name)) continue
     const key = dependencyKey(facts.dependencies, name) ?? name
     const spec = facts.dependencies[key]
     if (spec === undefined) throw new Error(name + ' is not a reviewed package')
@@ -291,12 +318,12 @@ export function projectEdition(facts: DistributionFacts, editionId?: string): Pr
   // A redirect is how a registry installation receives a patched build; the profile has to
   // declare it under the official name it imports as well as override it.
   for (const [name, spec] of Object.entries(facts.redirects)) {
-    if (omittedNames.has(name)) continue
+    if (omittedNames.has(name) || excludedNames.has(name)) continue
     dependencies[name] = spec
   }
-  const bundles = edition === undefined
+  const bundles = (edition === undefined
     ? [...facts.bundles]
-    : [...new Set(edition.bundles)]
+    : [...new Set(edition.bundles)]).filter(name => !excludedNames.has(name))
   for (const name of bundles) {
     if (!facts.bundles.includes(name) && !(edition?.bundles ?? []).includes(name)) {
       throw new Error('edition "' + String(editionId) + '" mounts bundle ' + name + ', which the distribution does not declare')
@@ -304,7 +331,7 @@ export function projectEdition(facts: DistributionFacts, editionId?: string): Pr
   }
   const overrides: Record<string, string> = {}
   for (const [name, spec] of Object.entries(facts.redirects)) {
-    if (omittedNames.has(name)) continue
+    if (omittedNames.has(name) || excludedNames.has(name)) continue
     overrides[name] = spec
   }
   Object.assign(overrides, omitted)
@@ -354,14 +381,16 @@ export async function assertRedirectsPublished(
  * @param directory - profile directory to write into.
  * @param facts - validated distribution facts.
  * @param editionId - edition to project.
+ * @param extraExcludes - packages the caller drops on top of the edition's own exclusions.
  * @returns the projection that was written.
  */
 export function writeProfileProjection(
   directory: string,
   facts: DistributionFacts,
   editionId?: string,
+  extraExcludes: readonly string[] = [],
 ): ProfileProjection {
-  const projection = projectEdition(facts, editionId)
+  const projection = projectEdition(facts, editionId, extraExcludes)
   mkdirSync(directory, { recursive: true })
   const dependencies: Record<string, string> = {
     '@sparkelf/dsh-plus': facts.version,
