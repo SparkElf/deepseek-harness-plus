@@ -784,7 +784,7 @@ async function manifest(argv: readonly string[]): Promise<number> {
     ? readDistributionFacts(directory)
     : { ...readDistributionFacts(directory), runtimeVersion: options.runtime }
   const projection = projectEdition(facts, options.edition)
-  if (options.verify) await assertRedirectsPublished(facts.redirects, options.registry)
+  if (options.verify) await assertRedirectsPublished({ ...facts.redirects, ...projection.omittedPackages }, options.registry)
   if (options.out === undefined) throw new Error('manifest requires --out <directory>')
   if (options.check) {
     const written = join(options.out, 'package.json')

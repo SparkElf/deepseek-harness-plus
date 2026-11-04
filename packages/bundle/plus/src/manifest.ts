@@ -37,6 +37,8 @@ export interface DistributionFacts {
   readonly version: string
   /** Exact runtime the republished builds were cut against. */
   readonly runtimeVersion: string
+  /** Exact spec of the placeholder an omitted capability is substituted with. */
+  readonly omissionSpec: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
@@ -158,6 +160,12 @@ export function readDistributionFacts(directory: string): DistributionFacts {
   const runtime = record(plus.runtime, 'dshPlus.runtime')
   const runtimeVersion = String(runtime.version ?? '')
   if (valid(runtimeVersion) === null) throw new Error('dshPlus.runtime.version must be an exact version, got: ' + runtimeVersion)
+  const omission = record(plus.omission, 'dshPlus.omission')
+  const omissionPackage = String(omission.package ?? '')
+  const omissionVersion = String(omission.version ?? '')
+  if (!omissionPackage.startsWith('@sparkelf/') || valid(omissionVersion) === null) {
+    throw new Error('dshPlus.omission must name an @sparkelf package and an exact version')
+  }
   const compatibility = record(plus.compatibility, 'dshPlus.compatibility')
   const floor = String(compatibility.dsh ?? '')
   if (validRange(floor) === null) throw new Error('dshPlus.compatibility.dsh must be a semver range')
@@ -217,6 +225,7 @@ export function readDistributionFacts(directory: string): DistributionFacts {
     name: String(manifest.name),
     version: String(manifest.version),
     runtimeVersion,
+    omissionSpec: 'npm:' + omissionPackage + '@' + omissionVersion,
     bundles: stringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies,
     allowBuilds,
@@ -267,9 +276,9 @@ export function projectEdition(facts: DistributionFacts, editionId?: string): Pr
   }
   const omittedNames = new Set(edition?.omit ?? [])
   const omitted: Record<string, string> = {}
-  // The placeholder is a plus-family member, so it carries the distribution version, not the
-  // official runtime one: the two version lines move independently.
-  for (const name of omittedNames) omitted[name] = 'npm:@sparkelf/dsh-omitted@' + facts.version
+  // The placeholder is a plus-family member on its own version line, so its release identity is
+  // stated once in `dshPlus.omission` rather than derived from a version that moves elsewhere.
+  for (const name of omittedNames) omitted[name] = facts.omissionSpec
   const dependencies: Record<string, string> = {}
   const packageNames = edition === undefined ? Object.keys(facts.dependencies) : edition.packages
   for (const name of packageNames) {
