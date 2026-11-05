@@ -121,6 +121,23 @@ function promptRequest(content: Parameters<SessionCommandController['prompt']>[0
 }
 
 describe('Session file uploads', () => {
+
+  it('carries declared mentions on the durable source, never into the model content', async () => {
+    // A mention is identity, not prompt text: the composer's roster source declares the picked
+    // member ids, the Host routes on them, and the model still reads the same words the user saw.
+    const { controller, followup } = await uploadHarness()
+    const mentions = [{
+      sourceId: '@sparkelf/dsh-group-chat/member',
+      itemId: 'u-owner',
+      displayName: '张三',
+    }]
+    await controller.prompt({ ...promptRequest([{ type: 'text', text: '@张三 看一下' }]), mentions })
+    expect(followup).toHaveBeenCalledTimes(1)
+    const message = followup.mock.calls[0]?.[0] as UserMessage
+    expect(message.source).toMatchObject({ kind: 'user', mentions })
+    expect(message.content).toEqual([{ type: 'text', text: '@张三 看一下' }])
+  })
+
   it('registers an HTTP route bound to the upload service', async () => {
     const { uploadRoute } = await uploadHarness()
     await expect(uploadRoute(new Request('http://host/upload')))
