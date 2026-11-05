@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
-import { resolveInvocationAnchor } from '../src/standalone-profile.ts'
+import { resolveInvocationAnchor } from '../src/profile.ts'
 
 const roots: string[] = []
 
@@ -54,6 +54,7 @@ describe.skipIf(!existsSync(bin))('symlinked command', () => {
     const output = execFileSync(process.execPath, [link, 'inspect', '--distribution', fileURLToPath(new URL('..', import.meta.url))], {
       encoding: 'utf8',
     })
-    expect(JSON.parse(output).name).toBe('@sparkelf/dsh-plus')
+    const inspected = JSON.parse(output) as { name?: string }
+    expect(inspected.name).toBe('@sparkelf/dsh-plus')
   })
 })

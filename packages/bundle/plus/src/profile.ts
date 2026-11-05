@@ -18,94 +18,8 @@ import { parseDocument } from 'yaml'
 import { projectEdition, readDistributionFacts } from './manifest.ts'
 import { readPatchSet } from './patch-set.ts'
 
-/** Profile name a standalone installation owns when its package declares none. */
-export const STANDALONE_PROFILE = 'plus'
-
-/**
- * Read the profile name the installing package declares.
- *
- * A standalone package describes the profile it materializes, so a reduced variant can
- * own a differently named profile beside the full one instead of overwriting it. The
- * declaration travels with the package because npm resolves the tree long before any
- * command of ours runs, and the distribution cannot name a profile for a package it
- * does not own.
- *
- * @param anchor - path inside the installing package's tree.
- * @param fallback - profile name to use when the declaration is absent.
- * @returns the declared profile name, or the fallback.
- */
-export function resolveStandaloneProfile(anchor: string, fallback: string = STANDALONE_PROFILE): string {
-  return readStandaloneDeclaration(anchor, fallback).profileName
-}
-
-/** What the installing package declares about the deployment it owns. */
-export interface StandaloneDeclaration {
-  /** Profile name the launcher materializes. */
-  readonly profileName: string
-  /**
-   * Capabilities the deployment must not install, as package name to override spec.
-   *
-   * npm substitutes rather than deletes, so each entry names the placeholder the
-   * capability is replaced with. The profile workspace applies these as overrides,
-   * which is where pnpm reads them.
-   */
-  readonly omittedPackages: Readonly<Record<string, string>>
-}
-
-/**
- * Read the deployment facts the installing package declares.
- *
- * A standalone package describes the profile it materializes and the capabilities it
- * omits, so a reduced variant owns a differently named profile and a reduced install
- * without the distribution naming either. The declaration travels with the package
- * because npm resolves the tree long before any command of ours runs.
- *
- * @param anchor - path inside the installing package's tree.
- * @param fallback - profile name to use when the declaration is absent.
- * @returns the declared profile name and omitted capabilities.
- */
-export function readStandaloneDeclaration(
-  anchor: string,
-  fallback: string = STANDALONE_PROFILE,
-): StandaloneDeclaration {
-  // The anchor is the CLI file; walk out to the package that declares the forwarder.
-  let current = resolve(anchor)
-  for (;;) {
-    const manifestPath = join(current, 'package.json')
-    const declared = readStandaloneFacts(manifestPath)
-    if (declared !== undefined) return declared
-    const parent = dirname(current)
-    if (parent === current) return { profileName: fallback, omittedPackages: {} }
-    current = parent
-  }
-}
-
-/** Read one manifest's standalone declaration, or undefined when it carries none. */
-function readStandaloneFacts(manifestPath: string): StandaloneDeclaration | undefined {
-  if (!existsSync(manifestPath)) return undefined
-  let standalone: Record<string, unknown> | undefined
-  try {
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
-    standalone = manifest.dshPlusStandalone as Record<string, unknown> | undefined
-  } catch {
-    // A package whose manifest cannot be read declares nothing; the caller keeps walking
-    // because the declaring package may sit above it.
-    return undefined
-  }
-  const profile = standalone?.profile
-  if (standalone === undefined || typeof profile !== 'string' || profile === '') return undefined
-  const rawOmitted = standalone.omittedPackages
-  const omittedPackages: Record<string, string> = {}
-  if (rawOmitted !== undefined && typeof rawOmitted === 'object' && !Array.isArray(rawOmitted)) {
-    for (const [name, spec] of Object.entries(rawOmitted as Record<string, unknown>)) {
-      if (typeof spec !== 'string' || spec === '') {
-        throw new Error('dshPlusStandalone.omittedPackages.' + name + ' must be a non-empty string')
-      }
-      omittedPackages[name] = spec
-    }
-  }
-  return { profileName: profile, omittedPackages }
-}
+/** Profile name the launcher materializes when no edition is selected. */
+export const DEFAULT_PROFILE = 'plus'
 
 /** Resolved locations for one standalone installation. */
 export interface StandalonePaths {
@@ -601,19 +515,14 @@ function linkBundle(consumerModules: string, name: string, source: string): void
 export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env, editionId?: string): StandalonePaths {
   const home = resolveHome(env)
   const distributionDirectory = resolveDistributionDirectory(anchor)
-  // An edition is a fact of the distribution now, so the profile name and the omission set come
-  // from it. Without one, a legacy forwarder package may still declare them; the distribution's
-  // own default profile is the fallback.
-  let profileName = STANDALONE_PROFILE
+  // The edition is a fact of the distribution: it names the profile and the capabilities the
+  // deployment omits. No edition means the full distribution and its default profile.
+  let profileName = DEFAULT_PROFILE
   let omittedPackages: Readonly<Record<string, string>> = {}
   if (editionId !== undefined) {
     const projection = projectEdition(readDistributionFacts(distributionDirectory), editionId)
     profileName = projection.profileName
     omittedPackages = projection.omittedPackages
-  } else {
-    const declaration = readStandaloneDeclaration(anchor)
-    profileName = declaration.profileName
-    omittedPackages = declaration.omittedPackages
   }
   return {
     home,

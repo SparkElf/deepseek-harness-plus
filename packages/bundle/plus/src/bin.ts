@@ -3,7 +3,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { runApply } from './apply.ts'
-import { runStandaloneCli } from './standalone-cli.ts'
+import { runStandaloneCli } from './cli.ts'
 
 /** This package's own manifest, read beside the built entry. */
 const manifestPath = fileURLToPath(new URL('../package.json', import.meta.url))

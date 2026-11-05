@@ -9,7 +9,7 @@ import {
   detectEnabledCapabilities,
   editCapabilityPatchLayer,
   readCapabilityRecord,
-} from '../src/standalone-capabilities.ts'
+} from '../src/capabilities.ts'
 
 /**
  * The profile loader requires a top-level YAML array in the capability layer, so a

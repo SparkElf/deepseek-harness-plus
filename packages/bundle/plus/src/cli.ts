@@ -35,7 +35,7 @@ import {
   interviewCapabilities,
   readCapabilityRecord,
   type CapabilityAnswers,
-} from './standalone-capabilities.ts'
+} from './capabilities.ts'
 import {
   DEFAULT_PORT,
   STOP_GRACE_MILLISECONDS,
@@ -49,9 +49,9 @@ import {
   waitForAuthenticatedUrl,
   waitForServer,
   writeState,
-} from './standalone-server.ts'
+} from './server.ts'
 import {
-  STANDALONE_PROFILE,
+  DEFAULT_PROFILE,
   applyProfileNpmPatches,
   ensureProfile,
   pnpmAvailable,
@@ -63,7 +63,7 @@ import {
   resolveInvocationAnchor,
   resolvePaths,
   type StandalonePaths,
-} from './standalone-profile.ts'
+} from './profile.ts'
 
 /** Edition the offline build projects when the caller names none. */
 const DEFAULT_EDITION = 'intranet-team'
@@ -266,7 +266,7 @@ async function start(argv: readonly string[]): Promise<number> {
   // consumer makes, and the install it can run is the one command that provides it.
   if (!pnpmAvailable()) {
     const command = pnpmInstallCommand()
-    console.log('pnpm is required to install the ' + STANDALONE_PROFILE + ' profile, and was not found.')
+    console.log('pnpm is required to install the ' + DEFAULT_PROFILE + ' profile, and was not found.')
     console.log('Install it with: ' + command)
     if (!await confirm('Install pnpm now?')) {
       console.log('Install pnpm and run dsh-plus start again.')
@@ -316,7 +316,7 @@ async function start(argv: readonly string[]): Promise<number> {
       : selectCapabilities(options.capabilities)
     : undefined
   if (answers !== undefined) {
-    const ready = await installCapabilityServices(answers, paths.home)
+    const ready = installCapabilityServices(answers, paths.home)
     writeCapabilityPatch(paths.profileDirectory, answers)
     writeCapabilityEnvironment(paths.home, answers)
     console.log('  Enabled: ' + (answers.enabled.length === 0 ? '(none)' : answers.enabled.join(', ')))
