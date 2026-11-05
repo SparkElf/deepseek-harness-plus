@@ -53,7 +53,7 @@ describe('path containment', () => {
     // A global install on Windows separates with a backslash. Reading containment as
     // text against a hardcoded \`/\` reported the distribution as sitting outside its own
     // tree, which is the failure every Windows installation hit.
-    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus-standalone')
+    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus')
     const nested = win32.join(parent, 'node_modules', '@sparkelf', 'dsh-plus')
     expect(isWithin(nested, parent, 'win32')).toBe(true)
     expect(isWithin(parent, parent, 'win32')).toBe(true)
@@ -62,7 +62,7 @@ describe('path containment', () => {
   })
 
   it('rejects a Windows path outside the parent', () => {
-    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus-standalone')
+    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus')
     expect(isWithin(win32.join('D:\\', 'other'), parent, 'win32')).toBe(false)
     // A sibling whose name starts with the parent's is not inside it.
     expect(isWithin(parent + 'x', parent, 'win32')).toBe(false)
