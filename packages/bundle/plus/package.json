@@ -109,7 +109,7 @@
         "@deepseek-ai/dsh-spill": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-workflow": "0.2.2-alpha.2",
         "@sparkelf/dsh-artifact-app": "0.1.0",
-        "@sparkelf/dsh-dataops-managed": "0.3.34",
+        "@sparkelf/dsh-dataops-managed": "0.3.35",
         "@sparkelf/dsh-sql-workbench": "0.6.0",
         "@sparkelf/dsh-query-result-analysis": "0.1.4",
         "@sparkelf/dsh-knowledge-base": "0.1.28",
