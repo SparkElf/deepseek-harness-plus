@@ -227,7 +227,7 @@ async function publishTarball(
  * Publishing a suffixed version puts it under `next`, so every release this
  * repository has made left `latest` where it was. A consumer who follows the
  * README's install line therefore receives whichever version was published before
- * the distribution took its present form: measured on @sparkelf/dsh-plus-standalone,
+ * the distribution took its present form: measured on the distribution's own command,
  * `latest` named 0.1.0-rc.35 while `next` named 0.2.0-rc.7, four days apart.
  *
  * Promotion is deliberately not part of publishing. `npm dist-tag add` is a second

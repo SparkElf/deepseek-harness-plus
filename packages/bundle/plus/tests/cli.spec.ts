@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
@@ -63,13 +65,25 @@ describe.skipIf(!built)('unattended capability selection', () => {
     expect(result.stdout + result.stderr).toContain('unknown capability')
   })
 
-  it('accepts an empty selection, which is how a deployment turns every capability off', () => {
-    // The empty list is a selection, not a missing value: an intranet image states that
-    // it wants none of the optional capabilities rather than answering the interview.
-    const result = runFrom('/', ['start', '--capabilities', '', '--no-open'])
-    // Reaching the install step proves the argument parsed; the run then fails on the
-    // environment rather than on the flag, which is what this asserts.
-    expect(result.stdout + result.stderr).not.toContain('unknown capability')
-    expect(result.stdout + result.stderr).not.toContain('--capabilities requires')
+  it('materializes the intranet-team edition without installing it (--dry-run)', () => {
+    // A deployment states the edition and the image snapshots the files; the dependency
+    // install belongs to the image build, not to this assertion. Writing the profile proves
+    // the edition projected and the flags parsed, and it keeps the test off the network.
+    const home = mkdtempSync(join(tmpdir(), 'dsh-plus-dry-run-'))
+    try {
+      const result = spawnSync(process.execPath, [bin, 'install', '--edition', 'intranet-team', '--dry-run'], {
+        cwd: '/',
+        encoding: 'utf8',
+        timeout: 60_000,
+        env: { ...process.env, DSH_HOME: home },
+      })
+      expect(result.status).toBe(0)
+      const profile = JSON.parse(readFileSync(join(home, 'profiles', 'dataops-web', 'package.json'), 'utf8')) as {
+        dsh: { profile: { bundles: string[] } }
+      }
+      expect(profile.dsh.profile.bundles.length).toBeGreaterThan(20)
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
   })
 })

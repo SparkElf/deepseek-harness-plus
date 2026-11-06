@@ -14,6 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createRequire } from 'node:module'
+import { readPatchSet, type PatchSetEntry } from './patch-set.ts'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { satisfies, valid, validRange } from 'semver'
@@ -223,6 +224,38 @@ function requireSourceBase(root: string, baseRevision: string): string {
   return checkoutRevision
 }
 
+
+/**
+ * Names of distribution dependencies that carry `dshPatch` variants.
+ *
+ * `patchPackageVariants()` resolves these names from the Plus install tree, so they must be
+ * packages this distribution actually depends on. The current manifest declares `dshPlus.patchSet`
+ * instead of a flat list: only entries whose target is an npm package name a `dshPatch` carrier
+ * (`dsh-source` entries name the source packages being patched, which are never Plus dependencies).
+ * An older tarball may still carry the flat `dshPlus.patchPackages` list, which wins when present.
+ *
+ * @param plus - Parsed `dshPlus` block of the distribution manifest.
+ * @returns Patch-carrier package names; empty when the distribution ships only source patches.
+ */
+export function resolvePatchPackageNames(plus: Record<string, unknown>): string[] {
+  const declared = plus.patchPackages
+  if (declared !== undefined) {
+    const names = requireStringArray(declared, 'dshPlus.patchPackages')
+    if (names.length > 0) return names
+  }
+  const patchSet = requireObject(plus.patchSet, 'dshPlus.patchSet')
+  const entries = patchSet.entries
+  if (!Array.isArray(entries)) throw new Error('dshPlus.patchSet.entries must be an array')
+  const names = new Set<string>()
+  for (const [index, value] of entries.entries()) {
+    const entry = requireObject(value, 'dshPlus.patchSet.entries[' + String(index) + ']')
+    const target = requireObject(entry.target, 'dshPlus.patchSet.entries[' + String(index) + '].target')
+    if (target.kind !== 'npm') continue
+    names.add(requireString(target.name, 'dshPlus.patchSet.entries[' + String(index) + '].target.name'))
+  }
+  return [...names].sort()
+}
+
 function patchPackageVariants(distributionDirectory: string, names: readonly string[]): ParsedVariant[] {
   const variants: ParsedVariant[] = []
   for (const name of names) {
@@ -239,6 +272,30 @@ function patchPackageVariants(distributionDirectory: string, names: readonly str
     }
   }
   return variants
+}
+
+/**
+ * Build patch variants from the distribution's `dshPlus.patchSet`.
+ *
+ * The patch files live inside the Plus package (`./patches/*.patch`), so every variant points at
+ * the distribution itself as its patch package: `resolvePatchFile()` then resolves the declared
+ * path inside the tarball, and `materializePatchFiles()` copies it into the profile's stable
+ * patch directory. Unlike the retired `dshPatch` carrier packages, the source packages named in
+ * `target.packages` are never resolved from the Plus tree -- they are the packages being patched.
+ *
+ * @param distribution - Installed Plus distribution package.
+ */
+function patchSetVariants(distribution: InstalledPackage): ParsedVariant[] {
+  const patchSet = readPatchSet(distribution.directory, distribution.manifest)
+  return [...patchSet.entries, ...patchSet.thirdPartyPatches].map((entry: PatchSetEntry): ParsedVariant => ({
+    id: entry.id,
+    dsh: entry.dsh,
+    file: entry.file,
+    patchPackage: distribution,
+    target: entry.target.kind === 'npm'
+      ? { kind: 'npm', name: entry.target.name, range: entry.target.range }
+      : { kind: 'dsh-source', baseRevision: entry.target.baseRevision },
+  }))
 }
 
 // 先验证official source，再物化Plus声明的profile依赖，避免source不匹配时改动用户profile。
@@ -278,7 +335,7 @@ function prepareSelection(
     if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
     allowBuilds[name] = allowed
   }
-  const patchPackageNames = requireStringArray(plus.patchPackages, 'dshPlus.patchPackages')
+  const patchPackageNames = resolvePatchPackageNames(plus)
   const dependencies = requireObject(distributionManifest.dependencies, 'Plus distribution dependencies')
   const dshManifest = readJsonObject(resolve(dshRoot, 'package.json'), 'DSH source manifest')
   const dshVersion = requireVersion(dshManifest.version, 'DSH source version')
@@ -286,8 +343,18 @@ function prepareSelection(
     throw new Error(distributionName + '@' + distributionVersion + ' requires DSH ' + dshRange + ', found ' + dshVersion)
   }
   const checkoutRevision = requireSourceBase(dshRoot, baseRevision)
+  // Legacy tarballs declare `dshPlus.patchPackages` (dshPatch carrier packages); the current
+  // distribution declares `dshPlus.patchSet` with the patch files inside the Plus package.
+  const variants = plus.patchPackages === undefined
+    ? patchSetVariants({
+      name: distributionName,
+      version: distributionVersion,
+      directory: distributionDirectory,
+      manifest: distributionManifest,
+    })
+    : patchPackageVariants(distributionDirectory, patchPackageNames)
   const groups = new Map<string, ParsedVariant[]>()
-  for (const variant of patchPackageVariants(distributionDirectory, patchPackageNames)) {
+  for (const variant of variants) {
     const entries = groups.get(variant.id) ?? []
     entries.push(variant)
     groups.set(variant.id, entries)
@@ -453,6 +520,49 @@ function profilePatchConfiguration(
 }
 
 // 用户显式执行apply后，这里一次性写入profile root依赖与唯一native build许可；冲突直接失败。
+/**
+ * Profile-local pnpm hook that keeps the CDN-only xlsx dependency installable.
+ *
+ * `@deepseek-ai/dsh-client-ui-sidebar-documentpreview` declares `xlsx` as
+ * `https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`. SheetJS stopped publishing to npm
+ * after 0.18.5, so no registry mirror carries 0.20.3, and the build network cannot reach that
+ * CDN (measured 2026-11-06: every request times out). The image vendors the tarball at
+ * /opt/dsh-vendor; this hook rewrites the spec wherever it appears so a cold profile install
+ * never requests the CDN.
+ *
+ * Written into the profile root rather than a template: the Plus bundle has no profile
+ * template directory, the profile manifest and pnpm-workspace.yaml are generated here.
+ */
+const PROFILE_PNPMFILE = `// Generated by @sparkelf/dsh-plus -- do not edit; rewritten on every apply.
+const VENDORED_XLSX = '/opt/dsh-vendor/xlsx-0.20.3.tgz'
+const CDN_XLSX = /^https?:\\/\\/cdn\\.sheetjs\\.com\\//
+const FIELDS = ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']
+
+module.exports = {
+  hooks: {
+    readPackage(pkg) {
+      for (const field of FIELDS) {
+        const deps = pkg && pkg[field]
+        if (deps && typeof deps.xlsx === 'string' && CDN_XLSX.test(deps.xlsx)) {
+          deps.xlsx = 'file:' + VENDORED_XLSX
+        }
+      }
+      return pkg
+    },
+  },
+}
+`
+
+/** Write the profile pnpmfile when its content changed; returns whether it wrote. */
+function writeProfilePnpmfile(profileDirectory: string): boolean {
+  const path = resolve(profileDirectory, '.pnpmfile.cjs')
+  const current = existsSync(path) ? readFileSync(path, 'utf8') : undefined
+  if (current === PROFILE_PNPMFILE) return false
+  writeFileSync(path, PROFILE_PNPMFILE)
+  console.log('profile pnpmfile: xlsx -> /opt/dsh-vendor/xlsx-0.20.3.tgz')
+  return true
+}
+
 function writeProfileRequirements(
   profileDirectory: string,
   dependencySpecs: Readonly<Record<string, string>>,
@@ -522,7 +632,8 @@ function writeProfileRequirements(
     writeFileSync(manifestPath, JSON.stringify(manifest, undefined, 2) + '\n')
   }
   if (workspaceChanged) writeFileSync(workspacePath, String(document))
-  return manifestChanged || workspaceChanged
+  const pnpmfileChanged = writeProfilePnpmfile(profileDirectory)
+  return manifestChanged || workspaceChanged || pnpmfileChanged
 }
 
 function writeProfileComposition(

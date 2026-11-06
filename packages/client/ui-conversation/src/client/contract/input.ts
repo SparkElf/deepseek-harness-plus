@@ -61,7 +61,13 @@ export interface ReferenceInsert {
   readonly source: string
   readonly ref: string
   readonly label: string
-  readonly appearance?: 'session' | 'file' | 'folder'
+  /**
+   * Row glyph, and the submit-time declaration hook: `'mention'` marks a
+   * reference that a host plugin must receive as structured identity
+   * ({@link Occurrence.source}/{@link Occurrence.ref}) rather than re-parse out
+   * of the prompt text. Every other value is display-only.
+   */
+  readonly appearance?: 'session' | 'file' | 'folder' | 'mention'
   readonly clipboardText: string
 }
 

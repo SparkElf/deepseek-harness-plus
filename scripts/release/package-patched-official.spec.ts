@@ -86,10 +86,18 @@ describe('PATCHED_WORKSPACES', () => {
     // checkout and never reached a registry installation.
     const distribution = JSON.parse(
       readFileSync(join(root, 'packages/bundle/plus/package.json'), 'utf8'),
-    ) as { dshPlus: { profile: { overrides: Record<string, string> } } }
-    // A key is the official package name the consumer imports; the value is the npm
-    // substitution that replaces it. The workspace's own name is the key.
-    const overridden = new Set(Object.keys(distribution.dshPlus.profile.overrides))
+    ) as {
+      dshPlus: {
+        patchSet: { entries: Array<{ target: { kind: string; packages?: string[]; republish?: boolean } }> }
+      }
+    }
+    // The redirect is derived from the patch set, so the republished workspace has to appear
+    // among the packages a source patch names. The workspace's own name is the key.
+    const overridden = new Set(
+      distribution.dshPlus.patchSet.entries
+        .filter(entry => entry.target.kind === 'dsh-source' && entry.target.republish !== false)
+        .flatMap(entry => entry.target.packages ?? []),
+    )
     // The packaged name is the workspace's own manifest name, not a path join: apps/web
     // publishes as @deepseek-ai/dsh-web-frontend and packages/bundle/web-app as
     // @deepseek-ai/dsh-web-app. Reading the manifest is what keeps this check honest.

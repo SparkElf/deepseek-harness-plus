@@ -306,6 +306,24 @@ export interface SessionForkValue {
   readonly sessionId: SessionId
 }
 
+/**
+ * One structured mention a client declared when composing a prompt.
+ *
+ * The composer's `@` menu renders a chip per source, and a source opts in by
+ * inserting with `appearance: 'mention'`; the reference is carried here as
+ * identity (`sourceId`/`itemId`) plus the label the user saw, so a host plugin
+ * can route it without parsing the prompt text. Never part of the model input:
+ * the text already names the item.
+ */
+export interface SessionMentionRef {
+  /** Trigger source that produced the chip (e.g. a roster source). */
+  readonly sourceId: string
+  /** Source-scoped identity of the picked item. */
+  readonly itemId: string
+  /** Display label the user picked, for diagnostics and dedupe. */
+  readonly displayName: string
+}
+
 /** Session prompt request. */
 export interface SessionPromptRequest {
   /** Client-minted identity persisted on the exact accepted user message. */
@@ -314,6 +332,12 @@ export interface SessionPromptRequest {
   readonly mode: 'queue' | 'steer'
   /** At least one non-whitespace text part or attachment. */
   readonly content: readonly PromptContentPart[]
+  /**
+   * Structured mentions the composer declared, in document order. Absent when
+   * the draft carried none, which is every draft composed before a mention
+   * source existed.
+   */
+  readonly mentions?: readonly SessionMentionRef[]
   readonly clientTimeZone?: string
 }
 
@@ -374,8 +398,13 @@ export type SessionRequestId = Branded<'session-request-id'>
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
-    /** Browser prompt correlation and optional Host-validated time zone. */
-    'user-rpc': { kind: 'user'; rpcId: SessionRequestId; clientTimeZone?: string }
+    /** Browser prompt correlation, optional Host-validated time zone, and declared mentions. */
+    'user-rpc': {
+      kind: 'user'
+      rpcId: SessionRequestId
+      clientTimeZone?: string
+      mentions?: readonly SessionMentionRef[]
+    }
   }
 }
 

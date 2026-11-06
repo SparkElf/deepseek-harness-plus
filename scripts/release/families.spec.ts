@@ -335,11 +335,10 @@ describe('release families', () => {
   })
 
   it('drives every installer a family publishes, not only the first', () => {
-    // Plus ships two installers over different dependency closures; probing one left the other's
-    // ranges unverified, so a range the registry cannot resolve could reach a consumer.
+    // The distribution is the family's only executable now: the standalone forwarding packages
+    // that used to carry the command are gone, so the probe runs against @sparkelf/dsh-plus.
     expect(releaseFamily('plus').installedEntries.map(entry => entry.packageName)).toEqual([
-      '@sparkelf/dsh-plus-standalone',
-      '@sparkelf/dsh-dataops-standalone',
+      '@sparkelf/dsh-plus',
     ])
     // A family with a single entry derives its list, and one with none stays empty.
     expect(releaseFamily('dsh').installedEntries).toEqual([{ packageName: '@deepseek-ai/dsh', binPath: 'lib/bin.js' }])

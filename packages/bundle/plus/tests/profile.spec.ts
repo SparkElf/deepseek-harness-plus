@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:f
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { alignReplacedPackageNames, isWithin, pnpmAvailable, pnpmInstallCommand, pnpmInstallCommands, registryOrder, resolveDistributionDirectory } from '../src/standalone-profile.ts'
+import { alignReplacedPackageNames, isWithin, pnpmAvailable, pnpmInstallCommand, pnpmInstallCommands, registryOrder, resolveDistributionDirectory } from '../src/profile.ts'
 
 const roots: string[] = []
 
@@ -53,7 +53,7 @@ describe('path containment', () => {
     // A global install on Windows separates with a backslash. Reading containment as
     // text against a hardcoded \`/\` reported the distribution as sitting outside its own
     // tree, which is the failure every Windows installation hit.
-    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus-standalone')
+    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus')
     const nested = win32.join(parent, 'node_modules', '@sparkelf', 'dsh-plus')
     expect(isWithin(nested, parent, 'win32')).toBe(true)
     expect(isWithin(parent, parent, 'win32')).toBe(true)
@@ -62,7 +62,7 @@ describe('path containment', () => {
   })
 
   it('rejects a Windows path outside the parent', () => {
-    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus-standalone')
+    const parent = win32.join('D:\\', 'software', 'node_modules', '@sparkelf', 'dsh-plus')
     expect(isWithin(win32.join('D:\\', 'other'), parent, 'win32')).toBe(false)
     // A sibling whose name starts with the parent's is not inside it.
     expect(isWithin(parent + 'x', parent, 'win32')).toBe(false)
@@ -132,7 +132,7 @@ describe('Windows pnpm invocation', () => {
     // through its shell. The profile install passed 'pnpm.cmd' as the executable and
     // stopped every Windows installation at 'spawnSync pnpm.cmd EINVAL'. The source is
     // read rather than executed because the failure needs Windows to reproduce.
-    const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
+    const source = readFileSync(new URL('../src/profile.ts', import.meta.url), 'utf8')
     const runner = source.slice(source.indexOf('function installWithRegistryFallback'))
     expect(runner.slice(0, runner.indexOf('\n}'))).toContain('shell: process.platform === \'win32\'')
   })
@@ -215,7 +215,7 @@ describe('registry order', () => {
     // A Windows console sets neither LANG nor LC_ALL, so a check that read only those
     // classified every Windows installation as non-mainland and reached the origin
     // first — a consumer's log showed npmjs failing before the mirror answered.
-    const source = readFileSync(new URL('../src/standalone-profile.ts', import.meta.url), 'utf8')
+    const source = readFileSync(new URL('../src/profile.ts', import.meta.url), 'utf8')
     const order = source.slice(source.indexOf('export function registryOrder'))
     expect(order.slice(0, order.indexOf('\n}'))).toContain('Intl.DateTimeFormat')
   })

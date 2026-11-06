@@ -637,10 +637,10 @@ function insertCapabilityRows(
  * @param home - the deployment home, where generated service units are recorded.
  * @returns the ids whose service is ready.
  */
-export async function installCapabilityServices(
+export function installCapabilityServices(
   answers: CapabilityAnswers,
   home: string,
-): Promise<readonly string[]> {
+): readonly string[] {
   const enabled = new Set(answers.enabled)
   const ready: string[] = []
   // The record lets a later run name the capabilities this deployment enabled

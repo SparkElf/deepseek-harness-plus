@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   materializeOfficialPackageScope,
   parseOfficialWorkspacePackages,
+  resolvePatchPackageNames,
 } from '../src/apply.ts'
 
 const fixtures: string[] = []
@@ -93,5 +94,45 @@ describe('Plus official package scope', () => {
     expect(lstatSync(scope).isDirectory()).toBe(true)
     expect(realpathSync(join(scope, 'dsh-tools'))).toBe(realpathSync(workspaceTools))
     expect(realpathSync(join(scope, 'dsh-attachment'))).toBe(realpathSync(workspaceAttachment))
+  })
+})
+
+describe('patch package names', () => {
+  it('returns no patch carriers when every patch targets the DSH source', () => {
+    const names = resolvePatchPackageNames({
+      patchSet: {
+        formatVersion: 1,
+        entries: [
+          { id: 'a', target: { kind: 'dsh-source', packages: ['@deepseek-ai/dsh-base'] } },
+          { id: 'b', target: { kind: 'dsh-source', packages: ['@sparkelf/x'] } },
+        ],
+      },
+    } as never)
+    expect(names).toEqual([])
+  })
+
+  it('collects the npm targets that carry dshPatch variants', () => {
+    const names = resolvePatchPackageNames({
+      patchSet: {
+        entries: [
+          { id: 'a', target: { kind: 'dsh-source', packages: ['@deepseek-ai/dsh-base'] } },
+          { id: 'b', target: { kind: 'npm', name: '@sparkelf/dsh-patch-better-locale-peer-range' } },
+          { id: 'c', target: { kind: 'npm', name: '@sparkelf/dsh-patch-better-locale-peer-range' } },
+        ],
+      },
+    } as never)
+    expect(names).toEqual(['@sparkelf/dsh-patch-better-locale-peer-range'])
+  })
+
+  it('prefers the flat list when an older tarball still carries it', () => {
+    const names = resolvePatchPackageNames({
+      patchPackages: ['@sparkelf/legacy'],
+      patchSet: { entries: [{ id: 'a', target: { kind: 'npm', name: '@sparkelf/new' } }] },
+    } as never)
+    expect(names).toEqual(['@sparkelf/legacy'])
+  })
+
+  it('returns an empty list when the patch set declares no entries', () => {
+    expect(resolvePatchPackageNames({ patchSet: { entries: [] } } as never)).toEqual([])
   })
 })

@@ -1,5 +1,5 @@
 /**
- * Check that a built profile declares the bundles the standalone manifest names.
+ * Check that a built profile declares the bundles the distribution names.
  *
  * The profile is created by `plugin add`, which first writes a skeleton manifest from the launcher
  * defaults — a single bundle, `@deepseek-ai/dsh-base` — and then overwrites it with the manifest the
@@ -42,9 +42,19 @@ for (const path of [profilePath, manifestPath]) {
 
 const profile = JSON.parse(readFileSync(profilePath, "utf8"))
 const manifest = JSON.parse(readFileSync(manifestPath, "utf8"))
-const declared = manifest.dshPlusStandalone?.bundles
+const variantId = option(args, "--variant")
+const profileFacts = manifest.dshPlus?.profile
+let declared = profileFacts?.bundles
+if (variantId !== undefined) {
+  const variant = profileFacts?.variants?.[variantId]
+  if (variant === undefined) {
+    throw new Error("verify-profile-bundles: " + manifestPath + " declares no variant " + variantId)
+  }
+  const excluded = new Set([...(variant.excludeBundles ?? []), ...(variant.excludePackages ?? [])])
+  declared = (declared ?? []).filter(name => !excluded.has(name)).concat(variant.includeBundles ?? [])
+}
 if (!Array.isArray(declared)) {
-  throw new Error("verify-profile-bundles: " + manifestPath + " declares no dshPlusStandalone.bundles")
+  throw new Error("verify-profile-bundles: " + manifestPath + " declares no dshPlus.profile.bundles")
 }
 const actual = profile.dsh?.profile?.bundles
 if (!Array.isArray(actual)) {

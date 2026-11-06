@@ -1,0 +1,13 @@
+{
+  "id": "resource-ref-chip-mentions",
+  "file": "resource-ref-chip-mentions.patch",
+  "md5": "786a1ca1286684b0a674c0311a2c9d2d",
+  "bytes": 20004,
+  "sourceBase": "f3803c96974ad4a94195fb97e5c637e9c2a3afe3",
+  "appliesOn": "pristine official base f3803c96 (standalone) and after the other 26 patches (sequential)",
+  "mergedFrom": [
+    "dsh-resource-ref-chip",
+    "structured-mentions"
+  ],
+  "note": "合并原因：dsh-plus 的 sourcePatchState 要求每条 patch 能单独 apply 到 pristine base；依赖型 patch 必须合并成一条。"
+}

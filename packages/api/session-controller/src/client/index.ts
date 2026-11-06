@@ -49,6 +49,8 @@ export type {
   SubmissionHandle,
 } from './contract/session.ts'
 export type { ISessions } from './contract/sessions.ts'
+// The composer declares structured mentions on a prompt; the type lives with the request it rides.
+export type { SessionMentionRef } from '../types.ts'
 export { MutableSessionEventSource } from './contract/events.ts'
 export type {
   AssistantLiveChunkEvent,

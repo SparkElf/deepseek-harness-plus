@@ -95,6 +95,15 @@ const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
   // `repository` field: the package lived at packages/plus/diagram-viewer before it moved
   // to a release of its own.
   '@sparkelf/dsh-client-ui-diagram-viewer': { repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  // Published by this repository's plus release; the packed manifests carry no repository field.
+  '@sparkelf/dsh-query-result-analysis': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-knowledge-base': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-credential-manager': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-group-chat': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-kb-citation': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-dataops-account': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-ocr': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
+  '@sparkelf/dsh-client-ui-skill-center': { license: 'MIT', repo: 'https://github.com/SparkElf/deepseek-harness-plus' },
   // No `license` field in the published manifest; the tarball's LICENSE.txt is the MIT text.
 }
 

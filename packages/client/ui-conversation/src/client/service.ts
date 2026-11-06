@@ -9,6 +9,7 @@
  */
 import { Service } from '@deepseek-ai/cordis'
 import type { Context } from '@deepseek-ai/cordis'
+import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 // Type-only imports: a plugin-to-plugin value import is a bundle purity
 // error, so scope resolution goes through the sessions service (scopeOf
@@ -231,6 +232,7 @@ export class ConversationController extends Service implements IConversation {
     attachmentIds: readonly DraftAttachmentId[],
     mode: InputSubmitMode,
     signal?: AbortSignal,
+    mentions?: readonly SessionMentionRef[],
   ): Promise<SubmitOutcome> {
     const attachments = this.resolveDraftAttachments(attachmentIds)
     if (attachments.length !== attachmentIds.length) {
@@ -289,7 +291,11 @@ export class ConversationController extends Service implements IConversation {
       submission.abandon()
       throw error
     }
-    const result = await session.prompt(content, mode, signal, submission.requestId)
+    // Only a draft that declared mentions takes the extra argument, so the ordinary send keeps the
+    // four-argument call every caller (and every test double) already knows.
+    const result = mentions === undefined || mentions.length === 0
+      ? await session.prompt(content, mode, signal, submission.requestId)
+      : await session.prompt(content, mode, signal, submission.requestId, mentions)
     if (!result.ok) return { kind: 'error' }
     if (retirement !== undefined && (await retirement).reason !== 'observed') return { kind: 'error' }
     return { kind: 'success' }

@@ -331,6 +331,9 @@ export class SessionCommandController {
       kind: 'user',
       rpcId: request.requestId,
       ...(clientTimeZone === undefined ? {} : { clientTimeZone }),
+      // Structured mentions ride the durable source, not the model content: a host plugin that
+      // routes on identity (a room roster) reads them here, and the model only sees the text.
+      ...(request.mentions === undefined || request.mentions.length === 0 ? {} : { mentions: request.mentions }),
     }
     const hasImage = request.content.some(part => part.type === 'image')
     const admit = async (): Promise<SessionPromptValue> => {

@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { applyProfileNpmPatches } from '../src/standalone-profile.ts'
+import { applyProfileNpmPatches } from '../src/profile.ts'
 
 const roots: string[] = []
 
@@ -28,33 +28,33 @@ function installation(): { distribution: string; profile: string; patched: strin
   const root = scratch()
   const distribution = join(root, 'distribution')
   const profile = join(root, 'profile')
-  const patchPackage = join(distribution, 'node_modules', '@sparkelf', 'dsh-patch-demo')
   const target = join(profile, 'node_modules', 'demo-target')
 
-  mkdirSync(join(patchPackage, 'patches'), { recursive: true })
+  mkdirSync(join(distribution, 'patches'), { recursive: true })
   mkdirSync(target, { recursive: true })
+  // The patch set is embedded in the distribution: an npm patch is an entry whose target names
+  // the installed package and whose payload lives beside the manifest.
   writeFileSync(join(distribution, 'package.json'), JSON.stringify({
     name: '@sparkelf/dsh-plus',
     version: '1.0.0',
-    dshPlus: { patchPackages: ['@sparkelf/dsh-patch-demo'] },
-  }))
-  writeFileSync(join(patchPackage, 'package.json'), JSON.stringify({
-    name: '@sparkelf/dsh-patch-demo',
-    version: '1.0.0',
-    dshPatch: {
-      formatVersion: 1,
-      variants: [{
-        id: 'demo',
-        dsh: '>=0.1.0',
-        target: { kind: 'npm', name: 'demo-target', range: '1.0.0' },
-        file: './patches/demo.patch',
-      }],
+    dshPlus: {
+      sourceBase: { revision: 'a'.repeat(40) },
+      patchSet: {
+        formatVersion: 1,
+        entries: [{
+          id: 'demo',
+          dsh: '>=0.1.0',
+          file: './patches/demo.patch',
+          retireWhen: 'the demo target ships this behavior',
+          target: { kind: 'npm', name: 'demo-target', range: '1.0.0' },
+        }],
+      },
     },
   }))
   const file = join(target, 'index.js')
   writeFileSync(join(target, 'package.json'), JSON.stringify({ name: 'demo-target', version: '1.0.0' }))
   writeFileSync(file, 'const value = "original"\n')
-  writeFileSync(join(patchPackage, 'patches', 'demo.patch'), [
+  writeFileSync(join(distribution, 'patches', 'demo.patch'), [
     'diff --git a/index.js b/index.js',
     '--- a/index.js',
     '+++ b/index.js',
@@ -102,9 +102,15 @@ describe('applyProfileNpmPatches', () => {
     // The standalone installation has no DSH source tree, so a source variant is not
     // this function's work; treating it as npm work would fail every start.
     const { distribution, profile, patched } = installation()
-    const manifestPath = join(distribution, 'node_modules', '@sparkelf', 'dsh-patch-demo', 'package.json')
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dshPatch: { variants: { target: { kind: string } }[] } }
-    manifest.dshPatch.variants[0]!.target.kind = 'dsh-source'
+    const manifestPath = join(distribution, 'package.json')
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+      dshPlus: { patchSet: { entries: { target: { kind: string } }[] } }
+    }
+    Object.assign(manifest.dshPlus.patchSet.entries[0]!.target, {
+      kind: 'dsh-source',
+      packages: ['@deepseek-ai/dsh-demo'],
+      paths: ['packages/demo/'],
+    })
     writeFileSync(manifestPath, JSON.stringify(manifest))
     expect(applyProfileNpmPatches(distribution, profile)).toHaveLength(0)
     expect(readFileSync(patched, 'utf8')).toContain('original')

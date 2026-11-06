@@ -11,12 +11,11 @@
  *
  *   Plugin @sparkelf/dsh-plugin-backup@0.2.0-rc.36 is incompatible with dsh 0.2.0-rc.1
  *
- * The distribution's peer-override generator covers the standalone manifest, not the
- * profile, and it deliberately skips @sparkelf names. This derives the profile list the
- * same way the gate evaluates it: read every candidate plugin's published
- * peerDependencies and keep the ones the runtime does not satisfy.
+ * The distribution's own manifest names the plugins a profile installs; this derives the
+ * profile's exemption list the same way the gate evaluates it: read every candidate
+ * plugin's published peerDependencies and keep the ones the runtime does not satisfy.
  *
- * Usage: dsh-plus-exemptions --runtime <version> [--manifest <standalone package.json>]
+ * Usage: dsh-plus-exemptions --runtime <version> [--manifest <distribution package.json>]
  *                            [--out <compatibility.json>] [--check]
  */
 import { execFileSync } from 'node:child_process'
@@ -26,7 +25,7 @@ import semver from '/root/projects/deepseek-harness-plus/node_modules/semver/ind
 
 const argv = process.argv.slice(2)
 let runtime
-let manifestPath = '/root/projects/deepseek-harness-plus/packages/standalone/plus-standalone/package.json'
+let manifestPath = '/root/projects/deepseek-harness-plus/packages/bundle/plus/package.json'
 let out
 let checkOnly = false
 for (let i = 0; i < argv.length; i += 1) {

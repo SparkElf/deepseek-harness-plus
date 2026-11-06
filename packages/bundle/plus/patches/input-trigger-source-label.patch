@@ -1,0 +1,63 @@
+diff --git a/packages/client/ui-input-trigger/src/client/MenuView.tsx b/packages/client/ui-input-trigger/src/client/MenuView.tsx
+index da6dccdbad..42a7726014 100644
+--- a/packages/client/ui-input-trigger/src/client/MenuView.tsx
++++ b/packages/client/ui-input-trigger/src/client/MenuView.tsx
+@@ -143,7 +143,7 @@ export function MenuView({ menu, headers, onPick, onCrumb, onHover, onDismiss, t
+                   shows its raw name — hence the cast past the typed key union. */}
+               {group.showGroupTitle === false || group.items.some(item => item.section !== undefined)
+                 ? null
+-                : <div className={css.groupTitle} role="presentation" data-source={group.source}>{t(group.source as MenuKey)}</div>}
++                : <div className={css.groupTitle} role="presentation" data-source={group.source}>{group.label ?? t(group.source as MenuKey)}</div>}
+               {group.status === 'pending' && group.items.length === 0
+                 ? (
+                   <div role="status" aria-label={t('loading')} data-source={group.source}>
+diff --git a/packages/client/ui-input-trigger/src/core/contract.ts b/packages/client/ui-input-trigger/src/core/contract.ts
+index eab79f1066..856555ca0d 100644
+--- a/packages/client/ui-input-trigger/src/core/contract.ts
++++ b/packages/client/ui-input-trigger/src/core/contract.ts
+@@ -37,6 +37,8 @@ export interface MenuState {
+   readonly generation: number
+   readonly groups: readonly {
+     readonly source: string
++    /** Display title for the group row; absent renders the source id, as it always has. */
++    readonly label?: string
+     /** False when candidate section rows own all visible group labeling. */
+     readonly showGroupTitle?: boolean
+     readonly status: 'pending' | 'ready'
+diff --git a/packages/client/ui-input-trigger/src/core/menu.ts b/packages/client/ui-input-trigger/src/core/menu.ts
+index 85787266a5..b3e8476132 100644
+--- a/packages/client/ui-input-trigger/src/core/menu.ts
++++ b/packages/client/ui-input-trigger/src/core/menu.ts
+@@ -29,12 +29,13 @@ export const MENU_CLOSED: MenuState = { open: false, hit: null, generation: 0, g
+  */
+ export function seedGroups(
+   state: MenuState,
+-  sources: readonly Pick<InputTriggerSource, 'name' | 'showGroupTitle'>[],
++  sources: readonly Pick<InputTriggerSource, 'name' | 'label' | 'showGroupTitle'>[],
+ ): MenuState {
+   return {
+     ...state,
+     groups: sources.map(source => ({
+       source: source.name,
++      ...(source.label === undefined ? {} : { label: source.label }),
+       ...(source.showGroupTitle === false ? { showGroupTitle: false } : {}),
+       status: 'pending',
+       items: [],
+diff --git a/packages/client/ui-input-trigger/src/types.ts b/packages/client/ui-input-trigger/src/types.ts
+index cd3f6bc54c..4b370b5127 100644
+--- a/packages/client/ui-input-trigger/src/types.ts
++++ b/packages/client/ui-input-trigger/src/types.ts
+@@ -161,6 +161,13 @@ export interface InputTriggerSource {
+   readonly trigger: TriggerChar
+   /** Menu group label; unique per trigger — duplicate registration throws. */
+   readonly name: string
++  /**
++   * Menu group display title. The raw `name` is shown when absent, which is why an unregistered
++   * source renders its own id; a plugin whose name is a package path sets this to the words a
++   * reader expects. It never appears in a pick, a reference, or a stored mention -- identity stays
++   * `name`.
++   */
++  readonly label?: string
+   /** Menu group display order (lower = higher in the list; default 0). */
+   readonly order?: number
+   /** Whether the menu renders the source-title row; defaults to true. */

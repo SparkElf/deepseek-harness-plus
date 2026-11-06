@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import {
-  IconBrowseOutline16, IconFolderClose16,
+  IconBrowseOutline16, IconFolderClose16, IconUserOutline16,
 } from './icons/index.tsx'
 
 /** Reference domains with distinct composer and transcript glyphs. */
-export type ReferenceIconKind = 'session' | 'file' | 'folder'
+export type ReferenceIconKind = 'session' | 'file' | 'folder' | 'mention'
 
 /** Props shared by inline reference glyphs. */
 export interface ReferenceIconProps {
@@ -31,5 +31,6 @@ export function ReferenceIcon({ kind, size = 16, className }: ReferenceIconProps
       )
     case 'file': return <IconBrowseOutline16 size={size} className={className} />
     case 'folder': return <IconFolderClose16 size={size} className={className} />
+    case 'mention': return <IconUserOutline16 size={size} className={className} />
   }
 }

@@ -10,101 +10,16 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
 import { parseDocument } from 'yaml'
+import { projectEdition, readDistributionFacts } from './manifest.ts'
 import { readPatchSet } from './patch-set.ts'
 
-/** Profile name a standalone installation owns when its package declares none. */
-export const STANDALONE_PROFILE = 'plus'
-
-/**
- * Read the profile name the installing package declares.
- *
- * A standalone package describes the profile it materializes, so a reduced variant can
- * own a differently named profile beside the full one instead of overwriting it. The
- * declaration travels with the package because npm resolves the tree long before any
- * command of ours runs, and the distribution cannot name a profile for a package it
- * does not own.
- *
- * @param anchor - path inside the installing package's tree.
- * @param fallback - profile name to use when the declaration is absent.
- * @returns the declared profile name, or the fallback.
- */
-export function resolveStandaloneProfile(anchor: string, fallback: string = STANDALONE_PROFILE): string {
-  return readStandaloneDeclaration(anchor, fallback).profileName
-}
-
-/** What the installing package declares about the deployment it owns. */
-export interface StandaloneDeclaration {
-  /** Profile name the launcher materializes. */
-  readonly profileName: string
-  /**
-   * Capabilities the deployment must not install, as package name to override spec.
-   *
-   * npm substitutes rather than deletes, so each entry names the placeholder the
-   * capability is replaced with. The profile workspace applies these as overrides,
-   * which is where pnpm reads them.
-   */
-  readonly omittedPackages: Readonly<Record<string, string>>
-}
-
-/**
- * Read the deployment facts the installing package declares.
- *
- * A standalone package describes the profile it materializes and the capabilities it
- * omits, so a reduced variant owns a differently named profile and a reduced install
- * without the distribution naming either. The declaration travels with the package
- * because npm resolves the tree long before any command of ours runs.
- *
- * @param anchor - path inside the installing package's tree.
- * @param fallback - profile name to use when the declaration is absent.
- * @returns the declared profile name and omitted capabilities.
- */
-export function readStandaloneDeclaration(
-  anchor: string,
-  fallback: string = STANDALONE_PROFILE,
-): StandaloneDeclaration {
-  // The anchor is the CLI file; walk out to the package that declares the forwarder.
-  let current = resolve(anchor)
-  for (;;) {
-    const manifestPath = join(current, 'package.json')
-    const declared = readStandaloneFacts(manifestPath)
-    if (declared !== undefined) return declared
-    const parent = dirname(current)
-    if (parent === current) return { profileName: fallback, omittedPackages: {} }
-    current = parent
-  }
-}
-
-/** Read one manifest's standalone declaration, or undefined when it carries none. */
-function readStandaloneFacts(manifestPath: string): StandaloneDeclaration | undefined {
-  if (!existsSync(manifestPath)) return undefined
-  let standalone: Record<string, unknown> | undefined
-  try {
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
-    standalone = manifest.dshPlusStandalone as Record<string, unknown> | undefined
-  } catch {
-    // A package whose manifest cannot be read declares nothing; the caller keeps walking
-    // because the declaring package may sit above it.
-    return undefined
-  }
-  const profile = standalone?.profile
-  if (standalone === undefined || typeof profile !== 'string' || profile === '') return undefined
-  const rawOmitted = standalone.omittedPackages
-  const omittedPackages: Record<string, string> = {}
-  if (rawOmitted !== undefined && typeof rawOmitted === 'object' && !Array.isArray(rawOmitted)) {
-    for (const [name, spec] of Object.entries(rawOmitted as Record<string, unknown>)) {
-      if (typeof spec !== 'string' || spec === '') {
-        throw new Error('dshPlusStandalone.omittedPackages.' + name + ' must be a non-empty string')
-      }
-      omittedPackages[name] = spec
-    }
-  }
-  return { profileName: profile, omittedPackages }
-}
+/** Profile name the launcher materializes when no edition is selected. */
+export const DEFAULT_PROFILE = 'plus'
 
 /** Resolved locations for one standalone installation. */
 export interface StandalonePaths {
@@ -125,9 +40,27 @@ function requireRecord(value: unknown, label: string): Record<string, unknown> {
   return value as Record<string, unknown>
 }
 
-function requireStringArray(value: unknown, label: string): string[] {
-  if (!Array.isArray(value) || value.some(entry => typeof entry !== 'string')) throw new Error(label + ' must be a string array')
-  return value as string[]
+/**
+ * Resolve the file that was actually invoked from the path the shell was handed.
+ *
+ * A global npm install links `<prefix>/bin/dsh-plus` to the package entry. Resolving
+ * `@sparkelf/dsh-plus` from that link starts at the bin directory, which has no
+ * `node_modules`, so every globally installed command reported the distribution as
+ * missing. The real path is the package file, and the package resolves its own name.
+ *
+ * @param invoked - `process.argv[1]`, or undefined when node ran without a script.
+ * @param fallback - this module's own file, used when there is no script path.
+ * @returns an absolute path that exists, or the input when it cannot be resolved.
+ */
+export function resolveInvocationAnchor(invoked: string | undefined, fallback: string): string {
+  if (invoked === undefined || invoked === '') return realpathSync(fallback)
+  try {
+    return realpathSync(invoked)
+  } catch {
+    // A path the filesystem no longer knows cannot be resolved; the caller's error message is
+    // more useful with what it was given than with a second failure here.
+    return resolve(invoked)
+  }
 }
 
 /** Resolve the DSH home, honouring the environment override the launcher itself reads. */
@@ -190,54 +123,32 @@ export function resolveDistributionDirectory(anchor: string): string {
   throw new Error('@sparkelf/dsh-plus resolved outside ' + resolve(dirname(anchor)) + ' (found ' + resolved + '); run this command from the directory that installed it')
 }
 
-/** The reviewed bundle order and pins the installed distribution declares. */
-export function readDistributionProfile(distributionDirectory: string): {
+/** The reviewed bundle order and pins the installed distribution declares, for one variant. */
+export function readDistributionProfile(distributionDirectory: string, editionId?: string, extraExcludes: readonly string[] = []): {
   readonly name: string
+  readonly version: string
+  readonly dshRange: string
+  readonly runtimeVersion: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
-  readonly dshRange: string
-  readonly version: string
+  readonly omittedPackages: Readonly<Record<string, string>>
+  readonly editions: ReturnType<typeof readDistributionFacts>['editions']
 } {
-  const manifest = requireRecord(
-    JSON.parse(readFileSync(join(distributionDirectory, 'package.json'), 'utf8')) as unknown,
-    'Plus distribution manifest',
-  )
-  const plus = requireRecord(manifest.dshPlus, 'dshPlus')
-  const profile = requireRecord(plus.profile, 'dshPlus.profile')
-  const rawDependencies = requireRecord(profile.dependencies, 'dshPlus.profile.dependencies')
-  const rawAllowBuilds = requireRecord(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
-  const dependencies: Record<string, string> = {}
-  for (const [name, spec] of Object.entries(rawDependencies)) {
-    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.dependencies.' + name + ' must be a non-empty string')
-    dependencies[name] = spec
-  }
-  const allowBuilds: Record<string, boolean> = {}
-  for (const [name, allowed] of Object.entries(rawAllowBuilds)) {
-    if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
-    allowBuilds[name] = allowed
-  }
-  // An override substitutes our republished build for an official package by name: the
-  // built code imports the official specifier, so the installed location has to keep
-  // that name while its contents come from ours.
-  const overrides: Record<string, string> = {}
-  const rawOverrides = profile.overrides === undefined
-    ? {}
-    : requireRecord(profile.overrides, 'dshPlus.profile.overrides')
-  for (const [name, spec] of Object.entries(rawOverrides)) {
-    if (typeof spec !== 'string' || spec === '') throw new Error('dshPlus.profile.overrides.' + name + ' must be a non-empty string')
-    overrides[name] = spec
-  }
-  const compatibility = requireRecord(plus.compatibility, 'dshPlus.compatibility')
+  const facts = readDistributionFacts(distributionDirectory)
+  const projection = projectEdition(facts, editionId, extraExcludes)
   return {
-    name: String(manifest.name),
-    bundles: requireStringArray(profile.bundles, 'dshPlus.profile.bundles'),
-    dependencies,
-    allowBuilds,
-    overrides,
-    dshRange: String(compatibility.dsh),
-    version: String(manifest.version),
+    name: facts.name,
+    version: facts.version,
+    dshRange: '>=' + facts.runtimeVersion,
+    runtimeVersion: facts.runtimeVersion,
+    bundles: projection.bundles,
+    dependencies: projection.dependencies,
+    allowBuilds: projection.allowBuilds,
+    overrides: projection.overrides,
+    omittedPackages: projection.omittedPackages,
+    editions: facts.editions,
   }
 }
 
@@ -257,13 +168,16 @@ export function readDistributionProfile(distributionDirectory: string): {
  * twice; `dsh-plus apply` remains the command that reinstalls after a change.
  *
  * @param paths - resolved standalone paths.
- * @param consumerDirectory - directory whose `node_modules` holds the installation.
  */
-export function installProfilePackages(paths: StandalonePaths, consumerDirectory: string): void {
-  const consumerModules = join(consumerDirectory, 'node_modules')
-  if (!existsSync(consumerModules)) {
-    throw new Error('no node_modules in ' + consumerDirectory + '; run npm install there first')
-  }
+export function installProfilePackages(
+  paths: StandalonePaths,
+  omitted: ReadonlySet<string> = new Set(),
+  runtimeVersion?: string,
+  registry?: string,
+): void {
+  // The profile owns its dependency tree: it declares the launcher and every plugin, so it can
+  // install without a consumer tree beside it. A globally installed distribution has none --
+  // its only node_modules is the one npm laid out around the command itself.
   const profileModules = join(paths.profileDirectory, 'node_modules')
   if (existsSync(profileModules)) {
     // A profile installed before the distribution declared overrides still needs the
@@ -271,9 +185,135 @@ export function installProfilePackages(paths: StandalonePaths, consumerDirectory
     linkNestedBundles(paths, profileModules)
     return
   }
-  installWithRegistryFallback(paths)
-  alignReplacedPackageNames(profileModules)
+  installWithRegistryFallback(paths.profileDirectory)
+  // A range admits the next prerelease, so the official family lands one generation ahead of
+  // the runtime the republished builds were cut against. Realign, then finish the tree.
+  if (runtimeVersion !== undefined && registry !== undefined) {
+    alignOfficialVersions(paths.profileDirectory, runtimeVersion, registry)
+  }
+  alignReplacedPackageNames(profileModules, omitted)
   linkNestedBundles(paths, profileModules)
+  assertProfileBundles(paths.profileDirectory)
+}
+
+/** Package names a package declares as peers on the official runtime family. */
+function officialPeers(profileDirectory: string): Set<string> {
+  const peers = new Set<string>()
+  const manifests: string[] = []
+  for (const scope of [join(profileDirectory, 'node_modules'), join(profileDirectory, 'node_modules', '@deepseek-ai')]) {
+    if (!existsSync(scope)) continue
+    for (const entry of readdirSync(scope)) {
+      if (entry.startsWith('.')) continue
+      if (entry.startsWith('@') && entry !== '@deepseek-ai') continue
+      if (entry === '@deepseek-ai') {
+        for (const scoped of readdirSync(scope)) manifests.push(join(scope, scoped, 'package.json'))
+        continue
+      }
+      manifests.push(join(scope, entry, 'package.json'))
+    }
+  }
+  for (const manifestPath of manifests) {
+    if (!existsSync(manifestPath)) continue
+    try {
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { peerDependencies?: Record<string, string> }
+      for (const peer of Object.keys(manifest.peerDependencies ?? {})) {
+        if (peer.startsWith('@deepseek-ai/dsh') && peer !== '@deepseek-ai/dsh') peers.add(peer)
+      }
+    } catch {
+      // A package whose manifest cannot be read declares no peer this step can act on.
+    }
+  }
+  return peers
+}
+
+/**
+ * Which of the given package versions a registry serves.
+ *
+ * The probe runs in one Node child: one process per name is slow, and the caller needs the
+ * answer before the second install.
+ *
+ * @param names - package names to check.
+ * @param version - exact version each must serve.
+ * @param registry - registry base URL.
+ * @returns the names the registry serves at that version.
+ */
+function servedVersions(names: readonly string[], version: string, registry: string): Set<string> {
+  if (names.length === 0) return new Set()
+  const script = `
+    const [names, version, registry] = JSON.parse(process.argv[1])
+    const base = registry.replace(/\\/$/, '')
+    const queue = [...names]
+    const served = []
+    await Promise.all(Array.from({ length: 10 }, async () => {
+      while (queue.length > 0) {
+        const name = queue.shift()
+        try {
+          const response = await fetch(base + '/' + name.replace('/', '%2f') + '/' + version)
+          if (response.ok) served.push(name)
+        } catch {}
+      }
+    }))
+    process.stdout.write(served.join('\\n'))
+  `
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, JSON.stringify([names, version, registry])], { encoding: 'utf8' })
+  if (result.status !== 0) return new Set()
+  return new Set(result.stdout.split('\n').map(entry => entry.trim()).filter(entry => entry !== ''))
+}
+
+/**
+ * Move the shared official services onto the runtime's exact version.
+ *
+ * The republished builds were cut against one runtime, and DSH disables a row when the exact
+ * peers a plugin declares disagree with the process it shares. Plugins declare those services as
+ * peers, so the names worth pinning are the peers actually installed -- read from the tree and
+ * checked against the registry. The rest of the official family keeps its resolved versions:
+ * pinning everything traded one mismatch for a tree with holes.
+ *
+ * @param profileDirectory - profile whose tree was just installed.
+ * @param runtimeVersion - exact runtime the profile boots.
+ * @param registry - registry the profile installs from.
+ * @returns how many services were realigned.
+ */
+export function alignOfficialVersions(profileDirectory: string, runtimeVersion: string, registry: string): number {
+  const wanted = [...officialPeers(profileDirectory)]
+  const served = servedVersions(wanted, runtimeVersion, registry)
+  if (served.size === 0) return 0
+  const workspacePath = join(profileDirectory, 'pnpm-workspace.yaml')
+  const document = parseDocument(readFileSync(workspacePath, 'utf8'))
+  let changed = 0
+  for (const name of served) {
+    if (document.getIn(['overrides', name]) === runtimeVersion) continue
+    document.setIn(['overrides', name], runtimeVersion)
+    changed += 1
+  }
+  if (changed === 0) return 0
+  writeFileSync(workspacePath, String(document))
+  rmSync(join(profileDirectory, 'pnpm-lock.yaml'), { force: true })
+  installWithRegistryFallback(profileDirectory)
+  return changed
+}
+
+/**
+ * Assert every bundle row the profile declares resolves in its installed tree.
+ *
+ * A row without an installed package mounts nothing and reports nothing: the client module
+ * system simply never registers it, and every earlier step passes. Reading the rows back from
+ * the manifest on disk rather than from the projection is what makes this cover the tree the
+ * launcher actually boots.
+ *
+ * @param profileDirectory - profile whose node_modules was just installed.
+ */
+export function assertProfileBundles(profileDirectory: string): void {
+  const manifest = JSON.parse(readFileSync(join(profileDirectory, 'package.json'), 'utf8')) as {
+    dsh?: { profile?: { bundles?: string[] } }
+  }
+  const missing: string[] = []
+  for (const name of manifest.dsh?.profile?.bundles ?? []) {
+    if (!existsSync(join(profileDirectory, 'node_modules', name, 'package.json'))) missing.push(name)
+  }
+  if (missing.length > 0) {
+    throw new Error('the profile mounts bundles it did not install: ' + missing.join(', '))
+  }
 }
 
 /**
@@ -285,11 +325,11 @@ export function installProfilePackages(paths: StandalonePaths, consumerDirectory
  *
  * @param paths - resolved standalone paths.
  */
-function installWithRegistryFallback(paths: StandalonePaths): void {
+function installWithRegistryFallback(profileDirectory: string): void {
   const registries = registryOrder()
   for (const [index, registry] of registries.entries()) {
     const result = spawnSync('pnpm', ['install', '--no-frozen-lockfile', '--registry', registry], {
-      cwd: paths.profileDirectory,
+      cwd: profileDirectory,
       stdio: 'inherit',
       shell: process.platform === 'win32',
     })
@@ -319,22 +359,47 @@ function installWithRegistryFallback(paths: StandalonePaths): void {
  *
  * @param profileModules - the profile's \`node_modules\` directory.
  */
-export function alignReplacedPackageNames(profileModules: string): void {
-  const scoped = join(profileModules, '@deepseek-ai')
-  if (!existsSync(scoped)) return
-  for (const entry of readdirSync(scoped)) {
-    const manifestPath = join(scoped, entry, 'package.json')
-    if (!existsSync(manifestPath)) continue
+export function alignReplacedPackageNames(profileModules: string, omitted: ReadonlySet<string> = new Set()): void {
+  if (!existsSync(profileModules)) return
+  // A replaced package is installed at the name its loader row declares, but the manifest inside
+  // still names our scope: the client module system requires the directory's package to declare
+  // the directory name, so the panels it renders would never register. Both scopes are walked
+  // because a row can be an unscoped alias (`dsh-better-sidebar`) onto a scoped build.
+  const align = (expected: string, manifestPath: string): void => {
+    if (!existsSync(manifestPath)) return
     const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as Record<string, unknown>
-    const expected = '@deepseek-ai/' + entry
-    if (declared.name === expected) continue
-    const replaced = { ...declared, name: expected }
+    if (declared.name === expected || omitted.has(expected)) return
     const temporary = manifestPath + '.dsh-name'
-    writeFileSync(temporary, JSON.stringify(replaced, null, 2) + '\n')
+    writeFileSync(temporary, JSON.stringify({ ...declared, name: expected }, null, 2) + '\n')
     renameSync(temporary, manifestPath)
   }
+  for (const entry of readdirSync(profileModules)) {
+    if (entry.startsWith('.')) continue
+    if (!entry.startsWith('@')) {
+      // An unscoped row is an npm alias onto a scoped build. The package imports its real
+      // scoped name, so renaming it would break its own imports; exposing the scoped name as
+      // a link is what makes both the row and the package resolve.
+      const manifestPath = join(profileModules, entry, 'package.json')
+      if (!existsSync(manifestPath)) continue
+      const declared = JSON.parse(readFileSync(manifestPath, 'utf8')) as { name?: string }
+      if (declared.name === undefined || declared.name === entry) continue
+      const [scope, name] = declared.name.split('/')
+      if (scope === undefined || name === undefined) continue
+      mkdirSync(join(profileModules, scope), { recursive: true })
+      const link = join(profileModules, scope, name)
+      if (existsSync(link)) continue
+      try {
+        symlinkSync(join('..', entry), link, 'junction')
+      } catch {
+        // A concurrent install may have created the same link; the existing one is equivalent.
+      }
+      continue
+    }
+    for (const scoped of readdirSync(join(profileModules, entry))) {
+      align(entry + '/' + scoped, join(profileModules, entry, scoped, 'package.json'))
+    }
+  }
 }
-
 
 /** The npm registry the distribution installs from by default. */
 const OFFICIAL_REGISTRY = 'https://registry.npmjs.org'
@@ -447,15 +512,24 @@ function linkBundle(consumerModules: string, name: string, source: string): void
 }
 
 /** Resolve every path a command needs, without creating anything. */
-export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env): StandalonePaths {
+export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.env, editionId?: string): StandalonePaths {
   const home = resolveHome(env)
-  const declaration = readStandaloneDeclaration(anchor)
+  const distributionDirectory = resolveDistributionDirectory(anchor)
+  // The edition is a fact of the distribution: it names the profile and the capabilities the
+  // deployment omits. No edition means the full distribution and its default profile.
+  let profileName = DEFAULT_PROFILE
+  let omittedPackages: Readonly<Record<string, string>> = {}
+  if (editionId !== undefined) {
+    const projection = projectEdition(readDistributionFacts(distributionDirectory), editionId)
+    profileName = projection.profileName
+    omittedPackages = projection.omittedPackages
+  }
   return {
     home,
-    profileName: declaration.profileName,
-    omittedPackages: declaration.omittedPackages,
-    profileDirectory: join(home, 'profiles', declaration.profileName),
-    distributionDirectory: resolveDistributionDirectory(anchor),
+    profileName,
+    omittedPackages,
+    profileDirectory: join(home, 'profiles', profileName),
+    distributionDirectory,
   }
 }
 
@@ -472,24 +546,43 @@ export function resolvePaths(anchor: string, env: NodeJS.ProcessEnv = process.en
  * that installed them.
  *
  * @param paths - resolved standalone paths.
- * @param consumerDirectory - directory whose `node_modules` holds the installed packages.
+ * @param editionId - product edition to materialize.
+ * @param extraExcludes - packages the caller drops on top of the edition's own exclusions.
+ * @param dryRun - write the profile files without installing their dependency tree.
  * @returns whether this call created the manifest.
  */
-export function ensureProfile(paths: StandalonePaths, consumerDirectory: string): boolean {
+export function ensureProfile(
+  paths: StandalonePaths,
+  editionId?: string,
+  extraExcludes: readonly string[] = [],
+  dryRun = false,
+): boolean {
   const manifestPath = join(paths.profileDirectory, 'package.json')
-  const distribution = readDistributionProfile(paths.distributionDirectory)
+  const distribution = readDistributionProfile(paths.distributionDirectory, editionId, extraExcludes)
   if (existsSync(manifestPath)) {
     // The workspace carries decisions the distribution owns — overrides and the build
     // script allowlist — and a distribution release changes them. Rewriting on every
     // start is what lets an upgraded installation receive the new values; a profile
     // written once keeps whatever its own release decided and can never be corrected.
-    writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
-    installProfilePackages(paths, consumerDirectory)
+    writeProfileOverrides(
+      paths.profileDirectory,
+      distribution.overrides,
+      distribution.allowBuilds,
+      { ...paths.omittedPackages, ...distribution.omittedPackages },
+    )
+    if (!dryRun) {
+      installProfilePackages(
+        paths,
+        new Set(Object.keys(distribution.omittedPackages)),
+        distribution.runtimeVersion,
+        registryOrder()[0],
+      )
+    }
     return false
   }
   mkdirSync(paths.profileDirectory, { recursive: true })
   const manifest = {
-    name: 'dsh-profile-' + STANDALONE_PROFILE,
+    name: 'dsh-profile-' + paths.profileName,
     private: true,
     type: 'module',
     dependencies: {
@@ -509,8 +602,20 @@ export function ensureProfile(paths: StandalonePaths, consumerDirectory: string)
   }
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
   // The overrides must reach the workspace before the install that reads them.
-  writeProfileOverrides(paths.profileDirectory, distribution.overrides, distribution.allowBuilds, paths.omittedPackages)
-  installProfilePackages(paths, consumerDirectory)
+  writeProfileOverrides(
+    paths.profileDirectory,
+    distribution.overrides,
+    distribution.allowBuilds,
+    { ...paths.omittedPackages, ...distribution.omittedPackages },
+  )
+  if (!dryRun) {
+    installProfilePackages(
+      paths,
+      new Set(Object.keys(distribution.omittedPackages)),
+      distribution.runtimeVersion,
+      registryOrder()[0],
+    )
+  }
   return true
 }
 

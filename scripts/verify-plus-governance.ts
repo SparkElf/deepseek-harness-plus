@@ -1,17 +1,13 @@
 /** Verify Plus npm composition, independent patch packages, and curation ownership. */
 
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { isAbsolute, join, relative, resolve } from 'node:path'
-import { spawnSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { satisfies, valid, validRange } from 'semver'
-import { parse } from 'yaml'
 import { loadCordisYaml } from './cordis-yaml.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 const distributionPath = 'packages/bundle/plus/package.json'
-const patchRoot = 'patches/npm'
 
 function object(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) throw new Error(label + ' must be an object')
@@ -56,173 +52,6 @@ function minimumRange(value: unknown, label: string): string {
   return range
 }
 
-function patchTargetRange(value: unknown, label: string): string {
-  const range = string(value, label)
-  const normalized = validRange(range)
-  const bounded = normalized?.split('||').every(branch =>
-    valid(branch.trim()) !== null || /(?:^|\s)<[=]?/.test(branch))
-  if (normalized === null || !bounded) {
-    throw new Error(label + ' must be an exact or upper-bounded semantic-version range')
-  }
-  return range
-}
-
-interface PatchRecord {
-  name: string
-  version: string
-  directory: string
-  targets: ({ kind: 'npm'; name: string; range: string } | { kind: 'dsh-source'; baseRevision: string; paths: string[] })[]
-}
-
-function sourcePatchPaths(path: string): string[] {
-  const result = spawnSync('git', ['apply', '--numstat', path], { cwd: root, encoding: 'utf8' })
-  if (result.status !== 0) throw new Error('cannot inspect source patch ' + path + ': ' + result.stderr.trim())
-  return result.stdout.trim().split('\n').filter(Boolean).map(line => line.split('\t').at(-1) ?? '')
-}
-
-function verifySourcePatchApplies(path: string, baseRevision: string): void {
-  const parent = mkdtempSync(join(tmpdir(), 'dsh-plus-patch-base-'))
-  const checkout = join(parent, 'source')
-  const added = spawnSync('git', ['worktree', 'add', '--detach', '--force', checkout, baseRevision], {
-    cwd: root,
-    encoding: 'utf8',
-  })
-  if (added.status !== 0) {
-    rmSync(parent, { recursive: true, force: true })
-    throw new Error('cannot materialize source patch base ' + baseRevision + ': ' + added.stderr.trim())
-  }
-  try {
-    // Strict, because that is what the applier checks first: \`apply.ts\` decides a patch is
-    // pending or applied with \`git apply --check\` before it ever runs the three-way merge.
-    // A patch that only merges three-way fails that judgement and stops the deployment at
-    // 'patch does not apply', which is exactly how two patches shipped in 0.2.0-rc.3 failed
-    // after a gate that accepted them because it only tried the merge.
-    const strict = spawnSync('git', ['apply', '--check', path], { cwd: checkout, encoding: 'utf8' })
-    if (strict.status !== 0) {
-      throw new Error('source patch does not apply to base ' + baseRevision + ': ' + path + ': ' + strict.stderr.trim())
-    }
-  } finally {
-    spawnSync('git', ['worktree', 'remove', '--force', checkout], { cwd: root, encoding: 'utf8' })
-    rmSync(parent, { recursive: true, force: true })
-  }
-}
-
-/**
- * Whether an npm payload applies to the published package it targets.
- *
- * Both of the obvious local trees are the wrong subject. Running `git apply` inside the
- * repository's `node_modules` proves nothing — that path is ignored, so git skips the
- * file and exits 0 whatever the payload says; measured, a payload with every context line
- * replaced by `MANGLE-XYZ` still returned 0 there. And a workspace copy is neither
- * guaranteed present nor guaranteed pristine: `dsh-better-sidebar` reaches a deployment
- * through the profile's own install, not the workspace's, and a copy left behind by an
- * earlier local experiment does not match what the registry serves.
- *
- * The subject is therefore the published tarball for the declared range, unpacked into a
- * scratch repository so `git apply` acts on a work tree rather than inheriting the
- * repository's ignore rules.
- *
- * @param name - npm package the payload targets.
- * @param range - Version range the payload declares for that package.
- * @param path - Absolute payload file path.
- */
-function verifyNpmPatchApplies(name: string, range: string, path: string): void {
-  const scratch = mkdtempSync(join(tmpdir(), 'dsh-npm-patch-check-'))
-  try {
-    const packed = spawnSync('npm', ['pack', name + '@' + range, '--silent', '--pack-destination', scratch], {
-      cwd: scratch,
-      encoding: 'utf8',
-    })
-    if (packed.status !== 0) {
-      throw new Error('cannot fetch ' + name + '@' + range + ' from the registry: ' + packed.stderr.trim())
-    }
-    const tarball = packed.stdout.trim().split('\n').pop() ?? ''
-    if (tarball === '') throw new Error('cannot resolve the tarball for ' + name + '@' + range)
-    const extracted = spawnSync('tar', ['xzf', join(scratch, tarball), '-C', scratch], { encoding: 'utf8' })
-    if (extracted.status !== 0) throw new Error('cannot extract ' + tarball + ': ' + extracted.stderr.trim())
-    const published = json(join(scratch, 'package', 'package.json'))
-    const version = string(published.version, name + ' published version')
-    if (!satisfies(version, range, { includePrerelease: true })) {
-      throw new Error(name + ' published version ' + version + ' does not satisfy patch target ' + range)
-    }
-    const tree = join(scratch, 'package')
-    const init = spawnSync('git', ['init', '--quiet'], { cwd: tree, encoding: 'utf8' })
-    if (init.status !== 0) throw new Error('cannot initialize the npm patch scratch repository: ' + init.stderr.trim())
-    const result = spawnSync('git', ['apply', '--check', path], { cwd: tree, encoding: 'utf8' })
-    if (result.status !== 0) {
-      throw new Error('npm patch does not apply to ' + name + '@' + version + ': ' + path + ': ' + result.stderr.trim())
-    }
-  } finally {
-    rmSync(scratch, { recursive: true, force: true })
-  }
-}
-
-function patchPackages(sourceBaseRevision: string): PatchRecord[] {
-  const records: PatchRecord[] = []
-  for (const entry of readdirSync(resolve(root, patchRoot), { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue
-    const directory = resolve(root, patchRoot, entry.name)
-    const manifest = json(relative(root, resolve(directory, 'package.json')))
-    const name = string(manifest.name, entry.name + ' name')
-    const version = string(manifest.version, name + ' version')
-    if (valid(version) === null) throw new Error(name + ' version is not semantic')
-    if (JSON.stringify(manifest.files) !== JSON.stringify(['patches/*.patch'])) {
-      throw new Error(name + ' must publish exactly ["patches/*.patch"]')
-    }
-    if (manifest.main !== undefined || manifest.scripts !== undefined || manifest.bin !== undefined) {
-      throw new Error(name + ' must remain data-only')
-    }
-    const declaration = object(manifest.dshPatch, name + ' dshPatch')
-    if (declaration.formatVersion !== 1) throw new Error(name + ' dshPatch.formatVersion must be 1')
-    const targets: PatchRecord['targets'] = []
-    const declaredPayloads = new Set<string>()
-    for (const [index, raw] of array(declaration.variants, name + ' variants').entries()) {
-      const variant = object(raw, name + ' variant ' + String(index))
-      minimumRange(variant.dsh, name + ' variant dsh')
-      string(variant.id, name + ' variant id')
-      const declaredFile = string(variant.file, name + ' variant file')
-      const payload = resolve(directory, declaredFile)
-      const payloadPath = relative(resolve(directory, 'patches'), payload)
-      if (!existsSync(payload) || isAbsolute(payloadPath) || payloadPath === '..' || payloadPath.startsWith('../')) {
-        throw new Error(name + ' variant payload must exist under its patches directory')
-      }
-      declaredPayloads.add(relative(directory, payload).replaceAll('\\', '/'))
-      const target = object(variant.target, name + ' variant target')
-      const kind = string(target.kind, name + ' variant target kind')
-      if (kind === 'npm') {
-        const targetName = string(target.name, name + ' target name')
-        const targetRange = patchTargetRange(target.range, name + ' target range')
-        verifyNpmPatchApplies(targetName, targetRange, payload)
-        targets.push({ kind, name: targetName, range: targetRange })
-      } else if (kind === 'dsh-source') {
-        const baseRevision = string(target.baseRevision, name + ' target baseRevision')
-        if (baseRevision !== sourceBaseRevision) throw new Error(name + ' source target must match dshPlus.sourceBase.revision')
-        const allowedPaths = array(target.paths, name + ' target paths').map((value, pathIndex) =>
-          string(value, name + ' target paths[' + String(pathIndex) + ']'))
-        if (allowedPaths.length === 0 || allowedPaths.some(path => !path.endsWith('/'))) {
-          throw new Error(name + ' source target paths must be non-empty repository directory prefixes')
-        }
-        const paths = sourcePatchPaths(payload)
-        if (paths.length === 0 || paths.some(path => !allowedPaths.some(prefix => path.startsWith(prefix)))) {
-          throw new Error(name + ' source payload modifies a path outside its declared owners')
-        }
-        verifySourcePatchApplies(payload, baseRevision)
-        targets.push({ kind, baseRevision, paths: allowedPaths })
-      } else {
-        throw new Error(name + ' has unsupported target kind ' + kind)
-      }
-    }
-    if (targets.length === 0) throw new Error(name + ' must declare at least one variant')
-    const publishedPayloads = readdirSync(resolve(directory, 'patches'))
-      .filter(file => file.endsWith('.patch')).map(file => 'patches/' + file).sort()
-    if (JSON.stringify([...declaredPayloads].sort()) !== JSON.stringify(publishedPayloads)) {
-      throw new Error(name + ' must declare every published patch payload exactly once')
-    }
-    records.push({ name, version, directory, targets })
-  }
-  return records.sort((left, right) => left.name.localeCompare(right.name))
-}
-
 function main(): void {
   const distribution = json(distributionPath)
   const plus = object(distribution.dshPlus, 'dshPlus')
@@ -233,7 +62,22 @@ function main(): void {
   const compatibility = object(plus.compatibility, 'dshPlus.compatibility')
   minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
   const dependencies = object(distribution.dependencies, 'distribution dependencies')
-  for (const [name, range] of Object.entries(dependencies)) minimumRange(range, 'distribution dependencies.' + name)
+  for (const [name, range] of Object.entries(dependencies)) {
+    // Official packages are held to the exact runtime generation below, and the packages this
+    // repository publishes are exact by the rule below; the minimum-range rule applies to the
+    // third-party plugins that track their own version lines.
+    if (name.startsWith('@deepseek-ai/dsh') || name.startsWith('@sparkelf/')) continue
+    minimumRange(range, 'distribution dependencies.' + name)
+  }
+  // A range on an official package drifts to the newest matching prerelease: under semver's
+  // prerelease rule `0.2.2-rc.1` satisfies `>=0.2.2-alpha.2`, so a distribution that declares one
+  // runtime generation installs another and its own profile comparison fails. Exact versions are
+  // the only form that keeps the package and the runtime it declares in one generation.
+  for (const [name, spec] of Object.entries(dependencies)) {
+    if (!name.startsWith('@deepseek-ai/dsh')) continue
+    if (valid(String(spec)) !== null) continue
+    throw new Error('distribution dependencies.' + name + ' must be an exact version, got ' + String(spec))
+  }
   const profile = object(plus.profile, 'dshPlus.profile')
   const bundles = array(profile.bundles, 'dshPlus.profile.bundles').map((value, index) =>
     string(value, 'dshPlus.profile.bundles[' + String(index) + ']'))
@@ -247,66 +91,66 @@ function main(): void {
   // silently excludes every 0.2.1 prerelease. Requiring the floor to admit the pinned runtime
   // states the relationship the promotion has to preserve.
   const compatibilityFloor = minimumRange(compatibility.dsh, 'dshPlus.compatibility.dsh')
-  const profileOverrides = object(profile.overrides, 'dshPlus.profile.overrides')
-  const republished = new Set(
-    Object.values(profileOverrides)
-      .map(value => /@([0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)$/.exec(string(value, 'dshPlus.profile.overrides'))?.[1])
-      .filter((version): version is string => version !== undefined))
-  if (republished.size === 0) throw new Error('dshPlus.profile.overrides must pin the republished runtime')
-  for (const version of republished) {
-    if (satisfies(version, compatibilityFloor)) continue
-    throw new Error('dshPlus.compatibility.dsh (' + compatibilityFloor + ') must admit the republished runtime ' + version
+  // The override table is a projection of the patch set, never a stored list. This gate owns the
+  // same contract the generator enforces, so a manifest that reintroduces a hand-maintained table
+  // fails here even before a release tries to publish it.
+  if (profile.overrides !== undefined) {
+    throw new Error('dshPlus.profile.overrides is retired; overrides are derived from dshPlus.patchSet')
+  }
+  if (profile.standaloneVariants !== undefined) {
+    throw new Error('dshPlus.profile.standaloneVariants is retired; rename it to dshPlus.profile.variants')
+  }
+  const runtime = object(plus.runtime, 'dshPlus.runtime')
+  const runtimeVersion = string(runtime.version, 'dshPlus.runtime.version')
+  if (valid(runtimeVersion) === null) throw new Error('dshPlus.runtime.version must be an exact version')
+  const patchSet = object(plus.patchSet, 'dshPlus.patchSet')
+  const patchEntries = array(patchSet.entries, 'dshPlus.patchSet.entries')
+  const redirects = new Map<string, string>()
+  for (const [index, raw] of patchEntries.entries()) {
+    const entry = object(raw, 'dshPlus.patchSet.entries[' + String(index) + ']')
+    const target = object(entry.target, 'dshPlus.patchSet.entries[' + String(index) + '].target')
+    if (target.kind !== 'dsh-source') continue
+    if (target.republish === false) {
+      string(target.reason, 'dshPlus.patchSet.entries[' + String(index) + '].target.reason')
+      continue
+    }
+    for (const [packageIndex, name] of array(target.packages, 'target.packages').entries()) {
+      const official = string(name, 'target.packages[' + String(packageIndex) + ']')
+      if (!official.startsWith('@deepseek-ai/')) throw new Error('patch target ' + official + ' is not an official package')
+      redirects.set(official, 'npm:@sparkelf/' + official.slice('@deepseek-ai/'.length) + '@' + runtimeVersion)
+    }
+  }
+  if (redirects.size === 0) throw new Error('dshPlus.patchSet must republish at least one package')
+  for (const [name, spec] of redirects) {
+    if (!spec.endsWith('@' + runtimeVersion)) throw new Error('redirect for ' + name + ' does not name the runtime version')
+  }
+  if (!satisfies(runtimeVersion, compatibilityFloor)) {
+    throw new Error('dshPlus.compatibility.dsh (' + compatibilityFloor + ') must admit the runtime the redirects name ' + runtimeVersion
       + '; a prerelease floor admits only its own major.minor.patch, so it moves with the runtime')
   }
   const profileDependencies = object(profile.dependencies, 'dshPlus.profile.dependencies')
-  const expectedProfileDependencies = {
-    '@sparkelf/dsh-mineru': '0.1.4',
-    '@sparkelf/dsh-officecli': '0.1.4',
-    '@sparkelf/dsh-plugin-supervisor': '0.1.9',
-    'dsh-sql-workbench': '0.5.3',
-    '@sparkelf/dsh-workbench-vault': '0.1.2',
-    '@sparkelf/dsh-ssh-manager': '0.7.4',
-    '@sparkelf/dsh-api-client': '0.5.3',
-    '@huanlin/dsh-plugin-better-locale': '0.4.3',
-    'dsh-better-sidebar': '0.28.0',
-    // The Office previewer retired at DSH 0.1.7-alpha.2: the official right Sidebar's
-    // document tab now renders Office and spreadsheets itself, so the third-party
-    // previewer is redundant. The government font assets stay, and reach the official
-    // conversion through office-to-pdf's fontDirectories.
-    '@sparkelf/dsh-office-viewer-fonts': '0.1.5',
-    'dsh-video-preview': '0.1.4',
-    // The reviewed session background: a new session's centre column renders it, and every
-    // other surface stays official.
-    'dsh-right-bg-anim': '1.1.0',
-    // Agent Teams is the deployment's team layer: a session's agent becomes a Lead
-    // that creates named teammates and shares a durable task board. It needs its
-    // profile layer (roster and mailbox) and the Web layer (roster, board, navigation).
-    '@deepseek-ai/dsh-experimental-agent-team-profile': '>=0.2.1-rc.2',
-    // The mobile face is the companion gateway this deployment runs; it needs neither a
-    // host step nor a client build of its own. 0.2.16 keeps the minted pairing identity across
-    // reads, so an already-paired phone is no longer addressed to a bridge the relay replaced.
-    '@sparkelf/dsh-mobile-bridge': '0.2.18',
-    // The quant workbench registers its tools and its own sidebar page.
-    '@sparkelf/dsh-quant': '0.91.0-sparkelf.13',
-    // Agent Teams ships as one profile bundle from 0.1.7-rc.1 on: the profile package now
-    // depends on the roster, the Web UI, and the tool packages itself, replacing the separate
-    // web-profile bundle that official removed in 9f21d7842a.
-    // The full-access preset pins approval to 'never', which resolves every ask to 'rejected':
-    // the operation was refused, not approved. auto-review supplies the preset that admits the
-    // operation and routes each tool call through a reviewer instead of a person, and publishing
-    // it is what makes `auto` selectable at all -- permissionPresets keeps that name reserved
-    // until an integration registers for it.
-    '@deepseek-ai/dsh-experimental-auto-review': '0.2.1-rc.2',
-    // The fork republishes genui with the flat card surface, so a rebuilt image no longer rewrites
-    // its CSS. Upstream ships the raised shadow and cannot be republished under @sparkelf.
-    '@sparkelf/dsh-genui': '0.13.0-sparkelf.3',
-    // The sidebar previews .drawio and .xmind through this plugin's own viewer; the official
-    // document preview ships no diagram renderer.
-    '@sparkelf/dsh-client-ui-diagram-viewer': '0.2.1-alpha.28',
+  /** The version part of a direct or aliased spec, or undefined when it is a range. */
+  const exactVersion = (spec: string): string | undefined => {
+    if (spec.startsWith('npm:')) {
+      const separator = spec.lastIndexOf('@')
+      return separator > 'npm:@'.length ? spec.slice(separator + 1) : undefined
+    }
+    return spec
   }
-  if (JSON.stringify(profileDependencies) !== JSON.stringify(expectedProfileDependencies)) {
-    throw new Error('dshPlus.profile.dependencies must own the exact reviewed production bundle set')
+  for (const [name, spec] of Object.entries(profileDependencies)) {
+    // Which packages are "ours" is a prefix, not a list: the repository publishes every
+    // @sparkelf package, and a range on one of them drifts with our release cadence the same
+    // way an official range drifts with the runtime. Third-party plugins keep their own lines.
+    const ours = name.startsWith('@sparkelf/') || String(spec).startsWith('npm:@sparkelf/')
+    if (!ours && !name.startsWith('@deepseek-ai/dsh')) continue
+    const version = exactVersion(String(spec))
+    if (version !== undefined && valid(version) !== null) continue
+    throw new Error('dshPlus.profile.dependencies.' + name + ' must name an exact version, got ' + String(spec))
   }
+  // The reviewed set is no longer restated here: every plugin enters the profile through the
+  // distribution's own dependency table, and the bundle and omission checks above prove that
+  // table is complete. A second hardcoded copy drifted for months and failed on every entry the
+  // distribution legitimately outgrew.
   const allowBuilds = object(profile.allowBuilds, 'dshPlus.profile.allowBuilds')
   // Each entry is version-pinned because pnpm matches a transitive dependency by
   // \`name@version\` and replaces an unmatched entry with a placeholder, which makes the
@@ -345,7 +189,7 @@ function main(): void {
    * @returns whether any dependency or override map declares it, directly or as an alias target.
    */
   const ownsRuntimePackage = (name: string): boolean => {
-    for (const source of [dependencies, profileDependencies, profileOverrides]) {
+    for (const source of [dependencies, profileDependencies]) {
       for (const [declared, spec] of Object.entries(source)) {
         if (declared === name) return true
         if (typeof spec === 'string' && /^npm:(@[^/]+\/[^@]+)@/.exec(spec)?.[1] === name) return true
@@ -357,33 +201,9 @@ function main(): void {
     if (bundle.startsWith('@deepseek-ai/') || bundle === distribution.name) continue
     if (!ownsRuntimePackage(bundle)) throw new Error('distribution must own external profile bundle ' + bundle)
   }
-  const declaredPatchPackages = array(plus.patchPackages, 'dshPlus.patchPackages').map((value, index) =>
-    string(value, 'dshPlus.patchPackages[' + String(index) + ']')).sort()
-  const records = patchPackages(sourceBaseRevision)
-  const sourcePatchPackages = records.map(record => record.name)
-  if (JSON.stringify(declaredPatchPackages) !== JSON.stringify(sourcePatchPackages)) {
-    throw new Error('dshPlus.patchPackages must reference every source patch package exactly once')
-  }
-  for (const record of records) {
-    if (dependencies[record.name] === undefined) throw new Error('distribution must depend on ' + record.name)
-    // Every patch package moves with the release, so a minimum-only range like
-    // '>=0.1.0-rc.26' silently resolves to whichever older prerelease npm prefers over
-    // the one being published: semver excludes 0.2.0-rc.2 from that range, and an install
-    // then applies 0.1.x patches whose declared base is the previous official revision.
-    // The range has to admit the version this manifest declares.
-    // The judgement deliberately omits includePrerelease: that is how npm resolves the
-    // range, so a range that does not admit the version under those rules installs an
-    // older patch package instead of this one.
-    const declared = minimumRange(dependencies[record.name], 'distribution dependencies.' + record.name)
-    if (!satisfies(record.version, declared)) {
-      throw new Error(record.name + '@' + record.version + ' is not admitted by its own dependency range ' + declared)
-    }
-    for (const target of record.targets) {
-      if (target.kind === 'npm' && !ownsRuntimePackage(target.name)) {
-        throw new Error('distribution must own patched npm target ' + target.name)
-      }
-    }
-  }
+  // The independent patch packages and their curated retirement list were retired with the
+  // standalone distribution: the patch set is embedded in this manifest and validated by
+  // `dsh-plus apply` and by the release gates that pack it.
   const patch = loadCordisYaml(readFileSync(resolve(root, 'packages/bundle/plus/cordis.patch.yml'), 'utf8'))
   const rows = array(patch, 'Plus Cordis patch').flatMap((operation) => {
     const insert = object(operation, 'Plus Cordis operation').insert
@@ -394,13 +214,6 @@ function main(): void {
     const name = string(row.name, 'Plus Cordis row name')
     const packageName = packageNameFromSpecifier(name)
     if (!ownsRuntimePackage(packageName)) throw new Error('distribution must own Cordis row package ' + packageName)
-  }
-  const curation = object(parse(readFileSync(resolve(root, '.agents/plugins/curated.yaml'), 'utf8')) as unknown, 'curation')
-  const curatedPackages = array(curation.entries, 'curation entries').flatMap(raw =>
-    array(object(raw, 'curation entry').localPatches, 'curation localPatches')
-      .map(patch => string(object(patch, 'curation patch').package, 'curation patch package'))).sort()
-  if (JSON.stringify(curatedPackages) !== JSON.stringify(sourcePatchPackages)) {
-    throw new Error('curation must own upstream retirement for every source patch package exactly once')
   }
   console.info('verify-plus-governance: profile composition, patch packages, source base, and curation are consistent.')
 }

@@ -9,6 +9,7 @@
  * listeners onto it.
  */
 import type { Context } from '@deepseek-ai/cordis'
+import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
 import {
   createSnapshotStore, type ObservableSnapshot, type SnapshotStore,
 } from '@deepseek-ai/dsh-client-store'
@@ -66,6 +67,7 @@ export interface SessionInputDeps {
     attachmentIds: readonly DraftAttachmentId[],
     mode: InputSubmitMode,
     signal: AbortSignal,
+    mentions?: readonly SessionMentionRef[],
   ): Promise<SubmitOutcome>
   /** Command-plane attachment plumbing (the hub owns the conversation face and the copy). */
   commandAttachments: {
@@ -678,6 +680,34 @@ export class SessionInputShell implements SessionInput {
   }
 
   /**
+   * Structured mentions declared by this draft, in document order.
+   *
+   * Only `appearance: 'mention'` chips qualify: a source opts in when it inserts
+   * through `PickOutcome.insert`, and the host plugin that owns the roster reads
+   * the ids instead of parsing `@name` out of the text (which would misread a
+   * code sample and let any message smuggle itself into a routing decision). The
+   * same item picked twice is one mention.
+   * @param occurrences - chip occurrences projected from the editor.
+   * @returns `{sourceId, itemId, displayName}` records, or undefined when none.
+   */
+  private static mentionsOf(occurrences: readonly Occurrence[]): readonly SessionMentionRef[] | undefined {
+    const seen = new Set<string>()
+    const mentions: SessionMentionRef[] = []
+    for (const occurrence of occurrences) {
+      if (occurrence.appearance !== 'mention') continue
+      const key = occurrence.source + '\u0000' + occurrence.ref
+      if (seen.has(key)) continue
+      seen.add(key)
+      mentions.push({
+        sourceId: occurrence.source,
+        itemId: occurrence.ref,
+        displayName: occurrence.label,
+      })
+    }
+    return mentions.length === 0 ? undefined : mentions
+  }
+
+  /**
    * Prompt serialization before the sink: expand each chip occurrence to its
    * owner's model form via the session controller's codec routing. Owner
    * missing or serialization failure rejects the detached send and restores
@@ -722,7 +752,11 @@ export class SessionInputShell implements SessionInput {
           cursor = part.offset + part.length
         }
         out += draft.slice(cursor)
-        this.settleSink(attempt, this.deps.defaultSink(out.trim(), attachmentIds, mode, attempt.signal))
+        const mentions = SessionInputShell.mentionsOf(occurrences)
+        // A draft whose chips are all non-member keeps the four-argument sink call.
+        this.settleSink(attempt, mentions === undefined
+          ? this.deps.defaultSink(out.trim(), attachmentIds, mode, attempt.signal)
+          : this.deps.defaultSink(out.trim(), attachmentIds, mode, attempt.signal, mentions))
       },
       (error: unknown) => {
         if (this.dead(attempt)) return

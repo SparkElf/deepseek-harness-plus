@@ -423,7 +423,6 @@ class PlusFamily extends DshFamily {
   override readonly patterns = [
     'packages/plus/*/package.json',
     'packages/bundle/plus/package.json',
-    'packages/standalone/*/package.json',
     'patches/npm/*/package.json',
   ] as const
   override readonly tagPrefix = 'plus-npm-v'
@@ -496,32 +495,14 @@ class PlusFamily extends DshFamily {
   }
 
   /**
-   * The standalone installer is this family's executable, and the only member a consumer
-   * runs. Probing it proves the published dependency ranges resolve: the installer carries
-   * every plugin the profile mounts, so a member range naming a version the registry does
-   * not serve fails here rather than on a user's machine. This family previously declared
-   * no entry and the probe skipped it, which is how a range that resolved only inside the
-   * workspace reached a packed release.
+   * The distribution is this family's executable: a consumer installs `@sparkelf/dsh-plus` and
+   * runs its `dsh-plus` command. Probing it proves the published dependency ranges resolve --
+   * the package carries every plugin the profile mounts, so a range naming a version the
+   * registry does not serve fails here rather than on a user's machine.
    */
   override readonly installedEntry: InstalledEntry | undefined = {
-    packageName: '@sparkelf/dsh-plus-standalone',
+    packageName: '@sparkelf/dsh-plus',
     binPath: 'lib/bin.js',
-  }
-
-  /**
-   * Every standalone installer this family publishes, not just the first.
-   *
-   * `installedEntry` names one executable for the packed-install probe, and the probe stops at it.
-   * This family ships two installers — `dsh-plus` and `dsh-dataops` — with different dependency
-   * closures: DataOps excludes the optional computer-use packages and adds its managed
-   * integration. Probing only the first left the second's ranges unverified, so a range the
-   * registry cannot resolve would reach a consumer instead of failing the release.
-   */
-  override get installedEntries(): readonly InstalledEntry[] {
-    return [
-      { packageName: '@sparkelf/dsh-plus-standalone', binPath: 'lib/bin.js' },
-      { packageName: '@sparkelf/dsh-dataops-standalone', binPath: 'lib/bin.js' },
-    ]
   }
 }
 

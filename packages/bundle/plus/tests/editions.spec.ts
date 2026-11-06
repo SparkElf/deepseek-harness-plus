@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ensureProfile, readDistributionProfile } from '../src/standalone-profile.ts'
+import { ensureProfile, readDistributionProfile } from '../src/profile.ts'
 
 const roots: string[] = []
 
@@ -31,24 +31,36 @@ function distribution(): string {
     version: '1.0.0',
     dshPlus: {
       compatibility: { dsh: '>=0.2.2-alpha.2' },
+      runtime: { version: '0.2.2-alpha.2' },
+      omission: { package: '@sparkelf/dsh-omitted', version: '0.2.1-alpha.48' },
       profile: {
         bundles: ['@deepseek-ai/dsh-base', '@sparkelf/dsh-plus'],
-        dependencies: { '@sparkelf/dsh-mineru': '0.1.4' },
+        dependencies: {
+          '@sparkelf/dsh-mineru': '0.1.4',
+          '@sparkelf/dsh-dataops-managed': '0.3.33',
+        },
         allowBuilds: {},
+      },
+      patchSet: {
+        formatVersion: 1,
+        entries: [
+          { id: 'base', dsh: '>=0.2.2-alpha.2', file: './patches/base.patch', retireWhen: 'never', target: { kind: 'dsh-source', packages: ['@deepseek-ai/dsh-base'], paths: ['packages/bundle/base/'] } },
+        ],
       },
       editions: {
         personal: {
           label: '个人版',
+          profile: 'plus',
           bundles: ['@deepseek-ai/dsh-base', '@sparkelf/dsh-plus'],
-          packages: { '@sparkelf/dsh-mineru': '0.1.4' },
+          packages: ['@sparkelf/dsh-mineru'],
+          omit: [],
         },
         team: {
           label: '团队版',
+          profile: 'plus',
           bundles: ['@deepseek-ai/dsh-base', '@sparkelf/dsh-plus', '@sparkelf/dsh-dataops-managed'],
-          packages: {
-            '@sparkelf/dsh-mineru': '0.1.4',
-            '@sparkelf/dsh-dataops-managed': '0.3.21',
-          },
+          packages: ['@sparkelf/dsh-mineru', '@sparkelf/dsh-dataops-managed'],
+          omit: [],
         },
       },
     },
@@ -62,8 +74,8 @@ describe('editions', () => {
     const profile = readDistributionProfile(directory)
     expect(Object.keys(profile.editions)).toEqual(['personal', 'team'])
     expect(profile.editions.team?.label).toBe('团队版')
-    expect(profile.editions.team?.packages['@sparkelf/dsh-dataops-managed']).toBe('0.3.21')
-    expect(profile.editions.personal?.packages['@sparkelf/dsh-dataops-managed']).toBeUndefined()
+    expect(profile.editions.team?.packages).toContain('@sparkelf/dsh-dataops-managed')
+    expect(profile.editions.personal?.packages).not.toContain('@sparkelf/dsh-dataops-managed')
     expect(profile.editions.team?.bundles).toContain('@sparkelf/dsh-dataops-managed')
   })
 
@@ -77,6 +89,6 @@ describe('editions', () => {
       distributionDirectory: directory,
       omittedPackages: {},
     }
-    expect(() => ensureProfile(paths, root, 'missing')).toThrow(/offers personal, team/u)
+    expect(() => ensureProfile(paths, 'missing')).toThrow(/unknown edition "missing"/u)
   })
 })
