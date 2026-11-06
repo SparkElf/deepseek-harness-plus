@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
-index 2bbc35663a..b2dde8dd3b 100644
+index ca346565..98f68705 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css
-@@ -174,13 +174,19 @@
+@@ -178,13 +178,19 @@
    font: 14px/14px var(--ds-font-family-code);
  }
  
@@ -24,7 +24,7 @@ index 2bbc35663a..b2dde8dd3b 100644
    gap: 4px;
    border: 0.5px solid var(--dsw-alias-border-l4);
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
-index c3861f03a9..a63ac8823b 100644
+index 98303805..3a1ad957 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx
 @@ -1,5 +1,6 @@
@@ -34,7 +34,7 @@ index c3861f03a9..a63ac8823b 100644
  import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
  import { IconSearchOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
  import type { NS } from './locales.ts'
-@@ -26,6 +27,8 @@ export interface TrajectoryToolbarProps {
+@@ -30,6 +31,8 @@ export interface TrajectoryToolbarProps {
    searchQuery: string
    /** Update the live ledger search query. */
    onSearchQueryChange: (query: string) => void
@@ -43,16 +43,16 @@ index c3861f03a9..a63ac8823b 100644
    /** Translate a toolbar dictionary key. */
    t: TranslateNS<typeof NS>
  }
-@@ -46,6 +49,7 @@ export function TrajectoryToolbar({
-   onToggleAllAssistants,
+@@ -52,6 +55,7 @@ export function TrajectoryToolbar({
+   onToggleAllSubCalls,
    searchQuery,
    onSearchQueryChange,
 +  utilities,
    t,
  }: TrajectoryToolbarProps) {
    return (
-@@ -111,7 +115,8 @@ export function TrajectoryToolbar({
-             {t('toolbar.calls')}
+@@ -130,7 +134,8 @@ export function TrajectoryToolbar({
+             {t('toolbar.subCalls')}
            </button>
          </div>
 -        <div className={css.search}>
@@ -62,7 +62,7 @@ index c3861f03a9..a63ac8823b 100644
            <input
              type="search"
 diff --git a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
-index 6835939198..47db0ef561 100644
+index 3c70561d..e0095772 100644
 --- a/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 +++ b/packages/client/ui-trajectory/src/client/TrajectoryView.tsx
 @@ -135,7 +135,9 @@ export function TrajectoryView({
@@ -76,8 +76,8 @@ index 6835939198..47db0ef561 100644
    & InjectFace<TrajectoryViewInjected>
    & PropsLocale<'trajectory'>) {
    const [collapsedTurns, setCollapsedTurns] = useState<ReadonlySet<number>>(EMPTY_TURN_IDS)
-@@ -530,6 +532,7 @@ export function TrajectoryView({
-         onToggleAllAssistants={toggleAllAssistants}
+@@ -562,6 +564,7 @@ export function TrajectoryView({
+         onToggleAllSubCalls={toggleAllSubCalls}
          searchQuery={searchQuery}
          onSearchQueryChange={setSearchQuery}
 +        utilities={renderSlot('conversation.trajectory.toolbar.utilities', {})}
@@ -85,7 +85,7 @@ index 6835939198..47db0ef561 100644
        />
        <TrajectoryTimeline
 diff --git a/packages/client/ui-trajectory/src/client/index.ts b/packages/client/ui-trajectory/src/client/index.ts
-index 28bf045ab4..6e44cb96f7 100644
+index 28bf045a..6e44cb96 100644
 --- a/packages/client/ui-trajectory/src/client/index.ts
 +++ b/packages/client/ui-trajectory/src/client/index.ts
 @@ -38,6 +38,13 @@ export type {
@@ -115,10 +115,10 @@ index 28bf045ab4..6e44cb96f7 100644
        const session = ctx.sessions.binding(sessionId)?.session
        if (session === undefined) {
 diff --git a/packages/client/ui-trajectory/tests/views.client.spec.tsx b/packages/client/ui-trajectory/tests/views.client.spec.tsx
-index c233d3315a..93a0fb5f3f 100644
+index 9b61aaef..d5933bad 100644
 --- a/packages/client/ui-trajectory/tests/views.client.spec.tsx
 +++ b/packages/client/ui-trajectory/tests/views.client.spec.tsx
-@@ -249,6 +249,9 @@ function standaloneProps(
+@@ -251,6 +251,9 @@ function standaloneProps(
      loadImage: () => Promise.reject(new Error('standalone views load no images')),
      // The locale seat the outlet would inject for the declared namespace.
      t: tZh,
@@ -129,7 +129,7 @@ index c233d3315a..93a0fb5f3f 100644
  }
  
 diff --git a/packages/session-query/session-log-export/package.json b/packages/session-query/session-log-export/package.json
-index 083b0e2ba7..a63d999978 100644
+index 376163ed..81d87972 100644
 --- a/packages/session-query/session-log-export/package.json
 +++ b/packages/session-query/session-log-export/package.json
 @@ -49,8 +49,8 @@
@@ -167,7 +167,7 @@ index 083b0e2ba7..a63d999978 100644
        "platform": "web"
      }
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.module.css b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
-index 90ca1eedbc..aa22e45ead 100644
+index 90ca1eed..aa22e45e 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.module.css
 @@ -10,3 +10,46 @@
@@ -218,7 +218,7 @@ index 90ca1eedbc..aa22e45ead 100644
 +  .trajectoryButton { display: inline-flex; }
 +}
 diff --git a/packages/session-query/session-log-export/src/client/HeaderAction.tsx b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
-index fcf0cfd862..74a8209ffa 100644
+index fcf0cfd8..74a8209f 100644
 --- a/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 +++ b/packages/session-query/session-log-export/src/client/HeaderAction.tsx
 @@ -1,12 +1,13 @@
@@ -290,7 +290,7 @@ index fcf0cfd862..74a8209ffa 100644
 +  )
 +}
 diff --git a/packages/session-query/session-log-export/src/client/index.ts b/packages/session-query/session-log-export/src/client/index.ts
-index 74808d1751..f3acaa0746 100644
+index 74808d17..f3acaa07 100644
 --- a/packages/session-query/session-log-export/src/client/index.ts
 +++ b/packages/session-query/session-log-export/src/client/index.ts
 @@ -8,11 +8,16 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -339,7 +339,7 @@ index 74808d1751..f3acaa0746 100644
  
  export type { SessionLogDownloadDialogInjected, SessionLogDownloadDialogProps } from './Dialog.tsx'
 diff --git a/packages/session-query/session-log-export/tsconfig.client.json b/packages/session-query/session-log-export/tsconfig.client.json
-index c78dbf6893..43a2f3e861 100644
+index c78dbf68..5e4fd918 100644
 --- a/packages/session-query/session-log-export/tsconfig.client.json
 +++ b/packages/session-query/session-log-export/tsconfig.client.json
 @@ -28,6 +28,7 @@

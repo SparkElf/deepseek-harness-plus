@@ -1,0 +1,50 @@
+{
+  "id": "session-log-trajectory-toolbar",
+  "purpose": "contribute session utilities into the trajectory toolbar, immediately before search",
+  "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+  "appliesOn": "regenerated on dsh-v0.2.2-rc.1 (66491b05); the toolbar props gained fold controls, so the utilities prop was re-anchored",
+  "patch": "patches/session-log-trajectory-toolbar.patch",
+  "patchMd5": "8961def059254276d1a3b0b1f2431768",
+  "patchBytes": 15548,
+  "files": [
+    {
+      "path": "packages/client/ui-trajectory/src/client/TrajectoryToolbar.module.css"
+    },
+    {
+      "path": "packages/client/ui-trajectory/src/client/TrajectoryToolbar.tsx"
+    },
+    {
+      "path": "packages/client/ui-trajectory/src/client/TrajectoryView.tsx"
+    },
+    {
+      "path": "packages/client/ui-trajectory/src/client/index.ts"
+    },
+    {
+      "path": "packages/client/ui-trajectory/tests/views.client.spec.tsx"
+    },
+    {
+      "path": "packages/session-query/session-log-export/package.json"
+    },
+    {
+      "path": "packages/session-query/session-log-export/src/client/HeaderAction.module.css"
+    },
+    {
+      "path": "packages/session-query/session-log-export/src/client/HeaderAction.tsx"
+    },
+    {
+      "path": "packages/session-query/session-log-export/src/client/index.ts"
+    },
+    {
+      "path": "packages/session-query/session-log-export/tsconfig.client.json"
+    }
+  ],
+  "totals": {
+    "files": 10,
+    "added": 136,
+    "removed": 8
+  },
+  "verification": {
+    "pristineApplyCheck": "OK on dsh-v0.2.2-rc.1",
+    "fullSet": "28 patches in alphabetical order, 28 applied, 0 failures"
+  }
+}

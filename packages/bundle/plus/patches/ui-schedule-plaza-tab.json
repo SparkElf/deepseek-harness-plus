@@ -1,0 +1,26 @@
+{
+  "id": "ui-schedule-plaza-tab",
+  "purpose": "declare the automation-page extension seat and its plaza tab wiring",
+  "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+  "appliesOn": "regenerated on dsh-v0.2.2-rc.1 (66491b05); the page, its CSS and the plaza tab are upstream, so only the seat, plazaAvailable and the labels remain",
+  "patch": "patches/ui-schedule-plaza-tab.patch",
+  "patchMd5": "31d5f3e772f225d297ba4e1b143c9dbe",
+  "patchBytes": 4971,
+  "files": [
+    {
+      "path": "packages/client/ui-schedule/src/client/index.ts"
+    },
+    {
+      "path": "packages/client/ui-schedule/src/client/task-manager-locales.ts"
+    }
+  ],
+  "totals": {
+    "files": 2,
+    "added": 28,
+    "removed": 0
+  },
+  "verification": {
+    "pristineApplyCheck": "OK on dsh-v0.2.2-rc.1",
+    "fullSet": "28 patches in alphabetical order, 28 applied, 0 failures"
+  }
+}
