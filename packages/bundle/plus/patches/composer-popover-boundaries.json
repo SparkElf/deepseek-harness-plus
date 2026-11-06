@@ -1,0 +1,38 @@
+{
+  "id": "composer-popover-boundaries",
+  "purpose": "keep the composer model popover inside the centre column instead of the viewport",
+  "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+  "appliesOn": "regenerated on dsh-v0.2.2-rc.1 (66491b05); the base places panels through useAnchoredPosition and already carries the box-sizing half, so only the boundary half remains",
+  "patch": "patches/composer-popover-boundaries.patch",
+  "patchMd5": "b0d4b92c31b0a9ae751a6c16d7d14976",
+  "patchBytes": 12114,
+  "files": [
+    {
+      "path": "apps/web/tests/access-confirmation.e2e.ts"
+    },
+    {
+      "path": "apps/web/tests/default-model.e2e.ts"
+    },
+    {
+      "path": "packages/client/ui-layout/README.md"
+    },
+    {
+      "path": "packages/client/ui-layout/src/client/AppFrame.tsx"
+    },
+    {
+      "path": "packages/client/ui-model-selection/src/client/ModelSelect.tsx"
+    },
+    {
+      "path": "packages/client/ui-primitives/src/useAnchoredPosition.ts"
+    }
+  ],
+  "totals": {
+    "files": 6,
+    "added": 39,
+    "removed": 5
+  },
+  "verification": {
+    "pristineApplyCheck": "OK on dsh-v0.2.2-rc.1",
+    "fullSet": "28 patches in alphabetical order, 28 applied, 0 failures"
+  }
+}
