@@ -14,6 +14,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { createRequire } from 'node:module'
+import { readPatchSet, type PatchSetEntry } from './patch-set.ts'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { satisfies, valid, validRange } from 'semver'
@@ -225,13 +226,16 @@ function requireSourceBase(root: string, baseRevision: string): string {
 
 
 /**
- * Names of the packages that carry `dshPatch` variants.
+ * Names of distribution dependencies that carry `dshPatch` variants.
  *
- * The distribution moved from a flat `dshPlus.patchPackages` list to `dshPlus.patchSet`, whose
- * entries name their target packages per patch. Older tarballs still carry the flat list, so it
- * wins when present; otherwise the union of every entry's `target.packages` is used.
+ * `patchPackageVariants()` resolves these names from the Plus install tree, so they must be
+ * packages this distribution actually depends on. The current manifest declares `dshPlus.patchSet`
+ * instead of a flat list: only entries whose target is an npm package name a `dshPatch` carrier
+ * (`dsh-source` entries name the source packages being patched, which are never Plus dependencies).
+ * An older tarball may still carry the flat `dshPlus.patchPackages` list, which wins when present.
  *
  * @param plus - Parsed `dshPlus` block of the distribution manifest.
+ * @returns Patch-carrier package names; empty when the distribution ships only source patches.
  */
 export function resolvePatchPackageNames(plus: Record<string, unknown>): string[] {
   const declared = plus.patchPackages
@@ -241,19 +245,14 @@ export function resolvePatchPackageNames(plus: Record<string, unknown>): string[
   }
   const patchSet = requireObject(plus.patchSet, 'dshPlus.patchSet')
   const entries = patchSet.entries
-  if (!Array.isArray(entries) || entries.length === 0) {
-    throw new Error('dshPlus.patchSet.entries must be a non-empty array')
-  }
+  if (!Array.isArray(entries)) throw new Error('dshPlus.patchSet.entries must be an array')
   const names = new Set<string>()
   for (const [index, value] of entries.entries()) {
     const entry = requireObject(value, 'dshPlus.patchSet.entries[' + String(index) + ']')
     const target = requireObject(entry.target, 'dshPlus.patchSet.entries[' + String(index) + '].target')
-    if (!Array.isArray(target.packages)) continue
-    for (const name of requireStringArray(target.packages, 'dshPlus.patchSet.entries[' + String(index) + '].target.packages')) {
-      names.add(name)
-    }
+    if (target.kind !== 'npm') continue
+    names.add(requireString(target.name, 'dshPlus.patchSet.entries[' + String(index) + '].target.name'))
   }
-  if (names.size === 0) throw new Error('dshPlus.patchSet must name at least one patch package')
   return [...names].sort()
 }
 
@@ -273,6 +272,30 @@ function patchPackageVariants(distributionDirectory: string, names: readonly str
     }
   }
   return variants
+}
+
+/**
+ * Build patch variants from the distribution's `dshPlus.patchSet`.
+ *
+ * The patch files live inside the Plus package (`./patches/*.patch`), so every variant points at
+ * the distribution itself as its patch package: `resolvePatchFile()` then resolves the declared
+ * path inside the tarball, and `materializePatchFiles()` copies it into the profile's stable
+ * patch directory. Unlike the retired `dshPatch` carrier packages, the source packages named in
+ * `target.packages` are never resolved from the Plus tree -- they are the packages being patched.
+ *
+ * @param distribution - Installed Plus distribution package.
+ */
+function patchSetVariants(distribution: InstalledPackage): ParsedVariant[] {
+  const patchSet = readPatchSet(distribution.directory, distribution.manifest)
+  return [...patchSet.entries, ...patchSet.thirdPartyPatches].map((entry: PatchSetEntry): ParsedVariant => ({
+    id: entry.id,
+    dsh: entry.dsh,
+    file: entry.file,
+    patchPackage: distribution,
+    target: entry.target.kind === 'npm'
+      ? { kind: 'npm', name: entry.target.name, range: entry.target.range }
+      : { kind: 'dsh-source', baseRevision: entry.target.baseRevision },
+  }))
 }
 
 // 先验证official source，再物化Plus声明的profile依赖，避免source不匹配时改动用户profile。
@@ -320,8 +343,18 @@ function prepareSelection(
     throw new Error(distributionName + '@' + distributionVersion + ' requires DSH ' + dshRange + ', found ' + dshVersion)
   }
   const checkoutRevision = requireSourceBase(dshRoot, baseRevision)
+  // Legacy tarballs declare `dshPlus.patchPackages` (dshPatch carrier packages); the current
+  // distribution declares `dshPlus.patchSet` with the patch files inside the Plus package.
+  const variants = plus.patchPackages === undefined
+    ? patchSetVariants({
+      name: distributionName,
+      version: distributionVersion,
+      directory: distributionDirectory,
+      manifest: distributionManifest,
+    })
+    : patchPackageVariants(distributionDirectory, patchPackageNames)
   const groups = new Map<string, ParsedVariant[]>()
-  for (const variant of patchPackageVariants(distributionDirectory, patchPackageNames)) {
+  for (const variant of variants) {
     const entries = groups.get(variant.id) ?? []
     entries.push(variant)
     groups.set(variant.id, entries)

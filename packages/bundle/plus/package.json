@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.55",
+  "version": "0.2.9-alpha.58",
   "publishConfig": {
     "access": "public"
   },
@@ -114,7 +114,7 @@
         "@sparkelf/dsh-query-result-analysis": "0.1.4",
         "@sparkelf/dsh-knowledge-base": "0.1.32",
         "@sparkelf/dsh-credential-manager": "0.1.3",
-        "@sparkelf/dsh-group-chat": "0.5.4",
+        "@sparkelf/dsh-group-chat": "0.5.6",
         "@sparkelf/dsh-kb-citation": "0.1.3",
         "@sparkelf/dsh-dataops-account": "0.2.0",
         "@sparkelf/dsh-ocr": "0.1.0",
@@ -270,6 +270,21 @@
           },
           "file": "./patches/image-offload-hoist-replay.patch",
           "retireWhen": "官方 session-query/compaction 原生兼容插件 projection 的持久化位置，并跳过不可迁移日志、边读边索引后退役"
+        },
+        {
+          "id": "input-trigger-source-label",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-conversation"
+            ],
+            "paths": [
+              "packages/client/ui-conversation/"
+            ]
+          },
+          "file": "./patches/input-trigger-source-label.patch",
+          "retireWhen": "官方 composer 的 @ 菜单显示来源分组名后退役"
         },
         {
           "id": "legacy-code-preset",

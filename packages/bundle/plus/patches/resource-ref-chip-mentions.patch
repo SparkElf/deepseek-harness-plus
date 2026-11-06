@@ -1,0 +1,377 @@
+diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
+index 9233ac84cb..21ce2a2dad 100644
+--- a/packages/api/session-controller/src/client/contract/session.ts
++++ b/packages/api/session-controller/src/client/contract/session.ts
+@@ -12,7 +12,7 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
+ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+-import type { PromptContentPart, QueueAction, SessionRequestId } from '../../types.ts'
++import type { PromptContentPart, QueueAction, SessionMentionRef, SessionRequestId } from '../../types.ts'
+ import type { PendingSubmissionAttachment, SessionSnapshot } from './snapshot.ts'
+ 
+ /**
+@@ -100,6 +100,7 @@ export interface ISession {
+     mode: 'queue' | 'steer',
+     signal?: AbortSignal,
+     requestId?: SessionRequestId,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<RemoteResult<{ accepted: true }>>
+   /**
+    * Resolve one stored image using this Session's gateway permission scope.
+diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
+index b9600f36a6..d48cb92447 100644
+--- a/packages/api/session-controller/src/client/index.ts
++++ b/packages/api/session-controller/src/client/index.ts
+@@ -28,6 +28,7 @@ export { createScope, scopeOf } from './scope.ts'
+ export type { AgentContext, AgentScopeHandle } from './scope.ts'
+ export { SessionCreateError, SessionForkError } from './sessions/service.ts'
+ export type { SessionBinding, SessionListState, SessionSummary } from './sessions/service.ts'
++export type { SessionMentionRef } from '../types.ts'
+ export type {
+   SessionListPhase,
+   SessionListSnapshot,
+diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
+index 253da9c463..0d5d4bbf67 100644
+--- a/packages/api/session-controller/src/client/sessions/session.ts
++++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -17,6 +17,7 @@ import type {
+   SessionAssistantStreamBaseline,
+   SessionProjectionBaseline,
+   SessionRequestId,
++  SessionMentionRef,
+ } from '../../types.ts'
+ import type {
+   BeginSubmissionInput, PendingSubmissionRetirement, SessionFace, SubmissionHandle,
+@@ -263,6 +264,7 @@ export class Session implements SessionFace {
+     mode: 'queue' | 'steer',
+     signal?: AbortSignal,
+     requestId?: SessionRequestId,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<RemoteResult<{ accepted: true }>> {
+     this.promptError = null
+     this.lastAgentError = null
+@@ -278,6 +280,7 @@ export class Session implements SessionFace {
+         mode,
+         content,
+         clientTimeZone,
++        ...(mentions === undefined || mentions.length === 0 ? {} : { mentions }),
+       }, signal)
+     } else if (content.some(part => part.type === 'file')) {
+       result = {
+diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
+index 94d08c77e3..3d9bf30009 100644
+--- a/packages/api/session-controller/src/index.ts
++++ b/packages/api/session-controller/src/index.ts
+@@ -484,6 +484,9 @@ export class SessionController extends TypertRemoteService {
+       rpcId: request.requestId,
+       ...(clientTimeZone === undefined ? {} : { clientTimeZone }),
+       ...(principal === undefined ? {} : { principal }),
++      // Structured mentions ride the durable source, not the model content: a host plugin that
++      // routes on identity reads them here, and the model only sees the text.
++      ...(request.mentions === undefined || request.mentions.length === 0 ? {} : { mentions: request.mentions }),
+     }
+     return this.commands.prompt(request, source)
+   }
+diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
+index 9e399d8f3b..46a4507c56 100644
+--- a/packages/api/session-controller/src/types.ts
++++ b/packages/api/session-controller/src/types.ts
+@@ -317,6 +317,23 @@ export interface SessionForkValue {
+   readonly sessionId: SessionId
+ }
+ 
++/**
++ * One structured mention a client declared when composing a prompt.
++ *
++ * The composer's `@` menu renders a chip per source, and a source opts in by inserting with
++ * `appearance: 'mention'`; the reference travels here as identity plus the label the user saw, so
++ * a host plugin can route it without parsing the prompt text. Never part of the model input: the
++ * text already names the item.
++ */
++export interface SessionMentionRef {
++  /** Trigger source that produced the chip (e.g. a roster source). */
++  readonly sourceId: string
++  /** Source-scoped identity of the picked item. */
++  readonly itemId: string
++  /** Display label the user picked, for diagnostics and dedupe. */
++  readonly displayName: string
++}
++
+ /** Session prompt request. */
+ export interface SessionPromptRequest {
+   /** Client-minted identity persisted on the exact accepted user message. */
+@@ -325,6 +342,8 @@ export interface SessionPromptRequest {
+   readonly mode: 'queue' | 'steer'
+   /** At least one non-whitespace text part or attachment. */
+   readonly content: readonly PromptContentPart[]
++  /** Structured mentions the composer declared, in document order. Absent when it carried none. */
++  readonly mentions?: readonly SessionMentionRef[]
+   readonly clientTimeZone?: string
+ }
+ 
+@@ -394,7 +413,13 @@ declare module '@deepseek-ai/dsh-llm' {
+      * caller that submitted the prompt. `principal` is written only for a
+      * caller other than the owner, so an absent `principal` means the owner.
+      */
+-    'user-rpc': { kind: 'user'; rpcId: SessionRequestId; clientTimeZone?: string; principal?: Principal }
++    'user-rpc': {
++      kind: 'user'
++      rpcId: SessionRequestId
++      clientTimeZone?: string
++      principal?: Principal
++      mentions?: readonly SessionMentionRef[]
++    }
+   }
+ }
+ 
+diff --git a/packages/client/ui-conversation/src/client/contract/draft-editor.ts b/packages/client/ui-conversation/src/client/contract/draft-editor.ts
+index b305bb3a3c..069ad977dd 100644
+--- a/packages/client/ui-conversation/src/client/contract/draft-editor.ts
++++ b/packages/client/ui-conversation/src/client/contract/draft-editor.ts
+@@ -15,7 +15,12 @@ export interface ReferenceInsert {
+   readonly source: string
+   readonly ref: string
+   readonly label: string
+-  readonly appearance?: 'session' | 'file' | 'folder'
++  /**
++   * Row glyph, and the submit-time declaration hook: `'mention'` marks a reference a host plugin
++   * must receive as structured identity (`source`/`ref`) rather than re-parse out of the text.
++   * Every other value is display-only.
++   */
++  readonly appearance?: 'session' | 'file' | 'folder' | 'resource' | 'mention'
+   readonly clipboardText: string
+ }
+ 
+diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
+index 6306216b1c..d8e2233001 100644
+--- a/packages/client/ui-conversation/src/client/input/facade.ts
++++ b/packages/client/ui-conversation/src/client/input/facade.ts
+@@ -20,8 +20,10 @@ import type {
+   SessionInput, SubmitAttempt, SubmitAttachment, SubmitOutcome,
+ } from '../contract/input.ts'
+ import type {
+-  ArbitrateKey, ArbitrateOutcome, ComposerKeyboard, DraftInput, DraftSnapshot, ReferenceInsert, TokenSpan,
++  ArbitrateKey, ArbitrateOutcome, ComposerKeyboard, DraftInput, DraftSnapshot, Occurrence,
++  ReferenceInsert, TokenSpan,
+ } from '../contract/draft-editor.ts'
++import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { InputSubmitMode, MessageSubmission, MessageSubmissionState } from '../contract/composer-submission.ts'
+ import { serializeDraftPrompt } from './prompt.ts'
+ import { SubmitMachine } from './machine.ts'
+@@ -69,6 +71,7 @@ export interface SessionInputDeps {
+     mode: InputSubmitMode,
+     signal: AbortSignal,
+     accept: () => void,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<SubmitOutcome>
+   /** Live Session and composer-block policy for transcript insertion. */
+   quoteInsertionAllowed?: () => boolean
+@@ -129,6 +132,29 @@ const EMPTY_LEXICON: ReadonlyMap<'/' | '@', readonly string[]> = new Map()
+  * setDraft/submit + the published InputState store, over a shell-owned
+  * Lexical editor.
+  */
++/**
++ * Structured mentions declared by one draft, in document order.
++ *
++ * Only `appearance: 'mention'` chips qualify: a source opts in when it inserts through
++ * `PickOutcome.insert`, and the host plugin that owns the roster reads the ids instead of parsing
++ * `@name` out of the text (which would misread a code sample and let any message smuggle itself
++ * into a routing decision). The same item picked twice is one mention.
++ * @param occurrences - chip occurrences projected from the editor.
++ * @returns `{sourceId, itemId, displayName}` records, or undefined when the draft declared none.
++ */
++export const collectMentions = (occurrences: readonly Occurrence[]): readonly SessionMentionRef[] | undefined => {
++  const seen = new Set<string>()
++  const mentions: SessionMentionRef[] = []
++  for (const occurrence of occurrences) {
++    if (occurrence.appearance !== 'mention') continue
++    const key = occurrence.source + '\u0000' + occurrence.ref
++    if (seen.has(key)) continue
++    seen.add(key)
++    mentions.push({ sourceId: occurrence.source, itemId: occurrence.ref, displayName: occurrence.label })
++  }
++  return mentions.length === 0 ? undefined : mentions
++}
++
+ export class SessionInputShell implements SessionInput {
+   /** Published editor projection + submit-plane state + queue overlay (the InputZone currency source). */
+   readonly state: SnapshotStore<InputState>
+@@ -726,7 +752,10 @@ export class SessionInputShell implements SessionInput {
+     })
+     const send = (text: string): void => {
+       if (this.dead(attempt)) return
+-      this.settleSink(attempt, this.deps.defaultSink(text, attachmentIds, mode, attempt.signal, () => { this.acceptSink(attempt) }))
++      const mentions = collectMentions(attempt.occurrences)
++      this.settleSink(attempt, mentions === undefined
++        ? this.deps.defaultSink(text, attachmentIds, mode, attempt.signal, () => { this.acceptSink(attempt) })
++        : this.deps.defaultSink(text, attachmentIds, mode, attempt.signal, () => { this.acceptSink(attempt) }, mentions))
+     }
+     if (!(prompt instanceof Promise)) { send(prompt); return }
+     void prompt.then(send, (error: unknown) => { this.failSink(attempt, error) })
+diff --git a/packages/client/ui-conversation/src/client/input/hub.ts b/packages/client/ui-conversation/src/client/input/hub.ts
+index 02897a18c6..5f1a3228a4 100644
+--- a/packages/client/ui-conversation/src/client/input/hub.ts
++++ b/packages/client/ui-conversation/src/client/input/hub.ts
+@@ -12,6 +12,7 @@ import type {
+   ISessions, SessionBinding, SessionFace,
+ } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
++import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { TranslateNS } from '@deepseek-ai/dsh-client-locale/client'
+ import type { InboxState } from '@deepseek-ai/dsh-agent/types'
+ import type { ModelSelectionProjection } from '@deepseek-ai/dsh-agent/types'
+@@ -49,6 +50,7 @@ interface ConversationAttachmentFace {
+     mode: InputSubmitMode,
+     signal?: AbortSignal,
+     accept?: () => void,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<SubmitOutcome>
+   serializeDraftAttachments(attachmentIds: readonly DraftAttachmentId[]): Promise<DraftAttachmentSerializationResult>
+   releaseDraftAttachment(id: DraftAttachmentId): void
+@@ -125,7 +127,7 @@ export class InputHub implements SessionInputResolver {
+       inputTriggers: () => this.controller(actx),
+       popup: () => this.popup(actx),
+       inbox: session.projections.faceOf('inbox') as ObservableSnapshot<InboxState | undefined>,
+-      defaultSink: (text, attachmentIds, mode, signal, accept) => this.sink(session, text, attachmentIds, mode, signal, accept),
++      defaultSink: (text, attachmentIds, mode, signal, accept, mentions) => this.sink(session, text, attachmentIds, mode, signal, accept, mentions),
+       quoteRemoveLabel: () => this.t('quote.remove'),
+       quoteInsertionAllowed: () => {
+         const state = session.getSnapshot()
+@@ -250,9 +252,13 @@ export class InputHub implements SessionInputResolver {
+     mode: InputSubmitMode,
+     signal: AbortSignal,
+     accept: () => void,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<SubmitOutcome> {
+     if (text === '' && attachmentIds.length === 0) return Promise.resolve({ kind: 'success' })
+-    return this.conversation().sendSession(session, text, attachmentIds, mode, signal, accept)
++    // A draft that declared mentions takes one extra argument; the ordinary send keeps its shape.
++    return mentions === undefined || mentions.length === 0
++      ? this.conversation().sendSession(session, text, attachmentIds, mode, signal, accept)
++      : this.conversation().sendSession(session, text, attachmentIds, mode, signal, accept, mentions)
+   }
+ 
+   /**
+diff --git a/packages/client/ui-conversation/src/client/service.ts b/packages/client/ui-conversation/src/client/service.ts
+index af19eb7721..4ae2286dcd 100644
+--- a/packages/client/ui-conversation/src/client/service.ts
++++ b/packages/client/ui-conversation/src/client/service.ts
+@@ -9,6 +9,7 @@
+  */
+ import { Service } from '@deepseek-ai/cordis'
+ import type { Context } from '@deepseek-ai/cordis'
++import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
+ import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
+ // Type-only imports: a plugin-to-plugin value import is a bundle purity
+ // error, so scope resolution goes through the sessions service (scopeOf
+@@ -238,6 +239,7 @@ export class ConversationController extends Service implements IConversation {
+     mode: InputSubmitMode,
+     signal?: AbortSignal,
+     accept?: () => void,
++    mentions?: readonly SessionMentionRef[],
+   ): Promise<SubmitOutcome> {
+     const attachments = this.resolveDraftAttachments(attachmentIds)
+     if (attachments.length !== attachmentIds.length) {
+@@ -306,7 +308,12 @@ export class ConversationController extends Service implements IConversation {
+     }
+     // An Inbox row can show the acceptance before the receipt; a receipt that fails afterwards changes
+     // nothing here because the Host already holds the message.
+-    const result = await Promise.race([session.prompt(content, mode, signal, submission.requestId), acceptance.promise])
++    // Only a draft that declared mentions takes the extra argument, so the ordinary send keeps the
++    // four-argument prompt every caller and test double already knows.
++    const prompting = mentions === undefined || mentions.length === 0
++      ? session.prompt(content, mode, signal, submission.requestId)
++      : session.prompt(content, mode, signal, submission.requestId, mentions)
++    const result = await Promise.race([prompting, acceptance.promise])
+     if (result !== undefined && !result.ok) return { kind: 'error' }
+     ownership.accepted = true
+     // An accepted prompt whose echo already retired unobserved, as when its queue entry was removed.
+diff --git a/packages/client/ui-conversation/tests/mentions.client.spec.ts b/packages/client/ui-conversation/tests/mentions.client.spec.ts
+new file mode 100644
+index 0000000000..7439cbfff0
+--- /dev/null
++++ b/packages/client/ui-conversation/tests/mentions.client.spec.ts
+@@ -0,0 +1,45 @@
++import { describe, expect, it } from 'vitest'
++import type { Occurrence } from '../src/client/contract/draft-editor.ts'
++import { collectMentions } from '../src/client/input/facade.ts'
++
++/** One projected chip occurrence; only the fields the collector reads are interesting. */
++const occurrence = (patch: Partial<Occurrence> & Pick<Occurrence, 'source' | 'ref'>): Occurrence => ({
++  occurrenceId: 1,
++  offset: 0,
++  length: 4,
++  label: 'label',
++  clipboardText: '@label',
++  ...patch,
++})
++
++describe('collecting declared mentions', () => {
++  it('takes mention chips only, in document order', () => {
++    const mentions = collectMentions([
++      occurrence({ source: 'reference', ref: 'src/a.ts', appearance: 'file', label: 'a.ts' }),
++      occurrence({ source: 'roster', ref: 'u-1', appearance: 'mention', label: '张三' }),
++      occurrence({ source: 'roster', ref: 'u-2', appearance: 'mention', label: '李四' }),
++    ])
++
++    // A file chip is a reference the model reads, not an identity a host plugin routes on.
++    expect(mentions).toEqual([
++      { sourceId: 'roster', itemId: 'u-1', displayName: '张三' },
++      { sourceId: 'roster', itemId: 'u-2', displayName: '李四' },
++    ])
++  })
++
++  it('reports one mention when the same item is picked twice', () => {
++    const mentions = collectMentions([
++      occurrence({ source: 'roster', ref: 'u-1', appearance: 'mention', label: '张三' }),
++      occurrence({ source: 'roster', ref: 'u-1', appearance: 'mention', label: '张三' }),
++    ])
++
++    expect(mentions).toEqual([{ sourceId: 'roster', itemId: 'u-1', displayName: '张三' }])
++  })
++
++  it('answers undefined for a draft that declared none', () => {
++    // Undefined, not an empty array: the sink keeps its original argument shape, so callers and
++    // test doubles that never saw a mention stay unchanged.
++    expect(collectMentions([])).toBeUndefined()
++    expect(collectMentions([occurrence({ source: 'reference', ref: 'x', appearance: 'session' })])).toBeUndefined()
++  })
++})
+\ No newline at end of file
+diff --git a/packages/client/ui-primitives/src/ReferenceIcon.tsx b/packages/client/ui-primitives/src/ReferenceIcon.tsx
+index ca566c40f6..7fd75f96a2 100644
+--- a/packages/client/ui-primitives/src/ReferenceIcon.tsx
++++ b/packages/client/ui-primitives/src/ReferenceIcon.tsx
+@@ -1,12 +1,12 @@
+ import type { ReactNode } from 'react'
+-import { ICON_MEDIUM_STROKE, ICON_REGULAR_STROKE } from './icons/index.tsx'
++import { ICON_MEDIUM_STROKE, ICON_REGULAR_STROKE, IconUserOutlineRegular } from './icons/index.tsx'
+ import type { IconProps } from './icons/props.ts'
+ import {
+   BrowseOutlineArtwork, ChatLinesOutlineArtwork, FolderCloseArtwork,
+ } from './icons/shared-artwork.tsx'
+ 
+ /** Reference domains with distinct composer and transcript glyphs. */
+-export type ReferenceIconKind = 'session' | 'file' | 'folder'
++export type ReferenceIconKind = 'session' | 'file' | 'folder' | 'resource' | 'mention'
+ 
+ /** Props shared by inline reference glyphs. */
+ export interface ReferenceIconProps extends IconProps {
+@@ -25,8 +25,16 @@ interface WeightedReferenceIconProps extends ReferenceIconProps {
+ function ReferenceIconArtwork({ kind, size = 16, className, strokeWidth }: WeightedReferenceIconProps): ReactNode {
+   switch (kind) {
+     case 'session': return <ChatLinesOutlineArtwork size={size} className={className} strokeWidth={strokeWidth} />
++    case 'mention': return <IconUserOutlineRegular size={size} className={className} />
+     case 'file': return <BrowseOutlineArtwork size={size} className={className} strokeWidth={strokeWidth} />
+     case 'folder': return <FolderCloseArtwork size={size} className={className} strokeWidth={strokeWidth} />
++    case 'resource': return (
++      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
++        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
++        <path d="m3.3 7 8.7 5 8.7-5" />
++        <path d="M12 22V12" />
++      </svg>
++    )
+   }
+ }
+ 
