@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   materializeOfficialPackageScope,
   parseOfficialWorkspacePackages,
+  resolvePatchPackageNames,
 } from '../src/apply.ts'
 
 const fixtures: string[] = []
@@ -93,5 +94,35 @@ describe('Plus official package scope', () => {
     expect(lstatSync(scope).isDirectory()).toBe(true)
     expect(realpathSync(join(scope, 'dsh-tools'))).toBe(realpathSync(workspaceTools))
     expect(realpathSync(join(scope, 'dsh-attachment'))).toBe(realpathSync(workspaceAttachment))
+  })
+})
+
+describe('patch package names', () => {
+  it('derives the union from dshPlus.patchSet when no flat list exists', () => {
+    const names = resolvePatchPackageNames({
+      patchSet: {
+        formatVersion: 1,
+        entries: [
+          { id: 'a', target: { kind: 'dsh-source', packages: ['@deepseek-ai/dsh-base', '@sparkelf/x'] } },
+          { id: 'b', target: { kind: 'dsh-source', packages: ['@sparkelf/x', '@sparkelf/y'] } },
+          { id: 'c', target: { kind: 'npm', packages: ['@sparkelf/z'] } },
+        ],
+      },
+    } as never)
+    expect(names).toEqual(['@deepseek-ai/dsh-base', '@sparkelf/x', '@sparkelf/y', '@sparkelf/z'])
+  })
+
+  it('prefers the flat list when an older tarball still carries it', () => {
+    const names = resolvePatchPackageNames({
+      patchPackages: ['@sparkelf/legacy'],
+      patchSet: { entries: [{ id: 'a', target: { kind: 'dsh-source', packages: ['@sparkelf/new'] } }] },
+    } as never)
+    expect(names).toEqual(['@sparkelf/legacy'])
+  })
+
+  it('rejects a patchSet that names no package', () => {
+    expect(() => resolvePatchPackageNames({
+      patchSet: { entries: [{ id: 'a', target: { kind: 'dsh-source' } }] },
+    } as never)).toThrow(/at least one patch package/u)
   })
 })

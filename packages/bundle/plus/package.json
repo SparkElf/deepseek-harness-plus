@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.10-alpha.51",
+  "version": "0.2.9-alpha.55",
   "publishConfig": {
     "access": "public"
   },
@@ -366,6 +366,25 @@
           "retireWhen": "官方 PTC SDK 保留 MCP 参数类型后退役"
         },
         {
+          "id": "resource-ref-chip-mentions",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-api-session-controller",
+              "@deepseek-ai/dsh-client-ui-conversation",
+              "@deepseek-ai/dsh-client-ui-primitives"
+            ],
+            "paths": [
+              "packages/api/session-controller/",
+              "packages/client/ui-conversation/",
+              "packages/client/ui-primitives/"
+            ]
+          },
+          "file": "./patches/resource-ref-chip-mentions.patch",
+          "retireWhen": "官方 composer 同时内置资源引用 chip 与结构化 @ mentions 后退役"
+        },
+        {
           "id": "responses-reasoning-status",
           "dsh": ">=0.2.2-alpha.2",
           "target": {
@@ -381,6 +400,21 @@
           },
           "file": "./patches/responses-reasoning-status.patch",
           "retireWhen": "官方 llm-pi-ai 提供等价的 Responses 输入兼容开关后退役"
+        },
+        {
+          "id": "session-controller-image-downgrade-and-tool-visibility",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-api-session-controller"
+            ],
+            "paths": [
+              "packages/api/session-controller/"
+            ]
+          },
+          "file": "./patches/session-controller-image-downgrade-and-tool-visibility.patch",
+          "retireWhen": "上游 dsh-api-session-controller 支持非视觉模型图片降级与按模型能力裁剪工具面后退役"
         },
         {
           "id": "session-envelope-ignorable",
@@ -460,6 +494,21 @@
           "retireWhen": "官方 ui-primitives 加载动画恢复品牌蓝后退役"
         },
         {
+          "id": "ui-schedule-plaza-tab",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/client/ui-schedule/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-schedule"
+            ]
+          },
+          "file": "./patches/ui-schedule-plaza-tab.patch",
+          "retireWhen": "官方 ui-schedule 自动化任务页自行声明并渲染 schedule.manager.tabs 座位后退役"
+        },
+        {
           "id": "ui-settings-compact-phone",
           "dsh": ">=0.2.2-alpha.2",
           "target": {
@@ -475,19 +524,19 @@
           "retireWhen": "官方 ui-settings-general 为窄屏提供手机布局后退役"
         },
         {
-          "id": "ui-schedule-plaza-tab",
+          "id": "ui-sidebar-right-global-panel",
           "dsh": ">=0.2.2-alpha.2",
           "target": {
             "kind": "dsh-source",
             "paths": [
-              "packages/client/ui-schedule/"
+              "packages/client/ui-sidebar-right/"
             ],
             "packages": [
-              "@deepseek-ai/dsh-client-ui-schedule"
+              "@deepseek-ai/dsh-client-ui-sidebar-right"
             ]
           },
-          "file": "./patches/ui-schedule-plaza-tab.patch",
-          "retireWhen": "官方 ui-schedule 自动化任务页自行声明并渲染 schedule.manager.tabs 座位后退役"
+          "file": "./patches/ui-sidebar-right-global-panel.patch",
+          "retireWhen": "官方 ui-sidebar-right 的 RightbarRoot 在 global panel（activePanelId !== null）下渲染 rightbar.session 后退役"
         },
         {
           "id": "web-runtime-compat",
@@ -535,74 +584,6 @@
           },
           "file": "./patches/wsl-native-open.patch",
           "retireWhen": "官方 open-in-app 为 Windows 解释器翻译 POSIX 路径后退役"
-        },
-        {
-          "id": "ui-sidebar-right-global-panel",
-          "dsh": ">=0.2.2-alpha.2",
-          "target": {
-            "kind": "dsh-source",
-            "paths": [
-              "packages/client/ui-sidebar-right/"
-            ],
-            "packages": [
-              "@deepseek-ai/dsh-client-ui-sidebar-right"
-            ]
-          },
-          "file": "./patches/ui-sidebar-right-global-panel.patch",
-          "retireWhen": "官方 ui-sidebar-right 的 RightbarRoot 在 global panel（activePanelId !== null）下渲染 rightbar.session 后退役"
-        },
-        {
-          "id": "dsh-resource-ref-chip",
-          "dsh": ">=0.2.2-alpha.2",
-          "target": {
-            "kind": "dsh-source",
-            "paths": [
-              "packages/client/ui-primitives/",
-              "packages/client/ui-conversation/"
-            ],
-            "packages": [
-              "@deepseek-ai/dsh-client-ui-primitives",
-              "@deepseek-ai/dsh-client-ui-conversation"
-            ],
-            "republish": false,
-            "reason": "the conversation change widens a TypeScript union only; types are erased at runtime, so republishing ui-primitives is enough"
-          },
-          "file": "./patches/dsh-resource-ref-chip.patch",
-          "retireWhen": "官方 primitives 的 ReferenceIconKind 增加 resource 类型后退役"
-        },
-        {
-          "id": "composer-structured-mentions",
-          "dsh": ">=0.2.2-alpha.2",
-          "target": {
-            "kind": "dsh-source",
-            "packages": [
-              "@deepseek-ai/dsh-api-session-controller",
-              "@deepseek-ai/dsh-client-ui-conversation",
-              "@deepseek-ai/dsh-client-ui-primitives"
-            ],
-            "paths": [
-              "packages/api/session-controller/",
-              "packages/client/ui-conversation/",
-              "packages/client/ui-primitives/"
-            ]
-          },
-          "file": "./patches/composer-structured-mentions.patch",
-          "retireWhen": "官方 composer 原生支持结构化 @ mentions（SessionPromptRequest.mentions）后退役"
-        },
-        {
-          "id": "session-controller-image-downgrade-and-tool-visibility",
-          "dsh": ">=0.2.2-alpha.2",
-          "target": {
-            "kind": "dsh-source",
-            "packages": [
-              "@deepseek-ai/dsh-api-session-controller"
-            ],
-            "paths": [
-              "packages/api/session-controller/"
-            ]
-          },
-          "file": "./patches/session-controller-image-downgrade-and-tool-visibility.patch",
-          "retireWhen": "上游 dsh-api-session-controller 支持非视觉模型图片降级与按模型能力裁剪工具面后退役"
         }
       ]
     },
