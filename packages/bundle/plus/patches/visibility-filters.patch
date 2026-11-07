@@ -1,0 +1,646 @@
+diff --git a/packages/core/session/src/index.ts b/packages/core/session/src/index.ts
+index e9baee1b..8ec2134e 100644
+--- a/packages/core/session/src/index.ts
++++ b/packages/core/session/src/index.ts
+@@ -542,6 +542,15 @@ export class Session {
+    */
+   readonly header: SessionHeader
+ 
++  /**
++   * Opaque connector identity for this Session, or undefined when nobody attached one.
++   *
++   * The base never interprets it: it only hands it to the disclosure filters a plugin registered,
++   * which decide what the value means. Writable on purpose -- the owner replaces the whole object
++   * when its identity snapshot changes, rather than mutating a value other readers may hold.
++   */
++  actor?: unknown
++
+   /** Number of leading events inherited from this Session's fork parent. */
+   readonly inheritedEventCount: SessionLogOffset
+ 
+@@ -1177,6 +1186,7 @@ export class SessionStore extends Service {
+             eventState,
+             this.projections,
+           )
++          if (options.actor !== undefined) session.actor = options.actor
+           attachments.set(session, null)
+           return session
+         }
+@@ -1201,6 +1211,7 @@ export class SessionStore extends Service {
+       ...meta?.agentPreset === undefined ? {} : { agentPreset: meta.agentPreset },
+     }
+     const session = Session.create(sessionId, seed, header, options?.inheritedEventCount, this.projections)
++    if (options?.actor !== undefined) session.actor = options.actor
+     attachments.set(session, null)
+     return session
+   }
+diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
+index 7787dd9b..7f9211dd 100644
+--- a/packages/core/session/src/types.ts
++++ b/packages/core/session/src/types.ts
+@@ -141,6 +141,15 @@ export interface SessionHeader {
+  * store folds into a {@link SessionHeader}.
+  */
+ export interface CreateSessionOptions {
++  /**
++   * Opaque identity the owning connector attaches to this Session.
++   *
++   * The base neither reads nor copies it: a disclosure filter handed to
++   * `ctx.tools.addVisibilityFilter` / `ctx.skills.addVisibilityFilter` is the only consumer, and
++   * it interprets the value on its own. The connector replaces the whole object to refresh what
++   * it stands for, so a stale snapshot can never be mistaken for a live one.
++   */
++  readonly actor?: unknown
+   /** Initial replay or fork history supplied at construction. */
+   readonly seed?: readonly SessionEvent[]
+   /**
+@@ -183,6 +192,8 @@ export interface RestoredSessionOptions {
+   readonly inheritedEventCount: SessionLogOffset
+   /** Aliasing state carried from the operation that produced the seed. */
+   readonly eventState: SessionSeedEventState
++  /** Opaque connector identity, attached after the restored Session is constructed. */
++  readonly actor?: unknown
+ }
+ 
+ /** Inputs accepted while constructing an unpublished Session. */
+diff --git a/packages/core/tools/src/contracts.ts b/packages/core/tools/src/contracts.ts
+index 089dc094..8699be42 100644
+--- a/packages/core/tools/src/contracts.ts
++++ b/packages/core/tools/src/contracts.ts
+@@ -3,7 +3,7 @@ import { HarnessError } from '@deepseek-ai/dsh-llm'
+ import type { ToolCallId, ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
+ import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'
+ import type { ScopeKey } from '@deepseek-ai/dsh-scope'
+-import type { UserMessage } from '@deepseek-ai/dsh-session'
++import type { Session, UserMessage } from '@deepseek-ai/dsh-session'
+ import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+ import type { JsonSchemaNode } from './json-schema.ts'
+ import type { ToolCallView, ToolResultView } from './presentation.ts'
+@@ -111,6 +111,32 @@ export interface ToolActivationContext {
+   readonly signal: AbortSignal
+ }
+ 
++/**
++ * One disclosure rule over the model-facing tool list.
++ *
++ * The base owns no permission model. A plugin that knows which tools are sensitive registers a
++ * filter; the rule itself decides what "sensitive" means, and the base only applies the result
++ * while it assembles the step's tool set.
++ */
++export interface ToolVisibilityFilter {
++  /**
++   * Whether this rule speaks about one tool.
++   * @param tool - registered definition, including its name.
++   * @returns true when {@link hidden} must be consulted for this tool; false leaves it untouched.
++   */
++  readonly appliesTo: (tool: ToolDefinition) => boolean
++  /**
++   * Whether the tool must be withheld from the model in this Session.
++   *
++   * Called only for tools {@link appliesTo} accepted. Return true to hide. An exception is logged
++   * and treated as "not hidden", so one broken rule cannot empty the tool list.
++   * @param session - the Session being assembled, or undefined outside a Session.
++   * @param tool - the same definition {@link appliesTo} received.
++   * @returns true to hide the tool for this Session.
++   */
++  readonly hidden: (session: Session | undefined, tool: ToolDefinition) => boolean
++}
++
+ /** Lifecycle-owned conditions for a registered tool. */
+ export interface ToolRegistrationOptions {
+   /**
+diff --git a/packages/core/tools/src/index.ts b/packages/core/tools/src/index.ts
+index d2d10d6b..a187d37d 100644
+--- a/packages/core/tools/src/index.ts
++++ b/packages/core/tools/src/index.ts
+@@ -3,6 +3,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
+ import z from '@deepseek-ai/schemastery'
+ import { AnonymousEntries, NamedEntries, ScopedLayers, scopeOf, scopeChainOf } from '@deepseek-ai/dsh-scope'
+ import type { ScopeKey, ScopeLayer } from '@deepseek-ai/dsh-scope'
++import type { Agent } from '@deepseek-ai/dsh-agent'
+ import { ToolExecutorUnavailableError } from './executor.ts'
+ import type { ToolExecutor, ToolBatchInput, ToolBatchResult } from './executor.ts'
+ import './events.ts'
+@@ -12,7 +13,7 @@ import { assertSupportedJsonSchema } from './json-schema.ts'
+ import { RUN_CODE_NAME, ToolActivationError } from './contracts.ts'
+ import type {
+   ToolDefinition, ToolRestriction, ToolExecution, ToolGuard,
+-  ResolvedToolSet, ToolActivationContext, ToolRegistrationOptions,
++  ResolvedToolSet, ToolActivationContext, ToolRegistrationOptions, ToolVisibilityFilter,
+ } from './contracts.ts'
+ 
+ declare module '@deepseek-ai/dsh-system-prompt' {
+@@ -97,6 +98,12 @@ class GuardLayer {
+ 
+ /** Concrete tool registry and scoped executor dispatcher. */
+ export class ToolsService extends Service {
++  /**
++   * Disclosure rules contributed by plugins. The base never inspects a rule: it asks each one
++   * whether it applies and whether the tool must be hidden, and treats a throw as "not hidden".
++   * Registration order does not matter -- the result is the union of every hiding rule.
++   */
++  private readonly visibilityFilters = new Set<ToolVisibilityFilter>()
+   static inject = ['systemPrompt']
+   static Config = z.object({
+     mode: z.never().description('Removed. Mount a native or PTC tool executor instead.'),
+@@ -276,7 +283,7 @@ export class ToolsService extends Service {
+         throw new ToolActivationError(name, cause)
+       }
+       signal.throwIfAborted()
+-      if (enabled) admitted.set(name, definition)
++      if (enabled && !this.hiddenHere(context.agent, definition)) admitted.set(name, definition)
+     }
+     let closed = false
+     return Object.freeze({
+@@ -296,6 +303,50 @@ export class ToolsService extends Service {
+     })
+   }
+ 
++  /**
++   * Register one disclosure rule over the model-facing tool list.
++   *
++   * Only {@link ToolsService.resolve} consults the rules; programmatic reads
++   * ({@link ToolsService.definitions}, {@link ToolsService.get}, {@link ToolsService.executable}) stay
++   * complete, so plugins keep seeing each other's tools. A rule applies only to the tools its
++   * `appliesTo` accepts, and any matching rule that hides a tool wins -- several plugins therefore
++   * hide the union of their rules without knowing about each other.
++   * @param filter - the rule; it must be pure and fast, because assembly runs it once per tool.
++   * @returns the disposer; owning it through `ctx.effect` unregisters with the plugin.
++   */
++  addVisibilityFilter(filter: ToolVisibilityFilter): () => void {
++    return this.ctx.effect(() => {
++      this.visibilityFilters.add(filter)
++      return () => { this.visibilityFilters.delete(filter) }
++    }, 'tools.addVisibilityFilter()')
++  }
++
++  /**
++   * Whether any registered disclosure rule hides one tool for this step's Session.
++   *
++   * Fail-open by design: a rule that throws is logged and ignored, because a broken plugin must not
++   * empty the model's tool list. `appliesTo` is consulted first, so a rule never sees a tool it
++   * disclaimed, and a tool no rule claims is returned unchanged.
++   * @param agent - the Agent preparing the step; its Session carries the opaque actor a rule reads.
++   * @param definition - one admitted definition.
++   * @returns true when the definition must stay out of the step's tool set.
++   */
++  private hiddenHere(agent: Agent, definition: ToolDefinition): boolean {
++    if (this.visibilityFilters.size === 0) return false
++    const session = agent.session
++    for (const filter of this.visibilityFilters) {
++      try {
++        if (!filter.appliesTo(definition)) continue
++        if (filter.hidden(session, definition)) return true
++      } catch (error: unknown) {
++        this.ctx.logger.warn(
++          `tool "${definition.name}": a visibility filter failed and was ignored: ${String(error)}`,
++        )
++      }
++    }
++    return false
++  }
++
+   /**
+    * Read the visible capability definitions for descriptions and program bindings.
+    * @param scope - viewing Agent or preset; omitted selects the global view.
+diff --git a/packages/core/tools/tests/visibility.spec.ts b/packages/core/tools/tests/visibility.spec.ts
+new file mode 100644
+index 00000000..d6006337
+--- /dev/null
++++ b/packages/core/tools/tests/visibility.spec.ts
+@@ -0,0 +1,136 @@
++/** Disclosure filters narrow the step's model-facing tool set without touching programmatic reads. */
++import { afterEach, expect, it } from 'vitest'
++import { Context } from '@deepseek-ai/cordis'
++import type { Agent } from '@deepseek-ai/dsh-agent'
++import { SessionId } from '@deepseek-ai/dsh-session'
++import * as NativeToolExecutor from '@deepseek-ai/dsh-tool-executor-native'
++import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
++import ToolRuntime, { defineTool } from '@deepseek-ai/dsh-tools'
++
++const TEST_MODEL_SELECTION = { provider: 'test', model: 'test' }
++const contexts: Context[] = []
++afterEach(async () => {
++  for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
++})
++
++/** An agent whose Session carries an opaque actor, or no Session at all. */
++function agentWith(id: string, actor?: unknown): Agent {
++  return {
++    id: SessionId(id),
++    ...actor === undefined ? {} : { session: { actor } },
++  } as unknown as Agent
++}
++
++const tool = (name: string) => defineTool({
++  name,
++  description: `The ${name} operation.`,
++  parameters: {},
++  output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
++  async execute() { return name },
++})
++
++async function setup() {
++  const ctx = new Context()
++  contexts.push(ctx)
++  await ctx.plugin(SystemPrompt)
++  await ctx.plugin(ToolRuntime)
++  await ctx.plugin(NativeToolExecutor)
++  ctx.tools.register(tool('toolA'))
++  ctx.tools.register(tool('toolB'))
++  const controller = new AbortController()
++  const names = async (agent: Agent): Promise<string[]> => {
++    const toolSet = await ctx.tools.resolve({ agent, modelSelection: TEST_MODEL_SELECTION, signal: controller.signal })
++    try {
++      return ctx.tools.schemas(agent, toolSet).map(schema => schema.name)
++    } finally {
++      toolSet.dispose()
++    }
++  }
++  return { ctx, names, signal: controller.signal }
++}
++
++it('keeps the whole set when nothing registers a filter', async () => {
++  const h = await setup()
++  // The registry is opt-in: with no rule the step sees exactly what it saw before.
++  expect(await h.names(agentWith('a', { permissions: ['toolA'] }))).toEqual(['toolA', 'toolB'])
++  expect(await h.names(agentWith('b'))).toEqual(['toolA', 'toolB'])
++})
++
++it('hides only the tools a matching rule withholds, per Session', async () => {
++  const h = await setup()
++  // A connector that knows which tools need an identity hides everything but its own tool when the
++  // Session carries no actor. The rule never sees toolA, so that tool is unaffected.
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name !== 'toolA',
++    hidden: session => session?.actor === undefined,
++  })
++
++  expect(await h.names(agentWith('with-actor', { permissions: ['toolA'] }))).toEqual(['toolA', 'toolB'])
++  expect(await h.names(agentWith('without-actor'))).toEqual(['toolA'])
++})
++
++it('leaves unclaimed and explicitly unhidden tools alone', async () => {
++  const h = await setup()
++  h.ctx.tools.addVisibilityFilter({ appliesTo: () => false, hidden: () => true })
++  h.ctx.tools.addVisibilityFilter({ appliesTo: definition => definition.name === 'toolB', hidden: () => false })
++
++  // Neither rule claims toolA, and the one that claims toolB declines to hide it.
++  expect(await h.names(agentWith('plain'))).toEqual(['toolA', 'toolB'])
++})
++
++it('restores the full set when the registration is disposed', async () => {
++  const h = await setup()
++  const dispose = h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name === 'toolB',
++    hidden: () => true,
++  })
++  expect(await h.names(agentWith('plain'))).toEqual(['toolA'])
++
++  dispose()
++  expect(await h.names(agentWith('plain'))).toEqual(['toolA', 'toolB'])
++})
++
++it('hides the union of several plugins rules', async () => {
++  const h = await setup()
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name === 'toolA',
++    hidden: () => true,
++  })
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name === 'toolB',
++    hidden: () => true,
++  })
++
++  // Each plugin hides its own tool without knowing the other exists; both disappear.
++  expect(await h.names(agentWith('plain'))).toEqual([])
++})
++
++it('treats a throwing rule as not hiding', async () => {
++  const h = await setup()
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name === 'toolA',
++    hidden: () => { throw new Error('broken connector') },
++  })
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: () => { throw new Error('broken matcher') },
++    hidden: () => true,
++  })
++
++  // A broken plugin must not empty the model's tool list.
++  expect(await h.names(agentWith('plain'))).toEqual(['toolA', 'toolB'])
++})
++
++it('leaves programmatic reads complete', async () => {
++  const h = await setup()
++  h.ctx.tools.addVisibilityFilter({
++    appliesTo: definition => definition.name === 'toolB',
++    hidden: () => true,
++  })
++  const agent = agentWith('plain')
++
++  // Inspection and dispatch stay whole: plugins keep seeing each other's tools, and the filter only
++  // governs what the step offers the model.
++  expect(h.ctx.tools.definitions(agent).map(definition => definition.name)).toEqual(['toolA', 'toolB'])
++  expect(h.ctx.tools.get('toolB', agent)?.name).toBe('toolB')
++  expect(h.ctx.tools.executable('toolB', agent)?.name).toBe('toolB')
++})
+\ No newline at end of file
+diff --git a/packages/skill/skill/src/index.ts b/packages/skill/skill/src/index.ts
+index 9c6bbf0c..c5901a08 100644
+--- a/packages/skill/skill/src/index.ts
++++ b/packages/skill/skill/src/index.ts
+@@ -105,6 +105,49 @@ export interface SkillLookupOptions {
+   readonly cwd?: string | undefined
+   /** Abort discovery or loading work for the current caller. */
+   readonly signal?: AbortSignal | undefined
++  /**
++   * Session the lookup belongs to, handed to every registered disclosure filter.
++   *
++   * Optional: a caller outside a Session (a cold listing, a test) reads the unfiltered catalog, so
++   * a plugin's rule only ever narrows a real Session's view.
++   */
++  readonly session?: SkillFilterSession | undefined
++}
++
++/**
++ * The part of a Session a disclosure rule may read.
++ *
++ * Structural on purpose: the skill registry does not own Session identity and must not depend on
++ * the session package. A real `Session` satisfies this, so a caller passes `session` unchanged.
++ */
++export interface SkillFilterSession {
++  /** Opaque connector identity; the base never interprets it. */
++  readonly actor?: unknown
++}
++
++/**
++ * One disclosure rule over the skills a Session may see.
++ *
++ * Same shape and the same fail-open behaviour as the tool rule: the base owns no permission model,
++ * the plugin decides what `hidden` means, and several plugins hide the union of their rules.
++ */
++export interface SkillVisibilityFilter {
++  /**
++   * Whether this rule speaks about one candidate.
++   * @param candidate - discovery candidate, including its name and metadata.
++   * @returns true when {@link hidden} must be consulted; false leaves the skill untouched.
++   */
++  readonly appliesTo: (candidate: SkillCandidate) => boolean
++  /**
++   * Whether the skill must stay out of this Session's list and load results.
++   *
++   * Called only for candidates {@link appliesTo} accepted. An exception is logged and treated as
++   * "not hidden", so one broken rule cannot empty the catalog.
++   * @param session - the Session the lookup belongs to, or undefined outside one.
++   * @param candidate - the same candidate {@link appliesTo} received.
++   * @returns true to hide the skill for this Session.
++   */
++  readonly hidden: (session: SkillFilterSession | undefined, candidate: SkillCandidate) => boolean
+ }
+ 
+ /**
+@@ -363,6 +406,12 @@ export class SkillRegistry extends Service {
+     scope => new SkillLayer(scope),
+     () => { this.invalidateCache() },
+   )
++  /**
++   * Disclosure rules contributed by plugins. Applied at read time rather than inside the collect
++   * cache, because the answer depends on the Session (`actor`) and the cache is keyed by workspace
++   * and scope alone.
++   */
++  private readonly visibilityFilters = new Set<SkillVisibilityFilter>()
+   private readonly collectCache = new Map<string, Map<string, IndexedCandidate>>()
+   private revision = 0
+   private nextProviderOrder = 0
+@@ -459,6 +508,23 @@ export class SkillRegistry extends Service {
+     )
+   }
+ 
++  /**
++   * Register one disclosure rule over the skills a Session may see.
++   *
++   * The rule narrows {@link SkillRegistry.list}, {@link SkillRegistry.snapshot} and
++   * {@link SkillRegistry.get} for the Session a lookup names; lookups without one read the full
++   * catalog. A rule decides only about the candidates its `appliesTo` accepts, and any matching
++   * rule that hides a skill wins.
++   * @param filter - the rule; it must be pure and fast.
++   * @returns the disposer; owning it through `ctx.effect` unregisters with the plugin.
++   */
++  addVisibilityFilter(filter: SkillVisibilityFilter): () => void {
++    return this.ctx.effect(() => {
++      this.visibilityFilters.add(filter)
++      return () => { this.visibilityFilters.delete(filter) }
++    }, 'skills.addVisibilityFilter()')
++  }
++
+   /**
+    * List invocation-neutral skill summaries for a workspace. Consumers apply
+    * model or user invocation policy at their operational boundary. Lookup
+@@ -482,6 +548,7 @@ export class SkillRegistry extends Service {
+     const collected = await this.collect(options)
+     return {
+       skills: [...collected.entries.values()]
++        .filter(entry => !this.hiddenHere(options.session, entry.candidate))
+         .map(entry => toSummary(entry.candidate))
+         .sort(compareSkillSummary),
+       complete: collected.cacheable,
+@@ -503,6 +570,7 @@ export class SkillRegistry extends Service {
+     throwIfAborted(options.signal)
+     const match = collected.entries.get(name)
+     if (match === undefined) return undefined
++    if (this.hiddenHere(options.session, match.candidate)) return undefined
+     const definition = await waitWithAbort(
+       match.provider.get(match.candidate, options),
+       options.signal,
+@@ -516,6 +584,30 @@ export class SkillRegistry extends Service {
+     return definition
+   }
+ 
++  /**
++   * Whether a registered disclosure rule hides one candidate for this lookup's Session.
++   *
++   * Fail-open like the tool rules: a throwing rule is logged and ignored rather than taking the
++   * catalog down with it, and a candidate no rule claims is unaffected.
++   * @param session - the Session the lookup belongs to, or undefined.
++   * @param candidate - one collected candidate.
++   * @returns true when the candidate must not appear in this Session's list or load.
++   */
++  private hiddenHere(session: SkillFilterSession | undefined, candidate: SkillCandidate): boolean {
++    if (this.visibilityFilters.size === 0) return false
++    for (const filter of this.visibilityFilters) {
++      try {
++        if (!filter.appliesTo(candidate)) continue
++        if (filter.hidden(session, candidate)) return true
++      } catch (error: unknown) {
++        this.ctx.logger.warn(
++          `skill "${candidate.name}": a visibility filter failed and was ignored: ${String(error)}`,
++        )
++      }
++    }
++    return false
++  }
++
+   private async collect(options: SkillViewOptions): Promise<CollectResult> {
+     throwIfAborted(options.signal)
+     let attempt = 1
+diff --git a/packages/skill/skill/tests/visibility.spec.ts b/packages/skill/skill/tests/visibility.spec.ts
+new file mode 100644
+index 00000000..32f60727
+--- /dev/null
++++ b/packages/skill/skill/tests/visibility.spec.ts
+@@ -0,0 +1,131 @@
++/** Disclosure filters narrow the skills a Session may list and load. */
++import { describe, expect, it } from 'vitest'
++import { Context } from '@deepseek-ai/cordis'
++import SkillRegistry, {
++  type SkillCandidate,
++  type SkillDefinition,
++  type SkillLookupOptions,
++  type SkillProvider,
++} from '@deepseek-ai/dsh-skill'
++
++function skill(name: string): SkillCandidate {
++  return {
++    name,
++    description: `${name} description.`,
++    invocation: { modelInvocable: true, userInvocable: true },
++    provider: 'memory',
++    source: 'memory',
++    rank: 10,
++    locator: { content: `${name} body.` },
++  }
++}
++
++class MemoryProvider implements SkillProvider {
++  readonly name = 'memory'
++  constructor(private readonly candidates: SkillCandidate[]) {}
++  async list(): Promise<SkillCandidate[]> {
++    return this.candidates
++  }
++  async get(candidate: SkillCandidate): Promise<SkillDefinition | undefined> {
++    return { ...candidate, content: (candidate.locator as { content: string }).content }
++  }
++}
++
++/** An agent Session stand-in carrying an opaque actor, or nothing. */
++const sessionWith = (actor?: unknown): { actor?: unknown } => actor === undefined ? {} : { actor }
++
++async function setup() {
++  const ctx = new Context()
++  await ctx.plugin(SkillRegistry)
++  ctx.skills.registerProvider(() => new MemoryProvider([skill('alpha'), skill('beta')]))
++  const names = async (options: SkillLookupOptions = {}): Promise<string[]> =>
++    (await ctx.skills.list(options)).map(entry => entry.name)
++  return { ctx, names }
++}
++
++describe('SkillRegistry visibility filters', () => {
++  it('keeps the catalog unchanged when nothing registers a filter', async () => {
++    const h = await setup()
++    expect(await h.names()).toEqual(['alpha', 'beta'])
++    expect(await h.names({ session: sessionWith({ permissions: ['alpha'] }) })).toEqual(['alpha', 'beta'])
++  })
++
++  it('hides only what a matching rule withholds, per Session', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({
++      appliesTo: candidate => candidate.name !== 'alpha',
++      // A rule sees `undefined` when the lookup names no Session and decides for itself; this one
++      // only narrows a real Session, so an administrative listing still reads the whole catalog.
++      hidden: session => session !== undefined && session.actor === undefined,
++    })
++
++    // A Session carrying an actor keeps the full catalog; one without it loses only what the rule
++    // claims, and `alpha` was never claimed.
++    expect(await h.names({ session: sessionWith({ permissions: ['alpha'] }) })).toEqual(['alpha', 'beta'])
++    expect(await h.names({ session: sessionWith() })).toEqual(['alpha'])
++    expect(await h.names()).toEqual(['alpha', 'beta'])
++  })
++
++  it('withholds load results too, so a hidden skill cannot be fetched by name', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({
++      appliesTo: candidate => candidate.name === 'beta',
++      hidden: session => session !== undefined && session.actor === undefined,
++    })
++
++    expect(await h.ctx.skills.get('beta', { session: sessionWith({}) })).toBeDefined()
++    expect(await h.ctx.skills.get('beta', { session: sessionWith() })).toBeUndefined()
++    // The same candidate is still loadable outside a Session, because this rule declines to narrow
++    // that case: hiding is about a Session's view, not the catalog.
++    expect(await h.ctx.skills.get('beta')).toBeDefined()
++  })
++
++  it('lets a rule treat a Session-less lookup as hidden when it chooses to', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({
++      appliesTo: () => true,
++      hidden: session => session?.actor === undefined,
++    })
++    // `undefined` reaches the rule like any other value; the base does not add a policy of its own.
++    expect(await h.names()).toEqual([])
++  })
++
++  it('leaves unclaimed and explicitly unhidden candidates alone', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({ appliesTo: () => false, hidden: () => true })
++    h.ctx.skills.addVisibilityFilter({ appliesTo: candidate => candidate.name === 'beta', hidden: () => false })
++    expect(await h.names({ session: sessionWith() })).toEqual(['alpha', 'beta'])
++  })
++
++  it('restores the catalog when the registration is disposed', async () => {
++    const h = await setup()
++    const dispose = h.ctx.skills.addVisibilityFilter({
++      appliesTo: candidate => candidate.name === 'beta',
++      hidden: () => true,
++    })
++    expect(await h.names({ session: sessionWith() })).toEqual(['alpha'])
++
++    dispose()
++    expect(await h.names({ session: sessionWith() })).toEqual(['alpha', 'beta'])
++  })
++
++  it('hides the union of several plugins rules', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({ appliesTo: candidate => candidate.name === 'alpha', hidden: () => true })
++    h.ctx.skills.addVisibilityFilter({ appliesTo: candidate => candidate.name === 'beta', hidden: () => true })
++    expect(await h.names({ session: sessionWith() })).toEqual([])
++  })
++
++  it('treats a throwing rule as not hiding', async () => {
++    const h = await setup()
++    h.ctx.skills.addVisibilityFilter({
++      appliesTo: candidate => candidate.name === 'alpha',
++      hidden: () => { throw new Error('broken connector') },
++    })
++    h.ctx.skills.addVisibilityFilter({
++      appliesTo: () => { throw new Error('broken matcher') },
++      hidden: () => true,
++    })
++    expect(await h.names({ session: sessionWith() })).toEqual(['alpha', 'beta'])
++  })
++})
+\ No newline at end of file
+diff --git a/packages/skill/tool-skill/src/index.ts b/packages/skill/tool-skill/src/index.ts
+index f08fb820..8dbbafe9 100644
+--- a/packages/skill/tool-skill/src/index.ts
++++ b/packages/skill/tool-skill/src/index.ts
+@@ -134,7 +134,7 @@ export function apply(ctx: Context, config: Config = {}): void {
+       // The agent is its own scope key, so the lookup resolves the layered
+       // registry exactly as this agent's composition sees it.
+       const cwd = exec.agent === undefined ? undefined : await ctx.workingDirectory.ensure(exec.agent, exec.signal)
+-      const lookup = { cwd, signal: exec.signal, scope: exec.agent }
++      const lookup = { cwd, signal: exec.signal, scope: exec.agent, session: exec.agent?.session }
+       const summary = (await ctx.skills.list(lookup)).find(skill => skill.name === args.name)
+       if (!summary) {
+         throw new Error(`skill "${args.name}" is unknown or no longer available`)
+@@ -223,7 +223,7 @@ export function apply(ctx: Context, config: Config = {}): void {
+     signal.throwIfAborted()
+     const toolVisible = ctx.tools.get(skillTool.name, agent) === skillTool
+     const snapshot = toolVisible
+-      ? await ctx.skills.snapshot({ cwd: await ctx.workingDirectory.ensure(agent, signal), signal, scope: agent })
++      ? await ctx.skills.snapshot({ cwd: await ctx.workingDirectory.ensure(agent, signal), signal, scope: agent, session: agent.session })
+       : { skills: [], complete: true }
+     signal.throwIfAborted()
+     const skills = snapshot.skills.filter(isModelInvocable)
