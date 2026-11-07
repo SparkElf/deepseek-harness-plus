@@ -599,6 +599,21 @@
           },
           "file": "./patches/wsl-native-open.patch",
           "retireWhen": "官方 open-in-app 为 Windows 解释器翻译 POSIX 路径后退役"
+        },
+        {
+          "id": "workspace-hide-group-rooms",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-workspace"
+            ],
+            "paths": [
+              "packages/client/ui-workspace/"
+            ]
+          },
+          "file": "./patches/workspace-hide-group-rooms.patch",
+          "retireWhen": "官方 ui-workspace 提供工作区隐藏/过滤标记（如 hidden）后退役"
         }
       ]
     },
