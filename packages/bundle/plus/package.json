@@ -599,6 +599,25 @@
           },
           "file": "./patches/workspace-hide-group-rooms.patch",
           "retireWhen": "官方 ui-workspace 提供工作区隐藏/过滤标记（如 hidden）后退役"
+        },
+        {
+          "id": "visibility-filters",
+          "dsh": ">=0.2.2-rc.1",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-tools",
+              "@deepseek-ai/dsh-session",
+              "@deepseek-ai/dsh-skill"
+            ],
+            "paths": [
+              "packages/core/tools/",
+              "packages/core/session/",
+              "packages/skill/"
+            ]
+          },
+          "file": "./patches/visibility-filters.patch",
+          "retireWhen": "官方 base 提供按会话的披露过滤扩展点后退役"
         }
       ]
     },

@@ -1,0 +1,51 @@
+{
+  "id": "visibility-filters",
+  "purpose": "disclosure filter registries: plugins hide tools and skills per Session without the base owning a permission model",
+  "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
+  "appliesOn": "pristine dsh-v0.2.2-rc.1",
+  "patch": "patches/visibility-filters.patch",
+  "patchMd5": "91dd69894a636257317e7df21133b811",
+  "patchBytes": 28830,
+  "api": {
+    "tools": "ctx.tools.addVisibilityFilter({ appliesTo, hidden }): () => void",
+    "skills": "ctx.skills.addVisibilityFilter({ appliesTo, hidden }): () => void",
+    "session": "Session.actor?: unknown (opaque, replaced wholesale)"
+  },
+  "files": [
+    {
+      "path": "packages/core/session/src/index.ts"
+    },
+    {
+      "path": "packages/core/session/src/types.ts"
+    },
+    {
+      "path": "packages/core/tools/src/contracts.ts"
+    },
+    {
+      "path": "packages/core/tools/src/index.ts"
+    },
+    {
+      "path": "packages/core/tools/tests/visibility.spec.ts"
+    },
+    {
+      "path": "packages/skill/skill/src/index.ts"
+    },
+    {
+      "path": "packages/skill/skill/tests/visibility.spec.ts"
+    },
+    {
+      "path": "packages/skill/tool-skill/src/index.ts"
+    }
+  ],
+  "totals": {
+    "files": 8,
+    "added": 463,
+    "removed": 5
+  },
+  "verification": {
+    "pristineApplyCheck": "OK",
+    "fullSet": "30 patches in alphabetical order, 30 applied, 0 failures",
+    "typecheck": "tsc -b core/tools skill/skill skill/tool-skill: clean",
+    "tests": "15 new; 915 passed across the four touched packages"
+  }
+}
