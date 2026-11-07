@@ -1,0 +1,31 @@
+diff --git a/packages/client/ui-workspace/src/client/tree.ts b/packages/client/ui-workspace/src/client/tree.ts
+index 054c584..1df953b 100644
+--- a/packages/client/ui-workspace/src/client/tree.ts
++++ b/packages/client/ui-workspace/src/client/tree.ts
+@@ -17,6 +17,16 @@ import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
+ /** Group key for Sessions outside every Workspace. */
+ export const UNGROUPED_KEY = ''
+
++/**
++ * Group-chat rooms own a Workspace only to keep their Session selectable. Those
++ * Workspaces live under the rooms directory (`<dsh-home>/group-chat/rooms/<room>`)
++ * and the room already has an entry in the group-chat section, so the Workspace
++ * browser must not repeat it as a folder.
++ */
++const GROUP_ROOM_PATH_MARKER = '/group-chat/rooms/'
++const isGroupRoomWorkspace = (path: string | undefined): boolean =>
++  typeof path === 'string' && path.includes(GROUP_ROOM_PATH_MARKER)
++
+ /**
+  * Resolve the Workspace browser group that owns one Session.
+  * @param workspaces - authoritative Workspace membership.
+@@ -341,6 +351,9 @@ function groupByWorkspace(
+       if (!sessionVisible(summary, current, archived, archivedFilter)) continue
+       members.push(summary)
+     }
++    // A room Workspace still owns its Session (accounted above), but that Session belongs to
++    // the group-chat section rather than this browser's folder list.
++    if (isGroupRoomWorkspace(workspace.path)) continue
+     // The archived-only view lists archives, not the Workspace inventory, so
+     // a Workspace without archived Sessions contributes no group.
+     if (archivedFilter === 'only' && members.length === 0) continue
