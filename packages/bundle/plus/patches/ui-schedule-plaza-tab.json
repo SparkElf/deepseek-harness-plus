@@ -4,19 +4,22 @@
   "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
   "appliesOn": "regenerated on dsh-v0.2.2-rc.1 (66491b05); the page, its CSS and the plaza tab are upstream, so only the seat, plazaAvailable and the labels remain",
   "patch": "patches/ui-schedule-plaza-tab.patch",
-  "patchMd5": "31d5f3e772f225d297ba4e1b143c9dbe",
-  "patchBytes": 4971,
+  "patchMd5": "b8f85952746e49093b386f3ed84d1fd5",
+  "patchBytes": 5465,
   "files": [
     {
       "path": "packages/client/ui-schedule/src/client/index.ts"
     },
     {
       "path": "packages/client/ui-schedule/src/client/task-manager-locales.ts"
+    },
+    {
+      "path": "packages/client/ui-schedule/src/client/TaskManagerPage.tsx"
     }
   ],
   "totals": {
-    "files": 2,
-    "added": 28,
+    "files": 3,
+    "added": 32,
     "removed": 0
   },
   "verification": {
