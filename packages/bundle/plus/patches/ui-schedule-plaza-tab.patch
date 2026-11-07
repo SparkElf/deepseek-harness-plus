@@ -106,3 +106,16 @@ index 13ef7c90..b6b3a90e 100644
    'status.active': 'Habilitado',
    'detail.label': 'Detalhes da tarefa',
    'detail.close': 'Fechar detalhes',
+--- a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
++++ b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
+@@ -31,6 +31,10 @@
+    */
+   readonly onNewTask: () => void
+   /**
++   * Whether a plaza tab is mounted, so the page can show the plaza entry.
++   */
++  readonly plazaAvailable: () => boolean
++  /**
+    * Remove every ended Host task, after this page has confirmed the action.
+    *
+    * The call requests no task ids, so the Host's ended set is the one removed;
