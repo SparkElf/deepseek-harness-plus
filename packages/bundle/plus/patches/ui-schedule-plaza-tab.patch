@@ -1,8 +1,101 @@
+diff --git a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
+index 53a53fe9..ddb8d05f 100644
+--- a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
++++ b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
+@@ -6,7 +6,7 @@ import {
+   IconSearchOutlineRegular, IconTrashOutlineRegular, IconChevronDownOutlineRegular, IconEditOutlineRegular,
+   Input, Menu, MenuItemButton, Modal, ReferenceIconRegular, Tooltip,
+ } from '@deepseek-ai/dsh-client-ui-primitives'
+-import type { HostObservable, InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
++import type { HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
+ import type { ScheduleId, ScheduleCatalogEntry, ScheduleCreateRequest } from '@deepseek-ai/dsh-schedule/client'
+ import type { TaskCreateOutcome } from './TaskDetail.tsx'
+@@ -42,6 +42,14 @@ export interface TaskManagerInjected extends TaskDetailInjected {
+   readonly onClearEnded: () => Promise<void>
+   /** Create a task directly through the Host, without a model request. */
+   readonly onCreateTask: (request: ScheduleCreateRequest) => Promise<TaskCreateOutcome>
++  /**
++   * Whether a plugin currently contributes the page's runtime extension tab.
++   *
++   * Read while rendering, so a contributor that registers after this page mounted still makes its
++   * tab appear on the next render; with no contributor the page keeps exactly its status tabs.
++   * @returns true when the `schedule.manager.tabs` seat has an occupant.
++   */
++  readonly plazaAvailable?: () => boolean
+ }
+ 
+ /** Root-scoped task catalog props derived from the framework and injected actions. */
+@@ -49,8 +57,11 @@ export type TaskManagerPageProps = PropsRuntime<'main'>
+   & InjectFace<TaskManagerInjected>
+   & TaskEditorStoreProps
+   & PropsLocale<'schedule.manager'>
++  // Narrowed to the one seat this page declares; optional so a unit test can render the page
++  // without a slot host, as every other page-level test does.
++  & Partial<PropsRenderSlots<'schedule.manager.tabs'>>
+ 
+-type StatusFilter = 'all' | ScheduleCatalogEntry['status']
++type StatusFilter = 'all' | ScheduleCatalogEntry['status'] | 'plaza'
+ 
+ /**
+  * Render retained tasks with manual creation, inline editing, and authoritative deletion.
+@@ -58,7 +69,7 @@ type StatusFilter = 'all' | ScheduleCatalogEntry['status']
+  * @returns the searchable task list beside the selected task's detail.
+  */
+ export function TaskManagerPage(props: TaskManagerPageProps) {
+-  const { useCatalog, onNewTask, onClearEnded, onRetry, onCreateTask, t } = props
++  const { useCatalog, onNewTask, onClearEnded, onRetry, onCreateTask, plazaAvailable, renderSlot, t } = props
+   const [createMenuOpen, setCreateMenuOpen] = useState(false)
+   const [manualOpen, setManualOpen] = useState(false)
+   const catalog = useCatalog(snapshot => snapshot)
+@@ -96,7 +107,7 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+   const rows = useMemo(() => {
+     const query = search.trim().toLowerCase()
+     return records.filter(record => (
+-      (statusFilter === 'all' || record.status === statusFilter)
++      (statusFilter === 'all' || (statusFilter !== 'plaza' && record.status === statusFilter))
+       && (record.prompt.toLowerCase().includes(query)
+         || (taskSessionId(record) ?? '').toLowerCase().includes(query)
+         || taskName(record).toLowerCase().includes(query))
+@@ -232,6 +243,17 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+                     {t(value === 'all' ? 'statusFilter.all' : `status.${value}`)}
+                   </button>
+                 ))}
++                {plazaAvailable?.() === true && (
++                  <button
++                    type="button"
++                    className={clsx(css.filterTab, statusFilter === 'plaza' && css.filterTabActive)}
++                    aria-pressed={statusFilter === 'plaza'}
++                    data-testid="task-manager-plaza-tab"
++                    onClick={() => { setStatusFilter('plaza') }}
++                  >
++                    {t('statusFilter.plaza')}
++                  </button>
++                )}
+               </div>
+             </div>
+             <div className={css.searchTools}>
+@@ -279,7 +301,14 @@ export function TaskManagerPage(props: TaskManagerPageProps) {
+                 </Tooltip>}
+               />}
+             </div>
+-            <div className={css.list}>
++            {statusFilter === 'plaza' && plazaAvailable?.() === true
++              ? (
++                  <div className={css.list} data-testid="task-manager-plaza-body">
++                    {renderSlot?.('schedule.manager.tabs', {})}
++                  </div>
++                )
++              : null}
++            <div className={css.list} hidden={statusFilter === 'plaza'}>
+               {selected === undefined && <CatalogFeedback status={status} populated={rows.length > 0} onRetry={onRetry} t={t} />}
+               {status === 'ready' && rows.length === 0 && <div className={css.empty} role="status">
+                 <ScheduleEmptyIllustration className={css.emptyIllustration} />
 diff --git a/packages/client/ui-schedule/src/client/index.ts b/packages/client/ui-schedule/src/client/index.ts
-index 5df35309..8ae6791e 100644
+index 5df35309..9098ae50 100644
 --- a/packages/client/ui-schedule/src/client/index.ts
 +++ b/packages/client/ui-schedule/src/client/index.ts
-@@ -73,6 +73,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
+@@ -73,6 +73,20 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      /** Host task management page and task tab copy. */
      'schedule.manager': TaskManagerKey
    }
@@ -11,9 +104,8 @@ index 5df35309..8ae6791e 100644
 +     * One extension body contributed at runtime to the automation-task page.
 +     *
 +     * The page renders the single occupant as an additional status tab and supplies no owner
-+     * props: a contributor owns its own data and needs no identity from the page. The seat
-+     * belongs to no Session, so opening the page never mounts a contributor against an arbitrary
-+     * conversation.
++     * props: a contributor owns its own data and needs no identity from the page. The seat belongs
++     * to no Session, so opening the page never mounts a contributor against a conversation.
 +     */
 +    'schedule.manager.tabs': {
 +      kind: 'single'
@@ -24,7 +116,7 @@ index 5df35309..8ae6791e 100644
  }
  
  /** Required services for catalogs, ambient Session marks, the right Sidebar, Remote queries, linked-Session navigation, and access. */
-@@ -220,8 +235,13 @@ export function apply(ctx: ClientContext): void {
+@@ -220,8 +234,13 @@ export function apply(ctx: ClientContext): void {
        key: PANEL_ID,
        locale: MANAGER_NS,
        store: createEditorStore(),
@@ -106,16 +198,3 @@ index 13ef7c90..b6b3a90e 100644
    'status.active': 'Habilitado',
    'detail.label': 'Detalhes da tarefa',
    'detail.close': 'Fechar detalhes',
---- a/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
-+++ b/packages/client/ui-schedule/src/client/TaskManagerPage.tsx
-@@ -31,6 +31,10 @@
-    */
-   readonly onNewTask: () => void
-   /**
-+   * Whether a plaza tab is mounted, so the page can show the plaza entry.
-+   */
-+  readonly plazaAvailable: () => boolean
-+  /**
-    * Remove every ended Host task, after this page has confirmed the action.
-    *
-    * The call requests no task ids, so the Host's ended set is the one removed;
