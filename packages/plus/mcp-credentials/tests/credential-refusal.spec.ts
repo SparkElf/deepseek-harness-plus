@@ -1,4 +1,5 @@
 import { runWithSession, scopedCredentialRef, sessionScope } from '../src/session-scope.ts'
+import { credentialFetch } from '../src/transport.ts'
 /**
  * The credential-refusal path of the connection supervisor, driven by a mocked
  * MCP client that refuses the credential on a reconnect.
@@ -170,5 +171,21 @@ describe('scoped credential references', () => {
     expect(sessionScope.getStore()).toBeUndefined()
     // Without an actor nothing is recorded, so the resolver reads the workspace credential.
     expect(await runWithSession(undefined, async () => sessionScope.getStore())).toBeUndefined()
+  })
+})
+
+describe('a Session acting for someone else never borrows the workspace credential', () => {
+  it('refuses instead of falling back when its own slot is missing', async () => {
+    // The rule the visitor case depends on: no slot means no call, not "call as the workspace".
+    const resolved: string[] = []
+    const provider = { resolve: async (ref: { ref?: string } | string) => { resolved.push(String(ref)); return undefined } }
+    let thrown: Error | undefined
+    await sessionScope.run({ sessionId: 'group-room-x', actor: { userId: 'u' } }, async () => {
+      try {
+        await credentialFetch({ get: (name: string) => name === 'credentials' ? provider : undefined } as never, 'DATAOPS_ACCESS_TOKEN')(new URL('http://example.invalid'), {})
+      } catch (error) { thrown = error as Error }
+    })
+    expect(thrown?.message).toContain('DATAOPS_ACCESS_TOKEN_S_GROUP_ROOM_X')
+    expect(thrown?.message).not.toContain('token-value')
   })
 })
