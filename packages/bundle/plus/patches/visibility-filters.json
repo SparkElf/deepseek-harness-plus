@@ -47,5 +47,15 @@
     "fullSet": "30 patches in alphabetical order, 30 applied, 0 failures",
     "typecheck": "tsc -b core/tools skill/skill skill/tool-skill: clean",
     "tests": "15 new; 915 passed across the four touched packages"
+  },
+  "targetPackages": {
+    "republished": [
+      "@deepseek-ai/dsh-tools",
+      "@deepseek-ai/dsh-session"
+    ],
+    "sourceOnly": [
+      "@deepseek-ai/dsh-skill"
+    ],
+    "note": "dsh-skill has no @sparkelf publication; the patched workspace is linked into the profile by dsh-plus linkOfficialPackages, so it must not become a profile dependency."
   }
 }
