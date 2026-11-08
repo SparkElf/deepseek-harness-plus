@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.73",
+  "version": "0.2.9-alpha.74",
   "publishConfig": {
     "access": "public"
   },
@@ -109,7 +109,7 @@
         "@deepseek-ai/dsh-spill": "0.2.2-alpha.2",
         "@deepseek-ai/dsh-workflow": "0.2.2-alpha.2",
         "@sparkelf/dsh-artifact-app": "0.1.1",
-        "@sparkelf/dsh-dataops-managed": "0.3.46",
+        "@sparkelf/dsh-dataops-managed": "0.3.47",
         "@sparkelf/dsh-sql-workbench": "0.6.0",
         "@sparkelf/dsh-query-result-analysis": "0.1.4",
         "@sparkelf/dsh-knowledge-base": "0.1.35",
