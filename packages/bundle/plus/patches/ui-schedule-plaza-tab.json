@@ -1,29 +1,30 @@
 {
   "id": "ui-schedule-plaza-tab",
-  "purpose": "declare the automation-page extension seat and its plaza tab wiring",
+  "purpose": "the automation page accepts a runtime extension tab, so the workflow plaza from the knowledge-base plugin can mount there",
   "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
-  "appliesOn": "regenerated on dsh-v0.2.2-rc.1 (66491b05); the page, its CSS and the plaza tab are upstream, so only the seat, plazaAvailable and the labels remain",
+  "appliesOn": "dsh-v0.2.2-rc.1; the page hard-codes its status tabs, so the patch carries the page change",
   "patch": "patches/ui-schedule-plaza-tab.patch",
-  "patchMd5": "b8f85952746e49093b386f3ed84d1fd5",
-  "patchBytes": 5465,
+  "patchMd5": "e8ff86b93519319aff8195ebd91ad66f",
+  "patchBytes": 10267,
   "files": [
+    {
+      "path": "packages/client/ui-schedule/src/client/TaskManagerPage.tsx"
+    },
     {
       "path": "packages/client/ui-schedule/src/client/index.ts"
     },
     {
       "path": "packages/client/ui-schedule/src/client/task-manager-locales.ts"
-    },
-    {
-      "path": "packages/client/ui-schedule/src/client/TaskManagerPage.tsx"
     }
   ],
   "totals": {
     "files": 3,
-    "added": 32,
-    "removed": 0
+    "added": 61,
+    "removed": 5
   },
   "verification": {
     "pristineApplyCheck": "OK on dsh-v0.2.2-rc.1",
-    "fullSet": "28 patches in alphabetical order, 28 applied, 0 failures"
+    "fullSet": "31 patches in alphabetical order, 31 applied, 0 failures",
+    "contributor": "@sparkelf/dsh-knowledge-base registers name \"schedule.manager.tabs\" and declares hookContext on the seat, so the page passes { hookContext: undefined }"
   }
 }
