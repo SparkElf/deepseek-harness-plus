@@ -83,7 +83,7 @@ index 53a53fe9..b1f3e39c 100644
 +            {statusFilter === 'plaza' && plazaAvailable?.() === true
 +              ? (
 +                  <div className={css.list} data-testid="task-manager-plaza-body">
-+                    {renderSlot?.('schedule.manager.tabs', {}, { hookContext: undefined })}
++                    {renderSlot?.('schedule.manager.tabs', {})}
 +                  </div>
 +                )
 +              : null}
