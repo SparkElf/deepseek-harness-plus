@@ -1,7 +1,13 @@
 diff --git a/packages/client/ui-sidebar-right/src/client/index.ts b/packages/client/ui-sidebar-right/src/client/index.ts
 --- a/packages/client/ui-sidebar-right/src/client/index.ts
 +++ b/packages/client/ui-sidebar-right/src/client/index.ts
-@@ -138,24 +138,6 @@
+@@ -1,5 +1,4 @@
+ import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+-import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
+ import { TabMenuContent } from './shell/TabMenuContent.tsx'
+ import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
+ /**
+@@ -138,24 +137,6 @@
    ctx.effect(() => ctx.slots.inject('contextMenu.icon', () => ctx.slots.register({
      name: 'contextMenu.icon', key: 'sidebar.close',
    }, IconCloseOutlineRegular)), 'sidebar: menu icon')
