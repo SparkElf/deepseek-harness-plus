@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.68",
+  "version": "0.2.9-alpha.69",
   "publishConfig": {
     "access": "public"
   },
@@ -595,7 +595,9 @@
             ],
             "paths": [
               "packages/client/ui-workspace/"
-            ]
+            ],
+            "republish": false,
+            "reason": "@sparkelf/dsh-client-ui-workspace 没有 npm 发布；dsh-plus 在 profile 安装后会把源码树里的 official workspace 软链进 profile（linkOfficialPackages），补丁实现由源码树提供，不需要 republish。"
           },
           "file": "./patches/workspace-hide-group-rooms.patch",
           "retireWhen": "官方 ui-workspace 提供工作区隐藏/过滤标记（如 hidden）后退役"
@@ -803,7 +805,7 @@
     "@deepseek-ai/dsh-web-search-exa": "0.1.6-alpha.1",
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.1",
+    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.53",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
