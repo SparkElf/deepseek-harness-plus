@@ -33,16 +33,26 @@ function buildChildEnv(extra: Record<string, string>): Record<string, string> {
  * falls back to the workspace entry, so a room whose scoped credential expired keeps working until
  * the connector refreshes it.
  */
-function credentialFetch(ctx: Context, rawRef: string): typeof globalThis.fetch {
+export function credentialFetch(ctx: Context, rawRef: string): typeof globalThis.fetch {
   const ref = credentialRef(rawRef)
   return async (input, init) => {
     const provider = ctx.get('credentials')
     if (provider === undefined) throw new Error(`mcp-client: credential service unavailable while resolving "${ref}"`)
     const identity = sessionScope.getStore()
-    const scoped = identity === undefined || identity.actor === undefined
-      ? undefined
-      : await provider.resolve(credentialRef(scopedCredentialRef(ref, identity.sessionId))).catch(() => undefined)
-    const resolved = scoped ?? await provider.resolve(ref)
+    if (identity !== undefined && identity.actor !== undefined) {
+      // A Session acting for someone else must never borrow the workspace's credential: the room
+      // would call DataOps as the workspace owner. Absence of its own slot is a refusal, not a
+      // fallback -- a visitor with no grant has no credential, and that is the point.
+      const scopedRef = credentialRef(scopedCredentialRef(ref, identity.sessionId))
+      const scoped = await provider.resolve(scopedRef).catch(() => undefined)
+      if (scoped === undefined) {
+        throw new Error(`mcp-client: credential "${scopedRef}" is not configured for this Session`)
+      }
+      const headers = new Headers(init?.headers)
+      headers.set('Authorization', `Bearer ${scoped.value}`)
+      return globalThis.fetch(input, { ...init, headers })
+    }
+    const resolved = await provider.resolve(ref)
     if (resolved === undefined) throw new Error(`mcp-client: credential "${ref}" is not configured`)
     const headers = new Headers(init?.headers)
     headers.set('Authorization', `Bearer ${resolved.value}`)

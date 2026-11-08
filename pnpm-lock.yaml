@@ -1659,7 +1659,7 @@ importers:
         specifier: workspace:>=0.2.1-alpha.1
         version: link:../../plus/backup
       '@sparkelf/dsh-plugin-mcp-credentials':
-        specifier: workspace:>=0.2.1-alpha.53
+        specifier: workspace:>=0.2.1-alpha.54
         version: link:../../plus/mcp-credentials
       dshmarket:
         specifier: '>=1.66.7'
