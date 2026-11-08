@@ -1,3 +1,4 @@
+import { runWithSession, scopedCredentialRef, sessionScope } from '../src/session-scope.ts'
 /**
  * The credential-refusal path of the connection supervisor, driven by a mocked
  * MCP client that refuses the credential on a reconnect.
@@ -149,5 +150,25 @@ describe('credential refusal keeps the tool generation', () => {
     expect(warnings.some(line => line.includes('credential rejected by the server'))).toBe(false)
 
     handle.dispose()
+  })
+})
+
+describe('scoped credential references', () => {
+  it('folds a Session id into the uppercase underscore ref alphabet', () => {
+    // The connector mints the same name; a divergence here would silently fall back to the
+    // workspace credential and the room would act as the workspace owner.
+    expect(scopedCredentialRef('DATAOPS_ACCESS_TOKEN', 'group-room-b1b6ed22-740f-441b-9d87-61a2c081b878'))
+      .toBe('DATAOPS_ACCESS_TOKEN_S_GROUP_ROOM_B1B6ED22_740F_441B_9D87_61A2C081B878')
+    expect(scopedCredentialRef('DATAOPS_ACCESS_TOKEN', '--odd--id--'))
+      .toBe('DATAOPS_ACCESS_TOKEN_S_ODD_ID')
+  })
+
+  it('keeps the Session identity ambient only inside the call it wraps', async () => {
+    expect(sessionScope.getStore()).toBeUndefined()
+    const seen = await runWithSession({ sessionId: 'room-1', actor: { any: true } }, async () => sessionScope.getStore())
+    expect(seen?.sessionId).toBe('room-1')
+    expect(sessionScope.getStore()).toBeUndefined()
+    // Without an actor nothing is recorded, so the resolver reads the workspace credential.
+    expect(await runWithSession(undefined, async () => sessionScope.getStore())).toBeUndefined()
   })
 })

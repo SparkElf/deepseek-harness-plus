@@ -13,6 +13,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import { scrubbedParentEnv } from '@deepseek-ai/dsh-subprocess'
 import type { Config } from './index.ts'
+import { scopedCredentialRef, sessionScope } from './session-scope.ts'
 
 /**
  * The subprocess seam's scrubbed parent env (credential-shaped and stale
@@ -24,13 +25,24 @@ function buildChildEnv(extra: Record<string, string>): Record<string, string> {
   return { ...scrubbedParentEnv(), ...extra }
 }
 
-/** Resolve the current bearer credential immediately before each network request. */
+/**
+ * Resolve the current bearer credential immediately before each network request.
+ *
+ * A Session carrying an actor (a group-chat room acting for one member) uses the scoped entry the
+ * connector minted for it; every other request uses the workspace credential. The scoped lookup
+ * falls back to the workspace entry, so a room whose scoped credential expired keeps working until
+ * the connector refreshes it.
+ */
 function credentialFetch(ctx: Context, rawRef: string): typeof globalThis.fetch {
   const ref = credentialRef(rawRef)
   return async (input, init) => {
     const provider = ctx.get('credentials')
     if (provider === undefined) throw new Error(`mcp-client: credential service unavailable while resolving "${ref}"`)
-    const resolved = await provider.resolve(ref)
+    const identity = sessionScope.getStore()
+    const scoped = identity === undefined || identity.actor === undefined
+      ? undefined
+      : await provider.resolve(credentialRef(scopedCredentialRef(ref, identity.sessionId))).catch(() => undefined)
+    const resolved = scoped ?? await provider.resolve(ref)
     if (resolved === undefined) throw new Error(`mcp-client: credential "${ref}" is not configured`)
     const headers = new Headers(init?.headers)
     headers.set('Authorization', `Bearer ${resolved.value}`)

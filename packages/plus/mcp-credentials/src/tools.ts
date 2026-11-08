@@ -24,6 +24,7 @@ import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import type { ToolDefinition, ToolExecution, ToolExecutionResult } from '@deepseek-ai/dsh-tools'
 import { assertSupportedJsonSchema } from '@deepseek-ai/dsh-tools'
 import type { JsonSchemaNode } from '@deepseek-ai/dsh-tools'
+import { runWithSession } from './session-scope.ts'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 
 /** Resolved options relevant to tool bridging. */
@@ -310,6 +311,14 @@ function createExecutor(
   projections: WeakMap<ToolExecution, PreparedProjection>,
 ): ToolDefinition['execute'] {
   return async (args: unknown, exec: ToolExecution) => {
+    // The MCP SDK issues its HTTP request far from this call, so the Session travels through async
+    // local storage: a room with an actor resolves its scoped credential, everything else the
+    // workspace one. A conversation without an actor records nothing.
+    // `actor` arrives with the base's disclosure patch, which this package's dependency may predate;
+    // reading it structurally keeps the older type honest without widening the public surface.
+    const session = exec.agent?.session as { id: string; actor?: unknown } | undefined
+    const identity = session?.actor === undefined ? undefined : { sessionId: String(session.id), actor: session.actor }
+    return runWithSession(identity, async () => {
     if (taskRequired) {
       throw new Error(`Tool "${rawName}" requires task-based execution, which this bridge does not support`)
     }
@@ -358,6 +367,7 @@ function createExecutor(
       projections.set(exec, { value, fallback, content: projected })
     }
     return value
+    })
   }
 }
 
