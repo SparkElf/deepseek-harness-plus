@@ -4,8 +4,8 @@
   "baseCommit": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db",
   "appliesOn": "dsh-v0.2.2-rc.1; the page hard-codes its status tabs, so the patch carries the page change",
   "patch": "patches/ui-schedule-plaza-tab.patch",
-  "patchMd5": "e8ff86b93519319aff8195ebd91ad66f",
-  "patchBytes": 10267,
+  "patchMd5": "6cddd71bc49be6d06c23ac8f17f86c2c",
+  "patchBytes": 10239,
   "files": [
     {
       "path": "packages/client/ui-schedule/src/client/TaskManagerPage.tsx"
@@ -25,6 +25,6 @@
   "verification": {
     "pristineApplyCheck": "OK on dsh-v0.2.2-rc.1",
     "fullSet": "31 patches in alphabetical order, 31 applied, 0 failures",
-    "contributor": "@sparkelf/dsh-knowledge-base registers name \"schedule.manager.tabs\" and declares hookContext on the seat, so the page passes { hookContext: undefined }"
+    "contributor": "rc.1's renderSlot declares opts?: Omit<RenderOpts<EntryKey>, 'hookContext'>, so the page passes only the owner argument; the knowledge-base contributor's contextual declaration is handled by its own inject"
   }
 }
