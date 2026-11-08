@@ -634,6 +634,23 @@
           },
           "file": "./patches/visibility-filters.patch",
           "retireWhen": "官方 base 提供按会话的披露过滤扩展点后退役"
+        },
+        {
+          "id": "ui-schedule-plaza-tab",
+          "dsh": ">=0.2.2-rc.1",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-schedule"
+            ],
+            "paths": [
+              "packages/client/ui-schedule/"
+            ],
+            "republish": false,
+            "reason": "@sparkelf/dsh-client-ui-schedule 没有 0.2.2-rc.1 发布；dsh-plus 在 profile 安装后把源码树里的 official workspace 软链进 profile（linkOfficialPackages），补丁实现由源码树提供，不需要 republish。"
+          },
+          "file": "./patches/ui-schedule-plaza-tab.patch",
+          "retireWhen": "官方 automation 页提供稳定的 tab 扩展点后退役"
         }
       ]
     },
