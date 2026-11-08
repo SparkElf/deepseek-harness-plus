@@ -494,6 +494,21 @@
           "retireWhen": "官方把 Session 导出入口放进 Trajectory 工具栏后退役"
         },
         {
+          "id": "sidebar-right-tab-menu",
+          "dsh": ">=0.2.2-alpha.2",
+          "target": {
+            "kind": "dsh-source",
+            "packages": [
+              "@deepseek-ai/dsh-client-ui-sidebar-right"
+            ],
+            "paths": [
+              "packages/client/ui-sidebar-right/"
+            ]
+          },
+          "file": "./patches/sidebar-right-tab-menu.patch",
+          "retireWhen": "官方 dsh-client-ui-sidebar-right 去掉 tab 右键菜单里的关闭/关闭其他/关闭右侧三项后退役"
+        },
+        {
           "id": "state-dot-brand-blue",
           "dsh": ">=0.2.2-alpha.2",
           "target": {

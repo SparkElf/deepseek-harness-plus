@@ -1,0 +1,117 @@
+diff --git a/packages/client/ui-sidebar-right/src/client/index.ts b/packages/client/ui-sidebar-right/src/client/index.ts
+--- a/packages/client/ui-sidebar-right/src/client/index.ts
++++ b/packages/client/ui-sidebar-right/src/client/index.ts
+@@ -1,5 +1,4 @@
+ import { IconCloseOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+-import type { ShortcutCommandId } from '@deepseek-ai/dsh-client-shortcuts/client'
+ import { TabMenuContent } from './shell/TabMenuContent.tsx'
+ import type {} from '@deepseek-ai/dsh-client-ui-context-menu/client'
+ /**
+@@ -138,24 +137,6 @@
+   ctx.effect(() => ctx.slots.inject('contextMenu.icon', () => ctx.slots.register({
+     name: 'contextMenu.icon', key: 'sidebar.close',
+   }, IconCloseOutlineRegular)), 'sidebar: menu icon')
+-  ctx.effect(() => ctx.contextMenus.register({
+-    id: 'sidebar.close', target: 'tab', order: 100,
+-    resolve: ({ sessionId, paneId, tab }) => {
+-      const tabId = tab.id
+-      const tabs = controller.menuTabs(sessionId, paneId, tabId)
+-      if (!tabs.close && tabs.all.length === 0) return []
+-      const closeMany = (ids: readonly TabId[]) => {
+-        for (const id of ids) {
+-          if (controller.menuTabs(sessionId, paneId, tabId).all.includes(id)) controller.closeIn(sessionId, id)
+-        }
+-      }
+-      return [
+-        { id: 'close', commandId: 'page.close' as ShortcutCommandId, icon: { key: 'sidebar.close' }, label: t('menu.close'), disabled: !tabs.close, run: () => { if (controller.menuTabs(sessionId, paneId, tabId).close) controller.closeIn(sessionId, tabId) } },
+-        { id: 'others', label: t('menu.closeOthers'), disabled: tabs.all.length === 0, run: () => { closeMany(tabs.all) } },
+-        ...tabs.right.length === 0 ? [] : [{ id: 'right', label: t('menu.closeRight'), run: () => { closeMany(tabs.right) } }],
+-      ]
+-    },
+-  }), 'sidebar: menu actions')
+   ctx.effect(() => ctx.slots.inject('contextMenu.content', () => ctx.slots.register({
+     name: 'contextMenu.content', key: 'tab',
+     children: { 'sidebar.right.tab.menu.item': { kind: 'list', scope: 'session' } },
+diff --git a/packages/client/ui-sidebar-right/src/client/locales.ts b/packages/client/ui-sidebar-right/src/client/locales.ts
+--- a/packages/client/ui-sidebar-right/src/client/locales.ts
++++ b/packages/client/ui-sidebar-right/src/client/locales.ts
+@@ -8,9 +8,6 @@
+ 
+ /** Simplified Chinese dictionary and key-set source of truth. */
+ export const zh = {
+-  'menu.close': '关闭',
+-  'menu.closeOthers': '关闭其他标签页',
+-  'menu.closeRight': '关闭右侧标签页',
+   'command.close': '关闭当前页面／窗口',
+   'command.refresh': '刷新当前页面',
+   'command.noRefresh': '当前页面不支持刷新',
+@@ -53,9 +50,6 @@
+ 
+ /** English dictionary, checked against the Chinese key set. */
+ export const en = {
+-  'menu.close': 'Close',
+-  'menu.closeOthers': 'Close Other Tabs',
+-  'menu.closeRight': 'Close Tabs to the Right',
+   'command.close': 'Close current page or window',
+   'command.refresh': 'Refresh current page',
+   'command.noRefresh': 'This page cannot be refreshed',
+@@ -95,9 +89,6 @@
+ 
+ /** Japanese copy, checked against the English keys. */
+ export const ja = {
+-  'menu.close': '閉じる',
+-  'menu.closeOthers': '他のタブを閉じる',
+-  'menu.closeRight': '右側のタブを閉じる',
+   'command.close': '現在のページまたはウィンドウを閉じる',
+   'command.refresh': '現在のページを更新',
+   'command.noRefresh': 'このページは更新できません',
+@@ -137,9 +128,6 @@
+ 
+ /** Spanish dictionary, checked against the English keys. */
+ export const es = {
+-  'menu.close': 'Cerrar',
+-  'menu.closeOthers': 'Cerrar otras pestañas',
+-  'menu.closeRight': 'Cerrar pestañas a la derecha',
+   'command.close': 'Cerrar la página o ventana actual',
+   'command.refresh': 'Actualizar la página actual',
+   'command.noRefresh': 'Esta página no se puede actualizar',
+@@ -179,9 +167,6 @@
+ 
+ /** French dictionary, checked against the English keys. */
+ export const fr = {
+-  'menu.close': 'Fermer',
+-  'menu.closeOthers': 'Fermer les autres onglets',
+-  'menu.closeRight': 'Fermer les onglets à droite',
+   'command.close': 'Fermer la page ou la fenêtre actuelle',
+   'command.refresh': 'Actualiser la page actuelle',
+   'command.noRefresh': 'Cette page ne peut pas être actualisée',
+@@ -221,9 +206,6 @@
+ 
+ /** German dictionary, checked against the English keys. */
+ export const de = {
+-  'menu.close': 'Schließen',
+-  'menu.closeOthers': 'Andere Tabs schließen',
+-  'menu.closeRight': 'Tabs rechts schließen',
+   'command.close': 'Aktuelle Seite oder Fenster schließen',
+   'command.refresh': 'Aktuelle Seite aktualisieren',
+   'command.noRefresh': 'Diese Seite kann nicht aktualisiert werden',
+@@ -263,9 +245,6 @@
+ 
+ /** Russian dictionary, checked against the English keys. */
+ export const ru = {
+-  'menu.close': 'Закрыть',
+-  'menu.closeOthers': 'Закрыть другие вкладки',
+-  'menu.closeRight': 'Закрыть вкладки справа',
+   'command.close': 'Закрыть текущую страницу или окно',
+   'command.refresh': 'Обновить текущую страницу',
+   'command.noRefresh': 'Эту страницу невозможно обновить',
+@@ -305,9 +284,6 @@
+ 
+ /** Portuguese dictionary, checked against the English keys. */
+ export const pt = {
+-  'menu.close': 'Fechar',
+-  'menu.closeOthers': 'Fechar outras abas',
+-  'menu.closeRight': 'Fechar abas à direita',
+   'command.close': 'Fechar a página ou janela atual',
+   'command.refresh': 'Atualizar página atual',
+   'command.noRefresh': 'Esta página não pode ser atualizada',
