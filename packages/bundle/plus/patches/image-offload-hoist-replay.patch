@@ -365,7 +365,7 @@ index 8788c8ea..d191b9cc 100644
      throw new SessionQueryError(
        /* v8 ignore next -- foldSurface throws Error instances */
 diff --git a/packages/session-query/session-query/src/index.ts b/packages/session-query/session-query/src/index.ts
-index 838ce4c7..83b105fe 100644
+index dfb11fec..2d1f095a 100644
 --- a/packages/session-query/session-query/src/index.ts
 +++ b/packages/session-query/session-query/src/index.ts
 @@ -11,6 +11,7 @@ import {
@@ -404,7 +404,7 @@ index 838ce4c7..83b105fe 100644
    /**
     * Observe one exact live or prepared Session without a persistence listing preflight.
     * @param sessionId - logical Session identity.
-@@ -188,7 +210,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -200,7 +222,7 @@ export abstract class SessionQueryEngine extends Service {
        loaded.events,
        loaded.header,
        loaded.inheritedEventCount,
@@ -413,7 +413,7 @@ index 838ce4c7..83b105fe 100644
      )
      return {
        session: structuredClone(loaded.header),
-@@ -268,7 +290,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -280,7 +302,7 @@ export abstract class SessionQueryEngine extends Service {
     */
    async listEvents(sessionId: SessionId): Promise<SessionEventRecord[]> {
      const loaded = await this._corpus.load(sessionId)
@@ -422,7 +422,7 @@ index 838ce4c7..83b105fe 100644
    }
  
    /**
-@@ -297,7 +319,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -309,7 +331,7 @@ export abstract class SessionQueryEngine extends Service {
      filters: readonly SessionEventResultFilter[],
    ): Promise<SessionEventSearchDocument[]> {
      const loaded = await this._corpus.load(sessionId)
@@ -431,7 +431,7 @@ index 838ce4c7..83b105fe 100644
      return filterSessionEventDocuments(documents, filters)
    }
  
-@@ -313,7 +335,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -325,7 +347,7 @@ export abstract class SessionQueryEngine extends Service {
        session: structuredClone(loaded.header),
        inheritedEventCount: loaded.inheritedEventCount,
        capturedThroughSeq: loaded.events.at(-1)?.seq ?? null,
@@ -440,7 +440,7 @@ index 838ce4c7..83b105fe 100644
      }
    }
  
-@@ -342,7 +364,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -354,7 +376,7 @@ export abstract class SessionQueryEngine extends Service {
      signal?.throwIfAborted()
      return {
        session: loaded.header,

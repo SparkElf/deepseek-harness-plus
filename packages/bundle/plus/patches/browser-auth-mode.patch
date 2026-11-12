@@ -1,5 +1,5 @@
 diff --git a/packages/client/connection/src/browser-auth.ts b/packages/client/connection/src/browser-auth.ts
-index 5c8594df6f..e5f5fa9f44 100644
+index 5c8594df..e5f5fa9f 100644
 --- a/packages/client/connection/src/browser-auth.ts
 +++ b/packages/client/connection/src/browser-auth.ts
 @@ -198,12 +198,40 @@ async function initializeSecret(credentials: CredentialProvider): Promise<Buffer
@@ -45,7 +45,7 @@ index 5c8594df6f..e5f5fa9f44 100644
    private readonly maxAgeMilliseconds: number
  
 diff --git a/packages/client/connection/src/index.ts b/packages/client/connection/src/index.ts
-index d563cd40e8..0c0d2279f8 100644
+index d563cd40..0c0d2279 100644
 --- a/packages/client/connection/src/index.ts
 +++ b/packages/client/connection/src/index.ts
 @@ -10,7 +10,7 @@ import { API_PATH } from './api-path.ts'
@@ -98,7 +98,7 @@ index d563cd40e8..0c0d2279f8 100644
    ctx.inject(['webServer'], (webCtx) => {
      assertImageBodyCapacity(webCtx, maxRequestBodyBytes)
 diff --git a/packages/client/connection/src/rpc-host.ts b/packages/client/connection/src/rpc-host.ts
-index 88e7b48baa..43a3feb74c 100644
+index 88e7b48b..43a3feb7 100644
 --- a/packages/client/connection/src/rpc-host.ts
 +++ b/packages/client/connection/src/rpc-host.ts
 @@ -13,7 +13,7 @@ import { clientRequestSchema } from './rpc-schema.ts'

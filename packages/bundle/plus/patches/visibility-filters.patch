@@ -1,8 +1,8 @@
 diff --git a/packages/core/session/src/index.ts b/packages/core/session/src/index.ts
-index e9baee1b..8ec2134e 100644
+index 82d57f11..e3d8a856 100644
 --- a/packages/core/session/src/index.ts
 +++ b/packages/core/session/src/index.ts
-@@ -542,6 +542,15 @@ export class Session {
+@@ -582,6 +582,15 @@ export class Session {
     */
    readonly header: SessionHeader
  
@@ -18,7 +18,7 @@ index e9baee1b..8ec2134e 100644
    /** Number of leading events inherited from this Session's fork parent. */
    readonly inheritedEventCount: SessionLogOffset
  
-@@ -1177,6 +1186,7 @@ export class SessionStore extends Service {
+@@ -1266,6 +1275,7 @@ export class SessionStore extends Service {
              eventState,
              this.projections,
            )
@@ -26,7 +26,7 @@ index e9baee1b..8ec2134e 100644
            attachments.set(session, null)
            return session
          }
-@@ -1201,6 +1211,7 @@ export class SessionStore extends Service {
+@@ -1290,6 +1300,7 @@ export class SessionStore extends Service {
        ...meta?.agentPreset === undefined ? {} : { agentPreset: meta.agentPreset },
      }
      const session = Session.create(sessionId, seed, header, options?.inheritedEventCount, this.projections)
@@ -35,7 +35,7 @@ index e9baee1b..8ec2134e 100644
      return session
    }
 diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
-index 7787dd9b..7f9211dd 100644
+index 0f350a41..023601e9 100644
 --- a/packages/core/session/src/types.ts
 +++ b/packages/core/session/src/types.ts
 @@ -141,6 +141,15 @@ export interface SessionHeader {
@@ -64,10 +64,10 @@ index 7787dd9b..7f9211dd 100644
  
  /** Inputs accepted while constructing an unpublished Session. */
 diff --git a/packages/core/tools/src/contracts.ts b/packages/core/tools/src/contracts.ts
-index 089dc094..8699be42 100644
+index 51597b41..9694b613 100644
 --- a/packages/core/tools/src/contracts.ts
 +++ b/packages/core/tools/src/contracts.ts
-@@ -3,7 +3,7 @@ import { HarnessError } from '@deepseek-ai/dsh-llm'
+@@ -4,7 +4,7 @@ import { TOOL_CONTEXT_UNAVAILABLE } from './error-codes.ts'
  import type { ToolCallId, ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
  import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'
  import type { ScopeKey } from '@deepseek-ai/dsh-scope'
@@ -76,7 +76,7 @@ index 089dc094..8699be42 100644
  import type { JsonValue } from '@deepseek-ai/dsh-util-values'
  import type { JsonSchemaNode } from './json-schema.ts'
  import type { ToolCallView, ToolResultView } from './presentation.ts'
-@@ -111,6 +111,32 @@ export interface ToolActivationContext {
+@@ -112,6 +112,32 @@ export interface ToolActivationContext {
    readonly signal: AbortSignal
  }
  
@@ -110,7 +110,7 @@ index 089dc094..8699be42 100644
  export interface ToolRegistrationOptions {
    /**
 diff --git a/packages/core/tools/src/index.ts b/packages/core/tools/src/index.ts
-index d2d10d6b..a187d37d 100644
+index 0cb307d1..bc1f3611 100644
 --- a/packages/core/tools/src/index.ts
 +++ b/packages/core/tools/src/index.ts
 @@ -3,6 +3,7 @@ import { Context, Service } from '@deepseek-ai/cordis'
@@ -124,7 +124,7 @@ index d2d10d6b..a187d37d 100644
 @@ -12,7 +13,7 @@ import { assertSupportedJsonSchema } from './json-schema.ts'
  import { RUN_CODE_NAME, ToolActivationError } from './contracts.ts'
  import type {
-   ToolDefinition, ToolRestriction, ToolExecution, ToolGuard,
+   ToolDefinition, ToolRestriction, ToolExecution, ToolGuard, ToolGuardDenial,
 -  ResolvedToolSet, ToolActivationContext, ToolRegistrationOptions,
 +  ResolvedToolSet, ToolActivationContext, ToolRegistrationOptions, ToolVisibilityFilter,
  } from './contracts.ts'

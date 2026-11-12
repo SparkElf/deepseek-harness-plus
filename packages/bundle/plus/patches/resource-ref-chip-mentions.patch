@@ -1,5 +1,5 @@
 diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
-index 9233ac84cb..21ce2a2dad 100644
+index ce060ec4..ea3ce4b6 100644
 --- a/packages/api/session-controller/src/client/contract/session.ts
 +++ b/packages/api/session-controller/src/client/contract/session.ts
 @@ -12,7 +12,7 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
@@ -20,7 +20,7 @@ index 9233ac84cb..21ce2a2dad 100644
    /**
     * Resolve one stored image using this Session's gateway permission scope.
 diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
-index b9600f36a6..d48cb92447 100644
+index b9600f36..d48cb924 100644
 --- a/packages/api/session-controller/src/client/index.ts
 +++ b/packages/api/session-controller/src/client/index.ts
 @@ -28,6 +28,7 @@ export { createScope, scopeOf } from './scope.ts'
@@ -32,7 +32,7 @@ index b9600f36a6..d48cb92447 100644
    SessionListPhase,
    SessionListSnapshot,
 diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
-index 253da9c463..0d5d4bbf67 100644
+index 60194de5..67459761 100644
 --- a/packages/api/session-controller/src/client/sessions/session.ts
 +++ b/packages/api/session-controller/src/client/sessions/session.ts
 @@ -17,6 +17,7 @@ import type {
@@ -43,7 +43,7 @@ index 253da9c463..0d5d4bbf67 100644
  } from '../../types.ts'
  import type {
    BeginSubmissionInput, PendingSubmissionRetirement, SessionFace, SubmissionHandle,
-@@ -263,6 +264,7 @@ export class Session implements SessionFace {
+@@ -272,6 +273,7 @@ export class Session implements SessionFace {
      mode: 'queue' | 'steer',
      signal?: AbortSignal,
      requestId?: SessionRequestId,
@@ -51,7 +51,7 @@ index 253da9c463..0d5d4bbf67 100644
    ): Promise<RemoteResult<{ accepted: true }>> {
      this.promptError = null
      this.lastAgentError = null
-@@ -278,6 +280,7 @@ export class Session implements SessionFace {
+@@ -287,6 +289,7 @@ export class Session implements SessionFace {
          mode,
          content,
          clientTimeZone,
@@ -60,10 +60,10 @@ index 253da9c463..0d5d4bbf67 100644
      } else if (content.some(part => part.type === 'file')) {
        result = {
 diff --git a/packages/api/session-controller/src/index.ts b/packages/api/session-controller/src/index.ts
-index 94d08c77e3..3d9bf30009 100644
+index 6303340c..a6c253ee 100644
 --- a/packages/api/session-controller/src/index.ts
 +++ b/packages/api/session-controller/src/index.ts
-@@ -484,6 +484,9 @@ export class SessionController extends TypertRemoteService {
+@@ -487,6 +487,9 @@ export class SessionController extends TypertRemoteService {
        rpcId: request.requestId,
        ...(clientTimeZone === undefined ? {} : { clientTimeZone }),
        ...(principal === undefined ? {} : { principal }),
@@ -74,10 +74,10 @@ index 94d08c77e3..3d9bf30009 100644
      return this.commands.prompt(request, source)
    }
 diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
-index 9e399d8f3b..46a4507c56 100644
+index 49cd7c0f..12257027 100644
 --- a/packages/api/session-controller/src/types.ts
 +++ b/packages/api/session-controller/src/types.ts
-@@ -317,6 +317,23 @@ export interface SessionForkValue {
+@@ -320,6 +320,23 @@ export interface SessionForkValue {
    readonly sessionId: SessionId
  }
  
@@ -100,17 +100,17 @@ index 9e399d8f3b..46a4507c56 100644
 +
  /** Session prompt request. */
  export interface SessionPromptRequest {
-   /** Client-minted identity persisted on the exact accepted user message. */
-@@ -325,6 +342,8 @@ export interface SessionPromptRequest {
+   /** Client-minted identity persisted on the accepted inbox input, including empty continuation. */
+@@ -328,6 +345,8 @@ export interface SessionPromptRequest {
    readonly mode: 'queue' | 'steer'
-   /** At least one non-whitespace text part or attachment. */
+   /** Non-whitespace text or attachments; an empty array continues an eligible failed idle Session. */
    readonly content: readonly PromptContentPart[]
 +  /** Structured mentions the composer declared, in document order. Absent when it carried none. */
 +  readonly mentions?: readonly SessionMentionRef[]
    readonly clientTimeZone?: string
  }
  
-@@ -394,7 +413,13 @@ declare module '@deepseek-ai/dsh-llm' {
+@@ -397,7 +416,13 @@ declare module '@deepseek-ai/dsh-llm' {
       * caller that submitted the prompt. `principal` is written only for a
       * caller other than the owner, so an absent `principal` means the owner.
       */
@@ -122,14 +122,14 @@ index 9e399d8f3b..46a4507c56 100644
 +      principal?: Principal
 +      mentions?: readonly SessionMentionRef[]
 +    }
+     /** Empty retry user message with browser prompt correlation and caller metadata. */
+     'retry-rpc': { kind: 'retry'; rpcId: SessionRequestId; clientTimeZone?: string; principal?: Principal }
    }
- }
- 
 diff --git a/packages/client/ui-conversation/src/client/contract/draft-editor.ts b/packages/client/ui-conversation/src/client/contract/draft-editor.ts
-index b305bb3a3c..069ad977dd 100644
+index 86592a82..3ee5ea16 100644
 --- a/packages/client/ui-conversation/src/client/contract/draft-editor.ts
 +++ b/packages/client/ui-conversation/src/client/contract/draft-editor.ts
-@@ -15,7 +15,12 @@ export interface ReferenceInsert {
+@@ -16,7 +16,12 @@ export interface ReferenceInsert {
    readonly source: string
    readonly ref: string
    readonly label: string
@@ -144,10 +144,10 @@ index b305bb3a3c..069ad977dd 100644
  }
  
 diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
-index 6306216b1c..d8e2233001 100644
+index 1fd208b6..a0155622 100644
 --- a/packages/client/ui-conversation/src/client/input/facade.ts
 +++ b/packages/client/ui-conversation/src/client/input/facade.ts
-@@ -20,8 +20,10 @@ import type {
+@@ -21,8 +21,10 @@ import type {
    SessionInput, SubmitAttempt, SubmitAttachment, SubmitOutcome,
  } from '../contract/input.ts'
  import type {
@@ -159,7 +159,7 @@ index 6306216b1c..d8e2233001 100644
  import type { InputSubmitMode, MessageSubmission, MessageSubmissionState } from '../contract/composer-submission.ts'
  import { serializeDraftPrompt } from './prompt.ts'
  import { SubmitMachine } from './machine.ts'
-@@ -69,6 +71,7 @@ export interface SessionInputDeps {
+@@ -70,6 +72,7 @@ export interface SessionInputDeps {
      mode: InputSubmitMode,
      signal: AbortSignal,
      accept: () => void,
@@ -167,7 +167,7 @@ index 6306216b1c..d8e2233001 100644
    ): Promise<SubmitOutcome>
    /** Live Session and composer-block policy for transcript insertion. */
    quoteInsertionAllowed?: () => boolean
-@@ -129,6 +132,29 @@ const EMPTY_LEXICON: ReadonlyMap<'/' | '@', readonly string[]> = new Map()
+@@ -135,6 +138,29 @@ const EMPTY_LEXICON: ReadonlyMap<'/' | '@', readonly string[]> = new Map()
   * setDraft/submit + the published InputState store, over a shell-owned
   * Lexical editor.
   */
@@ -197,10 +197,10 @@ index 6306216b1c..d8e2233001 100644
  export class SessionInputShell implements SessionInput {
    /** Published editor projection + submit-plane state + queue overlay (the InputZone currency source). */
    readonly state: SnapshotStore<InputState>
-@@ -726,7 +752,10 @@ export class SessionInputShell implements SessionInput {
-     })
-     const send = (text: string): void => {
-       if (this.dead(attempt)) return
+@@ -742,7 +768,10 @@ export class SessionInputShell implements SessionInput {
+         this.settleSink(attempt, Promise.resolve({ kind: 'success' }))
+         return
+       }
 -      this.settleSink(attempt, this.deps.defaultSink(text, attachmentIds, mode, attempt.signal, () => { this.acceptSink(attempt) }))
 +      const mentions = collectMentions(attempt.occurrences)
 +      this.settleSink(attempt, mentions === undefined
@@ -210,13 +210,13 @@ index 6306216b1c..d8e2233001 100644
      if (!(prompt instanceof Promise)) { send(prompt); return }
      void prompt.then(send, (error: unknown) => { this.failSink(attempt, error) })
 diff --git a/packages/client/ui-conversation/src/client/input/hub.ts b/packages/client/ui-conversation/src/client/input/hub.ts
-index 02897a18c6..5f1a3228a4 100644
+index f6e9ce41..7f4354b0 100644
 --- a/packages/client/ui-conversation/src/client/input/hub.ts
 +++ b/packages/client/ui-conversation/src/client/input/hub.ts
 @@ -12,6 +12,7 @@ import type {
    ISessions, SessionBinding, SessionFace,
  } from '@deepseek-ai/dsh-api-session-controller/client'
- import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
 +import type { SessionMentionRef } from '@deepseek-ai/dsh-api-session-controller/client'
  import type { TranslateNS } from '@deepseek-ai/dsh-client-locale/client'
  import type { InboxState } from '@deepseek-ai/dsh-agent/types'
@@ -238,13 +238,15 @@ index 02897a18c6..5f1a3228a4 100644
        quoteRemoveLabel: () => this.t('quote.remove'),
        quoteInsertionAllowed: () => {
          const state = session.getSnapshot()
-@@ -250,9 +252,13 @@ export class InputHub implements SessionInputResolver {
+@@ -273,11 +275,15 @@ export class InputHub implements SessionInputResolver {
      mode: InputSubmitMode,
      signal: AbortSignal,
      accept: () => void,
 +    mentions?: readonly SessionMentionRef[],
    ): Promise<SubmitOutcome> {
-     if (text === '' && attachmentIds.length === 0) return Promise.resolve({ kind: 'success' })
+     if (text === '' && attachmentIds.length === 0) {
+       return session.prompt([], mode, signal).then(result => result.ok ? { kind: 'success' } : { kind: 'error' })
+     }
 -    return this.conversation().sendSession(session, text, attachmentIds, mode, signal, accept)
 +    // A draft that declared mentions takes one extra argument; the ordinary send keeps its shape.
 +    return mentions === undefined || mentions.length === 0
@@ -254,7 +256,7 @@ index 02897a18c6..5f1a3228a4 100644
  
    /**
 diff --git a/packages/client/ui-conversation/src/client/service.ts b/packages/client/ui-conversation/src/client/service.ts
-index af19eb7721..4ae2286dcd 100644
+index af19eb77..4ae2286d 100644
 --- a/packages/client/ui-conversation/src/client/service.ts
 +++ b/packages/client/ui-conversation/src/client/service.ts
 @@ -9,6 +9,7 @@
@@ -289,7 +291,7 @@ index af19eb7721..4ae2286dcd 100644
      // An accepted prompt whose echo already retired unobserved, as when its queue entry was removed.
 diff --git a/packages/client/ui-conversation/tests/mentions.client.spec.ts b/packages/client/ui-conversation/tests/mentions.client.spec.ts
 new file mode 100644
-index 0000000000..7439cbfff0
+index 00000000..7439cbff
 --- /dev/null
 +++ b/packages/client/ui-conversation/tests/mentions.client.spec.ts
 @@ -0,0 +1,45 @@
@@ -340,7 +342,7 @@ index 0000000000..7439cbfff0
 +})
 \ No newline at end of file
 diff --git a/packages/client/ui-primitives/src/ReferenceIcon.tsx b/packages/client/ui-primitives/src/ReferenceIcon.tsx
-index ca566c40f6..7fd75f96a2 100644
+index ca566c40..7fd75f96 100644
 --- a/packages/client/ui-primitives/src/ReferenceIcon.tsx
 +++ b/packages/client/ui-primitives/src/ReferenceIcon.tsx
 @@ -1,12 +1,12 @@

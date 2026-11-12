@@ -1,5 +1,5 @@
 diff --git a/packages/util/atomic-write/src/index.ts b/packages/util/atomic-write/src/index.ts
-index 60e2c67b8c..cfe7c7824f 100644
+index 60e2c67b..cfe7c782 100644
 --- a/packages/util/atomic-write/src/index.ts
 +++ b/packages/util/atomic-write/src/index.ts
 @@ -12,6 +12,7 @@

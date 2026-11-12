@@ -43,10 +43,10 @@
   "dshPlus": {
     "formatVersion": 1,
     "compatibility": {
-      "dsh": ">=0.2.2-rc.1"
+      "dsh": ">=0.2.2-rc.2"
     },
     "runtime": {
-      "version": "0.2.2-rc.1"
+      "version": "0.2.2-rc.2"
     },
     "omission": {
       "package": "@sparkelf/dsh-omitted",
@@ -55,7 +55,6 @@
     "profile": {
       "bundles": [
         "@deepseek-ai/dsh-base",
-        "@deepseek-ai/dsh-experimental-agent-team-profile",
         "@deepseek-ai/dsh-web-app",
         "@deepseek-ai/dsh-experimental-auto-review",
         "@sparkelf/dsh-mineru",
@@ -87,27 +86,26 @@
         "@sparkelf/dsh-office-viewer-fonts": "0.1.7",
         "dsh-video-preview": "0.1.4",
         "dsh-right-bg-anim": "1.1.0",
-        "@deepseek-ai/dsh-experimental-agent-team-profile": "0.2.2-rc.1",
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.13",
         "@sparkelf/dsh-task-bus": "0.2.0",
-        "@deepseek-ai/dsh-experimental-auto-review": "0.2.2-rc.1",
+        "@deepseek-ai/dsh-experimental-auto-review": "0.2.2-rc.2",
         "@sparkelf/dsh-genui": "0.15.0-sparkelf.3",
-        "@deepseek-ai/dsh-anonymous-user-id": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-attachment": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-compaction": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-deepseek-account": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-fs": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-jobs": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-llm-deepseek": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-ptc-runtime": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-sandbox": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-session-persistence": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-session-telemetry": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-session-title-llm": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-shell": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-spill": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-workflow": "0.2.2-rc.1",
+        "@deepseek-ai/dsh-anonymous-user-id": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-attachment": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-compaction": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-deepseek-account": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-fs": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-jobs": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-llm-deepseek": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-ptc-runtime": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-sandbox": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-session-persistence": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-session-telemetry": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-session-title-llm": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-shell": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-spill": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-workflow": "0.2.2-rc.2",
         "@sparkelf/dsh-artifact-app": "0.1.1",
         "@sparkelf/dsh-dataops-managed": "0.3.51",
         "@sparkelf/dsh-sql-workbench": "0.6.0",
@@ -120,17 +118,17 @@
         "@sparkelf/dsh-ocr": "0.1.0",
         "@sparkelf/dsh-client-ui-skill-center": "0.2.2-alpha.2.5",
         "@deepseek-ai/cordis-plugin-group": "1.0.6-alpha.2",
-        "@deepseek-ai/dsh-home-paths": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-agent": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-llm": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-scope": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-bash-local": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-client-store": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-sdk-protocol": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-util-workspace-path": "0.2.2-rc.1",
-        "@deepseek-ai/dsh-tool-session-query": "0.2.2-rc.1"
+        "@deepseek-ai/dsh-home-paths": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-launch-environment": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-agent": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-llm": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-scope": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-system-prompt": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-bash-local": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-client-store": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-sdk-protocol": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-util-workspace-path": "0.2.2-rc.2",
+        "@deepseek-ai/dsh-tool-session-query": "0.2.2-rc.2"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -145,7 +143,7 @@
       }
     },
     "sourceBase": {
-      "revision": "66491b05e3f05ad35bcdd4f6cd7ed26041d9e3db"
+      "revision": "eb89e050beb5460973a016f5a849a2e6cc5864b8"
     },
     "patchSet": {
       "formatVersion": 1,
@@ -477,23 +475,6 @@
           "retireWhen": "官方 session-format 默认接受已发布的 interrupted-turn restart 模式后退役"
         },
         {
-          "id": "session-log-trajectory-toolbar",
-          "dsh": ">=0.2.2-alpha.2",
-          "target": {
-            "kind": "dsh-source",
-            "packages": [
-              "@deepseek-ai/dsh-client-ui-trajectory",
-              "@deepseek-ai/dsh-session-log-export"
-            ],
-            "paths": [
-              "packages/client/ui-trajectory/",
-              "packages/session-query/session-log-export/"
-            ]
-          },
-          "file": "./patches/session-log-trajectory-toolbar.patch",
-          "retireWhen": "官方把 Session 导出入口放进 Trajectory 工具栏后退役"
-        },
-        {
           "id": "sidebar-right-tab-menu",
           "dsh": ">=0.2.2-alpha.2",
           "target": {
@@ -753,7 +734,6 @@
         "profile": "dataops-web",
         "bundles": [
           "@deepseek-ai/dsh-base",
-          "@deepseek-ai/dsh-experimental-agent-team-profile",
           "@deepseek-ai/dsh-web-app",
           "@deepseek-ai/dsh-experimental-auto-review",
           "@sparkelf/dsh-mineru",
@@ -789,7 +769,6 @@
           "dsh-better-sidebar",
           "@sparkelf/dsh-office-viewer-fonts",
           "dsh-right-bg-anim",
-          "@deepseek-ai/dsh-experimental-agent-team-profile",
           "@sparkelf/dsh-task-bus",
           "@deepseek-ai/dsh-experimental-auto-review",
           "@sparkelf/dsh-genui",
@@ -832,8 +811,8 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-computer-use": "0.2.2-rc.1",
-    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-computer-use": "0.2.2-rc.2",
+    "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "0.2.2-rc.2",
     "@deepseek-ai/dsh-web-search-exa": "0.1.6-alpha.1",
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",

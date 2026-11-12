@@ -1,8 +1,8 @@
 diff --git a/packages/llm/llm-pi-ai/src/stream.ts b/packages/llm/llm-pi-ai/src/stream.ts
-index 30e9c79..0e4df53 100644
+index c3bfc1cd..93fff726 100644
 --- a/packages/llm/llm-pi-ai/src/stream.ts
 +++ b/packages/llm/llm-pi-ai/src/stream.ts
-@@ -56,6 +56,12 @@ function classifyPiAiError(message: string): string {
+@@ -64,6 +64,12 @@ function classifyPiAiError(message: string): BuiltinLlmFailureCode {
    // finish_reason`). The connection dropped mid-response, so this is a transport
    // truncation, not a model-level error.
    if (/stream ended (?:before|without)\b/i.test(message)) return 'TRANSPORT'
@@ -16,10 +16,10 @@ index 30e9c79..0e4df53 100644
      || /\b(?:other side closed|HTTP2 request did not get a response|WebSocket closed unexpectedly)\b/i.test(message)
      // undici renders a mid-stream socket drop as a bare `terminated` (its
 diff --git a/packages/llm/llm-pi-ai/tests/convert.spec.ts b/packages/llm/llm-pi-ai/tests/convert.spec.ts
-index d6c86ba..0e57a35 100644
+index ff5a6587..15dd5b53 100644
 --- a/packages/llm/llm-pi-ai/tests/convert.spec.ts
 +++ b/packages/llm/llm-pi-ai/tests/convert.spec.ts
-@@ -951,6 +951,11 @@ describe('mapStopReason / mapUsage', () => {
+@@ -965,6 +965,11 @@ describe('mapStopReason / mapUsage', () => {
      'OpenAI Responses stream ended before a terminal response event',
      'openrouter stream ended without a terminal event',
      'Stream ended without finish_reason',

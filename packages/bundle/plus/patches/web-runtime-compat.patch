@@ -1,5 +1,5 @@
 diff --git a/packages/bundle/web-app/src/index.ts b/packages/bundle/web-app/src/index.ts
-index b93b559620..8b40aae24d 100644
+index b93b5596..8b40aae2 100644
 --- a/packages/bundle/web-app/src/index.ts
 +++ b/packages/bundle/web-app/src/index.ts
 @@ -14,13 +14,14 @@
