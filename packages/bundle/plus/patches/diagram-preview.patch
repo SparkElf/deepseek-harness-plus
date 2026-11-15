@@ -543,10 +543,10 @@ index 00000000..768b9a16
 +  return { nodes, edges }
 +}
 diff --git a/packages/client/ui-sidebar-documentpreview/src/client/index.ts b/packages/client/ui-sidebar-documentpreview/src/client/index.ts
-index 72a26771..94c11c51 100644
+index be88ecf0..9b34061e 100644
 --- a/packages/client/ui-sidebar-documentpreview/src/client/index.ts
 +++ b/packages/client/ui-sidebar-documentpreview/src/client/index.ts
-@@ -36,6 +36,7 @@ import { apply as registerHtml } from './html/index.ts'
+@@ -37,6 +37,7 @@ import { apply as registerHtml } from './html/index.ts'
  import { apply as registerImage } from './image/index.ts'
  import { apply as registerPdf } from './pdf/index.ts'
  import { apply as registerCode } from './code/index.ts'
@@ -554,7 +554,7 @@ index 72a26771..94c11c51 100644
  import { apply as registerOffice } from './office/index.ts'
  import { apply as registerExcel } from './excel/index.ts'
  import { Config } from '../config.ts'
-@@ -127,4 +128,5 @@ export function apply(ctx: ClientContext): void {
+@@ -129,4 +130,5 @@ export function apply(ctx: ClientContext): void {
    registerOffice(ctx, config.office)
    registerExcel(ctx, config.excel)
    registerCode(ctx)

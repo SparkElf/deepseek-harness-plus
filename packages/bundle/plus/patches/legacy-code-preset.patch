@@ -1,5 +1,5 @@
 diff --git a/packages/api/session-controller/src/agent.ts b/packages/api/session-controller/src/agent.ts
-index d16e041773..41b6b4a0d1 100644
+index 343ad9ba..14b26b46 100644
 --- a/packages/api/session-controller/src/agent.ts
 +++ b/packages/api/session-controller/src/agent.ts
 @@ -13,6 +13,9 @@ import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-ses
@@ -12,7 +12,7 @@ index d16e041773..41b6b4a0d1 100644
  /** Cold Session identity absent from persistence. */
  export class ApiSessionNotFound extends Error {}
  
-@@ -273,7 +276,15 @@ export class ApiSessionAgentController {
+@@ -263,7 +266,15 @@ export class ApiSessionAgentController {
      if (presets === undefined) {
        return { setup: (agentCtx) => { installModelSelection(agentCtx) } }
      }
@@ -30,7 +30,7 @@ index d16e041773..41b6b4a0d1 100644
        agentPreset: resolvedId,
        setup: async (agentCtx) => {
 diff --git a/packages/api/session-controller/tests/agent.host.spec.ts b/packages/api/session-controller/tests/agent.host.spec.ts
-index aea96d5e04..3a37fcbbc0 100644
+index aea96d5e..3a37fcbb 100644
 --- a/packages/api/session-controller/tests/agent.host.spec.ts
 +++ b/packages/api/session-controller/tests/agent.host.spec.ts
 @@ -10,6 +10,7 @@ import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/ds
@@ -104,7 +104,7 @@ index aea96d5e04..3a37fcbbc0 100644
 +  })
  })
 diff --git a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
-index 26fdcfcbf6..25dd5a95bc 100644
+index 26fdcfcb..25dd5a95 100644
 --- a/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
 +++ b/packages/client/ui-agent-preset/src/client/AgentPresetLabel.tsx
 @@ -19,6 +19,8 @@ import type { AgentPresetSettingsState } from './settings-store.ts'
@@ -130,7 +130,7 @@ index 26fdcfcbf6..25dd5a95bc 100644
    )
  }
 diff --git a/packages/client/ui-agent-preset/tests/components.client.spec.tsx b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
-index 79cc930e01..1e9c5f25d2 100644
+index 79cc930e..1e9c5f25 100644
 --- a/packages/client/ui-agent-preset/tests/components.client.spec.tsx
 +++ b/packages/client/ui-agent-preset/tests/components.client.spec.tsx
 @@ -400,6 +400,12 @@ describe('the session-header label', () => {

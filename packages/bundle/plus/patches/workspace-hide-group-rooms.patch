@@ -1,11 +1,11 @@
 diff --git a/packages/client/ui-workspace/src/client/tree.ts b/packages/client/ui-workspace/src/client/tree.ts
-index 054c584..4c2bf0d 100644
+index 054c584d..4c2bf0d7 100644
 --- a/packages/client/ui-workspace/src/client/tree.ts
 +++ b/packages/client/ui-workspace/src/client/tree.ts
 @@ -17,6 +17,17 @@ import { workspaceTitleOf } from '@deepseek-ai/dsh-util-workspace-path'
  /** Group key for Sessions outside every Workspace. */
  export const UNGROUPED_KEY = ''
-
+ 
 +/**
 + * Group-chat rooms own a Workspace and a Session only so the room stays selectable. Those rows
 + * belong to the group-chat section: the Workspace browser must not list them as folders or as

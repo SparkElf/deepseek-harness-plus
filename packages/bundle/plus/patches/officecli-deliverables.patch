@@ -1,8 +1,8 @@
 diff --git a/packages/client/ui-deliverables/src/client/turn-deliverables.ts b/packages/client/ui-deliverables/src/client/turn-deliverables.ts
-index 7eb765ec2b..806d9e4466 100644
+index d51b54ed..df35a4da 100644
 --- a/packages/client/ui-deliverables/src/client/turn-deliverables.ts
 +++ b/packages/client/ui-deliverables/src/client/turn-deliverables.ts
-@@ -70,11 +70,37 @@ function mutationPath(name: string, argsRaw: string): string | null {
+@@ -72,11 +72,37 @@ function mutationPath(name: string, argsRaw: string): string | null {
        return validEditArgs(args) ? pathValue(args.file_path) : null
      case 'str_replace_editor':
        return editorMutationPath(args)

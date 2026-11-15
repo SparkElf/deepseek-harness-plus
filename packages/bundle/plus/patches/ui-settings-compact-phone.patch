@@ -1,7 +1,8 @@
 diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
+index 29c3d52c..b4a456e9 100644
 --- a/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
 +++ b/packages/client/ui-settings-general/src/client/SettingsRoot.module.css
-@@ -246,3 +246,64 @@
+@@ -340,3 +340,64 @@
     ui-web base.css's `body > :not(#root)` subtraction covers it wherever it
     overlaps a chrome row's drag — including above every column, which an in-root
     overlay could not promise once a chrome row declares drag itself. */
@@ -66,11 +67,3 @@ diff --git a/packages/client/ui-settings-general/src/client/SettingsRoot.module.
 +
 +  /* Takes the space the rail leaves and scrolls its own options. */
 +  .content {
-+    flex: 1;
-+    min-height: 0;
-+  }
-+
-+  .options {
-+    padding-bottom: env(safe-area-inset-bottom);
-+  }
-+}

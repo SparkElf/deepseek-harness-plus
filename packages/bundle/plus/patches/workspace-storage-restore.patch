@@ -1,5 +1,5 @@
 diff --git a/packages/workspace/workspace/src/index.ts b/packages/workspace/workspace/src/index.ts
-index 00eaf0030c..b6e761e1cb 100644
+index 825cb049..e4dc7be7 100644
 --- a/packages/workspace/workspace/src/index.ts
 +++ b/packages/workspace/workspace/src/index.ts
 @@ -10,7 +10,7 @@ import { mkdir, stat } from 'node:fs/promises'
@@ -11,7 +11,7 @@ index 00eaf0030c..b6e761e1cb 100644
  import { WorkspaceEntity } from './entity.ts'
  import type { WorkspaceEntityHost } from './entity.ts'
  
-@@ -170,6 +170,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
+@@ -186,6 +186,7 @@ const compareHeaders = (left: SessionHeader, right: SessionHeader): number =>
  export class WorkspaceRegistry extends Service {
    static inject = ['storageDomain', 'sessionPersistence']
  
@@ -19,7 +19,7 @@ index 00eaf0030c..b6e761e1cb 100644
    private table?: KvTable<WorkspaceId, WorkspaceRecord>
    private global?: DomainGlobal<WorkspaceDomainState>
    private state?: WorkspaceDomainState
-@@ -195,8 +196,53 @@ export class WorkspaceRegistry extends Service {
+@@ -213,8 +214,53 @@ export class WorkspaceRegistry extends Service {
  
    /** Open the domain, finish bootstrap when required, and rebuild the ordered cache. */
    protected async [Service.init](): Promise<void> {
@@ -75,10 +75,10 @@ index 00eaf0030c..b6e761e1cb 100644
      this.global = domain.global
      this.state = domain.global.get()
 diff --git a/packages/workspace/workspace/tests/workspace.spec.ts b/packages/workspace/workspace/tests/workspace.spec.ts
-index ef3116b3d7..67721e6474 100644
+index 7c0a9e99..31aed1a6 100644
 --- a/packages/workspace/workspace/tests/workspace.spec.ts
 +++ b/packages/workspace/workspace/tests/workspace.spec.ts
-@@ -1378,6 +1378,105 @@ describe('first-use Workspace preparation', () => {
+@@ -1538,6 +1538,105 @@ describe('first-use Workspace preparation', () => {
    })
  })
  

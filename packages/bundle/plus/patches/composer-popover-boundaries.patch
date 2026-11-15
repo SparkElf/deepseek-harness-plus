@@ -1,5 +1,5 @@
 diff --git a/apps/web/tests/access-confirmation.e2e.ts b/apps/web/tests/access-confirmation.e2e.ts
-index f97978d3..edab518b 100644
+index bb9b3d20..450a69d2 100644
 --- a/apps/web/tests/access-confirmation.e2e.ts
 +++ b/apps/web/tests/access-confirmation.e2e.ts
 @@ -151,6 +151,12 @@ describe('web e2e: experimental Auto and Full access confirmation', () => {
@@ -16,10 +16,10 @@ index f97978d3..edab518b 100644
      const dialog = page.getByRole('dialog', { name: '确认启用完全权限？' })
      await dialog.waitFor({ timeout: 10_000 })
 diff --git a/apps/web/tests/default-model.e2e.ts b/apps/web/tests/default-model.e2e.ts
-index 03a22e3c..d9cd04b8 100644
+index afd89b3c..5a568f38 100644
 --- a/apps/web/tests/default-model.e2e.ts
 +++ b/apps/web/tests/default-model.e2e.ts
-@@ -481,6 +481,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
+@@ -482,6 +482,13 @@ describe('web e2e: the composer model switch is the default for later sessions',
      await trigger.waitFor({ timeout: 15_000 })
      expect(await trigger.evaluate(element => getComputedStyle(element).fontWeight)).toBe('400')
      await trigger.click()
@@ -60,73 +60,37 @@ index 23e71c9c..50e1d3a9 100644
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index ecc984ca..ab32c21e 100644
+index 3eea3e37..df98d1a4 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -98,6 +98,10 @@ export function ModelSelect(
-     gap: 8,
-     margin: 12,
-     layoutKey: pane,
-+    // The composer's center column, when this trigger sits in one, is narrower than the viewport;
-+    // without it the card could spill under the neighbouring panes.
-+    boundary: () => triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]')
-+      ?.getBoundingClientRect() ?? null,
-   })
+@@ -81,11 +81,19 @@ export function ModelSelect(
+   const lastActionRef = useRef<'load' | 'select'>('load')
+   const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
+   const toastSeq = useRef(0)
++  // The composer's center column is narrower than the viewport, so the card's
++  // viewport-derived width limit is clamped to the column while it is open.
++  const [columnWidth, setColumnWidth] = useState<number | null>(null)
+   const rootRef = useRef<HTMLDivElement | null>(null)
+   const triggerRef = useRef<HTMLButtonElement | null>(null)
+   const searchRef = useRef<HTMLInputElement | null>(null)
+   const menuRef = useRef<HTMLDivElement | null>(null)
+   const groupsRef = useRef<HTMLDivElement | null>(null)
++  useLayoutEffect(() => {
++    if (!open) return
++    const column = triggerRef.current?.closest<HTMLElement>('[data-dsh-center-col]')
++    setColumnWidth(column?.getBoundingClientRect().width ?? null)
++  }, [open])
    const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
    const id = useId()
-diff --git a/packages/client/ui-primitives/src/useAnchoredPosition.ts b/packages/client/ui-primitives/src/useAnchoredPosition.ts
-index 61a891e5..617bb643 100644
---- a/packages/client/ui-primitives/src/useAnchoredPosition.ts
-+++ b/packages/client/ui-primitives/src/useAnchoredPosition.ts
-@@ -26,6 +26,15 @@ export interface AnchoredPositionOptions {
-   layoutKey?: string | number
-   /** Minimum panel width follows the anchor, bounded by the visible viewport. */
-   minWidthFromAnchor?: boolean
-+  /**
-+   * Region the panel must stay inside, in viewport coordinates.
-+   *
-+   * A panel portaled to the body is constrained by the visible viewport by default, which is
-+   * wider than the column an anchored control may live in (the composer's center column, for
-+   * one). Supplying the region narrows both the size limits and the horizontal clamp, so the
-+   * panel cannot spill outside the column it belongs to. Absent keeps the viewport behaviour.
-+   */
-+  boundary?: () => DOMRect | null
- }
- 
- /**
-@@ -37,7 +46,7 @@ export interface AnchoredPositionOptions {
-  */
- export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProperties | null {
-   const { open, anchorRef, panelRef, side = 'bottom', align = 'start', gap, margin,
--    getAnchorRect, layoutKey, minWidthFromAnchor = false, frameClearance = true } = options
-+    getAnchorRect, layoutKey, minWidthFromAnchor = false, frameClearance = true, boundary } = options
-   const [position, setPosition] = useState<CSSProperties | null>(null)
-   useLayoutEffect(() => {
-     if (!open) {
-@@ -66,7 +75,9 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
-         const width = viewport?.width ?? (anchor.ownerDocument.documentElement.clientWidth || win.innerWidth)
-         const height = viewport?.height ?? (anchor.ownerDocument.documentElement.clientHeight || win.innerHeight)
-         const topMargin = frameClearance ? overlayTopMargin(margin, rect, gap) : margin
--        const maxWidth = Math.max(0, width - margin * 2)
-+        const region = boundary?.() ?? null
-+        const maxWidth = Math.max(0, Math.min(width - margin * 2,
-+          region === null ? Number.POSITIVE_INFINITY : region.width - margin * 2))
-         panel.style.setProperty('--dsh-anchored-max-width', `${maxWidth}px`)
-         panel.style.setProperty('--dsh-anchored-max-height', `${Math.max(0, height - topMargin - margin)}px`)
-         if (minWidthFromAnchor) panel.style.minWidth = `${Math.min(rect.width, maxWidth)}px`
-@@ -76,8 +87,14 @@ export function useAnchoredPosition(options: AnchoredPositionOptions): CSSProper
-         const offsetY = visualOrigin ? y : 0
-         const left = offsetX + (side === 'right' ? rect.right + gap : align === 'end' ? rect.right - panelWidth : rect.left)
-         const top = offsetY + (side === 'right' ? rect.top : side === 'top' ? rect.top - gap - panelHeight : rect.bottom + gap)
-+        // The region narrows the horizontal clamp the same way it narrows the size limit:
-+        // an anchored panel inside a column must not slide under its neighbours.
-+        const minLeft = region === null ? x + margin : Math.max(x + margin, region.left + margin)
-+        const maxLeft = region === null
-+          ? x + width - margin - panelWidth
-+          : Math.min(x + width - margin - panelWidth, region.right - margin - panelWidth)
-         next = {
--          left: Math.max(x + margin, Math.min(left, x + width - margin - panelWidth)),
-+          left: Math.max(minLeft, Math.min(left, maxLeft)),
-           top: Math.max(y + topMargin, Math.min(top, y + height - margin - panelHeight)),
-         }
-       }
+   const anchorStyle: CSSProperties & Record<'--dsh-model-anchor', string> = {
+@@ -481,7 +489,9 @@ export function ModelSelect(
+           ref={menuRef}
+           id={`${id}-menu`}
+           className={css.menu}
+-          style={anchorStyle}
++          style={{ ...anchorStyle, ...(columnWidth === null
++            ? {}
++            : { maxWidth: Math.max(0, columnWidth - 24) }) }}
+           role={pane === 'model' ? 'group' : 'menu'}
+           aria-label={t('menu.aria')}
+           aria-busy={state.status === 'loading' || busy}

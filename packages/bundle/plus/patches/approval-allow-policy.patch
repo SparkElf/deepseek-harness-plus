@@ -1,5 +1,5 @@
 diff --git a/packages/bundle/base/cordis.patch.yml b/packages/bundle/base/cordis.patch.yml
-index 863d194bf5..2d1a7d4c40 100644
+index 18286618..a70a0aec 100644
 --- a/packages/bundle/base/cordis.patch.yml
 +++ b/packages/bundle/base/cordis.patch.yml
 @@ -259,7 +259,7 @@
@@ -21,7 +21,7 @@ index 863d194bf5..2d1a7d4c40 100644
      - id: shell-env
        name: '@deepseek-ai/dsh-shell-env'
 diff --git a/packages/interaction/permission-presets/src/index.ts b/packages/interaction/permission-presets/src/index.ts
-index b071d0297a..628f8f42ea 100644
+index b071d029..628f8f42 100644
 --- a/packages/interaction/permission-presets/src/index.ts
 +++ b/packages/interaction/permission-presets/src/index.ts
 @@ -111,7 +111,7 @@ const permissionStateSchema: zod.ZodType<PermissionProjectionState> = zod.object
@@ -34,7 +34,7 @@ index b071d0297a..628f8f42ea 100644
  }).strict()
  
 diff --git a/packages/interaction/user-approval/src/index.ts b/packages/interaction/user-approval/src/index.ts
-index df48aca514..82c3f39f19 100644
+index df48aca5..82c3f39f 100644
 --- a/packages/interaction/user-approval/src/index.ts
 +++ b/packages/interaction/user-approval/src/index.ts
 @@ -64,20 +64,27 @@ const OUTCOMES: readonly ApprovalOutcome[] = ['allowed-once', 'rejected', 'cance

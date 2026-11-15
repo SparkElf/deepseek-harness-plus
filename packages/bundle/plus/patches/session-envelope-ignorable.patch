@@ -1,50 +1,79 @@
 diff --git a/packages/core/session/src/index.ts b/packages/core/session/src/index.ts
-index e9baee1b82..fcf26d713a 100644
+index ea6c337f..82d57f11 100644
 --- a/packages/core/session/src/index.ts
 +++ b/packages/core/session/src/index.ts
 @@ -15,7 +15,7 @@ import type { Scoped } from '@deepseek-ai/dsh-scope'
  import type { Message } from '@deepseek-ai/dsh-llm'
  import { SESSION_FORMAT_VERSION, SessionLogOffset, SessionSeq } from './types.ts'
  import type { TypertLookup } from '@deepseek-ai/dsh-typert-protocol'
--import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, SurfaceEventType } from './types.ts'
-+import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, EnvelopeIntent, SurfaceEventType } from './types.ts'
+-import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventInput, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, SurfaceEventType } from './types.ts'
++import type { CreateSessionOptions, EpochHeader, PluginRecord, PluginRecordMap, PluginRecordType, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventInput, SessionEventMap, SessionEventType, SessionHeader, SessionId, SessionSeedEventState, SurfaceIntent, EnvelopeIntent, SurfaceEventType } from './types.ts'
  import { SurfaceManager, validateSessionEventData, validateSurfaceMetadata } from './surface.ts'
  import type { SessionSurface, SessionMessageProjection } from './surface.ts'
  import { foldRequestHeader } from './request-header.ts'
-@@ -806,10 +806,13 @@ export class Session {
+@@ -521,11 +521,14 @@ export function pluginRecordOf(event: SessionEvent): PluginRecord | undefined {
+ function snapshotAppend(
+   type: SessionEventType,
+   data: SessionEventMap[SessionEventType] | undefined,
+-  opts: SurfaceIntent | undefined,
++  opts: SurfaceIntent | EnvelopeIntent | undefined,
+   subject: string,
+ ) {
+-  const surfaceOp = opts?.surfaceOp
+-  const sourceEventSeqs = opts?.sourceEventSeqs
++  // A surface event's option object is a `SurfaceIntent`; a log-only event's is an
++  // `EnvelopeIntent`. The two never share a field, so one object serves both.
++  const intent = opts as (SurfaceIntent & EnvelopeIntent) | undefined
++  const surfaceOp = intent?.surfaceOp
++  const sourceEventSeqs = intent?.sourceEventSeqs
+   const dataSnapshot = snapshotJsonValue(data)
+   if (dataSnapshot === undefined) throw new Error(`${subject} carries non-JSON-serializable data`)
+   const surface = snapshotJsonValue({
+@@ -533,13 +536,19 @@ function snapshotAppend(
+     ...surfaceOp === undefined ? {} : { surfaceOp },
+   })
+   if (surface === undefined) throw new Error(`${subject} carries non-JSON-serializable surface metadata`)
+-  return { type, data: dataSnapshot, surface }
++  return { type, data: dataSnapshot, surface, ignorable: intent?.ignorable === true }
+ }
+ 
+ /** Construct and validate one live event from detached inputs. */
+ function createAppendEvent(snapshot: ReturnType<typeof snapshotAppend>, seq: SessionSeq): SessionEvent {
+-  const { type, data, surface } = snapshot
+-  const event = deepFreeze({ type, seq, time: Date.now(), data, ...surface } as SessionEvent)
++  const { type, data, surface, ignorable } = snapshot
++  // A log-only producer declares that a reader without its event type may skip the record.
++  // Only `true` is admitted: the field's absence means required, and an explicit falsy value
++  // would be indistinguishable from a producer that meant the opposite.
++  const event = deepFreeze({
++    type, seq, time: Date.now(), data, ...surface,
++    ...ignorable ? { ignorable: true } : {},
++  } as SessionEvent)
+   validateSessionEventData(event, `session event "${type}" at seq ${seq}`)
+   return event
+ }
+@@ -853,12 +862,12 @@ export class Session {
    append<T extends SessionEventType>(
      type: T,
      data: SessionEventMap[T],
 -    ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : []
 +    ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent<T>] : [opts?: EnvelopeIntent]
-   ): SessionEvent<T> {
+   ): SessionEvent<T>
+   append(
+     type: SessionEventType | readonly SessionEventInput[],
+     data?: SessionEventMap[SessionEventType],
+-    ...opts: [opts?: SurfaceIntent]
++    ...opts: [opts?: SurfaceIntent | EnvelopeIntent]
+   ): SessionEvent | readonly SessionEvent[] {
+     if (typeof type !== 'string') return this.#appendEvents(type)
      this.publicationEntry()
--    const surfaceOpts: SurfaceIntent | undefined = opts[0]
-+    // A surface event's single option object is a `SurfaceIntent`; a log-only event's is an
-+    // `EnvelopeIntent`. The two never share a field, so one object serves both.
-+    const intent: SurfaceIntent & EnvelopeIntent = (opts[0] ?? {}) as SurfaceIntent & EnvelopeIntent
-+    const surfaceOpts: SurfaceIntent | undefined = opts[0] as SurfaceIntent | undefined
-     const surfaceMetadata = {
-       ...surfaceOpts?.sourceEventSeqs === undefined ? {} : { sourceEventSeqs: surfaceOpts.sourceEventSeqs },
-       ...surfaceOpts?.surfaceOp === undefined ? {} : { surfaceOp: surfaceOpts.surfaceOp },
-@@ -830,6 +833,10 @@ export class Session {
-       time: Date.now(),
-       data: dataSnapshot,
-       ...(surfaceMetadataSnapshot as { surfaceOp?: unknown; sourceEventSeqs?: unknown }),
-+      // A log-only producer declares that a reader without its event type may skip the record.
-+      // Only `true` is admitted: the field's absence means required, and an explicit falsy value
-+      // would be indistinguishable from a producer that meant the opposite.
-+      ...(intent.ignorable === true ? { ignorable: true } : {}),
-     } as unknown as SessionEvent<T>)
-     validateSessionEventData(event, `session event "${type}" at seq ${event.seq}`)
-     this.commit(event as SessionEvent, entry)
 diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
-index 7787dd9bd0..af11a41635 100644
+index 0cf13c86..0f350a41 100644
 --- a/packages/core/session/src/types.ts
 +++ b/packages/core/session/src/types.ts
-@@ -485,6 +485,18 @@ export type SurfaceIntent<T extends SurfaceEventType = SurfaceEventType> = {
-   sourceEventSeqs?: SessionSeq[]
- })
+@@ -490,6 +490,18 @@ export type SessionEventInput = {
+   [K in SessionEventType]: readonly [type: K, data: SessionEventMap[K], ...opts: K extends SurfaceEventType ? [opts: SurfaceIntent<K>] : []]
+ }[SessionEventType]
  
 +/**
 + * Envelope markers a log-only event may declare at {@link Session.append}.
