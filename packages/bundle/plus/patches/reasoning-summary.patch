@@ -1,0 +1,186 @@
+diff --git a/packages/llm/llm-pi-ai/src/catalog.ts b/packages/llm/llm-pi-ai/src/catalog.ts
+--- a/packages/llm/llm-pi-ai/src/catalog.ts
++++ b/packages/llm/llm-pi-ai/src/catalog.ts
+@@ -600,6 +600,29 @@
+   }
+ }
+
++/**
++ * How one model's `reasoning.summary` leaves for an OpenAI Responses upstream.
++ *
++ * `auto`, `concise`, and `detailed` are the values the OpenAI Responses schema
++ * accepts, so naming one pins the field. `omit` drops it instead.
++ */
++export type PiAiReasoningSummary = 'auto' | 'concise' | 'detailed' | 'omit'
++
++/**
++ * The `reasoning.summary` spellings a profile may declare. A drift gate like
++ * the modality and thinking-level ones, so a new upstream spelling fails
++ * compilation here until it is classified.
++ */
++const REASONING_SUMMARY_GATE: Record<PiAiReasoningSummary, true> = {
++  auto: true,
++  concise: true,
++  detailed: true,
++  omit: true,
++}
++
++/** Every `reasoning.summary` spelling a profile may declare. */
++export const REASONING_SUMMARIES = Object.keys(REASONING_SUMMARY_GATE) as readonly PiAiReasoningSummary[]
++
+ /** One configured model entry: an id plus the catalog fields it overrides. */
+ export interface PiAiModelProfile {
+   /** Model id sent to the provider and accepted by {@link GenerateOptions.model}. */
+@@ -637,6 +660,19 @@
+   reasoningEfforts?: false | PiAiReasoningEfforts
+   /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
+   compat?: PiAiCompatProfile
++  /**
++   * How this model's `reasoning.summary` leaves for an OpenAI Responses
++   * upstream. Absent keeps pi-ai's own default (`auto`).
++   *
++   * `omit` is for a gateway that refuses the field outright: pi-ai writes
++   * `summary: options?.reasoningSummary || 'auto'` whenever a Responses model
++   * reasons, so without this knob such a gateway fails every reply from that
++   * model rather than merely losing a summary. DashScope is one — it answers
++   * `auto`, `concise`, and `detailed` alike with
++   * `'thinking_display=summarized' is not supported by this model`, which is
++   * how it spells a rejected summary request.
++   */
++  reasoningSummary?: PiAiReasoningSummary
+ }
+
+ /**
+@@ -957,6 +993,7 @@
+       maxTokens,
+       ...resolveModelReasoning(provider, entry, base),
+       ...resolveModelCompat(provider, entry, request.compat, base, api),
++      ...entry.reasoningSummary === undefined ? {} : { reasoningSummary: entry.reasoningSummary },
+     }
+   }
+   const models: Model<Api>[] = []
+diff --git a/packages/llm/llm-pi-ai/src/config.ts b/packages/llm/llm-pi-ai/src/config.ts
+--- a/packages/llm/llm-pi-ai/src/config.ts
++++ b/packages/llm/llm-pi-ai/src/config.ts
+@@ -29,6 +29,7 @@
+   MODALITIES,
+   PiAiCatalogError,
+   resolveRouteModels,
++  REASONING_SUMMARIES,
+   SUPPORTED_THINKING_FORMATS,
+   THINKING_LEVELS,
+   THINKING_TOKEN_BUDGET_FIELDS,
+@@ -98,6 +99,7 @@
+   PiAiModelOverride,
+   PiAiModelProfile,
+   PiAiReasoningEfforts,
++  PiAiReasoningSummary,
+   PiAiThinkingFormat,
+ } from './catalog.ts'
+
+@@ -350,6 +352,7 @@
+   // installed catalog's capability", while `false` disables reasoning.
+   reasoningEfforts: z.union([z.const(false), reasoningEfforts]),
+   compat: compatProfile,
++  reasoningSummary: z.union(REASONING_SUMMARIES),
+ }
+
+ const modelProfile: z<PiAiModelProfile> = z.object({
+diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
+--- a/packages/llm/llm-pi-ai/src/adapter.ts
++++ b/packages/llm/llm-pi-ai/src/adapter.ts
+@@ -58,7 +58,7 @@
+ } from '@deepseek-ai/dsh-llm'
+ import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
+-import type { ResolvedPiAiProviderProfile } from './config.ts'
++import type { PiAiReasoningSummary, ResolvedPiAiProviderProfile } from './config.ts'
+ import { requestImageTarget, toPiContext } from './context.ts'
+ import { conversationUpdates, createModels, getSupportedThinkingLevels } from './models.ts'
+ import { toStreamChunks } from './stream.ts'
+@@ -163,9 +163,67 @@
+   return { ...request, input }
+ }
+
++/**
++ * Force one model's `reasoning.summary` to a chosen spelling, or drop it.
++ *
++ * pi-ai writes `summary: options?.reasoningSummary || 'auto'` whenever a
++ * Responses model reasons, so the field leaves even when nothing asked for it.
++ * A gateway that refuses the field therefore fails every reply from that model
++ * rather than merely omitting a summary, and only a payload hook can keep the
++ * field off the wire.
++ * @param payload - the request body pi-ai built.
++ * @param summary - the configured spelling, or `omit` to drop the field.
++ * @returns the adjusted body, or undefined to leave the request untouched.
++ */
++function applyReasoningSummary(payload: unknown, summary: PiAiReasoningSummary): unknown {
++  const request = payload as Record<string, unknown> & { reasoning?: Record<string, unknown> }
++  if (request.reasoning === undefined) return undefined
++  if (summary === 'omit') {
++    const { summary: _summary, ...reasoning } = request.reasoning
++    return { ...request, reasoning }
++  }
++  return { ...request, reasoning: { ...request.reasoning, summary } }
++}
++
++/**
++ * The payload hook a model needs, if any.
++ *
++ * One hook field is a function, so a model needing both adjustments gets a
++ * composition rather than one silently replacing the other.
++ * @param profile - the resolved route profile.
++ * @param model - the model being called, which may pin its own summary.
++ * @returns the `onPayload` option for this call, or an empty object.
++ */
++function payloadOptions(
++  profile: ResolvedPiAiProviderProfile,
++  model: Model<Api>,
++): { onPayload?: (payload: unknown, model: Model<Api>) => unknown } {
++  const hooks: ((payload: unknown) => unknown)[] = []
++  if (profile.responsesCompatibility?.omitReasoningInputStatus === true) hooks.push(omitReasoningInputStatus)
++  const summary = (model as { reasoningSummary?: PiAiReasoningSummary }).reasoningSummary
++  if (summary !== undefined) hooks.push(payload => applyReasoningSummary(payload, summary))
++  const [first, ...rest] = hooks
++  if (first === undefined) return {}
++  if (rest.length === 0) return { onPayload: first }
++  return {
++    onPayload: (payload: unknown): unknown => {
++      let current = payload
++      let changed = false
++      for (const hook of hooks) {
++        const next = hook(current)
++        if (next === undefined) continue
++        current = next
++        changed = true
++      }
++      return changed ? current : undefined
++    },
++  }
++}
++
+ /** Copy profile stream knobs into pi-ai's common option vocabulary. */
+ function profileOptions(
+   profile: ResolvedPiAiProviderProfile,
++  model: Model<Api>,
+   reasoning: ModelThinkingLevel | undefined,
+   apiKey: string | undefined,
+ ): SimpleStreamOptions {
+@@ -178,7 +236,7 @@
+     ...profile.transport === undefined ? {} : { transport: profile.transport },
+     ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
+     ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
+-    ...profile.responsesCompatibility?.omitReasoningInputStatus === true ? { onPayload: omitReasoningInputStatus } : {},
++    ...payloadOptions(profile, model),
+     // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
+     maxRetries: 0,
+   }
+@@ -492,7 +550,7 @@
+         this.config.onThinkingOmitted?.({ provider: options.provider, model: options.model, count })
+       })
+       const events = snapshot.models.streamSimple(model, context, {
+-        ...profileOptions(profile, reasoning, apiKey),
++        ...profileOptions(profile, model, reasoning, apiKey),
+         ...options.temperature === undefined ? {} : { temperature: options.temperature },
+         ...options.maxTokens === undefined ? {} : { maxTokens: options.maxTokens },
+         ...options.sessionId === undefined ? {} : { sessionId: String(options.sessionId) },
