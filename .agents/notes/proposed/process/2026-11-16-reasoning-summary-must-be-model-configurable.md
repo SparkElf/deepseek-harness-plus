@@ -74,8 +74,13 @@ fact: other models on the same DashScope route (`deepseek-v4-pro`,
 - The field is carried on the materialized model rather than the route
   profile, so `resolveModel` spreads it into the descriptor and the adapter
   reads it per call.
-- `retireWhen` records the condition: official `llm-pi-ai` exposing a
-  model-level summary setting makes the patch redundant.
+- The switch ships inside `responses-reasoning-status.patch` rather than a
+  patch of its own. The apply step requires every `dsh-source` entry to pass
+  `git apply --check` against the base tree on its own, and a separate entry
+  cannot: its final hunk rewrites the `profileOptions` return object that patch
+  had already edited, so the check found context the base tree lacks and
+  aborted the run before any patch landed. Both concerns are responses-gateway
+  compatibility, so one patch is the right home.
 
 ## Relation to existing notes
 
@@ -118,7 +123,7 @@ interface is provider-scoped, so the setting would apply to
 - `responsesCompatibility.omitReasoningInputStatus` and `reasoningSummary`
   compose: a route setting the former and a model setting the latter produce
   one `onPayload` that applies both.
-- The patch applies cleanly after all prior `dsh-source` entries.
+- All 30 `dsh-source` entries pass `git apply --check` on a clean base tree and apply in `patchSet` order.
 
 ## Risks
 
