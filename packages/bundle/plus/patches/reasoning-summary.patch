@@ -31,7 +31,7 @@ diff --git a/packages/llm/llm-pi-ai/src/catalog.ts b/packages/llm/llm-pi-ai/src/
  /** One configured model entry: an id plus the catalog fields it overrides. */
  export interface PiAiModelProfile {
    /** Model id sent to the provider and accepted by {@link GenerateOptions.model}. */
-@@ -637,6 +660,19 @@
+@@ -637,6 +660,16 @@
    reasoningEfforts?: false | PiAiReasoningEfforts
    /** pi-ai wire-compatibility switches for this model, winning over the route's per field; one its protocol does not declare is refused. */
    compat?: PiAiCompatProfile
@@ -42,16 +42,13 @@ diff --git a/packages/llm/llm-pi-ai/src/catalog.ts b/packages/llm/llm-pi-ai/src/
 +   * `omit` is for a gateway that refuses the field outright: pi-ai writes
 +   * `summary: options?.reasoningSummary || 'auto'` whenever a Responses model
 +   * reasons, so without this knob such a gateway fails every reply from that
-+   * model rather than merely losing a summary. DashScope is one — it answers
-+   * `auto`, `concise`, and `detailed` alike with
-+   * `'thinking_display=summarized' is not supported by this model`, which is
-+   * how it spells a rejected summary request.
++   * model rather than merely losing a summary.
 +   */
 +  reasoningSummary?: PiAiReasoningSummary
  }
 
  /**
-@@ -957,6 +993,7 @@
+@@ -957,6 +990,7 @@
        maxTokens,
        ...resolveModelReasoning(provider, entry, base),
        ...resolveModelCompat(provider, entry, request.compat, base, api),
