@@ -632,21 +632,6 @@
           },
           "file": "./patches/ui-schedule-plaza-tab.patch",
           "retireWhen": "官方 automation 页提供稳定的 tab 扩展点后退役"
-        },
-        {
-          "id": "reasoning-summary",
-          "dsh": ">=0.2.2-rc.2",
-          "target": {
-            "kind": "dsh-source",
-            "packages": [
-              "@deepseek-ai/dsh-llm-pi-ai"
-            ],
-            "paths": [
-              "packages/llm/llm-pi-ai/"
-            ]
-          },
-          "file": "./patches/reasoning-summary.patch",
-          "retireWhen": "官方 llm-pi-ai 提供模型级 reasoning.summary 配置后退役"
         }
       ]
     },
