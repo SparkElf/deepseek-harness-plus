@@ -1,5 +1,5 @@
 diff --git a/packages/host/open-in-app/src/icons.ts b/packages/host/open-in-app/src/icons.ts
-index 4b07441c8c..519ba1344b 100644
+index 4b07441c..519ba134 100644
 --- a/packages/host/open-in-app/src/icons.ts
 +++ b/packages/host/open-in-app/src/icons.ts
 @@ -98,6 +98,41 @@ const EXTRACT_ICON_PS1 = [
@@ -73,7 +73,7 @@ index 4b07441c8c..519ba1344b 100644
      return desktopId === undefined ? null : extractLinuxIcon(desktopId, completed)
    }
 diff --git a/packages/host/open-in-app/src/resolver.ts b/packages/host/open-in-app/src/resolver.ts
-index 970118e22a..ad8d176da4 100644
+index 8ad0cbec..6b3c75e0 100644
 --- a/packages/host/open-in-app/src/resolver.ts
 +++ b/packages/host/open-in-app/src/resolver.ts
 @@ -14,10 +14,11 @@
@@ -165,11 +165,11 @@ index 970118e22a..ad8d176da4 100644
        return found === null
          ? null
 diff --git a/packages/util/native-command/src/index.ts b/packages/util/native-command/src/index.ts
-index 9ad8e0883c..3377ddcb6f 100644
+index 0aa0125d..3890e445 100644
 --- a/packages/util/native-command/src/index.ts
 +++ b/packages/util/native-command/src/index.ts
-@@ -6,6 +6,7 @@
- export { runNativeCommand } from './runner.ts'
+@@ -8,6 +8,7 @@ export { isWsl } from './host-environment.ts'
+ export type { HostEnvironmentFacts } from './host-environment.ts'
  export type { NativeCommandRunner } from './runner.ts'
  export {
 +  canOpenLinuxDesktop,
@@ -177,10 +177,10 @@ index 9ad8e0883c..3377ddcb6f 100644
    nativeFileManager,
    revealNativePath,
 diff --git a/packages/util/native-command/src/path-opener.ts b/packages/util/native-command/src/path-opener.ts
-index 67bbc35902..dd062cc003 100644
+index abd9bcba..4ddb2a13 100644
 --- a/packages/util/native-command/src/path-opener.ts
 +++ b/packages/util/native-command/src/path-opener.ts
-@@ -150,8 +150,55 @@ async function runExplorer(args: readonly string[], signal: AbortSignal, run: Pa
+@@ -144,8 +144,55 @@ async function runExplorer(args: readonly string[], signal: AbortSignal, run: Pa
   * @param signal - caller lifetime; abort terminates the command.
   * @param run - shell-free command runner.
   */
@@ -237,7 +237,7 @@ index 67bbc35902..dd062cc003 100644
  }
  
  /** Translate a WSL path before handing it to the Windows desktop. */
-@@ -200,6 +247,25 @@ async function openNativePathWithIntent(
+@@ -194,6 +241,25 @@ async function openNativePathWithIntent(
    throw new Error(`native path opener is unsupported on ${platform}`)
  }
  

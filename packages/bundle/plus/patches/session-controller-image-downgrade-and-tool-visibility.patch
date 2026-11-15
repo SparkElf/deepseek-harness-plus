@@ -1,19 +1,22 @@
---- a/packages/api/session-controller/src/commands.ts	2026-11-03 00:40:46.207711920 +0800
-+++ b/packages/api/session-controller/src/commands.ts	2026-11-03 00:40:46.209868821 +0800
-@@ -83,6 +83,9 @@
+diff --git a/packages/api/session-controller/src/commands.ts b/packages/api/session-controller/src/commands.ts
+index 921d71cd..5e6d7938 100644
+--- a/packages/api/session-controller/src/commands.ts
++++ b/packages/api/session-controller/src/commands.ts
+@@ -86,6 +86,9 @@ function latestCompletedPrefixBoundary(events: readonly SessionEvent[]): Session
  
  /** Implements Session business commands delegated by the Session Controller Remote service. */
  export class SessionCommandController {
 +  /** 每个 agent 当前生效的工具可见性限制的撤销函数（按模型能力同步）。 */
 +  private readonly toolVisibility = new WeakMap<Agent, () => void>()
 +
-   /**
-    * @param ctx - Host context carrying Agent, model, attachment, title, and Workspace services.
-    * @param agents - sole owner of create, resume, and Agent composition.
-@@ -142,6 +145,31 @@
+   /** First-insertion facts cached per exact Session; the log remains the recovery source. */
+   private readonly promptReceipts = new WeakMap<Session, {
+     offset: SessionLogOffset
+@@ -158,6 +161,31 @@ export class SessionCommandController {
+     return { sessionId, ...(created.agentPreset === undefined ? {} : { agentPreset: created.agentPreset }) }
    }
  
-   /**
++  /**
 +   * 按当前模型的输入能力裁剪工具面。
 +   *
 +   * `read_image` 会把像素作为图像内容送进对话；纯文本模型即使被允许调用也消费不了，
@@ -38,11 +41,10 @@
 +    }
 +  }
 +
-+  /**
+   /**
     * Validate and record one Session model selection; save the default in the background.
     * @param request - Session identity and requested model selection.
-    * @returns the normalized selection recorded for the Session, without waiting for default persistence.
-@@ -160,6 +188,7 @@
+@@ -177,6 +205,7 @@ export class SessionCommandController {
          }
          await this.ctx.llm.resolveCallConfig(selected)
          agent.model.select(selected)
@@ -50,10 +52,10 @@
          void this.ctx.agentDefaultModel.saveSelection(selected).catch((error: unknown) => {
            this.ctx.logger.warn(
              `session-controller: model selection changed for the Session but the default was not saved: ${String(error)}`,
-@@ -312,20 +341,24 @@
-     const hasImage = admission.content.some(part => part.type === 'image')
+@@ -346,20 +375,24 @@ export class SessionCommandController {
      const admit = async (): Promise<SessionPromptValue> => {
        try {
+         if (this.hasPromptRequest(agent.session, request.requestId)) return { accepted: true }
 +        let promptContent = admission.content
          if (hasImage) {
            const current = agent.model.current()
@@ -78,6 +80,6 @@
          }
 -        const content = await this.ctx.attachments.admitPromptContent(admission.content)
 +        const content = await this.ctx.attachments.admitPromptContent(promptContent)
+         if (this.hasPromptRequest(agent.session, request.requestId)) return { accepted: true }
          const message: UserMessage = createUserMessage({ content, source })
          if (this.ctx.agents.get(agent.id) !== agent) {
-           throw new RemoteError(

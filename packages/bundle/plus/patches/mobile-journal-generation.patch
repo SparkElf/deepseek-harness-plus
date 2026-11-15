@@ -1,5 +1,5 @@
 diff --git a/packages/api/gateway/src/client/journal-stream.ts b/packages/api/gateway/src/client/journal-stream.ts
-index ab013abdf3..35dcb86255 100644
+index ab013abd..35dcb862 100644
 --- a/packages/api/gateway/src/client/journal-stream.ts
 +++ b/packages/api/gateway/src/client/journal-stream.ts
 @@ -241,6 +241,10 @@ export abstract class RemoteJournalStream<
@@ -14,7 +14,7 @@ index ab013abdf3..35dcb86255 100644
            continue
          }
 diff --git a/packages/api/gateway/tests/journal-stream.client.spec.ts b/packages/api/gateway/tests/journal-stream.client.spec.ts
-index 498f5a033b..e6f1b41f69 100644
+index 498f5a03..e6f1b41f 100644
 --- a/packages/api/gateway/tests/journal-stream.client.spec.ts
 +++ b/packages/api/gateway/tests/journal-stream.client.spec.ts
 @@ -788,7 +788,7 @@ describe('RemoteJournalStream', () => {
