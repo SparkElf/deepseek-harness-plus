@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/process/2026-11-16-reasoning-summary-must-be-model-configurable.md
-2026-11-16-reasoning-summary-must-be-model-configurable.md: da614ceec236774943df80e623e69f6cc146bde8
-2026-11-16-reasoning-summary-must-be-model-configurable.zh.md: fe421a64b87b8db1b81806936178f4cbec5e86d5
+2026-11-16-reasoning-summary-must-be-model-configurable.md: 84bfabeb60b8c59ca16c4b894f74285ad44702f2
+2026-11-16-reasoning-summary-must-be-model-configurable.zh.md: 45b840381148fd4c82911458d997184371a5a2c0

@@ -65,8 +65,11 @@ is not supported by this model
   模式一致。
 - 该字段承载在物化后的模型上而非路由 profile 上，因此 `resolveModel` 会把它展开
   进描述符，适配器按调用读取。
-- `retireWhen` 记录了退役条件：官方 `llm-pi-ai` 提供模型级 summary 设置后，该补丁
-  即冗余。
+- 该开关随 `responses-reasoning-status.patch` 一起发布，而不是独立成补丁。apply 要求
+  每个 `dsh-source` 条目都能单独通过基线树上的 `git apply --check`，独立条目做不到：
+  它的最后一个 hunk 重写了该补丁已改过的 `profileOptions` 返回对象，检查找不到基线树
+  里的上下文，整轮 apply 在任何一个补丁落盘前就中止。两件事都是 responses 网关兼容，
+  同一个补丁是合适的归属。
 
 ## 与现有 note 的关系
 
@@ -101,7 +104,7 @@ compat 字段会把它落到接受该字段的同级模型上。两份 note 回�
 - 未声明 `reasoningSummary` 的模型条目发送 `summary: auto`，与当前行为一致。
 - `responsesCompatibility.omitReasoningInputStatus` 与 `reasoningSummary` 可组合：
   路由设前者、模型设后者时，产生一个同时应用两者调整的 `onPayload`。
-- 该补丁在所有既有 `dsh-source` 条目之后可干净应用。
+- 全部 30 个 `dsh-source` 条目在干净基线树上通过 `git apply --check`，并按 `patchSet` 顺序应用。
 
 ## 风险
 
