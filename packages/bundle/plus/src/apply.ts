@@ -126,9 +126,43 @@ function requireStringArray(value: unknown, label: string): string[] {
   return strings
 }
 
-function resolveInstalledPackage(distributionDirectory: string, packageName: string): InstalledPackage {
+/**
+ * Resolve one installed package's manifest directory.
+ *
+ * `require.resolve(name + '/package.json')` respects the package's `exports`
+ * map, so a dependency that publishes only `"."` — `@sparkelf/dsh-quant`
+ * 0.91.0-sparkelf.13 among the `personal` edition's packages — fails to
+ * resolve even though the package is installed. Reading a manifest is not a
+ * public-export lookup, so resolve the package entry and walk up to the
+ * manifest that names it.
+ * @param distributionDirectory - directory whose resolution anchors the lookup.
+ * @param packageName - dependency name to locate.
+ * @returns path of the `package.json` that declares `packageName`.
+ */
+function resolvePackageManifest(distributionDirectory: string, packageName: string): string {
   const requireFromDistribution = createRequire(resolve(distributionDirectory, 'package.json'))
-  const manifestPath = requireFromDistribution.resolve(packageName + '/package.json')
+  try {
+    return requireFromDistribution.resolve(packageName + '/package.json')
+  } catch {
+    // Exports does not carry the subpath; fall through to the entry walk.
+  }
+  let directory = dirname(requireFromDistribution.resolve(packageName))
+  for (;;) {
+    const candidate = resolve(directory, 'package.json')
+    if (existsSync(candidate)) {
+      const names = JSON.parse(readFileSync(candidate, 'utf8')) as { name?: unknown }
+      if (names.name === packageName) return candidate
+    }
+    const parent = dirname(directory)
+    if (parent === directory) {
+      throw new Error(packageName + ' is installed but no package.json naming it was found')
+    }
+    directory = parent
+  }
+}
+
+function resolveInstalledPackage(distributionDirectory: string, packageName: string): InstalledPackage {
+  const manifestPath = resolvePackageManifest(distributionDirectory, packageName)
   const manifest = readJsonObject(manifestPath, packageName + ' manifest')
   return {
     name: packageName,
