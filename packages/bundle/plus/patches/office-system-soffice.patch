@@ -1,0 +1,492 @@
+diff --git a/packages/document/office-kit/src/index.ts b/packages/document/office-kit/src/index.ts
+index e86a49f..0b93f01 100644
+--- a/packages/document/office-kit/src/index.ts
++++ b/packages/document/office-kit/src/index.ts
+@@ -12,6 +12,7 @@ import type {} from '@deepseek-ai/dsh-session'
+ import { dshHomePath } from '@deepseek-ai/dsh-home-paths'
+ import { brandString } from '@deepseek-ai/dsh-brand'
+ import { resolveKitModule } from './locate.ts'
++import { resolveSystemSoffice, withSystemSoffice } from './system-soffice.ts'
+ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+ import { OfficeKitError } from './errors.ts'
+ import { OfficeKitGeneration, type OfficeSourceKey } from './identity.ts'
+@@ -80,6 +81,12 @@ export interface Config {
+   maxFontFileBytes: number
+   /** Maximum original font bytes loaded for a conversion. */
+   maxLoadedFontBytes: number
++  /** PDF conversion backend; `auto` prefers system LibreOffice on Linux, `kit` forces LibreOfficeKit. */
++  backend: 'auto' | 'kit' | 'system'
++  /** Explicit system LibreOffice executable; omission searches PATH and conventional locations. */
++  sofficePath?: string
++  /** Absolute profile directory shared by serialized system LibreOffice runs. */
++  systemProfileDirectory: string
+ }
+ 
+ /** Deployment defaults resolved before provider construction. */
+@@ -106,6 +113,9 @@ export const Config: z<Partial<Config>, Config> = z.object({
+   maxFontFiles: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(20_000),
+   maxFontFileBytes: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(256 * 1024 * 1024),
+   maxLoadedFontBytes: z.natural().min(1).max(Number.MAX_SAFE_INTEGER).default(512 * 1024 * 1024),
++  backend: z.union(['auto', 'kit', 'system']).default('auto'),
++  sofficePath: z.string().min(1).extra('default', undefined),
++  systemProfileDirectory: z.string().min(1).default(dshHomePath('office-kit', 'system-soffice-profile')),
+ })
+ 
+ /** Kit operations loaded from the provider's Kit entry. */
+@@ -138,6 +148,7 @@ export class OfficeKit extends TypertRemoteService {
+   private readonly options: Omit<ConverterOptions, 'resolveEnginePackage'>
+   private loadedKit?: Promise<LoadedKit>
+   private readonly reportedKitFailures = new Set<string>()
++  private reportedSystemBackend = false
+ 
+   /**
+    * @param ctx - owning Host context.
+@@ -148,6 +159,7 @@ export class OfficeKit extends TypertRemoteService {
+     if (config.fontDirectories?.some(path => !isAbsolute(path))) throw new Error('fontDirectories must contain absolute paths.')
+     if (config.maxSourceBytes < config.maxInputBytes) throw new Error('maxSourceBytes must be at least maxInputBytes.')
+     if (!isAbsolute(config.outputDirectory)) throw new Error('outputDirectory must be an absolute path.')
++    if (!isAbsolute(config.systemProfileDirectory)) throw new Error('systemProfileDirectory must be an absolute path.')
+     const { fontDirectories, fontFallbacks, timeoutMs, maxInputBytes, maxOutputBytes, maxImageResolution,
+       maxArchiveEntries, maxUncompressedBytes, maxFontFiles, maxFontFileBytes, maxLoadedFontBytes } = config
+     this.options = { timeoutMs, maxInputBytes, maxOutputBytes, maxImageResolution,
+@@ -331,6 +343,38 @@ export class OfficeKit extends TypertRemoteService {
+     }
+   }
+ 
++  /**
++   * Prefer the system LibreOffice executable on Linux so PDF previews avoid the WASM engine's per-render startup.
++   * A missing executable keeps the Kit backend unless configuration requires the system backend.
++   * @param converter - Kit-backed converter for every non-PDF operation.
++   * @returns the original converter, or a wrapper whose PDF render uses system LibreOffice.
++   */
++  private async selectBackend(converter: Converter): Promise<Converter> {
++    if (this.config.backend === 'kit') return converter
++    if (process.platform !== 'linux') {
++      if (this.config.backend === 'system') {
++        throw new OfficeKitError('unavailable', 'The system LibreOffice backend is only supported on Linux.')
++      }
++      return converter
++    }
++    const executable = await resolveSystemSoffice(this.config.sofficePath)
++    if (executable === undefined) {
++      if (this.config.backend === 'system') {
++        throw new OfficeKitError('unavailable', 'System LibreOffice (soffice) was not found.')
++      }
++      return converter
++    }
++    if (!this.reportedSystemBackend) {
++      this.reportedSystemBackend = true
++      this.ctx.logger.info(`office-kit: rendering PDFs with system LibreOffice at ${executable}`)
++    }
++    return withSystemSoffice(converter, {
++      executable,
++      profileDirectory: this.config.systemProfileDirectory,
++      timeoutMs: this.config.timeoutMs,
++    })
++  }
++
+   /**
+    * Locate and import Kit for a converter. A successful import is reused for the provider lifetime; a missing or
+    * unloadable Kit rejects as `unavailable` without being retained, so the next converter request locates Kit again.
+@@ -376,8 +420,10 @@ export class OfficeKit extends TypertRemoteService {
+     let directory: string | undefined
+     try {
+       if (slot.converter === undefined) {
+-        slot.converter = this.loadKit().then(({ createConverter, resolveEnginePackage }) =>
+-          createConverter({ ...this.options, resolveEnginePackage })).catch((error: unknown) => {
++        slot.converter = this.loadKit().then(async ({ createConverter, resolveEnginePackage }) => {
++          const converter = await createConverter({ ...this.options, resolveEnginePackage })
++          return this.selectBackend(converter)
++        }).catch((error: unknown) => {
+           delete slot.converter
+           throw error
+         })
+diff --git a/packages/document/office-kit/src/system-soffice.ts b/packages/document/office-kit/src/system-soffice.ts
+new file mode 100644
+index 0000000..6faaaca
+--- /dev/null
++++ b/packages/document/office-kit/src/system-soffice.ts
+@@ -0,0 +1,210 @@
++/** System LibreOffice PDF rendering for Linux hosts without a native LibreOfficeKit engine. */
++import { spawn } from 'node:child_process'
++import { constants } from 'node:fs'
++import { access, copyFile, mkdir, mkdtemp, readdir, rm, stat } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import { pathToFileURL } from 'node:url'
++import type { Converter, RenderResult } from '@deepseek-ai/libreoffice-kit'
++
++/** One system LibreOffice installation and the profile directory its serialized runs share. */
++export interface SystemSofficeOptions {
++  /** Absolute `soffice` executable. */
++  readonly executable: string
++  /** Absolute user-installation profile directory; one profile serves one process at a time. */
++  readonly profileDirectory: string
++  /** Per-conversion deadline, including process startup. */
++  readonly timeoutMs: number
++  /** Extra environment values for the child process. */
++  readonly env?: NodeJS.ProcessEnv
++}
++
++/** Error carrying the published conversion code the provider maps to its own failures. */
++export class SystemSofficeError extends Error {
++  readonly code: string
++
++  /**
++   * @param code - Published conversion failure category.
++   * @param message - User-facing failure description.
++   * @param options - Standard error options.
++   */
++  constructor(code: string, message: string, options?: ErrorOptions) {
++    super(message, options)
++    this.name = 'SystemSofficeError'
++    this.code = code
++  }
++}
++
++const SOFFICE_NAMES = ['soffice', 'libreoffice'] as const
++const SOFFICE_LOCATIONS = ['/usr/bin', '/usr/local/bin', '/opt/libreoffice/program'] as const
++
++/**
++ * Resolve a system LibreOffice executable without a shell.
++ * @param explicit - Configured absolute or PATH-resolved executable.
++ * @returns absolute executable path, or undefined when none is installed.
++ */
++export async function resolveSystemSoffice(explicit?: string): Promise<string | undefined> {
++  if (explicit !== undefined) {
++    try {
++      await access(explicit, constants.X_OK)
++      return explicit
++    } catch {
++      return undefined
++    }
++  }
++  for (const directory of SOFFICE_LOCATIONS) {
++    for (const name of SOFFICE_NAMES) {
++      const candidate = join(directory, name)
++      try {
++        await access(candidate, constants.X_OK)
++        return candidate
++      } catch {
++        // Try the next conventional location.
++      }
++    }
++  }
++  for (const directory of (process.env.PATH ?? '').split(':').filter(Boolean)) {
++    for (const name of SOFFICE_NAMES) {
++      const candidate = join(directory, name)
++      try {
++        await access(candidate, constants.X_OK)
++        return candidate
++      } catch {
++        // Try the next PATH entry.
++      }
++    }
++  }
++  return undefined
++}
++
++/** One serialized queue per profile: LibreOffice cannot serve two processes from one user profile. */
++class SerialQueue {
++  private tail: Promise<unknown> = Promise.resolve()
++
++  /** Wait for every queued and active turn to settle. */
++  idle(): Promise<void> {
++    return this.tail.then(() => undefined)
++  }
++
++  run<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
++    signal?.throwIfAborted()
++    const turn = this.tail.then(() => {
++      signal?.throwIfAborted()
++      return task()
++    })
++    this.tail = turn.catch(() => undefined)
++    return turn
++  }
++}
++
++const queues = new Map<string, SerialQueue>()
++
++function queueFor(profileDirectory: string): SerialQueue {
++  let queue = queues.get(profileDirectory)
++  if (queue === undefined) {
++    queue = new SerialQueue()
++    queues.set(profileDirectory, queue)
++  }
++  return queue
++}
++
++/**
++ * Wrap a Kit converter so PDF rendering uses system LibreOffice while every other operation stays on the
++ * original engine. The wrapper keeps the same serial render contract and reports a native backend.
++ * @param base - Converter created by LibreOfficeKit.
++ * @param options - Executable, profile, and deadline for system rendering.
++ * @returns converter whose `render()` runs system LibreOffice.
++ */
++export function withSystemSoffice<T extends Converter>(base: T, options: SystemSofficeOptions): T {
++  const queue = queueFor(options.profileDirectory)
++  const render = createSystemRender(options, queue)
++  return new Proxy(base, {
++    get(target, property) {
++      if (property === 'render') return render
++      if (property === 'backend') return 'native'
++      if (property === 'dispose') return async () => { await queue.idle(); await target.dispose() }
++      const value: unknown = Reflect.get(target, property, target)
++      return typeof value === 'function' ? value.bind(target) : value
++    },
++  }) as T
++}
++
++function createSystemRender(options: SystemSofficeOptions, queue: SerialQueue) {
++  return (request: { readonly inputPath: string; readonly outputPath: string }, signal?: AbortSignal): Promise<RenderResult> =>
++    queue.run(async () => {
++      signal?.throwIfAborted()
++      await mkdir(options.profileDirectory, { recursive: true, mode: 0o700 })
++      await assertFreshOutput(request.outputPath)
++      const scratch = await mkdtemp(join(tmpdir(), 'dsh-office-system-'))
++      try {
++        const args = [
++          '--headless', '--norestore', '--nolockcheck', '--nodefault', '--nofirststartwizard', '--nologo',
++          `-env:UserInstallation=${pathToFileURL(options.profileDirectory).href}`,
++          '--convert-to', 'pdf', '--outdir', scratch, request.inputPath,
++        ]
++        await runSoffice(options, args, signal)
++        const produced = (await readdir(scratch)).filter(name => name.toLowerCase().endsWith('.pdf'))
++        if (produced.length !== 1) {
++          throw new SystemSofficeError('invalid-output', `LibreOffice produced ${produced.length} PDF files.`)
++        }
++        await copyFile(join(scratch, produced[0] as string), request.outputPath, constants.COPYFILE_EXCL)
++        return { backend: 'native', missingFonts: [] }
++      } finally {
++        await rm(scratch, { recursive: true, force: true })
++      }
++    }, signal)
++}
++
++/** Reject an output path that already exists, matching the Kit render contract. */
++async function assertFreshOutput(outputPath: string): Promise<void> {
++  try {
++    await stat(outputPath)
++  } catch (error) {
++    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return
++    throw error
++  }
++  throw new SystemSofficeError('invalid-output', `Output path already exists: ${outputPath}`)
++}
++
++function runSoffice(options: SystemSofficeOptions, args: readonly string[], signal?: AbortSignal): Promise<void> {
++  return new Promise<void>((resolve, reject) => {
++    const child = spawn(options.executable, args, {
++      stdio: 'ignore',
++      detached: process.platform !== 'win32',
++      env: { ...process.env, ...options.env },
++    })
++    let settled = false
++    const finish = (error?: Error): void => {
++      if (settled) return
++      settled = true
++      clearTimeout(timer)
++      signal?.removeEventListener('abort', abort)
++      if (error === undefined) resolve()
++      else reject(error)
++    }
++    const kill = (): void => {
++      try {
++        if (child.pid !== undefined && process.platform !== 'win32') process.kill(-child.pid, 'SIGKILL')
++        else child.kill('SIGKILL')
++      } catch {
++        // The process already exited.
++      }
++    }
++    const timer = setTimeout(() => {
++      kill()
++      finish(new SystemSofficeError('timeout', `LibreOffice conversion exceeded ${options.timeoutMs} ms.`))
++    }, options.timeoutMs)
++    const abort = (): void => {
++      kill()
++      const reason: unknown = signal?.reason
++      finish(reason instanceof Error ? reason : new SystemSofficeError('cancelled', 'LibreOffice conversion cancelled.'))
++    }
++    signal?.addEventListener('abort', abort, { once: true })
++    child.once('error', (error) => {
++      finish(new SystemSofficeError('unavailable', `LibreOffice could not start: ${error.message}`, { cause: error }))
++    })
++    child.once('exit', (code, signalName) => {
++      finish(code === 0 ? undefined : new SystemSofficeError('failed', `LibreOffice exited with ${signalName ?? String(code)}.`))
++    })
++  })
++}
+\ No newline at end of file
+diff --git a/packages/document/office-kit/tests/system-soffice.spec.ts b/packages/document/office-kit/tests/system-soffice.spec.ts
+new file mode 100644
+index 0000000..b5bf5a5
+--- /dev/null
++++ b/packages/document/office-kit/tests/system-soffice.spec.ts
+@@ -0,0 +1,165 @@
++/** System LibreOffice PDF rendering: serialization, output ownership, deadlines, and Kit delegation. */
++import { chmod, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
++import { tmpdir } from 'node:os'
++import { join } from 'node:path'
++import type { Converter } from '@deepseek-ai/libreoffice-kit'
++import { afterEach, describe, expect, it, vi } from 'vitest'
++import { resolveSystemSoffice, withSystemSoffice } from '../src/system-soffice.ts'
++
++const POSIX = process.platform !== 'win32'
++const roots: string[] = []
++
++async function scratch(): Promise<string> {
++  const root = await mkdtemp(join(tmpdir(), 'dsh-system-soffice-'))
++  roots.push(root)
++  return root
++}
++
++async function fakeSoffice(body: string): Promise<string> {
++  const root = await scratch()
++  const path = join(root, 'soffice')
++  await writeFile(path, `#!/usr/bin/env node\n${body}`)
++  await chmod(path, 0o755)
++  return path
++}
++
++const CONVERT = `
++const fs = require('node:fs')
++const path = require('node:path')
++const args = process.argv.slice(2)
++const outdir = args[args.indexOf('--outdir') + 1]
++const input = args[args.length - 1]
++const delay = Number(process.env.FAKE_DELAY || 0)
++const lock = process.env.FAKE_LOCK
++if (lock !== undefined) {
++  try { fs.writeFileSync(lock, 'held', { flag: 'wx' }) }
++  catch { fs.appendFileSync(lock + '.overlap', '1') }
++}
++setTimeout(() => {
++  fs.writeFileSync(path.join(outdir, path.basename(input).replace(/\\.[^.]+$/, '.pdf')), '%PDF-1.7\\n')
++  if (lock !== undefined) fs.rmSync(lock, { force: true })
++}, delay)
++`
++
++function baseConverter(): Converter {
++  return {
++    backend: 'wasm',
++    render: vi.fn<Converter['render']>().mockRejectedValue(new Error('Kit render must not run')),
++    renderImages: vi.fn<Converter['renderImages']>().mockResolvedValue({ images: [] } as never),
++    convert: vi.fn<Converter['convert']>().mockRejectedValue(new Error('unexpected convert')),
++    recalculate: vi.fn<Converter['recalculate']>().mockRejectedValue(new Error('unexpected recalculate')),
++    dispose: vi.fn<Converter['dispose']>().mockResolvedValue(undefined),
++  }
++}
++
++afterEach(async () => {
++  await Promise.all(roots.splice(0).map(root => rm(root, { recursive: true, force: true })))
++})
++
++describe.skipIf(!POSIX)('system LibreOffice backend', () => {
++  it('resolves an explicit executable and reports a missing one', async () => {
++    const executable = await fakeSoffice('')
++    await expect(resolveSystemSoffice(executable)).resolves.toBe(executable)
++    await expect(resolveSystemSoffice(join(executable, 'missing'))).resolves.toBeUndefined()
++  })
++
++  it('renders a PDF and delegates every other Kit operation', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice(CONVERT)
++    const base = baseConverter()
++    const converter = withSystemSoffice(base, {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 5_000,
++    })
++    const outputPath = join(root, 'output.pdf')
++    const result = await converter.render({ inputPath: join(root, 'input.docx'), outputPath })
++    expect(result).toEqual({ backend: 'native', missingFonts: [] })
++    expect(await readFile(outputPath, 'utf8')).toContain('%PDF-1.7')
++    await converter.renderImages({} as never)
++    expect(base.renderImages).toHaveBeenCalledTimes(1)
++    expect(base.render).not.toHaveBeenCalled()
++    expect(converter.backend).toBe('native')
++  })
++
++  it('serializes concurrent renders that share one profile', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice(CONVERT)
++    const lock = join(root, 'soffice.lock')
++    const converter = withSystemSoffice(baseConverter(), {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 10_000,
++      env: { FAKE_DELAY: '250', FAKE_LOCK: lock },
++    })
++    await Promise.all([0, 1, 2].map(async (index) => {
++      await converter.render({ inputPath: join(root, `input-${index}.docx`), outputPath: join(root, `output-${index}.pdf`) })
++    }))
++    for (const index of [0, 1, 2]) {
++      await expect(stat(join(root, `output-${index}.pdf`))).resolves.toBeDefined()
++    }
++    await expect(stat(`${lock}.overlap`)).rejects.toMatchObject({ code: 'ENOENT' })
++  })
++
++  it('rejects with the published timeout code and kills the process', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice(CONVERT)
++    const converter = withSystemSoffice(baseConverter(), {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 250,
++      env: { FAKE_DELAY: '5000' },
++    })
++    await expect(converter.render({ inputPath: join(root, 'input.docx'), outputPath: join(root, 'output.pdf') }))
++      .rejects.toMatchObject({ code: 'timeout' })
++    await expect(stat(join(root, 'output.pdf'))).rejects.toMatchObject({ code: 'ENOENT' })
++  })
++
++  it('rejects an already existing output path before starting LibreOffice', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice(CONVERT)
++    const outputPath = join(root, 'output.pdf')
++    await writeFile(outputPath, 'existing')
++    const converter = withSystemSoffice(baseConverter(), {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 5_000,
++    })
++    await expect(converter.render({ inputPath: join(root, 'input.docx'), outputPath }))
++      .rejects.toMatchObject({ code: 'invalid-output' })
++    await expect(readFile(outputPath, 'utf8')).resolves.toBe('existing')
++  })
++
++  it('reports a missing PDF as invalid output', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice('process.exit(0)')
++    const converter = withSystemSoffice(baseConverter(), {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 5_000,
++    })
++    await expect(converter.render({ inputPath: join(root, 'input.docx'), outputPath: join(root, 'output.pdf') }))
++      .rejects.toMatchObject({ code: 'invalid-output' })
++  })
++
++  it('honors cancellation before the queued render starts', async () => {
++    const root = await scratch()
++    const executable = await fakeSoffice(CONVERT)
++    const converter = withSystemSoffice(baseConverter(), {
++      executable,
++      profileDirectory: join(root, 'profile'),
++      timeoutMs: 10_000,
++      env: { FAKE_DELAY: '250' },
++    })
++    const first = converter.render({ inputPath: join(root, 'first.docx'), outputPath: join(root, 'first.pdf') })
++    const controller = new AbortController()
++    const second = converter.render(
++      { inputPath: join(root, 'second.docx'), outputPath: join(root, 'second.pdf') },
++      controller.signal,
++    )
++    controller.abort(new Error('cancelled by test'))
++    await expect(second).rejects.toThrow('cancelled by test')
++    await first
++    await expect(stat(join(root, 'second.pdf'))).rejects.toMatchObject({ code: 'ENOENT' })
++  })
++})
+\ No newline at end of file

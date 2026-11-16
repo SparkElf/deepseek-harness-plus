@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.83",
+  "version": "0.2.9-alpha.84",
   "publishConfig": {
     "access": "public"
   },
@@ -345,6 +345,21 @@
           },
           "file": "./patches/office-preview-stable-load.patch",
           "retireWhen": "官方 document preview 在 tab 重渲染间保持 Office 转换后退役"
+        },
+        {
+          "id": "office-system-soffice",
+          "dsh": ">=0.2.2-rc.2",
+          "target": {
+            "kind": "dsh-source",
+            "paths": [
+              "packages/document/office-kit/"
+            ],
+            "packages": [
+              "@deepseek-ai/dsh-office-kit"
+            ]
+          },
+          "file": "./patches/office-system-soffice.patch",
+          "retireWhen": "官方 office-kit 在 Linux 提供原生 LibreOffice 引擎或系统 LibreOffice 后端后退役"
         },
         {
           "id": "officecli-deliverables",
