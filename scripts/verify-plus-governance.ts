@@ -147,6 +147,24 @@ function main(): void {
     if (version !== undefined && valid(version) !== null) continue
     throw new Error('dshPlus.profile.dependencies.' + name + ' must name an exact version, got ' + String(spec))
   }
+  // A compatibility grant lets a plugin row the app-boot preflight would disable mount on
+  // the exact runtime this distribution declares. The grant is only admissible for a package
+  // the distribution itself pins; otherwise it authorizes a version no review covers.
+  const compatibilityEntries = profile.compatibility === undefined
+    ? []
+    : array(profile.compatibility, 'dshPlus.profile.compatibility')
+  for (const [index, value] of compatibilityEntries.entries()) {
+    const entry = string(value, 'dshPlus.profile.compatibility[' + String(index) + ']')
+    const separator = entry.lastIndexOf('@')
+    const name = entry.slice(0, separator)
+    const version = entry.slice(separator + 1)
+    if (separator <= 0 || valid(version) === null) {
+      throw new Error('dshPlus.profile.compatibility[' + String(index) + '] must be an exact package@version, got ' + entry)
+    }
+    if (profileDependencies[name] !== version) {
+      throw new Error('dshPlus.profile.compatibility names ' + entry + ', which dshPlus.profile.dependencies does not pin')
+    }
+  }
   // The reviewed set is no longer restated here: every plugin enters the profile through the
   // distribution's own dependency table, and the bundle and omission checks above prove that
   // table is complete. A second hardcoded copy drifted for months and failed on every entry the

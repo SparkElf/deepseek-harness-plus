@@ -15,6 +15,7 @@ import {
 } from 'node:fs'
 import { createRequire } from 'node:module'
 import { readPatchSet, type PatchSetEntry } from './patch-set.ts'
+import { writeProfileCompatibility } from './manifest.ts'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { satisfies, valid, validRange } from 'semver'
@@ -369,6 +370,20 @@ function prepareSelection(
     if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
     allowBuilds[name] = allowed
   }
+  const compatibilityExemptions = profile.compatibility === undefined
+    ? []
+    : requireStringArray(profile.compatibility, 'dshPlus.profile.compatibility')
+  for (const entry of compatibilityExemptions) {
+    const separator = entry.lastIndexOf('@')
+    const name = entry.slice(0, separator)
+    const version = entry.slice(separator + 1)
+    if (separator <= 0 || valid(version) === null) {
+      throw new Error('dshPlus.profile.compatibility entry must be an exact package@version, got: ' + entry)
+    }
+    if (profileDependencySpecs[name] !== version) {
+      throw new Error('dshPlus.profile.compatibility names ' + entry + ', which dshPlus.profile.dependencies does not pin')
+    }
+  }
   const patchPackageNames = resolvePatchPackageNames(plus)
   const dependencies = requireObject(distributionManifest.dependencies, 'Plus distribution dependencies')
   const dshManifest = readJsonObject(resolve(dshRoot, 'package.json'), 'DSH source manifest')
@@ -409,6 +424,7 @@ function prepareSelection(
   preflightSourcePatches(dshRoot, pendingSourceFiles)
 
   writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)
+  writeProfileCompatibility(profileDirectory, compatibilityExemptions, dshVersion)
   runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install Plus profile dependencies')
   const profileDependencies = Object.keys(profileDependencySpecs).sort().map((name) => {
     const installed = resolveInstalledPackage(profileDirectory, name)

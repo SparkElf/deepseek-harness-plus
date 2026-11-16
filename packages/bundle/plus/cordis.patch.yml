@@ -95,3 +95,21 @@
       name: '@sparkelf/dsh-image-hoist'
       config:
         providers: []
+
+# Web search: the distribution ships Exa as its second search provider. The plugin
+# reports itself unavailable until `EXA_API_KEY` resolves, so mounting the row is inert
+# for a deployment without a key; the selector below then keeps the official DeepSeek
+# Search API. With a key, Exa serves `web_search` and the selector replaces the base
+# layer's `deepseek-search-api` default. A patch replaces the row's whole config object,
+# so `fetchProvider` is restated rather than inherited.
+- insert:
+    - id: web-search-exa
+      name: '@deepseek-ai/dsh-web-search-exa'
+      config:
+        searchType: auto
+        numResults: 8
+
+- id: web
+  config:
+    searchProvider: !!js "process.env.EXA_API_KEY ? 'exa' : 'deepseek-search-api'"
+    fetchProvider: http

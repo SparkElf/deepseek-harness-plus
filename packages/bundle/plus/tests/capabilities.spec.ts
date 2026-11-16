@@ -28,11 +28,14 @@ describe('capability patch layer', () => {
     expect(layer.split('\n').some(line => line.trim() === '[]')).toBe(true)
   })
 
-  it('mounts the selected capabilities as an insert row', () => {
+  it('leaves the Exa provider row to the distribution layer', () => {
+    // The distribution's own patch mounts the provider unconditionally and routes search by
+    // `EXA_API_KEY`. Writing a second row here duplicated the loader entry id, and two
+    // activations of the plugin then registered the same provider id twice.
     const layer = capabilityPatchLayer({ enabled: ['exa'] })
-    expect(layer).toContain('- insert:')
-    expect(layer).toContain("name: '@deepseek-ai/dsh-web-search-exa'")
-    expect(layer).toContain('searchProvider: exa')
+    expect(layer).not.toContain('web-search-exa')
+    expect(layer).not.toContain('searchProvider')
+    expect(layer.split('\n').some(line => line.trim() === '[]')).toBe(true)
   })
 
   it('keeps a hand-written row the capability rows do not own', () => {
@@ -54,15 +57,15 @@ describe('capability patch layer', () => {
       '    defaultPreset: danger-full-access',
       '',
     ].join('\n')
-    const layer = capabilityPatchLayer({ enabled: ['exa'] }, existing)
+    const layer = capabilityPatchLayer({ enabled: ['officecli', 'exa'] }, existing)
     expect(layer).toContain('id: llm-pi-ai')
     expect(layer).toContain('https://example.invalid/v1')
     expect(layer).toContain('id: permission')
     expect(layer).toContain('defaultPreset: danger-full-access')
     // The capability's own rows are still written, and a row this module owns is replaced
     // rather than duplicated.
-    expect(layer).toContain("name: '@deepseek-ai/dsh-web-search-exa'")
-    expect(layer.match(/id: web-search-exa/g)?.length).toBe(1)
+    expect(layer).toContain("name: '@sparkelf/dsh-officecli'")
+    expect(layer.match(/id: officecli/g)?.length).toBe(1)
   })
 
   it('drops a capability row the selection no longer enables', () => {
@@ -178,7 +181,8 @@ describe('capability record', () => {
 })
 
 describe('capability detection', () => {
-  it('reads the rows the loader mounts, not the record', () => {
+  it('reads the profile rows and the env file, not the record', () => {
+    // Exa is enabled by its key, while officecli is enabled by the row the layer writes.
     const layer = capabilityPatchLayer({ enabled: ['exa', 'officecli'] })
     const detected = detectEnabledCapabilities(layer, 'EXA_API_KEY=k\n')
     expect([...detected.mounted].sort()).toEqual(['exa', 'officecli'])
@@ -228,23 +232,20 @@ describe('capability layer editing', () => {
     expect(off).toContain('# Written by hand for this deployment.')
   })
 
-  it('restores the capability rows when enabling again', () => {
+  it('does not re-add a row the distribution layer owns when enabling again', () => {
     const on = editCapabilityPatchLayer(editCapabilityPatchLayer(ownLayer, 'exa', false), 'exa', true)
-    expect(on).toContain('- id: web-search-exa')
-    expect(on).toContain('searchProvider: exa')
-    // A patch replaces the targeted row's whole `config`, so the selector has to restate
-    // `fetchProvider`; omitting it silently drops web_fetch.
-    expect(on).toContain('fetchProvider: http')
+    expect(on).not.toContain('web-search-exa')
+    // The legacy selector went with it: the distribution layer applies the same routing
+    // from `EXA_API_KEY`, and restating it here would pin Exa for a deployment without a key.
+    expect(on).not.toMatch(/^- id: web$/mu)
     expect(on).toContain('- id: llm-pi-ai')
   })
 
   it('is idempotent when the capability is already enabled', () => {
-    // Inserting a second row under the same id doubles the entry rather than replacing it,
-    // so the edit removes the rows it owns before adding them back.
     const once = editCapabilityPatchLayer(ownLayer, 'exa', true)
     const twice = editCapabilityPatchLayer(once, 'exa', true)
-    expect(twice.match(/id: web-search-exa/g)).toHaveLength(1)
-    expect(twice.match(/^- id: web$/gm)).toHaveLength(1)
+    expect(twice).toBe(once)
+    expect(twice).not.toContain('web-search-exa')
   })
 
   it('creates the insert entry when the layer has none', () => {
@@ -257,10 +258,10 @@ describe('capability layer editing', () => {
   it('replaces the empty-array marker rather than nesting it', () => {
     // The loader requires a top-level array; a layer that mounts nothing is the literal
     // `[]`, and leaving it beside an insert would produce two documents.
-    const on = editCapabilityPatchLayer('[]\n', 'exa', true)
+    const on = editCapabilityPatchLayer('[]\n', 'officecli', true)
     expect(on).not.toContain('[]')
     expect(on).toContain('- insert:')
-    expect(on).toContain('- id: web-search-exa')
+    expect(on).toContain('- id: officecli')
   })
 
   it('writes the MinerU endpoint from the answers', () => {

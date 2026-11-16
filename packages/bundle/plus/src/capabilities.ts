@@ -42,7 +42,7 @@ export const CAPABILITIES: readonly Capability[] = [
   {
     id: 'exa',
     title: 'Web search (Exa)',
-    detail: 'Search the web through Exa instead of the built-in provider; needs an API key',
+    detail: 'Route web search through the Exa provider the profile mounts; needs an API key',
     needsEndpoint: false,
   },
   {
@@ -208,9 +208,11 @@ export function capabilityEnvironment(answers: CapabilityAnswers, existing = '')
  * The profile patch layer that turns the selected capabilities on.
  *
  * The file is data the profile's loader merges, so enabling a capability writes a
- * row rather than editing the deployment. An empty selection still writes the file,
- * because a layer that exists and mounts nothing is how a previously enabled
- * capability is turned back off.
+ * row rather than editing the deployment. Exa is the exception: the distribution
+ * mounts its provider unconditionally and the capability supplies only the key in the
+ * deployment env file, so no row is written for it. An empty selection still writes
+ * the file, because a layer that exists and mounts nothing is how a previously
+ * enabled capability is turned back off.
  *
  * The profile's own layer is a separate file with its own name: a deployment that
  * configured something by hand keeps it, and the capability rows are rewritten
@@ -275,15 +277,10 @@ export function capabilityPatchLayer(answers: CapabilityAnswers, existing = ''):
   const enabled = new Set(answers.enabled)
   const rows: string[] = []
 
-  if (enabled.has('exa')) {
-    rows.push(
-      '    - id: web-search-exa',
-      "      name: '@deepseek-ai/dsh-web-search-exa'",
-      '      config:',
-      '        searchType: auto',
-      '        numResults: 8',
-    )
-  }
+  // Exa is mounted by the distribution's own patch layer, so enabling the capability
+  // writes no row: the plugin registers itself unavailable until `EXA_API_KEY` resolves,
+  // and the bundle layer's selector falls back to the official provider without it.
+  // The answer reaches Exa through the deployment env file instead.
   if (enabled.has('computer-use')) {
     rows.push(
       '    - id: computer-use',
@@ -333,15 +330,6 @@ export function capabilityPatchLayer(answers: CapabilityAnswers, existing = ''):
     lines.push('- insert:', ...rows)
   } else {
     lines.push('[]')
-  }
-  if (enabled.has('exa')) {
-    lines.push(
-      '',
-      '# Route web_search through Exa rather than the built-in provider.',
-      '- id: web',
-      '  config:',
-      '    searchProvider: exa',
-    )
   }
   if (foreign.length > 0) {
     lines.push('', '# Rows this file carried before the capability interview; kept verbatim.', ...foreign)
@@ -404,18 +392,20 @@ export function detectEnabledCapabilities(
   envText: string,
 ): { readonly mounted: readonly string[]; readonly env: readonly string[] } {
   const mounted: string[] = []
-  // Matching the row id is what the loader does; matching a bare package name would also
-  // hit a comment or a name mentioned in an unrelated row's config.
-  if (/^\s*- id: web-search-exa\s*$/mu.test(profilePatchText)) mounted.push('exa')
-  if (/^\s*- id: mineru\s*$/mu.test(profilePatchText)) mounted.push('mineru')
-  if (/^\s*- id: officecli\s*$/mu.test(profilePatchText)) mounted.push('officecli')
-  if (/^\s*- id: computer-use\s*$/mu.test(profilePatchText)) mounted.push('computer-use')
-
   const env: string[] = []
   for (const line of envText.split('\n')) {
     const name = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=/.exec(line)?.[1]
     if (name !== undefined && !env.includes(name)) env.push(name)
   }
+  // Exa's provider row belongs to the distribution layer, so the key is what enables the
+  // capability. A row in a layer written by an earlier release still counts as mounted;
+  // the distribution layer provides the same provider, and the key decides availability.
+  if (env.includes('EXA_API_KEY') || /^\s*- id: web-search-exa\s*$/mu.test(profilePatchText)) mounted.push('exa')
+  // Matching the row id is what the loader does; matching a bare package name would also
+  // hit a comment or a name mentioned in an unrelated row's config.
+  if (/^\s*- id: mineru\s*$/mu.test(profilePatchText)) mounted.push('mineru')
+  if (/^\s*- id: officecli\s*$/mu.test(profilePatchText)) mounted.push('officecli')
+  if (/^\s*- id: computer-use\s*$/mu.test(profilePatchText)) mounted.push('computer-use')
   return { mounted, env }
 }
 
@@ -430,15 +420,6 @@ export function detectEnabledCapabilities(
  * @returns the insert payload lines, without the surrounding `- insert:` entry.
  */
 function capabilityRows(id: string): readonly string[] | undefined {
-  if (id === 'exa') {
-    return [
-      '    - id: web-search-exa',
-      "      name: '@deepseek-ai/dsh-web-search-exa'",
-      '      config:',
-      '        searchType: auto',
-      '        numResults: 8',
-    ]
-  }
   if (id === 'officecli') {
     return [
       '    - id: officecli',
@@ -458,6 +439,8 @@ function capabilityRows(id: string): readonly string[] | undefined {
 
 /** The row ids a capability owns in the profile layer. */
 function capabilityRowIds(id: string): readonly string[] {
+  // Exa's row belongs to the distribution layer now. The name stays owned here so a
+  // layer written by an earlier release is cleaned up rather than left to duplicate it.
   if (id === 'exa') return ['web-search-exa']
   if (id === 'officecli') return ['officecli']
   if (id === 'mineru') return ['mineru']
@@ -497,7 +480,7 @@ export function editCapabilityPatchLayer(
   ]
   const rows = id === 'mineru' && enable ? mineruRows : capabilityRows(id)
   const text = enable && rows !== undefined
-    ? insertCapabilityRows(withoutRows, rows, id === 'exa')
+    ? insertCapabilityRows(withoutRows, rows)
     : withoutRows.text
   // Every file this repository writes ends with exactly one newline; an edited layer must
   // not lose that, and the loader's YAML parse is indifferent to it either way.
@@ -579,13 +562,11 @@ function dropOwnedRows(
  *
  * @param state - the layer with this capability's own rows already removed.
  * @param rows - the insert payload lines to add.
- * @param withSelector - whether Exa's `web` selector row must also be present.
  * @returns the layer's new text.
  */
 function insertCapabilityRows(
   state: { text: string },
   rows: readonly string[],
-  withSelector: boolean,
 ): string {
   const lines = state.text.split('\n')
   const insertIndex = lines.findIndex(line => /^- insert:\s*$/.test(line))
@@ -608,19 +589,6 @@ function insertCapabilityRows(
       lines.push('- insert:', ...rows)
       if (trailing !== undefined) lines.push(trailing)
     }
-  }
-  if (withSelector && !/^\s*- id: web\s*$/mu.test(lines.join('\n'))) {
-    // The selector is a top-level row: it patches the bundle layer's own `web` entry, and
-    // it must restate `fetchProvider` because a patch replaces the whole `config` object
-    // rather than merging into it.
-    lines.push(
-      '',
-      '# Route web_search through Exa rather than the built-in provider.',
-      '- id: web',
-      '  config:',
-      '    searchProvider: exa',
-      '    fetchProvider: http',
-    )
   }
   return lines.join('\n')
 }
