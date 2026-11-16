@@ -1,8 +1,9 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { ensureProfile, readDistributionProfile } from '../src/profile.ts'
+import { PROFILE_COMPATIBILITY_FILENAME, writeProfileCompatibility } from '../src/manifest.ts'
 
 const roots: string[] = []
 
@@ -35,6 +36,7 @@ function distribution(): string {
       omission: { package: '@sparkelf/dsh-omitted', version: '0.2.1-alpha.48' },
       profile: {
         bundles: ['@deepseek-ai/dsh-base', '@sparkelf/dsh-plus'],
+        compatibility: ['@sparkelf/dsh-mineru@0.1.4'],
         dependencies: {
           '@sparkelf/dsh-mineru': '0.1.4',
           '@sparkelf/dsh-dataops-managed': '0.3.33',
@@ -77,6 +79,24 @@ describe('editions', () => {
     expect(profile.editions.team?.packages).toContain('@sparkelf/dsh-dataops-managed')
     expect(profile.editions.personal?.packages).not.toContain('@sparkelf/dsh-dataops-managed')
     expect(profile.editions.team?.bundles).toContain('@sparkelf/dsh-dataops-managed')
+  })
+
+  it('reads the declared compatibility grants', () => {
+    const directory = distribution()
+    expect(readDistributionProfile(directory).compatibilityExemptions).toEqual(['@sparkelf/dsh-mineru@0.1.4'])
+  })
+
+  it('writes the profile compatibility file without dropping an existing grant', () => {
+    // The file is the app-boot preflight's grant mechanism and also holds grants a user or
+    // image wrote for other plugins; a materialization must merge, not replace.
+    const profile = join(scratch(), 'profile')
+    writeProfileCompatibility(profile, ['@sparkelf/dsh-mineru@0.1.4'], '0.2.2-rc.2')
+    expect(JSON.parse(readFileSync(join(profile, PROFILE_COMPATIBILITY_FILENAME), 'utf8'))).toEqual({
+      '@sparkelf/dsh-mineru@0.1.4': ['0.2.2-rc.2'],
+    })
+    writeProfileCompatibility(profile, ['@sparkelf/dsh-mineru@0.1.4'], '0.2.3-rc.1')
+    const merged = JSON.parse(readFileSync(join(profile, PROFILE_COMPATIBILITY_FILENAME), 'utf8')) as Record<string, string[]>
+    expect(merged['@sparkelf/dsh-mineru@0.1.4']).toEqual(['0.2.2-rc.2', '0.2.3-rc.1'])
   })
 
   it('names the offered editions when the requested one is unknown', () => {

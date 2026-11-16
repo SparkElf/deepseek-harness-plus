@@ -15,7 +15,7 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import { dirname, join, posix, resolve, win32 } from 'node:path'
 import { parseDocument } from 'yaml'
-import { projectEdition, readDistributionFacts } from './manifest.ts'
+import { projectEdition, readDistributionFacts, writeProfileCompatibility } from './manifest.ts'
 import { readPatchSet } from './patch-set.ts'
 
 /** Profile name the launcher materializes when no edition is selected. */
@@ -131,6 +131,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
   readonly runtimeVersion: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
+  readonly compatibilityExemptions: readonly string[]
   readonly allowBuilds: Readonly<Record<string, boolean>>
   readonly overrides: Readonly<Record<string, string>>
   readonly omittedPackages: Readonly<Record<string, string>>
@@ -145,6 +146,7 @@ export function readDistributionProfile(distributionDirectory: string, editionId
     runtimeVersion: facts.runtimeVersion,
     bundles: projection.bundles,
     dependencies: projection.dependencies,
+    compatibilityExemptions: facts.compatibilityExemptions,
     allowBuilds: projection.allowBuilds,
     overrides: projection.overrides,
     omittedPackages: projection.omittedPackages,
@@ -559,6 +561,9 @@ export function ensureProfile(
 ): boolean {
   const manifestPath = join(paths.profileDirectory, 'package.json')
   const distribution = readDistributionProfile(paths.distributionDirectory, editionId, extraExcludes)
+  // The app-boot preflight reads this before importing any plugin, so an upgraded or
+  // freshly created profile must carry the distribution's grants on every materialization.
+  writeProfileCompatibility(paths.profileDirectory, distribution.compatibilityExemptions, distribution.runtimeVersion)
   if (existsSync(manifestPath)) {
     // The workspace carries decisions the distribution owns — overrides and the build
     // script allowlist — and a distribution release changes them. Rewriting on every

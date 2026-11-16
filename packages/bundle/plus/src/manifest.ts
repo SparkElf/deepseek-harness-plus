@@ -20,6 +20,9 @@ const OFFICIAL_PREFIX = '@deepseek-ai/'
 /** npm scope the distribution publishes its republished builds under. */
 const REPUBLISHED_PREFIX = '@sparkelf/'
 
+/** Independent profile metadata the app-boot preflight reads before importing plugins. */
+export const PROFILE_COMPATIBILITY_FILENAME = 'compatibility.json'
+
 /** One entry of the distribution's patch set, as far as override derivation reads it. */
 export interface PatchEntryFacts {
   readonly id: string
@@ -41,6 +44,15 @@ export interface DistributionFacts {
   readonly omissionSpec: string
   readonly bundles: readonly string[]
   readonly dependencies: Readonly<Record<string, string>>
+  /**
+   * Exact `package@version` grants the generated profile records in `compatibility.json`.
+   *
+   * The app-boot preflight disables a row whose exact `@deepseek-ai/dsh-*` peers disagree
+   * with the running runtime. An official plugin cut against the previous patch release can
+   * still be the newest published build, so the distribution declares the exact package it
+   * admits on its own runtime instead of widening the plugin's peer range.
+   */
+  readonly compatibilityExemptions: readonly string[]
   readonly allowBuilds: Readonly<Record<string, boolean>>
   /** Official package name to republished build spec. */
   readonly redirects: Readonly<Record<string, string>>
@@ -197,6 +209,20 @@ export function readDistributionFacts(directory: string): DistributionFacts {
   })
   const { redirects, ids } = deriveRedirects(entries, runtimeVersion)
   const dependencies = stringMap(profile.dependencies, 'dshPlus.profile.dependencies')
+  const compatibilityExemptions = profile.compatibility === undefined
+    ? []
+    : stringArray(profile.compatibility, 'dshPlus.profile.compatibility')
+  for (const entry of compatibilityExemptions) {
+    const separator = entry.lastIndexOf('@')
+    const name = entry.slice(0, separator)
+    const version = entry.slice(separator + 1)
+    if (separator <= 0 || valid(version) === null) {
+      throw new Error('dshPlus.profile.compatibility entry must be an exact package@version, got: ' + entry)
+    }
+    if (dependencies[name] !== version) {
+      throw new Error('dshPlus.profile.compatibility names ' + entry + ', which dshPlus.profile.dependencies does not pin')
+    }
+  }
   const allowBuilds: Record<string, boolean> = {}
   for (const [name, allowed] of Object.entries(record(profile.allowBuilds, 'dshPlus.profile.allowBuilds'))) {
     if (typeof allowed !== 'boolean') throw new Error('dshPlus.profile.allowBuilds.' + name + ' must be a boolean')
@@ -261,6 +287,7 @@ export function readDistributionFacts(directory: string): DistributionFacts {
     omissionSpec: 'npm:' + omissionPackage + '@' + omissionVersion,
     bundles: stringArray(profile.bundles, 'dshPlus.profile.bundles'),
     dependencies,
+    compatibilityExemptions,
     allowBuilds,
     redirects,
     redirectIds: ids,
@@ -394,6 +421,42 @@ export async function assertRedirectsPublished(
 }
 
 /**
+ * Record the distribution's exact-version grants in the profile's compatibility file.
+ *
+ * The file is the app-boot preflight's own grant mechanism: a missing or unreadable file
+ * authorizes nothing, and every other key belongs to the deployment. Writing merges the
+ * distribution's grants into the existing object rather than replacing it, so a grant a
+ * user or image added for another plugin survives a `dsh-plus install`/`start`.
+ *
+ * @param directory - profile directory that receives the file.
+ * @param exemptions - exact `package@version` grants the distribution admits.
+ * @param runtimeVersion - exact runtime each grant names.
+ */
+export function writeProfileCompatibility(
+  directory: string,
+  exemptions: readonly string[],
+  runtimeVersion: string,
+): void {
+  mkdirSync(directory, { recursive: true })
+  const path = join(directory, PROFILE_COMPATIBILITY_FILENAME)
+  let current: Record<string, unknown> = {}
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'))
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) current = parsed as Record<string, unknown>
+  } catch {
+    // Absent, unreadable, or malformed: the preflight already ignores such a file, so
+    // starting from an empty object replaces the unusable content with valid grants.
+  }
+  for (const entry of exemptions) {
+    const versions = Array.isArray(current[entry])
+      ? (current[entry] as unknown[]).filter((version): version is string => typeof version === 'string')
+      : []
+    current[entry] = [...new Set([...versions, runtimeVersion])]
+  }
+  writeFileSync(path, JSON.stringify(current, null, 2) + '\n')
+}
+
+/**
  * Write the profile manifest and the pnpm workspace the install reads.
  *
  * npm reads `overrides` from the root manifest and pnpm reads them from the workspace file, so
@@ -447,6 +510,7 @@ export function writeProfileProjection(
     '',
   ]
   writeFileSync(join(directory, 'pnpm-workspace.yaml'), workspace.join('\n'))
+  writeProfileCompatibility(directory, facts.compatibilityExemptions, facts.runtimeVersion)
   return projection
 }
 
