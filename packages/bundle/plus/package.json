@@ -75,7 +75,8 @@
         "@sparkelf/dsh-artifact-app"
       ],
       "compatibility": [
-        "@deepseek-ai/dsh-web-search-exa@0.2.2-rc.1"
+        "@deepseek-ai/dsh-web-search-exa@0.2.2-rc.1",
+        "@anysearch/anysearch-dsh@0.1.8"
       ],
       "dependencies": {
         "@sparkelf/dsh-mineru": "0.1.4",
@@ -109,6 +110,7 @@
         "@deepseek-ai/dsh-shell": "0.2.2-rc.2",
         "@deepseek-ai/dsh-spill": "0.2.2-rc.2",
         "@deepseek-ai/dsh-web-search-exa": "0.2.2-rc.1",
+        "@anysearch/anysearch-dsh": "0.1.8",
         "@deepseek-ai/dsh-workflow": "0.2.2-rc.2",
         "@sparkelf/dsh-artifact-app": "0.1.1",
         "@sparkelf/dsh-dataops-managed": "0.3.54",
@@ -133,7 +135,7 @@
         "@deepseek-ai/dsh-sdk-protocol": "0.2.2-rc.2",
         "@deepseek-ai/dsh-util-workspace-path": "0.2.2-rc.2",
         "@deepseek-ai/dsh-tool-session-query": "0.2.2-rc.2",
-        "@sparkelf/dsh-dataops-im": "0.1.0"
+        "@sparkelf/dsh-dataops-im": "0.1.1"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -777,7 +779,8 @@
           "@sparkelf/dsh-kb-citation",
           "@sparkelf/dsh-task-bus",
           "@sparkelf/dsh-ocr",
-          "@sparkelf/dsh-dataops-account"
+          "@sparkelf/dsh-dataops-account",
+          "@anysearch/anysearch-dsh"
         ],
         "packages": [
           "@sparkelf/dsh-mineru",
@@ -820,7 +823,8 @@
           "@deepseek-ai/cordis-plugin-group",
           "@sparkelf/dsh-ocr",
           "@sparkelf/dsh-dataops-account",
-          "@sparkelf/dsh-dataops-im"
+          "@sparkelf/dsh-dataops-im",
+          "@anysearch/anysearch-dsh"
         ],
         "omit": [
           "@deepseek-ai/dsh-computer-use",
