@@ -75,10 +75,26 @@ index 825cb049..e4dc7be7 100644
      this.global = domain.global
      this.state = domain.global.get()
 diff --git a/packages/workspace/workspace/tests/workspace.spec.ts b/packages/workspace/workspace/tests/workspace.spec.ts
-index 7c0a9e99..31aed1a6 100644
+index 427e533..9cb84da 100644
 --- a/packages/workspace/workspace/tests/workspace.spec.ts
 +++ b/packages/workspace/workspace/tests/workspace.spec.ts
-@@ -1538,6 +1538,105 @@ describe('first-use Workspace preparation', () => {
+@@ -9,13 +9,13 @@ import Storage from '@deepseek-ai/dsh-storage'
+ import type { StorageBackend } from '@deepseek-ai/dsh-storage'
+ import { DomainFacility } from '@deepseek-ai/dsh-storage-domain'
+ import type { DomainChanged } from '@deepseek-ai/dsh-storage-domain'
+-import SessionStore, { SESSION_FORMAT_VERSION, type SessionId } from '@deepseek-ai/dsh-session'
++import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
+ import type { SessionHeader } from '@deepseek-ai/dsh-session'
+ import type { SessionPersistenceRevision } from '@deepseek-ai/dsh-session-persistence'
+ import type { SessionPersistenceSnapshot } from '@deepseek-ai/dsh-session-persistence'
+ import { MemoryMediaPool, MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
+ import WorkspaceRegistry, {
+-  type WorkspaceId,
++  WorkspaceId,
+   type workspaceDomainState,
+   WorkspaceMoveInvalidError,
+   WorkspaceOrderInvalidError,
+@@ -1556,6 +1556,105 @@ describe('first-use Workspace preparation', () => {
    })
  })
  

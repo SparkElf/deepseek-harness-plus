@@ -118,10 +118,19 @@ index 1dd0e81b..ce88e9a4 100644
      return messages
    },
 diff --git a/packages/compaction/compaction-image-offload/tests/projection.spec.ts b/packages/compaction/compaction-image-offload/tests/projection.spec.ts
-index 0c82575d..e3217782 100644
+index 3eaa2dc..246702a 100644
 --- a/packages/compaction/compaction-image-offload/tests/projection.spec.ts
 +++ b/packages/compaction/compaction-image-offload/tests/projection.spec.ts
-@@ -137,4 +137,49 @@ describe('durable image selections', () => {
+@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
+ import { brandString } from '@deepseek-ai/dsh-brand'
+ import { createAssistantMessage, createToolResultMessage, createUserMessage, type ToolCallId } from '@deepseek-ai/dsh-llm'
+ import type { ContentBlock, ImageBlock } from '@deepseek-ai/dsh-llm'
+-import { deriveEventMessage, foldSurface, Session, type SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
++import { deriveEventMessage, foldSurface, Session, SessionId, SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
+ import type { SessionEvent, SessionEventMap } from '@deepseek-ai/dsh-session'
+ import { imageOffloadProjection } from '../src/projection.ts'
+ 
+@@ -138,4 +138,49 @@ describe('durable image selections', () => {
      }, { surfaceOp: 'append' })
      expect(() => session.append('image/offload', { targets: [{ seq: assistant.seq, imageIndexes: [0] }] })).toThrow(/must be user\/message/)
    })
