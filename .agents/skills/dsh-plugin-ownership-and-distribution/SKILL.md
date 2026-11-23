@@ -46,6 +46,8 @@ Prefer an external repository when the capability has an independent maintainer 
 
 Publish a package when profiles or consumers must resolve a versioned artifact outside the workspace. Publication does not require moving its source repository. Default-mount a package only as an explicit product decision; record the exact version or workspace dependency and keep the row patchable by higher profile layers.
 
+**Check retirement before writing a new owner.** A base upgrade can make a plugin or a Plus entry unnecessary: the official package now provides the behavior, the extension point now exists, or the workaround is obsolete. Retiring the existing carrier is the preferred outcome and leaves no new owner to maintain. A replacement is justified only when the current owner's surface is still needed and the new base cannot express it.
+
 ## Report
 
 Before code, report:

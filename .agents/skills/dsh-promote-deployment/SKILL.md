@@ -7,6 +7,20 @@ description: Use when promoting the running DSH deployment to a new release, bui
 
 Use this skill to move a running deployment onto a new release. The deployment is not the repository checkout: it is a **release mirror** under the DSH home, with its own sources, build outputs, and profile. Changing a version in the profile does not change what the runtime executes.
 
+> **A base-version bump starts with `dsh-base-upgrade`, not here.** Bare base, plugin repair,
+> retirement decisions, and the published Plus release all happen before this skill's switch step.
+> Using this skill as the first step mixes base compatibility, plugin compatibility, and patch
+> compatibility in one build; the failures cannot be attributed. Come back here for the production
+> switch only after `dsh-base-upgrade` Phase 5 passes for both editions.
+
+> **The distribution model changed after 0.2.9.** Source patches now live in
+> `packages/bundle/plus/patches/*.patch` and are applied by `dsh-plus apply` against an exact
+> official checkout. `dsh-plus install --edition personal|team|intranet-team` writes the profile
+> manifest. There is no standalone package and no `scripts/standalone` generator; any step below
+> that names one describes the pre-0.2.9 mirror builder and must not be run. The current release
+> build is the sequence in `build-personal-rc2.sh` (clone tag → install edition → rewrite redirects
+> → `dsh-plus apply` → copy the user layer → `dsh-plus-build` → `check-target`).
+
 ## Find the tools before writing any step
 
 The deployment already owns this procedure. Read these before running anything, and call them rather than re-deriving their contents:
@@ -16,7 +30,7 @@ The deployment already owns this procedure. Read these before running anything, 
 | `dsh-plus-build <mirror>` | `pnpm install` twice (a patch that adds a dependency changes the graph, and only a second install links it), then `pnpm run build --profile official`, then verify the brand record and that no workspace with dependencies lacks `node_modules`. |
 | `dsh-plus-switch` | Move the served release to another mirror, tracking phases. |
 | `dsh-plus-refresh rebuild \| accept \| restart \| all` | Rebuild the mirror, record the profile as accepted, restart, or all three in that order. |
-| `dsh-plus-mirror build --tag <official-tag> --into <path> --runtime <version>` | Extract an official tag into a fresh release tree, apply this repository's reviewed patches, typecheck them, regenerate the standalone manifests, build, create the profile, write the compatibility exemptions, relink the scope, and repair shadowed packages. `dsh-plus-mirror check --mirror <path>` reports the scope verdict. |
+| `dsh-plus-mirror build --tag <official-tag> --into <path> --runtime <version>` | Historical pre-0.2.9 builder: extracts a tag, applies `patches/npm/*`, builds, and creates a profile from a standalone manifest. Its standalone stages no longer exist in this repository, so a base bump uses `build-personal-rc2.sh`'s sequence instead. `dsh-plus-mirror check --mirror <path>` still reports the scope verdict. |
 | `dsh-plus-exemptions --runtime <version> [--out <path>]` | Derive the profile's `compatibility.json`: every plugin whose published peer ranges cannot match the runtime. |
 | `repair-shadowed-scope.mjs --release <mirror>` | Replace real directories that shadow a release package with links to its source. |
 | `dsh-3080-restart` | Restart through the supervisor: repair profile scope, prove module uniqueness, re-accept the fingerprint, restart, then verify the client modules and the connection surface. |
@@ -68,13 +82,18 @@ Measured 2026-09-29: a hand-written model provider, permission presets, theme, a
 
 ## Promotion order
 
-1. **Build the mirror.** Check out the new official revision in a release mirror, keep the previous mirror as the rollback anchor, apply this repository's patches, then run `dsh-plus-build <mirror>`.
-2. **Point the profile at the matching republished packages.** The overrides live in the profile's `pnpm-workspace.yaml`. Two version sequences meet here and they are not the same number: the distribution releases as `0.2.0-rc.N`, while a republished official package carries the official revision it was built from, `0.1.7-rc.1`. Read the range from the version being promoted, never from the installed one — the installed copy names the base being left.
-3. **Write the manifest last, after acceptance.** A running supervisor rewrites its manifest on every progress phase — `announce()` calls `writeStatus()`, not only `stop()` — so a manifest written before a multi-second acceptance step is the supervisor's own older copy by the time anything reads it. Measured: the manifest named the new mirror, acceptance ran for seconds, and the reload adopted the previous mirror. `dsh-plus-switch` orders its steps `link → accept → manifest → reload → verify` for this reason.
+1. **Complete the base-first phases.** Bare `0.2.3-alpha.2` boots and completes a turn, every
+   candidate bundle has a compatibility verdict, incompatible plugins are repaired, and every Plus
+   patch entry has a retire/simplify/keep/new disposition. `dsh-base-upgrade` owns these phases.
+2. **Build the mirror from the merged revision.** Keep the previous mirror as the rollback anchor,
+   apply this repository's patch set, then run `dsh-plus-build <mirror>`. The build must start from
+   `origin/master`, never from an unmerged branch.
+3. **Point the profile at the matching republished packages.** The overrides live in the profile's `pnpm-workspace.yaml`. Two version sequences meet here and they are not the same number: the distribution releases as `0.2.0-rc.N`, while a republished official package carries the official revision it was built from, `0.1.7-rc.1`. Read the range from the version being promoted, never from the installed one — the installed copy names the base being left.
+4. **Write the manifest last, after acceptance.** A running supervisor rewrites its manifest on every progress phase — `announce()` calls `writeStatus()`, not only `stop()` — so a manifest written before a multi-second acceptance step is the supervisor's own older copy by the time anything reads it. Measured: the manifest named the new mirror, acceptance ran for seconds, and the reload adopted the previous mirror. `dsh-plus-switch` orders its steps `link → accept → manifest → reload → verify` for this reason.
 
-4. **Record the profile closure.** The supervisor's profile guard refuses to start when the accepted closure changed without a new acceptance. `dsh-plus-refresh accept` does this; a bare restart does not, and the guard then rolls the profile back while the unit retries until `StartLimitBurst` trips, leaving one bare exit code in the journal.
-5. **Restart through the supervisor**, not the service manager. The unit runs the supervisor and the web process is its child; `systemctl restart` kills both, so the control socket disappears and every connection is refused during the restart. Use `dsh-3080-restart` or `dsh-plus-refresh restart`.
-6. **Verify the runtime, not the distribution version.** See below: this is the step whose absence makes a failed promotion look successful.
+5. **Record the profile closure.** The supervisor's profile guard refuses to start when the accepted closure changed without a new acceptance. `dsh-plus-refresh accept` does this; a bare restart does not, and the guard then rolls the profile back while the unit retries until `StartLimitBurst` trips, leaving one bare exit code in the journal.
+6. **Restart through the supervisor**, not the service manager. The unit runs the supervisor and the web process is its child; `systemctl restart` kills both, so the control socket disappears and every connection is refused during the restart. Use `dsh-3080-restart` or `dsh-plus-refresh restart`.
+7. **Verify the runtime, not the distribution version.** See below: this is the step whose absence makes a failed promotion look successful.
 
 ## Verify the runtime package versions
 
