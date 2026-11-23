@@ -153,6 +153,18 @@ async function removeTempDirectory(path: string, reason: string): Promise<void> 
   }
 }
 
+/** The connection surface across the 0.2.2 and 0.2.3 admission APIs. */
+interface BackupConnectionAdmission {
+  admit?(request: {
+    headers: IncomingMessage['headers']
+    method?: string
+    url?: string
+    transport?: 'http'
+    socket?: unknown
+  }): { peer?: unknown; rejection?: number }
+  requestRejection?(request: IncomingMessage): 401 | 403 | undefined
+}
+
 /** Reject an unauthenticated route before reading any request body or query data. */
 function registerProtectedRoute(
   ctx: Context,
@@ -164,7 +176,19 @@ function registerProtectedRoute(
     kind: 'exact',
     path,
     handler: async (request, response) => {
-      const rejection = ctx.connection.requestRejection(request)
+      const connection = ctx.connection as unknown as BackupConnectionAdmission
+      const rejection = typeof connection.admit === 'function'
+        ? (() => {
+          const admission = connection.admit({
+            headers: request.headers,
+            method: request.method,
+            url: request.url,
+            transport: 'http',
+            socket: request.socket,
+          })
+          return 'peer' in admission ? undefined : admission.rejection
+        })()
+        : connection.requestRejection?.(request) ?? 503
       if (rejection !== undefined) {
         response.writeHead(rejection)
         response.end(rejection === 401 ? 'unauthorized' : 'forbidden')

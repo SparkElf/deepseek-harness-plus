@@ -195,22 +195,21 @@ index 5dec1bda..f596cd47 100644
    customBaseUrlInvalid: 'Insira um URL HTTP ou HTTPS válido.',
    customNeedsModels: 'Um provedor personalizado precisa de pelo menos um modelo.',
 diff --git a/packages/llm/llm-pi-ai/src/adapter.ts b/packages/llm/llm-pi-ai/src/adapter.ts
-index f3f9ac00..f5ef95a1 100644
 --- a/packages/llm/llm-pi-ai/src/adapter.ts
 +++ b/packages/llm/llm-pi-ai/src/adapter.ts
-@@ -58,7 +58,7 @@ import type {
- } from '@deepseek-ai/dsh-llm'
+@@ -58,7 +58,7 @@
  import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import { brandString } from '@deepseek-ai/dsh-brand'
  import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 -import type { ResolvedPiAiProviderProfile } from './config.ts'
 +import type { PiAiReasoningSummary, ResolvedPiAiProviderProfile } from './config.ts'
  import { requestImageTarget, toPiContext } from './context.ts'
+ import { resolveImageRequestBudget } from './image-policy.ts'
  import { conversationUpdates, createModels, getSupportedThinkingLevels } from './models.ts'
- import { toStreamChunks } from './stream.ts'
-@@ -145,9 +145,85 @@ export interface PiAiAuthInjection {
+@@ -146,9 +146,76 @@
    authContext: AuthContext
  }
-
+ 
 +/** Whether one Responses input item is replayed reasoning with response status metadata. */
 +function hasReasoningInputStatus(item: unknown): boolean {
 +  const inputItem = item as Record<string, unknown>
@@ -231,12 +230,6 @@ index f3f9ac00..f5ef95a1 100644
 +
 +/**
 + * Force one model's `reasoning.summary` to a chosen spelling, or drop it.
-+ *
-+ * pi-ai writes `summary: options?.reasoningSummary || 'auto'` whenever a
-+ * Responses model reasons, so the field leaves even when nothing asked for it.
-+ * A gateway that refuses the field therefore fails every reply from that model
-+ * rather than merely omitting a summary, and only a payload hook can keep the
-+ * field off the wire.
 + * @param payload - the request body pi-ai built.
 + * @param summary - the configured spelling, or `omit` to drop the field.
 + * @returns the adjusted body, or undefined to leave the request untouched.
@@ -253,9 +246,6 @@ index f3f9ac00..f5ef95a1 100644
 +
 +/**
 + * The payload hook a model needs, if any.
-+ *
-+ * One hook field is a function, so a model needing both adjustments gets a
-+ * composition rather than one silently replacing the other.
 + * @param profile - the resolved route profile.
 + * @param model - the model being called, which may pin its own summary.
 + * @returns the `onPayload` option for this call, or an empty object.
@@ -293,7 +283,7 @@ index f3f9ac00..f5ef95a1 100644
    reasoning: ModelThinkingLevel | undefined,
    apiKey: string | undefined,
  ): SimpleStreamOptions {
-@@ -160,6 +236,7 @@ function profileOptions(
+@@ -161,6 +228,7 @@
      ...profile.transport === undefined ? {} : { transport: profile.transport },
      ...profile.timeoutMs === undefined ? {} : { timeoutMs: profile.timeoutMs },
      ...profile.websocketConnectTimeoutMs === undefined ? {} : { websocketConnectTimeoutMs: profile.websocketConnectTimeoutMs },
@@ -301,7 +291,7 @@ index f3f9ac00..f5ef95a1 100644
      // The agent recovery layer owns visible attempts; one adapter call is one SDK attempt.
      maxRetries: 0,
    }
-@@ -473,7 +550,7 @@ export class PiAiAdapter extends LlmAdapter {
+@@ -471,7 +539,7 @@
          this.config.onThinkingOmitted?.({ provider: options.provider, model: options.model, count })
        })
        const events = snapshot.models.streamSimple(model, context, {

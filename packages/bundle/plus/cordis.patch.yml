@@ -1,13 +1,11 @@
 # A patch row inherits the `inject` of the row it names rather than declaring its own,
-# so this row states both services. `webStartup` is the current provider; `webRuntime` is
-# the pre-alpha.2 name the dsh-web-app patch republishes for the third-party bundles that
-# still inject it (dsh-better-sidebar, dsh-video-preview). Reading the old service keeps
-# this layer working whichever of the two a deployment's web-app patch provides.
+# so this row states the service it reads. 0.2.3 renamed the bind-dependent provider from
+# `webRuntime` to `webStartup`; the old name is gone from this distribution, and the
+# third-party bundles that once injected it are released against the new name.
 - id: connection
-  inject: [webStartup, webRuntime]
+  inject: [webStartup]
   config:
-    trustedHosts: !!js ctx.webRuntime.trustedHosts
-    browserAuthentication: disabled
+    trustedHosts: !!js ctx.webStartup.trustedHosts
 
 # The derived index behind session history search. `first-search` builds it when a
 # search first asks for it rather than delaying every start.

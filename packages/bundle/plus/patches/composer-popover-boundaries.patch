@@ -60,10 +60,9 @@ index 23e71c9c..50e1d3a9 100644
  
  /** Subscribe to the main key without subscribing the column frame to each panel id. */
 diff --git a/packages/client/ui-model-selection/src/client/ModelSelect.tsx b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-index 3eea3e37..df98d1a4 100644
 --- a/packages/client/ui-model-selection/src/client/ModelSelect.tsx
 +++ b/packages/client/ui-model-selection/src/client/ModelSelect.tsx
-@@ -81,11 +81,19 @@ export function ModelSelect(
+@@ -93,11 +93,19 @@
    const lastActionRef = useRef<'load' | 'select'>('load')
    const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
    const toastSeq = useRef(0)
@@ -83,14 +82,14 @@ index 3eea3e37..df98d1a4 100644
    const itemRefs = useRef<(HTMLButtonElement | null)[]>([])
    const id = useId()
    const anchorStyle: CSSProperties & Record<'--dsh-model-anchor', string> = {
-@@ -481,7 +489,9 @@ export function ModelSelect(
-           ref={menuRef}
+@@ -538,7 +546,9 @@
+           tabIndex={pane.kind === 'detail' ? -1 : undefined}
            id={`${id}-menu`}
-           className={css.menu}
+           className={clsx(css.menu, (pane.kind === 'root' || pane.kind === 'detail') && css.settingsMenu)}
 -          style={anchorStyle}
 +          style={{ ...anchorStyle, ...(columnWidth === null
 +            ? {}
 +            : { maxWidth: Math.max(0, columnWidth - 24) }) }}
-           role={pane === 'model' ? 'group' : 'menu'}
-           aria-label={t('menu.aria')}
-           aria-busy={state.status === 'loading' || busy}
+           // A detail pane holds plugin controls and prose, not menu items.
+           role={pane.kind === 'model' || pane.kind === 'detail' ? 'group' : 'menu'}
+           aria-label={pane.kind === 'detail' ? pane.pane.title : t('menu.aria')}

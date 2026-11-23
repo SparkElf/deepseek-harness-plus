@@ -172,12 +172,11 @@ index 0c82575d..e3217782 100644
 +  })
  })
 diff --git a/packages/session-query/session-query-sqlite/src/index.ts b/packages/session-query/session-query-sqlite/src/index.ts
-index 7c95afa2..97d1763e 100644
 --- a/packages/session-query/session-query-sqlite/src/index.ts
 +++ b/packages/session-query/session-query-sqlite/src/index.ts
-@@ -9,11 +9,12 @@ import { SESSION_FORMAT_VERSION, SessionSeq } from '@deepseek-ai/dsh-session'
- import type { DatabaseSync } from 'node:sqlite'
+@@ -10,11 +10,12 @@
  import { Context, Service, type Fiber } from '@deepseek-ai/cordis'
+ import { brandString } from '@deepseek-ai/dsh-brand'
  import z from '@deepseek-ai/schemastery'
 -import type { Session, SessionEvent, SessionHeader, SessionId, SessionLogOffset } from '@deepseek-ai/dsh-session'
 +import type { Session, SessionEvent, SessionHeader, SessionId, SessionLogOffset, SessionMessageProjection } from '@deepseek-ai/dsh-session'
@@ -192,7 +191,7 @@ index 7c95afa2..97d1763e 100644
  } from '@deepseek-ai/dsh-session-persistence'
  import SessionQueryEngine, {
    SESSION_QUERY_DEFAULT_PERSISTED_INSPECT_CONCURRENCY,
-@@ -24,6 +25,7 @@ import SessionQueryEngine, {
+@@ -24,6 +25,7 @@
    assertSessionHeadersCompatible,
    buildSessionEventSearchDocuments,
    readColdSessionLog,
@@ -200,7 +199,7 @@ index 7c95afa2..97d1763e 100644
  } from '@deepseek-ai/dsh-session-query'
  import type {
    Config as SessionQueryConfig,
-@@ -519,10 +521,27 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
+@@ -520,10 +522,27 @@
              // live-preferred.
              if (initiallyLive.has(entry.header.id) || this.ctx.sessions.get(entry.header.id) !== undefined) continue
              assertNotAborted(signal)
@@ -230,7 +229,7 @@ index 7c95afa2..97d1763e 100644
            }
            assertNotAborted(signal)
            const afterSnapshots = await persistence.list(listOptions)
-@@ -547,7 +566,7 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
+@@ -548,7 +567,7 @@
        }
        const live = new Map<SessionId, ObservedSession>()
        for (const session of this.ctx.sessions.list()) {
@@ -239,7 +238,7 @@ index 7c95afa2..97d1763e 100644
          const durable = persisted.get(session.id)
          if (durable !== undefined) assertSessionHeadersCompatible(observed.header, durable.header)
          live.set(session.id, observed)
-@@ -613,6 +632,34 @@ export class SqliteSessionQueryEngine extends SessionQueryEngine {
+@@ -614,6 +633,34 @@
      }
    }
  
@@ -274,7 +273,7 @@ index 7c95afa2..97d1763e 100644
    private _replaceLiveSession(entry: ObservedSession, generation: number, persisted: boolean): void {
      this._deleteSession('live', entry.header.id)
      const db = this._requireDb()
-@@ -868,22 +915,23 @@ function selectedDocumentsParams(query: string, persistenceVisible: boolean): Ar
+@@ -869,22 +916,23 @@
    ]
  }
  
@@ -365,18 +364,17 @@ index 8788c8ea..d191b9cc 100644
      throw new SessionQueryError(
        /* v8 ignore next -- foldSurface throws Error instances */
 diff --git a/packages/session-query/session-query/src/index.ts b/packages/session-query/session-query/src/index.ts
-index dfb11fec..2d1f095a 100644
 --- a/packages/session-query/session-query/src/index.ts
 +++ b/packages/session-query/session-query/src/index.ts
-@@ -11,6 +11,7 @@ import {
-   SessionSeq,
+@@ -12,6 +12,7 @@
    snapshotSessionEvent,
+   validateSessionLog,
    type SessionId,
 +  type SessionMessageProjection,
    type SessionSeq as SessionSeqType,
  } from '@deepseek-ai/dsh-session'
- import { foldSessionTitle } from '@deepseek-ai/dsh-session-title'
-@@ -131,6 +132,27 @@ export abstract class SessionQueryEngine extends Service {
+ import type { ProjectionHandle } from '@deepseek-ai/dsh-session-projection'
+@@ -136,6 +137,23 @@
      this._observations = new SessionObservationReader(ctx, preparedSessionCacheSize)
    }
  
@@ -385,13 +383,9 @@ index dfb11fec..2d1f095a 100644
 +   *
 +   * A log is interpreted by whichever projections were mounted when its durable
 +   * decisions were written, so a cold read must use the mounted set rather than
-+   * the first-party catalog alone. Replaying with only the catalog is what makes
-+   * an `image/offload` decision recorded against an already-hoisted message
-+   * throw on a later read: `image/hoist` moved those image occurrences onto an
-+   * earlier carrier, so the recorded depth-first indexes no longer resolve.
-+   *
-+   * Catalog definitions are kept first; a live contribution of the same event
-+   * type is dropped because the fold rejects duplicate ownership anyway.
++   * the first-party catalog alone. Catalog definitions are kept first; a live
++   * contribution of the same event type is dropped because the fold rejects
++   * duplicate ownership anyway.
 +   * @returns borrowed catalog definitions followed by live plugin contributions.
 +   */
 +  protected get replayMessageProjections(): readonly SessionMessageProjection[] {
@@ -401,19 +395,19 @@ index dfb11fec..2d1f095a 100644
 +    return [...currentSessionMessageProjections, ...live.filter(projection => !seen.has(projection.type))]
 +  }
 +
-   /**
-    * Observe one exact live or prepared Session without a persistence listing preflight.
-    * @param sessionId - logical Session identity.
-@@ -200,7 +222,7 @@ export abstract class SessionQueryEngine extends Service {
+   /** Register the Session-list metadata projection for this service's lifetime. */
+   protected async [Service.init](): Promise<void> {
+     this._listMetadata = await this.ctx.sessionProjections.register(sessionListMetadataDefinition)
+@@ -207,7 +225,7 @@
        loaded.events,
-       loaded.header,
        loaded.inheritedEventCount,
+       undefined,
 -      currentSessionMessageProjections,
 +      this.replayMessageProjections,
      )
      return {
        session: structuredClone(loaded.header),
-@@ -280,7 +302,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -287,7 +305,7 @@
     */
    async listEvents(sessionId: SessionId): Promise<SessionEventRecord[]> {
      const loaded = await this._corpus.load(sessionId)
@@ -422,7 +416,7 @@ index dfb11fec..2d1f095a 100644
    }
  
    /**
-@@ -309,7 +331,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -316,7 +334,7 @@
      filters: readonly SessionEventResultFilter[],
    ): Promise<SessionEventSearchDocument[]> {
      const loaded = await this._corpus.load(sessionId)
@@ -431,7 +425,7 @@ index dfb11fec..2d1f095a 100644
      return filterSessionEventDocuments(documents, filters)
    }
  
-@@ -325,7 +347,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -332,7 +350,7 @@
        session: structuredClone(loaded.header),
        inheritedEventCount: loaded.inheritedEventCount,
        capturedThroughSeq: loaded.events.at(-1)?.seq ?? null,
@@ -440,7 +434,7 @@ index dfb11fec..2d1f095a 100644
      }
    }
  
-@@ -354,7 +376,7 @@ export abstract class SessionQueryEngine extends Service {
+@@ -361,7 +379,7 @@
      signal?.throwIfAborted()
      return {
        session: loaded.header,
