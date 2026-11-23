@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.97",
+  "version": "0.2.9-alpha.98",
   "publishConfig": {
     "access": "public"
   },
@@ -80,7 +80,7 @@
       ],
       "dependencies": {
         "@sparkelf/dsh-mineru": "0.1.4",
-        "@sparkelf/dsh-officecli": "0.2.1",
+        "@sparkelf/dsh-officecli": "0.2.2",
         "@sparkelf/dsh-plugin-supervisor": "0.1.10",
         "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
         "@sparkelf/dsh-workbench-vault": "0.1.2",
