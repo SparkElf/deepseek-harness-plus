@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.100",
+  "version": "0.2.9-alpha.101",
   "publishConfig": {
     "access": "public"
   },
@@ -538,6 +538,7 @@
         "bundles": [
           "@deepseek-ai/dsh-base",
           "@deepseek-ai/dsh-web-app",
+          "@sparkelf/dsh-plus",
           "@sparkelf/dsh-mineru",
           "@sparkelf/dsh-officecli",
           "dshmarket",
@@ -581,6 +582,7 @@
         "bundles": [
           "@deepseek-ai/dsh-base",
           "@deepseek-ai/dsh-web-app",
+          "@sparkelf/dsh-plus",
           "@sparkelf/dsh-mineru",
           "@sparkelf/dsh-officecli",
           "@sparkelf/dsh-office-viewer-fonts",
