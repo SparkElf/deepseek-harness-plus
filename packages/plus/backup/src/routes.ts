@@ -181,8 +181,8 @@ function registerProtectedRoute(
         ? (() => {
           const admission = connection.admit({
             headers: request.headers,
-            method: request.method,
-            url: request.url,
+            ...(request.method === undefined ? {} : { method: request.method }),
+            ...(request.url === undefined ? {} : { url: request.url }),
             transport: 'http',
             socket: request.socket,
           })
