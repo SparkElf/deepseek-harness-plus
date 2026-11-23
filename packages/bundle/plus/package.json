@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.99",
+  "version": "0.2.9-alpha.100",
   "publishConfig": {
     "access": "public"
   },
@@ -570,7 +570,8 @@
           "@sparkelf/dsh-sql-workbench",
           "@sparkelf/dsh-better-sidebar",
           "@deepseek-ai/cordis-plugin-group",
-          "@sparkelf/dsh-artifact-app"
+          "@sparkelf/dsh-artifact-app",
+          "@sparkelf/dsh-web-runtime-compat"
         ],
         "omit": []
       },
@@ -627,7 +628,8 @@
           "@sparkelf/dsh-client-ui-skill-center",
           "@deepseek-ai/dsh-web-search-exa",
           "@deepseek-ai/cordis-plugin-group",
-          "@sparkelf/dsh-artifact-app"
+          "@sparkelf/dsh-artifact-app",
+          "@sparkelf/dsh-web-runtime-compat"
         ],
         "omit": []
       },
@@ -703,7 +705,8 @@
           "@sparkelf/dsh-ocr",
           "@sparkelf/dsh-dataops-account",
           "@sparkelf/dsh-dataops-im",
-          "@anysearch/anysearch-dsh"
+          "@anysearch/anysearch-dsh",
+          "@sparkelf/dsh-web-runtime-compat"
         ],
         "omit": [
           "@deepseek-ai/dsh-computer-use",
