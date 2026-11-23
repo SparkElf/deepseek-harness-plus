@@ -7,6 +7,12 @@
   config:
     trustedHosts: !!js ctx.webStartup.trustedHosts
 
+# Third-party bundles released before 0.2.3 inject `webRuntime`, which the base
+# renamed to `webStartup`. Re-publish the old service so those bundles activate.
+- insert:
+    - id: web-runtime-compat
+      name: '@sparkelf/dsh-web-runtime-compat'
+
 # The derived index behind session history search. `first-search` builds it when a
 # search first asks for it rather than delaying every start.
 - id: session-query-sqlite

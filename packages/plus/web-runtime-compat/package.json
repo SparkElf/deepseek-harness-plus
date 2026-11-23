@@ -1,0 +1,35 @@
+{
+  "name": "@sparkelf/dsh-web-runtime-compat",
+  "description": "Provide the pre-0.2.3 webRuntime service from webStartup for third-party bundles that still inject it",
+  "version": "0.2.9-alpha.99",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
+    "directory": "packages/plus/web-runtime-compat"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts"
+  ],
+  "scripts": {
+    "bundle": "tsdown"
+  },
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": ">=4.2.0-alpha.1",
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.3-alpha.2"
+  }
+}
