@@ -68,7 +68,9 @@ function verifyPackage(out, source, workspace) {
 
   // Nothing the workspace publishes may be dropped, or a consumer installs a package
   // whose own files list promises a directory it does not contain.
-  const expected = publishedPaths(official.manifest, official.directory) ?? []
+  // Check the manifest the republished tarball actually carries: it narrows `files`
+  // to the packaged set, because `src` and `locale` are workspace-only.
+  const expected = publishedPaths(published, official.directory) ?? []
   for (const root of expected) {
     require_(existsSync(join(ours, root)), label + ': the workspace publishes ' + root + ' and the package omits it')
   }

@@ -79,6 +79,7 @@ export const PATCHED_WORKSPACES = [
   // `create()` factory, so a registry installation that keeps them fails to load the
   // plugin tree.
   'packages/core/tools',
+  'packages/interaction/permission-presets',
   'packages/interaction/user-approval',
   // The web-runtime compatibility patch edits this workspace, so a registry installation
   // has to take its replacement build rather than the official one: a source patch cannot
@@ -92,6 +93,12 @@ export const PATCHED_WORKSPACES = [
   'packages/session-query/session-query-sqlite',
   'packages/util/native-command',
   'packages/workspace/workspace',
+  'packages/util/atomic-write',
+  'packages/compaction/compaction-image-offload',
+  'packages/session-query/session-query',
+  'packages/client/ui-conversation',
+  'packages/core/tool-executor-ptc',
+  'packages/client/ui-sidebar-right',
 ]
 
 /**
@@ -238,6 +245,10 @@ function packageWorkspace(source, out, workspace, versions, version) {
   // registers a browser module. Dropping it published twenty packages that a consumer
   // installed but the web app never loaded — the model selector simply never appeared.
   for (const key of STRIPPED_FIELDS) delete published[key]
+  // The republished package carries only PACKAGED_FILES. The workspace's own `files`
+  // list also names `src` and `locale`, which a consumer never receives; keeping it
+  // would make the manifest promise directories the tarball does not contain.
+  published.files = [...PACKAGED_FILES]
   writeFileSync(join(target, 'package.json'), JSON.stringify(published, null, 2) + String.fromCharCode(10))
   return published.name
 }

@@ -284,8 +284,15 @@ export function alignOfficialVersions(profileDirectory: string, runtimeVersion: 
   const document = parseDocument(readFileSync(workspacePath, 'utf8'))
   let changed = 0
   for (const name of served) {
-    if (document.getIn(['overrides', name]) === runtimeVersion) continue
-    document.setIn(['overrides', name], runtimeVersion)
+    // A patched package must keep its @sparkelf replacement. Writing the plain official
+    // version here discards the redirect and installs the unpatched build, which then
+    // misses the exports the patch added.
+    const current = document.getIn(['overrides', name])
+    const replacement = typeof current === 'string' && current.startsWith('npm:@sparkelf/')
+      ? 'npm:@sparkelf/' + name.slice('@deepseek-ai/'.length) + '@' + runtimeVersion
+      : runtimeVersion
+    if (current === replacement) continue
+    document.setIn(['overrides', name], replacement)
     changed += 1
   }
   if (changed === 0) return 0
