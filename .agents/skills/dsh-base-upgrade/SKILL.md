@@ -166,6 +166,23 @@ verified separately; a green host does not prove the container.
 - A promotion that reports HTTP 200 is not a promotion. Check `dsh-session`, `dsh-tools`, and
   `dsh-host-webserver` versions, as `dsh-promote-deployment` requires.
 
+## 0.2.3 deployment pitfalls (learned 2026-11-24)
+
+- **Browser auth is required.** `dsh web` prints `?token=`; a bare `/` answers 401 with
+  "Connect to this Host". Never treat 401 as down. Exchange the token for the cookie
+  (`curl -c jar -b jar '...?token=...'`, then `curl -b jar /`) before probing.
+- **Supervisor recovery route.** 0.2.3 defaults web routes to `required`.
+  `@sparkelf/dsh-plugin-supervisor` must register `/api/plus-supervisor/recovery` with
+  `auth: 'anonymous'` plus a loopback-only socket guard. Without it the supervisor waits at
+  `start.launchingWeb` forever and stop/restart appears hung. Fixed in supervisor 0.1.11.
+- **Deployment probes.** `dsh-3080-restart`, `dsh-plus-status`, `verify-client.mjs`, and
+  `ws-check.mjs` all need the token/cookie. `dsh-plus-status` reads the launch token from
+  `/root/.dsh/supervisor/runtime.log` (`grep -a`), exchanges it, then probes with the cookie.
+- **Node engine.** 0.2.3 declares `^24.22.3 || >=26.13.1`; both the systemd unit and the
+  supervisor manifest's `runtime.command` must point at 24.22.3.
+- **Sidebar markers.** `dsh-plus-status`'s old `0/3` marker check is retired at sidebar
+  `.22`; report `n/a (.22)` and rely on the client boot and sidebar session rows.
+
 ## Related
 
 - `dsh-promote-deployment` — production switch of an already-built Plus release; use only after
