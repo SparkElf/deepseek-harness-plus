@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-mcp-credentials",
   "description": "Official MCP client replacement with credential-backed Streamable HTTP Bearer authentication",
-  "version": "0.2.9-alpha.105",
+  "version": "0.2.9-alpha.106",
   "publishConfig": {
     "access": "public"
   },
@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@deepseek-ai/schemastery": "workspace:^",
+    "@deepseek-ai/schemastery": "^3.18.2",
     "zod": "^4.4.3"
   },
   "devDependencies": {
