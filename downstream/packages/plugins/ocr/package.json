@@ -1,0 +1,88 @@
+{
+  "name": "@sparkelf/dsh-ocr",
+  "version": "0.1.0",
+  "description": "Document text recognition (OCR) over a shared MinerU service. Ships a skill, a host half that registers it and relays the shared address, and a settings panel where a super administrator distributes that address to every member.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/types/client/index.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "SKILL.md",
+    "i18n/*.json",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rm -rf lib && tsc -p tsconfig.build.json && tsdown",
+    "bundle": "tsdown",
+    "prepack": "pnpm run build",
+    "test": "vitest run tests"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-credentials": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.7-rc.2",
+    "react": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-settings": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-credentials": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.7-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "@types/react": "^18.3.0",
+    "jsdom": "^25.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsdown": "^0.22.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/ocr"
+  }
+}
