@@ -97,6 +97,14 @@
   "packages": {
     "plugins": [
       {
+        "name": "@sparkelf/dsh-api-client",
+        "version": "0.5.3",
+        "path": "downstream/packages/plugins/api-client",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-api-client run build",
+        "test": "pnpm --filter @sparkelf/dsh-api-client run test"
+      },
+      {
         "name": "@sparkelf/dsh-dataops-account",
         "version": "0.2.0",
         "path": "downstream/packages/plugins/dataops-account",
@@ -151,6 +159,14 @@
         "status": "migrated",
         "build": "pnpm --filter @sparkelf/dsh-plugin-ping run build",
         "test": "pnpm --filter @sparkelf/dsh-plugin-ping run test"
+      },
+      {
+        "name": "@sparkelf/dsh-ssh-manager",
+        "version": "0.7.5",
+        "path": "downstream/packages/plugins/ssh-manager",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-ssh-manager run build",
+        "test": "pnpm --filter @sparkelf/dsh-ssh-manager run test"
       },
       {
         "name": "@sparkelf/dsh-task-bus",

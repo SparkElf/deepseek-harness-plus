@@ -1,0 +1,3 @@
+- insert:
+    - id: api-client
+      name: '@sparkelf/dsh-api-client'
