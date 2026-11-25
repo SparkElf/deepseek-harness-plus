@@ -1,0 +1,222 @@
+/* The launcher sits in the settings shell's trigger row, which is a flex row:
+   taking the remaining width is what keeps the button aligned with the
+   official control it replaces. */
+.root {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Menu applies this to its own anchor wrapper; a width here lets the trigger
+   fill the row instead of shrinking to its content. */
+.menu {
+  width: 100%;
+}
+
+.trigger {
+  user-select: none;
+  border-radius: var(--dsw-radius-md);
+  width: 100%;
+  height: 44px;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+  background: 0 0;
+  border: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  font-size: 14px;
+  display: flex;
+  min-width: 0;
+}
+
+.trigger:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.triggerCollapsed {
+  box-sizing: border-box;
+  justify-content: center;
+  gap: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--dsw-alias-bg-skeleton);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.avatarImage {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.initial {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.label {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.itemLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: 100%;
+}
+
+.shortcut {
+  color: var(--dsw-alias-label-tertiary);
+  font-family: inherit;
+  font-size: 12px;
+}
+/* ------------------------------------------------------------------ */
+/* Feedback dialog                                                     */
+/* ------------------------------------------------------------------ */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldLabel {
+  padding: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.radioRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.radioLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+}
+
+.radioLabel:has(input:checked) {
+  border-color: var(--dsw-alias-brand-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.radioLabel input {
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inputFull {
+  width: 100%;
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  max-height: 260px;
+  padding: 8px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: 8px;
+  outline: none;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
+.textarea::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.textareaOver {
+  border-color: var(--dsw-alias-label-error, #d92d20);
+}
+
+.counter {
+  align-self: flex-end;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.counterOver {
+  color: var(--dsw-alias-label-error, #d92d20);
+}
+
+.context {
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextValue {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-label-error, #d92d20);
+  font-size: 13px;
+  line-height: 20px;
+}
