@@ -1,0 +1,3 @@
+- insert:
+    - id: kb-citation
+      name: '@sparkelf/dsh-kb-citation'
