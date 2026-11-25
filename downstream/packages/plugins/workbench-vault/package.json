@@ -1,0 +1,42 @@
+{
+  "name": "@sparkelf/dsh-workbench-vault",
+  "version": "0.1.2",
+  "description": "Host-only encrypted credential vault shared by DSH workbench plugins.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "bundle": "tsdown",
+    "prepack": "pnpm run build",
+    "test": "vitest run"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/workbench-vault"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsdown": "^0.22.2"
+  }
+}

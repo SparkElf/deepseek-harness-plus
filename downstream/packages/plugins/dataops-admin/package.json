@@ -1,0 +1,49 @@
+{
+  "name": "@sparkelf/dsh-dataops-admin",
+  "version": "0.1.0",
+  "description": "DataOps administration over the backend HTTP API: create accounts, assign roles, list users and roles. Ships as a skill (SKILL.md + one-shot script) rather than a DSH tool.",
+  "type": "module",
+  "private": true,
+  "main": "./lib/index.js",
+  "types": "./lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/types/**/*.d.ts",
+    "cordis.patch.yml",
+    "SKILL.md",
+    "i18n/*.json",
+    "README.md",
+    "scripts/dataops-admin.mjs",
+    "scripts/lib/*.mjs"
+  ],
+  "scripts": {
+    "build": "rm -rf lib && tsc -p tsconfig.build.json && tsdown",
+    "bundle": "tsdown",
+    "prepack": "pnpm run build",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "tsdown": "^0.22.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/dataops-admin"
+  }
+}

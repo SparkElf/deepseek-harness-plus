@@ -97,12 +97,28 @@
   "packages": {
     "plugins": [
       {
+        "name": "@sparkelf/dsh-dataops-admin",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/dataops-admin",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-admin run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-admin run test"
+      },
+      {
         "name": "@sparkelf/dsh-dataops-model-default",
         "version": "0.1.0",
         "path": "downstream/packages/plugins/dataops-model-default",
         "status": "migrated",
         "build": "pnpm --filter @sparkelf/dsh-dataops-model-default run build",
         "test": "pnpm --filter @sparkelf/dsh-dataops-model-default run test"
+      },
+      {
+        "name": "@sparkelf/dsh-workbench-vault",
+        "version": "0.1.2",
+        "path": "downstream/packages/plugins/workbench-vault",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-workbench-vault run build",
+        "test": "pnpm --filter @sparkelf/dsh-workbench-vault run test"
       }
     ],
     "forks": []
