@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T18:51:45.561Z",
+  "generatedAt": "2026-11-25T18:58:56.436Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -11,8 +11,8 @@
       "sourcePath": "dsh-plugins-plus/packages/api-client",
       "targetPath": "downstream/packages/plugins/api-client",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-artifact-app",
@@ -229,7 +229,7 @@
       "targetPath": "downstream/packages/plugins/ssh-manager",
       "hasBuild": true,
       "hasTests": true,
-      "status": "pending"
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-task-bus",
