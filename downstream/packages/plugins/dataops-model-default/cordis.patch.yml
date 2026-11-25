@@ -1,0 +1,3 @@
+- insert:
+    - id: dataops-model-default
+      name: '@sparkelf/dsh-dataops-model-default'
