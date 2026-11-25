@@ -95,7 +95,16 @@
     "dsh-video-preview": "0.1.4"
   },
   "packages": {
-    "plugins": [],
+    "plugins": [
+      {
+        "name": "@sparkelf/dsh-dataops-model-default",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/dataops-model-default",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-model-default run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-model-default run test"
+      }
+    ],
     "forks": []
   },
   "patches": {
