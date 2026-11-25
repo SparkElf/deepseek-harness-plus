@@ -217,6 +217,14 @@
         "test": "pnpm --filter @sparkelf/dsh-plugin-ping run test"
       },
       {
+        "name": "@sparkelf/dsh-plugin-supervisor",
+        "version": "0.1.11",
+        "path": "downstream/packages/plugins/supervisor",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-plugin-supervisor run build",
+        "test": "pnpm --filter @sparkelf/dsh-plugin-supervisor run test"
+      },
+      {
         "name": "@sparkelf/dsh-ssh-manager",
         "version": "0.7.5",
         "path": "downstream/packages/plugins/ssh-manager",

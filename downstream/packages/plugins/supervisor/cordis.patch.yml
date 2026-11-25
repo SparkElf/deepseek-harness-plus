@@ -1,0 +1,3 @@
+- insert:
+    - id: plus-supervisor-recovery
+      name: '@sparkelf/dsh-plugin-supervisor'
