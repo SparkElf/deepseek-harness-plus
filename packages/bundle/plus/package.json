@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.104",
+  "version": "0.2.9-alpha.105",
   "publishConfig": {
     "access": "public"
   },
@@ -726,7 +726,7 @@
     "@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp": "0.2.3-alpha.2",
     "@sparkelf/dsh-image-hoist": ">=0.1.3",
     "@sparkelf/dsh-plugin-backup": "workspace:>=0.2.1-alpha.1",
-    "@sparkelf/dsh-plugin-mcp-credentials": "workspace:>=0.2.1-alpha.54",
+    "@sparkelf/dsh-plugin-mcp-credentials": "0.2.9-alpha.106",
     "dshmarket": ">=1.66.7",
     "semver": ">=7.7.3",
     "yaml": ">=2.9.0"
