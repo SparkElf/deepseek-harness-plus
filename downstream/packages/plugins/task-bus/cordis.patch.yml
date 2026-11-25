@@ -1,0 +1,3 @@
+- insert:
+    - id: task-bus
+      name: '@sparkelf/dsh-task-bus'
