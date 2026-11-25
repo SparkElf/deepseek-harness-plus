@@ -129,6 +129,14 @@
         "test": "pnpm --filter @sparkelf/dsh-plugin-ping run test"
       },
       {
+        "name": "@sparkelf/dsh-task-bus",
+        "version": "0.2.1",
+        "path": "downstream/packages/plugins/task-bus",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-task-bus run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
         "name": "@sparkelf/dsh-workbench-vault",
         "version": "0.1.2",
         "path": "downstream/packages/plugins/workbench-vault",
