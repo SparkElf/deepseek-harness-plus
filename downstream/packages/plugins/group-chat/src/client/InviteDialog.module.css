@@ -1,0 +1,254 @@
+/*
+ * The invite dialog.
+ *
+ * It is the one room dialog that holds a list of people rather than a short form, so it is
+ * wider and taller than the shared 380px modal, and its candidate list scrolls inside a
+ * bounded panel instead of floating over the dialog body the way a picker dropdown does.
+ * Colours, radii and type sizes are the dialog family's own tokens; nothing new is
+ * introduced here.
+ */
+
+/* Why the class is written twice: the primitive's `.dialog` sets `width: min(380px, 100%)`
+   at the same single-class specificity as this rule, so without repeating the class the
+   winner would depend on which stylesheet the shell injected last. Repeating it wins on
+   specificity in either order (the same reason `MessageSide.module.css` repeats `.otherRow`).
+
+   Sizing: the width covers a name plus its handle plus the selection mark without wrapping,
+   while `min(760px, 100%)` still yields to a narrow window. The height is capped by the
+   modal layer's own padding box, so a tall candidate list can never push the footer past the
+   viewport edge. */
+.dialog.dialog {
+  width: min(760px, 100%);
+  max-height: 100%;
+}
+
+/* The header, body and footer scroll together as one column when the viewport is too short
+   for even the bounded list, mirroring the official confirmation dialog. Normally the list
+   scrolls on its own and this rule never engages. */
+.content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Search field and its in-flight indicator share one row, so the indicator does not push
+   the list down by a line every time a query is in flight. */
+.searchRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+}
+
+.spinner {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  animation: inviteSpin 0.9s linear infinite;
+}
+
+@keyframes inviteSpin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Search and its helper text, grouped like the dialog family's other fields. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+/* People picked but not yet invited. They wrap, because a room is often started with
+   several at once and a single line would push the list off the dialog. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 6px 3px 3px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.chipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemove {
+  flex: none;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 14px;
+  line-height: 14px;
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.chipRemove:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+  border-radius: var(--dsw-radius-sm);
+}
+
+/* The candidate panel. Its max height is a deliberate two-part value: a share of the
+   viewport so it grows with a big window, and an absolute ceiling so a column of names
+   never turns the dialog into a full-page sheet. `overflow-y: auto` is what keeps every row
+   whole — the panel scrolls, the rows are never squeezed or clipped to a partial line. A
+   stable scrollbar gutter means the rows do not shift sideways when the scrollbar appears. */
+.list {
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  max-height: min(46vh, 420px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.list > li + li {
+  margin-top: 2px;
+}
+
+/* One candidate. A native button, so Tab reaches it, Enter and Space toggle it, and
+   `aria-pressed` tells a screen reader which state it is in. Height is left to the content
+   rather than fixed, which is the other half of "never truncate a row". */
+.row,
+.rowSelected {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 38px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* Selected: a filled step plus the business-coloured check, so the state survives a
+   grayscale screenshot and does not rely on colour alone (the check is also the visible
+   counterpart of `aria-pressed`). */
+.rowSelected {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.rowSelected:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+}
+
+.row:focus-visible,
+.rowSelected:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowHandle {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+/* The check keeps its box whether or not the row is selected, so selecting a person does
+   not nudge their name towards the handle. */
+.check,
+.checkHidden {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.checkHidden {
+  visibility: hidden;
+}
+
+/* Empty, loading and "no matches" all render here, in the panel's place and at its padding,
+   so the dialog does not collapse around a one-line note. */
+.note {
+  margin: 0;
+  padding: 14px 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+/* A failed read or a refused invite: the error text and its retry share a row. */
+.errorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.errorRow > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #f85149);
+  font-size: 12px;
+  line-height: 17px;
+}

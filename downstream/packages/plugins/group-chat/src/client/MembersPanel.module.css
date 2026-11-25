@@ -1,0 +1,470 @@
+/*
+ * The members panel, drawn in the official right sidebar.
+ *
+ * The sidebar owns the panel's width, scroll container and tab chrome, so this file styles only
+ * what is inside one pane: two stacked sections, a roster of rows, and an inline editor. Spacing
+ * follows the same rhythm the sidebar's own panes use so the panel does not read as a foreign
+ * body pasted into the column.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 12px 20px;
+  /* Sections collapse to their titles, so the panel no longer needs 260px just to stay legible.
+     200px is the point where a folded title row plus the count still fits without wrapping; the
+     roster rows inside the open section keep their own floor. */
+  box-sizing: border-box;
+  min-width: 200px;
+}
+
+/* One titled block. The hairline between sections is what keeps the announcement from reading
+   as the first row of the roster. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.section + .section {
+  padding-top: 14px;
+  border-top: 1px solid var(--dsw-alias-border-l3);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* The disclosure control is the title itself, so it must look like a label rather than a
+   button: no chrome, no background, inherited type. The caret is the only new affordance. */
+.sectionToggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.caret {
+  flex: none;
+  width: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 12px;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sectionLabel {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+}
+
+.count {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+/* The roster's search control: a bare glyph at the end of the header, so it sits at the section's
+   own weight instead of reading as a primary action. Pushed to the far right so the label and the
+   count keep their natural width. */
+.searchToggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.searchToggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.searchToggle:focus-visible {
+  outline: 2px solid var(--dsw-alias-label-primary);
+  outline-offset: 1px;
+}
+
+/* A text-only action. The header already carries the section's weight, so a filled button here
+   would outrank the content it belongs to. */
+.linkButton {
+  margin-left: auto;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-state-business-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The announcement body. Long notices wrap and keep their own line breaks, which is why this is
+   `pre-wrap` rather than a plain block. */
+.announcementText {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 20px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.editorFooter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Pushes the two buttons to the end without pinning the hint: the hint may wrap on a narrow
+   pane, and a fixed margin on the buttons would then push them off it. */
+.editorFooter .hint {
+  margin-right: auto;
+}
+
+.hint {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.unavailable {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, var(--dsw-alias-label-primary));
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.notice {
+  margin: 0;
+  padding: 16px 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.search {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border-radius: var(--dsw-radius-sm);
+  min-width: 0;
+}
+
+.row:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The name yields to the tags: a long name must not push the owner badge out of the pane. */
+.name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Remove control: hidden until the row is hovered or the button is focused, so a roster of
+   names stays a roster. It keeps its own slot so nothing shifts when it appears. */
+/* File rows reuse the roster's row layout, so a folder and a member look like the same
+   list; only the leading glyph and the trailing size differ. */
+/* A file row is a button: the whole row is the click target, so the name and size stay
+   aligned with the rows above and below it. Resetting the button chrome here is what makes
+   a clickable row and a plain one look like the same list. */
+.fileButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--dsw-alias-border-radius-s);
+}
+
+.fileButton:hover .name {
+  text-decoration: underline;
+}
+
+/* The native input is the picker; it is never shown, only clicked by the button above it.
+   `display: none` rather than off-screen positioning: a hidden input cannot receive focus or
+   show up in the accessibility tree as a duplicate control. */
+.filePicker {
+  display: none;
+}
+
+/* Breadcrumbs: the trail is the way back up, so it sits above the list rather than being a
+   separate toolbar row — a member who went one level too deep looks up, not down. */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.crumbGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.crumb {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.crumb:hover {
+  color: var(--dsw-alias-label-primary);
+  text-decoration: underline;
+}
+
+.crumbSep {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.refresh {
+  margin-inline-start: auto;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.refresh:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The preview replaces nothing: it sits under the list, so a member can compare a file
+   against the others without closing it first. */
+.preview {
+  margin-top: 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-alias-border-radius-m);
+  /* `bg-layer-1` is the token the official chat panel uses for a nested surface. `bg-elevated`
+     resolves close to the panel background in the dark theme, which made the preview read as
+     one flat block instead of a card. */
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-alias-bg-base));
+  overflow: hidden;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.previewTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.previewClose {
+  flex: none;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 14px;
+  line-height: 16px;
+  cursor: pointer;
+}
+
+.previewClose:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Drawn at its natural width up to the panel's width: a screenshot is more useful at full
+   size than cropped to a thumbnail, and the panel is the constraint anyway. */
+.previewImage {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--dsw-alias-border-radius-s);
+  background: var(--dsw-alias-bg-base);
+}
+
+.previewBody {
+  max-height: 240px;
+  margin: 0;
+  padding: 8px;
+  overflow: auto;
+  font-family: var(--dsw-alias-font-family-mono, monospace);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.fileIcon {
+  flex: none;
+  width: 16px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.fileSize {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.remove {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.row:hover .remove,
+.remove:focus-visible {
+  opacity: 1;
+}
+
+.remove:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.selfTag {
+  flex: none;
+  padding: 0 5px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+/* The owner badge is the one accented tag in the panel, matching how the portal marks the same
+   fact: it is the only role above ordinary membership, so it is the only one worth colour. */
+.ownerTag {
+  flex: none;
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, var(--dsw-alias-state-warning-primary, #f7ad31) 40%, transparent);
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-state-warning-primary, #f7ad31);
+  font-size: 11px;
+  line-height: 16px;
+}

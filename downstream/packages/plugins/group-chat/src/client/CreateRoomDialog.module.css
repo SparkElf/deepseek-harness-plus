@@ -1,0 +1,141 @@
+/* Create-room dialog body. Uses only DSH tokens, so it follows the active theme. */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.label {
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.hint {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+/* The working directory decides what the room's agent may change, so its consequence is
+   styled as a warning rather than as ordinary helper text. */
+.warn {
+  display: block;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-warning, rgb(210 153 34 / 12%));
+  color: var(--dsw-alias-state-warning-primary, #d29922);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.switches {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--dsw-alias-border-l3);
+}
+
+.triggerExtra {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 0;
+}
+
+.pill,
+.pillActive {
+  padding: 4px 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: 999px;
+  background: 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pillActive {
+  border-color: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Required wording: the policy switches affect visibility, not authorization. */
+.notice {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2, rgb(128 128 128 / 8%));
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #f85149);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* One policy row in the settings dialog: a label above its two choices. */
+.policyRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.memberList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-sm);
+  font-size: 13px;
+}
+
+.memberRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.memberName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberBadge {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2, rgb(128 128 128 / 12%));
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}

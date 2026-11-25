@@ -129,6 +129,14 @@
         "test": "pnpm --filter @sparkelf/dsh-dataops-model-default run test"
       },
       {
+        "name": "@sparkelf/dsh-group-chat",
+        "version": "0.5.12",
+        "path": "downstream/packages/plugins/group-chat",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-group-chat run build",
+        "test": "pnpm --filter @sparkelf/dsh-group-chat run test"
+      },
+      {
         "name": "@sparkelf/dsh-kb-citation",
         "version": "0.1.6",
         "path": "downstream/packages/plugins/kb-citation",
