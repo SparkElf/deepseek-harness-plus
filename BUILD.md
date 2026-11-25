@@ -1,6 +1,6 @@
 # DSH Plus Monorepo Build
 
-状态：scaffold 阶段。`status` / `sync` / `verify` 可用；`build-packages`、`apply`、`image` 在包迁移完成前会 fail closed，不会伪造成功。
+状态：migration 阶段。`status` / `sync` / `verify` / `apply` 可用；`build-packages` 已能构建已迁移包；`image` 仍未实现。
 
 ## 前置
 
@@ -28,15 +28,23 @@ node downstream/tools/downstream.mjs verify
 
 ## 迁移完成后
 
-以下命令只有在 `downstream/packages/` 真正有包、`apply`/`image` 实现后才可用：
+构建已迁移包：
 
 ```bash
 node downstream/tools/downstream.mjs build-packages
-node downstream/tools/downstream.mjs apply
-node downstream/tools/downstream.mjs image
 ```
 
+应用补丁和 profile（需要官方 DSH root）：
+
+```bash
+node downstream/tools/downstream.mjs apply --dsh-root /path/to/official-dsh
+```
+
+`image` 目前仍 fail closed，等待镜像 builder 消费 release manifest。
+
 `publish` 在 npm provenance 和 release workflow 验收前保持禁用。
+
+`apply` 委托给构建后的 `packages/bundle/plus/lib/bin.js apply`；如果该文件不存在，先运行 `pnpm --filter @sparkelf/dsh-plus run build`。
 
 ## 可复现构建契约
 

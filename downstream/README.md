@@ -13,4 +13,4 @@ profiles/dataops-web/ DataOps web profile composition
 tools/downstream.mjs  sync/build-packages/apply/verify/image/publish entry point
 ```
 
-Current status: scaffold only. The lock, release manifest, and governance verify are real; package build/apply/image remain fail-closed until migration lands. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.
+Current status: migration. The lock, release manifest, governance verify, package build, and `apply` delegation are real; package migration is 19/27 and the image builder remains fail-closed. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.

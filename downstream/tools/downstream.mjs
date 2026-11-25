@@ -100,8 +100,17 @@ const commands = {
       execFileSync('pnpm', ['--dir', path, 'run', 'build'], { cwd: root, stdio: 'inherit' })
     }
   },
-  apply() {
-    fail('apply is not implemented yet: the core patch queue and profile assembly still live in packages/bundle/plus. See PLUS-MONOREPO-GOVERNANCE.md §1.6.')
+  apply(args) {
+    const dshRootIndex = args.indexOf('--dsh-root')
+    const dshRoot = dshRootIndex >= 0 ? args[dshRootIndex + 1] : undefined
+    if (!dshRoot) fail('usage: downstream apply --dsh-root <official-dsh-root>')
+    const bin = join(root, 'packages/bundle/plus/lib/bin.js')
+    if (!existsSync(bin)) fail('missing packages/bundle/plus/lib/bin.js; run `pnpm --filter @sparkelf/dsh-plus run build` first')
+    try {
+      execFileSync(process.execPath, [bin, 'apply', ...args], { cwd: root, stdio: 'inherit' })
+    } catch (error) {
+      process.exitCode = typeof error?.status === 'number' ? error.status : 1
+    }
   },
   verify() {
     const { r } = assertConsistent()
@@ -125,7 +134,7 @@ Commands:
   sync [--fetch]  verify the pinned official tag/revision
   inventory       list dsh-plugins-plus packages and migration status
   build-packages  build migrated workspace packages (fails until migration)
-  apply           assemble patches/profile (pending migration)
+  apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
   image           build the workspace image (pending migration)
   publish         publish migrated packages (intentionally disabled)
