@@ -1,0 +1,6 @@
+- insert:
+    - id: mineru
+      name: '@sparkelf/dsh-mineru'
+      disabled: !!js "!process.env.DSH_MINERU_ENDPOINT"
+      config:
+        endpoint: !!js process.env.DSH_MINERU_ENDPOINT
