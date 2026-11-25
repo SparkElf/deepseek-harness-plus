@@ -113,6 +113,14 @@
         "test": "pnpm --filter @sparkelf/dsh-dataops-admin run test"
       },
       {
+        "name": "@sparkelf/dsh-dataops-im",
+        "version": "0.1.2",
+        "path": "downstream/packages/plugins/dataops-im",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-im run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-im run test"
+      },
+      {
         "name": "@sparkelf/dsh-dataops-model-default",
         "version": "0.1.0",
         "path": "downstream/packages/plugins/dataops-model-default",
