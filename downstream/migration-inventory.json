@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T18:10:46.997Z",
+  "generatedAt": "2026-11-25T18:14:19.949Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -191,8 +191,8 @@
       "sourcePath": "dsh-plugins-plus/packages/ping",
       "targetPath": "downstream/packages/plugins/ping",
       "hasBuild": false,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-plugin-supervisor",
