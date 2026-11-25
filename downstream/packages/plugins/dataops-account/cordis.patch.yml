@@ -1,0 +1,6 @@
+# DSH bundle patch: the profile merges this layer once the package is listed in
+# dsh.profile.bundles. The host half registers nothing; it exists so the bundle
+# can mount the client half that owns the account launcher.
+- insert:
+    - id: dataops-account
+      name: '@sparkelf/dsh-dataops-account'
