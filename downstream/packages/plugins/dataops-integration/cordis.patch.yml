@@ -1,0 +1,3 @@
+- insert:
+    - id: dataops-integration
+      name: '@sparkelf/dsh-dataops-integration'
