@@ -57,7 +57,9 @@ const commands = {
     console.log(`profile       ${r.profile?.name} (${r.profile?.bundles?.length ?? 0} bundles)`)
     console.log(`pins          ${Object.keys(r.profileDependencies ?? {}).length} exact profile dependencies`)
     console.log(`migrated      ${plugins} plugins, ${forks} forks`)
-    console.log(`local packages ${Object.keys(r.localPackages ?? {}).length} workspace overrides`)
+    const local = Object.values(r.localPackages ?? {})
+    const mismatches = local.filter((entry) => entry.profilePinStatus === 'mismatch')
+    console.log(`local packages ${local.length} workspace overrides, ${mismatches.length} profile pin mismatches`)
   },
   sync(args) {
     const { u } = assertConsistent()
@@ -114,15 +116,22 @@ const commands = {
       process.exitCode = typeof error?.status === 'number' ? error.status : 1
     }
   },
-  verify() {
+  verify(args = []) {
     const { r } = assertConsistent()
     for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
       if (typeof spec !== 'string' || spec.length === 0) fail(`profile dependency ${name} has no exact spec`)
     }
+    const mismatches = []
     for (const [name, entry] of Object.entries(r.localPackages ?? {})) {
       if (!existsSync(join(root, entry.path))) fail(`local package ${name} path is missing: ${entry.path}`)
       const pkg = readJson(join(root, entry.path, 'package.json'))
       if (pkg.name !== name || pkg.version !== entry.version) fail(`local package ${name} manifest drifted from release manifest`)
+      if (entry.profilePinStatus === 'mismatch') mismatches.push(`${name}: local ${entry.version}, profile ${entry.profileSpec}`)
+    }
+    if (mismatches.length) {
+      console.warn('verify: local/profile version mismatches:')
+      for (const line of mismatches) console.warn('  ' + line)
+      if (args.includes('--strict-local')) fail('local/profile version mismatches are not allowed in strict mode')
     }
     execFileSync('pnpm', ['run', 'verify:plus-governance'], { cwd: root, stdio: 'inherit' })
     console.log('verify: upstream lock, release manifest, and Plus governance are consistent')
@@ -138,6 +147,7 @@ const commands = {
       packages: r.packages,
       profileDependencies: r.profileDependencies,
       localPackages: r.localPackages ?? {},
+      localPackagePolicy: r.localPackagePolicy ?? { mode: 'prefer-local', onVersionMismatch: 'warn' },
     }
     const body = JSON.stringify(plan, null, 2) + '\n'
     const digest = createHash('sha256').update(body).digest('hex')
