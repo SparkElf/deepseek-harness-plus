@@ -57,6 +57,7 @@ const commands = {
     console.log(`profile       ${r.profile?.name} (${r.profile?.bundles?.length ?? 0} bundles)`)
     console.log(`pins          ${Object.keys(r.profileDependencies ?? {}).length} exact profile dependencies`)
     console.log(`migrated      ${plugins} plugins, ${forks} forks`)
+    console.log(`local packages ${Object.keys(r.localPackages ?? {}).length} workspace overrides`)
   },
   sync(args) {
     const { u } = assertConsistent()
@@ -118,6 +119,11 @@ const commands = {
     for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
       if (typeof spec !== 'string' || spec.length === 0) fail(`profile dependency ${name} has no exact spec`)
     }
+    for (const [name, entry] of Object.entries(r.localPackages ?? {})) {
+      if (!existsSync(join(root, entry.path))) fail(`local package ${name} path is missing: ${entry.path}`)
+      const pkg = readJson(join(root, entry.path, 'package.json'))
+      if (pkg.name !== name || pkg.version !== entry.version) fail(`local package ${name} manifest drifted from release manifest`)
+    }
     execFileSync('pnpm', ['run', 'verify:plus-governance'], { cwd: root, stdio: 'inherit' })
     console.log('verify: upstream lock, release manifest, and Plus governance are consistent')
   },
@@ -131,6 +137,7 @@ const commands = {
       profile: r.profile,
       packages: r.packages,
       profileDependencies: r.profileDependencies,
+      localPackages: r.localPackages ?? {},
     }
     const body = JSON.stringify(plan, null, 2) + '\n'
     const digest = createHash('sha256').update(body).digest('hex')
