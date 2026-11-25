@@ -1,0 +1,24 @@
+{
+  "id": "dsh-external/dsh-credential-manager",
+  "version": "0.1.0",
+  "main": "./lib/index.js",
+  "description": "第三方系统凭据清单：右侧栏统一管理 Prefect、DataOps、数据库、HTTP API、SSH 与自定义凭据，密钥加密存储，AI 工具受审批保护。",
+  "engines": {
+    "dsh": ">=0.2.1-rc.2"
+  },
+  "contributes": {
+    "tools": [
+      "credential_list",
+      "credential_get",
+      "credential_create",
+      "credential_update",
+      "credential_delete",
+      "credential_test",
+      "credential_templates"
+    ],
+    "skills": []
+  },
+  "client": {
+    "main": "./lib/client.js"
+  }
+}

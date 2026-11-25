@@ -105,6 +105,14 @@
         "test": "pnpm --filter @sparkelf/dsh-api-client run test"
       },
       {
+        "name": "@sparkelf/dsh-credential-manager",
+        "version": "0.1.3",
+        "path": "downstream/packages/plugins/credential-manager",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-credential-manager run build",
+        "test": "pnpm --filter @sparkelf/dsh-credential-manager run test"
+      },
+      {
         "name": "@sparkelf/dsh-dataops-account",
         "version": "0.2.0",
         "path": "downstream/packages/plugins/dataops-account",
@@ -151,6 +159,14 @@
         "status": "migrated",
         "build": "pnpm --filter @sparkelf/dsh-kb-citation run build",
         "test": "pnpm --filter @sparkelf/dsh-kb-citation run test"
+      },
+      {
+        "name": "@sparkelf/dsh-officecli",
+        "version": "0.2.3",
+        "path": "downstream/packages/plugins/officecli",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-officecli run build",
+        "test": "pnpm --filter @sparkelf/dsh-officecli run test"
       },
       {
         "name": "@sparkelf/dsh-plugin-ping",
