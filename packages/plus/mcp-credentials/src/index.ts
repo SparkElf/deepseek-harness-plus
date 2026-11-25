@@ -168,7 +168,10 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   // Reserve the namespace next: a duplicate `serverName` fails THIS instance
   // at load with an actionable error and leaves the earlier instance intact.
   ctx.effect(() => {
-    const owner = scopeOf(ctx) ?? ctx.root
+    // Cordis 4.2 on 0.2.3 makes a bare `ctx.root` read fail with "cannot get property
+    // root without inject"; the plugin context is a stable per-instance owner for the
+    // duplicate-serverName guard, so fall back to it instead of requiring a root service.
+    const owner = scopeOf(ctx) ?? ctx
     let names = activeServerNames.get(owner)
     if (!names) {
       names = new Set()
