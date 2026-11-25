@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T18:46:59.650Z",
+  "generatedAt": "2026-11-25T18:51:45.561Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -84,7 +84,8 @@
       "targetPath": "downstream/packages/plugins/dataops-managed",
       "hasBuild": true,
       "hasTests": false,
-      "status": "pending"
+      "status": "pending",
+      "blockedReason": "requires migration to DSH 0.2.x client locale/slot/Schema APIs; build fails against current workspace types"
     },
     {
       "name": "@sparkelf/dsh-dataops-model-default",
