@@ -59,7 +59,8 @@ const commands = {
     console.log(`migrated      ${plugins} plugins, ${forks} forks`)
     const local = Object.values(r.localPackages ?? {})
     const mismatches = local.filter((entry) => entry.profilePinStatus === 'mismatch')
-    console.log(`local packages ${local.length} workspace overrides, ${mismatches.length} profile pin mismatches`)
+    const active = local.filter((entry) => entry.override !== 'disabled')
+    console.log(`local packages ${local.length} workspace packages, ${active.length} active overrides, ${mismatches.length} profile pin mismatches`)
   },
   sync(args) {
     const { u } = assertConsistent()
@@ -126,7 +127,7 @@ const commands = {
       if (!existsSync(join(root, entry.path))) fail(`local package ${name} path is missing: ${entry.path}`)
       const pkg = readJson(join(root, entry.path, 'package.json'))
       if (pkg.name !== name || pkg.version !== entry.version) fail(`local package ${name} manifest drifted from release manifest`)
-      if (entry.profilePinStatus === 'mismatch') mismatches.push(`${name}: local ${entry.version}, profile ${entry.profileSpec}`)
+      if (entry.profilePinStatus === 'mismatch' && entry.override !== 'disabled') mismatches.push(`${name}: local ${entry.version}, profile ${entry.profileSpec}`)
     }
     if (mismatches.length) {
       console.warn('verify: local/profile version mismatches:')
@@ -147,7 +148,7 @@ const commands = {
       packages: r.packages,
       profileDependencies: r.profileDependencies,
       localPackages: r.localPackages ?? {},
-      localPackagePolicy: r.localPackagePolicy ?? { mode: 'prefer-local', onVersionMismatch: 'warn' },
+      localPackagePolicy: r.localPackagePolicy ?? { mode: 'prefer-local', onVersionMismatch: 'use-profile-pin' },
     }
     const body = JSON.stringify(plan, null, 2) + '\n'
     const digest = createHash('sha256').update(body).digest('hex')

@@ -13,4 +13,4 @@ profiles/dataops-web/ DataOps web profile composition
 tools/downstream.mjs  sync/build-packages/apply/verify/image/publish entry point
 ```
 
-Current status: migration. The lock, release manifest, governance verify, package build, and `apply` delegation are real; package migration is 19/27; release-manifest.localPackages identifies the workspace overrides the image builder must prefer; `verify --strict-local` rejects local/profile pin mismatches; the image builder remains fail-closed. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.
+Current status: migration. The lock, release manifest, governance verify, package build, and `apply` delegation are real; package migration is 19/27; release-manifest.localPackages identifies the workspace overrides the image builder must prefer; `verify --strict-local` rejects only active local/profile pin mismatches; packages marked `override=disabled` keep the registry pin; the image builder remains fail-closed. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.

@@ -261,119 +261,140 @@
       "path": "downstream/packages/plugins/api-client",
       "version": "0.5.3",
       "profileSpec": "0.5.3",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-artifact-app": {
       "path": "downstream/packages/plugins/artifact-app",
       "version": "0.1.1",
       "profileSpec": "0.1.1",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-credential-manager": {
       "path": "downstream/packages/plugins/credential-manager",
       "version": "0.1.3",
       "profileSpec": "0.1.3",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-dataops-account": {
       "path": "downstream/packages/plugins/dataops-account",
       "version": "0.2.0",
       "profileSpec": "0.2.0",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-dataops-admin": {
       "path": "downstream/packages/plugins/dataops-admin",
       "version": "0.1.0",
       "profileSpec": null,
-      "profilePinStatus": "not-in-profile"
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
     },
     "@sparkelf/dsh-dataops-im": {
       "path": "downstream/packages/plugins/dataops-im",
       "version": "0.1.2",
       "profileSpec": "0.1.1",
-      "profilePinStatus": "mismatch"
+      "profilePinStatus": "mismatch",
+      "override": "disabled",
+      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
     },
     "@sparkelf/dsh-dataops-model-default": {
       "path": "downstream/packages/plugins/dataops-model-default",
       "version": "0.1.0",
       "profileSpec": null,
-      "profilePinStatus": "not-in-profile"
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
     },
     "@sparkelf/dsh-group-chat": {
       "path": "downstream/packages/plugins/group-chat",
       "version": "0.5.12",
       "profileSpec": "0.5.11",
-      "profilePinStatus": "mismatch"
+      "profilePinStatus": "mismatch",
+      "override": "disabled",
+      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
     },
     "@sparkelf/dsh-kb-citation": {
       "path": "downstream/packages/plugins/kb-citation",
       "version": "0.1.6",
       "profileSpec": "0.1.6",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-mineru": {
       "path": "downstream/packages/plugins/mineru",
       "version": "0.1.4",
       "profileSpec": "0.1.4",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-mobile-bridge": {
       "path": "downstream/packages/plugins/mobile-bridge",
       "version": "0.2.18",
       "profileSpec": "0.2.18",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-mobile-bridge-server": {
       "path": "downstream/packages/plugins/mobile-bridge-server",
       "version": "0.2.8",
       "profileSpec": null,
-      "profilePinStatus": "not-in-profile"
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
     },
     "@sparkelf/dsh-ocr": {
       "path": "downstream/packages/plugins/ocr",
       "version": "0.1.0",
       "profileSpec": "0.1.0",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-officecli": {
       "path": "downstream/packages/plugins/officecli",
       "version": "0.2.3",
       "profileSpec": "0.2.3",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-plugin-ping": {
       "path": "downstream/packages/plugins/ping",
       "version": "0.1.1",
       "profileSpec": null,
-      "profilePinStatus": "not-in-profile"
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
     },
     "@sparkelf/dsh-plugin-supervisor": {
       "path": "downstream/packages/plugins/supervisor",
       "version": "0.1.11",
       "profileSpec": "0.1.11",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-ssh-manager": {
       "path": "downstream/packages/plugins/ssh-manager",
       "version": "0.7.5",
       "profileSpec": "0.7.5",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-task-bus": {
       "path": "downstream/packages/plugins/task-bus",
       "version": "0.2.1",
       "profileSpec": "0.2.1",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     },
     "@sparkelf/dsh-workbench-vault": {
       "path": "downstream/packages/plugins/workbench-vault",
       "version": "0.1.2",
       "profileSpec": "0.1.2",
-      "profilePinStatus": "exact"
+      "profilePinStatus": "exact",
+      "override": "enabled"
     }
   },
   "localPackagePolicy": {
     "mode": "prefer-local",
-    "onVersionMismatch": "warn"
+    "onVersionMismatch": "use-profile-pin"
   }
 }
