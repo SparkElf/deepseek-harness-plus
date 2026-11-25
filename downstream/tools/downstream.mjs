@@ -168,8 +168,38 @@ const commands = {
       process.exitCode = typeof error?.status === 'number' ? error.status : 1
     }
   },
-  publish() {
-    fail('publish is intentionally disabled until package migration and npm provenance checks are in place.')
+  publish(args = []) {
+    const dryRun = args.includes('--dry-run')
+    if (!dryRun) {
+      fail('publish is fail-closed: use `publish --dry-run` to validate migrated artifacts; remote publication requires a separate release approval')
+    }
+    const { r } = assertConsistent()
+    const entries = r.packages?.plugins ?? []
+    if (!entries.length) fail('no migrated plugin packages to publish')
+    const failures = []
+    for (const entry of entries) {
+      const dir = join(root, entry.path)
+      const manifest = readJson(join(dir, 'package.json'))
+      if (manifest.name !== entry.name || manifest.version !== entry.version) {
+        failures.push(`${entry.name}: manifest name/version drifted`)
+        continue
+      }
+      const targets = [manifest.main, ...Object.values(manifest.exports ?? {}).flatMap((value) => {
+        if (typeof value === 'string') return [value]
+        if (value && typeof value === 'object') return Object.values(value).filter((item) => typeof item === 'string')
+        return []
+      })].filter((value) => typeof value === 'string' && value.endsWith('.js'))
+      for (const target of targets) {
+        const path = join(dir, target)
+        if (!existsSync(path)) failures.push(`${entry.name}: missing built target ${target}`)
+      }
+      console.log(`ready        ${entry.name}@${entry.version} (${relative(root, dir)})`)
+    }
+    if (failures.length) {
+      for (const failure of failures) console.error(`not-ready    ${failure}`)
+      fail(`${failures.length} publish readiness failure(s)`)
+    }
+    console.log(`publish dry-run: ${entries.length} package(s) ready; nothing published`)
   },
   help() {
     console.log(`Usage: node downstream/tools/downstream.mjs <command>
@@ -183,7 +213,7 @@ Commands:
   verify          validate lock/manifest and run Plus governance
   image-plan      write a deterministic image input plan from the release manifest
   image           run DOWNSTREAM_IMAGE_BUILDER with the release manifest
-  publish         publish migrated packages (intentionally disabled)
+  publish         validate migrated packages with --dry-run; remote publish is fail-closed
   help            show this help`)
   },
 }
