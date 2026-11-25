@@ -73,6 +73,14 @@ const commands = {
     if (actual !== u.revision) fail(`tag ${u.tag} resolves to ${actual}, lock says ${u.revision}`)
     console.log(`sync: ${u.tag} -> ${u.revision} verified`)
   },
+  inventory() {
+    const path = join(downstream, 'migration-inventory.json')
+    if (!existsSync(path)) fail('missing downstream/migration-inventory.json')
+    const inventory = readJson(path)
+    const pending = inventory.packages.filter((item) => item.status !== 'migrated')
+    console.log(`inventory     ${inventory.packages.length} source packages, ${pending.length} pending`)
+    for (const item of pending) console.log(`  pending     ${item.name}@${item.version} -> ${item.targetPath}`)
+  },
   'build-packages'() {
     const packagesRoot = join(downstream, 'packages')
     const manifests = []
@@ -115,6 +123,7 @@ const commands = {
 Commands:
   status          show lock/manifest/package summary
   sync [--fetch]  verify the pinned official tag/revision
+  inventory       list dsh-plugins-plus packages and migration status
   build-packages  build migrated workspace packages (fails until migration)
   apply           assemble patches/profile (pending migration)
   verify          validate lock/manifest and run Plus governance
