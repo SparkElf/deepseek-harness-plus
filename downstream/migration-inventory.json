@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T19:17:40.410Z",
+  "generatedAt": "2026-11-25T19:23:26.458Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -147,8 +147,8 @@
       "sourcePath": "dsh-plugins-plus/packages/mobile-bridge",
       "targetPath": "downstream/packages/plugins/mobile-bridge",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-mobile-bridge-server",

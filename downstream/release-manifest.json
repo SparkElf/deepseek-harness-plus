@@ -177,6 +177,14 @@
         "test": "pnpm --filter @sparkelf/dsh-mineru run test"
       },
       {
+        "name": "@sparkelf/dsh-mobile-bridge",
+        "version": "0.2.18",
+        "path": "downstream/packages/plugins/mobile-bridge",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-mobile-bridge run build",
+        "test": "pnpm --filter @sparkelf/dsh-mobile-bridge run test"
+      },
+      {
         "name": "@sparkelf/dsh-ocr",
         "version": "0.1.0",
         "path": "downstream/packages/plugins/ocr",
