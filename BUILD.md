@@ -40,7 +40,7 @@ node downstream/tools/downstream.mjs build-packages
 node downstream/tools/downstream.mjs apply --dsh-root /path/to/official-dsh
 ```
 
-`image` 需要外部 builder：先运行 `image-plan` 生成确定性输入，再设置 `DOWNSTREAM_IMAGE_BUILDER` 指向接受 `--release-manifest <path>` 的 builder。没有 builder 时 fail closed，不会伪造镜像。
+`image` 需要外部 builder：先运行 `image-plan` 生成确定性输入（包含 `localPackages` workspace 覆盖），再设置 `DOWNSTREAM_IMAGE_BUILDER` 指向接受 `--release-manifest <path>` 的 builder。没有 builder 时 fail closed，不会伪造镜像。
 
 `publish` 在 npm provenance 和 release workflow 验收前保持禁用。
 
