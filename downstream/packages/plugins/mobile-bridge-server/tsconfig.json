@@ -1,0 +1,10 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "paths": {},
+    "strict": false
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"]
+}
