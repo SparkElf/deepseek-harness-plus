@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T19:44:28.592Z",
+  "generatedAt": "2026-11-25T19:57:15.349Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -86,7 +86,7 @@
       "hasBuild": true,
       "hasTests": false,
       "status": "pending",
-      "blockedReason": "requires migration to DSH 0.2.x client locale/slot/Schema APIs; build fails against current workspace types"
+      "blockedReason": "Schemastery .volatile() has been removed in the current workspace; requires settings-persistence API migration, not just type casts"
     },
     {
       "name": "@sparkelf/dsh-dataops-model-default",
