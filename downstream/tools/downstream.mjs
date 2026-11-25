@@ -7,7 +7,8 @@
  * exist; they never pretend to have built something.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -120,8 +121,34 @@ const commands = {
     execFileSync('pnpm', ['run', 'verify:plus-governance'], { cwd: root, stdio: 'inherit' })
     console.log('verify: upstream lock, release manifest, and Plus governance are consistent')
   },
-  image() {
-    fail('image is not implemented yet: the image builder must consume release-manifest.json; see PLUS-MONOREPO-GOVERNANCE.md §1.9.')
+  'image-plan'() {
+    const r = release()
+    const u = lock()
+    const plan = {
+      schemaVersion: 1,
+      upstream: { repository: u.repository, tag: u.tag, revision: u.revision },
+      plus: r.plus,
+      profile: r.profile,
+      packages: r.packages,
+      profileDependencies: r.profileDependencies,
+    }
+    const body = JSON.stringify(plan, null, 2) + '\n'
+    const digest = createHash('sha256').update(body).digest('hex')
+    const output = join(downstream, 'image-plan.json')
+    writeFileSync(output, body)
+    console.log(`image-plan: ${relative(root, output)}`)
+    console.log(`digest: sha256:${digest}`)
+    console.log(`inputs: ${Object.keys(plan.profileDependencies ?? {}).length} exact profile dependencies`)
+  },
+  image(args) {
+    const builder = process.env.DOWNSTREAM_IMAGE_BUILDER
+    if (!builder) fail('image builder is not configured; set DOWNSTREAM_IMAGE_BUILDER to a builder that accepts --release-manifest <path>, or run `image-plan` to inspect inputs')
+    if (!existsSync(builder)) fail(`DOWNSTREAM_IMAGE_BUILDER does not exist: ${builder}`)
+    try {
+      execFileSync(builder, ['--release-manifest', releaseManifestPath, ...args], { cwd: root, stdio: 'inherit' })
+    } catch (error) {
+      process.exitCode = typeof error?.status === 'number' ? error.status : 1
+    }
   },
   publish() {
     fail('publish is intentionally disabled until package migration and npm provenance checks are in place.')
@@ -136,7 +163,8 @@ Commands:
   build-packages  build migrated workspace packages (fails until migration)
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
-  image           build the workspace image (pending migration)
+  image-plan      write a deterministic image input plan from the release manifest
+  image           run DOWNSTREAM_IMAGE_BUILDER with the release manifest
   publish         publish migrated packages (intentionally disabled)
   help            show this help`)
   },
