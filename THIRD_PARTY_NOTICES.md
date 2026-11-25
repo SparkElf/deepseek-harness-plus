@@ -35,6 +35,10 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) | SEE LICENSE IN README.md |
 | [`@anthropic-ai/sdk`](https://github.com/anthropics/anthropic-sdk-typescript) | MIT |
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
+| [`@codemirror/commands`](https://code.haverbeke.berlin/codemirror/commands) | MIT |
+| [`@codemirror/lang-sql`](https://github.com/codemirror/lang-sql) | MIT |
+| [`@codemirror/state`](https://code.haverbeke.berlin/codemirror/state) | MIT |
+| [`@codemirror/view`](https://code.haverbeke.berlin/codemirror/view) | MIT |
 | [`@deepseek-ai/dsh-computer-use`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
@@ -70,6 +74,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`buffer`](https://github.com/feross/buffer) | MIT |
 | [`chokidar`](https://github.com/paulmillr/chokidar) | MIT |
 | [`clsx`](https://github.com/lukeed/clsx) | MIT |
+| [`codemirror`](https://github.com/codemirror/basic-setup) | MIT |
 | [`commander`](https://github.com/tj/commander.js) | MIT |
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
@@ -96,12 +101,15 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`micromark-util-sanitize-uri`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-sanitize-uri) | MIT |
 | [`micromark-util-symbol`](https://github.com/micromark/micromark/tree/main/packages/micromark-util-symbol) | MIT |
 | [`mime-types`](https://github.com/jshttp/mime-types) | MIT |
+| [`mysql2`](https://github.com/sidorares/node-mysql2) | MIT |
 | [`negotiator`](https://github.com/jshttp/negotiator) | MIT |
 | [`node-addon-require-builtin`](https://www.npmjs.com/package/node-addon-require-builtin) | MIT |
 | [`node-pty`](https://github.com/microsoft/node-pty) | MIT |
 | [`nodemailer`](https://github.com/nodemailer/nodemailer) | MIT-0 |
 | [`open`](https://github.com/sindresorhus/open) | MIT |
+| [`oracledb`](https://github.com/oracle/node-oracledb) | (Apache-2.0 OR UPL-1.0) |
 | [`pdfjs-dist`](https://github.com/mozilla/pdf.js) | Apache-2.0 |
+| [`pg`](https://github.com/brianc/node-postgres) | MIT |
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
 | [`qr-scanner`](https://github.com/nimiq/qr-scanner) | MIT |
 | [`react`](https://github.com/facebook/react) | MIT |
@@ -164,6 +172,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
 | [`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
+| [`@playwright/test`](https://github.com/microsoft/playwright) | Apache-2.0 |
 | [`@stylistic/eslint-plugin`](https://github.com/eslint-stylistic/eslint-stylistic) | MIT |
 | [`@testing-library/dom`](https://github.com/testing-library/dom-testing-library) | MIT |
 | [`@testing-library/react`](https://github.com/testing-library/react-testing-library) | MIT |
@@ -175,6 +184,8 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@types/mime-types`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/negotiator`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/node`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
+| [`@types/oracledb`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
+| [`@types/pg`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/picomatch`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/pngjs`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |
 | [`@types/qrcode`](https://github.com/DefinitelyTyped/DefinitelyTyped) | MIT |

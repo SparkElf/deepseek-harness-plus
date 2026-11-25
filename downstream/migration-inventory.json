@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T20:39:12.899Z",
+  "generatedAt": "2026-11-25T20:45:15.844Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -225,7 +225,7 @@
       "targetPath": "downstream/packages/plugins/sql-workbench",
       "hasBuild": true,
       "hasTests": true,
-      "status": "pending",
+      "status": "migrated",
       "blockedReason": "client slot/JSX typings and JsonValue driver types drift from DSH 0.2.x; needs source-level API migration"
     },
     {
