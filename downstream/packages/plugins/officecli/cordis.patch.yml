@@ -1,0 +1,3 @@
+- insert:
+    - id: officecli
+      name: '@sparkelf/dsh-officecli'

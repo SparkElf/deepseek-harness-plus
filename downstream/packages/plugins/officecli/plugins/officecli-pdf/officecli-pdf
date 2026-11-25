@@ -1,0 +1,356 @@
+#!/usr/bin/env node
+'use strict'
+
+/**
+ * officecli-pdf — OfficeCLI exporter plugin: DOCX/XLSX/PPTX → PDF.
+ *
+ * Protocol (plugins/plugin-protocol.md, kind = exporter):
+ *   officecli-pdf --info
+ *   officecli-pdf export <source> --out <target> [--options <json>]
+ *
+ * The rendering itself is not done here. This process is a thin, dependency-free client of the
+ * loopback bridge that the DSH `@sparkelf/dsh-officecli` plugin starts next to the officeKit
+ * service. There is no other engine and no fallback: a missing bridge, a rejected path, or a
+ * failed conversion is reported and the export fails.
+ */
+
+const fs = require('node:fs')
+const http = require('node:http')
+const path = require('node:path')
+
+const PLUGIN_VERSION = '0.1.0'
+const CONFIG_FILE = 'office-kit-bridge.json'
+const SUPPORTED_EXTENSIONS = new Set(['docx', 'xlsx', 'pptx'])
+const HEARTBEAT_MS = 10_000
+const HEALTH_TIMEOUT_MS = 5_000
+const MAX_DIAGNOSTIC_BYTES = 2_048
+
+/** Fallback manifest, kept byte-identical to plugin.json so a lone copied script still answers --info. */
+const FALLBACK_MANIFEST = {
+  name: 'officecli-pdf',
+  version: PLUGIN_VERSION,
+  protocol: 1,
+  kinds: ['exporter'],
+  extensions: ['.pdf'],
+  runtime: 'other',
+  idle_timeout_seconds: { default: 120, verbs: { export: 660 } },
+  supports: ['from:docx', 'from:xlsx', 'from:pptx'],
+  description: 'Exports DOCX/XLSX/PPTX to PDF through the DSH officeKit convert bridge (LibreOffice).',
+  license: 'MIT',
+  limits: { maxFileSizeMb: 100 },
+}
+
+const EXIT = {
+  OK: 0,
+  CORRUPT_INPUT: 2,
+  UNSUPPORTED: 3,
+  DATA_ERROR: 65,
+  NO_INPUT: 66,
+  UNAVAILABLE: 69,
+  SOFTWARE: 70,
+  CANNOT_CREATE: 73,
+  TEMPORARY: 75,
+  NO_PERMISSION: 77,
+}
+
+function manifest() {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(__dirname, 'plugin.json'), 'utf8'))
+    return typeof parsed === 'object' && parsed !== null ? parsed : FALLBACK_MANIFEST
+  } catch {
+    return FALLBACK_MANIFEST
+  }
+}
+
+function fail(message) {
+  process.stderr.write(`officecli-pdf: ${message}\n`)
+}
+
+/** One line per failure: the OfficeCLI host reports the last stderr line verbatim. */
+function die(code, exitCode, message) {
+  fail(`${code}: ${message}`)
+  process.exitCode = exitCode
+  process.exit(exitCode)
+}
+
+function parseArguments(argv) {
+  const parsed = { command: undefined, source: undefined, out: undefined, options: {}, force: false, logFile: undefined, quiet: false, help: false, version: false }
+  const args = [...argv]
+  while (args.length > 0) {
+    const argument = args.shift()
+    if (argument === '--help' || argument === '-h' || argument === '-?') { parsed.help = true; continue }
+    if (argument === '--version') { parsed.version = true; continue }
+    if (argument === '--info') { parsed.command = 'info'; continue }
+    if (argument === '--force') { parsed.force = true; continue }
+    if (argument === '--quiet') { parsed.quiet = true; continue }
+    if (argument === '--out' || argument === '-o') {
+      parsed.out = args.shift()
+      continue
+    }
+    if (argument.startsWith('--out=')) { parsed.out = argument.slice('--out='.length); continue }
+    if (argument === '--options') { parsed.options = parseOptions(args.shift()); continue }
+    if (argument.startsWith('--options=')) { parsed.options = parseOptions(argument.slice('--options='.length)); continue }
+    if (argument === '--log-file') { parsed.logFile = args.shift(); continue }
+    if (argument.startsWith('--log-file=')) { parsed.logFile = argument.slice('--log-file='.length); continue }
+    if (argument.startsWith('-')) die('invalid_argument', EXIT.DATA_ERROR, `unknown option ${argument}`)
+    if (parsed.command === undefined) parsed.command = argument
+    else if (parsed.source === undefined) parsed.source = argument
+    else die('invalid_argument', EXIT.DATA_ERROR, `unexpected argument ${argument}`)
+  }
+  return parsed
+}
+
+function parseOptions(raw) {
+  if (raw === undefined) die('invalid_argument', EXIT.DATA_ERROR, '--options requires a JSON value')
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    die('invalid_argument', EXIT.DATA_ERROR, '--options is not valid JSON')
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    die('invalid_argument', EXIT.DATA_ERROR, '--options must be a JSON object')
+  }
+  return parsed
+}
+
+/** Candidate bridge config paths, in the order the DSH plugin writes them. */
+function configCandidates(explicit) {
+  const candidates = []
+  if (explicit !== undefined && explicit !== '') candidates.push(explicit)
+  const dshHome = process.env.DSH_HOME
+  if (dshHome !== undefined && dshHome.trim() !== '') candidates.push(path.join(dshHome.trim(), CONFIG_FILE))
+  candidates.push(path.join('/workspace/.dataops/dsh', CONFIG_FILE))
+  if (process.env.HOME !== undefined && process.env.HOME !== '') candidates.push(path.join(process.env.HOME, '.dsh', CONFIG_FILE))
+  return candidates
+}
+
+function isLoopback(hostname) {
+  return hostname === '127.0.0.1' || hostname === 'localhost' || hostname === '[::1]' || hostname === '::1'
+}
+
+function readBridgeConfig(explicitPath) {
+  const envUrl = process.env.OFFICE_KIT_BRIDGE_URL
+  const envToken = process.env.OFFICE_KIT_BRIDGE_TOKEN
+  if (envUrl !== undefined && envUrl !== '' && envToken !== undefined && envToken !== '') {
+    return { url: envUrl, token: envToken, timeoutMs: 600_000, source: 'environment' }
+  }
+  for (const candidate of configCandidates(explicitPath ?? process.env.OFFICE_KIT_BRIDGE_CONFIG)) {
+    let parsed
+    try {
+      parsed = JSON.parse(fs.readFileSync(candidate, 'utf8'))
+    } catch {
+      continue
+    }
+    if (typeof parsed !== 'object' || parsed === null) continue
+    const url = typeof parsed.url === 'string' ? parsed.url : `http://127.0.0.1:${String(parsed.port ?? '')}`
+    const token = typeof parsed.token === 'string' ? parsed.token : ''
+    if (token === '') continue
+    return { url, token, timeoutMs: Number.isFinite(parsed.timeoutMs) ? parsed.timeoutMs : 600_000, configPath: candidate }
+  }
+  return undefined
+}
+
+function assertBridgeUrl(url, token) {
+  let parsed
+  try {
+    parsed = new URL(url)
+  } catch {
+    die('office_kit_bridge_invalid_config', EXIT.UNAVAILABLE, 'the bridge URL is not a valid URL')
+  }
+  if (parsed.protocol !== 'http:') die('office_kit_bridge_invalid_config', EXIT.UNAVAILABLE, 'the bridge URL must use http:')
+  if (!isLoopback(parsed.hostname)) die('office_kit_bridge_invalid_config', EXIT.UNAVAILABLE, 'the bridge URL must be loopback')
+  return { hostname: parsed.hostname, port: parsed.port === '' ? 80 : Number(parsed.port), token: token }
+}
+
+function requestJson(bridge, route, body, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const payload = body === undefined ? undefined : Buffer.from(JSON.stringify(body), 'utf8')
+    const request = http.request({
+      hostname: bridge.hostname,
+      port: bridge.port,
+      path: route,
+      method: body === undefined ? 'GET' : 'POST',
+      headers: {
+        'x-dataops-internal-token': bridge.token,
+        ...(payload === undefined ? {} : { 'content-type': 'application/json', 'content-length': payload.byteLength }),
+      },
+      timeout: timeoutMs,
+    }, (response) => {
+      const chunks = []
+      let total = 0
+      response.on('data', (chunk) => {
+        total += chunk.byteLength
+        if (total > 1_048_576) {
+          request.destroy(new Error('bridge response exceeded 1 MiB'))
+          return
+        }
+        chunks.push(chunk)
+      })
+      response.on('end', () => {
+        const text = Buffer.concat(chunks).toString('utf8')
+        let parsed
+        try {
+          parsed = text.trim() === '' ? {} : JSON.parse(text)
+        } catch {
+          reject(new Error(`bridge returned a non-JSON response (HTTP ${response.statusCode})`))
+          return
+        }
+        resolve({ status: response.statusCode ?? 0, body: parsed })
+      })
+      response.on('error', reject)
+    })
+    request.on('timeout', () => request.destroy(new Error('bridge request timed out')))
+    request.on('error', reject)
+    if (payload !== undefined) request.write(payload)
+    request.end()
+  })
+}
+
+const FAILURE_EXIT = {
+  unauthorized: EXIT.NO_PERMISSION,
+  path_outside_workspace: EXIT.NO_PERMISSION,
+  unsupported_format: EXIT.UNSUPPORTED,
+  input_too_large: EXIT.DATA_ERROR,
+  output_too_large: EXIT.DATA_ERROR,
+  source_not_found: EXIT.NO_INPUT,
+  source_not_file: EXIT.NO_INPUT,
+  target_directory_missing: EXIT.CANNOT_CREATE,
+  target_exists: EXIT.CANNOT_CREATE,
+  busy: EXIT.TEMPORARY,
+  timeout: EXIT.TEMPORARY,
+  unavailable: EXIT.UNAVAILABLE,
+  invalid_document: EXIT.CORRUPT_INPUT,
+  invalid_output: EXIT.SOFTWARE,
+  source_changed: EXIT.TEMPORARY,
+}
+
+function exitFor(code) {
+  return FAILURE_EXIT[code] ?? EXIT.SOFTWARE
+}
+
+function heartbeatTimer() {
+  return setInterval(() => {
+    process.stderr.write('{"heartbeat":true}\n')
+  }, HEARTBEAT_MS)
+}
+
+function describeMissingFonts(missingFonts) {
+  return Array.isArray(missingFonts) && missingFonts.length > 0 ? `; missing fonts: ${missingFonts.join(', ')}` : ''
+}
+
+async function runExport(parsed) {
+  if (parsed.source === undefined) die('invalid_argument', EXIT.DATA_ERROR, 'export requires a source file')
+  if (parsed.out === undefined || parsed.out === '') die('invalid_argument', EXIT.DATA_ERROR, 'export requires --out <target.pdf>')
+
+  const source = path.resolve(parsed.source)
+  const target = path.resolve(parsed.out)
+  const extension = path.extname(source).slice(1).toLowerCase()
+  if (!SUPPORTED_EXTENSIONS.has(extension)) {
+    die('unsupported_format', EXIT.UNSUPPORTED, `source must end in docx, xlsx, or pptx (got ${extension === '' ? 'no extension' : `.${extension}`})`)
+  }
+  if (path.extname(target).toLowerCase() !== '.pdf') die('unsupported_format', EXIT.UNSUPPORTED, 'target must end in .pdf')
+  if (!fs.existsSync(source)) die('source_not_found', EXIT.NO_INPUT, `source file does not exist: ${source}`)
+  if (!fs.statSync(source).isFile()) die('source_not_file', EXIT.NO_INPUT, `source is not a regular file: ${source}`)
+  if (fs.existsSync(target) && parsed.force !== true && parsed.options.force !== true) {
+    die('target_exists', EXIT.CANNOT_CREATE, `target already exists: ${target} (pass --force to overwrite)`)
+  }
+
+  const config = readBridgeConfig()
+  if (config === undefined) {
+    die(
+      'office_kit_bridge_unavailable',
+      EXIT.UNAVAILABLE,
+      `no bridge config found (looked in ${configCandidates().join(', ')}); the DSH officecli plugin must be running`,
+    )
+  }
+  const bridge = assertBridgeUrl(config.url, config.token)
+  const timeoutMs = Number.isFinite(parsed.options.timeoutMs) && parsed.options.timeoutMs > 0
+    ? Math.min(parsed.options.timeoutMs, 900_000)
+    : Math.min(Math.max(config.timeoutMs, 1_000), 900_000)
+
+  const heartbeat = heartbeatTimer()
+  let response
+  try {
+    response = await requestJson(bridge, '/internal/office-kit/convert', {
+      source,
+      target,
+      force: parsed.force === true || parsed.options.force === true,
+    }, timeoutMs + HEALTH_TIMEOUT_MS)
+  } catch (cause) {
+    clearInterval(heartbeat)
+    const message = cause instanceof Error ? cause.message : String(cause)
+    const code = typeof cause === 'object' && cause !== null && cause.code === 'ECONNREFUSED'
+      ? 'office_kit_bridge_unavailable'
+      : 'office_kit_bridge_failed'
+    die(code, EXIT.UNAVAILABLE, `${code === 'office_kit_bridge_unavailable' ? 'the DSH officeKit bridge is not listening' : message}`)
+  }
+  clearInterval(heartbeat)
+
+  if (response.status !== 200 || response.body.ok !== true) {
+    const error = typeof response.body.error === 'object' && response.body.error !== null ? response.body.error : {}
+    const code = typeof error.code === 'string' ? error.code : `http_${response.status}`
+    const message = typeof error.message === 'string' ? error.message.slice(0, MAX_DIAGNOSTIC_BYTES) : `bridge returned HTTP ${response.status}`
+    die(code, exitFor(code), message)
+  }
+
+  let written
+  try {
+    written = fs.statSync(target)
+  } catch {
+    die('office_kit_bridge_failed', EXIT.SOFTWARE, `the bridge reported success but wrote no file at ${target}`)
+  }
+  const expected = Number(response.body.bytes)
+  if (Number.isFinite(expected) && expected > 0 && written.size !== expected) {
+    die('office_kit_bridge_failed', EXIT.SOFTWARE, `the written PDF is ${written.size} bytes, expected ${expected}`)
+  }
+  if (!parsed.quiet) {
+    process.stderr.write(`officecli-pdf: exported ${target} (${written.size} bytes)${describeMissingFonts(response.body.missingFonts)}\n`)
+  }
+}
+
+function usage() {
+  return [
+    'officecli-pdf — OfficeCLI PDF exporter (DOCX/XLSX/PPTX → PDF)',
+    '',
+    'Usage:',
+    '  officecli-pdf --info',
+    '  officecli-pdf export <source> --out <target.pdf> [--options <json>] [--force] [--quiet]',
+    '',
+    'Environment:',
+    '  DSH_HOME                         Directory holding office-kit-bridge.json (sidecar config).',
+    '  OFFICE_KIT_BRIDGE_CONFIG         Explicit bridge config path.',
+    '  OFFICE_KIT_BRIDGE_URL/TOKEN      Explicit bridge endpoint (testing only).',
+  ].join('\n')
+}
+
+function main() {
+  const parsed = parseArguments(process.argv.slice(2))
+  if (parsed.logFile !== undefined) {
+    try {
+      const handle = fs.openSync(parsed.logFile, 'a', 0o600)
+      const write = (chunk) => { try { fs.writeSync(handle, chunk) } catch {} }
+      process.stderr.write = write
+    } catch {
+      // A log file that cannot be opened must not hide the real diagnostics.
+    }
+  }
+  if (parsed.version) {
+    process.stdout.write(`${PLUGIN_VERSION}\n`)
+    return
+  }
+  if (parsed.help || parsed.command === undefined) {
+    process.stdout.write(`${usage()}\n`)
+    return
+  }
+  if (parsed.command === 'info') {
+    process.stdout.write(`${JSON.stringify(manifest())}\n`)
+    return
+  }
+  if (parsed.command !== 'export') die('invalid_argument', EXIT.DATA_ERROR, `unknown command ${parsed.command}`)
+  runExport(parsed).catch((cause) => {
+    die('internal_error', EXIT.SOFTWARE, cause instanceof Error ? cause.message : String(cause))
+  })
+}
+
+main()
