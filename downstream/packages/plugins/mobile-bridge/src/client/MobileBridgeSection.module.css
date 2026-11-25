@@ -1,0 +1,430 @@
+.section {
+  display: flex;
+  max-width: 760px;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-m-18);
+  font-weight: 600;
+}
+
+.title:focus-visible,
+.label:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dsw-alias-border-l3);
+}
+
+.toolbar,
+.status,
+.toggles {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar,
+.status {
+  gap: 8px;
+}
+
+.toolbar {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.status {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-s-14);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldWide {
+  grid-column: 1 / -1;
+}
+
+.label {
+  width: fit-content;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-strong-13);
+}
+
+.control {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.toggles {
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.toggle {
+  display: flex;
+  width: fit-content;
+  min-height: 32px;
+  align-items: center;
+  gap: 8px;
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font: var(--dsw-font-xxs-12);
+}
+
+.checkbox {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+  cursor: pointer;
+}
+
+.checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.pairing {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pairingDisplay {
+  display: grid;
+  width: min(720px, 100%);
+  grid-template-columns: 240px minmax(280px, 1fr);
+  align-items: stretch;
+  gap: 32px;
+}
+
+.pairingQrBlock {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qrRefreshing {
+  box-sizing: border-box;
+  display: grid;
+  width: min(720px, 100%);
+  min-height: 240px;
+  place-content: center;
+  place-items: center;
+  gap: 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.qrSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--dsw-alias-border-l2);
+  border-top-color: var(--dsw-alias-state-business-primary);
+  border-radius: 50%;
+  animation: pairing-spin 800ms linear infinite;
+}
+
+@keyframes pairing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qrSpinner {
+    animation: none;
+  }
+}
+
+.pairingCodeBlock {
+  box-sizing: border-box;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-rows: auto 1fr;
+  gap: 16px;
+  padding: 0 0 0 32px;
+  border-left: 1px solid var(--dsw-alias-border-l2);
+}
+
+.pairingCode {
+  display: grid;
+  width: 100%;
+  align-self: center;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pairingCode > span {
+  box-sizing: border-box;
+  display: grid;
+  height: 52px;
+  place-items: center;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-l-20);
+  font-family: var(--dsw-font-markdown-code-font-family);
+}
+
+.devices {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.devicesHeader,
+.deviceState {
+  display: flex;
+  align-items: center;
+}
+
+.devicesHeader {
+  gap: 8px;
+}
+
+.deviceCount {
+  display: grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  padding: 0 5px;
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.deviceList {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+  list-style: none;
+}
+
+.deviceRow {
+  display: grid;
+  min-width: 0;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  grid-template-columns: max-content minmax(100px, 1fr) minmax(100px, auto) minmax(170px, auto) max-content;
+  gap: 8px 12px;
+}
+
+.deviceState {
+  gap: 6px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.deviceName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-strong-13);
+}
+
+.deviceMeta,
+.deviceTimes,
+.deviceEmpty,
+.disconnectDescription {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.deviceTimes {
+  display: flex;
+  flex-direction: column;
+}
+
+.disconnectButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.disconnectDescription {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.qr {
+  box-sizing: border-box;
+  width: min(240px, 100%);
+  height: auto;
+  aspect-ratio: 1;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+}
+
+.qrEmpty,
+.message,
+.error {
+  margin: 0;
+  font: var(--dsw-font-xs-13);
+}
+
+.qrEmpty,
+.message {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.error {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+@media (max-width: 640px) {
+  /*
+   * Phones are the primary consumer of this page: it is the screen a user opens to scan the pairing
+   * QR. Measured on a 390 px viewport, the stock layout left the section 106 px wide inside the
+   * settings modal with 88 px inputs and a QR that computed to 0x0 — unusable for the one task the
+   * page exists to do.
+   *
+   * Everything below targets that: fill the width that is actually available, give the QR a real
+   * size, let the code be read at a glance, and keep the primary action reachable without hunting.
+   */
+  .section {
+    max-width: none;
+    width: 100%;
+    gap: 14px;
+  }
+
+  .header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .title {
+    font: var(--dsw-font-m-16);
+    font-weight: 600;
+  }
+
+  /* Actions go full width and in a row that wraps rather than shrinking to their label. */
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toolbar > * {
+    flex: 1 1 auto;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  /* One field per row: side-by-side columns are what squeezed the inputs to 88 px. */
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .fieldWide {
+    grid-column: auto;
+  }
+
+  .field input,
+  .field select,
+  .section input,
+  .section select {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .pairingDisplay {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  /* The QR block is the point of the page; give it the width and a quiet frame. */
+  .pairingQrBlock {
+    width: min(260px, 72vw);
+    margin: 0 auto;
+  }
+
+  .qr {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  .pairingCodeBlock {
+    width: 100%;
+    gap: 10px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--dsw-alias-border-l2);
+    border-left: 0;
+  }
+
+  /* The code is read aloud and typed, so it takes the full width in one row. */
+  .pairingCode {
+    width: 100%;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pairingCode > span {
+    height: 52px;
+    font: var(--dsw-font-m-20);
+    font-weight: 600;
+  }
+
+  /* Switches are the control, so the row is a comfortable tap target, not just the box. */
+  .toggles {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .toggle {
+    min-height: 44px;
+    padding: 4px 0;
+  }
+
+  .deviceRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  .disconnectButton {
+    min-height: 40px;
+    justify-self: flex-start;
+  }
+}
