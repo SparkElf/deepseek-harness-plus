@@ -161,6 +161,14 @@
         "test": "pnpm --filter @sparkelf/dsh-kb-citation run test"
       },
       {
+        "name": "@sparkelf/dsh-mineru",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/mineru",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-mineru run build",
+        "test": "pnpm --filter @sparkelf/dsh-mineru run test"
+      },
+      {
         "name": "@sparkelf/dsh-officecli",
         "version": "0.2.3",
         "path": "downstream/packages/plugins/officecli",

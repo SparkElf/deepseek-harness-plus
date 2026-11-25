@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T19:05:53.125Z",
+  "generatedAt": "2026-11-25T19:12:08.068Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -138,8 +138,8 @@
       "sourcePath": "dsh-plugins-plus/packages/mineru",
       "targetPath": "downstream/packages/plugins/mineru",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-mobile-bridge",
@@ -211,7 +211,8 @@
       "targetPath": "downstream/packages/plugins/query-result-analysis",
       "hasBuild": true,
       "hasTests": false,
-      "status": "pending"
+      "status": "pending",
+      "blockedReason": "TS2339/TS2322 against current DSH JsonValue types; needs source-level type migration"
     },
     {
       "name": "@sparkelf/dsh-sql-workbench",
