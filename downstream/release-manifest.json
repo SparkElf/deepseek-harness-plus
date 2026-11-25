@@ -105,6 +105,14 @@
         "test": "pnpm --filter @sparkelf/dsh-api-client run test"
       },
       {
+        "name": "@sparkelf/dsh-artifact-app",
+        "version": "0.1.1",
+        "path": "downstream/packages/plugins/artifact-app",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-artifact-app run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
         "name": "@sparkelf/dsh-credential-manager",
         "version": "0.1.3",
         "path": "downstream/packages/plugins/credential-manager",
@@ -167,6 +175,14 @@
         "status": "migrated",
         "build": "pnpm --filter @sparkelf/dsh-mineru run build",
         "test": "pnpm --filter @sparkelf/dsh-mineru run test"
+      },
+      {
+        "name": "@sparkelf/dsh-ocr",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/ocr",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-ocr run build",
+        "test": "pnpm --filter @sparkelf/dsh-ocr run test"
       },
       {
         "name": "@sparkelf/dsh-officecli",

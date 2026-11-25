@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T19:12:08.068Z",
+  "generatedAt": "2026-11-25T19:17:40.410Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -21,7 +21,7 @@
       "targetPath": "downstream/packages/plugins/artifact-app",
       "hasBuild": true,
       "hasTests": false,
-      "status": "pending"
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-chart",
@@ -166,7 +166,7 @@
       "targetPath": "downstream/packages/plugins/ocr",
       "hasBuild": true,
       "hasTests": true,
-      "status": "pending"
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-office-viewer-fonts",
