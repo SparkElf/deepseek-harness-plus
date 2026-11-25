@@ -42,7 +42,7 @@ node downstream/tools/downstream.mjs apply --dsh-root /path/to/official-dsh
 
 `image` 需要外部 builder：先运行 `image-plan` 生成确定性输入（包含 `localPackages` workspace 覆盖和 `localPackagePolicy`），再设置 `DOWNSTREAM_IMAGE_BUILDER` 指向接受 `--release-manifest <path>` 的 builder。没有 builder 时 fail closed，不会伪造镜像。
 
-`publish` 在 npm provenance 和 release workflow 验收前保持禁用。
+`publish --dry-run` 校验已迁移包的 name/version 和构建入口；真正的远端发布仍 fail closed，需要独立 release 审批与 npm provenance。
 
 `apply` 委托给构建后的 `packages/bundle/plus/lib/bin.js apply`；如果该文件不存在，先运行 `pnpm --filter @sparkelf/dsh-plus run build`。
 
