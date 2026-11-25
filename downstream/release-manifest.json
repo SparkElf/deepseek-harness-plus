@@ -233,6 +233,14 @@
         "test": "pnpm --filter @sparkelf/dsh-plugin-supervisor run test"
       },
       {
+        "name": "@sparkelf/dsh-query-result-analysis",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/query-result-analysis",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-query-result-analysis run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
         "name": "@sparkelf/dsh-ssh-manager",
         "version": "0.7.5",
         "path": "downstream/packages/plugins/ssh-manager",
@@ -305,8 +313,7 @@
       "version": "0.1.2",
       "profileSpec": "0.1.1",
       "profilePinStatus": "mismatch",
-      "override": "disabled",
-      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
+      "override": "disabled"
     },
     "@sparkelf/dsh-dataops-integration": {
       "path": "downstream/packages/plugins/dataops-integration",
@@ -327,8 +334,7 @@
       "version": "0.5.12",
       "profileSpec": "0.5.11",
       "profilePinStatus": "mismatch",
-      "override": "disabled",
-      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
+      "override": "disabled"
     },
     "@sparkelf/dsh-kb-citation": {
       "path": "downstream/packages/plugins/kb-citation",
@@ -383,6 +389,13 @@
       "path": "downstream/packages/plugins/supervisor",
       "version": "0.1.11",
       "profileSpec": "0.1.11",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-query-result-analysis": {
+      "path": "downstream/packages/plugins/query-result-analysis",
+      "version": "0.1.4",
+      "profileSpec": "0.1.4",
       "profilePinStatus": "exact",
       "override": "enabled"
     },
