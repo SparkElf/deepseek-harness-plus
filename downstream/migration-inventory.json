@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T18:34:06.720Z",
+  "generatedAt": "2026-11-25T18:39:19.517Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -66,7 +66,7 @@
       "targetPath": "downstream/packages/plugins/dataops-im",
       "hasBuild": true,
       "hasTests": true,
-      "status": "pending"
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-dataops-integration",

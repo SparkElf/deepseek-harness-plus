@@ -1,0 +1,11 @@
+# Admin mode is the safe default: the settings UI and its read-only routes exist, but dsh-im's
+# channel host, tools and prompt contexts are never imported. A dedicated connector profile
+# overrides `mode` with `connector` (see README) and is the only place dsh-im is mounted.
+- insert:
+    - id: dataops-im
+      name: '@sparkelf/dsh-dataops-im'
+      config:
+        mode: admin
+        baseUrl: http://host.docker.internal:3101
+        credentialRef: DATAOPS_ACCESS_TOKEN
+        registerTools: false
