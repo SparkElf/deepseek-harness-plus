@@ -1,0 +1,213 @@
+.bell {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.bell:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.bell:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--dsw-alias-state-error-primary);
+  color: #fff;
+  font-size: 9px;
+  line-height: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.dialog {
+  width: min(520px, calc(100vw - 32px));
+  height: 70vh;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.demo {
+  margin: 0 0 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  background: var(--dsw-alias-state-warn-secondary);
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 11px;
+}
+
+.empty {
+  margin: 0;
+  padding: 18px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.list {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  /* Header, footer, and pager stay fixed; only the rows scroll inside the 70vh modal. */
+  max-height: calc(70vh - 210px);
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  width: 100%;
+  padding: 4px 2px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover .rowTitle {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.rowIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.rowIcon[data-tone='success'] { color: var(--dsw-alias-state-success-primary); }
+.rowIcon[data-tone='danger'] { color: var(--dsw-alias-state-error-primary); }
+.rowIcon[data-tone='warn'] { color: var(--dsw-alias-state-warn-primary); }
+.rowIcon[data-tone='info'] { color: var(--dsw-alias-state-business-primary); }
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.rowBody {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowTitle {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+
+.rowText {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.rowMeta {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.rowTime {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.button,
+.linkButton {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.button {
+  border: 1px solid var(--dsw-alias-border-l2);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+.linkButton {
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-state-business-primary);
+}
+
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.pager button {
+  height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.pager button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

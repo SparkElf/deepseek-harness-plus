@@ -1,0 +1,107 @@
+/* The workspace upgrade notice sits in the shell overlay, above the page but below
+ * platform modals. It borrows the DSH settings-card geometry and label tokens so it
+ * reads as a platform notice rather than a second visual system. */
+
+.banner {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: min(680px, calc(100vw - 32px));
+  padding: 10px 12px 10px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 12%);
+  color: var(--dsw-alias-label-primary);
+  transform: translateX(-50%);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.title {
+  font-size: 13px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.body {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: min(420px, 70vw);
+}
+
+.dialogText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-1);
+  list-style: none;
+}
+
+.sessionRow {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sessionTitle {
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sessionPath {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.error {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}

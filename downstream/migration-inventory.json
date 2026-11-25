@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T20:25:06.658Z",
+  "generatedAt": "2026-11-25T20:32:28.615Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -84,8 +84,8 @@
       "sourcePath": "dsh-plugins-plus/packages/dataops-managed",
       "targetPath": "downstream/packages/plugins/dataops-managed",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending",
+      "hasTests": true,
+      "status": "migrated",
       "blockedReason": "Schemastery .volatile() has been removed in the current workspace; requires settings-persistence API migration, not just type casts"
     },
     {

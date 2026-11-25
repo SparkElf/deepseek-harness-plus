@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser Bridge Chrome Install"
+  short_description: "Install and verify the DataOps Browser Bridge in Chrome"
+  default_prompt: "Use $browser-bridge-chrome-install to prepare Chrome for a DataOps Browser Bridge update."

@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "1bdca8934cf5a192a59c35e811f4f49c9b97ff40",
+    "model": "manual-zh",
+    "translatedAt": "2026-11-23T10:25:00+08:00"
+  },
+  "title": "数据治理",
+  "description": "管理员/超管导入资源、维护资源/列/指标/血缘与可见性、查询全量平台元数据时使用。",
+  "summary": "覆盖表格/Excel/CSV 导入、OpenAPI 接入、元数据写入和全量元数据读取；写操作必须先 preview，用户确认后再 apply。"
+}

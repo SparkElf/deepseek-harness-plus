@@ -1,0 +1,875 @@
+.page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: clamp(1000px, 60vw, 1200px);
+  margin: 0 auto;
+  padding: 24px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headText {
+  min-width: 0;
+}
+
+.headActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.subtitle {
+  margin: 3px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.demo {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #FFF3E0;
+  color: #9A5B00;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tabGroup {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+
+.tabDivider {
+  width: 1px;
+  height: 14px;
+  margin: 0 12px;
+  background: rgba(255, 255, 255, .12);
+  flex: none;
+  align-self: center;
+}
+
+.tab {
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #8ea6c6);
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 4px 4px 0 0;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, .04);
+}
+
+.tabActive {
+  color: var(--dsw-alias-label-primary, #fff);
+  border-bottom-color: var(--dsw-alias-brand-primary, #2563eb);
+  font-weight: 600;
+}
+
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-caption);
+  font-size: 10px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.notice,
+.waiting {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.waiting {
+  border: 1px dashed var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.matrixHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.matrixHeadLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.matrixTool {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.matrixTool:hover {
+  background: rgba(255, 255, 255, .06);
+  color: var(--dsw-alias-label-primary);
+}
+
+.matrixToolActive {
+  background: rgba(37, 99, 235, .15);
+  color: #2563eb;
+}
+
+.matrixPermHead {
+  min-width: 116px;
+  max-width: 140px;
+  text-align: left;
+  font-weight: 500;
+  white-space: normal;
+}
+
+.matrixRoleHead,
+.matrixRoleCell {
+  white-space: nowrap;
+}
+
+.roleSearchWrap {
+  position: relative;
+  display: inline-flex;
+  width: 240px;
+  max-width: 100%;
+  flex: none;
+}
+
+.roleSearchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  color: #8ea6c6;
+  pointer-events: none;
+  transition: color 120ms ease;
+}
+
+.roleSearchWrap:focus-within .roleSearchIcon {
+  color: #2563eb;
+}
+
+.roleSearch {
+  width: 100%;
+  height: 30px;
+  padding: 0 10px 0 34px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  outline: none;
+}
+
+.roleSearch::placeholder {
+  color: var(--dsw-alias-label-caption);
+}
+
+.roleSearch:focus {
+  border-color: var(--dsw-alias-brand-primary, #2563eb);
+}
+
+.empty {
+  margin: 0;
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--dsw-alias-label-caption);
+  font-size: 12px;
+}
+
+.matrixScroll,
+.tableScroll {
+  max-height: clamp(280px, calc(100dvh - 340px), 520px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.matrix,
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.matrix th,
+.matrix td,
+.table th,
+.table td {
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  text-align: left;
+  vertical-align: top;
+}
+
+.matrix th,
+.table th {
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.permission {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 20px;
+}
+
+.panelFoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.readOnly {
+  margin-right: auto;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.muted {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.departments {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.department {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  font-size: 12px;
+}
+
+.deptAdmins {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.adminTag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #ECF1FC;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 11px;
+}
+
+.empty {
+  margin: 0;
+  padding: 40px 0;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── task-53: department assignment, target-aware rows, scrolling/paging ── */
+
+.matrixScroll {
+  max-height: clamp(280px, calc(100dvh - 340px), 520px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.matrix thead th:first-child,
+.matrix tbody th {
+  position: sticky;
+  left: 0;
+  min-width: 132px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.matrix thead th:first-child {
+  z-index: 3;
+}
+
+.matrix tbody th {
+  z-index: 1;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.protected {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+tr[data-locked='true'] td {
+  opacity: 0.62;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.dialog {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.dialogBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialogHint {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+}
+
+.candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 260px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.candidate {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 7px;
+  border-radius: 5px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.candidate:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.dialogFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.matrixNote {
+  margin: 6px 0 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.treeRoot,
+.treeChildren {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.treeChildren {
+  border-left: 1px solid var(--dsw-alias-border-l1);
+  margin-left: 18px;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+  font-size: 12px;
+}
+
+.treeToggle,
+.treeSpacer {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+}
+
+.treeToggle {
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.treeToggle:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.treeName {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.treeActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}
+
+.field input,
+.field select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+}
+
+.field input:disabled {
+  opacity: 0.65;
+}
+
+/* task-71: four DSH groups; module cell row-merged across its points */
+.matrixModule {
+  min-width: 96px;
+  padding: 10px 9px;
+  vertical-align: top;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  border-right: 1px solid var(--dsw-alias-border-l1);
+}
+
+.matrixGroup th {
+  padding: 7px 9px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.matrixPermission {
+  min-width: 230px;
+  white-space: nowrap;
+}
+
+.scopeBadge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 500;
+}
+
+.scopeBadge[data-scope='department'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 14%, var(--dsw-alias-bg-layer-1));
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.scopeBadge[data-scope='global'] {
+  background: color-mix(in srgb, var(--dsw-alias-state-warn-primary) 16%, var(--dsw-alias-bg-layer-1));
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.onlyAdmin {
+  margin-left: 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.permCopy {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.permCopy:hover span:first-child {
+  color: var(--dsw-alias-state-business-primary);
+  text-decoration: underline dotted;
+}
+
+.permDescription {
+  display: block;
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 15px;
+  white-space: normal;
+}
+
+.copied {
+  margin-left: 4px;
+  color: var(--dsw-alias-state-success-primary);
+  font-size: 10px;
+}
+
+/* task-85: DSH-style searchable combobox used by visibility and department pickers. */
+.combobox {
+  position: relative;
+  min-width: 132px;
+}
+
+.comboboxTrigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+  text-align: left;
+  cursor: pointer;
+}
+
+.comboboxTrigger:hover:not(:disabled) {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.comboboxTrigger:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 1px;
+}
+
+.comboboxTrigger:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.comboboxPlaceholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.comboboxMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  box-sizing: border-box;
+  width: max(100%, 220px);
+  padding: 5px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.comboboxSearch {
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 0 7px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+}
+
+.comboboxList {
+  max-height: 210px;
+  margin: 4px 0 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.comboboxOption {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 6px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.comboboxOptionActive,
+.comboboxOption:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.comboboxCheck {
+  flex: none;
+  width: 13px;
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 11px;
+}
+
+.comboboxHint {
+  margin-left: auto;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+}
+
+.comboboxEmpty {
+  padding: 9px 7px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.detailGrid dt {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.detailGrid dd {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  overflow-wrap: anywhere;
+}
+
+/* Member role cell: current roles as tags with per-role revoke, then a grant control. */
+.roleCell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roleTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.roleTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.roleRevoke {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.roleRevoke:hover {
+  background: rgba(255, 255, 255, .08);
+  color: var(--dsw-alias-state-danger, #b91c1c);
+}
+
+.roleGrant {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.roleGrant select {
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+}

@@ -153,6 +153,15 @@
         "note": "no package test script upstream; build verified"
       },
       {
+        "name": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.2",
+        "path": "downstream/packages/plugins/dataops-managed",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-managed run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-managed run test",
+        "note": "Schemastery .volatile() removed; settings fields now use regular persistence; 205 tests pass"
+      },
+      {
         "name": "@sparkelf/dsh-dataops-model-default",
         "version": "0.1.0",
         "path": "downstream/packages/plugins/dataops-model-default",
@@ -313,7 +322,8 @@
       "version": "0.1.2",
       "profileSpec": "0.1.1",
       "profilePinStatus": "mismatch",
-      "override": "disabled"
+      "override": "disabled",
+      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
     },
     "@sparkelf/dsh-dataops-integration": {
       "path": "downstream/packages/plugins/dataops-integration",
@@ -321,6 +331,14 @@
       "profileSpec": null,
       "profilePinStatus": "not-in-profile",
       "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-managed": {
+      "path": "downstream/packages/plugins/dataops-managed",
+      "version": "0.4.2",
+      "profileSpec": "0.4.0",
+      "profilePinStatus": "mismatch",
+      "override": "disabled",
+      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
     },
     "@sparkelf/dsh-dataops-model-default": {
       "path": "downstream/packages/plugins/dataops-model-default",
@@ -334,7 +352,8 @@
       "version": "0.5.12",
       "profileSpec": "0.5.11",
       "profilePinStatus": "mismatch",
-      "override": "disabled"
+      "override": "disabled",
+      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
     },
     "@sparkelf/dsh-kb-citation": {
       "path": "downstream/packages/plugins/kb-citation",
