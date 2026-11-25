@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T18:27:56.192Z",
+  "generatedAt": "2026-11-25T18:34:06.720Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -119,8 +119,8 @@
       "sourcePath": "dsh-plugins-plus/packages/kb-citation",
       "targetPath": "downstream/packages/plugins/kb-citation",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-knowledge-base",
