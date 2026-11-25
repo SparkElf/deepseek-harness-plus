@@ -1,0 +1,80 @@
+.mark {
+  display: block;
+  flex: none;
+  overflow: visible;
+  color: inherit;
+}
+
+.animatedMark { cursor: pointer; }
+
+.mark g {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.sidebarName {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+  height: 24px;
+  color: inherit;
+}
+
+.sidebarName > :first-child {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 102px;
+}
+
+.wordmark {
+  display: block;
+  overflow: hidden;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+}
+
+.harness {
+  display: block;
+  flex: none;
+  overflow: visible;
+}
+
+@keyframes unit-top {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, -2px); }
+}
+
+@keyframes unit-left {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-2px, 1px); }
+}
+
+@keyframes unit-right {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(2px, 1px); }
+}
+
+@keyframes unit-core {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(0, 2px); }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .animatedMark:hover .unitTop { animation: unit-top 1.6s ease-in-out infinite; }
+  .animatedMark:hover .unitLeft { animation: unit-left 1.6s ease-in-out infinite; }
+  .animatedMark:hover .unitRight { animation: unit-right 1.6s ease-in-out infinite; }
+  .animatedMark:hover .unitCore { animation: unit-core 1.6s ease-in-out infinite; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animatedMark,
+  .animatedMark g {
+    animation: none !important;
+    transform: none !important;
+  }
+}

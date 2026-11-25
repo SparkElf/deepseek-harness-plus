@@ -1,0 +1,3 @@
+- insert:
+    - id: dataops-managed
+      name: '@sparkelf/dsh-dataops-managed'
