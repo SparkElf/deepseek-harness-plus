@@ -168,6 +168,45 @@ const commands = {
       process.exitCode = typeof error?.status === 'number' ? error.status : 1
     }
   },
+  doctor() {
+    const problems = []
+    const warnings = []
+    for (const file of ['BUILD.md', 'downstream/upstream.lock.json', 'downstream/release-manifest.json', 'downstream/migration-inventory.json']) {
+      if (!existsSync(join(root, file))) problems.push(`missing required file: ${file}`)
+    }
+    const p = plus()
+    const u = lock()
+    const r = release()
+    try { execFileSync('git', ['rev-parse', `${u.tag}^{commit}`], { cwd: root, stdio: 'ignore' }) }
+    catch { problems.push(`official tag is not available locally: ${u.tag}`) }
+    if (p.dshPlus?.sourceBase?.revision !== u.revision) problems.push('plus sourceBase differs from upstream.lock.json')
+    if (!existsSync(join(root, 'pnpm-lock.yaml'))) problems.push('missing root pnpm-lock.yaml')
+    const downstreamDirs = [join(root, 'downstream/packages'), join(root, 'downstream/profiles')]
+    for (const dir of downstreamDirs) {
+      if (!existsSync(dir)) continue
+      const walk = (current) => {
+        for (const name of readdirSync(current)) {
+          const path = join(current, name)
+          if (!statSync(path).isDirectory()) {
+            if (name === 'pnpm-lock.yaml' || name === 'pnpm-workspace.yaml') problems.push(`nested ${name}: ${relative(root, path)}`)
+            continue
+          }
+          if (name === 'node_modules' || (name === 'lib' && existsSync(join(current, 'package.json')))) {
+            warnings.push(`build artifact in workspace: ${relative(root, path)}`)
+            continue
+          }
+          walk(path)
+        }
+      }
+      walk(dir)
+    }
+    if (problems.length) {
+      for (const problem of problems) console.error(`problem      ${problem}`)
+      fail(`${problems.length} reproducibility problem(s)`)
+    }
+    for (const warning of warnings) console.warn(`warning      ${warning}`)
+    console.log(`doctor: ${relative(root, 'downstream/release-manifest.json')} is reproducible-sane; ${warnings.length} warning(s)`)
+  },
   publish(args = []) {
     const dryRun = args.includes('--dry-run')
     if (!dryRun) {
@@ -211,6 +250,7 @@ Commands:
   build-packages  build migrated workspace packages (fails until migration)
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
+  doctor          check clean-fork reproducibility prerequisites
   image-plan      write a deterministic image input plan from the release manifest
   image           run DOWNSTREAM_IMAGE_BUILDER with the release manifest
   publish         validate migrated packages with --dry-run; remote publish is fail-closed
