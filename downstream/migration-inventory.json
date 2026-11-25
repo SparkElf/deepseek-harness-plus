@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T19:23:26.458Z",
+  "generatedAt": "2026-11-25T19:31:18.802Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -30,7 +30,8 @@
       "targetPath": "downstream/packages/plugins/chart",
       "hasBuild": true,
       "hasTests": false,
-      "status": "pending"
+      "status": "pending",
+      "blockedReason": "client locale/slot typings and ChartPresentationMeta drift from DSH 0.2.x; needs source-level API migration"
     },
     {
       "name": "@sparkelf/dsh-credential-manager",
@@ -156,8 +157,8 @@
       "sourcePath": "dsh-plugins-plus/packages/mobile-bridge-server",
       "targetPath": "downstream/packages/plugins/mobile-bridge-server",
       "hasBuild": false,
-      "hasTests": false,
-      "status": "pending"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-ocr",
