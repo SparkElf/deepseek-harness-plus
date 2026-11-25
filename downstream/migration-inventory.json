@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T20:45:15.844Z",
+  "generatedAt": "2026-11-25T20:50:07.802Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -133,7 +133,7 @@
       "hasBuild": true,
       "hasTests": false,
       "status": "pending",
-      "blockedReason": "81MB package with heavy client/skill surface; requires a dedicated migration round"
+      "blockedReason": "server type drift (SQL row casts, plan/result unions) plus dsh-better-sidebar source typings; requires source-level API migration"
     },
     {
       "name": "@sparkelf/dsh-mineru",
