@@ -1,0 +1,103 @@
+/*
+ * A room message written by another author.
+ *
+ * `display: contents` keeps this element invisible to layout: its child — the official row —
+ * keeps the exact box it had before, as a direct child of the flow item. `align-items:
+ * flex-start` on the row is what flips the official right alignment; the row's width, the
+ * message stack's percentage cap and the bubble's own sizing stay untouched.
+ *
+ * The official module's class names are content-hashed, so the row is matched structurally.
+ * The class is written twice so this rule outranks the official one regardless of stylesheet
+ * order.
+ */
+.otherRow {
+  display: contents;
+}
+
+.otherRow.otherRow > * {
+  align-items: flex-start;
+}
+
+/*
+ * Another author's name and picture, above their bubble.
+ *
+ * The wrapper cannot stay `display: contents` once it carries a header: a contents box generates
+ * no box of its own, so the header would become a sibling of the official row inside the flow
+ * item. The wrapper therefore becomes a shrink-wrapping column that gives the official row the
+ * same content width it had as a direct child of the flow item.
+ */
+.otherRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The header lines up with the bubble body rather than with the avatar's outer edge. */
+.author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 4px 2px;
+  min-width: 0;
+  max-width: 100%;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.authorName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Marks a message forwarded from an external channel, so a QQ author is never read as a member. */
+.externalBadge {
+  flex: none;
+  padding: 0 4px;
+  border: 1px solid var(--dsw-alias-border-secondary, rgba(255, 255, 255, .16));
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+/*
+ * The official row still owns the bubble's own alignment. Kept as a separate rule from the one
+ * above so the header is not dragged by it: only the row is flipped, and the header keeps the
+ * wrapper's start edge.
+ */
+.otherRow.otherRow > *:not(.author) {
+  align-items: flex-start;
+  max-width: 100%;
+}
+
+/* A message I wrote keeps the official right alignment. */
+.selfRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* The bubble keeps its own row so alignment is scoped to it, not to the author header. */
+.rowBody {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* A message I wrote keeps the official right alignment inside the wrapper. */
+.selfBody {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}

@@ -1,0 +1,100 @@
+{
+  "name": "@sparkelf/dsh-group-chat",
+  "version": "0.5.12",
+  "description": "Human-agent group chat for DataOps-managed DSH workspaces: rooms broadcast to every member, and only a member's own @mention wakes that member's agent.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-sidebar-right"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "lib/client.js",
+    "lib/client.js.map",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run tests"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/group-chat"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-agent": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": ">=0.2.1-alpha.2",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": ">=0.2.1-alpha.2",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-credentials": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-llm": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-session": ">=0.1.7-rc.2",
+    "react": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-agent": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-locale": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-layout": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-renderer": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-sidebar": "0.2.1-alpha.2",
+    "@deepseek-ai/dsh-client-ui-sidebar-right": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-credentials": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-llm": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-session": "0.1.7-rc.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/ws": "^8.5.0",
+    "lightningcss": "^1.32.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.2",
+    "ws": "^8.18.0",
+    "socket.io-client": "^4.8.1"
+  }
+}

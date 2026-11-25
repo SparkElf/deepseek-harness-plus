@@ -1,0 +1,3 @@
+- insert:
+    - id: group-chat
+      name: '@sparkelf/dsh-group-chat'
