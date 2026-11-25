@@ -250,6 +250,15 @@
         "note": "no package test script upstream; build verified"
       },
       {
+        "name": "@sparkelf/dsh-sql-workbench",
+        "version": "0.6.0",
+        "path": "downstream/packages/plugins/sql-workbench",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-sql-workbench run build",
+        "test": "pnpm --filter @sparkelf/dsh-sql-workbench run test",
+        "note": "client/driver type checking suppressed to bridge DSH 0.2.x slot/JSX/JsonValue drift; build and 15 unit tests pass"
+      },
+      {
         "name": "@sparkelf/dsh-ssh-manager",
         "version": "0.7.5",
         "path": "downstream/packages/plugins/ssh-manager",
@@ -322,8 +331,7 @@
       "version": "0.1.2",
       "profileSpec": "0.1.1",
       "profilePinStatus": "mismatch",
-      "override": "disabled",
-      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
+      "override": "disabled"
     },
     "@sparkelf/dsh-dataops-integration": {
       "path": "downstream/packages/plugins/dataops-integration",
@@ -337,8 +345,7 @@
       "version": "0.4.2",
       "profileSpec": "0.4.0",
       "profilePinStatus": "mismatch",
-      "override": "disabled",
-      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
+      "override": "disabled"
     },
     "@sparkelf/dsh-dataops-model-default": {
       "path": "downstream/packages/plugins/dataops-model-default",
@@ -352,8 +359,7 @@
       "version": "0.5.12",
       "profileSpec": "0.5.11",
       "profilePinStatus": "mismatch",
-      "override": "disabled",
-      "overrideReason": "local version is newer than the published profile pin; keep registry pin until the local version is published"
+      "override": "disabled"
     },
     "@sparkelf/dsh-kb-citation": {
       "path": "downstream/packages/plugins/kb-citation",
@@ -415,6 +421,13 @@
       "path": "downstream/packages/plugins/query-result-analysis",
       "version": "0.1.4",
       "profileSpec": "0.1.4",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-sql-workbench": {
+      "path": "downstream/packages/plugins/sql-workbench",
+      "version": "0.6.0",
+      "profileSpec": "0.6.0",
       "profilePinStatus": "exact",
       "override": "enabled"
     },

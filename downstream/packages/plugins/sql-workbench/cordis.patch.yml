@@ -1,0 +1,3 @@
+- insert:
+    - id: sql-workbench
+      name: '@sparkelf/dsh-sql-workbench'
