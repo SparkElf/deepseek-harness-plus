@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "task": "B-09a",
+  "generatedBy": "image-acceptance-dev",
+  "collectedAt": "2026-11-26T17:10:19+08:00",
+  "verdict": "pass-with-pre-existing-caveat",
+  "productionSwitch": false,
+  "summary": "Candidate runtime is deployable on the same production path (entrypoint + CMD override to sleep infinity + dataops-dsh-service): DSH 0.2.3-alpha.2 at the required path, 26 profile bundles, gateway sidecar starts, cold ready 43.6s and warm ready 4.3s, DSH RSS 334,548KB, writable layer 733kB. Image 11.9GB vs production 13.2GB. One pre-existing image-default-CMD defect was reproduced: CMD references missing /opt/dataops-runtime/src/daemon.mjs; the production image has the same defect and the running production container overrides CMD, so it is not a candidate regression, but the image cannot boot on its default CMD alone.",
+  "candidate": {
+    "tag": "dataops-ai-workspace-candidate:local",
+    "aliases": [
+      "dataops-ai-workspace-candidate:final",
+      "dataops-ai-workspace-candidate:final-20261126-1442",
+      "dataops-ai-workspace-candidate:local"
+    ],
+    "id": "sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9",
+    "createdAt": "2026-11-26T15:05:17+08:00",
+    "dockerImagesSize": "11.9GB",
+    "compressedBytes": 2909582424,
+    "historyBytes": 8965493990,
+    "baseTag": {
+      "tag": "dataops-ai-workspace-candidate:base-py312",
+      "id": "sha256:f1df081bbad7227203b33e852f2c1c3499a160c86aee89c2c1fd2e6854d8626e",
+      "size": "4.85GB"
+    },
+    "plusTag": {
+      "tag": "dataops-ai-workspace-candidate:plus-cli-py312-0.2.9-alpha.106",
+      "id": "sha256:e35a002df712641ddb67dfbb1ea0bd04384322c45d6df91ab8e36445fad2fa0f",
+      "size": "11.6GB"
+    },
+    "dshVersion": "0.2.3-alpha.2",
+    "plusVersion": "0.2.9-alpha.106",
+    "dataopsManagedVersion": "0.4.2",
+    "queryResultAnalysisVersion": "0.1.4",
+    "profileSourceRef": "0.2.9-alpha.106+d31d3edaf7f761827709edae4e47235a5040d3cfce615cd7bde3dcd47be52a78",
+    "profileBundles": 26,
+    "pluginDirs": {
+      "@sparkelf": 28,
+      "@deepseek-ai": 422
+    },
+    "compatibilityJsonBytes": 141,
+    "compatibilityExemptions": [
+      "@deepseek-ai/dsh-web-search-exa@0.2.2-rc.1",
+      "@anysearch/anysearch-dsh@0.1.8"
+    ],
+    "skippedProfileBundles": 0
+  },
+  "baseline": {
+    "tag": "dataops-ai-workspace:final-20261125-sdkfix",
+    "id": "sha256:6db8fb5b27d8",
+    "dockerImagesSize": "13.2GB",
+    "compressedBytes": 3160902480,
+    "historyGiB": 10.07,
+    "writableLayer": "2.2GB",
+    "dshRssKb": 358392,
+    "workspaceGatewayRssKb": 44900,
+    "profileBundles": 26
+  },
+  "checks": [
+    {
+      "id": "dsh-version-required-path",
+      "status": "pass",
+      "command": "docker run --rm --entrypoint sh dataops-ai-workspace-candidate:local -c '/opt/dsh-home/profiles/dataops-web/node_modules/.bin/dsh --version'",
+      "expected": "0.2.3-alpha.2",
+      "actual": "0.2.3-alpha.2",
+      "detail": "Symlink resolves to ../@deepseek-ai/dsh/lib/bin.js; the same version is reported by dsh inside the running runtime container."
+    },
+    {
+      "id": "profile-plugins",
+      "status": "pass",
+      "actual": {
+        "bundles": 26,
+        "atSparkelfDirs": 28,
+        "atDeepseekAiDirs": 422,
+        "compatibilityJson": "present (141 bytes)"
+      },
+      "detail": "Image template and first-boot runtime volume both report 26 bundles / 28 @sparkelf dirs / 422 @deepseek-ai dirs. web.log has 0 'skipping profile bundle' lines."
+    },
+    {
+      "id": "gateway-assets",
+      "status": "pass",
+      "actual": [
+        "/opt/dataops-runtime/src/workspace-gateway.mjs (2327 bytes)",
+        "/opt/dataops-runtime/src/workspace-web-gateway-agent.mjs (16904 bytes)",
+        "/opt/dataops-runtime/src/workspace-sdk-gateway.mjs (9733 bytes)",
+        "/opt/dataops-runtime/src/workspace-platform-sidecars.mjs (2026 bytes)",
+        "/opt/dataops-runtime/src/dataops-dsh-embedded.patch.yml (11954 bytes)"
+      ],
+      "detail": "Combined gateway log reports 'running: web, sdk'; SDK listener owns 0.0.0.0:43118 inside the container (not published)."
+    },
+    {
+      "id": "default-entrypoint-cmd",
+      "status": "fail-pre-existing",
+      "command": "docker run --rm --name b09a-default-cmd-candidate-20261126 --env-file /tmp/b09a-env -e DATAOPS_DSH_PORT=13080 dataops-ai-workspace-candidate:local",
+      "exitCode": 1,
+      "error": "Error: Cannot find module '/opt/dataops-runtime/src/daemon.mjs' (code MODULE_NOT_FOUND, Node.js v26.13.1)",
+      "classification": "not candidate-specific",
+      "detail": "The same default CMD fails identically on dataops-ai-workspace:final-20261125-sdkfix. Older images dataops-ai-workspace:delivery-20261123-amd64 and dataops-ai-workspace:final-20261124-0032 also lack daemon.mjs. The running dataops-ai-admin container overrides CMD to '... exec sleep infinity', so this path is not used in the deployment."
+    },
+    {
+      "id": "production-equivalent-startup",
+      "status": "pass",
+      "command": "docker run -d --name b09a-candidate-runtime-20261126 --env-file /tmp/b09a-env -e DATAOPS_DSH_PORT=13080 -v b09a-candidate-workspace-20261126:/workspace dataops-ai-workspace-candidate:local /bin/sh -lc 'exec sleep infinity'",
+      "actual": "entrypoint active; independent sshd listener; combined workspace-gateway process; dataops-dsh-service start returned state=running, ready=true, pid=1304, port=13080",
+      "detail": "The CMD override matches the running production container's Cmd. No host port was published."
+    },
+    {
+      "id": "readiness",
+      "status": "pass",
+      "actual": {
+        "coldStartMs": 43607,
+        "warmRestartMs": 4299,
+        "stopMs": 1008,
+        "gatewayProcessObservedAtMs": 2471
+      },
+      "detail": "Cold start copied the 805MB profile template to the fresh volume. One immediate status call right after start returned transient state=starting; after 5-10s it was stably running/ready. Warm restart (same volume) ready in 4.3s."
+    },
+    {
+      "id": "plugin-routes",
+      "status": "pass",
+      "actual": {
+        "/": 401,
+        "/integrations/dataops/model-sync": 401,
+        "/integrations/dataops/skill-plaza": 401,
+        "/integrations/dataops/workspace-limits": 401
+      },
+      "detail": "401 means the route is registered behind browser authentication; no 404/5xx. The service readiness check uses the model-sync route and reported ready=true."
+    },
+    {
+      "id": "runtime-memory",
+      "status": "pass-with-observation",
+      "actual": {
+        "dshRssKb": 334548,
+        "workspaceGatewayRssKb": 69804,
+        "entrypointRssKb": 1720,
+        "sshdRssKb": 2320,
+        "sleepRssKb": 1596,
+        "processRssSumKb": 409988,
+        "dockerStatsMem": "961.6MiB / 19.53GiB",
+        "cgroupMemoryCurrentBytes": 1299951616,
+        "cgroupMemoryPeakBytes": 2043346944
+      },
+      "detail": "dsh RSS is 23.8MB below the 358MB baseline; combined gateway+dsh RSS is within 1.1MB of baseline. The combined gateway process alone is 24.9MB above the baseline 44.9MB snapshot; treat that as an observation, not a gate failure."
+    },
+    {
+      "id": "writable-layer",
+      "status": "pass",
+      "actual": "733kB (virtual 8.97GB)",
+      "command": "docker ps -s --filter name=b09a-candidate-runtime-20261126 --format '{{.Names}}\\t{{.Size}}'",
+      "detail": "Measured after a cold start and a warm stop/start; the 805MB profile lives on the fresh named volume, not the writable layer."
+    },
+    {
+      "id": "image-size",
+      "status": "pass",
+      "actual": {
+        "dockerImages": "11.9GB",
+        "compressedBytes": 2909582424,
+        "historyBytes": 8965493990
+      },
+      "detail": "Below the production 13.2GB row by 1.3GB."
+    },
+    {
+      "id": "isolation-and-safety",
+      "status": "pass",
+      "actual": "PortBindings={}, NetworkSettings.Ports={}, network=bridge; production container remained running with unchanged StartedAt; host listeners 127.0.0.1:3080 and 0.0.0.0:3000 unchanged.",
+      "detail": "Temporary container and volume were removed after measurement; env file containing secrets was deleted."
+    }
+  ],
+  "comparison": {
+    "dockerImagesSize": {
+      "baseline": "13.2GB",
+      "candidate": "11.9GB",
+      "delta": "-1.3GB (-9.8%)"
+    },
+    "compressedBytes": {
+      "baseline": 3160902480,
+      "candidate": 2909582424,
+      "delta": "-251320056 bytes (-7.95%)"
+    },
+    "historyBytes": {
+      "baseline": 10068270890,
+      "candidate": 8965493990,
+      "delta": "-1102776900 bytes (-10.95%)"
+    },
+    "writableLayer": {
+      "baseline": "2.2GB",
+      "candidate": "733kB",
+      "delta": "-2.2GB (99.97% smaller)"
+    },
+    "dshRssKb": {
+      "baseline": 358392,
+      "candidate": 334548,
+      "delta": "-23844 (-6.65%)"
+    },
+    "workspaceGatewayRssKb": {
+      "baseline": 44900,
+      "candidate": 69804,
+      "delta": "+24904 (+55.47%)"
+    },
+    "combinedDshGatewayRssKb": {
+      "baseline": 403292,
+      "candidate": 404352,
+      "delta": "+1060 (+0.26%)"
+    },
+    "readyTime": {
+      "baselineTargetCold": "30-60s",
+      "baselineTargetWarm": "10-15s",
+      "candidateCold": "43.6s",
+      "candidateWarm": "4.3s"
+    },
+    "profileBundles": {
+      "baseline": 26,
+      "candidate": 26
+    }
+  },
+  "deviations": [
+    "Used a fresh named volume b09a-candidate-workspace-20261126 at /workspace instead of the production volume dataops-ai-admin-dsh-run, so production profile/session data could not be modified. Same mount destination and same env set were used, minus DATAOPS_DSH_PROFILE_SOURCE_REF/DATAOPS_DSH_SOURCE_REF/DATAOPS_DSH_PORT.",
+    "DSH listened on loopback port 13080 inside the container instead of 3080; no port was published, so host 3000/3080 were untouched.",
+    "Seeded a random 64-character owner token at /run/dataops-workspace/internal-token (nobody:nogroup, 0640) to unblock the sidecar's documented wait. The production container has the same 64-byte file; in this isolated test the platform helper/daemon path that provisions it is unavailable because of the missing daemon.mjs.",
+    "Used CMD override sleep infinity to match the running dataops-ai-admin container. The image default CMD was tested separately and fails (see checks.default-entrypoint-cmd).",
+    "Gateway backend authentication with the synthetic owner token was not asserted; the gateway process and listeners were verified, not the portal end-to-end handshake."
+  ],
+  "reproduction": {
+    "envPreparation": "docker inspect dataops-ai-admin --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -vE '^(DATAOPS_DSH_PROFILE_SOURCE_REF|DATAOPS_DSH_SOURCE_REF|DATAOPS_DSH_PORT)=' > /tmp/b09a-env; chmod 600 /tmp/b09a-env",
+    "coldStart": "docker run -d --name b09a-candidate-runtime-20261126 --env-file /tmp/b09a-env -e DATAOPS_DSH_PORT=13080 -v b09a-candidate-workspace-20261126:/workspace dataops-ai-workspace-candidate:local /bin/sh -lc 'exec sleep infinity'",
+    "startDsh": "docker exec b09a-candidate-runtime-20261126 dataops-dsh-service start",
+    "status": "docker exec b09a-candidate-runtime-20261126 dataops-dsh-service status",
+    "metrics": "docker ps -s --filter name=b09a-candidate-runtime-20261126; docker exec b09a-candidate-runtime-20261126 ps -eo pid,ppid,rss,args; docker stats --no-stream",
+    "cleanup": "docker exec b09a-candidate-runtime-20261126 dataops-dsh-service stop; docker stop -t 20 b09a-candidate-runtime-20261126; docker rm -f b09a-candidate-runtime-20261126; docker volume rm b09a-candidate-workspace-20261126"
+  },
+  "cleanup": {
+    "containerRemoved": true,
+    "volumeRemoved": true,
+    "envFileRemoved": true,
+    "productionContainerRunning": true,
+    "productionImageUnchanged": true
+  }
+}
