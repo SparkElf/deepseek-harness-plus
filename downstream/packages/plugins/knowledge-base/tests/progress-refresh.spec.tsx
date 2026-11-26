@@ -31,7 +31,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     'IconCheckOutlineRegular', 'IconChevronDownOutlineRegular', 'IconChevronUpOutlineRegular',
     'IconDeliverDocRegular', 'IconFolderOpenOutlineRegular', 'IconListPenOutlineRegular',
     'IconPanelLeftOutlineRegular', 'IconPlusOutlineRegular', 'IconRightUpOutlineRegular',
-    'IconSearchOutlineRegular', 'IconSlidersTwoOutlineRegular',
+    'IconSearchOutlineRegular', 'IconChecklistOutline14', 'IconArchiveOutline20', 'IconWarningOutline16', 'IconSettingsOutline16', 'IconPanelLeftOutline16', 'IconChevronUpOutline14', 'IconCheckOutline16', 'IconListPenOutline16', 'IconFolderOpen16', 'IconRightUpOutline14', 'IconSlidersTwoOutlineRegular',
   ]
   const exports: Record<string, unknown> = { __esModule: true }
   for (const name of names) exports[name] = passthrough(name)
@@ -70,12 +70,13 @@ function mountPopover(refreshSignal: number, calls: string[]): {
     }
   })
 
+  const uploads: import('../src/client/progressRules.ts').UploadTaskView[] = []
   const container = document.createElement('div')
   document.body.append(container)
   const root = createRoot(container)
   const render = (signal: number): void => {
     act(() => {
-      root.render(<KnowledgeProgressPopover t={t} uploads={[]} watchExtraction refreshSignal={signal} />)
+      root.render(<KnowledgeProgressPopover t={t} uploads={uploads} watchExtraction refreshSignal={signal} />)
     })
   }
   render(refreshSignal)

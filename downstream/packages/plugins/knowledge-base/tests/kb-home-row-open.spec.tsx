@@ -24,7 +24,7 @@ vi.mock('@deepseek-ai/dsh-client-ui-primitives', () => {
     'IconCheckOutlineRegular', 'IconChevronDownOutlineRegular', 'IconChevronUpOutlineRegular',
     'IconDeliverDocRegular', 'IconFolderOpenOutlineRegular', 'IconListPenOutlineRegular',
     'IconPanelLeftOutlineRegular', 'IconPlusOutlineRegular', 'IconRightUpOutlineRegular',
-    'IconSearchOutlineRegular', 'IconSlidersTwoOutlineRegular',
+    'IconSearchOutlineRegular', 'IconChecklistOutline14', 'IconArchiveOutline20', 'IconWarningOutline16', 'IconSettingsOutline16', 'IconPanelLeftOutline16', 'IconChevronUpOutline14', 'IconCheckOutline16', 'IconListPenOutline16', 'IconFolderOpen16', 'IconRightUpOutline14', 'IconSlidersTwoOutlineRegular',
   ]
   const exports: Record<string, unknown> = { __esModule: true }
   for (const name of names) exports[name] = passthrough(name)

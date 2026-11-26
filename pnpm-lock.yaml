@@ -2075,7 +2075,7 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugins/kb-citation
       '@sparkelf/dsh-knowledge-base':
-        specifier: 0.6.3
+        specifier: workspace:*
         version: link:../../packages/plugins/knowledge-base
       '@sparkelf/dsh-mineru':
         specifier: workspace:*

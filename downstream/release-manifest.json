@@ -194,6 +194,14 @@
         "test": "pnpm --filter @sparkelf/dsh-kb-citation run test"
       },
       {
+        "name": "@sparkelf/dsh-knowledge-base",
+        "version": "0.6.3",
+        "path": "downstream/packages/plugins/knowledge-base",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-knowledge-base run build",
+        "test": "pnpm --filter @sparkelf/dsh-knowledge-base run test"
+      },
+      {
         "name": "@sparkelf/dsh-mineru",
         "version": "0.1.4",
         "path": "downstream/packages/plugins/mineru",
@@ -388,6 +396,13 @@
       "path": "downstream/packages/plugins/kb-citation",
       "version": "0.1.6",
       "profileSpec": "0.1.6",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-knowledge-base": {
+      "path": "downstream/packages/plugins/knowledge-base",
+      "version": "0.6.3",
+      "profileSpec": "0.6.3",
       "profilePinStatus": "exact",
       "override": "enabled"
     },

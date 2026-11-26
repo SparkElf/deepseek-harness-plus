@@ -36,6 +36,7 @@
     "@sparkelf/dsh-dataops-model-default": "downstream/packages/plugins/dataops-model-default",
     "@sparkelf/dsh-group-chat": "downstream/packages/plugins/group-chat",
     "@sparkelf/dsh-kb-citation": "downstream/packages/plugins/kb-citation",
+    "@sparkelf/dsh-knowledge-base": "downstream/packages/plugins/knowledge-base",
     "@sparkelf/dsh-mineru": "downstream/packages/plugins/mineru",
     "@sparkelf/dsh-mobile-bridge": "downstream/packages/plugins/mobile-bridge",
     "@sparkelf/dsh-mobile-bridge-server": "downstream/packages/plugins/mobile-bridge-server",
