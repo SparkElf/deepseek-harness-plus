@@ -226,6 +226,9 @@ const commands = {
     if (!tarball) fail('dsh-plus pack produced no tarball')
     cpSync(join(root, 'downstream/image/Dockerfile'), join(context, 'Dockerfile'))
     cpSync(join(context, tarball), join(context, 'plus.tgz'))
+    for (const name of ['dsh-plugin-backup', 'dsh-image-hoist']) {
+      cpSync(join(root, 'packages/bundle/plus/node_modules/@sparkelf', name), join(context, name), { recursive: true, dereference: true })
+    }
     execFileSync('docker', ['build', '-t', tag, context], { cwd: root, stdio: 'inherit' })
     console.log(`image: ${tag}`)
   },
