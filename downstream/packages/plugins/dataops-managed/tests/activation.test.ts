@@ -141,7 +141,7 @@ describe('apply', () => {
     await apply(context as never, CONFIG)
 
     expect((registered as Array<{ name: string }>).map((item) => item.name).sort())
-      .toEqual(['api-connector-authoring', 'browser', 'dataops-collect', 'dataops-governance', 'dataops-metadata-optimizer', 'dataops-query', 'dataops-synonym-governance', 'prefect-script-authoring', 'skill-provisioning'])
+      .toEqual(['api-connector-authoring', 'browser', 'dataops-collect', 'dataops-governance', 'dataops-metadata-optimizer', 'dataops-query', 'dataops-synonym-governance', 'prefect-script-authoring', 'skill-provisioning', 'wanxiang-ai-admin'])
     const provider = (registered as Array<{ name: string }>).find((item) => item.name === 'dataops-query') as unknown as {
       name: string
       list: () => Promise<{ name: string; locator: URL }[]>
