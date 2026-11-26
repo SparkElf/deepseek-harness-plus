@@ -19,6 +19,9 @@ pnpm install --frozen-lockfile
 # 查看当前锁定的官方 revision、Plus 版本、profile pin 数量
 node downstream/tools/downstream.mjs status
 
+# 生成可部署的 profile（约 564MB，包含 workspace 本地包）
+node downstream/tools/downstream.mjs profile --out /tmp/dataops-web-profile
+
 # 检查 clean fork 的前置文件、tag、lockfile、profile 和嵌套 workspace
 node downstream/tools/downstream.mjs doctor
 

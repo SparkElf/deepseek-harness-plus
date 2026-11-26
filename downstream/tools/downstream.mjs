@@ -219,6 +219,16 @@ const commands = {
     for (const warning of warnings) console.warn(`warning      ${warning}`)
     console.log(`doctor: ${relative(root, 'downstream/release-manifest.json')} is reproducible-sane; ${warnings.length} warning(s)`)
   },
+  profile(args = []) {
+    const outIndex = args.indexOf('--out')
+    const out = outIndex >= 0 ? args[outIndex + 1] : join(root, 'downstream/.artifacts/dataops-web-profile')
+    if (!out) fail('usage: downstream profile [--out <directory>]')
+    execFileSync('pnpm', ['--filter', '@sparkelf/dataops-web-profile', 'deploy', '--prod', '--legacy', out], { cwd: root, stdio: 'inherit' })
+    for (const file of ['package.json', 'profile.json']) {
+      if (!existsSync(join(out, file))) fail(`profile deploy did not produce ${file}`)
+    }
+    console.log(`profile: ${out}`)
+  },
   publish(args = []) {
     const dryRun = args.includes('--dry-run')
     if (!dryRun) {
@@ -262,6 +272,7 @@ Commands:
   build-packages  build migrated workspace packages (fails until migration)
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
+  profile         deploy the generated DataOps web profile to a directory
   doctor          check clean-fork reproducibility prerequisites
   image-plan      write a deterministic image input plan from the release manifest
   image           run DOWNSTREAM_IMAGE_BUILDER with the release manifest
