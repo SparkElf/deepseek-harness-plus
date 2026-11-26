@@ -8,8 +8,10 @@
 #   fast path    DATAOPS_WORKSPACE_DIR (or --dataops) names a DataOps
 #                `infra/docker-workspace` checkout; the artifacts are copied from it.
 #   public path  the DSH source is fetched at DSH_SOURCE_REVISION and packed with its `.git`,
-#                the Plus tarball is packed from this monorepo, and `vendor/*.tgz` is downloaded
-#                from npm and the SheetJS CDN.
+#                the Plus tarball is packed from this monorepo, a vendor row with a `seedPath`
+#                is copied from the tracked `seed/` directory, and the remaining `vendor/*.tgz`
+#                is downloaded from npm. The SheetJS CDN is only a fallback for a missing or
+#                mismatched xlsx seed.
 #
 # `dsh-plus apply` runs `git rev-parse HEAD` and `git apply --3way` in the source tree, so a
 # source archive without `.git` cannot build a Plus layer. The public path keeps the checkout's
@@ -46,7 +48,7 @@ check_only=0
 dataops="${DATAOPS_WORKSPACE_DIR:-}"
 
 usage() {
-  sed -n '2,37p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+  sed -n '2,38p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
 
 while [ "$#" -gt 0 ]; do
@@ -123,8 +125,9 @@ if [ "$mode" = "dataops" ]; then
   dataops="$(cd "$dataops" && pwd)"
 fi
 
-# Vendor rows: path, sha256, download URL, size. The loop reads a file rather than a process
-# substitution so a node failure stops the script before anything is copied.
+# Vendor rows: path, sha256, fallback URL, size, seed path, upstream digest. The loop reads a
+# file rather than a process substitution so a node failure stops the script before anything is
+# copied.
 rows="$(mktemp)"
 trap 'rm -f "$rows"' EXIT
 node - "$lock" >"$rows" <<'NODE'
@@ -133,14 +136,16 @@ const lock = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
 const rows = lock.vendorTarballs ?? []
 for (const row of rows) {
   if (row.required === false) continue
-  const url = row.source?.url ?? ''
-  process.stdout.write([row.path, row.sha256, url, row.bytes ?? ''].join('\t') + '\n')
+  const url = row.source?.url ?? row.source?.fallback?.url ?? ''
+  const upstreamSha = row.source?.upstreamSha256 ?? row.source?.fallback?.upstreamSha256 ?? ''
+  process.stdout.write([row.path, row.sha256, url, row.bytes ?? '', row.seedPath ?? '', upstreamSha].join('\t') + '\n')
 }
 NODE
 row_count="$(wc -l <"$rows" | tr -d ' ')"
 [ "$row_count" -gt 0 ] || die "inputs.lock.json declares no required vendorTarballs"
 
 problems=()
+vendor_xlsx_source=""
 
 add_problem() {
   problems+=("$1")
@@ -208,8 +213,8 @@ verify_plus() {
 }
 
 verify_vendor() {
-  local rel sha _url bytes path actual size
-  while IFS=$'\t' read -r rel sha _url bytes; do
+  local rel sha _url bytes _seed _upstream path actual size
+  while IFS=$'\t' read -r rel sha _url bytes _seed _upstream; do
     path="$here/$rel"
     if [ ! -s "$path" ]; then
       add_problem "$rel: missing"
@@ -263,6 +268,38 @@ copy_from_dataops() {
     return
   fi
   cp -f "$src" "$ctx/vendor/$name"
+  if [ "$name" = "xlsx-0.20.3.tgz" ]; then
+    vendor_xlsx_source="dataops"
+  fi
+}
+
+# Copy a tracked seed when the lock row names one and its bytes match the row. A seed is already
+# the pinned artifact, so a hit needs neither the network nor the CDN repack recipe. A missing or
+# mismatched seed is not a failure by itself: the caller falls back and verification still gates
+# the final file.
+copy_from_seed() {
+  local rel="$1" sha="$2" bytes="$3" seed="$4"
+  [ -n "$seed" ] || return 1
+  local src="$here/$seed" actual size
+  if [ ! -s "$src" ]; then
+    note "repo-seed: $seed missing; falling back for $rel"
+    return 1
+  fi
+  actual="$(sha256_of "$src")"
+  if [ "$actual" != "$sha" ]; then
+    note "repo-seed: $seed sha256 $actual, expected $sha; falling back for $rel"
+    return 1
+  fi
+  if [ -n "$bytes" ]; then
+    size="$(stat -c %s "$src")"
+    if [ "$size" != "$bytes" ]; then
+      note "repo-seed: $seed $size bytes, expected $bytes; falling back for $rel"
+      return 1
+    fi
+  fi
+  cp -f "$src" "$here/$rel"
+  note "repo-seed: $rel from $seed (sha256 ${sha:0:12}…)"
+  return 0
 }
 
 materialize_dataops() {
@@ -272,7 +309,7 @@ materialize_dataops() {
   else
     add_problem "context/dsh-src.tar.gz: missing from $dataops"
   fi
-  while IFS=$'\t' read -r rel _sha _url _bytes; do
+  while IFS=$'\t' read -r rel _sha _url _bytes _seed _upstream; do
     copy_from_dataops "$rel"
   done <"$rows"
   if [ -n "${DSH_PLUS_TARBALL:-}" ]; then
@@ -353,10 +390,11 @@ materialize_public_dsh_src() {
 }
 
 materialize_public_xlsx() {
+  local rel="$1" sha="$2" bytes="$3" url="$4" upstream_sha="$5"
+  [ -n "$url" ] || die "$rel: no CDN fallback URL in inputs.lock.json"
+  [ -n "$upstream_sha" ] || die "$rel: no source.fallback.upstreamSha256 in inputs.lock.json"
   command -v npm >/dev/null 2>&1 || die "npm is required to repack the xlsx tarball"
-  local url upstream_sha work
-  url="$(node -e "const j=require(process.argv[1]);const r=j.vendorTarballs.find(v=>v.path.endsWith('/xlsx-0.20.3.tgz'));process.stdout.write(r.source.url)" "$lock")"
-  upstream_sha="$(node -e "const j=require(process.argv[1]);const r=j.vendorTarballs.find(v=>v.path.endsWith('/xlsx-0.20.3.tgz'));process.stdout.write(r.source.upstreamSha256)" "$lock")"
+  local work built size
   work="$(mktemp -d)"
   note "downloading the xlsx CDN tarball and repacking it to the build's pinned bytes"
   fetch_url "$url" "$work/xlsx-cdn.tgz"
@@ -377,21 +415,37 @@ materialize_public_xlsx() {
     chmod 711 bin/xlsx.njs
     npm pack --ignore-scripts --pack-destination "$work/out" >/dev/null
   )
-  local built="$work/out/xlsx-0.20.3.tgz"
+  built="$work/out/xlsx-0.20.3.tgz"
   if [ ! -s "$built" ]; then
     rm -rf "$work"
     die "npm pack produced no xlsx-0.20.3.tgz"
+  fi
+  if [ "$(sha256_of "$built")" != "$sha" ]; then
+    rm -rf "$work"
+    die "repacked xlsx tarball sha256 $(sha256_of "$built"), expected $sha"
+  fi
+  size="$(stat -c %s "$built")"
+  if [ -n "$bytes" ] && [ "$size" != "$bytes" ]; then
+    rm -rf "$work"
+    die "repacked xlsx tarball is $size bytes, expected $bytes"
   fi
   cp -f "$built" "$ctx/vendor/xlsx-0.20.3.tgz"
   rm -rf "$work"
 }
 
 materialize_public_vendor() {
-  local rel sha url bytes name
-  while IFS=$'\t' read -r rel sha url bytes; do
+  local rel sha url bytes seed upstream_sha name
+  while IFS=$'\t' read -r rel sha url bytes seed upstream_sha; do
     name="$(basename "$rel")"
+    if copy_from_seed "$rel" "$sha" "$bytes" "$seed"; then
+      if [ "$name" = "xlsx-0.20.3.tgz" ]; then
+        vendor_xlsx_source="repo-seed"
+      fi
+      continue
+    fi
     if [ "$name" = "xlsx-0.20.3.tgz" ]; then
-      materialize_public_xlsx
+      materialize_public_xlsx "$rel" "$sha" "$bytes" "$url" "$upstream_sha"
+      vendor_xlsx_source="cdn-repack"
       continue
     fi
     if [ -z "$url" ]; then
@@ -407,7 +461,7 @@ materialize_public_vendor() {
 }
 
 materialize_public() {
-  note "source: public (git, pnpm, npm, SheetJS CDN)"
+  note "source: public (git, pnpm, npm, repository seed, SheetJS CDN fallback)"
   materialize_public_dsh_src
   if [ -n "${DSH_PLUS_TARBALL:-}" ]; then
     cp_from_external_plus
@@ -440,4 +494,5 @@ fi
 echo "  dsh-src      $ctx/dsh-src.tar.gz ($(sha256_of "$ctx/dsh-src.tar.gz" | cut -c1-12)…, HEAD $source_revision)"
 echo "  plus         $plus_dest (@sparkelf/dsh-plus@${plus_version})"
 echo "  vendor       $row_count files match inputs.lock.json"
+echo "  xlsx         $ctx/vendor/xlsx-0.20.3.tgz (source: ${vendor_xlsx_source:-present})"
 echo "  next         ./build-workspace-final.sh $plus_version --print"

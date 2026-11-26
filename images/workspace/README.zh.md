@@ -10,6 +10,8 @@
 images/workspace/
 ├── README.md                  this file
 ├── inputs.lock.json           digests of the mirror and of the artifacts a build must supply
+├── seed/
+│   └── xlsx-0.20.3.tgz        公开路径使用的固定 SheetJS tarball 副本
 ├── context/                   docker build context, mirrors infra/docker-workspace
 │   ├── Dockerfile             base layer (Node 26 + Python 3.12 + LibreOffice + Playwright)
 │   ├── Dockerfile.plus-cli-src  plus-inputs + source-build + plus-build
@@ -124,7 +126,7 @@ cd images/workspace
 
 ## 构建上下文输入
 
-`inputs.lock.json` 是两半的摘要权威：镜像进来的文件，以及构建必须提供的产物。`scripts/prepare-inputs.sh` 从 `DATAOPS_WORKSPACE_DIR` 或公开源生成 DSH 源码 tarball、Plus tarball 和 6 个 `vendor/` tarball 并逐一校验；`--check` 只校验不写文件。OfficeCLI 引擎二进制可选，因为引擎阶段会自行下载并校验。
+`inputs.lock.json` 是两半的摘要权威：镜像进来的文件，以及构建必须提供的产物。`scripts/prepare-inputs.sh` 从 `DATAOPS_WORKSPACE_DIR`、仓库内 `seed/` 的 xlsx 副本或公开源生成 DSH 源码 tarball、Plus tarball 和 6 个 `vendor/` tarball 并逐一校验；`--check` 只校验不写文件。只有当 xlsx seed 缺失或与锁不符时才回退到 SheetJS CDN。OfficeCLI 引擎二进制可选，因为引擎阶段会自行下载并校验。
 
 ## 迁移期一致性
 
