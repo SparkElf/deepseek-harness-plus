@@ -82,9 +82,11 @@ const commands = {
     const path = join(downstream, 'migration-inventory.json')
     if (!existsSync(path)) fail('missing downstream/migration-inventory.json')
     const inventory = readJson(path)
-    const pending = inventory.packages.filter((item) => item.status !== 'migrated')
-    console.log(`inventory     ${inventory.packages.length} source packages, ${pending.length} pending`)
+    const pending = inventory.packages.filter((item) => item.status !== 'migrated' && item.status !== 'excluded')
+    const excluded = inventory.packages.filter((item) => item.status === 'excluded')
+    console.log(`inventory     ${inventory.packages.length} source packages, ${pending.length} pending, ${excluded.length} excluded`)
     for (const item of pending) console.log(`  pending     ${item.name}@${item.version} -> ${item.targetPath}`)
+    for (const item of excluded) console.log(`  excluded    ${item.name}@${item.version}: ${item.excludedReason ?? ''}`)
   },
   'build-packages'() {
     const packagesRoot = join(downstream, 'packages')

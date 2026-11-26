@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-26T01:44:45.937Z",
+  "generatedAt": "2026-11-26T02:14:41.504Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -113,8 +113,9 @@
       "targetPath": "downstream/packages/plugins/image-hoist",
       "hasBuild": false,
       "hasTests": true,
-      "status": "pending",
-      "blockedReason": "source reconstructed from lib/*.js, but projection tests fail against the current DSH session fold; requires real projection API migration"
+      "status": "excluded",
+      "blockedReason": "source reconstructed from lib/*.js, but projection tests fail against the current DSH session fold; requires real projection API migration",
+      "excludedReason": "not in any shipped Plus profile; kept only for legacy image/hoist replay compatibility; source tree has no src, so it is archived with dsh-plugins-plus instead of migrated"
     },
     {
       "name": "@sparkelf/dsh-kb-citation",
