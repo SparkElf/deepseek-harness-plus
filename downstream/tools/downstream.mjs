@@ -230,6 +230,24 @@ const commands = {
       cpSync(join(root, 'packages/bundle/plus/node_modules/@sparkelf', name), join(context, name), { recursive: true, dereference: true })
     }
     execFileSync('docker', ['build', '-t', tag, context], { cwd: root, stdio: 'inherit' })
+    if (args.includes('--smoke')) {
+      const name = `dataops-web-smoke-${process.pid}`
+      try {
+        execFileSync('docker', ['run', '-d', '--name', name, tag], { cwd: root, stdio: 'inherit' })
+        let probe = ''
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          execFileSync('sleep', ['1'], { cwd: root })
+          try {
+            probe = execFileSync('docker', ['exec', name, 'node', '-e', "fetch('http://127.0.0.1:3080/').then(r=>{console.log(r.status);process.exit(r.status===401||r.status===200?0:1)}).catch(()=>process.exit(1))"], { cwd: root, encoding: 'utf8' }).trim()
+            break
+          } catch { /* not ready yet */ }
+        }
+        if (probe !== '401' && probe !== '200') fail(`image smoke probe did not answer: ${probe || 'no response'}`)
+        console.log(`smoke: http=${probe}`)
+      } finally {
+        try { execFileSync('docker', ['rm', '-f', name], { cwd: root, stdio: 'ignore' }) } catch {}
+      }
+    }
     console.log(`image: ${tag}`)
   },
   profile(args = []) {
