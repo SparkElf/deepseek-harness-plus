@@ -71,3 +71,22 @@ prepare-inputs.sh --public     EXIT 0
 The other five vendor tarballs still downloaded from `registry.npmjs.org`. Corrupting the seed in
 the test copy made the script fall back to the CDN; the repacked tarball still matched
 `sha256 275220ad69ba7721886e274d3a635ef5b04a9404cf0019f631bc19b8faa05c2a` and `2412635` bytes.
+
+## G13 clean-clone governance replay
+
+Verified on 2026-11-27 from `/tmp/plus-clean-g13`, a clean local clone of this repository
+after `pnpm install --frozen-lockfile` and a full repository build:
+
+```text
+downstream verify       EXIT 0
+  upstream lock / release manifest / Plus governance consistent
+downstream doctor       EXIT 0
+  release-manifest reproducible-sane, 27 workspace build-artifact warnings
+downstream image-plan   EXIT 0
+  digest sha256:19823e1e6054cfbd8e519b0a863e5f7e5d8a41dcf0ee517b35f636db03b8fe78
+  inputs 59 exact profile dependencies
+```
+
+The image-plan digest matches the current working tree, so the clean clone resolves the same
+release-manifest input set. The same clone built `dataops-ai-workspace-clean-g13:final`
+(11.8GB, 113 layers) and passed the workspace acceptance script 91/91.
