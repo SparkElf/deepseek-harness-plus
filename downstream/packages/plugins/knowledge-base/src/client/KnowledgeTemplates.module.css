@@ -1,0 +1,628 @@
+/*
+ * The template library dialog.
+ *
+ * Everything structural is the primitives': the dialog, the tab strip, the fields and
+ * the buttons are `Modal` / `SegmentedTabs` / `Input` / `Button`, so their colour and
+ * type already follow the active theme. What lives here is the two-pane layout the
+ * dialog needs -- a card grid for using templates, and a list-plus-form for
+ * maintaining them.
+ *
+ * No hardcoded font sizes and no colour literals: a type step comes from
+ * `font: var(--dsw-font-*)`, ink from `--dsw-alias-label-*`.
+ */
+
+/* The dialog body: toolbar, then whichever pane is showing. */
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 600px;
+}
+
+/* Tab strip and search share one line; the search takes the remaining width. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* An outcome or refusal sentence, given its own line so it cannot be mistaken for
+   part of the list. */
+.notice {
+  margin: 0;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.muted {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* ── the library pane ────────────────────────────────────────────────────────── */
+
+.library {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+/* Where a copy lands. Bordered because it is a choice, not a caption: the reader is
+   expected to change it. */
+.destination {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.destinationLabel {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* Two wide columns: a cover on the left and one name on the right. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: min(58vh, 600px);
+  overflow-y: auto;
+}
+
+/* One card: cover left, name right; actions appear on hover/focus. */
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 104px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.cover {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 108px;
+  width: 108px;
+  height: 82px;
+  border-radius: var(--dsw-radius-sm);
+  background: linear-gradient(135deg, var(--dsw-alias-bg-layer-1), var(--dsw-alias-bg-layer-2));
+  border: 1px solid var(--dsw-alias-border-l1);
+}
+
+.cover[data-template-kind='表格'] {
+  background: linear-gradient(135deg, rgba(16, 185, 129, .14), rgba(16, 185, 129, .04));
+}
+
+.cover[data-template-kind='PPT'] {
+  background: linear-gradient(135deg, rgba(245, 158, 11, .16), rgba(245, 158, 11, .04));
+}
+
+.cardMain {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.cardActions {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+  opacity: 0;
+  transform: translateY(3px);
+  transition: opacity .12s ease, transform .12s ease;
+}
+
+.card:hover .cardActions,
+.card:focus-within .cardActions {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none) {
+  .cardActions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cardTitle {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xs-13);
+  font-weight: 600;
+}
+
+.cardBody {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  /* Two lines at most: a long description must not make one card twice its
+     neighbour's height. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* The foot is pushed to the bottom, so every card's action sits on the same line
+   across a row. */
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.cardMeta {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── the manage pane ─────────────────────────────────────────────────────────── */
+
+.manage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.manageBar {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* One manageable template per row: name, its file and size, then the actions. */
+.manageList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manageRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: var(--dsw-radius-sm);
+}
+
+.manageRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.manageName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.manageActions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* The maintenance form: one labelled control per line. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.fieldHint {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.fileInput {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* Cancel and Save sit together at the form's end, in the order a reader expects. */
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+/* ── wide library shell, quick filters and built-in cards ─────────────────────── */
+
+.modal {
+  width: min(1180px, calc(100vw - 32px));
+  min-height: min(720px, 86vh);
+  max-height: min(860px, 90vh);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.quickFilters {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.quickFilter {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  cursor: pointer;
+}
+
+.quickFilter:hover,
+.quickFilter[data-active='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  max-height: min(52vh, 560px);
+}
+
+.card {
+  min-height: 174px;
+  padding: 12px;
+}
+
+.cardHead {
+  align-items: center;
+}
+
+.cardIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.cardTitle {
+  flex: 1 1 auto;
+}
+
+.favorite {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-base-strong-16);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.favorite:hover,
+.favorite[aria-pressed='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.formActions {
+  justify-content: flex-end;
+}
+
+
+.categoryFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.categoryChip {
+  height: 24px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  cursor: pointer;
+}
+
+.categoryChip:hover,
+.categoryChip[data-active='true'] {
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}
+
+
+.previewModal {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.previewContent {
+  margin: 0;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  font-family: var(--dsw-font-markdown-code);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── reference-style template cards: cover, title, usage, hover actions ─────── */
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterDivider {
+  width: 1px;
+  height: 16px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(238px, 1fr));
+  gap: 12px;
+  max-height: min(58vh, 620px);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  min-height: 248px;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  position: relative;
+  z-index: 4;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px 12px 0;
+}
+
+.cardHead .cardTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: var(--dsw-font-xxs-strong-12);
+  font-weight: 600;
+}
+
+.cover {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(145deg, var(--dsw-alias-bg-layer-1), var(--dsw-alias-bg-layer-2));
+}
+
+.cover[data-template-kind='表格'] {
+  background: linear-gradient(145deg, rgba(16, 185, 129, .18), rgba(16, 185, 129, .05));
+}
+
+.cover[data-template-kind='PPT'] {
+  background: linear-gradient(145deg, rgba(245, 158, 11, .20), rgba(245, 158, 11, .05));
+}
+
+.coverPage {
+  position: absolute;
+  inset: 20% 14% 24% 14%;
+  padding: 10px;
+  border-radius: 3px 3px 0 0;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+  overflow: hidden;
+}
+
+.documentPage {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  height: 100%;
+}
+
+.documentPage b,
+.documentPage i {
+  display: block;
+  height: 5px;
+  border-radius: 2px;
+  background: #d8dee9;
+}
+
+.documentPage b {
+  width: 54%;
+  height: 8px;
+  margin-bottom: 3px;
+  background: #9aa8bd;
+}
+
+.documentPage .lineWide { width: 100%; }
+.documentPage .lineShort { width: 42%; }
+.documentPage i:nth-child(2) { width: 88%; }
+.documentPage i:nth-child(4) { width: 72%; }
+
+.sheetGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  height: 100%;
+}
+
+.sheetGrid i {
+  display: block;
+  min-height: 12px;
+  border: 1px solid #d8e9df;
+  background: #f2faf6;
+}
+
+.slidePage {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding: 8px;
+  background: linear-gradient(135deg, #fffaf0, #fff);
+}
+
+.slidePage b {
+  display: block;
+  width: 68%;
+  height: 9px;
+  border-radius: 2px;
+  background: #d9a441;
+}
+
+.slidePage i {
+  display: block;
+  width: 90%;
+  height: 5px;
+  border-radius: 2px;
+  background: #e7d6b8;
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+  position: absolute;
+  z-index: 3;
+  left: 12px;
+  bottom: 10px;
+  right: auto;
+  max-width: calc(100% - 134px);
+  margin: 0;
+  padding: 0;
+}
+
+.cardActions {
+  position: absolute;
+  z-index: 5;
+  right: 12px;
+  bottom: 10px;
+  left: auto;
+  justify-content: flex-end;
+  background: var(--dsw-alias-bg-layer-1);
+  border: 1px solid var(--dsw-alias-border-l2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+
+.card:hover .coverPage,
+.card:focus-within .coverPage {
+  transform: translateY(-2px);
+  transition: transform .15s ease;
+}

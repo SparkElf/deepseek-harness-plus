@@ -1,0 +1,79 @@
+/*
+ * The batch selection bar's styles.
+ *
+ * Copied from the explorer's `.explorerSelectionBar` / `.explorerSelectionText` /
+ * `.explorerSelectionActions` (`dsh-better-sidebar: src/client/sidebar.module.css`
+ * line 932 onward), because the reader meets that bar in this window's right
+ * sidebar and the two are the same gesture at two scopes. The metrics are the
+ * explorer's verbatim: sticky to the bottom of the scroll container, 28px minimum
+ * height, a 6px gap, a 2px/8px pad, a 4px radius and the layer-2 fill.
+ */
+
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 28px;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+/* The count shrinks rather than the actions: a long selection count must never
+   push the buttons off the strip. */
+.text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-xxs-strong-12);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+  max-width: 72%;
+}
+
+/* One action. The explorer's chips are 20px pills; the same shape is kept here so
+   the strip reads identically, on the row's own hover fill. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-strong-11);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.action:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.action:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -1px;
+}
+
+/* Held while a batch write is in flight, so the same paths cannot be sent twice. */
+.action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

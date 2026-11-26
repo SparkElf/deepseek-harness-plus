@@ -1,0 +1,44 @@
+/**
+ * The scope pills in the tree band.
+ *
+ * The brief fixes the control's metrics: 26px high, 13px type, 6px radius, with
+ * `bg-layer-2` and `label-primary` on the selected pill and `label-tertiary` on
+ * the other. Everything is a theme token so the pills follow the panel's own theme
+ * rather than defining a second one.
+ */
+
+.tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tab {
+  box-sizing: border-box;
+  height: 26px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+  line-height: 26px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--dsw-alias-label-secondary);
+}
+
+.tab:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -1px;
+}
+
+.tabSelected,
+.tabSelected:hover {
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+}

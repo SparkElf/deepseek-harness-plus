@@ -1,0 +1,287 @@
+/*
+ * Knowledge-base Settings section. Layout only; type, ink and surfaces come from
+ * the shell's `--dsw-*` tokens so the section follows the active theme.
+ *
+ * Rewritten onto the real token set. The previous revision used six names the
+ * theme never defines -- `--dsh-text-secondary`, `--dsh-text-tertiary`,
+ * `--dsh-border`, `--dsh-surface`, `--dsh-code-surface`, `--dsh-font-mono` --
+ * each with a LIGHT-MODE rgb fallback, so in the dark theme every fallback won
+ * and the section painted dark text on a dark surface. Measured in the running
+ * shell on 2026-10-16: all six resolved to nothing.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font: var(--dsw-font-base-strong-16);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+/* The product's settings groups head their block with a quiet small label, not
+   an uppercased one: the design system carries no letter-spaced caps step. */
+.groupTitle {
+  margin: 16px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.statusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.statusLabel {
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.pairs {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.pair dt {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.pair dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font: var(--dsw-font-xxs-12);
+}
+
+.pair code {
+  font: var(--dsw-font-xxs-12) var(--ds-font-family-code);
+}
+
+
+
+.detail {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* The read-only marker is a `Tag`-shaped pill in the official outline tone:
+   hairline border, tertiary ink, 999px radius. */
+
+.notice {
+  margin: 0;
+  font: var(--dsw-font-xxs-12);
+}
+
+
+/* ---- Deployment wizard ---- */
+
+.wizard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The wizard's host picker follows the official settings-family input
+   (`ui-settings-models/ModelsSection.module.css` `.input`): a 32px box, a 0.5px
+   `l4` hairline, the `md` radius, the `layer-1` fill, and the 14px/22px step. */
+.select {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--dsw-radius-md);
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+  max-width: 420px;
+}
+
+.select:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-sm);
+}
+
+.stepLabel {
+  font: var(--dsw-font-xxs-12);
+}
+
+.logBox {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* The run log reads as the product's own code surface: layer-2 fill, hairline
+   border, rounded, monospace, and the code type step. */
+.log {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 10px;
+  border-radius: var(--dsw-radius-sm);
+  border: 1px solid var(--dsw-alias-border-l1);
+  background: var(--dsw-alias-bg-layer-2);
+  font: var(--dsw-font-xxs-12) var(--ds-font-family-code);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The storage-mode choice. Two options only, so they sit on one line rather than
+   stacking: the reader is comparing them, and a column would suggest a sequence. */
+.modeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 2px 0 6px;
+}
+
+.modeOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  cursor: pointer;
+}
+
+.modeOption:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.modeOption input {
+  margin: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+}
+
+.modeOption:has(input:checked) {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+/* A editable value inside the connection list. Sized to the row it sits in rather than
+   the column, because these are short transport facts: a host, a port, a path. */
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.input::placeholder {
+  color: var(--dsw-alias-label-dimmed);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The save affordance and its answer on one line: the button is the action, the text
+   beside it is what happened, so neither has to be hunted for after a press. */
+.saveRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 16px;
+}
+
+.saveRow .notice {
+  margin: 0;
+}
+
+/* A credential's state, shown beside its name. Text carries the meaning; colour alone
+   would leave it unreadable to anyone who cannot separate these two hues. */
+.badgeOk,
+.badgeWarn {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font: var(--dsw-font-xxxs-11);
+  white-space: nowrap;
+}
+
+.badgeOk {
+  color: var(--dsw-alias-state-success-primary);
+  background: var(--dsw-alias-state-success-bg);
+}
+
+.badgeWarn {
+  color: var(--dsw-alias-state-warning-primary);
+  background: var(--dsw-alias-state-warning-bg);
+}
+
+/* A failed save, distinct from the neutral notice above. */
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font: var(--dsw-font-xxs-12);
+}
