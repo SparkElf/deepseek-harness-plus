@@ -555,6 +555,9 @@ RUN node -e "\
 
 RUN mkdir -p /packages/workspace-web-gateway-protocol /opt/dataops-runtime
 COPY --from=workspace-web-gateway-protocol . /packages/workspace-web-gateway-protocol/
+# The sidecar runs as 65534 and imports this package. COPY preserves the checkout modes, and a
+# clone made under umask 0077 leaves these files 0600, which that identity cannot read.
+RUN chmod -R a+rX /packages/workspace-web-gateway-protocol
 COPY platform-sidecars/package.json platform-sidecars/package-lock.json /opt/dataops-runtime/
 RUN --mount=type=cache,id=dataops-sidecars-npm,target=/root/.npm,sharing=locked \
     cd /opt/dataops-runtime \
