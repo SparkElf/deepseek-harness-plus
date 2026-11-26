@@ -57,6 +57,7 @@ source_cmd=(docker build --network host -f "$ctx/Dockerfile.plus-cli-src" --targ
   -t "$repo:source-build-$plus_version" "$ctx")
 plus_cmd=(docker build --network host -f "$ctx/Dockerfile.plus-cli-src" --target plus-build
   "${gateway_context_args[@]}" "${common_args[@]}"
+  --build-arg "RUNTIME_PRUNE=$runtime_prune"
   -t "$repo:plus-cli-py312-$plus_version" "$ctx")
 
 if [ "$print_only" = "1" ]; then
