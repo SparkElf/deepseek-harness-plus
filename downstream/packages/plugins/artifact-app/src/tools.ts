@@ -1,5 +1,5 @@
 /**
- * The nine model tools that drive cockpit artifacts.
+ * The model tools that drive cockpit artifacts and the external cockpit registry.
  *
  * They are deliberately thin: every authorization and data decision stays on the
  * DataOps API, and the tools only shape a small JSON answer for the model. HTML is
@@ -17,6 +17,7 @@ import { packTemplateDir } from './client/pack.ts'
 import type { Context } from '@deepseek-ai/cordis'
 import { ArtifactApi, type GrantInput } from './api.ts'
 import type { Config } from './config.ts'
+import { assertExternalCockpitId } from './external.ts'
 import { assertCockpitHtml } from './templates.ts'
 import type { OpenCockpitHub } from './open-hub.ts'
 
@@ -428,4 +429,78 @@ export function registerCockpitTools(deps: ToolDeps): void {
       return toolJson({ ok: true, ownerId: result.ownerId, grants: result.grants })
     },
   })), 'artifact-app: cockpit grant tool')
+
+  // External cockpit registry (M1). These tools only accept a registry id or search
+  // terms; arbitrary URLs never reach DataOps, and login/cookies are M2.
+
+  ctx.effect(() => ctx.tools.register(defineTool({
+    name: 'external_cockpit_search',
+    description:
+      'Search the external cockpit registry by name/description/tag. Returns display metadata and a registry id only; '
+      + 'it never accepts a URL and never returns credentials, cookies or launch tickets. Call external_cockpit_get '
+      + 'or external_cockpit_link with the returned id before opening anything.',
+    parameters: {
+      query: { type: 'string', description: 'Name/description/tag keyword. Not a URL.' },
+      tag: { type: 'string', description: 'One business tag, e.g. crm.' },
+      limit: { type: 'number', description: 'Maximum rows, default 20, max 50.' },
+    },
+    output: { schema: open, render: textOutput },
+    execute: async (args: { query?: string; tag?: string; limit?: number }) => {
+      const requested = Number.isFinite(args.limit) ? Math.trunc(args.limit as number) : 20
+      const pageSize = Math.max(1, Math.min(50, requested))
+      const page = await api.searchExternalCockpits({
+        search: args.query,
+        tag: args.tag,
+        page: 1,
+        pageSize,
+      })
+      return toolJson({
+        ok: true,
+        total: page.total,
+        page: page.page,
+        pageSize: page.pageSize,
+        items: page.items,
+      })
+    },
+  })), 'artifact-app: external cockpit search tool')
+
+  ctx.effect(() => ctx.tools.register(defineTool({
+    name: 'external_cockpit_get',
+    description:
+      'Read one external cockpit from the registry by id. Returns display metadata and the target HTTPS URL only. '
+      + 'The id must come from external_cockpit_search; arbitrary URLs are rejected. Secrets, cookies, login recipes '
+      + 'and launch tickets are never returned.',
+    parameters: {
+      id: { type: 'string', required: true, description: 'Registry id from external_cockpit_search. Never a URL.' },
+    },
+    output: { schema: open, render: textOutput },
+    execute: async (args: { id: string }) => {
+      const id = assertExternalCockpitId(args.id)
+      return toolJson({ ok: true, cockpit: await api.getExternalCockpit(id) })
+    },
+  })), 'artifact-app: external cockpit get tool')
+
+  ctx.effect(() => ctx.tools.register(defineTool({
+    name: 'external_cockpit_link',
+    description:
+      'Get a stable HTTPS link for one registered external cockpit by id, for opening in a new browser window. '
+      + 'Accepts only a registry id, never a URL. M1 returns the stable link; login, credential selection and the '
+      + 'Playwright viewer are M2 and are not performed by this tool.',
+    parameters: {
+      id: { type: 'string', required: true, description: 'Registry id from external_cockpit_search. Never a URL.' },
+    },
+    output: { schema: open, render: textOutput },
+    execute: async (args: { id: string }) => {
+      const id = assertExternalCockpitId(args.id)
+      const link = await api.linkExternalCockpit(id)
+      return toolJson({
+        ok: true,
+        id: link.id,
+        url: link.url,
+        expiresAt: link.expiresAt,
+        mode: link.mode,
+        note: 'M1 稳定链接：请在新窗口打开。M2 才提供凭据选择与 Playwright 登录查看。',
+      })
+    },
+  })), 'artifact-app: external cockpit link tool')
 }
