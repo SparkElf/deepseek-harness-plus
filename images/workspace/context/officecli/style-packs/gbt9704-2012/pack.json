@@ -1,0 +1,69 @@
+{
+  "name": "gbt9704-2012",
+  "title": "党政机关公文格式（GB/T 9704-2012）",
+  "description": "全局默认版式：A4，上37mm/下35mm/左28mm/右26mm，正文三号仿宋_GB2312，标题二号方正小标宋简体，22行×28字，标题与页脚均为黑色。",
+  "template": "template.docx",
+  "page": {
+    "size": "A4",
+    "marginTopMm": 37,
+    "marginBottomMm": 35,
+    "marginLeftMm": 28,
+    "marginRightMm": 26,
+    "linesPerPage": 22,
+    "charsPerLine": 28
+  },
+  "body": {
+    "style": "Normal",
+    "font": "FangSong_GB2312",
+    "sizePt": 16,
+    "lineSpacingPt": 28.9
+  },
+  "titleStyle": {
+    "style": "Title",
+    "font": "方正小标宋简体",
+    "sizePt": 22
+  },
+  "headings": {
+    "Heading1": {
+      "font": "SimHei",
+      "sizePt": 16,
+      "color": "000000"
+    },
+    "Heading2": {
+      "font": "KaiTi_GB2312",
+      "sizePt": 16,
+      "color": "000000"
+    },
+    "Heading3": {
+      "font": "FangSong_GB2312",
+      "sizePt": 16,
+      "bold": true,
+      "color": "000000"
+    },
+    "Heading4": {
+      "font": "FangSong_GB2312",
+      "sizePt": 16,
+      "bold": true,
+      "color": "000000"
+    },
+    "Heading5": {
+      "font": "FangSong_GB2312",
+      "sizePt": 16,
+      "bold": true,
+      "color": "000000"
+    },
+    "Heading6": {
+      "font": "FangSong_GB2312",
+      "sizePt": 16,
+      "bold": true,
+      "color": "000000"
+    }
+  },
+  "pageNumber": {
+    "font": "SimSun",
+    "sizePt": 14,
+    "color": "000000",
+    "odd": "right",
+    "even": "left"
+  }
+}

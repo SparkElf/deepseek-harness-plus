@@ -1,0 +1,42 @@
+{
+  "name": "gbt9704-letter",
+  "title": "函（GB/T 9704-2012 书信版式）",
+  "description": "在 gbt9704-2012 基线上增加主送机关、落款、成文日期、附件说明版式；不含红头、发文字号、红色分隔线。",
+  "basedOn": "gbt9704-2012",
+  "template": "template.docx",
+  "letter": {
+    "applicable": [
+      "复函",
+      "商洽函",
+      "询问函",
+      "答复函"
+    ],
+    "layout": [
+      "标题（Title，二号方正小标宋，居中）",
+      "主送机关（ZhuSong，顶格，结尾冒号）",
+      "正文（Normal，首行缩进 2 字）",
+      "附件说明（FuJianShuoMing，左空 2 字）",
+      "落款（LuoKuan，右对齐）",
+      "成文日期（ChengWenRiQi，右对齐）"
+    ],
+    "styles": {
+      "ZhuSong": {
+        "description": "主送机关，三号仿宋_GB2312，顶格，黑色"
+      },
+      "LuoKuan": {
+        "description": "发文机关署名/落款，三号仿宋_GB2312，右对齐，黑色"
+      },
+      "ChengWenRiQi": {
+        "description": "成文日期，三号仿宋_GB2312，右对齐，黑色"
+      },
+      "FuJianShuoMing": {
+        "description": "附件说明，三号仿宋_GB2312，左空 2 字，黑色"
+      }
+    },
+    "forbidden": [
+      "FawenJiguan",
+      "FawenZihao",
+      "HongXian"
+    ]
+  }
+}

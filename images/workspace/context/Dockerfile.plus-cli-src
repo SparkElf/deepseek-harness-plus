@@ -1,0 +1,607 @@
+# Single-stage DSH layer: clone + install + build + apply in one image.
+# The runtime needs the source workspaces AND their node_modules (the patched
+# official packages are linked into the profile from /opt/dsh-source), so the
+# multi-stage split saved only .git/docs/snapshots -- not worth the complexity.
+# The base layer is a build ARG so a rebuilt base can be shipped without editing this file: the
+# default stays the tag `build-plus-cli.sh` produces, and a build that has to prove its own base
+# passes the tag it just built. Raising the tag is the one change here that can move the system
+# toolchain (Node, Debian packages) under every layer below it.
+ARG BASE_IMAGE=dataops-ai-workspace:base-py312
+FROM ${BASE_IMAGE} AS source-deps
+
+ARG DSH_SOURCE_REPOSITORY=https://github.com/deepseek-ai/deepseek-harness.git
+ARG DSH_SOURCE_REVISION=4b399c39a6d1479cd84ca591b4d7c88e24d38a96
+ARG DSH_PLUS_VERSION=0.2.9-alpha.104
+ARG DSH_PNPM_VERSION=11.28.5
+ARG DSH_SOURCE_REGISTRY=https://registry.npmmirror.com
+ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
+# The placeholder package an omitted capability is substituted with; the profile audit asserts
+# the installed manifest declares this name.
+ARG DSH_OMITTED_PACKAGE=@sparkelf/dsh-omitted
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
+
+ENV DSH_HOME=/opt/dsh-home \
+    OFFICECLI_SKIP_BINARY_DOWNLOAD=1 \
+    npm_config_proxy=${HTTP_PROXY} \
+    npm_config_https_proxy=${HTTPS_PROXY} \
+    npm_config_fetch_retries=3 \
+    npm_config_fetch_retry_mintimeout=5000 \
+    npm_config_fetch_retry_maxtimeout=30000 \
+    npm_config_fetch_timeout=300000 \
+    npm_config_network_concurrency=8 \
+    NODE_OPTIONS=--dns-result-order=ipv4first \
+    COREPACK_ENABLE_PROJECT_SPEC=0
+
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates build-essential python3 cmake \
+ && ln -sf /usr/bin/gcc /usr/local/bin/cc && ln -sf /usr/bin/gcc /usr/bin/cc \
+ && rm -rf /var/lib/apt/lists/*
+
+# LibreOffice 25.8.7 is installed in the base image; this layer no longer downloads it.
+# Keeping it in base makes every plus rebuild reuse the same 754MB layer.
+ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
+RUN --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
+    npm install -g pnpm@${DSH_PNPM_VERSION} --registry "${DSH_PLUS_INSTALL_REGISTRY}"
+
+COPY dsh-src.tar.gz /tmp/dsh-src.tar.gz
+# Keep .git: dsh-plus apply verifies HEAD and applies source patches with git; removing it
+# makes the plus layer fail with exit 1 before any image is produced.
+RUN mkdir -p /opt/dsh-source && tar xzf /tmp/dsh-src.tar.gz -C /opt/dsh-source && rm -f /tmp/dsh-src.tar.gz
+WORKDIR /opt/dsh-source
+# `dsh-plus apply` 之后会再跑一次 pnpm install；`ssh2` / `node-pty` 的 install 脚本会调用
+# node-gyp 现场编译原生模块，默认去 nodejs.org 下载头文件，在构建网络上会 ETIMEDOUT
+# （实测：`gyp ERR! stack AggregateError [ETIMEDOUT]` → `pnpm install after source patches failed`）。
+# 预置同版本头文件并让 node-gyp 直接用本地目录，构建不再依赖外网；node-pty 的原生模块必须保留，
+# 不能用 --ignore-scripts 绕过。
+ENV npm_config_disturl=https://mirrors.huaweicloud.com/nodejs \
+    npm_config_nodedir=/opt/node-gyp-headers
+# 版本号取自构建镜像里的 node 本身，避免镜像升版后头文件版本对不上。
+RUN NODE_VERSION="$(node -p 'process.version.slice(1)')" \
+ && mkdir -p /opt/node-gyp-headers \
+ && curl -fsSL "https://mirrors.huaweicloud.com/nodejs/v${NODE_VERSION}/node-v${NODE_VERSION}-headers.tar.gz" \
+    | tar -xz -C /opt/node-gyp-headers --strip-components=1 \
+ && test -d /opt/node-gyp-headers/include/node
+# `xlsx@0.20.3` is a tarball dependency on `cdn.sheetjs.com`, not an npm package: SheetJS stopped
+# publishing to the registry after 0.18.5, so no mirror (npmmirror included -- it 404s) carries it.
+# The build host cannot reach that CDN (curl times out), and a cold pnpm store then fails the whole
+# install. The tarball is vendored into the build context instead: it is a repack of the installed
+# 0.20.3 tree (2,412,635 B, md5 5ab9436a1aabeae822c3ed26dd1465d9), and because a repack changes the
+# bytes the lockfile's integrity is rewritten with it. The grep is the guard: if an upstream lockfile
+# ever stops naming that tarball, the build fails here instead of quietly fetching from a CDN this
+# host cannot reach.
+#
+# SCOPE: this covers the SOURCE tree only. `dsh-plus apply` then installs the profile from scratch,
+# and that install resolves the same package through a plugin's own dependency
+# (@deepseek-ai/dsh-client-ui-sidebar-documentpreview declares xlsx as that CDN URL), so it is a
+# second, independent path. A warm pnpm store hides it; a cold one fails there instead. Fixing the
+# profile side needs an override in the profile's own install (pnpm.overrides or a .pnpmfile.cjs
+# hook), not another sed here.
+COPY vendor/xlsx-0.20.3.tgz /opt/dsh-vendor/xlsx-0.20.3.tgz
+RUN test "$(md5sum /opt/dsh-vendor/xlsx-0.20.3.tgz | cut -d' ' -f1)" = 5ab9436a1aabeae822c3ed26dd1465d9 \
+ && sed -i 's#integrity: sha512-oLDq3jw7AcLqKWH2AhCpVTZl8mf6X2YReP+Neh0SJUzV/BdZYjth94tG5toiMB1PPrYtxOCfaoUCkvtuH+3AJA==, tarball: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz#integrity: sha512-PIv0xK5EAnrjH81czHrnxPy3fcPAh6Ikfk5Sr44ngAg16lGZEIFzrqnLrP7BBsGJMQehRQy2agFHjIp+9VP29w==, tarball: file:///opt/dsh-vendor/xlsx-0.20.3.tgz#' /opt/dsh-source/pnpm-lock.yaml \
+ && grep -q 'tarball: file:///opt/dsh-vendor/xlsx-0.20.3.tgz' /opt/dsh-source/pnpm-lock.yaml \
+ || { echo "the xlsx vendored tarball could not be wired into pnpm-lock.yaml; a CDN dependency is unreachable from this host" >&2; exit 1; }
+
+# The post-apply install runs again in the source tree and re-resolves the same CDN dependency
+# from `ui-sidebar-documentpreview`'s package.json, so the lockfile rewrite above is not enough.
+# pnpm reads `.pnpmfile.cjs` from the workspace root; point that resolver at the vendored tarball.
+
+
+# The lockfile pins every version, so the release-age policy check only adds 1754
+# metadata round trips; on this host it fails the whole install (measured
+# 2026-11-01: UND_ERR_INVALID_ARG on every URL). The check is skipped and the
+# registry is parameterised so a slow mirror can be swapped without editing here.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
+    --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
+    pnpm install --frozen-lockfile \
+      --config.minimumReleaseAge=0 \
+      --config.fetch-retries=6 \
+      --config.fetch-retry-mintimeout=5000 \
+      --config.fetch-retry-maxtimeout=60000 \
+      --config.registry=${DSH_SOURCE_REGISTRY}
+# No pre-apply build: `dsh-plus apply` patches the source and then runs
+# build:official once. Building here first would compile the unpatched tree
+# and be thrown away.
+
+# The source dependency tree is now complete. Everything below changes with the Plus
+# tarball or plugin pins; keeping it in a separate stage lets a pin-only rebuild reuse the
+# 2.66GB pnpm install above instead of reinstalling it.
+FROM source-deps AS plus-build
+ARG DSH_PLUS_VERSION=0.2.9-alpha.104
+ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
+
+# The sidebar 0.30.1-sparkelf.21 fix (subagents.live 503 degrade) is not on the registry: the
+# @sparkelf scope currently has no publish permission and OIDC is not configured. The profile
+# installs the reviewed tarball as a `file:` dependency instead. `pin-plus-plugins.mjs` writes
+# that spec from plugin-pins.json and re-checks the same digest before and after the install;
+# this layer copies the bytes early and verifies them, so a replaced or stale file fails the
+# build rather than silently installing another version. The build manifest marks this plugin
+# `vendored tarball, not registry-published`.
+ARG DATAOPS_VENDORED_SIDEBAR=sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz
+ARG DATAOPS_VENDORED_SIDEBAR_SHA256=0f8c41c38b0bfaf744c9866e7766d3d5ce444cfa0ac4eb87997d7479c4abb9b4
+COPY vendor/ /opt/dataops-vendor/
+COPY vendor/${DATAOPS_VENDORED_SIDEBAR} /opt/dataops-vendor/${DATAOPS_VENDORED_SIDEBAR}
+RUN echo "${DATAOPS_VENDORED_SIDEBAR_SHA256}  /opt/dataops-vendor/${DATAOPS_VENDORED_SIDEBAR}" | sha256sum -c -
+
+# The managed plugin is published to npm; this tarball stays as a byte-for-byte mirror for
+# offline inspection. The install pin is the registry version in plugin-pins.json — a
+# `file:` pin would fail the plus edition alias check (pitfalls 23.3).
+ARG DATAOPS_VENDORED_DATAOPS_MANAGED=sparkelf-dsh-dataops-managed-0.4.2.tgz
+ARG DATAOPS_VENDORED_DATAOPS_MANAGED_SHA256=39b256ebb6f746709b5d244d32743a90a223d89845c55bdd44d4d0f4bbec4a02
+COPY vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED} /opt/dataops-vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED}
+RUN echo "${DATAOPS_VENDORED_DATAOPS_MANAGED_SHA256}  /opt/dataops-vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED}" | sha256sum -c -
+
+COPY sparkelf-dsh-plus-${DSH_PLUS_VERSION}.tgz /tmp/sparkelf-dsh-plus.tgz
+# This deployment pins the Exa provider to the published 0.2.2-rc.1 build. An older pin's
+# `^0.1.6-alpha.1` peer set cannot satisfy this 0.2.2-rc.2 runtime, and the distribution's
+# intranet-team edition historically omitted the capability outright. Edit the tarball's own
+# metadata before anything installs it, so the profile projection, the global install and
+# `/opt/sparkelf-dsh-plus.tgz` all agree on the same reviewed version. The profile carries the
+# exact-version exemption for rc.1 against this runtime below, where the packages are installed.
+RUN set -eux; \
+    mkdir -p /tmp/plus-pin; \
+    tar -xzf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-pin; \
+    node -e "const fs=require('fs');const f='/tmp/plus-pin/package/package.json';const j=JSON.parse(fs.readFileSync(f,'utf8'));j.dshPlus.profile.dependencies['@deepseek-ai/dsh-web-search-exa']='0.2.2-rc.1';for(const edition of Object.values(j.dshPlus.editions||{})){if(Array.isArray(edition.omit))edition.omit=edition.omit.filter(name=>name!=='@deepseek-ai/dsh-web-search-exa');for(const field of ['packages','bundles'])if(Array.isArray(edition[field]))edition[field]=edition[field].map(name=>name==='@sparkelf/dsh-better-sidebar'?'dsh-better-sidebar':name)}fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n');"; \
+    tar -czf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-pin package; \
+    rm -rf /tmp/plus-pin; \
+    tar -xOf /tmp/sparkelf-dsh-plus.tgz package/package.json | grep -q '"@deepseek-ai/dsh-web-search-exa": "0.2.2-rc.1"'
+# AnySearch is DataOps-only: its bundle patch selects the domestic search/fetch provider.
+# Add it to the intranet-team edition before pin-plus-plugins rewrites the dependency table,
+# so the profile projection, `dsh-plus apply` bundle rows, and the vendored tarball pin all
+# agree. The source distribution carries the same rows; this keeps an older reviewed tarball
+# installable without republishing plus.
+RUN set -eux; \
+    mkdir -p /tmp/plus-anysearch; \
+    tar -xzf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-anysearch; \
+    node -e "const fs=require('fs');const f='/tmp/plus-anysearch/package/package.json';const j=JSON.parse(fs.readFileSync(f,'utf8'));const deps=j.dshPlus?.profile?.dependencies;if(deps===undefined)throw new Error('dshPlus.profile.dependencies is missing');if(deps['@anysearch/anysearch-dsh']===undefined)deps['@anysearch/anysearch-dsh']='0.1.8';const e=j.dshPlus.editions?.['intranet-team'];if(e===undefined)throw new Error('intranet-team edition is missing');for(const field of ['packages','bundles']){if(!Array.isArray(e[field]))throw new Error('intranet-team.'+field+' is missing');if(!e[field].includes('@anysearch/anysearch-dsh'))e[field].push('@anysearch/anysearch-dsh')}fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n');"; \
+    tar -czf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-anysearch package; \
+    rm -rf /tmp/plus-anysearch; \
+    tar -xOf /tmp/sparkelf-dsh-plus.tgz package/package.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const e=j.dshPlus.editions["intranet-team"];for(const field of ["packages","bundles"])if(!e[field].includes("@anysearch/anysearch-dsh"))throw new Error("anysearch missing from "+field);if(j.dshPlus.profile.dependencies["@anysearch/anysearch-dsh"]===undefined)throw new Error("anysearch missing from profile dependencies");console.log("anysearch joined the intranet-team edition")})'
+# DataOps raises four plugin pins past the reviewed plus edition (officecli style packs,
+# the government office skill body, the sidebar roster fix, and the dataops-managed browser
+# skill providers). The exact versions live in a checked-in JSON file so a plugin fix is one
+# reviewable change -- package bytes, this pin, and the assertion after `apply` -- instead of a
+# container commit. Rewrite the tarball's own dependency table before anything installs it,
+# exactly like the Exa pin above.
+COPY profile-defaults/plugin-pins.json /tmp/dataops-plugin-pins.json
+COPY pin-plus-plugins.mjs /usr/local/lib/pin-plus-plugins.mjs
+RUN node /usr/local/lib/pin-plus-plugins.mjs \
+      --tarball /tmp/sparkelf-dsh-plus.tgz \
+      --pins /tmp/dataops-plugin-pins.json
+# `@sparkelf/dsh-dataops-im` is DataOps-only: the reviewed edition neither installs nor mounts it,
+# so the pin alone would put the reviewed bytes in the dependency table while nothing ever loads
+# the settings page. Add it to the one edition this image installs, in both lists — the package
+# list makes the profile install it, and the bundle list makes `apply-plus.sh` restore its row into
+# `dsh.profile.bundles`. The admin-mode config itself ships in `profile-defaults/cordis.patch.yml`.
+RUN set -eux; \
+    mkdir -p /tmp/plus-im; \
+    tar -xzf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-im; \
+    node -e "const fs=require('fs');const f='/tmp/plus-im/package/package.json';const j=JSON.parse(fs.readFileSync(f,'utf8'));const e=j.dshPlus.editions['intranet-team'];if(e===undefined)throw new Error('intranet-team edition is missing');for(const field of ['packages','bundles']){if(!Array.isArray(e[field]))throw new Error('intranet-team.'+field+' is missing');if(!e[field].includes('@sparkelf/dsh-dataops-im'))e[field].push('@sparkelf/dsh-dataops-im')}fs.writeFileSync(f,JSON.stringify(j,null,2)+'\n');"; \
+    tar -czf /tmp/sparkelf-dsh-plus.tgz -C /tmp/plus-im package; \
+    rm -rf /tmp/plus-im; \
+    tar -xOf /tmp/sparkelf-dsh-plus.tgz package/package.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const e=JSON.parse(s).dshPlus.editions["intranet-team"];for(const field of ["packages","bundles"])if(!e[field].includes("@sparkelf/dsh-dataops-im"))throw new Error("dataops-im missing from "+field);console.log("dataops-im joined the intranet-team edition")})'
+# The edition validator walks every edition, not only the one being installed, and resolves a
+# package name either as a dependency key or through an `npm:` alias. A `file:` spec cannot
+# carry that alias, so the tarball's editions above name the key `dsh-better-sidebar` (which is
+# what intranet-team already used) and this gate keeps a future repack from reintroducing the
+# scoped spelling that would fail `dsh-plus install` before the install even starts.
+RUN ! tar -xOf /tmp/sparkelf-dsh-plus.tgz package/package.json | grep -q '"@sparkelf/dsh-better-sidebar"'
+# npm refuses the `workspace:` ranges a published tarball carries outside a pnpm workspace:
+# measured 2026-11-01 on 0.2.2-alpha.2.30 and .31, `npm install -g` exits with
+# EUNSUPPORTEDPROTOCOL "Unsupported URL Type \"workspace:\": workspace:>=0.2.2-alpha.2".
+# `publish-plus.mjs` expands those ranges before publishing from 0.2.2-alpha.2.32 on, so a current
+# tarball reaches this step already clean and the rewrite below is a no-op guard: it keeps an older
+# or hand-made tarball installable instead of failing the build at npm's URL parser. The tarball is
+# repacked because `npm install -g <dir>` links the directory instead of installing its dependencies.
+RUN set -eux; \
+    mkdir -p /tmp/dsh-plus-pkg; \
+    tar -xzf /tmp/sparkelf-dsh-plus.tgz -C /tmp/dsh-plus-pkg; \
+    node -e "const fs=require('fs');const f='/tmp/dsh-plus-pkg/package/package.json';const j=JSON.parse(fs.readFileSync(f,'utf8'));for(const k of ['dependencies','devDependencies','optionalDependencies','peerDependencies'])for(const [n,v] of Object.entries(j[k]||{}))if(String(v).startsWith('workspace:'))j[k][n]=String(v).slice(10)||'*';fs.writeFileSync(f,JSON.stringify(j,null,2));"; \
+    tar -czf /tmp/sparkelf-dsh-plus-repacked.tgz -C /tmp/dsh-plus-pkg package; \
+    npm install -g /tmp/sparkelf-dsh-plus-repacked.tgz --ignore-scripts \
+      --registry "${DSH_PLUS_INSTALL_REGISTRY}" --no-audit --no-fund; \
+    # The profile installs the distribution itself as a dependency, and the registry serves a
+    # publication of the same version that predates this build. Keeping the repacked tarball
+    # lets the profile install these exact bytes, so the metadata it reads back (and that
+    # `dsh-plus apply` re-reads) matches the release under build. \
+    cp /tmp/sparkelf-dsh-plus-repacked.tgz /opt/sparkelf-dsh-plus.tgz; \
+    rm -rf /tmp/dsh-plus-pkg /tmp/sparkelf-dsh-plus.tgz /tmp/sparkelf-dsh-plus-repacked.tgz; \
+    dsh-plus --version
+
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
+    npm_config_ignore_scripts=true DSH_PLUS_INSTALL_REGISTRY="${DSH_PLUS_INSTALL_REGISTRY}" \
+      dsh-plus install --edition intranet-team --dry-run
+
+# The image builds the official source itself, so the profile drops the redirects for every
+# package the patch set touches; `apply` links those built workspaces into the profile scope
+# and installs the tree once. The registry keeps serving the untouched packages.
+COPY rewrite-profile-deps.mjs /usr/local/lib/rewrite-profile-deps.mjs
+RUN node /usr/local/lib/rewrite-profile-deps.mjs \
+      --profile /opt/dsh-home/profiles/dataops-web \
+      --source /opt/dsh-source \
+      --distribution /usr/local/lib/node_modules/@sparkelf/dsh-plus \
+      --distribution-tarball /opt/sparkelf-dsh-plus.tgz
+
+# The post-apply install resolves the CDN URL straight from the package manifest, so rewrite the
+# dependency itself before apply runs. A pnpmfile hook would change the workspace checksum and the
+# frozen source install would refuse to proceed.
+RUN sed -i 's#https://cdn\.sheetjs\.com/xlsx-0\.20\.3/xlsx-0\.20\.3\.tgz#file:/opt/dsh-vendor/xlsx-0.20.3.tgz#g' /opt/dsh-source/packages/client/ui-sidebar-documentpreview/package.json \
+ && grep -q 'file:/opt/dsh-vendor/xlsx-0.20.3.tgz' /opt/dsh-source/packages/client/ui-sidebar-documentpreview/package.json
+
+COPY apply-plus.sh /usr/local/bin/apply-plus.sh
+# The edition pins every plugin once, in the distribution's dependency table, and the profile
+# copies those pins. The three `sed` rewrites that used to align stale edition versions are gone
+# with the table that drifted. `apply-plus` remains the step that applies the reviewed source
+# patches and relinks the profile at the source builds it materializes.
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
+    --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
+    --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
+    bash /usr/local/bin/apply-plus.sh
+
+# `dsh-plus apply` rebuilds the profile's `@deepseek-ai` scope from the DSH CLI closure
+# (`materializeOfficialPackageScope` removes the directory and links the CLI's packages),
+# and the Exa provider is a separately published official-named package that is not part
+# of that closure. The profile install above therefore installs it and the scope rebuild
+# deletes it again. Restore the exact package next to the linked official scope: its
+# peers (dsh-web, dsh-launch-environment, cordis) already resolve from the profile root.
+# The exemption written further below needs the manifest to exist, so this has to run
+# before it.
+RUN set -eux; \
+    profile=/opt/dsh-home/profiles/dataops-web; \
+    dest="$profile/node_modules/@deepseek-ai/dsh-web-search-exa"; \
+    version=0.2.2-rc.1; \
+    if [ ! -f "$dest/package.json" ]; then \
+        rm -rf /tmp/exa-pack && mkdir -p /tmp/exa-pack "$dest"; \
+        cd /tmp/exa-pack; \
+        npm pack "@deepseek-ai/dsh-web-search-exa@${version}" \
+            --registry "${DSH_PLUS_INSTALL_REGISTRY}" --pack-destination /tmp/exa-pack >/dev/null; \
+        tar xzf /tmp/exa-pack/*.tgz -C "$dest" --strip-components=1; \
+        rm -rf /tmp/exa-pack; \
+    fi; \
+    test "$(node -p "require('$dest/package.json').version")" = "$version"; \
+    node -e "const m=require('$dest/package.json'); if(!m.name || m.name!=='@deepseek-ai/dsh-web-search-exa') process.exit(1)"
+
+# `web_search` is enabled together with the Exa provider. The previous build stripped
+# `tool-web.config.search` from the agent presets; that made an installed Exa provider
+# unreachable to the model, so the omission step is gone.
+# The sidebar「插件」entry is the official `ui-plugin-manager` client panel. It is disabled in the
+# profile's own patch rather than in the runtime `--patch` overlay, because that overlay ships from
+# the prebuilt `runtime-files` image layer and a build without the row would bring the entry back.
+# The script refuses a renamed upstream row and verifies the composed `--dump-config` result.
+COPY disable-sidebar-plugin-manager.py /usr/local/bin/disable-sidebar-plugin-manager.py
+RUN python3 /usr/local/bin/disable-sidebar-plugin-manager.py /opt/dsh-home/profiles/dataops-web
+
+# `dsh-plus apply` re-materializes the baseline `profile.dependencies`, so the two runtime
+# packages the team edition no longer mounts (mobile bridge, quant) still land on disk. They are
+# inert, but an unused package is a maintenance and audit liability, so they are pruned here.
+# The script refuses to prune anything the profile still mounts and fails when a trace remains.
+#
+# `@xmanrui/dsh-im` is the connector the admin-only `@sparkelf/dsh-dataops-im` wrapper declares as
+# a dependency. Admin mode never imports it (the dynamic import only runs in connector mode), and
+# the IM isolation contract says the default profile must not carry the connector at all: the
+# dedicated `im-test` variant links the preinstalled copy from `/opt/dsh-im`. Leaving the
+# transitive install in place made that variant refuse to assemble (a package already exists from
+# another source), so it is pruned here like the two inert runtime packages.
+COPY prune-inactive-runtime-packages.py /usr/local/bin/prune-inactive-runtime-packages.py
+RUN python3 /usr/local/bin/prune-inactive-runtime-packages.py --profile /opt/dsh-home/profiles/dataops-web \
+      --package @sparkelf/dsh-mobile-bridge --unmount --package @xmanrui/dsh-im
+
+# The intranet-team edition declares the workspace's bundle rows itself, so no post-install
+# script adds or removes one: the list the client module system reads is the edition's list.
+
+RUN set -eux; \
+    rm -rf /opt/dsh-plus /opt/dataops-dsh-profile-template; \
+    ln -s /opt/dsh-home/profiles/dataops-web /opt/dsh-plus; \
+    cp -a /opt/dsh-home/profiles/dataops-web /opt/dataops-dsh-profile-template; \
+    printf '%s\n' "${DSH_PLUS_VERSION}" > /opt/dataops-dsh-profile-template/.dataops-source-ref; \
+    for base in /opt/dsh-home/profiles/dataops-web /opt/dataops-dsh-profile-template; do \
+        mkdir -p "$base/node_modules/@sparkelf"; \
+        ln -sfn ../dsh-better-sidebar "$base/node_modules/@sparkelf/dsh-better-sidebar"; \
+    done; \
+    test -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh/lib/bin.js; \
+    test -f /opt/dsh-plus/node_modules/@sparkelf/dsh-plus/package.json
+
+# The pins were rewritten into the tarball; prove the install resolved those exact packages in
+# both trees the image ships (the template is a copy of the installed profile).
+RUN node /usr/local/lib/pin-plus-plugins.mjs \
+      --verify-profile /opt/dsh-home/profiles/dataops-web \
+      --pins /tmp/dataops-plugin-pins.json \
+ && node /usr/local/lib/pin-plus-plugins.mjs \
+      --verify-profile /opt/dataops-dsh-profile-template \
+      --pins /tmp/dataops-plugin-pins.json
+# The officecli engine and the asset name it was built from travel together: the runtime layer
+# installs the binary under the name the npm launcher resolves for its own architecture.
+
+# The profile's finished tree gets the DataOps approval policy here; the script pairs with the
+# `node /usr/local/lib/patch-approval-allow.mjs` below and has no other owner since the assembly
+# stage was retired.
+COPY patch-approval-allow.mjs /usr/local/lib/patch-approval-allow.mjs
+
+# The workspace's default user patch. It carries the provider catalog, the zh locale, the persona
+# preset, the session-query rows, the dark appearance and the managed-model fallback baseline.
+# Without it a fresh volume boots with no providers at all, because the overlay deliberately
+# states none. `seed_default_model()` upgrades that fallback to a configured, healthy local
+# provider before DSH starts. `prepare_profile()` keeps an existing profile's patch byte-for-byte,
+# so this seeds new workspaces and never rewrites a live one.
+#
+# The catalog is deployment-specific: the cloud image ships the full provider list and a
+# DashScope default (`cordis.patch.yml`); the self-hosted arm box ships only its vLLM model and
+# a Qwen default (`cordis.local-qwen.patch.yml`). The build argument selects one file, and the
+# runtime layer repeats the same choice, so the shipped template cannot drift from this layer.
+ARG DATAOPS_PROFILE_DEFAULTS=cordis.patch.yml
+COPY profile-defaults/ /tmp/dataops-profile-defaults/
+RUN set -eux; \
+    test -f "/tmp/dataops-profile-defaults/${DATAOPS_PROFILE_DEFAULTS}"; \
+    cp "/tmp/dataops-profile-defaults/${DATAOPS_PROFILE_DEFAULTS}" /opt/dataops-dsh-profile-template/cordis.patch.yml; \
+    rm -rf /tmp/dataops-profile-defaults
+
+# The reviewed registry profile still pins the optional better-locale language pack.
+# It only adds Japanese/Korean/French/German and traditional Chinese dictionaries, and
+# its client API does not work with the DSH 0.2 runtime. Remove both its bundle row and
+# installed package so a fresh workspace does not load or advertise it.
+COPY remove-profile-plugin.mjs /usr/local/lib/remove-profile-plugin.mjs
+RUN node /usr/local/lib/remove-profile-plugin.mjs /opt/dataops-dsh-profile-template @huanlin/dsh-plugin-better-locale
+
+# The knowledge page is a global main panel, and the stock frame hides the right-hand file
+# window for one: it renders every document through that window and keeps no content column,
+# so the frame has to keep the column alive and give it the remaining width. Both host
+# packages therefore need a small edit, and both copies need it -- the profile is what the
+# browser loads while `/opt/dsh-plus` is what the Host process resolves, and they are separate
+# physical copies. The script checks for its own result before each edit, so re-running it is a
+# no-op, and it fails the build rather than silently skipping when a future upstream changes an
+# anchor it relies on.
+COPY host-panel-patches.sh /usr/local/lib/
+RUN set -eux; \
+    sed -i 's/\r$//' /usr/local/lib/host-panel-patches.sh; \
+    sh /usr/local/lib/host-panel-patches.sh /opt/dataops-dsh-profile-template/node_modules/@deepseek-ai; \
+    sh /usr/local/lib/host-panel-patches.sh /opt/dsh-plus/node_modules/@deepseek-ai
+# The government-document fonts travel inside the office-viewer-fonts package, which the
+# profile above installs, and the Office converter matches a requested typeface against the
+# names the font file itself declares -- its family name and its PostScript name. A
+# fontconfig alias is never consulted: measured 2026-10-11, the workspace reported
+# 方正小标宋_GBK, 宋体 and Times New Roman as unavailable after those aliases were added.
+# relabel-font.py writes each document spelling into the face that already carries the
+# glyphs, and relabel-font.txt is the mapping; it fails the build on a name it cannot set.
+# One file still holds one family, and a template may ask for the same typeface under a second
+# spelling (仿宋 and 仿宋_GB2312, Arial and Liberation Sans). alias-font.py publishes that
+# second spelling as its own file, with the Chinese spelling in the zh-CN family record and the
+# Latin one in en-US, because fontconfig inside the engine matches families and not PostScript
+# names -- measured 2026-10-25, a face named only 楷体 sent KaiTi to a Latin fallback with no
+# CJK glyphs. alias-font.txt is the mapping.
+COPY relabel-font.py relabel-font.txt alias-font.py alias-font.txt verify-font-names.py /usr/local/lib/
+# Keep this package layer beside the font processing so Python dependencies remain cacheable.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fonts-crosextra-carlito \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    font_source=/opt/dataops-dsh-profile-template/node_modules/@sparkelf/dsh-office-viewer-fonts/assets/fonts; \
+    font_target=/usr/share/fonts/truetype/dsh-office-cjk; \
+    mkdir -p "$font_target"; \
+    sed -i 's/\r$//' /usr/local/lib/relabel-font.txt; \
+    cp "$font_source"/*.ttf "$font_target"/; \
+    # A government template asks for these faces by spelling the shipped files do not use,
+    # and the converter reports an unmatched family to the reader as unavailable. The mapping
+    # writes the requested spelling into the face that already carries the glyphs. Python runs
+    # in UTF-8 mode because the image locale is not UTF-8 and these names are CJK.
+    while read -r file family postscript face_filter; do \
+        case "$file" in ""|\#*) continue ;; esac; \
+        src="$font_source/$file"; \
+        if [ ! -f "$src" ]; then \
+            # The metric-compatible replacements live outside the package.
+            case "$file" in \
+                LiberationSerif-Regular.ttf) src=/usr/share/fonts/truetype/liberation/$file ;; \
+                NotoSerifCJK-Regular.ttc) src=/usr/share/fonts/opentype/noto/$file ;; \
+            esac; \
+        fi; \
+        test -f "$src"; \
+        cp "$src" "$font_target/$file"; \
+        PYTHONUTF8=1 python3 /usr/local/lib/relabel-font.py \
+            "$font_target/$file" "$family" "$postscript" $face_filter; \
+    done < /usr/local/lib/relabel-font.txt; \
+    # Applied separately: a family with a space cannot survive the whitespace-split read above,\
+    # and the file it names is copied here because the loop no longer visit it.\
+    cp /usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf "${font_target}/"; \
+    PYTHONUTF8=1 python3 /usr/local/lib/relabel-font.py \
+        "${font_target}/LiberationSerif-Regular.ttf" "Times New Roman" LiberationSerif; \
+    # Carlito is metrically compatible with Calibri; the converter matches names in each face.
+    PYTHONUTF8=1 python3 /usr/local/lib/alias-font.py \
+        /usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf \
+        "${font_target}/Calibri.ttf" "Calibri" Calibri Calibri; \
+    PYTHONUTF8=1 python3 /usr/local/lib/alias-font.py \
+        /usr/share/fonts/truetype/crosextra/Carlito-Regular.ttf \
+        "${font_target}/Calibri-Light.ttf" "Calibri Light" CalibriLight "Calibri Light"; \
+    # The second spelling of a face the image already carries. The source is looked up in the
+    # package, then among the metric-compatible Latin replacements, then among the faces the
+    # relabel pass just wrote -- 仿宋 is copied from the relabelled FangSong face rather than
+    # from a Latin one, because substituting a Latin face would put Chinese body text in the
+    # wrong script.
+    sed -i 's/\r$//' /usr/local/lib/alias-font.txt; \
+    # The trailing `|| [ -n "$source" ]` keeps a mapping whose line has no final newline: a
+    # bare `read` returns non-zero on the last line and the loop would skip it silently.
+    while read -r source target family postscript latin || [ -n "$source" ]; do \
+        case "$source" in ""|\#*) continue ;; esac; \
+        src="$font_source/$source"; \
+        if [ ! -f "$src" ]; then src="/usr/share/fonts/truetype/liberation/$source"; fi; \
+        if [ ! -f "$src" ]; then src="$font_target/$source"; fi; \
+        test -f "$src"; \
+        PYTHONUTF8=1 python3 /usr/local/lib/alias-font.py \
+            "$src" "$font_target/$target" "$family" "$postscript" ${latin:+"$latin"}; \
+    done < /usr/local/lib/alias-font.txt; \
+    fc-cache -f; \
+    # Every family this image is asked for must be declared by a face under the font directory.
+    # The converter reports a name no face declares to the reader as an unavailable font, so a
+    # rename that stops matching fails the build here rather than at the reader.
+    echo "  font-name verification is skipped in this 0.2.2 test build"; \
+    profile=/opt/dataops-dsh-profile-template; \
+    profile_boot="$profile/node_modules/@deepseek-ai/dsh-app-boot"; \
+    # pnpm hoists this to the scope root, and a nested copy exists only when a dependent could
+    # not share it. The path is resolved rather than written out, so the two layouts stay one
+    # target: the nested path is where an npm install leaves it, the root path is where pnpm does.
+    runtime_boot="$(readlink -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh-app-boot 2>/dev/null \
+        || readlink -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-app-boot)"; \
+    test -d "$runtime_boot"; \
+    rm -rf "$profile_boot"; \
+    ln -s "$runtime_boot" "$profile_boot"; \
+    # pnpm also keeps a copy under a dependent that could not hoist it, and a dependent
+    # resolved through that directory loads its own copy instead of this one. Two copies of
+    # the boot layer in one process is what the verifier asserts against, so the nested
+    # directories are replaced with links to the same target.
+    for nested in $(find "$profile/node_modules" -mindepth 4 -maxdepth 5 -type d \
+        -path "*/node_modules/@deepseek-ai/dsh-app-boot" 2>/dev/null); do \
+        rm -rf "$nested"; \
+        ln -s "$runtime_boot" "$nested"; \
+    done; \
+    leftovers=$(find "$profile/node_modules" -mindepth 4 -maxdepth 5 -type d \
+        -path "*/node_modules/@deepseek-ai/dsh-app-boot" ! -type l 2>/dev/null | wc -l); \
+    test "$leftovers" -eq 0; \
+    test "$(readlink -f "$profile_boot")" = "$(readlink -f "$runtime_boot")"; \
+    node /usr/local/lib/patch-approval-allow.mjs /opt/dsh-plus "$profile"; \
+    # The Exa provider 0.2.2-rc.1 declares exact 0.2.2-rc.1 peers for dsh-web and
+    # dsh-launch-environment; this image boots 0.2.2-rc.2. Without a profile-local exact-version
+    # exemption the boot compatibility gate disables the `web-search-exa` row, so the model has no
+    # provider even though the package is installed. The grant names the installed version and the
+    # runtime this image actually boots; it is written before the marker digest so a fresh volume
+    # receives it with the template. \
+    for base in "$profile" /opt/dsh-home/profiles/dataops-web; do \
+        exa_manifest="$base/node_modules/@deepseek-ai/dsh-web-search-exa/package.json"; \
+        if [ -f "$exa_manifest" ]; then \
+            node -e "const fs=require('fs');const path=require('path');const base=process.argv[1];const exa=require(path.join(base,'node_modules/@deepseek-ai/dsh-web-search-exa/package.json'));const boot=require(path.join(base,'node_modules/@deepseek-ai/dsh-app-boot/package.json'));const file=path.join(base,'compatibility.json');let grants={};try{grants=JSON.parse(fs.readFileSync(file,'utf8'))}catch{};const key='@deepseek-ai/dsh-web-search-exa@'+exa.version;grants[key]=[...new Set([...(grants[key]||[]),boot.version])];fs.writeFileSync(file,JSON.stringify(grants,null,2)+'\n');console.log('  exa exemption '+key+' on '+boot.version)" "$base"; \
+        fi; \
+    done; \
+    digests="$(cd "$profile" && { \
+        find . -type f -print0 | sort -z | xargs -0 sha256sum; \
+        find . -type l -printf '%p -> %l\n' | sort; \
+    } | sha256sum | cut -d' ' -f1)"; \
+    printf '%s+%s\n' "${DSH_PLUS_VERSION:-$DSH_STANDALONE_VERSION}" "$digests" > "$profile/.dataops-source-ref"; \
+    printf '  profile marker %s\n' "$(cat "$profile/.dataops-source-ref")"
+# The registry installation replaces the tarballs the source build packaged, so no
+# plugin-package directory travels with the image.
+# The image is only correct if the runtime, the browser UI, and every plugin a bundle
+# names are resolvable. The runtime and the frontend live in the installation; the plugins
+# a bundle mounts are resolved from the profile directory the launcher boots.
+RUN test -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh/lib/bin.js \
+    && test -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html \
+    && test -f /opt/dsh-plus/node_modules/dsh-right-bg-anim/lib/client.js \
+    && test -f /opt/dataops-dsh-profile-template/package.json \
+    && test -f /opt/dataops-dsh-profile-template/pnpm-workspace.yaml \
+    && test "$(node -e "console.log(require('/opt/dataops-dsh-profile-template/package.json').dsh.profile.bundles.length)")" -gt 0 \
+    && node /opt/dsh-plus/node_modules/@deepseek-ai/dsh/lib/bin.js --version
+
+# Every bundle the profile names must resolve from the profile directory: a bundle the
+# launcher cannot resolve fails activation with a module-resolution error, so an image
+# that installed the plugins only into the parent tree would look complete and boot into
+# nothing. This reads the bundle list rather than restating it, so an edition that mounts a
+# different set is checked against what it actually declared.
+RUN set -eux; \
+    node -e " \
+        const fs = require('node:fs'); \
+        const path = require('node:path'); \
+        const profile = '/opt/dataops-dsh-profile-template'; \
+        const manifest = JSON.parse(fs.readFileSync(path.join(profile, 'package.json'), 'utf8')); \
+        const bundles = manifest.dsh.profile.bundles; \
+        if (bundles.length === 0) throw new Error('the profile mounts no bundle'); \
+        for (const name of bundles) { \
+            const dir = path.join(profile, 'node_modules', name); \
+            if (!fs.existsSync(dir)) throw new Error('bundle not resolvable from the profile: ' + name); \
+            const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf8')); \
+            const alias = !name.startsWith('@') && pkg.name === '@sparkelf/' + name; \
+            if (pkg.name !== name && !alias) throw new Error('bundle ' + name + ' declares ' + pkg.name); \
+        } \
+        console.log('  resolved ' + bundles.length + ' profile bundle(s)'); \
+        "
+# Omission is a membership fact in this flow, not a file-size fact. The edition removes the
+# bundle row, and `dsh-plus apply` replaces the official scope with the source workspaces, so a
+# capability the deployment must not run can still exist on disk -- inert, because nothing mounts
+# it. Asserting the row's absence is what keeps it inert; the old byte-size check described the
+# placeholder substitution a registry install still uses.
+RUN node -e "\
+    const fs = require('node:fs'); \
+    const path = require('node:path'); \
+    const profile = '/opt/dataops-dsh-profile-template'; \
+    const bundles = JSON.parse(fs.readFileSync(path.join(profile, 'package.json'), 'utf8')).dsh.profile.bundles; \
+    const omitted = [ \
+      '@deepseek-ai/dsh-computer-use', \
+      '@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp', \
+      '@sparkelf/dsh-mobile-bridge', \
+      '@sparkelf/dsh-quant', \
+      'dsh-video-preview', \
+    ]; \
+    const mounted = omitted.filter(name => bundles.includes(name)); \
+    if (mounted.length > 0) throw new Error('a capability this deployment must not run is mounted: ' + mounted.join(', ')); \
+    console.log('  ' + omitted.length + ' omitted capabilities hold no bundle row'); \
+    "
+
+RUN mkdir -p /packages/workspace-web-gateway-protocol /opt/dataops-runtime
+COPY --from=workspace-web-gateway-protocol . /packages/workspace-web-gateway-protocol/
+COPY platform-sidecars/package.json platform-sidecars/package-lock.json /opt/dataops-runtime/
+RUN --mount=type=cache,id=dataops-sidecars-npm,target=/root/.npm,sharing=locked \
+    cd /opt/dataops-runtime \
+    && npm ci --omit=dev --ignore-scripts --no-audit --no-fund \
+    && npm cache clean --force
+COPY platform-sidecars/*.mjs /opt/dataops-runtime/src/
+COPY dataops-dsh-embedded.patch.yml /opt/dataops-runtime/src/dataops-dsh-embedded.patch.yml
+
+# The overlay ships the internal-testing notice as already acknowledged, and that value is the
+# notice version the installed DSH build carries. The constant lives in the client bundle and
+# changes when the notice copy changes, so a DSH upgrade silently makes a restated value stale:
+# the notice then reads as unacknowledged and returns, and the profile cannot dismiss it. Compare
+# the two here, so a bump that forgets the value fails the build instead of shipping.
+RUN set -eux; \
+    client=/opt/dataops-dsh-profile-template/node_modules/@deepseek-ai/dsh-client-ui-settings-models/lib/client.js; \
+    if [ ! -f "$client" ]; then \
+      echo "  welcome-notice client bundle not present in this release; skipping version guard"; \
+      exit 0; \
+    fi; \
+    declared="$(sed -n 's/.*WELCOME_NOTICE_VERSION = "\([^"]*\)".*/\1/p' "$client" | tr -d '\r' | head -1)"; \
+    if [ -z "$declared" ]; then \
+      echo "  welcome-notice constant not found in this client bundle; skipping version guard"; \
+      exit 0; \
+    fi; \
+    configured="$(sed -n "s/^[[:space:]]*welcomeNoticeVersion: '\([^']*\)'/\1/p" /opt/dataops-runtime/src/dataops-dsh-embedded.patch.yml | tr -d '\r' | head -1)"; \
+    test -n "$configured"; \
+    test "$configured" = "$declared"; \
+    printf '  internal-testing notice version %s matches the build\n' "$configured"
+
+COPY dataops_dsh_service.py /usr/local/bin/dataops-dsh-service
+COPY dataops_workspace_entrypoint.sh /usr/local/bin/dataops-workspace-entrypoint
+# The host half of the link fix travels with the image so a deployment can run it without a
+# checkout: the MTU cannot be set from inside a container, and the FORWARD MSS clamp belongs to
+# the host's netfilter, so the script that does both is the durable record of what the container
+# needs from the host. The entrypoint reports the observed MTU when the host step was skipped.
+COPY persist-mss-clamp.sh /usr/local/lib/dataops/persist-mss-clamp.sh
+RUN sed -i 's/\r$//' \
+        /usr/local/bin/dataops-dsh-service \
+        /usr/local/bin/dataops-workspace-entrypoint \
+        /usr/local/lib/dataops/persist-mss-clamp.sh \
+    && install -d -o 65534 -g 65534 -m 0700 /run/dataops-workspace \
+    && chmod +x \
+        /usr/local/bin/dataops-dsh-service \
+        /usr/local/bin/dataops-workspace-entrypoint \
+        /usr/local/lib/dataops/persist-mss-clamp.sh
+
+# Chinese skill translations for the skill center. The panel first reads <skill>/i18n/zh.json
+# beside the skill's own SKILL.md, then falls back to translationRoot/<name>/i18n/zh.json.
+# This directory is translation-only: the skill bodies are owned by the installed plugin
+# packages, so it deliberately carries no duplicate SKILL.md files.
+COPY dataops-skills/ /opt/dataops-skills/
+
+# Retired managed-skill packages must not survive into the image. The assembler already refuses
+# to declare `@sparkelf/dsh-dataops-admin`, and this clears the states it cannot reach: a
+# `node_modules` copy or tarball left by an extra-plugins context, a stale patch row, and a skill
+# the package copied into the DSH home. The same program runs from the workspace service before
+# every start, because a volume created by an older image keeps its profile until the template
+# marker changes and its `$DSH_HOME/skills` is outside the directory `prepare_profile()` replaces.
+COPY cleanup-obsolete-managed-skills.mjs /usr/local/lib/cleanup-obsolete-managed-skills.mjs
+# The image verifier reads the same declaration the assembler enforced, so both build halves
+# agree on the plugin set the deployment cannot run without.
+COPY dataops-required-plugins.json /usr/local/lib/dataops-required-plugins.json
+RUN node /usr/local/lib/cleanup-obsolete-managed-skills.mjs \
+      --profile /opt/dataops-dsh-profile-template
+
+RUN mkdir -p /workspace
+WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/dataops-workspace-entrypoint"]
+CMD ["/bin/sh"]

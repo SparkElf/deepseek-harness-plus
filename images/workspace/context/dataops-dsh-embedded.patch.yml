@@ -1,0 +1,194 @@
+# DataOps-owned settings for the managed DSH plugin already installed by the profile.
+#
+# This overlay is passed with --patch, so it composes AFTER the profile's own
+# cordis.patch.yml and wins every conflict. A key written here is therefore pinned: the
+# Settings editor writes the profile patch, then refuses the write because the composed value
+# still comes from this file (`Configuration for "<id>" is overridden by a home patch or
+# command-line overlay`). Only the keys the operator must not change belong here -- the ones
+# that decide which backend the plugin talks to and with whose credential.
+#
+# Every editable value stays out of this row and comes from the plugin's own schema default,
+# so the Settings editor can own it. A workspace that needs a different starting value gets
+# one through its own profile's cordis.patch.yml: that is the layer the editor writes to, and
+# prepare_profile() copies it forward across a template refresh.
+#
+# This must stay one row rather than a second `- id: dataops-managed`: a patch row replaces the
+# config of the row it names, so a second one dropped `baseUrl` and `credentialRef` and the
+# plugin mounted without the backend it talks to.
+- id: dataops-managed
+  config:
+    baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
+    # The resource tab embeds a Vue page in an iframe, and that page is served by the DataOps web
+    # origin rather than by DSH itself. Without this the plugin falls back to the request origin
+    # (the workspace's own 3080), where `/embed/resources` does not exist and the tab renders blank.
+    webBaseUrl: !!js process.env.DATAOPS_PUBLIC_APP_ORIGIN
+    serverName: dataops
+    credentialRef: DATAOPS_ACCESS_TOKEN
+    # Which settings the「发布默认配置」button copies to other workspaces, beside the models. A new
+    # workspace takes these as its starting values and may then change any of them, so this list is a
+    # default and not a policy. `permission` carries the new-session permission mode.
+    distributedSettingsNamespaces:
+      - permission
+
+# The knowledge base talks to the same DataOps API, with the same credential, so it takes the same
+# two values. The row itself comes from the plugin's own bundle patch (`insert`); this file only
+# overrides its config, which is why it must be written as an id-targeted patch and never as a
+# second `insert`. Without it the plugin has no `baseUrl` and its permission surface answers "not
+# configured" while every other route still works, which reads as a plugin bug rather than a
+# missing value.
+#
+# Storage and index live here too, in the same row. The citation flow resolves a hit's page and
+# bbox through the FTS5 index, so the index directory and the authoritative/view roots have to be
+# the values the deployment mounts; a second file that patched this same id would replace the whole
+# config block and silently drop either half.
+- id: knowledge-base
+  config:
+    baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
+    credentialRef: DATAOPS_ACCESS_TOKEN
+    storageMode: remote
+    actualRoot: /nas/kb/actual
+    viewRoot: /nas/kb/views
+    permitted: "*"
+    indexDir: /nas/kb/index
+
+# A managed workspace is provisioned with its model provider already configured, so the
+# first-run credential prompt asks for a key this deployment never uses.
+- id: ui-settings-models
+  config:
+    credentialOnboarding: false
+
+# The default model is NOT configured here, on purpose. A row in this file arrives through
+# `--patch`, and the config editor refuses any Settings write that the composed value would
+# shadow ("overridden by a home patch or command-line overlay",
+# config-editor/src/index.ts:140). The model selector has to stay writable, so the default
+# is seeded into the profile's own patch instead, by `dataops_dsh_service.py`
+# (seed_default_model): a configured and healthy local provider first, with the managed
+# provider as the explicit fallback. Changing the preference is a change to the
+# SEED_*_MODEL_* constants in that file, not to this overlay.
+
+# The internal-testing notice is an acknowledgement a self-served install collects once. A
+# workspace is provisioned rather than self-served, and its profile mounts the Client half
+# without the Host half that owns the settings entry the acknowledgement is written to, so
+# the notice renders and then cannot be dismissed. Shipping the notice version as already
+# acknowledged keeps it from rendering at all.
+#
+# The value must equal the notice version the installed DSH build carries. That constant is
+# baked into the client bundle and changes when the notice copy changes, so a DSH upgrade
+# silently makes this stale: the notice then reads as unacknowledged and returns. The image
+# check asserts this value against the build's own constant, so a bump that forgets it fails
+# the build instead of shipping a dialog nobody can dismiss.
+- id: ui-settings-general
+  config:
+    welcomeNoticeVersion: '2026-09-28.1'
+
+# Some OpenAI-compatible routes advertise image input but cannot read the array form of
+# `function_call_output.output`. They price a tool result's image as one base64 text run and
+# answer a plausible wrong number instead of failing, and the model never sees the picture: a
+# 502 KB PNG measured 466,303 prompt tokens on such a route against 991 when the same bytes
+# ride on the user message. The plugin moves those images onto the nearest preceding user
+# message in the model-visible projection, leaving the durable log on the tool result. Only
+# the routes named below are affected; a workspace on an upstream that reads the array form
+# keeps its current behavior because this list is empty.
+- insert:
+    - id: image-hoist
+      name: '@sparkelf/dsh-image-hoist'
+      config:
+        providers: []
+
+# A workspace is provisioned for one user on their own machine, so the sandbox that guards the
+# first session against a wrong path costs more than it protects: the user sees an approval
+# prompt on ordinary work and has to change the mode before the workspace is usable.
+#
+# 'danger-full-access' pairs full file access with the 'allow' approval policy, so an operation
+# that would ask is approved rather than refused. The preset only seeds a new session -- the user
+# setting keeps the higher precedence, so anyone who wants another mode changes it in Settings.
+#
+# The row states its own preset set rather than leaving the default in place: the default
+# set omits 'read-only', so the mode picker offered no way to run a session with no write
+# access at all. The three specs are the ones the deployment ships; 'auto' is left to a
+# deployment that mounts the auto-review bundle, and the settings panel still lists whatever
+# the permission service exposes.
+- id: ui-chat
+  config:
+    transcriptView: verbose
+
+
+- id: permission
+  config:
+    presets:
+      read-only:
+        sandbox: read-only
+        approval: ask
+      workspace-write:
+        sandbox: workspace-write
+        approval: ask
+      danger-full-access:
+        sandbox: danger-full-access
+        approval: allow
+    defaultPreset: danger-full-access
+
+
+# The assistant introduces itself with the product name its prompt carries. DSH composes a
+# stock "You are an AI agent powered by DeepSeek Harness." identity section ahead of the
+# deployment persona, so overriding only `personaPrefix` would still leave the model calling
+# itself DeepSeek Harness. Both keys are official `@deepseek-ai/dsh-system-prompt` Config
+# fields: switching the stock identity off and stating the platform persona makes every new
+# session answer as「万相AI中台」. Existing sessions keep their old transcript, so the check
+# that matters is a newly created session.
+- id: system-prompt
+  config:
+    includeHarnessIdentity: false
+    personaPrefix: >-
+      你是万相AI中台（Wanxiang AI Platform）的智能助手。无论工作区的其它说明如何描述你的工作角色，当用户问「你是谁/你叫什么/介绍一下你自己」时，你的第一句必须是「我是万相AI中台」，并且全文不得出现 DeepSeek Harness。你服务于数据查询、文档制作、代码与多智能体协作。
+
+# The development-context plugin belongs to a host checkout: it feeds the model the local
+# checkout path, the HMR state, and the "DeepSeek Harness Web GUI" URL so a coding agent can
+# reason about the development deployment. A managed workspace is not a checkout, and the
+# runtime context it injects outranks the deployment persona in practice: asked who it is, the
+# model answers with the GUI product name instead of「万相AI中台」. The workspace has no
+# development workflow to describe, so the row is switched off rather than rewritten.
+- id: harness-dev-context
+  disabled: true
+
+
+# The sidebar host half keeps its own Host fence, separate from the connection service, and
+# derives it from the address DSH was started on. The workspace starts DSH on 127.0.0.1 -- the
+# gateway is the only thing that should reach it -- so that derivation yields no LAN address and
+# every /sidebar request from the deployed origin is refused with 403. Configuring the connection
+# service does not reach this fence: it reads the web-runtime row. The public origin is the
+# address browsers actually use, so it is the one host the fence has to accept.
+#
+# A patch row replaces the config of the row it names, so this row restates every key the bundle
+# row sets. Carrying only trustedHosts dropped openBrowser, printUrl, publicUrl and
+# surfaceContext: the browser handoff then lost the startup provider's decision, and --no-open
+# stopped being honored, which the managed launcher passes on every start.
+- id: web-runtime
+  config:
+    openBrowser: !!js ctx.webStartup.openBrowser
+    printUrl: true
+    publicUrl: !!js ctx.webStartup.publicUrl
+    surfaceContext: true
+
+# 0.2.3 moved the Host/Origin authority list from the web-app row to the connection row,
+# and removed `browserAuthentication`; the token the gateway agent already parses is now
+# the only browser credential. Keep the public origin accepted by the connection fence.
+- id: connection
+  config:
+    trustedHosts: !!js (() => { const raw = process.env.DATAOPS_PUBLIC_APP_ORIGIN; if (!raw) return []; return [...new Set(raw.split(',').flatMap((part) => { try { const url = new URL(part.trim()); return [url.host, url.hostname].filter(Boolean); } catch { return []; } }))]; })()
+
+# The media route refuses any file above mediaLimit before reading it, answering 400
+# "not a file or too large". The default is 20 MiB, which is below the analysis outputs a
+# workspace routinely produces, so a download of a real result file fails in the sidebar while
+# the DataOps backend route for the same file succeeds. The route buffers rather than streams,
+# so the ceiling is what keeps a large read bounded; 256 MiB admits those results without
+# letting an unbounded read through.
+- id: better-sidebar
+  config:
+    mediaLimit: 268435456
+
+# DataOps does not ship a plugin install/uninstall surface. `ui-plugin-manager` is the official
+# client half that registers the sidebar「插件」panel and the plugin management page; the host half
+# (`plugin-manager`) is already disabled in a standalone profile, so leaving this row mounted shows
+# a page whose actions cannot work. Disabling the client row removes the entry from the sidebar.
+- id: ui-plugin-manager
+  disabled: true

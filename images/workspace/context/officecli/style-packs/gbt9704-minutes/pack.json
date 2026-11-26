@@ -1,0 +1,37 @@
+{
+  "name": "gbt9704-minutes",
+  "title": "纪要（GB/T 9704-2012 会议纪要版式）",
+  "description": "在 gbt9704-2012 基线上增加标题下成文日期、分送、版记版式；不含红头、发文字号、红色分隔线。",
+  "basedOn": "gbt9704-2012",
+  "template": "template.docx",
+  "minutes": {
+    "applicable": [
+      "会议纪要",
+      "专题会议纪要",
+      "办公会议纪要"
+    ],
+    "layout": [
+      "标题（Title，二号方正小标宋，居中）",
+      "成文日期（JiYaoDate，标题下居中，可加圆括号）",
+      "正文（Normal，首行缩进 2 字）",
+      "分送（JiYaoFenSong，版记上方，四号仿宋）",
+      "版记（BanJi，四号仿宋，上下黑色边框）"
+    ],
+    "styles": {
+      "JiYaoDate": {
+        "description": "标题下成文日期，三号仿宋_GB2312，居中，黑色"
+      },
+      "JiYaoFenSong": {
+        "description": "分送范围，四号仿宋_GB2312，黑色"
+      },
+      "BanJi": {
+        "description": "版记，四号仿宋_GB2312，上下黑色边框"
+      }
+    },
+    "forbidden": [
+      "FawenJiguan",
+      "FawenZihao",
+      "HongXian"
+    ]
+  }
+}

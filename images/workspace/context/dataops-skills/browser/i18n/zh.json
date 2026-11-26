@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "source": "manual"
+  },
+  "title": "浏览器自动化",
+  "description": "抓取网页、大屏或表格，或用本地 Chrome/Edge 操作内网系统时使用；默认工作区 headless，只有用户明确要求本地浏览器才走 Companion。",
+  "summary": "headless、Companion 桥接与旧 Chrome 安装排查的统一入口。"
+}

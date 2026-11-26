@@ -1,0 +1,11 @@
+# One line per rename: <file> <family> <postscript> [<face filter>]
+#
+# The file already declares the glyphs; only the spelling a document uses differs. The filter
+# selects which face of a .ttc to relabel, and must carry no space: the reader splits on
+# whitespace, so a family such as "Noto Serif CJK SC" arrives as a fragment. The PostScript
+# name of that face identifies it and has none. A family with a space cannot be named in the
+# second column for the same reason; the one such family is applied after the loop instead.
+FZXiaoBiaoSong.ttf 方正小标宋_GBK FZXiaoBiaoSong-B05S
+FangSongGB2312.ttf 仿宋_GB2312 FangSongGB2312
+KaiTiGB2312.ttf 楷体_GB2312 KaiTiGB2312
+NotoSerifCJK-Regular.ttc 宋体 SimSun NotoSerifCJKsc-Regular

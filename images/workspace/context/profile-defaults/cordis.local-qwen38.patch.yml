@@ -1,0 +1,428 @@
+- id: dataops-managed
+  name: "@sparkelf/dsh-dataops-managed"
+  config:
+    toolCallTimeoutMs: 90000
+# The DataOps data-query MCP server speaks to the backend with the workspace's credential. A
+# group-chat room resolves its own scoped entry instead (DATAOPS_ACCESS_TOKEN_S_<SID>), which the
+# connector mints per room; the bridge falls back to this base ref while a room's entry is absent
+# or expired, so a workspace that never joins a room behaves exactly as before.
+- id: dataops-data-query-mcp
+  name: "@sparkelf/dsh-plugin-mcp-credentials"
+  config:
+    transport: streamable-http
+    serverName: data-query
+    url: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL + '/api/ai/data-query/mcp'
+    bearerTokenRef: DATAOPS_ACCESS_TOKEN
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      dataops-local-qwen:
+        displayName: Local llama.cpp (DavidAU Cold-Fusion GAIN V1.1)
+        api: openai-completions
+        baseURL: http://host.docker.internal:19110/v1
+        headers:
+          Authorization: Bearer local-llama
+        maxRequestImageBytes: 67108864
+        maxRequestImages: 8
+        requestImagePixelBudget: 16777216
+        requestImageMaxBytes: 16777216
+        models:
+          - id: Qwen3.8-27B-DavidAU-Q8
+            name: Qwen3.8-27B-DavidAU-Q8
+            input:
+              - text
+            maxTokens: 32768
+            contextWindow: 262144
+            reasoningEfforts:
+              off: null
+              low: low
+              medium: medium
+              high: xhigh
+        defaultContextWindow: 262144
+        defaultMaxTokens: 32768
+        streamIdleTimeoutMs: 300000
+
+- id: ui-theme
+  name: "@deepseek-ai/dsh-client-ui-theme"
+  config:
+    preference: dark
+# Chinese copy for the skill center. A bundled skill resolves inside an installed
+# package, where the translation repository is not, so the fallback is keyed by skill
+# name under this root: <root>/<name>/SKILL.md beside <root>/<name>/i18n/zh.json.
+- id: plus-skill-center
+  config:
+    translationRoot: /opt/dataops-skills
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    # The self-hosted model is the shipped default: the template above carries its
+    # provider, so a fresh workspace routes here without any cloud key. The managed
+    # provider remains the explicit fallback; `seed_default_model()` keeps this row
+    # when the local endpoint answers and swaps in a routable fallback when it does not.
+    # A valid user selection is never overwritten.
+    provider: dataops-local-qwen
+    model: Qwen3.8-27B-DavidAU-Q8
+    reasoningEffort: "off"
+
+# The official session-search bundle mounts its index at ':memory:'; this deployment keeps
+# session history in a durable index, so the row points at the same file the rest of the
+# profile uses. `applyEntryPatches` replaces the row's config wholesale, so `openAt` is
+# restated rather than inherited.
+- id: optional-session-query-sqlite
+  config:
+    path: !!js dshHomePath('storages/session-query.sqlite')
+    openAt: first-search
+
+# The first content search builds the whole index in one transaction, so it needs far more
+# than a steady-state query. This row carries the timeout the removed plus row used to set.
+- id: optional-tool-session-query
+  config:
+    searchTimeoutMs: 900000
+- id: locale
+  name: "@deepseek-ai/dsh-client-locale"
+  config:
+    preference: zh
+
+# Schedule AI management: administrator scope for schedule_list_all.
+- id: preset-standard
+  config:
+    id: standard
+    order: 1
+    plugins:
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: You are a coding agent powered by the {{model}} model.
+      - id: agent-instructions
+        name: '@deepseek-ai/dsh-agent-instructions'
+        config:
+          maxBytes: 65536
+      - id: time-context
+        name: '@deepseek-ai/dsh-time-context'
+      - id: tool-bash
+        name: '@deepseek-ai/dsh-tool-bash'
+        disabled: !!js process.platform === 'win32'
+      - id: tool-pwsh
+        name: '@deepseek-ai/dsh-tool-pwsh'
+        disabled: !!js process.platform !== 'win32'
+      - id: tool-fs
+        name: '@deepseek-ai/dsh-tool-fs'
+      - id: tool-fs-search
+        name: '@deepseek-ai/dsh-tool-fs-search'
+        config:
+          sampleOverCapGlobResults: false
+      - id: tool-jobs
+        name: '@deepseek-ai/dsh-tool-jobs'
+      - id: tool-schedule
+        name: '@deepseek-ai/dsh-tool-schedule'
+        config:
+          access:
+            role: super_admin
+            owner: { userId: admin, userName: 管理员, departmentCode: HQ, departmentName: 总部 }
+      - id: skill-filesystem
+        name: '@deepseek-ai/dsh-skill-filesystem'
+      - id: tool-skill
+        name: '@deepseek-ai/dsh-tool-skill'
+      - id: command-goal
+        name: '@deepseek-ai/dsh-command-goal'
+      - id: tool-goal
+        name: '@deepseek-ai/dsh-tool-goal'
+      - id: planning
+        name: cordis:group
+        group: true
+        isolate:
+          planMode: true
+        config:
+          - id: plan-mode
+            name: '@deepseek-ai/dsh-plan-mode'
+            config:
+              section: >
+                You are in plan mode. Stay in plan mode until the user approves
+                your plan through exit_plan_mode or switches the session mode.
+                Imperative language to implement changes means plan the
+                implementation, not execute it. A user's conversational
+                agreement — including an answer confirming something you asked —
+                approves nothing and does not end plan mode; fold the confirmed
+                decision into the plan and submit it through exit_plan_mode.
+
+
+                Explore first. Use non-mutating reads, searches, static
+                analysis, and checks to ground the plan in the actual
+                repository. Do not edit or write files, change configuration,
+                run formatters or code generation that rewrites tracked files,
+                commit, or otherwise carry out the plan. Prefer existing
+                functions and patterns over new machinery.
+
+
+                The tool catalog stays the same across modes for request-cache
+                stability. These plan-mode rules override any later tool
+                description or guidance that suggests using mutation tools;
+                those tools remain listed to keep the tool catalog unchanged. Do
+                not use todo_write to track this planning phase: it tracks
+                implementation after an approved plan, while the plan itself
+                belongs in exit_plan_mode.
+
+
+                Resolve discoverable facts by inspection. Use ask_user_question
+                only for user-owned choices or material ambiguity that
+                inspection cannot answer. Do not ask the user where code lives
+                or how current behavior works when you can find out.
+
+
+                Make the plan decision-complete: state the goal and success
+                criteria; group implementation changes by subsystem; identify
+                public API, schema, and data-flow changes; cover edge cases,
+                failure modes, tests, acceptance criteria, and explicit
+                assumptions. Keep it concise enough to review but detailed
+                enough that another engineer can implement it without making
+                design decisions.
+
+
+                When ready, call exit_plan_mode with the complete plan markdown,
+                starting with a # title. Make exit_plan_mode the only and final
+                tool call in that assistant response: it presents the plan for
+                approval, and implementation begins only in a later step after
+                approval. Do not paste the final plan as a plain reply or ask
+                "should I proceed?" through prose or ask_user_question. If
+                review rejects it, incorporate the feedback and present again.
+                If the review channel is unavailable or aborted, stay in plan
+                mode and ask the user to switch modes manually; do not proceed
+                with implementation.
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+          toolResultPruner: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
+          - id: tool-result-pruner
+            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            config:
+              thresholdChars: 8192
+              headChars: 4096
+              tailChars: 1024
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate:
+          workflowEngine: true
+        config:
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+          - id: workflow-ptc
+            name: '@deepseek-ai/dsh-workflow-ptc'
+            config:
+              provider: spawn
+          - id: tool-workflow
+            name: '@deepseek-ai/dsh-tool-workflow'
+            disabled: true
+      - id: tool-ask-user
+        name: '@deepseek-ai/dsh-tool-ask-user'
+      - id: tool-todo
+        name: '@deepseek-ai/dsh-tool-todo'
+        config:
+          allowParallelInProgress: true
+      - id: tool-web
+        name: '@deepseek-ai/dsh-tool-web'
+        config:
+          fetch: true
+          searchTimeoutMs: 60000
+      - id: present
+        name: '@deepseek-ai/dsh-tool-present'
+      - id: tool-plugin-manager
+        name: '@deepseek-ai/dsh-plugin-manager/tools'
+        disabled: true
+      - id: tool-plugin-market
+        name: '@deepseek-ai/dsh-plugin-market/tools'
+        disabled: true
+
+# artifact-app 的 host 侧 API 地址不能走默认的 host.docker.internal:3101：
+# 工作区容器里这个地址不可达，/dsh-artifact-app/apps 会 500，开始页的
+# 资源/驾驶舱卡片因此不渲染。baseUrl 必须与 dataops-managed 共用后端地址。
+- insert:
+    - id: artifact-app
+      name: '@sparkelf/dsh-artifact-app'
+      config:
+        baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
+        webBaseUrl: !!js process.env.DATAOPS_PUBLIC_APP_ORIGIN
+        credentialRef: DATAOPS_ACCESS_TOKEN
+
+# AnySearch (国内) is the single web search/fetch provider for this deployment. The plus layer's
+# Exa row stays installed but unselected; rollback is restoring this block from the profile backup.
+- id: web
+  config:
+    searchProvider: anysearch
+    fetchProvider: anysearch
+
+# Cordis（创造模式）preset 覆盖：workflow 工具在全部预设中都不可用。
+# 重述出厂插件清单，并在 tool-workflow 上设 disabled: true（其余与出厂一致）。
+- id: preset-cordis
+  config:
+    id: cordis
+    order: 4
+    plugins:
+      # The dsh-doc skill owns plugin implementation and authorization guidance.
+      - id: persona
+        name: '@deepseek-ai/dsh-persona'
+        config:
+          prefix: >-
+            You are a coding agent powered by the {{model}} model.
+            You help the user customize DeepSeek Harness itself.
+      - id: agent-instructions
+        name: '@deepseek-ai/dsh-agent-instructions'
+        config:
+          maxBytes: 65536
+      - id: time-context
+        name: '@deepseek-ai/dsh-time-context'
+      - id: tool-bash
+        name: '@deepseek-ai/dsh-tool-bash'
+        disabled: !!js process.platform === 'win32'
+      - id: tool-pwsh
+        name: '@deepseek-ai/dsh-tool-pwsh'
+        disabled: !!js process.platform !== 'win32'
+      - id: tool-fs
+        name: '@deepseek-ai/dsh-tool-fs'
+        config:
+          # Set true to add the apply_patch tool beside edit.
+          applyPatch: false
+      - id: tool-fs-search
+        name: '@deepseek-ai/dsh-tool-fs-search'
+        config:
+          sampleOverCapGlobResults: false
+      - id: tool-jobs
+        name: '@deepseek-ai/dsh-tool-jobs'
+      - id: tool-schedule
+        name: '@deepseek-ai/dsh-tool-schedule'
+      - id: command-goal
+        name: '@deepseek-ai/dsh-command-goal'
+      - id: tool-goal
+        name: '@deepseek-ai/dsh-tool-goal'
+      - id: planning
+        name: cordis:group
+        group: true
+        isolate:
+          planMode: true
+        config:
+          - id: plan-mode
+            name: '@deepseek-ai/dsh-plan-mode'
+            config:
+              section: |
+                You are in plan mode. Stay in plan mode until the user approves your plan through exit_plan_mode or switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+                Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+                The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+                Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+                Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+                When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+      - id: compaction
+        name: cordis:group
+        group: true
+        isolate:
+          compaction: true
+          toolResultPruner: true
+        config:
+          - id: compaction-basic
+            name: '@deepseek-ai/dsh-compaction-basic'
+          - id: command-compact
+            name: '@deepseek-ai/dsh-command-compact'
+          - id: tool-result-pruner
+            name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+            config:
+              thresholdChars: 8192
+              headChars: 4096
+              tailChars: 1024
+      - id: delegation
+        name: cordis:group
+        group: true
+        isolate:
+          workflowEngine: true
+        config:
+          - id: tool-subagent-control
+            name: '@deepseek-ai/dsh-tool-subagent-control'
+            config:
+              interrupt: false
+          - id: tool-subagent
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: spawn
+              toolName: subagent
+              modelSelection: true
+              modelDiscovery: true
+          - id: tool-subagent-fork
+            name: '@deepseek-ai/dsh-tool-subagent'
+            config:
+              provider: fork
+              toolName: subagent_fork
+          - id: workflow-ptc
+            name: '@deepseek-ai/dsh-workflow-ptc'
+            config:
+              provider: spawn
+          - id: tool-workflow
+            name: '@deepseek-ai/dsh-tool-workflow'
+            disabled: true
+      - id: tool-ask-user
+        name: '@deepseek-ai/dsh-tool-ask-user'
+      - id: tool-todo
+        name: '@deepseek-ai/dsh-tool-todo'
+        config:
+          allowParallelInProgress: true
+      - id: tool-web
+        name: '@deepseek-ai/dsh-tool-web'
+        config:
+          fetch: true
+          searchTimeoutMs: 60000
+      - id: tool-cordis
+        name: '@deepseek-ai/dsh-tool-cordis'
+      - id: skill-filesystem
+        name: '@deepseek-ai/dsh-skill-filesystem'
+        config:
+          customSkillDirs:
+            - !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('@deepseek-ai/dsh-agent-preset/package.json')), 'skills')
+      - id: tool-skill
+        name: '@deepseek-ai/dsh-tool-skill'
+      - id: present
+        name: '@deepseek-ai/dsh-tool-present'
+      - id: tool-plugin-manager
+        name: '@deepseek-ai/dsh-plugin-manager/tools'
+        disabled: !!js "!ctx.get('profileContext')"
+      - id: tool-plugin-market
+        name: '@deepseek-ai/dsh-plugin-market/tools'
+        disabled: !!js "!ctx.get('profileContext')"
+
+- id: knowledge-base
+  name: "@sparkelf/dsh-knowledge-base"
+  config:
+    mineruBaseUrl: http://host.docker.internal:8000
+
+# IM 机器人集中管理（admin 模式）：只注册 DSH 设置页与同源代理，不加载 IM 通道、不注册工具。
+# 成员设置页里没有这一项；后端 /api/im/* 另由 system:im:manage 把关。
+- insert:
+    - id: dataops-im
+      name: "@sparkelf/dsh-dataops-im"
+      config:
+        mode: admin
+        baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
+
+# 万相文档处理：通用 office 技能与 OfficeCLI 的 word/excel/pptx 重复，禁用 dsh-skill-office。
+- id: skill-office
+  disabled: true
+
+# officecli-pdf 导出允许 600s；office-kit 默认 60s 会先超时。
+- id: office-kit
+  config:
+    timeoutMs: 600000
+    maxInputBytes: 104857600
+    maxSourceBytes: 104857600
+    maxConcurrentConversions: 2
