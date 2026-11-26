@@ -8,7 +8,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -172,16 +172,6 @@ const commands = {
     console.log(`digest: sha256:${digest}`)
     console.log(`inputs: ${Object.keys(plan.profileDependencies ?? {}).length} exact profile dependencies`)
   },
-  image(args) {
-    const builder = process.env.DOWNSTREAM_IMAGE_BUILDER
-    if (!builder) fail('image builder is not configured; set DOWNSTREAM_IMAGE_BUILDER to a builder that accepts --release-manifest <path>, or run `image-plan` to inspect inputs')
-    if (!existsSync(builder)) fail(`DOWNSTREAM_IMAGE_BUILDER does not exist: ${builder}`)
-    try {
-      execFileSync(builder, ['--release-manifest', releaseManifestPath, ...args], { cwd: root, stdio: 'inherit' })
-    } catch (error) {
-      process.exitCode = typeof error?.status === 'number' ? error.status : 1
-    }
-  },
   doctor() {
     const problems = []
     const warnings = []
@@ -224,6 +214,20 @@ const commands = {
     }
     for (const warning of warnings) console.warn(`warning      ${warning}`)
     console.log(`doctor: ${relative(root, 'downstream/release-manifest.json')} is reproducible-sane; ${warnings.length} warning(s)`)
+  },
+  image(args = []) {
+    const tagIndex = args.indexOf('--tag')
+    const tag = tagIndex >= 0 ? args[tagIndex + 1] : 'dataops-web-profile:local'
+    const context = mkdtempSync(join('/tmp', 'dataops-web-image-'))
+    const profileDir = join(context, 'profile')
+    commands.profile(['--out', profileDir])
+    execFileSync('pnpm', ['--filter', '@sparkelf/dsh-plus', 'pack', '--pack-destination', context], { cwd: root, stdio: 'inherit' })
+    const tarball = readdirSync(context).find((name) => name.endsWith('.tgz'))
+    if (!tarball) fail('dsh-plus pack produced no tarball')
+    cpSync(join(root, 'downstream/image/Dockerfile'), join(context, 'Dockerfile'))
+    cpSync(join(context, tarball), join(context, 'plus.tgz'))
+    execFileSync('docker', ['build', '-t', tag, context], { cwd: root, stdio: 'inherit' })
+    console.log(`image: ${tag}`)
   },
   profile(args = []) {
     const outIndex = args.indexOf('--out')
@@ -279,9 +283,9 @@ Commands:
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
   profile         deploy the generated DataOps web profile to a directory
+  image           build the local DataOps web smoke image from profile + dsh-plus
   doctor          check clean-fork reproducibility prerequisites
   image-plan      write a deterministic image input plan from the release manifest
-  image           run DOWNSTREAM_IMAGE_BUILDER with the release manifest
   publish         validate migrated packages with --dry-run; remote publish is fail-closed
   help            show this help`)
   },
