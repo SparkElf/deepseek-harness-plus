@@ -27,6 +27,7 @@ import {
   AI_TOOL_ACCESS,
   declaredMcpToolName,
   hasPermission,
+  isAdmin,
   isSuperAdmin,
   sessionHidesSkill,
   sessionHidesTool,
@@ -577,6 +578,41 @@ const provisioningSkillProvider = {
   },
 }
 
+/**
+ * 万相 AI 中台管理技能：管理员/超管的中台管理操作手册。
+ *
+ * 技能本身只是路由与安全规则，具体字段走 `references/` 和 `dataops_api_docs`；它只对持有
+ * `system:admin:manage` 的管理员/超管展示，部门管理员与普通用户看不到。
+ */
+const WANXIANG_ADMIN_SKILL_NAME = 'wanxiang-ai-admin'
+const WANXIANG_ADMIN_SKILL_FILE = new URL('../skills/wanxiang-ai-admin/SKILL.md', import.meta.url)
+const WANXIANG_ADMIN_SKILL_ROOT = fileURLToPath(new URL('../skills/wanxiang-ai-admin/', import.meta.url))
+/** 该技能的门禁：管理员/超管默认持有，部门管理员没有。 */
+const WANXIANG_ADMIN_SKILL_PERMISSION = 'system:admin:manage'
+
+const WANXIANG_ADMIN_SKILL = {
+  name: WANXIANG_ADMIN_SKILL_NAME,
+  metadata: { permissions: [WANXIANG_ADMIN_SKILL_PERMISSION] },
+  description: '万相 AI 中台管理：用户/角色/资源授权/技能与工作区管理',
+  invocation: { modelInvocable: true, userInvocable: true },
+  provider: WANXIANG_ADMIN_SKILL_NAME,
+  source: 'bundled',
+  resourceBase: { kind: 'directory', path: WANXIANG_ADMIN_SKILL_ROOT },
+  rank: BUNDLED_SKILL_RANK,
+  locator: WANXIANG_ADMIN_SKILL_FILE,
+} as const
+
+let wanxiangAdminSkillAllowed: () => boolean = () => false
+
+const wanxiangAdminSkillProvider = {
+  name: WANXIANG_ADMIN_SKILL_NAME,
+  list: () => Promise.resolve(wanxiangAdminSkillAllowed() ? [WANXIANG_ADMIN_SKILL] : []),
+  async get() {
+    if (!wanxiangAdminSkillAllowed()) throw new Error('wanxiang AI admin skill is not available for this account')
+    return { ...WANXIANG_ADMIN_SKILL, content: await readFile(WANXIANG_ADMIN_SKILL_FILE, 'utf8') }
+  },
+}
+
 /** Serve the collection skill to the catalog. */
 const collectSkillProvider = {
   name: COLLECT_SKILL_NAME,
@@ -620,6 +656,7 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   ctx.skills.registerProvider(() => connectorSkillProvider)
   ctx.skills.registerProvider(() => prefectScriptSkillProvider)
   ctx.skills.registerProvider(() => provisioningSkillProvider)
+  ctx.skills.registerProvider(() => wanxiangAdminSkillProvider)
   // One browser entry: headless, companion, and legacy install details live as
   // references under the skill directory, so the skill center lists one skill and
   // the model loads only the playbook it needs.
@@ -911,6 +948,19 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   provisioningSkillAllowed = () => {
     const scope = aiTools.currentScope()
     return scope !== undefined && hasPermission(scope, 'skill:manage')
+  }
+  /**
+   * 万相 AI 中台管理技能只对管理员/超管展示。
+   *
+   * 角色判定在前面：`hasPermission` 在缺少权限列表的旧上下文里会按角色兜底，部门管理员会
+   * 因此拿到一个本该只属于管理员的键。超管是 DataOps 的权限旁路角色，上下文只带了部分
+   * 权限键时不应被藏掉；管理员仍要求实际持有 `system:admin:manage`。
+   */
+  wanxiangAdminSkillAllowed = () => {
+    const scope = aiTools.currentScope()
+    if (scope === undefined) return false
+    if (!isAdmin(scope)) return false
+    return isSuperAdmin(scope) || hasPermission(scope, WANXIANG_ADMIN_SKILL_PERMISSION)
   }
   ctx.effect(() => () => aiTools.dispose(), 'dataops-managed: skill and review tool disclosure')
 

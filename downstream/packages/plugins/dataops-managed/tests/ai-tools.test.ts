@@ -162,7 +162,7 @@ describe('uninstall / unshare / delete semantics', () => {
 describe('scope-based disclosure', () => {
   it('registers only the notification tools when the permission list is empty', () => {
     const f = setup({ ...ADMIN, permissions: [] })
-    expect([...f.tools.keys()].sort()).toEqual(['dataops_open_resource_tab', 'review_notifications_list', 'review_notifications_read'])
+    expect([...f.tools.keys()].sort()).toEqual(['dataops_api_docs', 'dataops_open_resource_tab', 'review_notifications_list', 'review_notifications_read'])
   })
 
   it('registers review_decide for a department reviewer and leaves resource scope to DataOps', async () => {
@@ -177,7 +177,7 @@ describe('scope-based disclosure', () => {
     expect(f.tools.has('skill_enable')).toBe(true)
     expect(f.tools.has('skill_delete')).toBe(true)
     expect(f.tools.has('review_scan')).toBe(true)
-    expect(f.tools.has('dataops_api_docs')).toBe(false)
+    expect(f.tools.has('dataops_api_docs')).toBe(true)
   })
 
   it('never reads the scope during a tool call', async () => {

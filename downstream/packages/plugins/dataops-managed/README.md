@@ -18,7 +18,7 @@ DataOps设置中的“应用万相品牌”默认开启，并在本机浏览器�
 
 ### 工具按权限披露
 
-工作区的DataOps角色决定模型能看到哪些技能/审核工具：插件在JWT变更、首次连接和审核上下文刷新时读取`/api/ai/review/context`，按`skill:*`能力与审核角色注册或注销工具；没有能力的工具不会出现在模型工具列表中。工具执行时不再重复读取角色，DataOps后端仍对每次API调用做最终授权、参数校验、审批与审计。`dataops_api_docs`只向「超级管理员」披露，用于只读检索`/api/openapi.json`。后端 MCP 工作流工具`workflow_query`／`workflow_definition`／`workflow_deployment`／`workflow_run_control`同样只向「超级管理员」披露：它们在模型侧的名称是`mcp__<serverName>__<name>`，插件把该名称映射回声明表后参与会话级披露，群聊房间会按发言人身份隐藏非超管不可见的工具。同一份 scope 还会通过`ctx.skills.useViewer`约束技能目录；技能中心的连接器 Tab 读取`/api/dsh-skill-center/connectors`，未授权能力不会出现在目录中。
+工作区的DataOps角色决定模型能看到哪些技能/审核工具：插件在JWT变更、首次连接和审核上下文刷新时读取`/api/ai/review/context`，按`skill:*`能力与审核角色注册或注销工具；没有能力的工具不会出现在模型工具列表中。工具执行时不再重复读取角色，DataOps后端仍对每次API调用做最终授权、参数校验、审批与审计。`dataops_api_docs`只向「超级管理员与管理员」披露，用于只读检索`/api/openapi.json`。后端 MCP 工作流工具`workflow_query`／`workflow_definition`／`workflow_deployment`／`workflow_run_control`同样只向「超级管理员」披露：它们在模型侧的名称是`mcp__<serverName>__<name>`，插件把该名称映射回声明表后参与会话级披露，群聊房间会按发言人身份隐藏非超管不可见的工具。同一份 scope 还会通过`ctx.skills.useViewer`约束技能目录；技能中心的连接器 Tab 读取`/api/dsh-skill-center/connectors`，未授权能力不会出现在目录中。
 
 ### 已知限制
 
@@ -42,7 +42,7 @@ The package adds namespaced DataOps MCP tool schemas but never places the JWT in
 
 ### Permission-Based Tool Disclosure
 
-The workspace's DataOps role decides which skill and review tools the model can see. The plugin reads `/api/ai/review/context` when the JWT changes, on the first connect, and whenever the review-context route refreshes, then registers or disposes tools according to the `skill:*` capabilities and review role. A tool the principal cannot use is never offered. Execution does not re-read the role; DataOps still performs final authorization, parameter validation, approval and audit on every API call. `dataops_api_docs` is disclosed only to 超级管理员 and searches `/api/openapi.json` read-only. The backend's MCP workflow tools — `workflow_query`, `workflow_definition`, `workflow_deployment`, and `workflow_run_control` — are likewise disclosed only to 超级管理员: their model-facing names are `mcp__<serverName>__<name>`, and the plugin maps that name back to the declaration so a group-chat room hides any tool its speaker could not use. The same scope is applied to the skill catalog through `ctx.skills.useViewer`; the skill center's connector tab reads `/api/dsh-skill-center/connectors`, which omits capabilities the account cannot use.
+The workspace's DataOps role decides which skill and review tools the model can see. The plugin reads `/api/ai/review/context` when the JWT changes, on the first connect, and whenever the review-context route refreshes, then registers or disposes tools according to the `skill:*` capabilities and review role. A tool the principal cannot use is never offered. Execution does not re-read the role; DataOps still performs final authorization, parameter validation, approval and audit on every API call. `dataops_api_docs` is disclosed only to 超级管理员 and 管理员; it searches `/api/openapi.json` read-only. The backend's MCP workflow tools — `workflow_query`, `workflow_definition`, `workflow_deployment`, and `workflow_run_control` — are likewise disclosed only to 超级管理员: their model-facing names are `mcp__<serverName>__<name>`, and the plugin maps that name back to the declaration so a group-chat room hides any tool its speaker could not use. The same scope is applied to the skill catalog through `ctx.skills.useViewer`; the skill center's connector tab reads `/api/dsh-skill-center/connectors`, which omits capabilities the account cannot use.
 
 ### Known Limitations
 
