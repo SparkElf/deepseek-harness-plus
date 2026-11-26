@@ -109,23 +109,49 @@ const commands = {
     for (const item of pending) console.log(`  pending     ${item.name}@${item.version} -> ${item.targetPath}`)
     for (const item of excluded) console.log(`  excluded    ${item.name}@${item.version}: ${item.excludedReason ?? ''}`)
   },
-  'build-packages'() {
+  'build-packages'(args = []) {
+    const jobsIndex = args.indexOf('--jobs')
+    const jobs = args.includes('--sequential') ? '1' : (jobsIndex >= 0 ? args[jobsIndex + 1] : '4')
+    if (!/^[1-9][0-9]*$/u.test(jobs)) fail('usage: build-packages [--jobs N] [--sequential]')
     const packagesRoot = join(downstream, 'packages')
-    const manifests = []
+    const buildable = []
     const walk = (dir) => {
       if (!existsSync(dir)) return
       for (const name of readdirSync(dir)) {
         const path = join(dir, name)
         if (!statSync(path).isDirectory()) continue
-        if (existsSync(join(path, 'package.json'))) manifests.push(path)
-        else walk(path)
+        const manifestPath = join(path, 'package.json')
+        if (existsSync(manifestPath)) {
+          const manifest = readJson(manifestPath)
+          if (typeof manifest.scripts?.build === 'string') buildable.push({ path, name: manifest.name })
+        } else {
+          walk(path)
+        }
       }
     }
     walk(packagesRoot)
-    if (!manifests.length) fail('no migrated packages yet; add workspace packages under downstream/packages before running build-packages')
-    for (const path of manifests) {
-      console.log(`building ${relative(root, path)}`)
-      execFileSync('pnpm', ['--dir', path, 'run', 'build'], { cwd: root, stdio: 'inherit' })
+    if (buildable.length === 0) fail('no downstream package declares a build script; add workspace packages under downstream/packages before running build-packages')
+    console.log(`building ${buildable.length} downstream packages (workspace concurrency ${jobs})`)
+    for (const entry of buildable) console.log(`  package     ${entry.name} (${relative(root, entry.path)})`)
+    // pnpm 11.7 defaults verify-deps-before-run to "install": every `run` re-checks
+    // the lockfile and, when it looks stale, spawns `pnpm install --production`,
+    // which aborts with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY without a TTY.
+    // This command only builds workspace sources, so the check is not ours here.
+    try {
+      execFileSync('pnpm', [
+        '--config.verify-deps-before-run=false',
+        '--reporter=append-only',
+        '-r',
+        '--stream',
+        // pnpm 11.7 mis-parses the space-separated form as a script name.
+        `--workspace-concurrency=${jobs}`,
+        ...buildable.flatMap((entry) => ['--filter', entry.name]),
+        'run', 'build',
+      ], { cwd: root, stdio: 'inherit' })
+    } catch (error) {
+      if (typeof error?.status !== 'number') throw error
+      console.error(`downstream: build-packages failed (exit ${error.status})`)
+      process.exitCode = error.status
     }
   },
   apply(args) {
@@ -341,7 +367,7 @@ Commands:
   status          show lock/manifest/package summary
   sync [--fetch]  verify the pinned official tag/revision
   inventory       list dsh-plugins-plus packages and migration status
-  build-packages  build migrated workspace packages (fails until migration)
+  build-packages  build migrated workspace packages: [--jobs N] [--sequential] (parallel default)
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
   profile         deploy the generated DataOps web profile to a directory
