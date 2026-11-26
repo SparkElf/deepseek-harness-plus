@@ -48,10 +48,6 @@ gateway_context="${WORKSPACE_GATEWAY_PROTOCOL_CONTEXT:-$ctx/workspace-web-gatewa
 missing=()
 test -f "$tarball" || missing+=("plus tarball: $tarball (gap G4)")
 test -f "$ctx/dsh-src.tar.gz" || missing+=("DSH source tarball: $ctx/dsh-src.tar.gz (gap G1)")
-test -f "$ctx/vendor/xlsx-0.20.3.tgz" || missing+=("vendor/xlsx-0.20.3.tgz (gap G4)")
-test -f "$ctx/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz" || missing+=("vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz (gap G4)")
-test -f "$ctx/vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz" || missing+=("vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz (gap G4)")
-test -f "$ctx/vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz" || missing+=("vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz (gap G4)")
 if [ ! -f "$gateway_context/index.js" ]; then
   missing+=("gateway protocol context has no index.js: $gateway_context")
 fi

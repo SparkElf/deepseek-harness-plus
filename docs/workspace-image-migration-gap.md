@@ -15,6 +15,18 @@ The skeleton mirrors the DataOps build context byte-for-byte and resolves the bu
 
 Remaining input blockers are only G1/G4: `dsh-src.tar.gz`, the Plus tarball, and four vendor tarballs. They exist in the local DataOps workspace but are gitignored; they need a release-artifact or explicit-commit decision.
 
+## Candidate build (2026-11-26)
+
+A candidate image built successfully with all inputs supplied locally:
+
+```text
+dataops-ai-workspace-candidate:base-py312                 4.85GB
+dataops-ai-workspace-candidate:plus-cli-py312-0.2.9-alpha.106
+dataops-ai-workspace-candidate:local                      11.9GB
+```
+
+Evidence: `images/workspace/acceptance/candidate-20261126.json`. No `final`/`local` production tag was overwritten and 3000 was not switched. G1/G4 still need a clean-clone preflight (the generated `dsh-src.tar.gz`, Plus pack, and vendor tarballs are intentionally gitignored); G6/G7/G8/G9 remain.
+
 ## Gap inventory
 
 | ID | Gap | Evidence | Effect | Next step |
