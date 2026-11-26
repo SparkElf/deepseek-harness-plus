@@ -122,6 +122,14 @@ const commands = {
     for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
       if (typeof spec !== 'string' || spec.length === 0) fail(`profile dependency ${name} has no exact spec`)
     }
+    const profilePackagePath = join(downstream, 'profiles/dataops-web/package.json')
+    if (!existsSync(profilePackagePath)) fail('missing generated profile package: downstream/profiles/dataops-web/package.json')
+    const profilePackage = readJson(profilePackagePath)
+    for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
+      const actual = profilePackage.dependencies?.[name]
+      const expected = r.localPackages?.[name]?.override === 'enabled' ? 'workspace:*' : spec
+      if (actual !== expected) fail(`profile dependency ${name} is ${String(actual)}, expected ${expected}`)
+    }
     const mismatches = []
     for (const [name, entry] of Object.entries(r.localPackages ?? {})) {
       if (!existsSync(join(root, entry.path))) fail(`local package ${name} path is missing: ${entry.path}`)
