@@ -13,13 +13,19 @@
 # sources and verifies them; `--print` resolves every command and reports missing inputs without
 # building anything.
 #
+# A candidate repository (`*candidate*`) also writes acceptance/release-binding.json after the
+# build and fails when the binding cannot be verified. Production repositories skip that step, so
+# a production build cannot replace the candidate record. Set RELEASE_BINDING=off to opt out.
+#
 # Usage:
 #   ./build-workspace-final.sh 0.2.9-alpha.105
 #   ./build-workspace-final.sh 0.2.9-alpha.105 --print
+#   IMAGE_REPOSITORY=dataops-ai-workspace-candidate ./build-workspace-final.sh 0.2.9-alpha.106
 #   DSH_PLUS_TARBALL=/tmp/rel/sparkelf-dsh-plus-0.2.9-alpha.105.tgz ./build-workspace-final.sh 0.2.9-alpha.105
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ctx="$here/context"
+repo_root="$(cd "$here/../.." && pwd)"
 
 print_only=0
 args=()
@@ -36,7 +42,8 @@ image_repo="${IMAGE_REPOSITORY:-dataops-ai-workspace}"
 profile_defaults="${DATAOPS_PROFILE_DEFAULTS:-cordis.patch.yml}"
 stamp="$(date +%Y%m%d-%H%M)"
 plus_version="${DSH_PLUS_VERSION:-$version}"
-source_revision="${DSH_SOURCE_REVISION:-4b399c39a6d1479cd84ca591b4d7c88e24d38a96}"
+pinned_source_revision="$(node -p "require(process.argv[1]).revision" "$repo_root/downstream/upstream.lock.json" 2>/dev/null || true)"
+source_revision="${DSH_SOURCE_REVISION:-$pinned_source_revision}"
 source_registry="${DSH_SOURCE_REGISTRY:-https://registry.npmmirror.com}"
 plus_registry="${DSH_PLUS_INSTALL_REGISTRY:-https://mirrors.cloud.tencent.com/npm}"
 
@@ -44,6 +51,41 @@ tarball="${DSH_PLUS_TARBALL:-$ctx/sparkelf-dsh-plus-${plus_version}.tgz}"
 dest="$ctx/sparkelf-dsh-plus-${plus_version}.tgz"
 
 gateway_context="${WORKSPACE_GATEWAY_PROTOCOL_CONTEXT:-$ctx/workspace-web-gateway-protocol}"
+release_binding="$here/acceptance/release-binding.json"
+release_binding_mode="${RELEASE_BINDING:-auto}"
+
+# The binding names the source revision and Plus version a candidate was built from. Neither may
+# be empty: an empty revision is exactly the defect G9 recorded on the production image. A caller
+# that overrides the revision away from upstream.lock would produce an image the committed binding
+# cannot describe, so that mismatch fails before the build instead of being recorded as fact.
+assert_nonempty() {
+  if [ -z "$2" ]; then
+    echo "error: $1 is empty; set it explicitly or fix the pinned lock" >&2
+    exit 3
+  fi
+}
+assert_nonempty "Plus version" "$plus_version"
+assert_nonempty "DSH source revision" "$source_revision"
+if [[ ! "$source_revision" =~ ^[0-9a-f]{40}$ ]]; then
+  echo "error: DSH source revision is not a 40-hex commit: $source_revision" >&2
+  exit 3
+fi
+case "$image_repo" in
+  *candidate*) candidate_repository=1 ;;
+  *) candidate_repository=0 ;;
+esac
+if [ -n "$pinned_source_revision" ] && [ "$source_revision" != "$pinned_source_revision" ]; then
+  if [ "$candidate_repository" = "1" ]; then
+    echo "error: DSH_SOURCE_REVISION=$source_revision differs from downstream/upstream.lock.json=$pinned_source_revision" >&2
+    echo "       A candidate binding records the lock revision; update the lock or build the pinned revision." >&2
+    exit 3
+  fi
+  echo "warning: building $source_revision, but downstream/upstream.lock.json pins $pinned_source_revision" >&2
+fi
+if [ "$release_binding_mode" != "auto" ] && [ "$release_binding_mode" != "off" ]; then
+  echo "error: RELEASE_BINDING must be auto or off, got: $release_binding_mode" >&2
+  exit 2
+fi
 
 # Inputs a build needs but this repository deliberately does not carry. `prepare-inputs.sh`
 # supplies and verifies them; this list reports every absence at once so a reviewer sees the
@@ -92,6 +134,9 @@ build_plus=(docker build --network host -f "$ctx/Dockerfile.plus-cli-src"
   -q "$ctx")
 build_runtime=(docker build --network host -f "$ctx/Dockerfile.runtime-cli"
   --build-arg "DSH_LAYER_IMAGE=$plus_ref"
+  # The Dockerfile defaults this to the production repository. Passing the tag this build just
+  # created keeps a candidate runtime layer from copying the production runtime-files image.
+  --build-arg "DATAOPS_RUNTIME_FILES_IMAGE=$runtime_files_ref"
   --build-arg "DSH_PLUS_VERSION=${plus_version}"
   --build-arg "DATAOPS_PROFILE_DEFAULTS=${profile_defaults}" -q "$ctx")
 
@@ -101,6 +146,11 @@ if [ "$print_only" = "1" ]; then
   echo "  source rev   : $source_revision"
   echo "  context      : $ctx"
   echo "  tags         : $image_repo:final-$stamp, :final, :local"
+  if [ "$candidate_repository" = "1" ] && [ "$release_binding_mode" = "auto" ]; then
+    echo "  binding      : $release_binding (written and verified after the build)"
+  else
+    echo "  binding      : skipped (repository is not a candidate namespace or RELEASE_BINDING=off)"
+  fi
   echo
   print_cmd() {
     local a
@@ -164,6 +214,22 @@ final_id=$("${build_runtime[@]}")
 docker tag "$final_id" "$image_repo:final-${stamp}"
 docker tag "$final_id" "$image_repo:final"
 docker tag "$final_id" "$image_repo:local"
+
+# Only a candidate repository gets a binding. The production repository is rejected by the
+# script, so a build that still names it cannot overwrite the release record with a local image.
+if [ "$candidate_repository" = "1" ] && [ "$release_binding_mode" = "auto" ]; then
+  echo "==> release binding"
+  node "$here/scripts/release-binding.mjs" write \
+    --tag "$image_repo:local" \
+    --alias "$image_repo:final-${stamp}" \
+    --alias "$image_repo:final" \
+    --path "$release_binding"
+  node "$here/scripts/release-binding.mjs" verify \
+    --path "$release_binding" \
+    --image "$image_repo:local" \
+    --require-inputs \
+    --require-image
+fi
 
 echo "==> done"
 echo "  base=${base_id}"

@@ -1,0 +1,105 @@
+verify-workspace-image: dataops-ai-workspace-candidate:local
+  ok   the image keeps its entrypoint
+  ok   the internal token is visible only to the sidecar identity
+  ok   the entrypoint checks the token as the sidecar identity
+  ok   the DSH service makes its home traversable for the sidecar
+  ok   the combined gateway and its entrypoint are installed
+  ok   the workspace SDK sidecar starts after token provisioning
+layout
+  ok   the launcher is the installed runtime bin
+  ok   the browser UI ships with the image
+  ok   the profile template carries its source marker
+  ok   the variant removes the capability it excludes
+  ok   every peer of the mounted settings plugins resolves
+  ok   every peer any installed package declares resolves
+  ok   the runtime tree holds one copy per package and the patches it needs
+  ok   the runtime and the profile hold one dsh line
+  ok   one package mounted from both trees is one version
+  ok   the approval package accepts the policy the base bundle names
+  ok   the host-operations commands and the polars frame resolve
+  ok   the automation runtime imports resolve in this image
+  ok   the settings plugin loads from the profile template
+  ok   the overlay disables the credential prompt
+  ok   the overlay acknowledges the build's own notice version
+  ok   the profile marker carries a content digest
+IM profile isolation
+  ok   the default profile mounts no IM bundle
+  ok   the im-test variant pins the preinstalled IM package
+  ok   the profile service assembles the im-test variant
+  ok   the assembled im-test profile links the preinstalled package
+deployment plugins
+  ok   the repaired plugin manifests support the pinned runtime
+  ok   @sparkelf/dsh-dataops-managed resolves from the profile
+  ok   @sparkelf/dsh-query-result-analysis resolves from the profile
+  ok   @sparkelf/dsh-knowledge-base resolves from the profile
+  ok   @sparkelf/dsh-credential-manager resolves from the profile
+  ok   @sparkelf/dsh-group-chat resolves from the profile
+  ok   @sparkelf/dsh-kb-citation resolves from the profile
+  ok   @sparkelf/dsh-task-bus resolves from the profile
+  ok   dsh-better-sidebar resolves from the profile
+  ok   @anysearch/anysearch-dsh resolves from the profile
+  ok   @sparkelf/dsh-dataops-account resolves from the profile
+  ok   @sparkelf/dsh-ocr resolves from the profile
+  ok   @sparkelf/dsh-dataops-im resolves from the profile
+  ok   every required DataOps plugin holds a bundle row
+  ok   @sparkelf/dsh-dataops-account is the reviewed 0.2.0
+  ok   @sparkelf/dsh-ocr is the reviewed 0.1.0
+  ok   @sparkelf/dsh-dataops-im is the reviewed 0.1.2
+  ok   @sparkelf/dsh-dataops-admin is absent from the profile tree
+  ok   @sparkelf/dsh-dataops-admin holds no bundle row
+  ok   dsh-sql-workbench resolves from the profile
+  ok   @sparkelf/dsh-ssh-manager resolves from the profile
+  ok   @sparkelf/dsh-api-client resolves from the profile
+  ok   dsh-sql-workbench 0.5.4-sparkelf.1 ships its host and client faces
+  ok   @sparkelf/dsh-ssh-manager 0.7.5 ships its host and client faces
+  ok   @sparkelf/dsh-api-client 0.5.3 ships its host and client faces
+  ok   the image registers the SQL, API, SSH, skill and KB tool catalogs
+  ok   the workspace runs the Schedule pair at the runtime version
+  --   knowledge-base is the standard build; kb_file_* assertions are skipped
+  ok   the citation chips are mounted with their highlight surfaces
+  --   better-sidebar is the standard build; CSV assertions are skipped
+  ok   the plugin page carries its grouping headings
+  ok   the skill plaza lays its cards out in a grid
+  --   the workflow-plaza seat is not part of this patchSet; check skipped
+  ok   the launcher and config editor share dsh-app-boot
+  ok   the session, jobs, and PTC host providers import from the profile
+profile refresh
+  ok   template refresh and repeat preparation retain user settings and file mode
+  ok   retired managed-skill package and copied skill are removed
+  ok   the template seeds the validated cloud catalog
+  ok   the image ships the OfficeCLI style packs and create wrapper
+  ok   the image ships the DataOps skill translations
+  ok   the installed dataops-managed carries the merged browser skill
+  ok   the knowledge base ships the memory settings and promotion features
+  ok   the upgrade fixture contains a saved model route from the previous image
+service
+workspace root durability
+  ok   the mounted workspace root starts the service
+  ok   a workspace root outside the volume is refused
+  ok   the entrypoint workspace link resolves onto the volume
+  ok   a relative workspace root falls back to the mounted default
+  ok   the lifecycle script is executable and clears a stale profile lock before start
+  ok   the service reports itself running and ready
+  ok   the managed service launches the installed DSH runtime
+  ok   the browser UI answers
+  ok   the served page carries the dark boot theme
+  ok   the settings document imports the dark preference
+  ok   the settings service accepts the ui-theme section
+booted profile
+  ok   the profile keeps the variant name
+  ok   image upgrade retains every line of the user model patch
+  ok   the start seeds the workspace default appearance
+  ok   the upgraded profile composes the saved model route
+  ok   the service stops for restart verification
+  ok   the service restarts with saved settings
+  ok   the restarted profile still composes the saved model route
+  ok   the booted profile does not mount @deepseek-ai/dsh-computer-use
+  ok   the booted profile does not mount @deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp
+  ok   the composed config carries no omitted capability
+  ok   the skill plaza answers (a skipped plugin leaves its routes at 404)
+  ok   the workspace limits reader answers (a skipped plugin leaves its routes at 404)
+  ok   the model sync route answers (a skipped plugin leaves its routes at 404)
+  ok   every composed bundle mounts
+
+verify-workspace-image: the image boots, serves, and omits what it must
+exit=0
