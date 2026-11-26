@@ -195,6 +195,7 @@
     { "path": "./packages/plus/omitted" },
     { "path": "./packages/plus/subagent-settings/tsconfig.host.json" },
     { "path": "./packages/plus/ui-skill-center/tsconfig.host.json" },
+    { "path": "./packages/plus/web-runtime-compat" },
     { "path": "./packages/settings/settings" },
     { "path": "./packages/settings/settings-file" },
     { "path": "./packages/credentials/credentials" },
