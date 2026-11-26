@@ -68,3 +68,11 @@ clean fork 要能复现镜像，至少需要：
 - `infra/docker-workspace/README.md` 和 `docs/guide-intranet-image-update.md` 同步更新。
 
 当前还没有满足以上全部条件；`BUILD.md` 会随迁移进度更新，不能把 scaffold 命令当成完整镜像复现。
+
+## Profile artifact scope
+
+`downstream profile` produces the profile install set (package + node_modules + cordis files),
+not a standalone DSH installation. Do not test it with `dsh --profile dataops-web web` from an
+unrelated DSH home: that selects the CLI's own built-in profile tree and cannot resolve the
+DataOps bundle graph. The image builder must combine this artifact with the pinned DSH
+installation and the Plus distribution, then run it from the image's own `DSH_HOME`.
