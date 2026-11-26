@@ -1,0 +1,35 @@
+{
+  "registry": [
+    "@sparkelf/dsh-dataops-managed",
+    "@sparkelf/dsh-query-result-analysis",
+    "@sparkelf/dsh-knowledge-base",
+    "@sparkelf/dsh-credential-manager",
+    "@sparkelf/dsh-group-chat",
+    "@sparkelf/dsh-kb-citation",
+    "@sparkelf/dsh-task-bus",
+    "dsh-better-sidebar",
+    "@anysearch/anysearch-dsh"
+  ],
+  "extraPlugins": [
+    {
+      "name": "@sparkelf/dsh-dataops-account",
+      "version": "0.2.0",
+      "source": "dsh-plugins-plus/packages/dataops-account"
+    },
+    {
+      "name": "@sparkelf/dsh-ocr",
+      "version": "0.1.0",
+      "source": "dsh-plugins-plus/packages/ocr"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-im",
+      "version": "0.1.2",
+      "source": "dsh-plugins-plus/packages/dataops-im"
+    }
+  ],
+  "aliases": {
+    "dsh-better-sidebar": [
+      "@sparkelf/dsh-better-sidebar"
+    ]
+  }
+}
