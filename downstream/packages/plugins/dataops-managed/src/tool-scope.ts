@@ -103,7 +103,7 @@ export const AI_TOOL_ACCESS = {
   review_decide: { permission: 'skill:review:decide', reviewer: true },
   review_notifications_list: {},
   review_notifications_read: {},
-  dataops_api_docs: { superAdminOnly: true },
+  dataops_api_docs: { adminOnly: true },
   // 同义词组维护：全库生效，只对超管披露；真正的写权限由 DataOps AuthGuard 再判一次。
   synonym_group_list: { superAdminOnly: true },
   synonym_group_get: { superAdminOnly: true },

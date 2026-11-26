@@ -246,13 +246,13 @@ describe('api docs is super-admin only', () => {
     expect(f.tools.has('dataops_api_docs')).toBe(true)
   })
 
-  it('does not register dataops_api_docs for an administrator holding developer:openapi:read', () => {
+  it('registers dataops_api_docs for an administrator holding developer:openapi:read', () => {
     const f = harness()
     f.manager.applyContext({
       ...ADMIN,
       permissions: [...(ADMIN.permissions as string[]), 'developer:openapi:read'],
     })
-    expect(f.tools.has('dataops_api_docs')).toBe(false)
+    expect(f.tools.has('dataops_api_docs')).toBe(true)
   })
 
   it('does not register dataops_api_docs for an ordinary user', () => {
