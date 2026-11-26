@@ -13,6 +13,6 @@ profiles/dataops-web/ DataOps web profile composition (generated from release-ma
 tools/downstream.mjs  sync/build-packages/apply/verify/image/publish entry point
 ```
 
-Run `node downstream/tools/downstream.mjs doctor` to check clean-fork prerequisites.
+Run `node downstream/tools/downstream.mjs profile` to deploy the profile and `node downstream/tools/downstream.mjs doctor` to check clean-fork prerequisites.
 
 Current status: migration. The lock, release manifest, governance verify, package build, and `apply` delegation are real; package migration is 19/27; release-manifest.localPackages identifies the workspace overrides the image builder must prefer; `verify --strict-local` rejects only active local/profile pin mismatches; packages marked `override=disabled` keep the registry pin; the publish --dry-run validates migrated artifacts; remote publish and the image builder remain fail-closed. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.
