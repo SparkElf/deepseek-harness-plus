@@ -1,0 +1,373 @@
+/*
+ * The permissions surface's styles.
+ *
+ * The shape follows DataOps' permission preview
+ * (`dataops/frontend/src/modules/prototype-pages/PermissionsPrototypePage.vue`,
+ * the `.ep-tb` table at the application-detail block): hairline-separated rows
+ * under small secondary-ink headers, where one row's first cell carries a heavier
+ * name plus dimmer supporting lines and its last cells hold tags and a list.
+ *
+ * Only the metrics come from that reference; every colour and type step is the
+ * DSH token it maps to, so the table follows the active theme. The reference's
+ * `font-size: 10.5px/12px` and `--ink-3`/`--border` therefore read here as
+ * `--dsw-font-xxxs-11`, `--dsw-font-xxs-12`, `--dsw-alias-label-*` and
+ * `--dsw-alias-border-l*`.
+ *
+ * The elevation is the statistics band and the tab strip: the page leads with
+ * four numbers, then one tab per reading of the same grant payload.
+ */
+
+/* ── the page body ─────────────────────────────────────────────────────────── */
+
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Four equal cards: equal width so the eye reads them as one band of numbers
+   rather than as a list whose later items matter less. */
+.statRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+/* The number is the point of the card, so it takes the design system's larger
+   step and the label drops to caption ink beneath it. */
+.statValue {
+  font: var(--dsw-font-base-strong-16);
+  color: var(--dsw-alias-label-primary);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font: var(--dsw-font-xxxs-11);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* The tab strip sits directly over the table it switches. */
+.tabs {
+  align-self: flex-start;
+}
+
+.overviewEmpty {
+  margin: 0;
+  padding: 20px 10px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* ── the table ─────────────────────────────────────────────────────────────── */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* One column per fact, path list taking the slack: the first three are
+     content-sized so a long path cannot squeeze the principal's name. */
+  table-layout: auto;
+}
+
+.table th {
+  text-align: left;
+  font: var(--dsw-font-xxxs-strong-11);
+  color: var(--dsw-alias-label-tertiary);
+  padding: 6px 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 7px 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1);
+  font: var(--dsw-font-xxs-12);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+/* The first cell: the principal's own name, its supporting lines beneath. */
+.principalName {
+  font: var(--dsw-font-xxs-strong-12);
+  color: var(--dsw-alias-label-primary);
+}
+
+.principalMeta {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.principalId {
+  margin-top: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11) var(--ds-font-family-code);
+  overflow-wrap: anywhere;
+}
+
+/* Tag columns: wrapped so several chips stack rather than widening the column. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* The reference joins its targets with `<br>`; a block per path keeps the same
+   one-per-line reading while letting each row wrap. */
+.paths {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: var(--dsw-font-xxxs-11);
+  line-height: 1.65;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.path {
+  font-family: var(--ds-font-family-code);
+  overflow-wrap: anywhere;
+}
+
+/* Everyone who can reach one path, as name-then-kind pairs. */
+.holders {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.holder {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.holderName {
+  font: var(--dsw-font-xxxs-strong-11);
+  color: var(--dsw-alias-label-primary);
+}
+
+.holderKind {
+  font: var(--dsw-font-xxxs-11);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* A fact the schema implies rather than one the backend stores. */
+.placeholder {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+/* The trailing action column never wraps into the path list. */
+.actionCell {
+  white-space: nowrap;
+}
+
+/* ── dialogs ───────────────────────────────────────────────────────────────── */
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* A dialog's select, matched to the Input primitive's box so a form of mixed
+   controls lines up. */
+.dialogSelect {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 9px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.dialogNotice {
+  margin: 0;
+  font: var(--dsw-font-xxxs-11);
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* ── shared with the other management pages ────────────────────────────────── */
+
+/* Every page in this group imports this one stylesheet, so the classes below are
+   used by siblings as well as by this surface. They stay here rather than being
+   copied into each module: one table style is what keeps the pages looking like
+   one product, and a per-page copy would drift. */
+
+/* The centered muted empty row a table shows instead of data. */
+.emptyRow td {
+  padding: 18px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* The muted second line of an empty state, under its headline. */
+.emptyNote {
+  margin-top: 4px;
+  font: var(--dsw-font-xxxs-11);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Row of buttons in a table's action cell, kept from wrapping into the data. */
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+/* The page's own leading band: the title on the left, the primary action right. */
+.pageHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.pageTitle {
+  margin: 0;
+  font: var(--dsw-font-xs-strong-13);
+  color: var(--dsw-alias-label-primary);
+}
+
+.pageHint {
+  margin: 2px 0 0;
+  font: var(--dsw-font-xxxs-11);
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* A directory row's path cell: the code face, wrapping rather than overflowing. */
+.pathCell {
+  font: var(--dsw-font-xxxs-11) var(--ds-font-family-code);
+  color: var(--dsw-alias-label-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* A right-aligned numeric column, so counts line up column-wise. */
+.countCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A count that is a lower bound because part of the subtree could not be read.
+   Muted and small on purpose: it qualifies the number beside it rather than
+   competing with it for the eye. */
+.partialMark {
+  margin-left: 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  cursor: help;
+}
+
+/* A tag set inside a table cell. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* An action that belongs to a row rather than to the page: it reads as text
+   until hovered, so a table of rows is not a wall of buttons. */
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-state-business-primary);
+  cursor: pointer;
+}
+
+.linkButton:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.linkButton:disabled {
+  color: var(--dsw-alias-label-tertiary);
+  cursor: default;
+}
+
+/* ---- The pager under each of the three permission tables ----
+
+   One strip for all three views, so the count, the navigation and the size control
+   cannot drift between them. It mirrors the audit table's pager: the count answers
+   "how much am I reading", the previous/next pair only exists when there is somewhere
+   to go, and the size control sits at the far end because it is a setting rather than
+   something a reader clicks repeatedly. */
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  justify-content: flex-start;
+}
+
+/* Tertiary ink and tabular figures: this line is orientation, not content, and the
+   fixed-width digits keep the row from shifting as the count crosses 9 -> 10 -> 100. */
+.pagerStatus {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Pushed to the far end: choosing a page size is a preference, not part of the
+   previous/next gesture the reader repeats. */
+.pageSize {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* ---- Where a principal's access comes from ----
+
+   A cell can hold one tag ("direct") or several ("via role A", "via role B"), so it
+   sits as a small flex column rather than inheriting the chip row's wrapping. */
+
+.sourceCell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+/* The explanatory line under a source or an unknown permission. Deliberately the same
+   tertiary 11px the rest of the table's secondary text uses: it must be readable
+   without competing with the tag it qualifies. */
+.sourceHint {
+  flex-basis: 100%;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}

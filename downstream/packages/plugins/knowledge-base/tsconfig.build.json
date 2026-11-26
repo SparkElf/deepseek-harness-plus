@@ -1,0 +1,58 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": false,
+    "rootDir": "src",
+    "outDir": "lib/types",
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node",
+      "react"
+    ],
+    "composite": false,
+    "incremental": false,
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "dsh-better-sidebar/src/client/FileTree.tsx": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/FileTree.d.ts"
+      ],
+      "dsh-better-sidebar/src/client/file-icons.tsx": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/file-icons.d.ts"
+      ],
+      "dsh-better-sidebar/src/client/file-tree-sort.ts": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/file-tree-sort.d.ts"
+      ],
+      "dsh-better-sidebar/src/client/reference-in-chat.ts": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/reference-in-chat.d.ts"
+      ],
+      "dsh-better-sidebar/src/client/resource-address.ts": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/resource-address.d.ts"
+      ],
+      "dsh-better-sidebar/src/client/upload.ts": [
+        "./node_modules/dsh-better-sidebar/lib/types/client/upload.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.spec.tsx"
+  ]
+}

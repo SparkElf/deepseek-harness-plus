@@ -1,0 +1,980 @@
+/*
+ * The management page's own styles.
+ *
+ * Values come from the shell's design tokens (`--dsw-*`) rather than literals, so
+ * the page follows the active theme and matches the rail it sits beside. The row
+ * metrics deliberately repeat the sidebar's, read from
+ * `packages/client/ui-sidebar/src/client/SidebarRoot.module.css`: 36px minimum
+ * height, 7px/8px padding, an 8px icon gap, and the same radius and hover fill. A
+ * page that invents its own spacing next to an official rail reads as bolted on.
+ */
+
+/* The page is a full-width header over a body row. The header spans the rail and
+   the content, so it sits at the top of the page rather than inside one region.
+
+   The base type is pinned here instead of inherited. This page renders into the
+   `main` slot, whose frame sets no font-size, so the browser default (16px) was
+   reaching every `font: inherit` rule below. The sidebar escapes that only
+   because its own `.root` pins `font-size: 14px` (ui-sidebar/SidebarRoot.module.css);
+   measured live on 2026-10-16, the official `.panelRow` computed to 14px/22px while
+   the `main` column computed to 16px. Pinning the product's body size is what makes
+   this page's rows match the rail beside them rather than read oversized. */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  font: var(--dsw-font-s-14);
+}
+
+.body {
+  display: grid;
+  /* The rail is a fixed column, as in the shell's frame; the content takes the rest. */
+  grid-template-columns: 280px minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Collapsed rail: a narrow strip that keeps the logo and the menu glyphs
+   reachable. The width is the 36px logo row's own footprint plus its insets, so
+   the strip reads as the rail folded to its icons rather than as a clipped rail. */
+.bodyCollapsed {
+  grid-template-columns: 56px minmax(0, 1fr);
+}
+
+.rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 0.5px solid var(--dsw-alias-border-l3);
+  overflow: hidden;
+}
+
+/* The rail's top line: the brand at the left, the fold toggle at the right.
+   This is what now owns the page's top-left corner, because the header below
+   covers only the content column. */
+.railTop {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 6px 0 12px;
+  box-sizing: border-box;
+}
+
+.railBrand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.railBrandName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--dsw-font-s-strong-14);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Pushes the fold toggle to the rail's right edge without leaving the brand
+   line's own flex flow. */
+.railTopSpacer {
+  margin-left: auto;
+}
+
+/* A folded rail is 56px wide. The brand glyph and the 28px fold button cannot
+   both fit in that strip with the expanded row's 12px/6px insets: the button
+   is pushed past the right edge (and its focus ring becomes the stray dot at
+   the left). Folded, the toggle is the only thing this row has to show, so it
+   is centred and the brand/insets are dropped. */
+.bodyCollapsed .railTop {
+  padding: 0 14px;
+  justify-content: center;
+}
+
+.bodyCollapsed .railBrand,
+.bodyCollapsed .railTopSpacer {
+  display: none;
+}
+
+/* ---- Section header (基准 A) ----
+   The metrics are the shell's own browser header, measured live on the running
+   shell on 2026-10-17 and read from
+   `ui-workspace/src/client/rows/WorkspaceBrowser.module.css`:
+   a 36px row, `gap: 4px`, `padding-left: 4px`, and a label at 14px/20px weight
+   400. The label inherits the row's ink, which that file sets to
+   `--dsw-alias-label-tertiary`; the icon buttons carry
+   `--dsw-alias-label-secondary` of their own. Measured live: label `#adb2b8`
+   is tertiary, buttons `#cfd3d6` are secondary. */
+.sectionHeader {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 36px;
+  padding: 0 0 0 4px;
+  box-sizing: border-box;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.sectionName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* `--dsw-font-s-14` is 14px/22px; the measured header line-height is 20px, so
+     the row's own step wins over the shorthand's. */
+  font: var(--dsw-font-s-14);
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* The trailing glyph cluster. Its right inset is carried here rather than on
+   `.sectionHeader` so the container keeps the measured `0 0 0 4px` padding while
+   the last button still clears the rail edge by the same 8px the rows do. */
+.sectionActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+/* ---- The rail's icon button (基准 A) ----
+   Measured live at 28x28 with an 8px radius on a transparent ground, and read
+   from the same `WorkspaceBrowser.module.css` `.iconButton`, whose radius is
+   `--dsw-radius-sm` (8px) and whose ink is `--dsw-alias-label-secondary`. */
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The cluster clips its own width when the search opens, so the ring is drawn
+   inside the button rather than around it. */
+.iconButton:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.iconButton:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The scrolling half of the rail: the pinned band and the tree share one scroll
+   region under the fixed section header, so a long tree moves both together
+   while the header stays put. */
+.treeScroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px 12px;
+}
+
+/* The rail's search field. Sits above the menu rows inside the rail's own 12px
+   inset, so its box lines up with the rows' text: the official `.panelRow` starts
+   14px from the rail edge (12px inset + its 2px margin), and this field takes the
+   same 12px inset with a 2px margin to land on the same 14px. */
+.searchBox {
+  flex: 0 0 auto;
+  padding: 10px 12px 0;
+  margin: 0 0 8px;
+}
+
+/* The official Input primitive is `inline-flex`, which would shrink the box to
+   its content in this column; stretch it to the rail's width instead. */
+.searchBox > span {
+  display: flex;
+  width: 100%;
+  margin: 0 2px;
+  box-sizing: border-box;
+}
+
+/* Mirrors the product's `.panelList`: 4px between rows, 8px below the group, and
+   the sidebar's own 12px horizontal inset so a row starts 14px from the rail edge
+   (12px padding + the row's 2px margin), exactly as `.root` + `.panelList` do. */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0 12px;
+  flex: 0 0 auto;
+}
+
+/* The folded strip keeps the same rows with their labels dropped, so a row
+   becomes an icon target. The inset shrinks to centre those icons in a 56px
+   column: a centred 36px row leaves 10px either side once the row's own 2px
+   margin is counted. */
+.menuFolded {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 0 8px;
+  flex: 0 0 auto;
+}
+
+.menuFolded .menuRow,
+.menuFolded .menuRowActive {
+  justify-content: center;
+  padding: 7px 0;
+}
+
+/* Mirrors the sidebar's `.panelRow` rule for rule. `font: inherit` is deliberate
+   and is what the product itself writes there: `.page` pins the 14px body size
+   that `.root` pins for the sidebar, so this row resolves to the same 14px/22px
+   the official rail measures. */
+.menuRow,
+.menuRowActive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px;
+  min-height: 36px;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  line-height: 22px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuRow:hover,
+.menuRowActive:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The product marks the selected panel with the same hover fill, not a heavier
+   one (`.panelRow.panelActive`), so the rail keeps a single selected-surface. */
+.menuRowActive {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.menuRow:focus-visible,
+.menuRowActive:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.menuGlyph {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The rail's scrolling half, below the brand line and the menu. The pinned band
+   and the tree share it, so a long tree moves both while the two section headers
+   stay put. */
+.railBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 8px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The pinned band, above the tree. Its rows carry the same 8px inset through
+   `.railBody`, so the two bands line up column for column. */
+.pinnedBand {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  /* A pin list is a shortcut, not a second tree: cap it so a long list scrolls
+     inside the band instead of pushing the knowledge tree down the rail. */
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+/* The tree band takes the remaining height, so its scroll region is the one that
+   grows rather than the page's. */
+.treeBand {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The tree's in-place filter field: a full-width input under the section header.
+   It narrows what is displayed and issues no request, which is what separates it
+   from the rail's own search. */
+.treeFilter {
+  flex: none;
+  padding: 0 0 8px;
+}
+
+.treeFilter > span {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* The content column owns the page header and the scrolling surface beneath it.
+   The page's grid gives this the space the rail does not take. */
+.contentColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* The content region scrolls on its own, so the header above it stays put. */
+.content {
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 16px 24px 20px;
+}
+
+/* The page header: title and the tree fact on ONE line, actions pinned to the right.
+   Metrics stay the product's own browser header (`ui-directory-picker-browse/
+   DirectoryBrowser.module.css` `.header`): `padding: 16px 14px 8px 24px` and the
+   design system's `--dsw-font-base-strong-16` for the title. `flex-wrap` is the narrow
+   width escape hatch: the fact ellipsizes first, and the action row may drop to its own
+   line instead of squeezing the title. */
+.header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  flex: none;
+  padding: 16px 14px 8px 24px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l3);
+}
+
+/* The page's primary control. `margin-left: auto` is what keeps it on the right edge
+   whatever the fact's width is; `flex: none` keeps it at its natural width. */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  margin-left: auto;
+}
+
+.headerTitle {
+  display: flex;
+  align-items: flex-end;
+  min-height: 28px;
+  margin: 0;
+  min-width: 0;
+  flex: none;
+  font: var(--dsw-font-base-strong-16);
+  color: var(--dsw-alias-label-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The fact follows the title on the same line. It is the only item allowed to shrink:
+   a long mount path is truncated rather than pushing the title or the actions. */
+.headerFact {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  white-space: nowrap;
+}
+
+.headerPath {
+  font: var(--dsw-font-xxs-12) var(--ds-font-family-code);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The pointer-missing hint is a sentence, not a header fact: it takes its own full
+   line under the title row instead of competing for the same line. */
+.headerHint {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* One surface's content column. `align-items: flex-start` is what keeps a
+   control at its intrinsic width: a column flex container stretches its children
+   across the cross axis by default, which measured a single 56px action button
+   at the full 900px column width. The product's own pages wrap a control in a
+   row container for the same reason; setting it here fixes every direct child at
+   once rather than requiring a wrapper per control. */
+.surface {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 900px;
+}
+
+/*
+ * A surface whose body is a TABLE rather than prose.
+ *
+ * `.surface` caps at 900px because it is a reading column: a paragraph line longer
+ * than that is hard to track. A table has the opposite requirement -- every column is
+ * read across, and a 900px cap inside a 1160px body leaves a dead band on the right
+ * that reads as a broken layout. Measured on the live permission page before this:
+ * table 832px inside a 1160px body.
+ *
+ * Applied only to the three surfaces that host a table (permissions, trash, indexing).
+ * Widening `.surface` itself would restyle every prose panel in the plugin to fix a
+ * defect none of them has.
+ */
+.tableSurface {
+  max-width: none;
+  width: 100%;
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* Within a table surface the table claims the full column, and the last column
+   (the row's action) takes whatever the content columns leave. */
+.tableSurface table {
+  width: 100%;
+}
+
+/* The action column is right-aligned. */
+.tableSurface th:last-child,
+.tableSurface td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* An empty row is ONE sentence across the whole table width, centred.
+ *
+ * The empty state is a single `colSpan` cell, and it is also its row's last cell, so
+ * `td:last-child` above matched it and printed the sentence under the 操作 column --
+ * the defect the user reported.
+ *
+ * This selector is deliberately NOT `.tableSurface .emptyRow > td`: `.emptyRow` is
+ * defined in `KnowledgePermissions.module.css` (where the tables' shared row styles
+ * live), while `.tableSurface` is defined here. CSS modules hash each name per file,
+ * so those two classes can never appear under the same prefix, and a compound
+ * selector across them matches nothing -- it silently does nothing, which is worse
+ * than no rule at all. Targeting the structural fact instead (a single full-width
+ * cell) needs no coupling to another module's class name.
+ *
+ * `td[colspan]` is exactly that fact: a cell spanning every column can only be the
+ * empty state or a grouped row, and either way it must read as one centred sentence.
+ * Specificity (0,2,1) also beats `td:last-child` (0,1,1) and the per-module
+ * `.emptyRow td` (0,1,1), so the result does not depend on stylesheet order. */
+.tableSurface td[colspan] {
+  text-align: center;
+  white-space: normal;
+  padding: 24px 16px;
+}
+
+.title {
+  margin: 0;
+  font: var(--dsw-font-base-strong-16);
+}
+
+.subhead {
+  margin: 8px 0 0;
+  font: var(--dsw-font-s-strong-14);
+}
+
+.muted {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #c0392b);
+  font: var(--dsw-font-xs-13);
+}
+
+.notice {
+  margin: 0;
+  color: var(--dsw-alias-state-success-primary, #1a7f37);
+  font: var(--dsw-font-xs-13);
+}
+
+/* A document that could not reach the host's file window must say so in the
+   content column: the fallback preview alone looks like the expected outcome,
+   so a reader never learns the right-hand window failed. */
+.openFailure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 12px 18px 0;
+  padding: 9px 12px;
+  border: 1px solid var(--dsw-alias-state-warn-primary, #b26a00);
+  border-radius: 8px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.openFailure strong {
+  color: var(--dsw-alias-state-warn-primary, #b26a00);
+  font-weight: 600;
+}
+
+/* ---- The content region's empty / loading / failure state ----
+
+   Follows the product's shared panel state (`ui-schedule/TaskManagerPage.module.css`
+   `.empty` + `.emptyGlyph` + `.emptyTitle` + `.emptyAction`), which every panel
+   without content uses: a centered column on tertiary ink, a caption-ink glyph
+   above the line at its own 12px, and no bold step. A bare left-aligned grey
+   sentence is what this replaces -- it read as a stray paragraph rather than as
+   "this region has nothing in it", which is a state the product always centers. */
+.empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-s-14);
+}
+
+.emptyGlyph {
+  margin-bottom: 12px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-s-14);
+  line-height: 1.6;
+}
+
+/* ---- Search results: the rail's field writes, this list reads ---- */
+
+/* Supporting facts about the mount: one quiet line, not a panel of its own. */
+.factDot {
+  opacity: 0.6;
+}
+
+.hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.hit,
+.hitActive {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 10px;
+  row-gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--dsw-radius-md, 8px);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hit:hover,
+.hitActive {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.hitName {
+  font: var(--dsw-font-xs-strong-13);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hitPath {
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The listing's rows moved to `KnowledgeListing.module.css`, copied from the
+   better-sidebar file explorer's `.explorerRow`. Nothing here styles a row.
+
+   What was removed with them: an `.entryReadable` / `.entryDenied` lamp and an
+   `.entrySize` column, neither of which exists in the tree this list is measured
+   against, plus the `.entryTime` that sat in a fixed right-aligned column instead
+   of the explorer's auto-margin one. */
+
+/* The time sits at the row's end, as a quiet trailing note. */
+.hitTime {
+  grid-column: 1 / -1;
+  color: var(--dsw-alias-label-tertiary, var(--dsw-alias-label-secondary));
+  font: var(--dsw-font-xxs-12);
+}
+
+/* A matched line spans both columns and shows where in the file it came from. */
+.hitLine {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12) var(--ds-font-family-code);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hitLineNo {
+  flex: none;
+  min-width: 2.5em;
+  text-align: right;
+  opacity: 0.7;
+}
+
+/* ---- Preview ---- */
+
+.path {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12) var(--ds-font-family-code);
+  overflow-wrap: anywhere;
+}
+
+/* A long file scrolls inside the region rather than stretching the page. */
+.preview {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l1, rgb(0 0 0 / 12%));
+  border-radius: var(--dsw-radius-md, 8px);
+  background: var(--dsw-alias-bg-layer-2);
+  font: var(--dsw-font-xs-13) var(--ds-font-family-code);
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  max-height: calc(100vh - 160px);
+}
+
+/* ---- Forms and tables (permissions) ---- */
+
+.pairs {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pair {
+  display: flex;
+  gap: 12px;
+  font: var(--dsw-font-xs-13);
+}
+
+.pair dt {
+  flex: none;
+  min-width: 6.5em;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.pair dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l1);
+  border-radius: var(--dsw-radius-md);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.field > span {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+/* The enum picker the subject directory renders. Metrics are the official
+   settings-family input (`ui-settings-models/ModelsSection.module.css` `.input`):
+   a 32px box, a 0.5px `l4` hairline, the `md` radius, the `layer-1` fill, and the
+   14px/22px body step. Text fields on this surface use the official `Input`
+   primitive instead; this rule exists only for the `<select>` elements, which the
+   product itself also styles this way (`select.input` in that same file). */
+.input {
+  box-sizing: border-box;
+  height: 32px;
+  min-width: 10em;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-s-14);
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+/* The loading/error retry control is the last hand-rolled button here; every
+   other action on the page is the official `Button` primitive. */
+.retry {
+  align-self: flex-start;
+  min-height: 32px;
+  padding: 4px 14px;
+  border-radius: var(--dsw-radius-sm);
+  border: 1px solid var(--dsw-alias-border-l2);
+  font: var(--dsw-font-xxs-12);
+  cursor: pointer;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+}
+
+.retry:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--dsw-font-xxs-12);
+}
+
+.table th,
+.table td {
+  padding: 6px 8px;
+  text-align: left;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.table th {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+/* The reading column and its container.
+   These two used to live in `KnowledgeOutline.module.css` beside the hand-written
+   outline. The outline is gone -- the product's own `MdToc` draws it now -- but the
+   layout it was seated in is still the shape of this surface, so it moved here with
+   the surface rather than disappearing with the component.
+
+   `min-width: 0` on the reading column is what lets a long unbroken line wrap
+   instead of pushing the column past the panel's right edge. */
+.previewLayout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.previewColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  max-width: 900px;
+  flex: 1 1 auto;
+}
+
+/* The state a document leaves behind in the knowledge page.
+
+   The document itself is drawn by the host's file window, so this column no longer
+   has a reading view to fill. It states where the document went instead of leaving
+   the column blank, which would read as a click that failed. */
+.openedElsewhere {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 240px;
+  text-align: center;
+}
+
+/* The document is drawn in the host's file window on the right. Only the rail is
+   left: the content column is not rendered at all in this state (see the panel), so
+   the grid must have exactly one track. A zero-width second track would still be a
+   column, and anything that overflows it -- a notice, a long path -- shows up as the
+   sliver of letters beside the rail. */
+.bodyDocument {
+  grid-template-columns: 280px;
+}
+
+/* Folded rail and an open document: the strip stays, and it is the only track. */
+.bodyCollapsed.bodyDocument {
+  grid-template-columns: 56px;
+}
+
+/* Settings is a stack of independent blocks, and without a boundary between them the
+   three headings read as one run-on list: "发布前审核 / 待审核 / 操作留痕" sitting a
+   few pixels apart looks like an accident rather than three separate surfaces.
+   A hairline between blocks plus room above each one makes the grouping explicit. */
+.surface + .surface {
+  margin-top: 20px;
+  padding-top: 24px;
+  border-top: 1px solid var(--dsw-alias-border-l1);
+}
+
+/* A block's heading should not carry the margin its generic form does when it opens a
+   block, or the hairline and the gap below it pull in opposite directions. */
+.surface + .surface > .subhead {
+  margin-top: 0;
+}
+
+/* The confirmation line after an `@`-reference found a conversation.
+   It sits at the page's bottom-left rather than inside any column: the reference
+   can land in a conversation that is not the one on screen, so the note has to be
+   readable from wherever the reader is looking. */
+.referenceNote {
+  position: fixed;
+  inset-inline-start: 16px;
+  inset-block-end: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 420px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  box-shadow: var(--dsw-shadow-lv2);
+}
+
+/* The dismiss control is a glyph, so it keeps the note's own baseline and only
+   needs enough hit area to be clickable. */
+.referenceNoteDismiss {
+  flex: 0 0 auto;
+  padding: 0 2px;
+  border: 0;
+  background: none;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xs-13);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.referenceNoteDismiss:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+/* A group heading inside a menu.
+
+   Sorting and filtering share one menu, and these labels are what keeps the two halves
+   from reading as one flat list of six unrelated commands. */
+.menuGroupLabel {
+  display: block;
+  padding: 6px 10px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-strong-11);
+}
+
+/* The rule between the two groups. */
+.menuSeparator {
+  display: block;
+  height: 0;
+  margin: 4px 6px;
+  border-top: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+/* ---- Unavailable state ----
+
+   Centred panel state in the same spirit as the shell's empty states: a glyph,
+   a title, a diagnosable detail line, and one retry action. Kept inside the
+   plugin's own CSS module so it needs neither the primitive layer nor the host
+   page that failed to load. */
+.errorPanel {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.errorGlyph {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--dsw-alias-fill-l2, #f2f3f5);
+  color: var(--dsw-alias-state-error-primary, #c0392b);
+}
+
+.errorTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-m-16, 600 16px/24px);
+}
+
+.errorDetail {
+  margin: 0;
+  max-width: 420px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xs-13);
+}
+
+.errorPanel .retry {
+  align-self: center;
+  margin-top: 6px;
+}

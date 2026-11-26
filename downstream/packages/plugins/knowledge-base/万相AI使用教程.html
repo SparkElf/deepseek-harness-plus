@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>万相 AI 使用教程</title>
+<style>
+  :root {
+    --ink: #1f2329;
+    --ink-soft: #4a5058;
+    --ink-faint: #7a828c;
+    --line: #e3e6ea;
+    --bg-soft: #f6f8fa;
+    --accent: #2f6bff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 40px 24px 72px;
+    background: #fff;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 820px; margin: 0 auto; }
+  header.doc {
+    padding-bottom: 22px;
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+  }
+  header.doc h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: .3px; }
+  header.doc p { margin: 0; color: var(--ink-faint); font-size: 13px; }
+  nav.toc {
+    margin: 24px 0 8px;
+    padding: 16px 20px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  nav.toc h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink-soft); }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 3px 0; }
+  nav.toc a { color: var(--accent); text-decoration: none; }
+  nav.toc a:hover { text-decoration: underline; }
+  section { margin-top: 36px; }
+  section > h2 {
+    margin: 0 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+    font-size: 19px;
+  }
+  h3 { margin: 22px 0 8px; font-size: 15px; color: var(--ink-soft); }
+  p { margin: 8px 0; }
+  ol, ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 5px 0; }
+  code {
+    padding: 1px 5px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+  }
+  .tip, .warn {
+    margin: 12px 0;
+    padding: 11px 14px;
+    border-left: 3px solid var(--accent);
+    background: var(--bg-soft);
+    border-radius: 0 6px 6px 0;
+    font-size: 14px;
+  }
+  .warn { border-left-color: #d98b00; }
+  .tip strong, .warn strong { color: var(--ink); }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { padding: 7px 10px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); font-weight: 600; color: var(--ink-soft); }
+  dl.faq { margin: 0; }
+  dl.faq dt { margin-top: 16px; font-weight: 600; }
+  dl.faq dd { margin: 4px 0 0 0; color: var(--ink-soft); }
+  footer.doc {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="doc">
+  <h1>万相 AI 使用教程</h1>
+  <p>面向业务用户 · 从「资料放在哪」到「让 AI 替你读」</p>
+</header>
+
+<nav class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#kb">知识库：把你的资料变成团队资产</a></li>
+    <li><a href="#chat">对话：让 AI 基于你的资料回答</a></li>
+    <li><a href="#automation">自动化任务：把重复工作交给它</a></li>
+    <li><a href="#group">群聊：多人加 AI 一起协作</a></li>
+    <li><a href="#template">文档模板库：不用每次从白纸开始</a></li>
+    <li><a href="#faq">常见问题</a></li>
+  </ol>
+</nav>
+
+<section id="kb">
+  <h2>一、知识库：把你的资料变成团队资产</h2>
+
+  <p>知识库是万相 AI 的资料底座。你把文件放进去，之后无论是自己问 AI、还是让它帮你写材料，都能直接引用这些文件，而不用反复上传。</p>
+
+  <h3>上传文档</h3>
+  <ol>
+    <li>打开左侧「知识库」，点「新建」旁边的上传按钮。</li>
+    <li>把文件拖进弹窗，或点「选择文件」；整份文件夹也可以直接拖。</li>
+    <li>选好存放位置，确认即可。上传后列表里会立刻出现这个文件。</li>
+  </ol>
+  <p>支持 Word、PDF、Excel、PPT、图片以及纯文本。<strong>扫描件和图片会自动做文字识别</strong>，识别完成后会多出一份可搜索的 Markdown 副本——原件不会被改动。</p>
+  <div class="tip"><strong>小提示：</strong>文件较大或页数多时，识别需要几十秒到几分钟。列表里会显示「提取中」，可以先去忙别的，完成后自己会变。</div>
+
+  <h3>整理归类：三个桶的区别</h3>
+  <p>知识库分三个位置，选错地方是新人最常踩的坑：</p>
+  <table>
+    <thead>
+      <tr><th>位置</th><th>适合放什么</th><th>谁能看到</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>全局</strong></td>
+        <td>公司制度、产品资料、通用模板——所有人都会查的东西</td>
+        <td>被授权的人都能看到（默认范围最广）</td>
+      </tr>
+      <tr>
+        <td><strong>部门</strong></td>
+        <td>本部门的过程文档、内部报表、会议纪要</td>
+        <td>按你的部门层级归档，通常本部门及上级可见</td>
+      </tr>
+      <tr>
+        <td><strong>个人</strong></td>
+        <td>草稿、个人笔记、还没想好放哪的临时资料</td>
+        <td>只有你自己</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="tip"><strong>怎么选：</strong>先问一句「这份东西同事会不会也需要」。会 → 全局或部门；只是我自己的草稿 → 个人。拿不准就放个人，以后再移。</div>
+
+  <h3>权限：谁能看、谁不能看</h3>
+  <p>权限不按文件一个个点，而是按<strong>授权对象</strong>给：可以授权给某个人、某个角色、或某个部门。</p>
+  <ol>
+    <li>进入「知识库 → 权限管理」。</li>
+    <li>选「按人员」「按角色」或「按资源」，看当前谁有什么权限。</li>
+    <li>新增授权时选对象、选路径、选读写，保存即可生效。</li>
+  </ol>
+  <p>三种视图只是同一个事实的三个切面：按人员看「这个人能访问什么」，按资源看「这份资料被谁访问」。</p>
+
+  <h3>分享与引用</h3>
+  <p>知识库里的文件可以直接被 AI 读取——不需要下载再上传一遍。方法是：在对话输入框里打 <code>@</code>，选择文件即可（详见下一章）。</p>
+</section>
+
+<section id="chat">
+  <h2>二、对话：让 AI 基于你的资料回答</h2>
+
+  <p>对话是你和 AI 协作的主界面。它和普通聊天最大的不同是：<strong>它能读你知识库里的文件</strong>。</p>
+
+  <h3>新建会话</h3>
+  <ol>
+    <li>点左上角「新会话」。</li>
+    <li>按需选择模型：日常问答用默认的即可；复杂分析、长文档可以换更强的模型。</li>
+    <li>直接在输入框提问。</li>
+  </ol>
+
+  <h3>@ 引用知识库文件（最常用的一步）</h3>
+  <ol>
+    <li>在输入框里打 <code>@</code>，会弹出文件选择器。</li>
+    <li>逐层点进「知识库」目录，找到那份文件。</li>
+    <li>选中后，输入框里会出现一个文件标签。</li>
+    <li>接着提问，AI 就会以这份文件为依据回答。</li>
+  </ol>
+  <p>可以一次引用多个文件，也可以边引用边用自然语言说明要求。</p>
+  <div class="tip"><strong>例：</strong>「<code>@2026年度预算.xlsx</code> 帮我把各部门的支出按季度汇总，找出超支的部门。」</div>
+
+  <h3>引用知识库 vs 直接上传附件</h3>
+  <table>
+    <thead><tr><th></th><th>引用知识库（@）</th><th>上传附件</th></tr></thead>
+    <tbody>
+      <tr><td>文件在哪</td><td>已在知识库里，团队共享</td><td>只在这一次对话里</td></tr>
+      <tr><td>适合</td><td>常用资料、团队共同依据</td><td>临时文件、还没归档的材料</td></tr>
+      <tr><td>后续影响</td><td>别人也能引用同一份</td><td>只对本次对话有效</td></tr>
+    </tbody>
+  </table>
+  <div class="tip"><strong>建议：</strong>如果一份文件你会用到第二次，就先放进知识库再 <code>@</code> 它。</div>
+
+  <h3>长会话怎么保持上下文</h3>
+  <p>同一会话里 AI 记得前面聊过的内容。话题换了就新开会话，能让回答更聚焦、也更省时间；同一件事继续深入，就在原会话里追问。</p>
+</section>
+
+<section id="automation">
+  <h2>三、自动化任务：把重复工作交给它</h2>
+
+  <p>需要「每天/每周自动做一遍」的事，不必每次手动问一遍。</p>
+
+  <h3>定时任务</h3>
+  <ol>
+    <li>进入「自动化任务」，新建任务。</li>
+    <li>写清楚要做什么（和你平时提问一样，越具体越好）。</li>
+    <li>设定执行频率：每天几点、每周几、或固定间隔。</li>
+    <li>保存。到点它会自己跑，你不用守着。</li>
+  </ol>
+  <div class="tip"><strong>适合做成定时任务：</strong>每日数据汇报、每周汇总周报、定期检查某批文档的更新、每月固定格式的报表。</div>
+
+  <h3>工作流广场</h3>
+  <p>广场里是别人已经配好的流程，可以直接套用，不用从零搭。找到接近你需求的那条，改改参数就能用。</p>
+
+  <h3>任务结果去哪看</h3>
+  <p>每次执行都会留下记录，可以回看输出、执行时间和是否成功。失败了先看记录里的报错，多数是引用路径变了或权限被收回。</p>
+  <div class="warn"><strong>注意：</strong>定时任务会以<strong>创建者</strong>的身份读取文件。如果创建者调岗、权限变化，任务可能读不到原来的资料——这时把任务转给现在的负责人。</div>
+</section>
+
+<section id="group">
+  <h2>四、群聊：多人加 AI 一起协作</h2>
+
+  <p>一件事需要几个人一起商量、又想让 AI 参与进来时，用群聊而不是各自单聊。</p>
+
+  <h3>建群与拉人</h3>
+  <ol>
+    <li>进入「群聊」，新建群并起个看得懂的名字。</li>
+    <li>把相关同事拉进来。</li>
+    <li>在群里 <code>@</code> AI 就能让它参与讨论。</li>
+  </ol>
+
+  <h3>群共享目录</h3>
+  <p>每个群有自己的共享目录，群里所有人都能访问。适合放「这个群正在处理的那批文件」——讨论时直接引用，不用互相传来传去。</p>
+
+  <h3>什么时候用群聊</h3>
+  <table>
+    <thead><tr><th>用群聊</th><th>用单聊</th></tr></thead>
+    <tbody>
+      <tr><td>多人共同决策、需要其他人看到过程</td><td>只是我自己要一个答案</td></tr>
+      <tr><td>文件要共享给一组人</td><td>材料涉及隐私或尚未公开</td></tr>
+      <tr><td>需要 AI 汇总多人意见</td><td>一次性的快速提问</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="template">
+  <h2>五、文档模板库：不用每次从白纸开始</h2>
+
+  <p>模板库保存的是「已经调好格式和结构」的文档范本。写周报、方案、通知时，套一份模板比空着写快得多。</p>
+
+  <h3>使用模板</h3>
+  <ol>
+    <li>打开「知识库 → 模板库」。</li>
+    <li>按分类或标签找到需要的模板。</li>
+    <li>基于它新建文档，把内容替换成你的即可。</li>
+  </ol>
+
+  <h3>把自己的文档存成模板</h3>
+  <p>写出一份满意的文档后，可以把它存为模板，填上标题、说明、分类和标签。下次自己和同事都能直接用。</p>
+  <div class="tip"><strong>好模板的标准：</strong>结构清楚、留下该填的空位、去掉只适用于这一次的内容。一份好模板能省下整个团队反复调整格式的时间。</div>
+</section>
+
+<section id="faq">
+  <h2>六、常见问题</h2>
+  <dl class="faq">
+    <dt>看不到某个文件 / 某个文件夹是空的</dt>
+    <dd>先确认权限：那份资料是否授权给了你（或你的角色、你的部门）。也可能是刚上传、列表还没刷新，重新打开知识库即可。若确实该有却没有，请联系管理员核对授权。</dd>
+
+    <dt>打 <code>@</code> 找不到知识库里的文件</dt>
+    <dd>确认你引用的文件在你可见的目录里；如果目录名和记忆中不一致，先在知识库页面里核对实际路径。刚上传的文件如果列表里还没有，稍等片刻再试。</dd>
+
+    <dt>提示「没有权限」怎么办</dt>
+    <dd>说明这份资料没有授权给你。找文件所在目录的负责人或管理员申请授权，不要试图用别的方式绕开——权限是按你的账号实时判定的。</dd>
+
+    <dt>上传后一直显示「提取中」</dt>
+    <dd>大文件、扫描件的识别需要时间。如果超过预期很久仍是提取中，联系管理员检查解析服务是否正常。原件不受影响，随时可以下载。</dd>
+
+    <dt>AI 的回答没用到我引用的文件</dt>
+    <dd>确认输入框里确实出现了文件标签（而不是只打了文件名文字）。只打文字 AI 不会去读文件，必须走 <code>@</code> 选中。</dd>
+
+    <dt>想改这份教程</dt>
+    <dd>这份教程是一份普通的知识库文档，可以直接编辑。系统只会在它<strong>不存在</strong>时写入初始版本，不会覆盖你的修改。</dd>
+  </dl>
+</section>
+
+<footer class="doc">
+  万相 AI · 本教程由系统在知识库首次初始化时写入，可自由修改与分享
+</footer>
+
+</div>
+</body>
+</html>

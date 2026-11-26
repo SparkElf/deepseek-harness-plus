@@ -1,0 +1,384 @@
+/*
+ * The knowledge listing's own styles.
+ *
+ * Copied from the file explorer in `dsh-better-sidebar`:
+ * `src/client/sidebar.module.css`, the `.explorerRow` family. That tree is the
+ * look this page is measured against -- a reader sees it in the right sidebar of
+ * the same window -- so the row metrics are the explorer's, not a second design:
+ * a 28px row on a 12px type, an 8px inset, a 6px icon gap, a 4px radius, the
+ * hover fill, and a 22px indent step. Only the rules this list needs came across;
+ * the explorer's drag targets, git tones, multi-select and inline rename are left
+ * behind because this list is read-only.
+ */
+
+/* The explorer's `.explorerBody` inset, so a row starts where the explorer's
+   rows do. Deep levels truncate their labels rather than scrolling sideways. */
+.entries,
+.entryChildren {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* One tree row: the explorer's native list rhythm (28px, radius 4, inset,
+   hover fill, 22px indent step, 12px ink) with its mount fade, so expanding a
+   directory reveals its children gently. */
+.entry {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* border-box keeps the inline indent padding (depth * 22 + 6) INSIDE the
+     row's 100% width -- without it deep rows overflow and force a horizontal
+     scrollbar on the tree body. */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 4px;
+  animation: kb-row-in 150ms var(--ds-ease-in-out);
+}
+
+.entry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.entry:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+/* A directory name carries one weight step up, as the explorer's
+   `.explorerDir` does. */
+.entryDir {
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+/* The explorer's `.explorerName`: min-width 0 lets the flex item shrink below
+   its content so the label truncates with an ellipsis instead of widening the
+   row. */
+.entryName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The leading glyph keeps the explorer's 14px box.
+   The size is stated in pixels AND kept out of the flex flow (`flex: none`), so a long
+   filename cannot squeeze it: `min-width: 0` on the name means the NAME gives way, which
+   is the intended trade. Without an explicit box here the glyph is a shrinkable flex item
+   whose child SVG ends up narrower on an overlong row -- measured, the icon came out
+   smaller on the rows with the longest names. */
+.entryGlyph {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The glyph inside the box cannot decide its own size either. */
+.entryGlyph > svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+/* The last-modified column, pinned to the row's far right. It carries the auto
+   margin itself so it stays there while the hover affordance is hidden; once the
+   `@` button appears it owns the right edge and the time gives the margin up
+   rather than pushing the affordance inward. Dimmed to label-tertiary -- it is
+   orientation, not content, and must not compete with the filename. Tabular
+   figures keep the column aligned down a level. */
+.entryTime {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.entry:hover .entryTime,
+.entry:focus-within .entryTime {
+  margin-left: 0;
+}
+
+/* The favourites star, drawn immediately before the date.
+   It carries the row's auto margin only while it is present, so the star and the
+   timestamp travel together to the right edge as one group and a row without a star
+   keeps exactly the layout it had. `.entryTime` gives its own auto margin up when a
+   star precedes it (`+`), otherwise the two would push in opposite directions and
+   leave a gap between them. Both release the margin on hover for the same reason the
+   timestamp already does: the trailing `@` button owns the right edge while it shows.
+   `--dsw-static-amber-500` is the set's only warm stop, which is what makes a star
+   read as a star rather than as one more grey glyph. */
+.entryFavorite {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--dsw-static-amber-500);
+  font: var(--dsw-font-xxs-12);
+  line-height: 1;
+}
+
+.entryFavorite + .entryTime {
+  margin-left: 0;
+  padding-left: 4px;
+}
+
+.entry:hover .entryFavorite,
+.entry:focus-within .entryFavorite {
+  margin-left: 0;
+}
+
+/* The hover-revealed reference button at the row's far right. Its label is the
+   explorer's own `@文件` / `@file` string rather than a bare `@`, so a reader
+   sees the same affordance in both trees. Hidden rows keep the name at full
+   width; hovering or focusing the row reveals it. */
+.entryRef {
+  flex: none;
+  display: none;
+  align-items: center;
+  margin-left: auto;
+  height: 20px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 999px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-strong-11);
+  cursor: pointer;
+}
+
+.entryRef:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry:hover .entryRef,
+.entry:focus-within .entryRef {
+  display: inline-flex;
+}
+
+/* The pin toggle at the row's trailing edge.
+   Hidden until the row is hovered or focused, like the reference button, EXCEPT
+   while the path is pinned: a pinned row keeps its glyph drawn so the state is
+   readable at a glance rather than only under the pointer. */
+.entryPin {
+  flex: none;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.entryPin:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.entry:hover .entryPin,
+.entry:focus-within .entryPin,
+.entryPin[data-pinned='true'] {
+  display: inline-flex;
+}
+
+.entryPin[data-pinned='true'] {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* ---- The grid layout ----
+
+   A separate class family, deliberately NOT a restyling of `.entry`. The row
+   metrics above are a measured copy of the explorer's `.explorerRow` (28px, 12px
+   ink, 8px inset, 4px radius) and a card has none of them; sharing the class
+   would either break that copy or force every card to inherit a height it cannot
+   use. Measured against the product's own tile rhythm: a 120px minimum so three
+   cards fit the panel's narrowest content width, a 12px gap, and the card's own
+   layer fill. */
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.cardItem {
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  cursor: pointer;
+  text-align: left;
+}
+
+.card:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.card:focus-visible {
+  outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+/* A directory card is titled like the tree's directory row: one weight step up. */
+.cardDir {
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.cardGlyph {
+  display: inline-flex;
+  align-items: center;
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* Two lines at most: a card is a fixed tile, and an unbounded name would make one
+   document's card taller than its neighbours'. */
+.cardName {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-all;
+}
+
+/* Where the document lives. Tertiary, because in the grid this is orientation
+   rather than content -- the same role `.entryTime` plays in a row. */
+.cardMeta {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+/* The card's timestamp, pushed to the tile's bottom edge. */
+.cardTime {
+  margin-top: auto;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Drag and drop ----
+
+   Copied from the explorer's `.explorerRowDropTarget` (sidebar.module.css:1066):
+   the same accent hover fill and the same 1px dashed business outline, drawn
+   inside the row so the tree does not shift by a pixel while a drag passes over
+   it. The explorer's own values, not a second design. */
+.entry[data-drop-target='true'],
+.card[data-drop-target='true'] {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  outline: 1px dashed var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+}
+
+/* The batch-selection checkbox. It appears only while a selection is live, so the
+   ordinary row keeps the explorer's metrics and gains no column; a fixed 14px box
+   that does not change the row's 28px height. */
+.entryCheck {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--dsw-alias-state-business-primary);
+  cursor: pointer;
+}
+
+/* The pin drop zone, shown only while a row is being dragged.
+   It borrows the explorer's own drop-target treatment -- the accent hover fill and
+   the 1px dashed business outline -- because it makes the same promise a folder row
+   under the pointer makes: let go and the thing you are carrying lands here. The
+   resting rail never shows it, because the band it belongs to is hidden when
+   nothing is pinned. */
+.pinDropZone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 28px;
+  margin-bottom: 4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  outline: 1px dashed var(--dsw-alias-state-business-primary);
+  outline-offset: -1px;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+/* The empty state's action, offered only when there is genuinely no document to
+   show. It sits below the line with the product's own spacing. */
+.emptyAction {
+  margin-top: 16px;
+}
+
+/* Mount fade for tree rows (the app's session-row reveal). */
+@keyframes kb-row-in {
+  from { opacity: 0; }
+}
+
+/* ---- The list's empty / loading / failure state ----
+
+   Follows the product's shared panel state (`ui-schedule/TaskManagerPage.module.css`
+   `.empty` + `.emptyGlyph` + `.emptyTitle`): a centered column on tertiary ink
+   with a caption-ink glyph. A bare left-aligned grey sentence read as a stray
+   paragraph rather than as "this region has nothing in it". */
+.empty {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-s-14);
+}
+
+.emptyGlyph {
+  margin-bottom: 12px;
+  color: var(--dsw-alias-label-caption);
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-s-14);
+  line-height: 1.6;
+}

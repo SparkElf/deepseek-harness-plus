@@ -1,0 +1,20 @@
+# Knowledge-base bundle patch: mount the Host half. The Client half is declared
+# by package.json's `dsh.client` and loaded by the Web shell.
+#
+# `inject` is repeated here on purpose. A bundled ESM plugin's named `inject`
+# export is resolved by the loader, but making the dependency list explicit on
+# the entry keeps activation deterministic when the host boots several plugin
+# rows concurrently: the fiber waits for `agentLoop` instead of reading it
+# before the service is committed.
+- insert:
+    - id: knowledge-base
+      name: '@sparkelf/dsh-knowledge-base'
+      inject:
+        - credentials
+        - webServer
+        - tools
+        - systemPrompt
+        - agentLoop
+        - agents
+        - sessionTitle
+        - agentDefaultModel

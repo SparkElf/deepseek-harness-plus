@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-26T02:14:41.504Z",
+  "generatedAt": "2026-11-26T03:59:14.387Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -132,9 +132,8 @@
       "sourcePath": "dsh-plugins-plus/packages/knowledge-base",
       "targetPath": "downstream/packages/plugins/knowledge-base",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending",
-      "blockedReason": "requires UI migration: current primitives removed MenuItemButton, SegmentedControl/SegmentedTabs, Tooltip portal prop, and several Regular icons; server types also drifted"
+      "hasTests": true,
+      "status": "migrated"
     },
     {
       "name": "@sparkelf/dsh-mineru",

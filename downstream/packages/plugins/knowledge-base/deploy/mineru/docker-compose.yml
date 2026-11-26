@@ -1,0 +1,56 @@
+# MinerU 4.x parsing API for an offline intranet.
+#
+#   docker load -i mineru-4.0.12-cpu.tar
+#   docker compose up -d
+#
+# The image already contains the models, so nothing here needs egress. Do not add a
+# `build:` section in the customer environment: there is no network to build with.
+
+services:
+  mineru:
+    image: mineru:4.0.12-cpu
+    container_name: mineru
+    restart: unless-stopped
+    command: ["api-server", "--host", "0.0.0.0", "--port", "8000", "--tier", "basic", "--upload-dir", "/data/mineru", "--concurrency", "4"]
+    ports:
+      # Host port 8000 is what the knowledge-base plugin's MinerU setting points at.
+      # Change the left side only: the container always listens on 8000.
+      - "8000:8000"
+    environment:
+      # CPU only. These are explicit rather than implied by the image so an operator
+      # reading this file can see the intent.
+      CUDA_VISIBLE_DEVICES: ""
+      USE_GPU: "false"
+      MINERU_MODEL_SOURCE: local
+      MINERU_MODEL_SMALL_BACKEND: onnx
+      MINERU_MODEL_VLM_ENGINE: llama-cpp
+      # Completed task results are kept for a day, which is enough for a retry of a
+      # failed client read without unbounded disk growth.
+      MINERU_API_RETENTION_SECONDS: "86400"
+    volumes:
+      # Optional: mount a pre-seeded model cache instead of relying on the copy baked
+      # into the image. Useful when the same models are shipped as a separate volume,
+      # or when a newer tier must be dropped in without rebuilding.
+      # - ./models:/root/.mineru/models:ro
+      - mineru-data:/data/mineru
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/v1/health"]
+      interval: 30s
+      timeout: 10s
+      # A CPU box needs a while to import onnxruntime and load the layout model.
+      start_period: 90s
+      retries: 5
+    # A parse holds the model files in memory. The official compose raises these for
+    # exactly this reason; without them a large document can fail on mmap limits.
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    ipc: host
+    # Keeps a pathological document from taking the host down with it.
+    deploy:
+      resources:
+        limits:
+          memory: 8g
+
+volumes:
+  mineru-data:

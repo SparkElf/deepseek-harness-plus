@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "",
+    "model": "manual-zh",
+    "translatedAt": "2026-11-23T10:28:00+08:00"
+  },
+  "title": "记忆抽取",
+  "description": "从会话轨迹中抽取值得长期保留的记忆候选时使用。",
+  "summary": "输出带证据的记忆候选，不直接写入记忆。"
+}

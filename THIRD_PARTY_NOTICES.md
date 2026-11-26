@@ -67,7 +67,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@sparkelf/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@sparkelf/dsh-image-hoist`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
-| [`@sparkelf/dsh-knowledge-base`](https://github.com/SparkElf/deepseek-harness-plus) | MIT |
 | [`@sparkelf/dsh-quant`](https://github.com/SparkElf/dsh-quant-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |

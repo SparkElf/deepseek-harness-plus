@@ -46,7 +46,7 @@
     "@sparkelf/dsh-genui": "0.15.0-sparkelf.3",
     "@sparkelf/dsh-group-chat": "workspace:*",
     "@sparkelf/dsh-kb-citation": "workspace:*",
-    "@sparkelf/dsh-knowledge-base": "0.6.3",
+    "@sparkelf/dsh-knowledge-base": "workspace:*",
     "@sparkelf/dsh-mineru": "workspace:*",
     "@sparkelf/dsh-mobile-bridge": "workspace:*",
     "@sparkelf/dsh-ocr": "workspace:*",
