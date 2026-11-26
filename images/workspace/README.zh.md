@@ -18,6 +18,7 @@ images/workspace/
 │   └── ...                    scripts and inputs copied by those three files
 ├── scripts/
 │   ├── build-workspace-final.sh  three-layer build entry
+│   ├── prepare-inputs.sh         supply and verify the untracked build artifacts
 │   └── check-parity.sh           digest comparison against the DataOps source tree
 └── acceptance/
     ├── baseline-20261126.json    B-07 measurements, targets, and unmeasured items
@@ -56,10 +57,11 @@ base 不安装任何 DSH 包。profile 只在 `plus-build` 中装配一次，run
 cd images/workspace
 
 # Resolve every command and list missing inputs; never builds.
-./scripts/build-workspace-final.sh 0.2.9-alpha.105 --print
+./scripts/prepare-inputs.sh
+./scripts/build-workspace-final.sh 0.2.9-alpha.106 --print
 
 # Full build, once the eight inputs are supplied.
-./scripts/build-workspace-final.sh 0.2.9-alpha.105
+./scripts/build-workspace-final.sh 0.2.9-alpha.106
 ```
 
 脚本按镜像 ID 串接各层，传 `--network host`，并写出 `dataops-ai-workspace:base-py312`、`:plus-cli-py312-<version>`、`:runtime-files`、`:final-<stamp>`、`:final` 与 `:local`。用 `IMAGE_REPOSITORY` 可换一个仓库名构建。
@@ -117,7 +119,7 @@ cd images/workspace
 
 ## 构建上下文输入
 
-`inputs.lock.json` 是两半的摘要权威：镜像进来的文件，以及构建必须提供的产物。把 DSH 源码 tarball、Plus tarball 和 4 个 `vendor/` tarball 放到 `context/` 下；OfficeCLI 引擎二进制可选，因为引擎阶段会自行下载并校验。
+`inputs.lock.json` 是两半的摘要权威：镜像进来的文件，以及构建必须提供的产物。`scripts/prepare-inputs.sh` 从 `DATAOPS_WORKSPACE_DIR` 或公开源生成 DSH 源码 tarball、Plus tarball 和 6 个 `vendor/` tarball 并逐一校验；`--check` 只校验不写文件。OfficeCLI 引擎二进制可选，因为引擎阶段会自行下载并校验。
 
 ## 迁移期一致性
 
