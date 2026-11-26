@@ -29,18 +29,13 @@ fi
 # context-level .dockerignore (the DataOps context has no equivalent).
 is_owned_here() {
   case "$1" in
-    ".dockerignore" | "README.md" | "vendor/README.md" | "officecli-bin/README.md" | "workspace-web-gateway-protocol/"*) return 0 ;;
+    ".dockerignore" | "README.md" | "vendor/README.md" | "officecli-bin/README.md" | "dsh-src.tar.gz" | "sparkelf-dsh-plus-"*.tgz | "workspace-web-gateway-protocol/"*) return 0 ;;
     *) return 1 ;;
   esac
 }
 
 # Artifacts that must NOT be mirrored; each is a documented migration gap.
 absent_expectations=(
-  "dsh-src.tar.gz"
-  "sparkelf-dsh-plus-0.2.9-alpha.105.tgz"
-  "vendor/xlsx-0.20.3.tgz"
-  "vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz"
-  "vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz"
 )
 
 fail=0
