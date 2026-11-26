@@ -113,10 +113,9 @@ const comparable = (value: string): string => value.toLowerCase().replace(/[^a-z
 /**
  * Generate an initial password the backend's strong-password policy accepts.
  *
- * The value never leaves this function's caller: it is sent to DataOps once, stored as a hash,
- * and deliberately not returned, logged or audited. A tool-created account therefore cannot be
- * signed into until an administrator sets a password in the user console, which is the intended
- * credential hand-off for an AI-driven provisioning action.
+ * The value is returned once in the tool result for immediate hand-off, and is never written to
+ * audit logs or plugin logs. The caller must treat the result as sensitive: DSH session history
+ * may retain tool output, so the account should change this password after first sign-in.
  * @param context - account fields the policy rejects when the password embeds them.
  */
 const generatedInitialPassword = (context: { username: string; displayName: string; email: string }): string => {
@@ -1077,8 +1076,8 @@ export function buildAiManagementTools(
           const departmentCode = textArg(args.department_code) || PROVISIONED_DEPARTMENT
           const roles = [...PROVISIONED_USER_ROLES]
           const credential = {
-            mode: 'admin_reset_required',
-            message: '初始密码由工具随机生成且不回显；请在用户管理页为该账号设置密码后再交付。',
+            mode: 'one_time_reveal',
+            message: '初始密码只在本工具结果返回一次，不写入审计/日志；交付后请要求用户首次登录修改。',
           }
           const preview = {
             username,
@@ -1102,6 +1101,7 @@ export function buildAiManagementTools(
             exec,
             'Create DataOps user ' + username + ' with roles ' + roles.join(' / ') + ' and no resource grants.',
           )
+          const initialPassword = generatedInitialPassword({ username, displayName, email })
           const body = await call('/api/system/users', {
             method: 'POST',
             body: JSON.stringify({
@@ -1111,7 +1111,7 @@ export function buildAiManagementTools(
               ...(mobile === '' ? {} : { phone: mobile }),
               departmentCode,
               roleCodes: roles,
-              password: generatedInitialPassword({ username, displayName, email }),
+              password: initialPassword,
             }),
           })
           const row = userRowOf(body)
@@ -1132,6 +1132,7 @@ export function buildAiManagementTools(
             defaultRoles: roles,
             directResourceGrants: 0,
             credential,
+            initialPassword,
           } as unknown as Record<string, Json>
         },
       }),
