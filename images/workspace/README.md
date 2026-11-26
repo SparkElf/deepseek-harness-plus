@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-Status: skeleton of the DataOps AI workspace image build, moved from `dataops/infra/docker-workspace` under task B-08. The Dockerfiles, build scripts and build-time inputs are mirrored byte-for-byte, and the build plan resolves. A clean clone cannot produce an image yet: eight required inputs are named, not present. DataOps still owns the production build; nothing here is deployed.
+Status: skeleton of the DataOps AI workspace image build, moved from `dataops/infra/docker-workspace` under task B-08. The Dockerfiles, build scripts and build-time inputs are mirrored byte-for-byte, and the build plan resolves. A clean clone materializes the untracked inputs with `scripts/prepare-inputs.sh`; a full build still needs Docker and the base image. DataOps still owns the production build; nothing here is deployed.
 
 ## Layout
 
@@ -18,6 +18,7 @@ images/workspace/
 │   └── ...                    scripts and inputs copied by those three files
 ├── scripts/
 │   ├── build-workspace-final.sh  three-layer build entry
+│   ├── prepare-inputs.sh         supply and verify the untracked build artifacts
 │   └── check-parity.sh           digest comparison against the DataOps source tree
 └── acceptance/
     ├── baseline-20261126.json    B-07 measurements, targets, and unmeasured items
@@ -56,10 +57,11 @@ The base installs no DSH package. The profile is assembled once, in `plus-build`
 cd images/workspace
 
 # Resolve every command and list missing inputs; never builds.
-./scripts/build-workspace-final.sh 0.2.9-alpha.105 --print
+./scripts/prepare-inputs.sh
+./scripts/build-workspace-final.sh 0.2.9-alpha.106 --print
 
 # Full build, once the eight inputs are supplied.
-./scripts/build-workspace-final.sh 0.2.9-alpha.105
+./scripts/build-workspace-final.sh 0.2.9-alpha.106
 ```
 
 The script chains the layers by image ID, passes `--network host`, and writes `dataops-ai-workspace:base-py312`, `:plus-cli-py312-<version>`, `:runtime-files`, `:final-<stamp>`, `:final` and `:local`. Set `IMAGE_REPOSITORY` to build under another name.
@@ -117,7 +119,7 @@ Measure sizes with one stated method: `docker images` visible size is the number
 
 ## Context artifacts
 
-`inputs.lock.json` is the digest authority for both halves: the mirrored files and the artifacts a build must supply. Supply the DSH source tarball, the Plus tarball and the four `vendor/` tarballs under `context/`; the OfficeCLI engine binaries are optional because the engine stage downloads and verifies them.
+`inputs.lock.json` is the digest authority for both halves: the mirrored files and the artifacts a build must supply. `scripts/prepare-inputs.sh` supplies the DSH source tarball, the Plus tarball and the six `vendor/` tarballs under `context/` from `DATAOPS_WORKSPACE_DIR` or from public sources, and verifies them; `--check` verifies without writing. The OfficeCLI engine binaries are optional because the engine stage downloads and verifies them.
 
 ## Parity during migration
 

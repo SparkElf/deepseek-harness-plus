@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. Generated from the working tree; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree.",
+  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout or from public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree.",
   "source": {
     "repository": "dataops",
     "path": "infra/docker-workspace",
@@ -335,8 +335,8 @@
     },
     {
       "path": "context/vendor/README.md",
-      "bytes": 1440,
-      "sha256": "040a33defaf5f69b8001ddeb851530b7211b7af6f1ce638fbf80de693914b930"
+      "bytes": 1510,
+      "sha256": "3919daa0ea66c0660650e70ca60c28340c2a1ba374521de4864413c4849bfe97"
     },
     {
       "path": "context/verify-font-names.py",
@@ -351,15 +351,15 @@
       "sha256": "beb376256251c96ce4bc725c847b5dbf7a57f0aa3cc4bb707894bc8e1a192c41",
       "tracked": false,
       "required": true,
-      "supply": "release artifact for DSH_SOURCE_REVISION=4b399c39a6d1479cd84ca591b4d7c88e24d38a96 (DataOps .gitignore line 109)"
+      "supply": "prepare-inputs.sh copies this DataOps artifact on the fast path; --public fetches DSH_SOURCE_REVISION=4b399c39a6d1479cd84ca591b4d7c88e24d38a96 and verifies git rev-parse HEAD instead of these bytes"
     },
     {
-      "path": "context/sparkelf-dsh-plus-0.2.9-alpha.105.tgz",
-      "bytes": 172288,
-      "sha256": "246f82ce7085ab35c40fffa157725178b98ea13ac1a4adb9169a683f0a3082cb",
+      "path": "context/sparkelf-dsh-plus-0.2.9-alpha.106.tgz",
+      "bytes": 172286,
+      "sha256": "ace3c930d8d4587d4568bc03becf164d138bf7fb685639c1f13d02f4a5d83194",
       "tracked": false,
       "required": true,
-      "supply": "npm pack @sparkelf/dsh-plus@<version> (DataOps .gitignore line 112)"
+      "supply": "prepare-inputs.sh runs pnpm --filter @sparkelf/dsh-plus pack on this workspace; Dockerfile.plus-cli-src checks the package version, not these bytes"
     },
     {
       "path": "context/officecli-bin/officecli-linux-x64",
@@ -408,6 +408,87 @@
       "tracked": true,
       "required": true,
       "supply": "DataOps packages/workspace-web-gateway-protocol, passed as --build-context (gap G3)"
+    }
+  ],
+  "vendorTarballs": [
+    {
+      "path": "context/vendor/xlsx-0.20.3.tgz",
+      "bytes": 2412635,
+      "sha256": "275220ad69ba7721886e274d3a635ef5b04a9404cf0019f631bc19b8faa05c2a",
+      "md5": "5ab9436a1aabeae822c3ed26dd1465d9",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:80-83 (COPY, md5 gate and lockfile rewrite)",
+      "source": {
+        "kind": "cdn-repack",
+        "url": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+        "upstreamSha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8",
+        "recipe": "unpack; replace package/LICENSE with a hardlink to package/dist/LICENSE; chmod 0600 files and 0711 package/bin/xlsx.njs; npm pack --ignore-scripts"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz",
+      "bytes": 5661567,
+      "sha256": "0f8c41c38b0bfaf744c9866e7766d3d5ce444cfa0ac4eb87997d7479c4abb9b4",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:121-125 and Dockerfile.runtime-cli:22-26",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-better-sidebar",
+        "version": "0.30.1-sparkelf.22",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-better-sidebar/-/dsh-better-sidebar-0.30.1-sparkelf.22.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz",
+      "bytes": 335773,
+      "sha256": "39b256ebb6f746709b5d244d32743a90a223d89845c55bdd44d4d0f4bbec4a02",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:130-133",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.2",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-managed/-/dsh-dataops-managed-0.4.2.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz",
+      "bytes": 320358,
+      "sha256": "7b7cc90aa9d5f239703654a485b8dcaa0a41f1a4e9bfeda4acd6bde8ce6ba63d",
+      "required": true,
+      "requiredBy": "Dockerfile.runtime-cli:29-32",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.1",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-managed/-/dsh-dataops-managed-0.4.1.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-im-0.1.2.tgz",
+      "bytes": 90891,
+      "sha256": "2953bd9afbd2c26bf9ba27a3883af1e413e9bfeb668cd5e3fa3f0e330f24cfec",
+      "required": true,
+      "requiredBy": "context/profile-defaults/plugin-pins.json (tarball pin consumed by pin-plus-plugins.mjs)",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-im",
+        "version": "0.1.2",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-im/-/dsh-dataops-im-0.1.2.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-group-chat-0.5.12.tgz",
+      "bytes": 247342,
+      "sha256": "ac37935d1f739563af6ff88f02353912876c9be8773d1345ec56d33eefad80b8",
+      "required": true,
+      "requiredBy": "context/profile-defaults/plugin-pins.json (tarball pin consumed by pin-plus-plugins.mjs)",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-group-chat",
+        "version": "0.5.12",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-group-chat/-/dsh-group-chat-0.5.12.tgz"
+      }
     }
   ]
 }

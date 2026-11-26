@@ -9,7 +9,9 @@
 # Two inputs are not part of this repository and are named rather than guessed:
 #   WORKSPACE_GATEWAY_PROTOCOL_CONTEXT  DataOps-owned `packages/workspace-web-gateway-protocol`
 #   context artifacts                   dsh-src.tar.gz, the Plus tarball, vendor/*.tgz
-# `--print` resolves every command and reports missing inputs without building anything.
+# `scripts/prepare-inputs.sh` materializes the artifacts from a DataOps checkout or from public
+# sources and verifies them; `--print` resolves every command and reports missing inputs without
+# building anything.
 #
 # Usage:
 #   ./build-workspace-final.sh 0.2.9-alpha.105
@@ -43,14 +45,26 @@ dest="$ctx/sparkelf-dsh-plus-${plus_version}.tgz"
 
 gateway_context="${WORKSPACE_GATEWAY_PROTOCOL_CONTEXT:-$ctx/workspace-web-gateway-protocol}"
 
-# Inputs a build needs but this repository deliberately does not carry. Each one is a named
-# migration gap; report all of them at once so a reviewer sees the whole surface.
+# Inputs a build needs but this repository deliberately does not carry. `prepare-inputs.sh`
+# supplies and verifies them; this list reports every absence at once so a reviewer sees the
+# whole surface before a build starts.
 missing=()
-test -f "$tarball" || missing+=("plus tarball: $tarball (gap G4)")
-test -f "$ctx/dsh-src.tar.gz" || missing+=("DSH source tarball: $ctx/dsh-src.tar.gz (gap G1)")
+test -f "$tarball" || missing+=("plus tarball: $tarball (run scripts/prepare-inputs.sh)")
+test -f "$ctx/dsh-src.tar.gz" || missing+=("DSH source tarball: $ctx/dsh-src.tar.gz (run scripts/prepare-inputs.sh)")
 if [ ! -f "$gateway_context/index.js" ]; then
   missing+=("gateway protocol context has no index.js: $gateway_context")
 fi
+# `pin-plus-plugins.mjs` reads two of these tarballs and `COPY vendor/` carries the rest; a
+# missing file fails the Plus or Runtime layer after a long install, so resolve them here too.
+for vendor_tarball in \
+  xlsx-0.20.3.tgz \
+  sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz \
+  sparkelf-dsh-dataops-managed-0.4.2.tgz \
+  sparkelf-dsh-dataops-managed-0.4.1.tgz \
+  sparkelf-dsh-dataops-im-0.1.2.tgz \
+  sparkelf-dsh-group-chat-0.5.12.tgz; do
+  test -f "$ctx/vendor/$vendor_tarball" || missing+=("vendor tarball: $ctx/vendor/$vendor_tarball (run scripts/prepare-inputs.sh)")
+done
 
 base_ref="$image_repo:base-py312"
 plus_ref="$image_repo:plus-cli-py312-${plus_version}"
