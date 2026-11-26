@@ -58,4 +58,11 @@ describe('cockpit tab', () => {
     expect(await screen.findByText('外部销售驾驶舱')).toBeTruthy()
     expect(screen.getByText(/M2：按站点 origin 列出匹配凭据/)).toBeTruthy()
   })
+
+  it('wraps card actions in a 360-420px sidebar without hardcoded colors', () => {
+    const html = renderToStaticMarkup(<CockpitTab tab={{}} />)
+    expect(html).toContain('@media (max-width: 420px)')
+    expect(html).toContain('.dsh-ac__actions .dsh-ac__btn { flex: 1 1 auto; }')
+    expect(html).not.toMatch(/background:\s*#(?:fff|000)\b/iu)
+  })
 })

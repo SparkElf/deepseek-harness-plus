@@ -266,4 +266,16 @@ describe('external cockpit panel', () => {
     await waitFor(() => expect(modes).toEqual(['headless', 'headed']))
     expect(await screen.findByText('已登录：销售驾驶舱')).toBeTruthy()
   })
+
+  it('uses theme tokens for the screenshot stage and wraps actions in a 360-420px panel', async () => {
+    fetchMock(async () => jsonResponse({ items: [sales], total: 1 }))
+    render(<ExternalCockpitPanel />)
+    await screen.findByText('销售驾驶舱')
+    const css = Array.from(document.querySelectorAll('style')).map((node) => node.textContent ?? '').join('\n')
+    expect(css).not.toMatch(/background:\s*#000\b/iu)
+    expect(css).toContain('background: var(--dsw-alias-bg-base, #151517)')
+    expect(css).toContain('@media (max-width: 420px)')
+    expect(css).toContain('.dsh-xc__actions .dsh-xc__btn { flex: 1 1 auto; }')
+  })
+
 })
