@@ -195,7 +195,7 @@ const commands = {
       for (const line of mismatches) console.warn('  ' + line)
       if (args.includes('--strict-local')) fail('local/profile version mismatches are not allowed in strict mode')
     }
-    execFileSync('pnpm', ['run', 'verify:plus-governance'], { cwd: root, stdio: 'inherit' })
+    execFileSync('pnpm', ['--config.verify-deps-before-run=false', 'run', 'verify:plus-governance'], { cwd: root, stdio: 'inherit' })
     console.log('verify: upstream lock, release manifest, and Plus governance are consistent')
   },
   'image-plan'() {
