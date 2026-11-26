@@ -1,0 +1,111 @@
+.card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 12px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.header,
+.statusCard {
+  display: flex;
+  min-width: 0;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+}
+
+.header {
+  padding: 8px 10px 4px 12px;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspect {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.inspect:hover,
+.inspect:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.canvasWrap {
+  position: relative;
+  min-width: 0;
+}
+
+.canvas {
+  width: 100%;
+  min-width: 0;
+  min-height: 320px;
+}
+
+.canvasError {
+  padding: 12px;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.status,
+.statusCard {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.status {
+  padding: 8px 0;
+}
+
+.statusCard {
+  padding: 8px 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-base);
+}
+
+.statusCard > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.statusCard[data-state='error'] > span {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+@media (max-width: 480px) {
+  .canvas {
+    min-height: 260px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inspect {
+    transition: none;
+  }
+}

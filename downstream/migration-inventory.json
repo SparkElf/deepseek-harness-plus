@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-26T01:00:33.880Z",
+  "generatedAt": "2026-11-26T01:26:28.729Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -29,8 +29,8 @@
       "sourcePath": "dsh-plugins-plus/packages/chart",
       "targetPath": "downstream/packages/plugins/chart",
       "hasBuild": true,
-      "hasTests": false,
-      "status": "pending",
+      "hasTests": true,
+      "status": "migrated",
       "blockedReason": "client slot/locale typings plus test harness imports an older cordis-plugin-loader/cosmokit API; requires real client and test-harness migration"
     },
     {
