@@ -8,6 +8,13 @@ Status: migration record for task B-08, 2026-11-26. It records what the monorepo
 
 The skeleton mirrors the DataOps build context byte-for-byte and resolves the build plan. It does not build an image: eight inputs are absent by design, and one of them cannot be mirrored because DataOps does not track it. The record below separates inputs that a build needs, build semantics that were never finished, and evidence that does not exist yet.
 
+## Closed since the B-08 skeleton (2026-11-26)
+
+- **G2 closed**: `context/platform-sidecars/workspace-gateway.mjs` is now mirrored with its DataOps source and SHA-256.
+- **G3 closed**: `context/workspace-web-gateway-protocol/` is self-contained; `build-workspace-final.sh` defaults to it instead of requiring `WORKSPACE_GATEWAY_PROTOCOL_CONTEXT`.
+
+Remaining input blockers are only G1/G4: `dsh-src.tar.gz`, the Plus tarball, and four vendor tarballs. They exist in the local DataOps workspace but are gitignored; they need a release-artifact or explicit-commit decision.
+
 ## Gap inventory
 
 | ID | Gap | Evidence | Effect | Next step |

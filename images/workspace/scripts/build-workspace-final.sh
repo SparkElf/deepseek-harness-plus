@@ -41,10 +41,7 @@ plus_registry="${DSH_PLUS_INSTALL_REGISTRY:-https://mirrors.cloud.tencent.com/np
 tarball="${DSH_PLUS_TARBALL:-$ctx/sparkelf-dsh-plus-${plus_version}.tgz}"
 dest="$ctx/sparkelf-dsh-plus-${plus_version}.tgz"
 
-gateway_context="${WORKSPACE_GATEWAY_PROTOCOL_CONTEXT:-}"
-if [ -z "$gateway_context" ] && [ -n "${DATAOPS_WORKSPACE_DIR:-}" ]; then
-  gateway_context="$DATAOPS_WORKSPACE_DIR/packages/workspace-web-gateway-protocol"
-fi
+gateway_context="${WORKSPACE_GATEWAY_PROTOCOL_CONTEXT:-$ctx/workspace-web-gateway-protocol}"
 
 # Inputs a build needs but this repository deliberately does not carry. Each one is a named
 # migration gap; report all of them at once so a reviewer sees the whole surface.
@@ -55,11 +52,8 @@ test -f "$ctx/vendor/xlsx-0.20.3.tgz" || missing+=("vendor/xlsx-0.20.3.tgz (gap 
 test -f "$ctx/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz" || missing+=("vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz (gap G4)")
 test -f "$ctx/vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz" || missing+=("vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz (gap G4)")
 test -f "$ctx/vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz" || missing+=("vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz (gap G4)")
-test -f "$ctx/platform-sidecars/workspace-gateway.mjs" || missing+=("platform-sidecars/workspace-gateway.mjs (gap G2)")
-if [ -z "$gateway_context" ]; then
-  missing+=("WORKSPACE_GATEWAY_PROTOCOL_CONTEXT is unset (gap G3); point it at packages/workspace-web-gateway-protocol")
-elif [ ! -f "$gateway_context/index.js" ]; then
-  missing+=("gateway protocol context has no index.js: $gateway_context (gap G3)")
+if [ ! -f "$gateway_context/index.js" ]; then
+  missing+=("gateway protocol context has no index.js: $gateway_context")
 fi
 
 base_ref="$image_repo:base-py312"
