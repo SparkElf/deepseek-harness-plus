@@ -1453,6 +1453,18 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
 
+  downstream/packages/plugins/office-viewer-fonts:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: 4.0.4
+        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: 0.1.7-rc.2
+        version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
+      tsdown:
+        specifier: ^0.22.2
+        version: 0.22.2(oxc-resolver@11.20.0)(publint@0.3.21)(tsx@4.22.4)(typescript@6.0.3)
+
   downstream/packages/plugins/officecli:
     dependencies:
       '@officecli/officecli':

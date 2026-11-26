@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-25T20:50:07.802Z",
+  "generatedAt": "2026-11-26T01:00:33.880Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -178,7 +178,7 @@
       "targetPath": "downstream/packages/plugins/office-viewer-fonts",
       "hasBuild": true,
       "hasTests": false,
-      "status": "pending",
+      "status": "migrated",
       "blockedReason": "44MB font assets; asset inclusion policy must be decided before migration"
     },
     {
