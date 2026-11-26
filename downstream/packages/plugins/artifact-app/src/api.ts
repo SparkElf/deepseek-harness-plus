@@ -10,9 +10,10 @@
 
 import {
   assertExternalCockpitId,
+  normalizeExternalCockpitHostDetail,
   normalizeExternalCockpitLink,
   normalizeExternalCockpitPage,
-  normalizeExternalCockpitRow,
+  type ExternalCockpitHostDetail,
   type ExternalCockpitLink,
   type ExternalCockpitPage,
   type ExternalCockpitRow,
@@ -214,9 +215,19 @@ export class ArtifactApi {
    * @returns Sanitized metadata.
    */
   async getExternalCockpit(id: string): Promise<ExternalCockpitRow> {
+    return (await this.getExternalCockpitHostDetail(id)).cockpit
+  }
+
+  /**
+   * Read the Host-only detail the login broker needs: sanitized row, validated
+   * recipe and HTTPS allowlist. The recipe and allowlist never leave the Host.
+   * @param id - Registry id, never a URL.
+   * @returns Sanitized row plus Host-only login material.
+   */
+  async getExternalCockpitHostDetail(id: string): Promise<ExternalCockpitHostDetail> {
     const safeId = assertExternalCockpitId(id)
     const payload = await this.request<unknown>('/api/external-cockpits/' + encodeURIComponent(safeId))
-    return normalizeExternalCockpitRow(payload)
+    return normalizeExternalCockpitHostDetail(payload)
   }
 
   /**

@@ -27,6 +27,9 @@ const node: UserConfig = {
   fixedExtension: false,
   dts: true,
   clean: false,
+  // Playwright is an optional Host runtime dependency loaded by name; keep the
+  // dynamic import external so the plugin still loads when it is not installed.
+  external: ['playwright', 'playwright-core'],
   noExternal: (id: string) => (id.startsWith('@deepseek-ai/') ? undefined : true),
 }
 

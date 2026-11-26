@@ -1,6 +1,6 @@
 # @sparkelf/dsh-credential-manager
 
-DSH 右侧栏的第三方系统凭据清单。为 Prefect、DataOps、数据库、HTTP API、SSH 与自定义系统提供统一的元数据 CRUD、加密密钥存储、受审批保护的 AI 工具，以及一条**只做本地校验、不发起网络请求**的连接测试入口。
+DSH 右侧栏的第三方系统凭据清单。为 Prefect、DataOps、数据库、HTTP API、SSH 与自定义系统提供统一的元数据 CRUD、加密密钥存储、受审批保护的 AI 工具，以及一条**只做本地校验、不发起网络请求**的连接测试入口。另为同进程插件提供一个 Host-only 的凭据匹配/读取 seam（外部驾驶舱登录 broker 使用）。
 
 > 状态：MVP（0.1.0）。代码、测试、构建产物均在 `/root/projects/dsh-credential-manager`，**未安装到任何运行中的 profile，也未重启 DSH 服务**。
 
@@ -61,7 +61,7 @@ DSH 里接第三方系统的插件越来越多，每个插件都在自己解决�
 - **列表/详情/工具输出永远不包含 secret 值**；
 - **日志只记录字段名，不记录值**；审计事件形如
   `{ action, credentialId, name, type, detail: { secretFields: ['apiKey'] } }`；
-- `readSecret(id)` 是 Host-only 方法，**没有**注册到 HTTP API，也**没有**注册成模型工具；未来的连接器只能从 Host 内部调用；
+- `readSecret(id)` 是 Host-only 方法，**没有**注册到 HTTP API，也**没有**注册成模型工具；它通过下文的 `ctx.credentialManager` seam 供同进程插件调用；
 - 配置里的敏感键名（`password`、`token`、`apiKey`、`privateKey`…）会被拒绝，防止把密钥误写进元数据；
 - 配置值里出现 `-----BEGIN` 会被拒绝；
 - 读取磁盘上的旧元数据时会再做一次输出脱敏（防止手工改文件绕过校验）。
@@ -109,7 +109,19 @@ await approve({ toolName, exec, reason })
 
 不向用户填写的地址发请求，因此不能被模型当作 SSRF 探测工具。
 
-### 3.5 未来连接器的安全前提
+### 3.5 Host-only 服务 seam（`ctx.credentialManager`）
+
+`apply()` 通过 `ctx.provide('credentialManager', ...)` 注册一个只对 Host 内其它插件可见的服务对象；它不是 HTTP 路由，也不是模型工具：
+
+| 方法 | 返回值 | 说明 |
+|---|---|---|
+| `listForSite({ type, origin })` | `CredentialSiteOption[]` | 只返回启用、类型匹配且 endpoint origin 精确匹配的元数据 |
+| `describeForSite(id, { type, origin })` | `CredentialSiteOption` | 再次校验类型/origin/启用状态；不匹配抛 `credential_not_available` |
+| `readSecret(id)` | `Record<string,string> \| undefined` | 返回加密值；调用方必须已在 Host 内完成站点匹配，且不得写日志/审计/页面/模型 |
+
+`CredentialSiteOption` 只含 `id/name/type/authKind/username/origin/tags/secretConfigured`，没有 secret 值。origin 查询必须是 HTTPS；credential 的 `baseUrl` / `endpoint` 必须是 http(s) 绝对地址。`listForSite` 不含任何密钥，调用方必须在登录前再用 `describeForSite` 证明凭据仍匹配站点。
+
+### 3.6 未来连接器的安全前提
 
 `src/connectors.ts` 预留了 `CredentialRequestSeam` / `CredentialDbQuerySeam`，但**没有注册工具**。将来实现时必须满足：
 
@@ -214,6 +226,8 @@ dsh plugin --profile <profile> add ./sparkelf-dsh-credential-manager-0.1.0.tgz
 | `credentials.toggle` | `{ credentialId, enabled }` | 启用/停用 |
 | `credentials.test` | `{ credentialId }` | 本地校验 |
 
+以上是浏览器可访问的同源 HTTP API，**不包含**读 secret 的方法。跨插件读取走 `ctx.credentialManager`（3.5），不经过 HTTP。
+
 边界：
 
 - 请求体上限 1 MiB；
@@ -232,6 +246,7 @@ src/
   templates.ts        6 类模板与默认配置
   validation.ts       草稿、配置、secret 字段校验与输出脱敏
   store.ts            元数据 CRUD + 加密后端（vault 优先，credentials 备选）
+  service.ts          Host-only ctx.credentialManager seam（按站点列元数据 / 读 secret）
   tools.ts            7 个受审批保护的模型工具
   connectors.ts       credential_request / credential_db_query 预留设计
   client/
@@ -245,7 +260,8 @@ tests/
   store.test.ts       元数据 CRUD、secret 隔离、vault 加密、校验、删除确认
   tools.test.ts       工具审批、secret 不出现在输出、删除双确认
   api.test.ts         Host API 映射、confirm=true、更新路径
-  apply.test.ts       路由与 manifest 工具清单一致
+  apply.test.ts       路由、manifest 工具清单与 ctx.credentialManager 注册
+  service.test.ts     按 type/origin 过滤、停用排除、元数据无 secret、Host-only 读值
 ```
 
 ---
@@ -254,7 +270,7 @@ tests/
 
 ```text
 pnpm typecheck  -> exit 0
-pnpm test       -> 4 files, 19 tests passed
+pnpm test       -> 5 files, 23 tests passed
 pnpm build      -> lib/index.js 54.2 KB; lib/client.js 959.5 KB（gzip 261 KB，含 react-icons）
 ```
 
@@ -268,6 +284,7 @@ pnpm build      -> lib/index.js 54.2 KB; lib/client.js 959.5 KB（gzip 261 KB，
 - 每个工具都调用审批；审批拒绝时 store 不发生变化；
 - `credential_test` 的 `networkAttempted` 恒为 `false`；
 - `apply` 注册的 7 个工具与 `dsh.plugin.json` 的 `contributes.tools` 完全一致；
+- `ctx.credentialManager` 只返回启用且 type/origin 匹配的元数据，`readSecret` 只经 Host service 返回值；
 - 真实 HTTP server 上的路由：保存/列表/删除/未知方法/非法 JSON/超大 body，响应不出现 secret。
 
 ---
@@ -279,6 +296,7 @@ pnpm build      -> lib/index.js 54.2 KB; lib/client.js 959.5 KB（gzip 261 KB，
 - **没有 `credential_request` / `credential_db_query` 工具**：只有接口与安全要求，见 `src/connectors.ts`。
 - **类型不可变**：创建后不能把 `prefect` 改成 `ssh`，要新建。
 - **无导入/导出、无批量操作、无密钥轮换历史**。
+- **Host service 信任同进程插件**：`readSecret` 没有按调用方身份鉴权；任何能加载进 Host 的插件都能调用。它只用于可信插件之间，不能替代进程隔离。
 - **生产使用 WorkbenchVault**：`ctx.credentials` 只用于 `secret_ref` 解析；`dsh-credentials-local` 的 grant payload 不加密，故不作为原始 secret 后端。
 - **WorkbenchVault 是共享文件**：同一 Host 进程内写入串行化，跨进程并发写没有额外文件锁。
 - **UI 文案中文优先**，英文为回退；模板标签为中文（产品名除外）。

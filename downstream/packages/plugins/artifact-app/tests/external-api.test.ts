@@ -112,4 +112,45 @@ describe('external cockpit API client', () => {
     const row = await api().getExternalCockpit('ext-1')
     expect(row.url).toBeNull()
   })
+
+  it('reads a Host-only recipe and allowlist without exposing them on the row', async () => {
+    const row = {
+      ...registryRow,
+      allowedOrigins: ['https://cockpit.example', 'https://login.example'],
+      loginRecipe: {
+        version: 1,
+        steps: [
+          { action: 'goto', url: '{{url}}' },
+          { action: 'fill', selector: '#user', value: '{{username}}' },
+          { action: 'fill', selector: '#pass', value: '{{password}}' },
+          { action: 'click', selector: 'button[type=submit]' },
+          { action: 'wait', url: '**/dashboard' },
+        ],
+        success: { selector: '[data-ready]' },
+        timeoutMs: 15000,
+      },
+    }
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(row)))
+    const detail = await api().getExternalCockpitHostDetail('ext-1')
+    expect(detail.allowedOrigins).toEqual(['https://cockpit.example', 'https://login.example'])
+    expect(detail.recipe?.steps.map((step) => step.action)).toEqual(['goto', 'fill', 'fill', 'click', 'waitForURL'])
+    expect(detail.recipe?.success).toEqual({ selector: '[data-ready]' })
+    expect(detail.recipeError).toBeNull()
+    const publicRow = await api().getExternalCockpit('ext-1')
+    expect(JSON.stringify(publicRow)).not.toContain('{{password}}')
+    expect(Object.keys(publicRow)).not.toContain('loginRecipe')
+    expect(Object.keys(publicRow)).not.toContain('allowedOrigins')
+  })
+
+  it('keeps metadata readable when an optional registry recipe is malformed', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({
+      ...registryRow,
+      loginRecipe: { version: 2, steps: [] },
+    })))
+    const row = await api().getExternalCockpit('ext-1')
+    expect(row.name).toBe('销售驾驶舱')
+    const detail = await api().getExternalCockpitHostDetail('ext-1')
+    expect(detail.recipe).toBeNull()
+    expect(detail.recipeError).toContain('version')
+  })
 })

@@ -26,11 +26,13 @@ describe('plugin apply wiring', () => {
     const vaultDir = await mkdtemp(join(tmpdir(), 'dsh-credential-vault-'))
     const routes: { kind: string; path: string }[] = []
     const tools: { name: string; execute: (args: unknown, exec: unknown) => Promise<unknown> }[] = []
+    const provided = new Map<string, unknown>()
     const ctx = {
       credentials: provider(),
       approval: { request: async () => 'allowed-once' },
       logger: { info() {}, error() {} },
       effect(callback: () => unknown) { callback(); return () => undefined },
+      provide(name: string, value: unknown) { provided.set(name, value); return () => provided.delete(name) },
       webServer: {
         register(route: { kind: string; path: string }) { routes.push(route); return () => undefined },
       },
@@ -45,6 +47,12 @@ describe('plugin apply wiring', () => {
     const manifest = JSON.parse(await readFile(join(import.meta.dirname, '..', 'dsh.plugin.json'), 'utf8')) as { contributes: { tools: string[] } }
     expect(tools.map(tool => tool.name)).toEqual(manifest.contributes.tools)
     expect(tools).toHaveLength(7)
+
+    const service = provided.get('credentialManager') as {
+      listForSite(query: { type: string; origin: string }): Promise<unknown[]>
+      readSecret(id: string): Promise<Record<string, string> | undefined>
+    }
+    expect(service).toBeDefined()
 
     const create = tools.find(tool => tool.name === 'credential_create')
     if (create === undefined) throw new Error('credential_create was not registered')

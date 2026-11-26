@@ -56,6 +56,6 @@ describe('cockpit tab', () => {
     render(<CockpitTab tab={{}} />)
     fireEvent.click(screen.getByRole('tab', { name: '外部驾驶舱' }))
     expect(await screen.findByText('外部销售驾驶舱')).toBeTruthy()
-    expect(screen.getByText(/M1 只做注册表发现与稳定链接/)).toBeTruthy()
+    expect(screen.getByText(/M2：按站点 origin 列出匹配凭据/)).toBeTruthy()
   })
 })

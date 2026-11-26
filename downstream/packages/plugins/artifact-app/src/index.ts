@@ -10,7 +10,7 @@
  * @module @sparkelf/dsh-artifact-app
  */
 
-import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { IncomingMessage } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -23,7 +23,9 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 import { BUNDLED_SKILL_RANK } from '@deepseek-ai/dsh-skill'
 import { ArtifactApi, DataOpsError, type TokenSource } from './api.ts'
 import { Config as ConfigSchema, type Config as ConfigValues } from './config.ts'
-import { assertExternalCockpitId } from './external.ts'
+import { ExternalLoginBroker } from './external-broker.ts'
+import { registerExternalCockpitRoutes } from './external-routes.ts'
+import { readJsonBody, writeJson } from './http.ts'
 import {
   APPS_PATH,
   ARTIFACT_TAB_TYPE,
@@ -44,6 +46,8 @@ export const Config = ConfigSchema
 export type Config = ConfigValues
 export * from './api.ts'
 export * from './external.ts'
+export * from './external-broker.ts'
+export * from './external-routes.ts'
 export * from './open-hub.ts'
 export * from './templates.ts'
 
@@ -56,29 +60,6 @@ export const inject = ['webServer', 'tools', 'approval', 'credentials', 'skills'
 const SKILL_NAME = 'artifact-app-authoring'
 const SKILL_FILE = new URL('../skills/artifact-app-authoring/SKILL.md', import.meta.url)
 const SKILL_ROOT = fileURLToPath(new URL('../', import.meta.url))
-
-/** Read a request body with a hard ceiling. */
-const readJsonBody = async (request: IncomingMessage, limit: number): Promise<Record<string, unknown>> => {
-  const chunks: Buffer[] = []
-  let size = 0
-  for await (const chunk of request) {
-    const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk
-    size += buffer.length
-    if (size > limit) throw new Error('请求体超过上限')
-    chunks.push(buffer)
-  }
-  const text = Buffer.concat(chunks).toString('utf8')
-  return text.trim() === '' ? {} : JSON.parse(text) as Record<string, unknown>
-}
-
-/** Write one JSON response. */
-const writeJson = (response: ServerResponse, status: number, value: unknown): void => {
-  response.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
-    'cache-control': 'no-store',
-  })
-  response.end(JSON.stringify(value))
-}
 
 /** Preserve a DataOps client error; report upstream/network failures as 502. */
 const proxyStatus = (error: unknown): number =>
@@ -253,37 +234,19 @@ export function apply(ctx: Context, config: ConfigValues): void {
     },
   }), 'artifact-app: external cockpit list route')
 
-  // External cockpit detail and link proxies. `:id` is a registry id, never a URL, and
-  // `POST /:id/link` returns a stable HTTPS link only; M2 adds launch tickets.
-  ctx.effect(() => ctx.webServer.register({
-    kind: 'prefix',
-    path: EXTERNAL_COCKPITS_PATH,
-    handler: async (request, response) => {
-      const url = new URL(request.url ?? '/', 'http://dsh.internal')
-      const rest = url.pathname.slice(EXTERNAL_COCKPITS_PATH.length).replace(/^\/+/u, '')
-      const parts = rest === '' ? [] : rest.split('/')
-      if (parts.length === 0 || parts.some((part) => part === '')) { writeJson(response, 404, { error: '缺少外部驾驶舱 id' }); return }
-      if (parts.length > 2 || (parts.length === 2 && parts[1] !== 'link')) { writeJson(response, 404, { error: '未知的外部驾驶舱路由' }); return }
-      let id: string
-      try {
-        id = assertExternalCockpitId(decodeURIComponent(parts[0]))
-      } catch (error) {
-        writeJson(response, 400, { error: error instanceof Error ? error.message : String(error) })
-        return
-      }
-      try {
-        if (parts.length === 1) {
-          if (request.method !== 'GET') { writeJson(response, 405, { error: 'GET only' }); return }
-          writeJson(response, 200, await api.getExternalCockpit(id))
-          return
-        }
-        if (request.method !== 'POST') { writeJson(response, 405, { error: 'POST only' }); return }
-        writeJson(response, 200, await api.linkExternalCockpit(id))
-      } catch (error) {
-        writeJson(response, proxyStatus(error), { error: error instanceof Error ? error.message : String(error) })
-      }
-    },
-  }), 'artifact-app: external cockpit detail and link routes')
+  // External cockpit M2: credential selection, one-shot Playwright login, and a
+  // per-session screenshot. The broker keeps storageState in memory only; the
+  // routes never accept a URL, only a registry id.
+  const externalBroker = new ExternalLoginBroker({
+    ttlMs: config.externalSessionTtlMs,
+    maxSessions: config.externalMaxSessions,
+    overallTimeoutMs: config.externalLoginTimeoutMs,
+    headedEnabled: config.externalHeadedEnabled,
+    browserChannel: config.externalBrowserChannel,
+    logger: ctx.logger,
+  })
+  ctx.effect(() => () => externalBroker.dispose(), 'artifact-app: external login sessions')
+  registerExternalCockpitRoutes({ ctx, api, config, broker: externalBroker })
 
   // File viewer drafts: one draft per workspace path, updated as the file changes.
   ctx.effect(() => ctx.webServer.register({
