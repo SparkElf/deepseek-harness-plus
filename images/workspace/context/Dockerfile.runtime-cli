@@ -1,0 +1,266 @@
+# Full DataOps runtime image: Python 3.12 base + DataOps runtime files + the CLI-installed
+# DSH team profile. The base image carries the system/Python packages; the runtime files are
+# copied from the reviewed image; the DSH tree comes from the CLI layer, not the standalone.
+# The DSH layer already descends from the Python/Linux base, so the runtime image builds on it
+# directly and only adds the DataOps runtime files.
+ARG DSH_LAYER_IMAGE=dataops-ai-workspace:plus-cli-py312-v6
+# The runtime scaffolding image is produced from the plus layer of the SAME build. Naming the
+# tag literally made a cross-arch build silently copy the amd64 scaffolding image into an arm64
+# image (measured: InvalidBaseImagePlatform). A local stage aliases the image the builder names,
+# because `COPY --from=${ARG}` does not expand build arguments.
+ARG DATAOPS_RUNTIME_FILES_IMAGE=dataops-ai-workspace:runtime-files
+FROM ${DATAOPS_RUNTIME_FILES_IMAGE} AS runtime-files
+FROM ${DSH_LAYER_IMAGE}
+
+# The profile marker records the distribution version; declared here because the template step
+# below writes it before the ENV block that used to introduce the name.
+ARG DSH_PLUS_VERSION
+
+# The sidebar fix is shipped as a vendored tarball (not registry-published yet). Keep the bytes
+# beside the profile that names them, so a later `pnpm install` in this image can still resolve
+# the `file:` dependency the plus layer wrote.
+ARG DATAOPS_VENDORED_SIDEBAR=sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz
+ARG DATAOPS_VENDORED_SIDEBAR_SHA256=0f8c41c38b0bfaf744c9866e7766d3d5ce444cfa0ac4eb87997d7479c4abb9b4
+COPY vendor/ /opt/dataops-vendor/
+COPY vendor/${DATAOPS_VENDORED_SIDEBAR} /opt/dataops-vendor/${DATAOPS_VENDORED_SIDEBAR}
+RUN echo "${DATAOPS_VENDORED_SIDEBAR_SHA256}  /opt/dataops-vendor/${DATAOPS_VENDORED_SIDEBAR}" | sha256sum -c -
+
+# The dataops-managed 0.3.54 browser-skill pin is a vendored tarball for the same reason.
+ARG DATAOPS_VENDORED_DATAOPS_MANAGED=sparkelf-dsh-dataops-managed-0.4.1.tgz
+ARG DATAOPS_VENDORED_DATAOPS_MANAGED_SHA256=7b7cc90aa9d5f239703654a485b8dcaa0a41f1a4e9bfeda4acd6bde8ce6ba63d
+COPY vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED} /opt/dataops-vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED}
+RUN echo "${DATAOPS_VENDORED_DATAOPS_MANAGED_SHA256}  /opt/dataops-vendor/${DATAOPS_VENDORED_DATAOPS_MANAGED}" | sha256sum -c -
+
+# `@dataops/agent-runtime-protocol` resolves through a symlink into /packages, so the
+# protocol trees must travel with the runtime files.
+COPY --from=runtime-files /packages /packages
+COPY --from=runtime-files /opt/dataops-runtime /opt/dataops-runtime
+# Sidecar source is authoritative in the build context: a runtime-only rebuild can ship a
+# gateway fix without rebuilding the whole plus layer, and the copied files match the
+# combined/patch versions verified by the build assertions.
+COPY platform-sidecars/workspace-gateway.mjs platform-sidecars/workspace-web-gateway-agent.mjs platform-sidecars/workspace-sdk-gateway.mjs /opt/dataops-runtime/src/
+COPY --from=runtime-files /usr/local/bin/dataops-workspace-entrypoint /usr/local/bin/dataops-workspace-entrypoint
+# 用仓库里的 entrypoint 覆盖 runtime-files 里的旧副本（它只传 token 文件，agent 需要环境变量）。
+COPY dataops_workspace_entrypoint.sh /usr/local/bin/dataops-workspace-entrypoint
+RUN chmod +x /usr/local/bin/dataops-workspace-entrypoint
+# The helper is a repository file, not an artefact of the plus layer: the standalone-removal cut
+# dropped the stage that used to install it, and the plus image no longer carries it (measured
+# 2026-11-05: the runtime build failed with "/usr/local/bin/dataops-workspace-helper": not found).
+COPY dataops_workspace_helper.py /usr/local/bin/dataops-workspace-helper
+RUN chmod +x /usr/local/bin/dataops-workspace-helper
+COPY --from=runtime-files /usr/local/bin/dataops-dsh-service /usr/local/bin/dataops-dsh-service
+# The lifecycle helper is a repository file. The runtime-files stage carries whatever the plus
+# layer built earlier, so a change to this service would otherwise be invisible to the runtime
+# image even though the source tree has it (measured 2026-11-18: a `profile` subcommand added to
+# the repo file was absent from the freshly built runtime layer). Copy the reviewed file over the
+# plus-layer copy so the image and the repository never disagree about the lifecycle contract.
+COPY dataops_dsh_service.py /usr/local/bin/dataops-dsh-service
+RUN chmod +x /usr/local/bin/dataops-dsh-service
+# The DataOps overlay patch is a repository artefact, not a plus-layer product. Its delegation
+# group must not reference the subagent rows the agent-team profile disables: measured 2026-11-05,
+# a profile carrying them fails every new session in the web UI with
+# "agent-preset/invalid: tool-subagent-list-agents ... never started". Copy the reviewed file over
+# the template and recompute its marker, so prepare_profile() also re-seeds an existing volume.
+COPY profile-defaults/ /tmp/dataops-profile-defaults/
+# The provider catalog is deployment-specific (cloud catalog vs the self-hosted arm box's
+# local-only catalog); the plus layer picks the same file, and repeating the choice here keeps
+# the final layer from silently replacing it with the other variant.
+ARG DATAOPS_PROFILE_DEFAULTS=cordis.patch.yml
+RUN set -eux; \
+    test -f "/tmp/dataops-profile-defaults/${DATAOPS_PROFILE_DEFAULTS}"; \
+    cp "/tmp/dataops-profile-defaults/${DATAOPS_PROFILE_DEFAULTS}" /opt/dataops-dsh-profile-template/cordis.patch.yml; \
+    rm -rf /tmp/dataops-profile-defaults
+RUN set -eux; \
+    profile=/opt/dataops-dsh-profile-template; \
+    sed -i 's/\r$//' "$profile/cordis.patch.yml"; \
+    if grep -q 'tool-subagent-list-agents' "$profile/cordis.patch.yml"; then \
+        echo "cordis.patch.yml references the disabled agent-team row tool-subagent-list-agents" >&2; \
+        exit 1; \
+    fi; \
+    grep -qE '^ +- id: tool-subagent$' "$profile/cordis.patch.yml"; \
+    awk '/^- id: preset-standard/{p=1;next} /^- id: /{p=0} p&&/- id: tool-subagent$/{s=1} p&&/- id: tool-workflow$/{w=NR} p&&w&&NR>w&&NR<=w+4&&/disabled: true/{d=1} END{exit (s&&d)?0:1}' "$profile/cordis.patch.yml"; \
+    digests="$(cd "$profile" && { \
+        find . -type f -print0 | sort -z | xargs -0 sha256sum; \
+        find . -type l -printf '%p -> %l\n' | sort; \
+    } | sha256sum | cut -d' ' -f1)"; \
+    printf '%s+%s\n' "${DSH_PLUS_VERSION}" "$digests" > "$profile/.dataops-source-ref"; \
+    printf '  profile template marker %s\n' "$(cat "$profile/.dataops-source-ref")"
+
+# The npm launcher looks for `vendor/officecli-linux-<process.arch>`, so the file name has to
+# match the architecture the image runs on; the engine stage recorded which asset that is.
+RUN set -eux; \
+    asset="$(cat /usr/local/lib/dataops/officecli-asset)"; \
+    for d in \
+        /opt/dsh-home/profiles/dataops-web/node_modules/@officecli/officecli/vendor \
+        /opt/dataops-dsh-profile-template/node_modules/@officecli/officecli/vendor; do \
+      # The launcher creates `vendor/` only when its install step runs; a profile assembled by
+      # the plus layer can carry the package without it (measured 2026-11-05). Create the
+      # directory instead of asserting it, so the engine lands either way.
+      mkdir -p "$d"; \
+      rm -f "$d"/officecli-linux-* "$d"/officecli; \
+      # The launcher executes `vendor/officecli` (install-binary.js binaryName()); the per-asset
+      # name is only the download URL. Keep both: the executable the launcher runs, and the
+      # `officecli-linux-<arch>` name that records which asset the image ships.
+      install -m 0755 /usr/local/lib/dataops/officecli-engine "$d/officecli"; \
+      ln -sf officecli "$d/$asset"; \
+    done; \
+    test -x "/opt/dsh-home/profiles/dataops-web/node_modules/@officecli/officecli/vendor/officecli"; \
+    test -f "/opt/dsh-home/profiles/dataops-web/node_modules/@officecli/officecli/vendor/$asset"; \
+    rm -rf /opt/dsh-plus; \
+    ln -s /opt/dsh-home/profiles/dataops-web /opt/dsh-plus; \
+    test -f /opt/dsh-plus/node_modules/@deepseek-ai/dsh/lib/bin.js; \
+    test -f /usr/local/bin/dataops-dsh-service; \
+    python3 -m py_compile /usr/local/bin/dataops-dsh-service /usr/local/bin/dataops-workspace-helper
+
+# The `officecli-pdf` exporter ships inside the `@sparkelf/dsh-officecli` package but nothing in
+# the launcher installs it beside the engine. The engine discovers exporters through fixed paths,
+# and the bundled layout next to the native binary is the preferred one; the installer also writes
+# the PATH and per-user links the verified hot patches used. Without this step a fresh workspace
+# reports `exporter_not_found` on every docx/xlsx/pptx export.
+RUN set -eux; \
+    src=/opt/dataops-dsh-profile-template/node_modules/@sparkelf/dsh-officecli/plugins/officecli-pdf; \
+    test -f "$src/officecli-pdf"; \
+    mkdir -p /opt/officecli/plugins; \
+    rm -rf /opt/officecli/plugins/officecli-pdf; \
+    cp -a "$src" /opt/officecli/plugins/officecli-pdf; \
+    sh /opt/officecli/plugins/officecli-pdf/install.sh \
+        --prefix /opt/officecli/plugins --bin-dir /usr/local/bin >/tmp/officecli-pdf-install.log; \
+    test -x /opt/officecli/plugins/officecli-pdf/officecli-pdf; \
+    test -L /usr/local/lib/dataops/plugins/exporter/pdf/plugin; \
+    test -x /usr/local/bin/officecli-pdf; \
+    officecli plugins info officecli-pdf | grep -q '"name": "officecli-pdf"'
+
+# The DSH service hands this overlay to `dsh --patch` (dataops_dsh_service.py:73), so a row here is
+# what actually mounts or suppresses a profile row at start. The copy inside
+# `dataops-ai-workspace:runtime-files` predates the row that unmounts the official plugin manager's
+# client half -- measured 2026-11-01, that image's file has 144 lines and no `ui-plugin-manager`
+# row, while the running container's copy has 151 lines including it, so the running workspace was
+# patched in place and a fresh image built from runtime-files would not carry it. Without the row
+# the sidebar keeps advertising the「插件」entry: the plugin's host half is already disabled in a
+# standalone profile, so the page it opens cannot work. The row is appended here rather than to the
+# profile template because the template is only the baseline `prepare_profile()` re-seeds from,
+# while this file is the one the service passes as `--patch`.
+#
+# The guard keeps the step idempotent for a future runtime-files that already carries the row, and
+# the awk check asserts the pair rather than just the id, so a stray `- id:` without the `disabled`
+# key cannot pass as success.
+RUN set -eux; \
+    overlay=/opt/dataops-runtime/src/dataops-dsh-embedded.patch.yml; \
+    test -f "$overlay"; \
+    if ! grep -q '^- id: ui-plugin-manager$' "$overlay"; then \
+        printf '%s\n' \
+            '' \
+            '# DataOps does not ship a plugin install/uninstall surface. `ui-plugin-manager` is the' \
+            '# official client half that registers the sidebar "插件" panel and the plugin management' \
+            '# page; the host half (`plugin-manager`) is already disabled in a standalone profile, so' \
+            '# leaving this row mounted shows a page whose actions cannot work.' \
+            '- id: ui-plugin-manager' \
+            '  disabled: true' >> "$overlay"; \
+    fi; \
+    awk '/^- id: ui-plugin-manager$/{getline; if ($0 == "  disabled: true") ok=1} END{exit ok ? 0 : 1}' "$overlay"; \
+    tail -3 "$overlay"
+
+# The resource tab embeds a Vue page served by the DataOps web origin, not by DSH. Without an
+# explicit `webBaseUrl` the plugin falls back to the request origin -- the workspace's own :3080,
+# where `/embed/resources` does not exist -- and the tab renders blank. The config row is inserted
+# next to the row's existing `baseUrl` (a second `- id: dataops-managed` row would replace the
+# whole config and drop `baseUrl`/`credentialRef`), and the guard keeps the step idempotent.
+RUN set -eux; \
+    overlay=/opt/dataops-runtime/src/dataops-dsh-embedded.patch.yml; \
+    test -f "$overlay"; \
+    if ! grep -q 'webBaseUrl:' "$overlay"; then \
+        awk 'BEGIN{done=0} {print; if (!done && $0 ~ /^    baseUrl: .*DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL/) {print "    webBaseUrl: !!js process.env.DATAOPS_PUBLIC_APP_ORIGIN"; done=1}}' "$overlay" > "$overlay.tmp"; \
+        mv "$overlay.tmp" "$overlay"; \
+    fi; \
+    grep -q 'webBaseUrl: !!js process.env.DATAOPS_PUBLIC_APP_ORIGIN' "$overlay"
+
+# 合并后 DSH 只在工作区单容器里跑，dataops-dsh-service 会校验这个角色值；
+# 后端不会注入它，必须由镜像自带。
+# The reference the service compares against must be the release this image actually installed,
+# so it is the build argument rather than a literal that has to be edited on every release.
+ARG DSH_PLUS_VERSION
+ENV DATAOPS_DSH_RUNTIME_ROLE=managed-companion \
+    DATAOPS_DSH_PROFILE_SOURCE_REF=${DSH_PLUS_VERSION}
+ENV DATAOPS_DSH_ROOT=/opt/dsh-plus \
+    DATAOPS_DSH_HOME=/workspace/.dataops/dsh \
+    DATAOPS_DSH_HOST=127.0.0.1 \
+    DATAOPS_DSH_PORT=3080 \
+    DATAOPS_DSH_PROFILE=dataops-web \
+    DATAOPS_DSH_PROFILE_TEMPLATE=/opt/dataops-dsh-profile-template
+
+ENTRYPOINT ["/usr/local/bin/dataops-workspace-entrypoint"]
+
+# The production container runs this exact command; keep the image self-sufficient when a
+# start path creates the container from the image alone.
+CMD ["/bin/sh", "-lc", "if [ ! -e '/workspace/.git' ]; then git -C '/workspace' init -q; fi; DATAOPS_WORKSPACE_HELPER_PORT=43117 dataops-workspace-helper >/tmp/dataops-workspace-helper.log 2>&1 & helper_pid=$!; node /opt/dataops-runtime/src/daemon.mjs >/tmp/dataops-runtime-daemon.log 2>&1 & runtime_pid=$!; trap 'kill \"$runtime_pid\" \"$helper_pid\" 2>/dev/null; wait \"$runtime_pid\" 2>/dev/null; wait \"$helper_pid\" 2>/dev/null; exit 0' TERM INT; attempt=0; until curl --fail --silent --show-error http://127.0.0.1:43117/health >/dev/null 2>&1; do attempt=$((attempt + 1)); if ! kill -0 \"$helper_pid\" 2>/dev/null || [ \"$attempt\" -ge 50 ]; then cat /tmp/dataops-workspace-helper.log >&2; exit 1; fi; sleep 0.1; done; wait \"$runtime_pid\"; runtime_status=$?; kill \"$helper_pid\" 2>/dev/null; wait \"$helper_pid\" 2>/dev/null; cat /tmp/dataops-runtime-daemon.log >&2; exit \"$runtime_status\""]
+
+# sidecar 以 uid 65534 运行，runtime 文件必须是全局可读的；否则
+# workspace-platform-sidecars.mjs 起 workspace-sdk-gateway 时会 EACCES 退出。
+RUN chmod -R a+rX /opt/dataops-runtime /usr/local/bin/dataops-dsh-service
+
+# 超管代维的临时隧道（docs/admin-workspace-ops-design.md §8）：镜像只装 openssh-server，
+# 策略写死在 drop-in 里——仅密钥、禁密码与交互认证、单用户 root、3 次尝试、30 秒握手窗口。
+# 是否真正监听由 entrypoint 决定（best-effort，sshd 起不来不影响工作区）。
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssh-server \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /run/sshd /root/.ssh \
+    && chmod 0755 /run/sshd \
+    && chmod 0700 /root/.ssh
+RUN printf '%s\n' \
+      '# DataOps admin tunnel: key-only, short-lived, no password or interactive auth.' \
+      'Port 22' \
+      'ListenAddress 0.0.0.0' \
+      'PermitRootLogin prohibit-password' \
+      'PubkeyAuthentication yes' \
+      'PasswordAuthentication no' \
+      'KbdInteractiveAuthentication no' \
+      'ChallengeResponseAuthentication no' \
+      'UsePAM no' \
+      'AllowUsers root' \
+      'MaxAuthTries 3' \
+      'LoginGraceTime 30' \
+      'AllowAgentForwarding no' \
+      'AllowTcpForwarding no' \
+      'PermitTunnel no' \
+      'X11Forwarding no' \
+      'PrintMotd no' \
+      'AuthorizedKeysFile /root/.ssh/authorized_keys' \
+    > /etc/ssh/sshd_config.d/10-dataops-tunnel.conf \
+    && chmod 0600 /etc/ssh/sshd_config.d/10-dataops-tunnel.conf
+
+# --- IM connector test profile ---------------------------------------------------------------
+# The IM connector (`@xmanrui/dsh-im`) is an experiment scoped to one dedicated workspace. Its
+# package is installed here, once, but nothing mounts it by default: the default profile template
+# keeps its 25 bundles (dataops-im admin wrapper included) and no dsh-im entry, tool or client
+# bundle: the connector package is pruned from the default tree. A workspace opts in by starting
+# with `DATAOPS_DSH_PROFILE=im-test` + `DATAOPS_DSH_PROFILE_VARIANT=im-test` (the backend projects
+# both from `ai_workspaces.im_connector_enabled`), and `dataops-dsh-service` merges the variant's
+# rows into the profile it copies onto that workspace's volume.
+#
+# The pin lives in `profile-variants/im-test/variant.json` (`dshImVersion`), the same manifest the
+# service reads, so the version the build installs and the dependency row the profile mounts cannot
+# drift. The installed manifest's sha256 goes into the variant marker: bumping the pin re-assembles
+# existing volumes instead of leaving a stale profile in place.
+COPY profile-variants/im-test/ /opt/dataops-dsh-profile-template/profiles/im-test/
+RUN set -eux; \
+    variant=/opt/dataops-dsh-profile-template/profiles/im-test; \
+    variant_version="$(node -p "require('$variant/variant.json').dshImVersion")"; \
+    node -e "const v=require('$variant/variant.json'); if (v.dependencies['@xmanrui/dsh-im'] !== v.dshImVersion) throw new Error('variant dependency/version mismatch'); if (!Array.isArray(v.bundles) || v.bundles.length !== 0) throw new Error('variant must not add a bundle row: dataops-im applies dsh-im in connector mode');"; \
+    attempt=1; \
+    until npm install --prefix /opt/dsh-im --save-exact --no-audit --no-fund \
+        "@xmanrui/dsh-im@${variant_version}"; do \
+      if [ "$attempt" -ge 5 ]; then exit 1; fi; \
+      attempt=$((attempt + 1)); \
+      sleep 2; \
+    done; \
+    installed="$(node -p "require('/opt/dsh-im/node_modules/@xmanrui/dsh-im/package.json').version")"; \
+    test "$installed" = "$variant_version"; \
+    node -e "const p=require('/opt/dataops-dsh-profile-template/package.json'); const b=((p.dsh||{}).profile||{}).bundles||[]; if (b.length !== 26) throw new Error('default profile bundles=' + b.length); if (!b.includes('@sparkelf/dsh-dataops-im')) throw new Error('default profile lost the dataops-im row'); if (b.includes('@xmanrui/dsh-im')) throw new Error('default profile mounts dsh-im'); if ((p.dependencies||{})['@xmanrui/dsh-im']) throw new Error('default profile depends on dsh-im');"; \
+    digests="$(cd "$variant" && { \
+        find . -type f ! -name .dataops-source-ref -print0 | sort -z | xargs -0 sha256sum; \
+        find . -type l -printf '%p -> %l\n' | sort; \
+    } | sha256sum | cut -d' ' -f1)"; \
+    plugin_digest="$(sha256sum /opt/dsh-im/node_modules/@xmanrui/dsh-im/package.json | cut -d' ' -f1)"; \
+    printf '%s+%s-%s\n' "${DSH_PLUS_VERSION}" "$digests" "$plugin_digest" > "$variant/.dataops-source-ref"; \
+    printf '  im-test variant marker %s\n' "$(cat "$variant/.dataops-source-ref")"

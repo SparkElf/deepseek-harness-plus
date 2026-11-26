@@ -1,0 +1,5 @@
+# Build-context artifacts: supplied per build, never committed. See "Context artifacts" in README.md.
+context/dsh-src*.tar.gz
+context/sparkelf-dsh-plus-*.tgz
+context/vendor/*.tgz
+context/officecli-bin/officecli-linux-*

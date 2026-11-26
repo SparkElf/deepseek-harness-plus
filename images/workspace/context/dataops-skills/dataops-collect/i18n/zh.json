@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "source": "manual"
+  },
+  "title": "表格入库",
+  "description": "把表格、Excel 或 CSV 建成可问数的数据资源，或追加到已有资源。",
+  "summary": "表格导入、建表与权限配置流程。"
+}

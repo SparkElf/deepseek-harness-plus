@@ -1,0 +1,22 @@
+# One line per second spelling: <source> <target> <family> <postscript> [<latin family>]
+#
+# A document may name one typeface by two spellings the converter does not fold together: it
+# folds case and separators only, so 仿宋 and 仿宋_GB2312 are different requests, and so are
+# Arial and Liberation Sans. A face declares one family name, so the second spelling needs its
+# own file; alias-font.py copies the face that already carries the glyphs and writes the other
+# spelling into the copy. Neither spelling stops working.
+#
+# The Latin column is the en-US family for a CJK face. fontconfig inside the conversion engine
+# matches families, so a face whose only family is 仿宋 sends FangSong to a generic fallback --
+# measured 2026-10-25, 楷体 fell back to a Latin face with no CJK glyphs at all. Windows fonts
+# carry both spellings as per-language family records, and so does the copy.
+#
+# 仿宋 must come from the FangSong face itself. The Latin faces the image has are not 仿宋, and
+# substituting one would render Chinese body text in the wrong script.
+LiberationSans-Regular.ttf Arial.ttf Arial ArialMT
+LiberationSans-Bold.ttf Arial-Bold.ttf Arial Arial-BoldMT
+LiberationSans-Italic.ttf Arial-Italic.ttf Arial Arial-ItalicMT
+LiberationSans-BoldItalic.ttf Arial-BoldItalic.ttf Arial Arial-BoldItalicMT
+FangSongGB2312.ttf FangSong.ttf 仿宋 FangSong FangSong
+KaiTiGB2312.ttf KaiTi.ttf 楷体 KaiTi KaiTi
+FZXiaoBiaoSong.ttf FZXiaoBiaoSong-JT.ttf 方正小标宋简体 FZXiaoBiaoSong-B05S-JT

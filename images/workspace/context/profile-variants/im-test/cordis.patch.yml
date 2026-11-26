@@ -1,0 +1,20 @@
+# IM test profile — variant of the default `dataops-web` template.
+#
+# `@xmanrui/dsh-im` ships its own bundle patch (`dsh.bundle.patch` in package.json), so
+# mounting it needs only the dependency row and the bundle row that `variant.json` adds.
+# Rows below are merged into the profile's own `cordis.patch.yml` at assembly time; this
+# file is where profile-scoped overrides for the IM experiment belong when the plugin's
+# defaults are not enough (for example pinning the sidebar entry visible).
+#
+# Keep a row commented until it has been validated on the dedicated IM workspace: an active
+# row here reaches every workspace that selects this variant, and a duplicate `- id:` would
+# replace the plugin's own config instead of extending it.
+#
+# - id: xmanrui-dsh-im
+#   config:
+#     sidebar: show
+# The same package is the default admin wrapper; in this variant it switches to connector mode.
+- id: dataops-im
+  config:
+    mode: connector
+    baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
