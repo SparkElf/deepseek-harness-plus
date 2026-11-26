@@ -34,7 +34,13 @@ const fakeHost = (fetchImpl: typeof fetch) => {
   const tools: Array<{ name: string; execute: (args: unknown, exec: unknown) => Promise<unknown> }> = []
   const routes: Array<{ path?: string; handler: (req: unknown, res: unknown) => Promise<void> | void }> = []
   const disposers: Array<() => unknown> = []
-  vi.stubGlobal('fetch', fetchImpl)
+  const wrappedFetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input)
+    if (url.includes('/auth/me')) return new Response(JSON.stringify({ user: { id: 'u-1', displayName: 'Tester' } }), { status: 200 })
+    if (url.includes('/api/ai/review/context')) return new Response(JSON.stringify({ userId: 'u-1', displayName: 'Tester', permissions: ['kb:file:read', 'kb:file:write', 'kb:file:delete', 'kb:file:extract', 'kb:review:decide', 'kb:grant:manage', 'kb:config:manage', 'kb:audit:read', 'workflow:read', 'workflow:publish', 'workflow:manage'], roles: [{ systemKey: 'APP_USER' }] }), { status: 200 })
+    return fetchImpl(input, init)
+  }) as typeof fetch
+  vi.stubGlobal('fetch', wrappedFetch)
   const ctx = {
     effect(factory: () => () => unknown) { disposers.push(factory()) },
     inject() {},

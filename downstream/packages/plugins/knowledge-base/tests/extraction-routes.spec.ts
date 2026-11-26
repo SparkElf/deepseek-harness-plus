@@ -123,6 +123,9 @@ function permissionFetch(table: Record<string, { canRead?: boolean; canWrite?: b
     if (url.includes('/auth/me')) {
       return new Response(JSON.stringify({ user: { id: 'u-1', displayName: 'Tester' } }), { status: 200 })
     }
+    if (url.includes('/api/ai/review/context')) {
+      return new Response(JSON.stringify({ userId: 'u-1', displayName: 'Tester', permissions: ['kb:file:read', 'kb:file:write', 'kb:file:delete', 'kb:file:extract', 'kb:review:decide', 'kb:grant:manage', 'kb:config:manage', 'kb:audit:read', 'workflow:read', 'workflow:publish', 'workflow:manage'], roles: [{ systemKey: 'APP_USER' }] }), { status: 200 })
+    }
     if (url.includes('/resource-permissions/resolve')) {
       const sent = JSON.parse(String(init?.body ?? '{}')) as { resourceId?: string }
       const answer = table[sent.resourceId ?? ''] ?? { canRead: true, canWrite: true }
@@ -181,6 +184,9 @@ describe('an upload answers before extraction', () => {
       const url = String(input)
       if (url.includes('/auth/me')) {
         return new Response(JSON.stringify({ user: { id: 'u-1' } }), { status: 200 })
+      }
+      if (url.includes('/api/ai/review/context')) {
+        return new Response(JSON.stringify({ userId: 'u-1', displayName: 'Tester', permissions: ['kb:file:read', 'kb:file:write', 'kb:file:delete', 'kb:file:extract', 'kb:review:decide', 'kb:grant:manage', 'kb:config:manage', 'kb:audit:read', 'workflow:read', 'workflow:publish', 'workflow:manage'], roles: [{ systemKey: 'APP_USER' }] }), { status: 200 })
       }
       if (url.includes('/resource-permissions/resolve')) {
         return new Response(JSON.stringify({ canRead: true, canWrite: true }), { status: 200 })
@@ -484,6 +490,9 @@ describe('a waiting retry runs the document exactly once', () => {
       if (url.includes('/auth/me')) {
         return new Response(JSON.stringify({ user: { id: 'u-1', displayName: 'Tester' } }), { status: 200 })
       }
+      if (url.includes('/api/ai/review/context')) {
+        return new Response(JSON.stringify({ userId: 'u-1', displayName: 'Tester', permissions: ['kb:file:read', 'kb:file:write', 'kb:file:delete', 'kb:file:extract', 'kb:review:decide', 'kb:grant:manage', 'kb:config:manage', 'kb:audit:read', 'workflow:read', 'workflow:publish', 'workflow:manage'], roles: [{ systemKey: 'APP_USER' }] }), { status: 200 })
+      }
       if (url.includes('/resource-permissions/resolve')) {
         return new Response(JSON.stringify({ canRead: true, canWrite: true }), { status: 200 })
       }
@@ -542,6 +551,9 @@ describe('a waiting retry runs the document exactly once', () => {
     const slowFetch = (async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('/auth/me')) return new Response(JSON.stringify({ user: { id: 'u-1' } }), { status: 200 })
+      if (url.includes('/api/ai/review/context')) {
+        return new Response(JSON.stringify({ userId: 'u-1', displayName: 'Tester', permissions: ['kb:file:read', 'kb:file:write', 'kb:file:delete', 'kb:file:extract', 'kb:review:decide', 'kb:grant:manage', 'kb:config:manage', 'kb:audit:read', 'workflow:read', 'workflow:publish', 'workflow:manage'], roles: [{ systemKey: 'APP_USER' }] }), { status: 200 })
+      }
       if (url.includes('/resource-permissions/resolve')) {
         return new Response(JSON.stringify({ canRead: true, canWrite: true }), { status: 200 })
       }
