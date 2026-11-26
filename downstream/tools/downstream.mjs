@@ -127,6 +127,10 @@ const commands = {
     const profilePackagePath = join(downstream, 'profiles/dataops-web/package.json')
     if (!existsSync(profilePackagePath)) fail('missing generated profile package: downstream/profiles/dataops-web/package.json')
     const profilePackage = readJson(profilePackagePath)
+    for (const file of ['cordis.yml', 'cordis.patch.yml', 'compatibility.json']) {
+      if (!existsSync(join(downstream, 'profiles/dataops-web', file))) fail(`missing profile runtime file: ${file}`)
+    }
+    if (JSON.stringify(profilePackage.dsh?.profile?.bundles) !== JSON.stringify(r.profile.bundles)) fail('profile package dsh.profile.bundles differs from release manifest')
     for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
       const actual = profilePackage.dependencies?.[name]
       const expected = r.localPackages?.[name]?.override === 'enabled' ? 'workspace:*' : spec

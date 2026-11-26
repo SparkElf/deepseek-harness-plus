@@ -64,5 +64,30 @@
     "dsh-right-bg-anim": "1.1.0",
     "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
     "dsh-video-preview": "0.1.4"
+  },
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@sparkelf/dsh-mineru",
+        "@sparkelf/dsh-officecli",
+        "dshmarket",
+        "dsh-better-sidebar",
+        "@sparkelf/dsh-office-viewer-fonts",
+        "dsh-video-preview",
+        "@sparkelf/dsh-genui",
+        "@sparkelf/dsh-plugin-supervisor",
+        "@sparkelf/dsh-plus",
+        "dsh-sql-workbench",
+        "@sparkelf/dsh-ssh-manager",
+        "@sparkelf/dsh-api-client",
+        "dsh-right-bg-anim",
+        "@sparkelf/dsh-mobile-bridge",
+        "@sparkelf/dsh-quant",
+        "@sparkelf/dsh-artifact-app"
+      ]
+    }
   }
 }
