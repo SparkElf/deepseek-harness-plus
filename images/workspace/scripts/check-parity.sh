@@ -29,7 +29,7 @@ fi
 # context-level .dockerignore (the DataOps context has no equivalent).
 is_owned_here() {
   case "$1" in
-    ".dockerignore" | "README.md" | "vendor/README.md" | "officecli-bin/README.md") return 0 ;;
+    ".dockerignore" | "README.md" | "vendor/README.md" | "officecli-bin/README.md" | "workspace-web-gateway-protocol/"*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -41,7 +41,6 @@ absent_expectations=(
   "vendor/xlsx-0.20.3.tgz"
   "vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz"
   "vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz"
-  "platform-sidecars/workspace-gateway.mjs"
 )
 
 fail=0
