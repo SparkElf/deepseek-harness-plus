@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "task": "B-03b (G6 apply split + G7 runtime prune)",
+  "createdAt": "2026-11-26T22:20:00+08:00",
+  "productionTouched": false,
+  "tagsOverwritten": false,
+  "applySplit": {
+    "cli": "dsh-plus apply --dsh-root <root> [--skip-build]",
+    "scriptPhases": [
+      "full",
+      "source",
+      "profile"
+    ],
+    "defaultPhase": "full",
+    "marker": {
+      "path": "/opt/dsh-source/.dataops-official-build.json",
+      "sourceRevision": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+      "patchsetDigest": "4fe0eb89e38f8b0aead4ca3c2b0d2f3fe6c6764973efede4463d389b42c387c2",
+      "builtAt": "2026-11-26T13:46:54.665Z"
+    },
+    "preflightBefore": {
+      "image": "dataops-ai-workspace-candidate:local",
+      "verdict": "full-build-required",
+      "sourcePatches": 23,
+      "marker": "missing",
+      "bundles": 26
+    },
+    "preflightAfter": {
+      "target": "b03b-src (container)",
+      "verdict": "skip-build-safe",
+      "skipBuild": true,
+      "bundles": 26
+    },
+    "sourcePhase": {
+      "command": "apply-plus.sh --phase source",
+      "seconds": 137,
+      "pnpmInvocations": [
+        "install --no-frozen-lockfile (profile)",
+        "install --no-frozen-lockfile (source)",
+        "run build:official"
+      ],
+      "markerWritten": true
+    },
+    "profilePhase": {
+      "command": "apply-plus.sh --phase profile",
+      "seconds": [
+        6,
+        4
+      ],
+      "pnpmInvocations": [
+        "install --no-frozen-lockfile (profile only)",
+        "-r list --json --depth -1"
+      ],
+      "sourceInstall": false,
+      "officialBuild": false,
+      "markerVerified": true,
+      "buildOutputMtimeUnchanged": true,
+      "bundles": 26
+    },
+    "negativeDigestTest": {
+      "action": "append bytes to one selected patch in the installed distribution",
+      "result": "exit 1: --skip-build patch set differs from the prebuilt marker",
+      "restored": true
+    },
+    "note": "--skip-build authenticates with the marker instead of per-patch git probing because the build cleanup removes tests/docs that some patches touch."
+  },
+  "runtimePrune": {
+    "default": false,
+    "enable": "RUNTIME_PRUNE=1",
+    "script": "context/runtime-prune.sh",
+    "dryRunRemovedBytes": 154878159,
+    "appliedRemovedBytes": 157361518,
+    "removedEntries": 864,
+    "rootBytesBefore": 2274177449,
+    "rootBytesAfter": 2116815931,
+    "unrelatedTreesUnchanged": {
+      "profileBytesBefore": 749867951,
+      "profileBytesAfter": 749867951,
+      "templateBytesBefore": 718905032,
+      "templateBytesAfter": 718905032
+    },
+    "verification": {
+      "command": "verify-runtime-paths.sh --container b03b-src --expect-pruned --expect-bundles 26",
+      "result": "passed",
+      "profileSymlinks": 461,
+      "knownInertDangling": [
+        "dsoffice",
+        "website"
+      ],
+      "unexpectedDangling": 0,
+      "packagesSrcDirs": 0,
+      "tsbuildinfoOutsideNodeModules": 0
+    },
+    "bootProbe": {
+      "dshVersion": "0.2.3-alpha.2",
+      "dshPlusVersion": "0.2.9-alpha.106",
+      "dumpConfig": "exit 0, 54235 bytes, two known patch-entry warnings",
+      "webRoot": "HTTP 401 (auth gate; server listening)",
+      "note": "the manual container did not run the post-apply Exa restore step, so web-search-exa is the one inactive entry; the Dockerfile runs that step after apply."
+    },
+    "rss": {
+      "before": "812MiB",
+      "after": "872MiB",
+      "note": "docker stats includes page cache; the 150MiB file deletion does not reduce resident pages immediately."
+    },
+    "callSite": "apply-plus.sh --phase source (moved there by apply-profile-fix after this measurement), so the deletion happens in the same layer as the build; full also prunes. This measurement ran the same runtime-prune.sh against a built candidate container."
+  },
+  "dockerBuild": {
+    "status": "success",
+    "tag": "dataops-ai-workspace-test:plus-b03b",
+    "imageId": "sha256:a330094b669f",
+    "size": "11.6GB",
+    "target": "plus-build",
+    "runtimePrune": 0,
+    "wallSeconds": 998,
+    "sourceStageSeconds": 568,
+    "profileStageSeconds": 9,
+    "profileStagePnpm": "profile install only; no source install or build:official",
+    "preflight": {
+      "verdict": "skip-build-safe",
+      "bundles": 26,
+      "patchsetDigest": "4fe0eb89e38f8b0aead4ca3c2b0d2f3fe6c6764973efede4463d389b42c387c2"
+    },
+    "runtimePaths": {
+      "status": "passed",
+      "profileSymlinks": 460,
+      "knownInertDangling": [
+        "dsh-im",
+        "dsoffice"
+      ],
+      "unexpectedDangling": 0,
+      "bundles": 26,
+      "dshVersion": "0.2.3-alpha.2",
+      "plusVersion": "0.2.9-alpha.106"
+    },
+    "bootProbe": {
+      "dumpConfig": "exit 0, 54235 bytes",
+      "dshVersion": "0.2.3-alpha.2"
+    },
+    "note": "The image is a plus layer; the final runtime layer boots via the separate runtime build."
+  },
+  "runtimeLayerBuild": {
+    "status": "success",
+    "tag": "dataops-ai-workspace-test:final-b03b",
+    "imageId": "sha256:d20e0d644e75",
+    "size": "11.9GB",
+    "wallSeconds": 191,
+    "builtFrom": "dataops-ai-workspace-test:plus-b03b"
+  },
+  "acceptance": {
+    "image": "dataops-ai-workspace-test:final-b03b-fixed",
+    "status": "pass",
+    "exitCode": 0,
+    "okChecks": 91,
+    "failures": 0,
+    "wallSeconds": 383,
+    "finalLine": "verify-workspace-image: the image boots, serves, and omits what it must",
+    "log": "/tmp/b03b-acceptance2.log",
+    "testOnlyFix": "The monorepo checkout carries /packages/workspace-web-gateway-protocol files as mode 600; the nobody sidecar needs read access. A test-only layer `RUN chmod -R a+rX /packages/...` produced final-b03b-fixed. The production DataOps context already has readable modes; no code change was made for this."
+  },
+  "note": "Shared files (apply.ts, apply-plus.sh, Dockerfile.plus-cli-src, docker-bake.hcl, docs) are being edited concurrently by apply-profile-fix and image-bake-real; this record covers the evidence collected before those edits landed."
+}

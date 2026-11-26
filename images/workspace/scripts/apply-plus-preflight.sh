@@ -13,7 +13,9 @@
 #   }
 #
 # A skip-build phase may run only when the marker matches the source revision and the patch set in
-# the installed distribution, and the built entry points exist. Without a marker the verdict is
+# the installed distribution, and the built entry points exist. The revision comes from `.git` when
+# the checkout still has it; a pruned checkout uses the lock's `dsh.baseRevision`, which is the same
+# marker-versus-distribution check `--skip-build` performs. Without a marker the verdict is
 # `full-build-required`, which is the state of a pre-G6 image. The report also records whether the
 # optional runtime prune already ran.
 #
@@ -22,12 +24,18 @@
 set -euo pipefail
 
 image="dataops-ai-workspace-candidate:local"
+container=""
 json_out=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --image)
       image="${2:?--image needs a value}"
+      container=""
+      shift
+      ;;
+    --container)
+      container="${2:?--container needs a value}"
       shift
       ;;
     --json)
@@ -50,13 +58,24 @@ command -v docker >/dev/null 2>&1 || {
   echo "docker is required" >&2
   exit 2
 }
-docker image inspect "$image" >/dev/null 2>&1 || {
-  echo "image not found: $image" >&2
-  exit 2
-}
+if [ -n "$container" ]; then
+  docker inspect -f '{{.State.Running}}' "$container" >/dev/null 2>&1 || {
+    echo "container not found: $container" >&2
+    exit 2
+  }
+  probe=(docker exec "$container" sh -c)
+  target="$container (container)"
+else
+  docker image inspect "$image" >/dev/null 2>&1 || {
+    echo "image not found: $image" >&2
+    exit 2
+  }
+  probe=(docker run --rm --entrypoint sh "$image" -c)
+  target="$image"
+fi
 
-echo "==> apply-plus phase report: $image"
-docker run --rm --entrypoint sh "$image" -c '
+echo "==> apply-plus phase report: $target"
+"${probe[@]}" '
 set -eu
 profile=/opt/dsh-home/profiles/dataops-web
 source=/opt/dsh-source
@@ -74,11 +93,13 @@ const report = { phases: [], checks: [], verdict: "full-build-required", patchse
 
 const addCheck = (id, status, detail) => report.checks.push({ id, status, detail })
 const addPhase = (id, action, reason) => report.phases.push({ id, wouldRun: action, reason })
+let lockBaseRevision = ""
 
 if (!fs.existsSync(lockPath)) {
   addCheck("patchset-lock", "missing", lockPath)
 } else {
   const lock = JSON.parse(fs.readFileSync(lockPath, "utf8"))
+  lockBaseRevision = lock.dsh && lock.dsh.baseRevision ? lock.dsh.baseRevision : ""
   const patches = Array.isArray(lock.patches) ? lock.patches : []
   const sourcePatches = patches.filter(patch => patch.target && patch.target.kind === "dsh-source")
   addCheck("patchset-lock", "ok", `${patches.length} patches, ${sourcePatches.length} source`)
@@ -116,11 +137,14 @@ report.skipBuild = { available: false, reason: "no matching prebuilt marker" }
 
 if (fs.existsSync(markerPath)) {
   const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"))
-  const revision = fs.existsSync(path.join(sourceRoot, ".git/HEAD"))
+  const hasGit = fs.existsSync(path.join(sourceRoot, ".git/HEAD"))
+  // A pruned checkout has no `.git`; the marker and the lock it was written for then carry the
+  // revision. That is the same authentication `--skip-build` performs on the source tree.
+  const revision = hasGit
     ? require("node:child_process").execFileSync("git", ["-C", sourceRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim()
-    : ""
+    : lockBaseRevision
   const matches = marker.sourceRevision === revision && marker.patchsetDigest === report.patchsetDigest
-  addCheck("prebuilt-marker", matches ? "ok" : "mismatch", JSON.stringify(marker))
+  addCheck("prebuilt-marker", matches ? "ok" : "mismatch", JSON.stringify({ ...marker, git: hasGit ? revision : "pruned" }))
   if (matches && missingEntries.length === 0) {
     report.verdict = "skip-build-safe"
     report.skipBuild = { available: true, reason: "marker matches revision, patch set and built entry points" }

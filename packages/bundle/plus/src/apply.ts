@@ -266,12 +266,64 @@ function preflightSourcePatches(root: string, files: readonly string[]): void {
   }
 }
 
-function requireSourceBase(root: string, baseRevision: string): string {
-  const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
-  if (checkoutRevision !== baseRevision) {
-    throw new Error('DSH checkout must be exact official base ' + baseRevision + ', found ' + checkoutRevision)
+/**
+ * Read the build marker a source phase left in the checkout.
+ * @param root - Official checkout that may carry the marker.
+ * @returns The validated marker, or `undefined` when the phase never wrote one.
+ */
+function readBuildMarker(root: string): BuildMarker | undefined {
+  const markerPath = resolve(root, BUILD_MARKER)
+  if (!existsSync(markerPath)) return undefined
+  const parsed: unknown = JSON.parse(readFileSync(markerPath, 'utf8'))
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(markerPath + ' must be a JSON object')
   }
-  return checkoutRevision
+  const marker = parsed as Record<string, unknown>
+  const sourceRevision = requireString(marker.sourceRevision, markerPath + ' sourceRevision')
+  if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {
+    throw new Error(markerPath + ' sourceRevision must be a 40-hex commit id, found ' + sourceRevision)
+  }
+  return {
+    sourceRevision,
+    patchsetDigest: requireString(marker.patchsetDigest, markerPath + ' patchsetDigest'),
+    builtAt: requireString(marker.builtAt, markerPath + ' builtAt'),
+  }
+}
+
+/**
+ * Resolve the checkout revision the current phase may operate on.
+ *
+ * A full apply needs `.git` because it applies patches and builds in that checkout. A
+ * `--skip-build` phase may run after the source phase pruned `.git`; there the build marker is the
+ * only remaining record of the built revision, so it must name the distribution's official base.
+ *
+ * @param root - Official checkout the profile links into.
+ * @param baseRevision - Exact official base the installed distribution declares.
+ * @param skipBuild - Whether the caller runs the profile half only.
+ * @returns The checkout revision both halves agree on.
+ */
+function requireSourceBase(root: string, baseRevision: string, skipBuild: boolean): string {
+  if (existsSync(resolve(root, '.git'))) {
+    const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
+    if (checkoutRevision !== baseRevision) {
+      throw new Error('DSH checkout must be exact official base ' + baseRevision + ', found ' + checkoutRevision)
+    }
+    return checkoutRevision
+  }
+  if (!skipBuild) {
+    throw new Error('DSH checkout at ' + root + ' has no .git; run --phase source before a full apply')
+  }
+  const marker = readBuildMarker(root)
+  if (marker === undefined) {
+    throw new Error('DSH checkout at ' + root + ' has no .git and no ' + BUILD_MARKER
+      + '; run --phase source first')
+  }
+  if (marker.sourceRevision !== baseRevision) {
+    throw new Error('DSH checkout marker revision ' + marker.sourceRevision
+      + ' is not the official base ' + baseRevision)
+  }
+  console.log('[dsh-plus] checkout has no .git; the build marker authenticates ' + marker.sourceRevision)
+  return marker.sourceRevision
 }
 
 
@@ -408,7 +460,7 @@ function prepareSelection(
   if (!satisfies(dshVersion, dshRange, { includePrerelease: true })) {
     throw new Error(distributionName + '@' + distributionVersion + ' requires DSH ' + dshRange + ', found ' + dshVersion)
   }
-  const checkoutRevision = requireSourceBase(dshRoot, baseRevision)
+  const checkoutRevision = requireSourceBase(dshRoot, baseRevision, skipBuild)
   // Legacy tarballs declare `dshPlus.patchPackages` (dshPatch carrier packages); the current
   // distribution declares `dshPlus.patchSet` with the patch files inside the Plus package.
   const variants = plus.patchPackages === undefined
@@ -809,14 +861,19 @@ export function writeBuildMarker(
  * distribution selects now, and the build entry points exist. Skipping any one of them
  * would ship stale `lib/` output under a patch set that no longer matches it.
  *
+ * When the source phase pruned `.git`, the marker is the only revision record left; the caller
+ * passes the revision it already resolved from that marker and the distribution base.
+ *
  * @param dshRoot - Official checkout the profile links into.
  * @param patches - Selected patches, materialized into the profile.
  * @param pendingFiles - Selected source patch payloads git still reports as unapplied.
+ * @param expectedRevision - Revision `prepareSelection` verified against the official base.
  */
 export function assertPrebuiltSource(
   dshRoot: string,
   patches: readonly SelectedPatch[],
   pendingFiles: readonly string[],
+  expectedRevision?: string,
 ): void {
   if (pendingFiles.length > 0) {
     throw new Error(
@@ -824,19 +881,19 @@ export function assertPrebuiltSource(
       + String(pendingFiles.length) + ' still pending',
     )
   }
-  const markerPath = resolve(dshRoot, BUILD_MARKER)
-  if (!existsSync(markerPath)) {
-    throw new Error('--skip-build needs ' + markerPath + ' from an earlier full apply')
+  const marker = readBuildMarker(dshRoot)
+  if (marker === undefined) {
+    throw new Error('--skip-build needs ' + resolve(dshRoot, BUILD_MARKER) + ' from an earlier full apply')
   }
-  const parsed: unknown = JSON.parse(readFileSync(markerPath, 'utf8'))
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(markerPath + ' must be a JSON object')
+  const gitRevision = existsSync(resolve(dshRoot, '.git'))
+    ? requireString(git(dshRoot, ['rev-parse', 'HEAD']), 'built source revision')
+    : expectedRevision
+  if (gitRevision === undefined) {
+    throw new Error('--skip-build needs the checkout revision and ' + resolve(dshRoot, '.git') + ' is absent')
   }
-  const marker = parsed as Record<string, unknown>
-  const sourceRevision = requireString(git(dshRoot, ['rev-parse', 'HEAD']), 'built source revision')
-  if (marker.sourceRevision !== sourceRevision) {
-    throw new Error('--skip-build marker revision ' + String(marker.sourceRevision)
-      + ' differs from checkout ' + sourceRevision)
+  if (marker.sourceRevision !== gitRevision) {
+    throw new Error('--skip-build marker revision ' + marker.sourceRevision
+      + ' differs from checkout ' + gitRevision)
   }
   const digest = sourcePatchsetDigest(patches)
   if (marker.patchsetDigest !== digest) {
@@ -850,7 +907,7 @@ export function assertPrebuiltSource(
   if (missing.length > 0) {
     throw new Error('--skip-build prebuilt entry points are missing: ' + missing.join(', '))
   }
-  console.log('[dsh-plus] skip-build verified ' + markerPath + ' (' + digest + ')')
+  console.log('[dsh-plus] skip-build verified ' + resolve(dshRoot, BUILD_MARKER) + ' (' + digest + ')')
 }
 
 function applySelectedPatches(
@@ -873,7 +930,7 @@ function applySelectedPatches(
     // The source build belongs to the earlier phase. Applying a still-pending patch here or
     // reinstalling the source tree would leave the marker describing different bytes than the
     // `lib/` output the profile links, so both are refused instead of silently recomputed.
-    assertPrebuiltSource(dshRoot, materialized.patches, sourceFiles)
+    assertPrebuiltSource(dshRoot, materialized.patches, sourceFiles, sourceRevision)
     return
   }
   // Docker/overlay copy会使内容未变的文件stat失效；先刷新clean index项，脏文件仍由git apply判冲突。

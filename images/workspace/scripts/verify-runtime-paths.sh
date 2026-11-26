@@ -24,6 +24,7 @@
 set -euo pipefail
 
 image="dataops-ai-workspace-candidate:local"
+container=""
 expect_dsh=""
 expect_plus=""
 expect_bundles=""
@@ -33,6 +34,11 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --image)
       image="${2:?--image needs a value}"
+      container=""
+      shift
+      ;;
+    --container)
+      container="${2:?--container needs a value}"
       shift
       ;;
     --expect-dsh)
@@ -66,18 +72,34 @@ command -v docker >/dev/null 2>&1 || {
   echo "docker is required to inspect a runtime image" >&2
   exit 2
 }
-docker image inspect "$image" >/dev/null 2>&1 || {
-  echo "image not found: $image" >&2
-  exit 2
-}
+if [ -n "$container" ]; then
+  docker inspect -f '{{.State.Running}}' "$container" >/dev/null 2>&1 || {
+    echo "container not found: $container" >&2
+    exit 2
+  }
+  probe=(docker exec
+    -e "EXPECT_DSH=$expect_dsh"
+    -e "EXPECT_PLUS=$expect_plus"
+    -e "EXPECT_BUNDLES=$expect_bundles"
+    -e "EXPECT_PRUNED=$expect_pruned"
+    "$container" sh -c)
+  target="$container (container)"
+else
+  docker image inspect "$image" >/dev/null 2>&1 || {
+    echo "image not found: $image" >&2
+    exit 2
+  }
+  probe=(docker run --rm
+    -e "EXPECT_DSH=$expect_dsh"
+    -e "EXPECT_PLUS=$expect_plus"
+    -e "EXPECT_BUNDLES=$expect_bundles"
+    -e "EXPECT_PRUNED=$expect_pruned"
+    --entrypoint sh "$image" -c)
+  target="$image"
+fi
 
-echo "==> runtime path check: $image"
-docker run --rm \
-  -e EXPECT_DSH="$expect_dsh" \
-  -e EXPECT_PLUS="$expect_plus" \
-  -e EXPECT_BUNDLES="$expect_bundles" \
-  -e EXPECT_PRUNED="$expect_pruned" \
-  --entrypoint sh "$image" -c '
+echo "==> runtime path check: $target"
+"${probe[@]}" '
 set -eu
 profile=/opt/dsh-home/profiles/dataops-web
 source=/opt/dsh-source
@@ -195,7 +217,7 @@ if [ "${EXPECT_PRUNED:-0}" = "1" ]; then
     echo "FAIL prune left $src_dirs packages/**/src directories" >&2
     fail=1
   fi
-  tsbuildinfo="$(find "$source" -name '*.tsbuildinfo' -type f 2>/dev/null | wc -l)"
+  tsbuildinfo="$(find "$source" -name '*.tsbuildinfo' -type f -not -path '*/node_modules/*' 2>/dev/null | wc -l)"
   if [ "$tsbuildinfo" -ne 0 ]; then
     echo "FAIL prune left $tsbuildinfo *.tsbuildinfo files" >&2
     fail=1

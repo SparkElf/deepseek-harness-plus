@@ -11,9 +11,11 @@
 #            the source phase, then reinstalls, relinks and repairs the profile. It never
 #            runs pnpm install in the source tree or build:official.
 #
-# RUNTIME_PRUNE=1 enables the optional runtime prune from context/runtime-prune.sh. It is
-# applied only by the final phase (full or profile); the source phase must keep .git for
-# the profile phase's patch-state checks.
+# RUNTIME_PRUNE=1 enables the optional runtime prune from context/runtime-prune.sh. It runs at the
+# end of the source phase (and of a full run), in the same layer that created the build output, so
+# the deleted bytes do not survive as whiteouts in a later stage. The profile phase must work on
+# the pruned tree, where `.git` is gone: `dsh-plus apply --skip-build` authenticates the prebuilt
+# source with the build marker instead.
 #
 # Equivalent arguments: --skip-build selects the profile phase; --phase <name> selects one
 # explicitly. APPLY_PLUS_SKIP_BUILD=1 is the environment spelling of --skip-build.
@@ -179,6 +181,62 @@ apply_distribution() {
   fi
 }
 
+marker_revision() {
+  node -e '
+const fs = require("node:fs")
+const marker = JSON.parse(fs.readFileSync("/opt/dsh-source/.dataops-official-build.json", "utf8"))
+if (typeof marker.sourceRevision !== "string" || !/^[0-9a-f]{40}$/.test(marker.sourceRevision)) process.exit(1)
+process.stdout.write(marker.sourceRevision)
+'
+}
+
+assert_source_checkout() {
+  # The source phase hands two artifacts to the profile phase: the build marker and, while the
+  # checkout still has it, a `.git` HEAD naming the same revision. A source phase that pruned
+  # either half fails here instead of after the expensive profile install. A pruned checkout is
+  # accepted because the profile phase authenticates the revision from the marker when `.git` is
+  # gone (the final phase deletes `.git` on purpose).
+  local marker=/opt/dsh-source/.dataops-official-build.json
+  test -s "$marker" || {
+    echo "missing build marker: $marker" >&2
+    exit 1
+  }
+  local revision
+  revision="$(marker_revision)" || {
+    echo "build marker has no 40-hex sourceRevision: $marker" >&2
+    exit 1
+  }
+  if [ -d /opt/dsh-source/.git ]; then
+    local head
+    head="$(git -C /opt/dsh-source rev-parse HEAD)"
+    [ "$head" = "$revision" ] || {
+      echo "source HEAD $head differs from build marker $revision" >&2
+      exit 1
+    }
+    echo "  source checkout intact: HEAD $head matches marker"
+  else
+    echo "  source checkout has no .git; the marker authenticates $revision"
+  fi
+}
+
+source_build_stamp() {
+  stat -c '%Y:%s' /opt/dsh-source/apps/cli/lib/bin.js
+}
+
+assert_no_source_build() {
+  # `--skip-build` must leave the prebuilt official entry untouched. A profile phase that
+  # accidentally ran build:official would rewrite it; the marker would then describe bytes the
+  # profile does not link.
+  local before="$1"
+  local after
+  after="$(source_build_stamp)"
+  [ "$after" = "$before" ] || {
+    echo "--skip-build changed the official build output ($before -> $after)" >&2
+    exit 1
+  }
+  echo "  official build output untouched (${after})"
+}
+
 patch_compiled_chat_bundle() {
   # The profile links `@deepseek-ai/dsh-client-ui-chat` from /opt/dsh-source and serves its client
   # bundle from `lib/client.js`. The source patch above only reaches the browser if the official
@@ -309,10 +367,20 @@ runtime_prune() {
 
 phase_started="$(date +%s)"
 prepare_profile_workspace
+build_stamp=""
+if [ "$phase" = "profile" ]; then
+  # Refuse a tree that carries neither `.git` nor the source phase's marker before touching the
+  # profile: `--skip-build` cannot authenticate such a checkout.
+  assert_source_checkout
+  build_stamp="$(source_build_stamp)"
+fi
 if [ "$phase" != "profile" ]; then
   patch_source_inputs
 fi
 apply_distribution
+if [ "$phase" = "profile" ]; then
+  assert_no_source_build "$build_stamp"
+fi
 patch_compiled_chat_bundle
 if [ "$phase" != "source" ]; then
   restore_edition_bundles
@@ -320,8 +388,16 @@ if [ "$phase" != "source" ]; then
 fi
 if [ "$phase" != "profile" ]; then
   cleanup_build_only
+  # The cleaned source artifact is the profile phase's input: it must still carry `.git` (or, if
+  # a later run prunes it, at least the marker) and the two must name the same revision.
+  assert_source_checkout
 fi
-if [ "$phase" = "full" ] || [ "$phase" = "profile" ]; then
+if [ "$phase" = "full" ] || [ "$phase" = "source" ]; then
   runtime_prune
+  if [ "$phase" = "source" ]; then
+    # The prune deletes `.git`; the marker must survive it, because that is all the profile
+    # stage has left to authenticate the prebuilt source.
+    assert_source_checkout
+  fi
 fi
 echo "apply-plus phase=${phase} skip_build=${skip_build} seconds=$(( $(date +%s) - phase_started ))"

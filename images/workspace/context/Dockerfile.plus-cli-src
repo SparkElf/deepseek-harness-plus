@@ -244,19 +244,19 @@ COPY runtime-prune.sh /usr/local/bin/runtime-prune.sh
 # stage keeps the `plus-build` name, so the existing build entry and target are unchanged. A
 # source-only rebuild can stop at `--target source-build`; a profile-only rebuild starts there.
 FROM plus-inputs AS source-build
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
-    --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
-    --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
-    bash /usr/local/bin/apply-plus.sh --phase source
-
-FROM source-build AS plus-build
-ARG DSH_PLUS_VERSION=0.2.9-alpha.104
-ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
 ARG RUNTIME_PRUNE=0
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
     --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
     --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
     RUNTIME_PRUNE="${RUNTIME_PRUNE}" \
+    bash /usr/local/bin/apply-plus.sh --phase source
+
+FROM source-build AS plus-build
+ARG DSH_PLUS_VERSION=0.2.9-alpha.104
+ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
+    --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
+    --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
     bash /usr/local/bin/apply-plus.sh --phase profile
 
 # `dsh-plus apply` rebuilds the profile's `@deepseek-ai` scope from the DSH CLI closure

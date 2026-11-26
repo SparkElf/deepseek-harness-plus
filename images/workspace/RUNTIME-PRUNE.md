@@ -4,9 +4,11 @@ Status: implemented (G7, 2026-11-26) as an optional final phase. The default bui
 `RUNTIME_PRUNE=1` enables it; the candidate image is the only intended consumer.
 
 `context/runtime-prune.sh` executes the delete list below against `/opt/dsh-source` and asserts the
-runtime whitelist before and after. `context/apply-plus.sh` calls it only in the final phase
-(`full` or `profile`), never in the `source` phase: `dsh-plus apply` needs `.git` for patch-state
-checks, so the prune must be the last operation that touches the source tree.
+runtime whitelist before and after. `context/apply-plus.sh` calls it at the end of the `source`
+phase (and of a `full` run), in the same Docker layer that created the build output. Running it in
+the `profile` stage instead would only hide lower-layer files behind whiteouts, so the image size
+would not shrink. The profile stage then reads the pruned tree: `.git` is gone and
+`dsh-plus apply --skip-build` authenticates the prebuilt source from the build marker.
 
 ## What the runtime actually resolves
 
@@ -72,7 +74,7 @@ produces a new tree with its own proof, rather than mutating this one.
 
 | Path | Measured | Evidence it is build-only |
 | --- | --- | --- |
-| `.git` | 53.2MB | `dsh-plus apply` reads it; no runtime module opens it |
+| `.git` | 53.2MB | a full `dsh-plus apply` reads it; a `--skip-build` run uses the marker instead |
 | `snapshots/` | 16.8MB | test snapshots; no runtime reference outside test code |
 | `scripts/` | 5.6MB | repository build and release scripts |
 | `patches/` | 1.1MB | patch sources consumed by `apply` |
@@ -90,8 +92,10 @@ target is not reachable by deleting build-only files: the source tree's own `nod
 closure (`pnpm deploy --prod` / a pruned install) and a smaller base, as a separate change with its
 own acceptance.
 
-Because `.git` is deleted last, a pruned image can no longer run `dsh-plus apply` in place. That is
-why the prune is a final runtime step and why the source phase never enables it.
+Because `.git` is deleted, a pruned image cannot run a full `dsh-plus apply` in place. A
+`--skip-build` profile phase still works: it authenticates the prebuilt tree from
+`.dataops-official-build.json` and leaves the official build output untouched. That is why the
+prune ends the source phase and why the profile stage never enables it.
 
 ## Verification
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout or from public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree.",
+  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout or from public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree. The G6/G7 files listed in divergedFromDataOps are intentionally ahead of the DataOps mirror; their digests describe this repository, not the DataOps commit in source.commit.",
   "source": {
     "repository": "dataops",
     "path": "infra/docker-workspace",
@@ -20,8 +20,8 @@
     },
     {
       "path": "context/Dockerfile.plus-cli-src",
-      "bytes": 44395,
-      "sha256": "bada40213bb4ccf0ea77b3cbf2b90460404293bfb40aec427f8ce1cf92f2afee"
+      "bytes": 45580,
+      "sha256": "3aad7fbb5f7243b5c8bc9ddee0effbe1d0064e81a847ba5fe00ffabe015694cc"
     },
     {
       "path": "context/Dockerfile.runtime-cli",
@@ -45,8 +45,8 @@
     },
     {
       "path": "context/apply-plus.sh",
-      "bytes": 12603,
-      "sha256": "91e0316a5e1ab47239be4a041a5e53432540d2f421a75a4f19b115f183b6217f"
+      "bytes": 15944,
+      "sha256": "421d33861e1764a87cbb8e855c909cb552aa1136f39fddd11906bd4e458579bd"
     },
     {
       "path": "context/cleanup-obsolete-managed-skills.mjs",
@@ -489,6 +489,23 @@
         "version": "0.5.12",
         "url": "https://registry.npmjs.org/@sparkelf/dsh-group-chat/-/dsh-group-chat-0.5.12.tgz"
       }
+    }
+  ],
+  "divergedFromDataOps": [
+    {
+      "path": "context/apply-plus.sh",
+      "reason": "G6 phased apply (source/profile); DataOps production build intentionally not modified by B-03b."
+    },
+    {
+      "path": "context/Dockerfile.plus-cli-src",
+      "reason": "G6 plus-inputs/source-build/plus-build split; DataOps production build intentionally not modified by B-03b."
+    }
+  ],
+  "monorepoContextFiles": [
+    {
+      "path": "context/runtime-prune.sh",
+      "bytes": 5667,
+      "sha256": "3bad9218425de3ae8c7bb7996f719d6fba48a3c12eb6bf10cbc73e583db16bc6"
     }
   ]
 }

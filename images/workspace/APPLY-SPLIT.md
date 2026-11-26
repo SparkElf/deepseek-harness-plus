@@ -38,7 +38,8 @@ The digest is the same row list `scripts/apply-plus-preflight.sh` computes, sort
 `--skip-build` fails closed unless all four facts hold:
 
 1. every selected source patch is already applied (the CLI marks them applied after a full run);
-2. the marker revision equals `git rev-parse HEAD`;
+2. the marker revision equals `git rev-parse HEAD` when `.git` exists, or the distribution's
+   official base when the source phase pruned `.git`;
 3. the marker digest equals the digest of the patch files the installed distribution selects now;
 4. `apps/cli/lib/bin.js` and `packages/client/ui-chat/lib/client.js` exist.
 
@@ -60,10 +61,12 @@ forms `APPLY_PLUS_PHASE` and `APPLY_PLUS_SKIP_BUILD`. The default remains `full`
 single-call semantics are unchanged.
 
 - `source` runs the workspace setup, the source-level text patches, a full `dsh-plus apply`,
-  the compiled-bundle repair, and the build-only cleanup. It does not run the profile-only repairs.
+  the compiled-bundle repair, the build-only cleanup, and (when `RUNTIME_PRUNE=1`) the runtime
+  prune. It does not run the profile-only repairs.
 - `profile` runs the workspace setup, `dsh-plus apply --skip-build`, the compiled-bundle repair
-  (idempotent), the edition bundle restore, the lock assertion, and the slots flatten.
-- `full` runs both sets in the original order.
+  (idempotent), the edition bundle restore, the lock assertion, and the slots flatten. It never
+  runs the runtime prune: the deletions belong in the source layer that created the files.
+- `full` runs both sets in the original order, with the prune at the end.
 
 ## Docker stages
 
@@ -71,8 +74,8 @@ single-call semantics are unchanged.
 
 ```text
 plus-inputs   Plus tarball metadata edits, global install, profile dependency rewrite
-  -> source-build   apply-plus.sh --phase source   (patches + build + marker + cleanup)
-  -> plus-build     apply-plus.sh --phase profile  (profile install/link + repairs)
+  -> source-build   apply-plus.sh --phase source   (patches + build + marker + cleanup + prune)
+  -> plus-build     apply-plus.sh --phase profile  (profile install/link + repairs, marker-only)
                     plus the rest of the existing layer
 ```
 
