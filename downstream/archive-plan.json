@@ -29,8 +29,9 @@
     {
       "name": "SparkElf/dsh-sql-workbench",
       "condition": "monorepo 0.6.0 is the only source",
-      "status": "blocked",
-      "reason": "source is in the monorepo, but the repository archive decision still needs the final image acceptance"
+      "status": "ready",
+      "reason": "monorepo 0.6.0 is the only source; G13 clean-clone final image acceptance passed 91/91",
+      "evidence": "downstream/packages/plugins/sql-workbench; /tmp/plus-clean-g13 acceptance-fix.log 91 ok / 0 failed"
     }
   ]
 }
