@@ -72,6 +72,11 @@ clean fork 要能复现镜像，至少需要：
 
 当前还没有满足以上全部条件；`BUILD.md` 会随迁移进度更新，不能把 scaffold 命令当成完整镜像复现。
 
+## Clean-fork evidence
+
+See `downstream/CLEAN-FORK.md` for the exact clone/build/image commands and the
+`http=401` smoke result.
+
 ## Profile artifact scope
 
 `downstream profile` produces the profile install set (package + node_modules + cordis files),
