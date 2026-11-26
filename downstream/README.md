@@ -9,7 +9,7 @@ packages/plugins/     first-party SparkElf plugins (to be migrated)
 packages/forks/       maintained third-party forks (to be migrated)
 patches/core/         official-source-only patches
 patches/packages/     single-package patches (pnpm patchedDependencies)
-profiles/dataops-web/ DataOps web profile composition
+profiles/dataops-web/ DataOps web profile composition (generated from release-manifest.json)
 tools/downstream.mjs  sync/build-packages/apply/verify/image/publish entry point
 ```
 

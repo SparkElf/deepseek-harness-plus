@@ -80,6 +80,7 @@ export function isOwnerAuthorizedRuntime(name: string): boolean {
  * Each entry documents why the store cannot answer.
  */
 const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
+  '@anysearch/anysearch-dsh': { license: 'MIT', repo: 'https://github.com/anysearch-team/anysearch-dsh' },
   ssh2: { license: 'MIT', repo: 'https://github.com/mscdex/ssh2' },
   // Rust workspaces publishing npm bins without `license` in package.json.
   'oxlint': { license: 'MIT', repo: 'https://github.com/oxc-project/oxc' },

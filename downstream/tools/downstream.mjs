@@ -171,12 +171,16 @@ const commands = {
   doctor() {
     const problems = []
     const warnings = []
-    for (const file of ['BUILD.md', 'downstream/upstream.lock.json', 'downstream/release-manifest.json', 'downstream/migration-inventory.json']) {
+    for (const file of ['BUILD.md', 'downstream/upstream.lock.json', 'downstream/release-manifest.json', 'downstream/migration-inventory.json', 'downstream/profiles/dataops-web/package.json', 'downstream/profiles/dataops-web/profile.json']) {
       if (!existsSync(join(root, file))) problems.push(`missing required file: ${file}`)
     }
     const p = plus()
     const u = lock()
     const r = release()
+    const profile = readJson(join(downstream, 'profiles/dataops-web/profile.json'))
+    for (const [name, path] of Object.entries(profile.localPackages ?? {})) {
+      if (!existsSync(join(root, path))) problems.push(`profile local package missing: ${name} -> ${path}`)
+    }
     try { execFileSync('git', ['rev-parse', `${u.tag}^{commit}`], { cwd: root, stdio: 'ignore' }) }
     catch { problems.push(`official tag is not available locally: ${u.tag}`) }
     if (p.dshPlus?.sourceBase?.revision !== u.revision) problems.push('plus sourceBase differs from upstream.lock.json')

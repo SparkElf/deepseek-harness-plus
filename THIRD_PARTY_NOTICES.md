@@ -34,13 +34,18 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@agentclientprotocol/sdk`](https://github.com/agentclientprotocol/typescript-sdk) | Apache-2.0 |
 | [`@anthropic-ai/claude-agent-sdk`](https://github.com/anthropics/claude-agent-sdk-typescript) | SEE LICENSE IN README.md |
 | [`@anthropic-ai/sdk`](https://github.com/anthropics/anthropic-sdk-typescript) | MIT |
+| [`@anysearch/anysearch-dsh`](https://github.com/anysearch-team/anysearch-dsh) | MIT |
 | [`@babel/code-frame`](https://github.com/babel/babel) | MIT |
 | [`@codemirror/commands`](https://code.haverbeke.berlin/codemirror/commands) | MIT |
 | [`@codemirror/lang-sql`](https://github.com/codemirror/lang-sql) | MIT |
 | [`@codemirror/state`](https://code.haverbeke.berlin/codemirror/state) | MIT |
 | [`@codemirror/view`](https://code.haverbeke.berlin/codemirror/view) | MIT |
 | [`@deepseek-ai/dsh-computer-use`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-deepseek-account`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-error`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-experimental-auto-review`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@deepseek-ai/dsh-experimental-computer-use-cua-driver-mcp`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
+| [`@deepseek-ai/dsh-ptc-runtime`](https://github.com/deepseek-ai/deepseek-harness) | MIT |
 | [`@earendil-works/pi-ai`](https://github.com/earendil-works/pi) | MIT |
 | [`@joplin/turndown-plugin-gfm`](https://github.com/laurent22/joplin-turndown-plugin-gfm) | MIT |
 | [`@jridgewell/gen-mapping`](https://github.com/jridgewell/sourcemaps) | MIT |
@@ -60,7 +65,10 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/resources`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
+| [`@sparkelf/dsh-genui`](https://github.com/omdsh-dev/dsh-genui) | MIT |
 | [`@sparkelf/dsh-image-hoist`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
+| [`@sparkelf/dsh-knowledge-base`](https://github.com/SparkElf/deepseek-harness-plus) | MIT |
+| [`@sparkelf/dsh-quant`](https://github.com/SparkElf/dsh-quant-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
@@ -78,6 +86,10 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`commander`](https://github.com/tj/commander.js) | MIT |
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
+| [`dsh-better-sidebar`](https://github.com/SparkElf/DSH-better-sidebar) | MIT |
+| [`dsh-right-bg-anim`](https://github.com/forestlightelf/dsh-right-bg-anim) | MIT |
+| [`dsh-sql-workbench`](https://github.com/SparkElf/dsh-sql-workbench) | MIT |
+| [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |
 | [`e2b`](https://github.com/e2b-dev/e2b) | MIT |
 | [`echarts`](https://github.com/apache/echarts) | Apache-2.0 |

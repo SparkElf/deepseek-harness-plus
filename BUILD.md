@@ -19,8 +19,11 @@ pnpm install --frozen-lockfile
 # 查看当前锁定的官方 revision、Plus 版本、profile pin 数量
 node downstream/tools/downstream.mjs status
 
-# 检查 clean fork 的前置文件、tag、lockfile 和嵌套 workspace
+# 检查 clean fork 的前置文件、tag、lockfile、profile 和嵌套 workspace
 node downstream/tools/downstream.mjs doctor
+
+# profile 是从 release manifest 生成的，不要手改依赖版本
+ls downstream/profiles/dataops-web/{package.json,profile.json}
 
 # 需要拉官方 tag 时
 node downstream/tools/downstream.mjs sync --fetch
