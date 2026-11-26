@@ -1,6 +1,6 @@
 # DSH Plus Monorepo Build
 
-状态：migration 阶段（25 migrated / 1 excluded / 1 blocked）。`status` / `sync` / `verify` / `apply` 可用；`build-packages` 已能构建已迁移包；`image` 仍未实现。
+状态：migration 阶段（26 migrated / 1 excluded / 0 blocked）。`status` / `sync` / `verify` / `apply` / `build-packages` / `profile` / `image` 可用；镜像 builder 已能生成并 smoke-gate 本地 DSH 镜像，生产化 overlay 仍待补。
 
 ## 前置
 
