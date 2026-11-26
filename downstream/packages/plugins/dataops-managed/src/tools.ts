@@ -697,7 +697,7 @@ export function buildAiManagementTools(
       name: 'dataops_api_docs',
       definition: defineTool({
         name: 'dataops_api_docs',
-        description: 'Search the DataOps HTTP API reference (OpenAPI 3) for endpoint contracts. Super administrators only; read-only. Returns compact operations — method, path, operationId, summary, tags, parameters, request-body fields and security — filtered by keyword, tag, path, operationId or HTTP method. It only reads the fixed /api/openapi.json document and cannot execute arbitrary requests.',
+        description: 'Search the DataOps HTTP API reference (OpenAPI 3) for endpoint contracts. Administrators and super administrators; read-only. Returns compact operations — method, path, operationId, summary, tags, parameters, request-body fields and security — filtered by keyword, tag, path, operationId or HTTP method. It only reads the fixed /api/openapi.json document and cannot execute arbitrary requests.',
         parameters: {
           query: { type: 'string', description: 'Case-insensitive keywords matched against path, operationId, summary, tags and description. All keywords must match.' },
           tag: { type: 'string', description: 'Exact OpenAPI tag (case-insensitive).' },
