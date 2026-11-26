@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "policy": "archive, never delete; only after the acceptance conditions hold",
+  "repositories": [
+    {
+      "name": "SparkElf/dsh-plugins-plus",
+      "condition": "26 packages migrated, image smoke includes the generated profile",
+      "status": "ready",
+      "evidence": "release-manifest.json migrated=26; image --smoke http=401"
+    },
+    {
+      "name": "SparkElf/DSH-better-sidebar",
+      "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
+      "status": "blocked",
+      "reason": "fork still depends on @deepseek-ai/dsh-ptc-runtime and @deepseek-ai/dsh-util-code-language, which are absent from the current workspace"
+    },
+    {
+      "name": "SparkElf/dsh-genui",
+      "condition": "monorepo version is aligned with the profile pin and published",
+      "status": "blocked",
+      "reason": "source is still pinned to DSH 0.2.1-rc.3; no downstream package yet"
+    },
+    {
+      "name": "SparkElf/dsh-quant-plus",
+      "condition": "monorepo version is aligned with the profile pin and published",
+      "status": "blocked",
+      "reason": "no downstream package yet"
+    },
+    {
+      "name": "SparkElf/dsh-sql-workbench",
+      "condition": "monorepo 0.6.0 is the only source",
+      "status": "blocked",
+      "reason": "source is in the monorepo, but the repository archive decision still needs the final image acceptance"
+    }
+  ]
+}

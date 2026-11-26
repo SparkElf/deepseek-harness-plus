@@ -250,6 +250,17 @@ const commands = {
     }
     console.log(`image: ${tag}`)
   },
+  archive(args = []) {
+    if (!args.includes('--dry-run')) fail('archive is fail-closed: pass --dry-run; actual repository archival needs explicit approval')
+    const plan = readJson(join(downstream, 'archive-plan.json'))
+    const r = release()
+    if ((r.packages?.plugins ?? []).length < 26) fail('archive prerequisite failed: fewer than 26 migrated packages')
+    for (const repo of plan.repositories ?? []) {
+      console.log(`${repo.status.padEnd(8)} ${repo.name}${repo.reason ? ` — ${repo.reason}` : ''}`)
+    }
+    const ready = (plan.repositories ?? []).filter(repo => repo.status === 'ready').length
+    console.log(`archive dry-run: ${ready}/${plan.repositories.length} repositories ready`)
+  },
   profile(args = []) {
     const outIndex = args.indexOf('--out')
     const out = outIndex >= 0 ? args[outIndex + 1] : join(root, 'downstream/.artifacts/dataops-web-profile')
@@ -304,6 +315,7 @@ Commands:
   apply           assemble patches/profile via the built dsh-plus apply
   verify          validate lock/manifest and run Plus governance
   profile         deploy the generated DataOps web profile to a directory
+  archive         dry-run old-repository archive readiness
   image           build the local DataOps web smoke image from profile + dsh-plus
   doctor          check clean-fork reproducibility prerequisites
   image-plan      write a deterministic image input plan from the release manifest
