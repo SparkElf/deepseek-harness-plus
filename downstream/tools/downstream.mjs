@@ -8,7 +8,7 @@
  */
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { cpSync, existsSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -45,6 +45,27 @@ const assertConsistent = () => {
   }
   if (errors.length) fail(errors.join('\n'))
   return { p, u, r }
+}
+
+
+/** Run a built image and require the DSH auth page to answer on 3080. */
+function smokeImage(tag) {
+  const name = `dataops-web-smoke-${process.pid}`
+  try {
+    execFileSync('docker', ['run', '-d', '--name', name, tag], { cwd: root, stdio: 'inherit' })
+    let probe = ''
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      execFileSync('sleep', ['1'], { cwd: root })
+      try {
+        probe = execFileSync('docker', ['exec', name, 'node', '-e', "fetch('http://127.0.0.1:3080/').then(r=>{console.log(r.status);process.exit(r.status===401||r.status===200?0:1)}).catch(()=>process.exit(1))"], { cwd: root, encoding: 'utf8' }).trim()
+        break
+      } catch { /* not ready yet */ }
+    }
+    if (probe !== '401' && probe !== '200') fail(`image smoke probe did not answer: ${probe || 'no response'}`)
+    console.log(`smoke: http=${probe}`)
+  } finally {
+    try { execFileSync('docker', ['rm', '-f', name], { cwd: root, stdio: 'ignore' }) } catch {}
+  }
 }
 
 const commands = {
@@ -218,36 +239,45 @@ const commands = {
   image(args = []) {
     const tagIndex = args.indexOf('--tag')
     const tag = tagIndex >= 0 ? args[tagIndex + 1] : 'dataops-web-profile:local'
+    if (args.includes('--smoke-only')) {
+      smokeImage(tag)
+      return
+    }
     const context = mkdtempSync(join('/tmp', 'dataops-web-image-'))
     const profileDir = join(context, 'profile')
-    commands.profile(['--out', profileDir])
-    execFileSync('pnpm', ['--filter', '@sparkelf/dsh-plus', 'pack', '--pack-destination', context], { cwd: root, stdio: 'inherit' })
-    const tarball = readdirSync(context).find((name) => name.endsWith('.tgz'))
-    if (!tarball) fail('dsh-plus pack produced no tarball')
+    const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: root, encoding: 'utf8' })
+    const cacheKey = createHash('sha256')
+      .update(readFileSync(releaseManifestPath))
+      .update(readFileSync(join(downstream, 'migration-inventory.json')))
+      .update(readFileSync(join(root, 'pnpm-lock.yaml')))
+      .update(dirty)
+      .digest('hex').slice(0, 16)
+    const cacheDir = join(downstream, '.artifacts/image-cache', cacheKey)
+    const cachedProfile = join(cacheDir, 'profile')
+    const cachedPlus = join(cacheDir, 'plus.tgz')
+    const refresh = args.includes('--refresh')
+    if (!refresh && existsSync(join(cachedProfile, 'package.json')) && existsSync(cachedPlus)) {
+      cpSync(cachedProfile, profileDir, { recursive: true })
+      cpSync(cachedPlus, join(context, 'plus.tgz'))
+      console.log(`image cache: ${cacheKey}`)
+    } else {
+      commands.profile(['--out', profileDir])
+      execFileSync('pnpm', ['--filter', '@sparkelf/dsh-plus', 'pack', '--pack-destination', context], { cwd: root, stdio: 'inherit' })
+      const tarball = readdirSync(context).find((name) => name.endsWith('.tgz'))
+      if (!tarball) fail('dsh-plus pack produced no tarball')
+      cpSync(join(context, tarball), join(context, 'plus.tgz'))
+      rmSync(cacheDir, { recursive: true, force: true })
+      mkdirSync(cacheDir, { recursive: true })
+      cpSync(profileDir, cachedProfile, { recursive: true })
+      cpSync(join(context, 'plus.tgz'), cachedPlus)
+      console.log(`image cache: ${cacheKey} (refreshed)`)
+    }
     cpSync(join(root, 'downstream/image/Dockerfile'), join(context, 'Dockerfile'))
-    cpSync(join(context, tarball), join(context, 'plus.tgz'))
     for (const name of ['dsh-plugin-backup', 'dsh-image-hoist']) {
       cpSync(join(root, 'packages/bundle/plus/node_modules/@sparkelf', name), join(context, name), { recursive: true, dereference: true })
     }
     execFileSync('docker', ['build', '-t', tag, context], { cwd: root, stdio: 'inherit' })
-    if (args.includes('--smoke')) {
-      const name = `dataops-web-smoke-${process.pid}`
-      try {
-        execFileSync('docker', ['run', '-d', '--name', name, tag], { cwd: root, stdio: 'inherit' })
-        let probe = ''
-        for (let attempt = 0; attempt < 20; attempt += 1) {
-          execFileSync('sleep', ['1'], { cwd: root })
-          try {
-            probe = execFileSync('docker', ['exec', name, 'node', '-e', "fetch('http://127.0.0.1:3080/').then(r=>{console.log(r.status);process.exit(r.status===401||r.status===200?0:1)}).catch(()=>process.exit(1))"], { cwd: root, encoding: 'utf8' }).trim()
-            break
-          } catch { /* not ready yet */ }
-        }
-        if (probe !== '401' && probe !== '200') fail(`image smoke probe did not answer: ${probe || 'no response'}`)
-        console.log(`smoke: http=${probe}`)
-      } finally {
-        try { execFileSync('docker', ['rm', '-f', name], { cwd: root, stdio: 'ignore' }) } catch {}
-      }
-    }
+    if (args.includes('--smoke')) smokeImage(tag)
     console.log(`image: ${tag}`)
   },
   archive(args = []) {

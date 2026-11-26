@@ -84,3 +84,21 @@ not a standalone DSH installation. Do not test it with `dsh --profile dataops-we
 unrelated DSH home: that selects the CLI's own built-in profile tree and cannot resolve the
 DataOps bundle graph. The image builder must combine this artifact with the pinned DSH
 installation and the Plus distribution, then run it from the image's own `DSH_HOME`.
+
+## Image iteration
+
+`image` caches the deployed profile and the packed Plus tarball under
+`downstream/.artifacts/image-cache/<hash>`. The Dockerfile installs the DSH CLI
+and Plus dependencies before copying the 564MB profile, so a profile-only change
+reuses the dependency layer.
+
+```bash
+# full build + boot smoke
+node downstream/tools/downstream.mjs image --tag dataops-web-profile:local --smoke
+
+# bypass the profile/plus cache after local changes
+node downstream/tools/downstream.mjs image --refresh --tag dataops-web-profile:local
+
+# re-run only the boot smoke against an existing image
+node downstream/tools/downstream.mjs image --smoke-only --tag dataops-web-profile:local
+```

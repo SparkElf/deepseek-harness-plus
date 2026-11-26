@@ -3,7 +3,6 @@ ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
 RUN corepack enable
 WORKDIR /opt/dataops-web
-COPY profile /opt/dataops-web/profile
 COPY sparkelf-dsh-plus-0.2.9-alpha.106.tgz /opt/dataops-web/plus.tgz
 COPY dsh-plugin-backup /opt/extra/dsh-plugin-backup
 COPY dsh-image-hoist /opt/extra/dsh-image-hoist
@@ -11,8 +10,9 @@ RUN npm install --global @deepseek-ai/dsh@0.2.3-alpha.2 \
  && npm install --prefix /opt/plus-deps /opt/dataops-web/plus.tgz \
       dshmarket@1.84.1 \
       @sparkelf/dsh-web-runtime-compat@0.2.9-alpha.99 \
-      yauzl@3.4.0 pend@1.2.0 --ignore-scripts --legacy-peer-deps \
- && rm -rf /opt/dataops-web/profile/node_modules/@sparkelf/dsh-plus /opt/dataops-web/profile/node_modules/@sparkelf/dsh-web-runtime-compat \
+      yauzl@3.4.0 pend@1.2.0 --ignore-scripts --legacy-peer-deps
+COPY profile /opt/dataops-web/profile
+RUN rm -rf /opt/dataops-web/profile/node_modules/@sparkelf/dsh-plus /opt/dataops-web/profile/node_modules/@sparkelf/dsh-web-runtime-compat \
  && mkdir -p /opt/dataops-web/profile/node_modules/@sparkelf \
  && cp -a /opt/extra/dsh-plugin-backup /opt/dataops-web/profile/node_modules/@sparkelf/dsh-plugin-backup \
  && cp -a /opt/extra/dsh-image-hoist /opt/dataops-web/profile/node_modules/@sparkelf/dsh-image-hoist \
