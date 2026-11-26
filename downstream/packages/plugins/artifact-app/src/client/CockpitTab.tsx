@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CockpitViewer } from './CockpitViewer.tsx'
+import { ExternalCockpitPanel } from './ExternalCockpitPanel.tsx'
 
 /** Minimal tab record Better Sidebar passes. */
 interface TabRecord {
@@ -185,6 +186,35 @@ const CSS = `
   font-size: 10px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+.dsh-ac__views {
+  display: flex;
+  gap: 4px;
+  flex: none;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(255,255,255,.06));
+}
+.dsh-ac__view {
+  appearance: none;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, #cfd3d6);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dsh-ac__view:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,.08)); }
+.dsh-ac__view.is-active {
+  border-color: var(--dsw-alias-border-l3, rgba(255,255,255,.16));
+  background: var(--dsw-alias-bg-layer-3, #353638);
+  color: var(--dsw-alias-label-primary, #f9fafb);
+}
+.dsh-ac__view:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary, #7aaaff));
+  outline-offset: 1px;
 }
 .dsh-ac__list { display: flex; flex-direction: column; gap: 6px; }
 .dsh-ac__card {
@@ -436,6 +466,8 @@ export function CockpitTab({ tab, scope, insertArtifactReference }: CockpitTabPr
       : { kind: 'app', viewerId: meta.cockpitId, name: meta.cockpitName ?? '驾驶舱' },
   )
   const [reloadToken, setReloadToken] = useState(0)
+  const [view, setView] = useState<'internal' | 'external'>('internal')
+  const [externalReload, setExternalReload] = useState(0)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -696,11 +728,24 @@ export function CockpitTab({ tab, scope, insertArtifactReference }: CockpitTabPr
         <div className="dsh-ac__heading">
           <div className="dsh-ac__name">驾驶舱</div>
           <div className="dsh-ac__sub">
-            {apps.length} 个应用 · {templates.length} 个模板 · {components.length} 个组件
-            {catalogs.length > 0 ? ' · ' + catalogs.join(' / ') : ''}
+            {view === 'internal'
+              ? <>
+                  {apps.length} 个应用 · {templates.length} 个模板 · {components.length} 个组件
+                  {catalogs.length > 0 ? ' · ' + catalogs.join(' / ') : ''}
+                </>
+              : '外部注册表 · 新窗口打开 · M1'}
           </div>
         </div>
-        <button type="button" className="dsh-ac__icon" title="刷新" aria-label="刷新" onClick={() => void load()}>
+        <button
+          type="button"
+          className="dsh-ac__icon"
+          title="刷新"
+          aria-label="刷新"
+          onClick={() => {
+            if (view === 'external') setExternalReload((value) => value + 1)
+            else void load()
+          }}
+        >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M21 12a9 9 0 1 1-3-6.7" />
             <path d="M21 4v5h-5" />
@@ -708,6 +753,24 @@ export function CockpitTab({ tab, scope, insertArtifactReference }: CockpitTabPr
         </button>
       </div>
 
+      <div className="dsh-ac__views" role="tablist" aria-label="驾驶舱来源">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'internal'}
+          className={'dsh-ac__view' + (view === 'internal' ? ' is-active' : '')}
+          onClick={() => setView('internal')}
+        >内部资产</button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'external'}
+          className={'dsh-ac__view' + (view === 'external' ? ' is-active' : '')}
+          onClick={() => setView('external')}
+        >外部驾驶舱</button>
+      </div>
+
+      {view === 'external' ? <ExternalCockpitPanel reloadToken={externalReload} /> : (
       <div className="dsh-ac__body">
         {loading ? <div className="dsh-ac__state">正在加载驾驶舱资产…</div> : null}
         {error !== null ? <div className="dsh-ac__error" role="alert">{error}</div> : null}
@@ -860,6 +923,7 @@ export function CockpitTab({ tab, scope, insertArtifactReference }: CockpitTabPr
           </section>
         ) : null}
       </div>
+      )}
       {notice !== '' ? <div className="dsh-ac__toast" role="status">{notice}</div> : null}
     </div>
   )

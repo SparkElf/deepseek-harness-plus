@@ -22,6 +22,8 @@ export const TOKEN_PATH = '/dsh-artifact-app/token'
 export const APPS_PATH = '/dsh-artifact-app/apps'
 /** Same-origin cockpit-template list proxy used by the sidebar tab. */
 export const TEMPLATES_PATH = '/dsh-artifact-app/templates'
+/** Same-origin external cockpit registry proxy (list exact, `/:id` and `/:id/link` prefix). */
+export const EXTERNAL_COCKPITS_PATH = '/dsh-artifact-app/external-cockpits'
 /** Same-origin preview creation used by the HTML file viewer. */
 export const PREVIEW_PATH = '/dsh-artifact-app/preview'
 /** Render route prefix; `:id` follows it. */

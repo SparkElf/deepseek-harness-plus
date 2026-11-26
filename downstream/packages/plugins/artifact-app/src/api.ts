@@ -8,6 +8,16 @@
  * @module api
  */
 
+import {
+  assertExternalCockpitId,
+  normalizeExternalCockpitLink,
+  normalizeExternalCockpitPage,
+  normalizeExternalCockpitRow,
+  type ExternalCockpitLink,
+  type ExternalCockpitPage,
+  type ExternalCockpitRow,
+} from './external.ts'
+
 /** Minimal credential surface this client needs. */
 export interface TokenSource {
   resolve(): Promise<string | undefined>
@@ -176,6 +186,48 @@ export class ArtifactApi {
   /** Catalog counts for the tab's folder filter. */
   catalogs(): Promise<Array<{ catalog: string | null; count: number }>> {
     return this.request('/api/artifact-apps/catalogs')
+  }
+
+  /**
+   * Search the external cockpit registry.
+   * @param query.search - name/description/tag keyword.
+   * @param query.tag - one business tag.
+   * @param query.page - 1-based page.
+   * @param query.pageSize - page size, 1..100.
+   * @returns Sanitized page; secrets and login recipes never leave this client.
+   */
+  async searchExternalCockpits(query: { search?: string; tag?: string; page?: number; pageSize?: number } = {}): Promise<ExternalCockpitPage> {
+    const params = new URLSearchParams()
+    if (query.search !== undefined && query.search.trim() !== '') params.set('search', query.search.trim())
+    if (query.tag !== undefined && query.tag.trim() !== '') params.set('tag', query.tag.trim())
+    const page = Math.max(1, Number.isFinite(query.page) ? Math.trunc(query.page as number) : 1)
+    const pageSize = Math.max(1, Math.min(100, Number.isFinite(query.pageSize) ? Math.trunc(query.pageSize as number) : 20))
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
+    const payload = await this.request<unknown>('/api/external-cockpits?' + params.toString())
+    return normalizeExternalCockpitPage(payload, page, pageSize)
+  }
+
+  /**
+   * Read one external cockpit by registry id.
+   * @param id - Registry id, never a URL.
+   * @returns Sanitized metadata.
+   */
+  async getExternalCockpit(id: string): Promise<ExternalCockpitRow> {
+    const safeId = assertExternalCockpitId(id)
+    const payload = await this.request<unknown>('/api/external-cockpits/' + encodeURIComponent(safeId))
+    return normalizeExternalCockpitRow(payload)
+  }
+
+  /**
+   * Ask DataOps for a stable link to one registered cockpit.
+   * @param id - Registry id, never a URL.
+   * @returns Stable HTTPS link; launch tickets are M2 and are not returned.
+   */
+  async linkExternalCockpit(id: string): Promise<ExternalCockpitLink> {
+    const safeId = assertExternalCockpitId(id)
+    const payload = await this.request<unknown>('/api/external-cockpits/' + encodeURIComponent(safeId) + '/link', { method: 'POST' })
+    return normalizeExternalCockpitLink(payload, safeId)
   }
 
   /** Read one app's metadata. */

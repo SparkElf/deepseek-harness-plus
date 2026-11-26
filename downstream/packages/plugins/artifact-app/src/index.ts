@@ -2,9 +2,10 @@
  * DataOps cockpit artifacts in the DSH right sidebar.
  *
  * The host owns the token and the HTML bytes: it exposes a render route, a narrow
- * gateway for the sandboxed page, an SSE channel for "open this cockpit", the nine
- * model tools, and the authoring skill. The client half owns the sidebar tab and
- * the file viewer; neither half decides permissions — every DataOps call does.
+ * gateway for the sandboxed page, an SSE channel for "open this cockpit", the cockpit
+ * model tools, the external cockpit registry tools, and the authoring skill. The client
+ * half owns the sidebar tab and the file viewer; neither half decides permissions —
+ * every DataOps call does.
  *
  * @module @sparkelf/dsh-artifact-app
  */
@@ -20,12 +21,14 @@ import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import { BUNDLED_SKILL_RANK } from '@deepseek-ai/dsh-skill'
-import { ArtifactApi, type TokenSource } from './api.ts'
+import { ArtifactApi, DataOpsError, type TokenSource } from './api.ts'
 import { Config as ConfigSchema, type Config as ConfigValues } from './config.ts'
+import { assertExternalCockpitId } from './external.ts'
 import {
   APPS_PATH,
   ARTIFACT_TAB_TYPE,
   CONFIG_PATH,
+  EXTERNAL_COCKPITS_PATH,
   GATEWAY_PATH,
   OPEN_EVENTS_PATH,
   OpenCockpitHub,
@@ -40,6 +43,7 @@ import { registerCockpitTools } from './tools.ts'
 export const Config = ConfigSchema
 export type Config = ConfigValues
 export * from './api.ts'
+export * from './external.ts'
 export * from './open-hub.ts'
 export * from './templates.ts'
 
@@ -75,6 +79,10 @@ const writeJson = (response: ServerResponse, status: number, value: unknown): vo
   })
   response.end(JSON.stringify(value))
 }
+
+/** Preserve a DataOps client error; report upstream/network failures as 502. */
+const proxyStatus = (error: unknown): number =>
+  error instanceof DataOpsError && error.status >= 400 && error.status < 500 ? error.status : 502
 
 /** The browser-facing origin of this DSH instance. */
 const requestOrigin = (request: IncomingMessage): string => {
@@ -220,6 +228,62 @@ export function apply(ctx: Context, config: ConfigValues): void {
       }
     },
   }), 'artifact-app: templates route')
+
+  // External cockpit registry list proxy. The browser holds no DataOps token; only the
+  // sanitized registry fields reach it. Registration/management stays in the DataOps portal.
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: EXTERNAL_COCKPITS_PATH,
+    handler: async (request, response) => {
+      if (request.method !== 'GET') { writeJson(response, 405, { error: 'GET only' }); return }
+      try {
+        const url = new URL(request.url ?? '/', 'http://dsh.internal')
+        const page = Math.max(1, Math.trunc(Number(url.searchParams.get('page') ?? 1)) || 1)
+        const pageSize = Math.max(1, Math.min(100, Math.trunc(Number(url.searchParams.get('pageSize') ?? 20)) || 20))
+        const result = await api.searchExternalCockpits({
+          search: url.searchParams.get('search') ?? undefined,
+          tag: url.searchParams.get('tag') ?? undefined,
+          page,
+          pageSize,
+        })
+        writeJson(response, 200, result)
+      } catch (error) {
+        writeJson(response, proxyStatus(error), { error: error instanceof Error ? error.message : String(error) })
+      }
+    },
+  }), 'artifact-app: external cockpit list route')
+
+  // External cockpit detail and link proxies. `:id` is a registry id, never a URL, and
+  // `POST /:id/link` returns a stable HTTPS link only; M2 adds launch tickets.
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'prefix',
+    path: EXTERNAL_COCKPITS_PATH,
+    handler: async (request, response) => {
+      const url = new URL(request.url ?? '/', 'http://dsh.internal')
+      const rest = url.pathname.slice(EXTERNAL_COCKPITS_PATH.length).replace(/^\/+/u, '')
+      const parts = rest === '' ? [] : rest.split('/')
+      if (parts.length === 0 || parts.some((part) => part === '')) { writeJson(response, 404, { error: '缺少外部驾驶舱 id' }); return }
+      if (parts.length > 2 || (parts.length === 2 && parts[1] !== 'link')) { writeJson(response, 404, { error: '未知的外部驾驶舱路由' }); return }
+      let id: string
+      try {
+        id = assertExternalCockpitId(decodeURIComponent(parts[0]))
+      } catch (error) {
+        writeJson(response, 400, { error: error instanceof Error ? error.message : String(error) })
+        return
+      }
+      try {
+        if (parts.length === 1) {
+          if (request.method !== 'GET') { writeJson(response, 405, { error: 'GET only' }); return }
+          writeJson(response, 200, await api.getExternalCockpit(id))
+          return
+        }
+        if (request.method !== 'POST') { writeJson(response, 405, { error: 'POST only' }); return }
+        writeJson(response, 200, await api.linkExternalCockpit(id))
+      } catch (error) {
+        writeJson(response, proxyStatus(error), { error: error instanceof Error ? error.message : String(error) })
+      }
+    },
+  }), 'artifact-app: external cockpit detail and link routes')
 
   // File viewer drafts: one draft per workspace path, updated as the file changes.
   ctx.effect(() => ctx.webServer.register({
