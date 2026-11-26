@@ -3,7 +3,7 @@
   "sourceRepository": "SparkElf/dsh-plugins-plus",
   "targetRepository": "SparkElf/deepseek-harness-plus",
   "targetRoot": "downstream/packages/plugins",
-  "generatedAt": "2026-11-26T01:26:28.729Z",
+  "generatedAt": "2026-11-26T01:44:45.937Z",
   "packages": [
     {
       "name": "@sparkelf/dsh-api-client",
@@ -133,7 +133,7 @@
       "hasBuild": true,
       "hasTests": false,
       "status": "pending",
-      "blockedReason": "server type drift (SQL row casts, plan/result unions) plus dsh-better-sidebar source typings; requires source-level API migration"
+      "blockedReason": "requires UI migration: current primitives removed MenuItemButton, SegmentedControl/SegmentedTabs, Tooltip portal prop, and several Regular icons; server types also drifted"
     },
     {
       "name": "@sparkelf/dsh-mineru",
