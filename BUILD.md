@@ -74,7 +74,7 @@ clean fork 要能复现镜像，至少需要：
 
 ## Workspace image inputs
 
-`images/workspace/` builds the DataOps AI workspace image from a context whose large artifacts are not in version control: `dsh-src.tar.gz`, the Plus distribution tarball and six `vendor/` tarballs. `prepare-inputs.sh` materializes and verifies them before the build plan resolves:
+`images/workspace/` builds the DataOps AI workspace image from a context whose large artifacts are not in version control: `dsh-src.tar.gz`, the Plus distribution tarball and six `vendor/` tarballs. The pinned `xlsx-0.20.3.tgz` is the exception: a byte-identical copy is tracked under `images/workspace/seed/`. `prepare-inputs.sh` materializes and verifies them before the build plan resolves:
 
 ```bash
 pnpm install --frozen-lockfile
@@ -83,7 +83,7 @@ images/workspace/scripts/prepare-inputs.sh
 images/workspace/scripts/build-workspace-final.sh 0.2.9-alpha.106 --print
 ```
 
-A host with a DataOps checkout at `DATAOPS_WORKSPACE_DIR` (default: the sibling `../dataops/infra/docker-workspace`) copies the artifacts from it. Without that checkout the script uses public sources: it fetches `DSH_SOURCE_REVISION` from `https://github.com/deepseek-ai/deepseek-harness.git`, packs `@sparkelf/dsh-plus` from this workspace, repacks the SheetJS CDN tarball to the pinned bytes and downloads the other five vendor tarballs from npm. `--public` forces that path, `--check` verifies the files already in `context/` without writing, and `--dataops <dir>` names a checkout explicitly.
+A host with a DataOps checkout at `DATAOPS_WORKSPACE_DIR` (default: the sibling `../dataops/infra/docker-workspace`) copies the artifacts from it. Without that checkout the script uses public sources: it fetches `DSH_SOURCE_REVISION` from `https://github.com/deepseek-ai/deepseek-harness.git`, packs `@sparkelf/dsh-plus` from this workspace, copies the tracked `images/workspace/seed/xlsx-0.20.3.tgz` seed after checking it against the lock, and downloads the other five vendor tarballs from npm. A missing or mismatched seed falls back to downloading and repacking the SheetJS CDN tarball. `--public` forces that path, `--check` verifies the files already in `context/` without writing, and `--dataops <dir>` names a checkout explicitly.
 
 The script fails closed with the missing file and expected value. It checks the source archive's `git rev-parse HEAD` and `.git/index` (both are required by `dsh-plus apply`), the Plus package name and version, and every vendor SHA-256 in `images/workspace/inputs.lock.json`. `--print` then resolves the three build commands without building; a full build still needs Docker and the base image.
 

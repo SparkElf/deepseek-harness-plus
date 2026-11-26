@@ -10,6 +10,8 @@ Status: skeleton of the DataOps AI workspace image build, moved from `dataops/in
 images/workspace/
 ├── README.md                  this file
 ├── inputs.lock.json           digests of the mirror and of the artifacts a build must supply
+├── seed/
+│   └── xlsx-0.20.3.tgz        tracked copy of the pinned SheetJS tarball for the public path
 ├── context/                   docker build context, mirrors infra/docker-workspace
 │   ├── Dockerfile             base layer (Node 26 + Python 3.12 + LibreOffice + Playwright)
 │   ├── Dockerfile.plus-cli-src  plus-inputs + source-build + plus-build
@@ -124,7 +126,7 @@ Measure sizes with one stated method: `docker images` visible size is the number
 
 ## Context artifacts
 
-`inputs.lock.json` is the digest authority for both halves: the mirrored files and the artifacts a build must supply. `scripts/prepare-inputs.sh` supplies the DSH source tarball, the Plus tarball and the six `vendor/` tarballs under `context/` from `DATAOPS_WORKSPACE_DIR` or from public sources, and verifies them; `--check` verifies without writing. The OfficeCLI engine binaries are optional because the engine stage downloads and verifies them.
+`inputs.lock.json` is the digest authority for both halves: the mirrored files and the artifacts a build must supply. `scripts/prepare-inputs.sh` supplies the DSH source tarball, the Plus tarball and the six `vendor/` tarballs under `context/` from `DATAOPS_WORKSPACE_DIR`, the tracked `seed/` copy of the xlsx tarball, or public sources, and verifies them; `--check` verifies without writing. The SheetJS CDN is only a fallback when the xlsx seed is missing or does not match the lock. The OfficeCLI engine binaries are optional because the engine stage downloads and verifies them.
 
 ## Parity during migration
 

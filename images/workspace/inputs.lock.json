@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout or from public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree. The G6/G7 files listed in divergedFromDataOps are intentionally ahead of the DataOps mirror; their digests describe this repository, not the DataOps commit in source.commit.",
+  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout, the tracked seed/ directory, or public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree. The G6/G7 files listed in divergedFromDataOps are intentionally ahead of the DataOps mirror; their digests describe this repository, not the DataOps commit in source.commit.",
   "source": {
     "repository": "dataops",
     "path": "infra/docker-workspace",
@@ -335,8 +335,8 @@
     },
     {
       "path": "context/vendor/README.md",
-      "bytes": 1510,
-      "sha256": "3919daa0ea66c0660650e70ca60c28340c2a1ba374521de4864413c4849bfe97"
+      "bytes": 1603,
+      "sha256": "69ddf15378b7a7f9d017bb59a1d429c3a264731ef67de53ceaf518f1e30fc7ac"
     },
     {
       "path": "context/verify-font-names.py",
@@ -418,11 +418,16 @@
       "md5": "5ab9436a1aabeae822c3ed26dd1465d9",
       "required": true,
       "requiredBy": "Dockerfile.plus-cli-src:80-83 (COPY, md5 gate and lockfile rewrite)",
+      "seedPath": "seed/xlsx-0.20.3.tgz",
+      "seedOrigin": "dataops/infra/docker-workspace/vendor/xlsx-0.20.3.tgz",
       "source": {
-        "kind": "cdn-repack",
-        "url": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-        "upstreamSha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8",
-        "recipe": "unpack; replace package/LICENSE with a hardlink to package/dist/LICENSE; chmod 0600 files and 0711 package/bin/xlsx.njs; npm pack --ignore-scripts"
+        "kind": "repo-seed",
+        "fallback": {
+          "kind": "cdn-repack",
+          "url": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+          "upstreamSha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8",
+          "recipe": "unpack; replace package/LICENSE with a hardlink to package/dist/LICENSE; chmod 0600 files and 0711 package/bin/xlsx.njs; npm pack --ignore-scripts"
+        }
       }
     },
     {

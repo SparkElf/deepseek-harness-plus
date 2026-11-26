@@ -3,7 +3,8 @@
 This directory is a placeholder. `Dockerfile.plus-cli-src` runs `COPY vendor/ /opt/dataops-vendor/`
 and asserts exact digests, so the directory must exist but its contents are supplied at build time
 rather than committed here. `../../scripts/prepare-inputs.sh` materializes the required six from a
-DataOps checkout or from npm and the SheetJS CDN, and verifies each against `../../inputs.lock.json`.
+DataOps checkout, the tracked `../../seed/xlsx-0.20.3.tgz` copy, or npm, and verifies each against
+`../../inputs.lock.json`; the SheetJS CDN is used only when that seed is missing or mismatched.
 
 | File | Asserted by |
 | --- | --- |
