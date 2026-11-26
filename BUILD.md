@@ -23,6 +23,9 @@ node downstream/tools/downstream.mjs status
 node downstream/tools/downstream.mjs profile --out /tmp/dataops-web-profile
 
 # 检查 clean fork 的前置文件、tag、lockfile、profile 和嵌套 workspace
+node downstream/tools/downstream.mjs archive --dry-run
+
+# 检查 clean fork 的前置文件、tag、lockfile、profile 和嵌套 workspace
 node downstream/tools/downstream.mjs doctor
 
 # profile 是从 release manifest 生成的，不要手改依赖版本
