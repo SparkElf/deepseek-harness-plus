@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# Read-only phase report for apply-plus.sh, and the marker contract a future --skip-build needs.
+# Read-only phase report for apply-plus.sh and the marker that `--skip-build` verifies.
 #
-# apply-plus.sh runs one `dsh-plus apply`, which installs the profile, applies the source patches,
-# builds the official tree, and links the profile in a single call. A pin-only rebuild therefore
-# pays the official build again: `runApply` calls `pnpm run build:official` whenever the selected
-# patch set contains any `dsh-source` patch, even when git reports the patch already applied.
-#
-# This preflight does not change that chain. It reports which phases a fresh plus layer would run
-# and whether a prebuilt source tree could satisfy a future skip-build path. The contract for such
-# a path is a marker at /opt/dsh-source/.dataops-official-build.json:
+# `apply-plus.sh` exposes three phases: `full` (the existing chain), `source` (patches and one
+# official build) and `profile` (`dsh-plus apply --skip-build`, no source install or build). The
+# final phase authenticates the prebuilt source tree with a marker at
+# /opt/dsh-source/.dataops-official-build.json:
 #
 #   {
 #     "sourceRevision": "<40-hex>",
@@ -18,7 +14,8 @@
 #
 # A skip-build phase may run only when the marker matches the source revision and the patch set in
 # the installed distribution, and the built entry points exist. Without a marker the verdict is
-# `full-build-required`, which is the current image state.
+# `full-build-required`, which is the state of a pre-G6 image. The report also records whether the
+# optional runtime prune already ran.
 #
 # Usage:
 #   ./apply-plus-preflight.sh [--image <ref>] [--json <path>]
@@ -38,7 +35,7 @@ while [ "$#" -gt 0 ]; do
       shift
       ;;
     -h|--help)
-      sed -n '2,27p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -114,7 +111,8 @@ const entries = [
 const missingEntries = entries.filter(file => !fs.existsSync(file))
 addCheck("build-outputs", missingEntries.length === 0 ? "ok" : "missing", missingEntries.join(", ") || "entry points present")
 addPhase("profile-install", true, "dsh-plus apply installs and links the profile on every run")
-addPhase("official-build", true, "runApply builds whenever a source patch is selected")
+addPhase("official-build", true, "a full apply builds whenever a source patch is selected; --skip-build verifies the marker instead")
+report.skipBuild = { available: false, reason: "no matching prebuilt marker" }
 
 if (fs.existsSync(markerPath)) {
   const marker = JSON.parse(fs.readFileSync(markerPath, "utf8"))
@@ -123,9 +121,26 @@ if (fs.existsSync(markerPath)) {
     : ""
   const matches = marker.sourceRevision === revision && marker.patchsetDigest === report.patchsetDigest
   addCheck("prebuilt-marker", matches ? "ok" : "mismatch", JSON.stringify(marker))
-  if (matches && missingEntries.length === 0) report.verdict = "skip-build-safe"
+  if (matches && missingEntries.length === 0) {
+    report.verdict = "skip-build-safe"
+    report.skipBuild = { available: true, reason: "marker matches revision, patch set and built entry points" }
+  } else if (!matches) {
+    report.skipBuild.reason = "marker does not match the revision or selected patch set"
+  } else {
+    report.skipBuild.reason = "built entry points are missing"
+  }
 } else {
   addCheck("prebuilt-marker", "missing", "no " + markerPath)
+}
+
+report.runtimePruned = null
+const pruneStamp = path.join(sourceRoot, ".dataops-runtime-pruned")
+if (fs.existsSync(pruneStamp)) {
+  try {
+    report.runtimePruned = JSON.parse(fs.readFileSync(pruneStamp, "utf8"))
+  } catch {
+    report.runtimePruned = { unreadable: pruneStamp }
+  }
 }
 
 report.bundles = (() => {
@@ -156,5 +171,7 @@ const report = JSON.parse(require("fs").readFileSync("/tmp/apply-plus-preflight.
 for (const phase of report.phases) console.log(`  ${phase.wouldRun ? "RUN " : "SKIP"} ${phase.id}: ${phase.reason}`)
 console.log(`  bundles: ${report.bundles}`)
 console.log(`  patchset: ${report.patchsetDigest ?? "<unavailable>"}`)
+console.log(`  skip-build: ${report.skipBuild && report.skipBuild.available ? "available" : "unavailable"}: ${report.skipBuild ? report.skipBuild.reason : ""}`)
+console.log(`  runtime-pruned: ${report.runtimePruned ? JSON.stringify(report.runtimePruned) : "no"}`)
 console.log(`  verdict: ${report.verdict}`)
 '

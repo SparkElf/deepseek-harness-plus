@@ -1,8 +1,12 @@
-# Runtime prune analysis
+# Runtime prune
 
-Read-only analysis of `dataops-ai-workspace-candidate:local` (2026-11-26, image ID
-`sha256:aec6ff25…b805c9`). No directory was deleted. `scripts/verify-runtime-paths.sh` is the
-executable check; this page records why its whitelist has the paths it has.
+Status: implemented (G7, 2026-11-26) as an optional final phase. The default build does not prune.
+`RUNTIME_PRUNE=1` enables it; the candidate image is the only intended consumer.
+
+`context/runtime-prune.sh` executes the delete list below against `/opt/dsh-source` and asserts the
+runtime whitelist before and after. `context/apply-plus.sh` calls it only in the final phase
+(`full` or `profile`), never in the `source` phase: `dsh-plus apply` needs `.git` for patch-state
+checks, so the prune must be the last operation that touches the source tree.
 
 ## What the runtime actually resolves
 
@@ -30,14 +34,14 @@ The measured tree, after the build's existing `*.map`/`tests`/`docs`/`benchmarks
 | `/opt/dataops-dsh-profile-template` | 805MB | first-boot seed, copied to a new volume |
 
 `packages/**/src` totals 33MB and `packages/**/lib` 137MB. The CLI entry is `lib/bin.js`; the
-profile's `.bin/dsh` resolves there. Package manifests expose a `source` export condition in 381
-cases, but the image starts plain Node against built `lib/`, not `tsx` and not `--conditions=source`.
+profile's `.bin/dsh` resolves there. The image starts plain Node against built `lib/`, not `tsx`
+and not `--conditions=source`, so `src` is a build input rather than a runtime target.
 
 Three symlinks are already dangling in the working candidate and boot is unaffected:
 `@deepseek-ai/dsh-benchmarks` (the build prunes `benchmarks/`), `.bin/dsh-im` (the IM connector is
 removed from the default profile), and `.bin/dsoffice` (a shim the officecli installer does not
-create). Their inertness is evidence that a missing target is tolerated only when no loaded module
-imports it; it is not evidence that any other dangling link is safe.
+create). A prune adds `@deepseek-ai/website` as a fourth known-inert dangling link;
+`verify-runtime-paths.sh --expect-pruned` accepts it only while the prune stamp exists.
 
 ## Prune contract
 
@@ -55,52 +59,72 @@ imports it; it is not evidence that any other dangling link is safe.
    first-boot copy, not deletion.
 7. `/opt/dsh-plus` — symlink to the live profile.
 
+The script counts package manifests and `lib`/`locale`/`node_modules` directories before and after,
+and fails before deleting anything if the counts would change. It never traverses
+`node_modules` when deleting `*.tsbuildinfo` or `packages/**/src`.
+
 **Blacklist — do not delete without a replacement mechanism:** every path above, plus any file
 named by a `package.json` `bin`, `main`, `exports`, or `types` field reachable from a mounted
 bundle. `pnpm deploy --prod` is the only supported way to reduce the dependency closure; it
 produces a new tree with its own proof, rather than mutating this one.
 
-**Delete candidates, after a disposable-container or candidate-image test:**
+**Delete candidates, measured on `dataops-ai-workspace-candidate:local` (2026-11-26):**
 
 | Path | Measured | Evidence it is build-only |
 | --- | --- | --- |
-| `.git` | 54MB | `dsh-plus apply` reads it; no runtime module opens it |
-| `snapshots/` | 23MB | test snapshots; no runtime reference outside test code |
-| `scripts/` | 6.7MB | repository build and release scripts |
-| `patches/` | 1.2MB | patch sources consumed by `apply` |
-| `.github/` | 724KB | CI metadata |
-| `python/` | 448KB | Python SDK source; the runtime starts Node |
-| `tsconfig*.json`, `*.tsbuildinfo` | ≈5MB | build inputs and incremental-build state |
-| `.gitlab-ci.yml`, `.oxlintrc.json` | 28KB | CI/lint metadata |
-| `packages/**/src/` | 33MB | built `lib/` is what Node loads; must pass the import test below |
-| `website/` | 248KB | linked but not mounted; deleting it adds a fourth known-inert dangling link |
+| `.git` | 53.2MB | `dsh-plus apply` reads it; no runtime module opens it |
+| `snapshots/` | 16.8MB | test snapshots; no runtime reference outside test code |
+| `scripts/` | 5.6MB | repository build and release scripts |
+| `patches/` | 1.1MB | patch sources consumed by `apply` |
+| `.github/` | 578KB | CI metadata |
+| `python/` | 363KB | Python SDK source; the runtime starts Node |
+| `website/` | 158KB | linked but not mounted; deleting it adds a fourth known-inert dangling link |
+| `tsconfig*.json` | 101KB | build inputs |
+| `*.tsbuildinfo` (excluding `node_modules`) | 43.9MB | incremental-build state |
+| `packages/**/src/` | 33.1MB | built `lib/` is what Node loads; must pass the import test below |
+| `.gitlab-ci.yml`, `.oxlintrc.json` | 21KB | CI/lint metadata |
 
-Together these are about 124MB, roughly 5% of `/opt/dsh-source`. The gap record's 2–4GB runtime
+The dry run totals **154.9MB**, about 6% of `/opt/dsh-source`. The gap record's 2–4GB runtime
 target is not reachable by deleting build-only files: the source tree's own `node_modules` is
 2.1GB and the two profile copies are 1.6GB. Reaching that target needs a production dependency
 closure (`pnpm deploy --prod` / a pruned install) and a smaller base, as a separate change with its
 own acceptance.
+
+Because `.git` is deleted last, a pruned image can no longer run `dsh-plus apply` in place. That is
+why the prune is a final runtime step and why the source phase never enables it.
 
 ## Verification
 
 ```bash
 cd images/workspace
 
+# Dry run: list and size every candidate without deleting anything.
+docker run --rm --entrypoint bash <image> -c \
+  'bash /usr/local/bin/runtime-prune.sh --root /opt/dsh-source --dry-run'
+
 # Baseline: every link resolves, versions and bundle count match, sizes are printed.
 ./scripts/verify-runtime-paths.sh \
-  --image dataops-ai-workspace-candidate:local \
+  --image <candidate> \
   --expect-dsh 0.2.3-alpha.2 \
   --expect-plus 0.2.9-alpha.106 \
   --expect-bundles 26
 
+# Pruned candidate: require the stamp, the removed candidate set, and the known-inert website link.
+./scripts/verify-runtime-paths.sh \
+  --image <pruned-candidate> \
+  --expect-dsh 0.2.3-alpha.2 \
+  --expect-plus 0.2.9-alpha.106 \
+  --expect-bundles 26 \
+  --expect-pruned
+
 # Prove an import that exercises package lib/ and the profile's slot registry.
-docker run --rm --entrypoint sh dataops-ai-workspace-candidate:local -c \
+docker run --rm --entrypoint sh <pruned-candidate> -c \
   '/opt/dsh-home/profiles/dataops-web/node_modules/.bin/dsh --version'
 
-# After a prune candidate is built, run the full boot probe as well.
-node acceptance/verify-workspace-image.mjs --image <candidate-tag>
+# Full boot probe.
+node acceptance/verify-workspace-image.mjs --image <pruned-candidate>
 ```
 
-A prune change is acceptable only when `verify-runtime-paths.sh` reports zero unexpected dangling
-links, the bundle count is unchanged, and the boot probe still passes. Run the check before and
-after; a size reduction without both records is not evidence.
+A prune change is acceptable only when `verify-runtime-paths.sh --expect-pruned` reports zero
+unexpected dangling links, the bundle count is unchanged, and the boot probe still passes. Run the
+check before and after; a size reduction without both records is not evidence.

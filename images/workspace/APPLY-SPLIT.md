@@ -1,208 +1,107 @@
 # Splitting `apply-plus.sh` into source-build and profile phases
 
-Status: analysis and a precise patch plan. The production chain is unchanged; the implemented
-read-only part is `scripts/apply-plus-preflight.sh`, which reports which phases a build would run
-and defines the marker a future `--skip-build` must verify.
+Status: implemented (G6, 2026-11-26). The production DataOps build stays untouched; this page
+describes the monorepo implementation and the measurements taken against local candidate images.
 
-## Why the current chain cannot skip the official build
+## Phase contract
 
-`context/apply-plus.sh` runs one `dsh-plus apply` at line 103. That call owns four phases:
+`dsh-plus apply` used to own four phases in one call: profile workspace setup and `pnpm install`,
+source patch application, `pnpm install` in the source tree, and `pnpm run build:official`. The
+CLI now accepts `--skip-build`, which keeps the profile work and refuses to touch the source
+build:
 
-| Phase | Owner | Cost driver |
+| Phase | Owner | Command |
 | --- | --- | --- |
-| Profile workspace setup and `pnpm install` | `applySelectedPatches` (`apply.ts:734`) | profile install, 805MB result |
-| Source patch application (`git apply --3way`) | `applySelectedPatches` | 23 source patches |
-| `pnpm install` in the source tree | `applySelectedPatches` | 2.46GB `source-deps` layer is reused, install after patches is not |
-| `pnpm run build:official` | `applySelectedPatches` (`apply.ts:755`) | the phase a pin-only rebuild should skip |
+| Source patches, source `pnpm install`, `build:official`, marker | `dsh-plus apply` (full) | `apply-plus.sh --phase source` |
+| Profile install, patch materialization, profile link, lock | `dsh-plus apply --skip-build` | `apply-plus.sh --phase profile` |
+| Both, in the original order | `apply-plus.sh` default | `apply-plus.sh` / `--phase full` |
 
-`runApply` rebuilds whenever the selected patch set contains any `dsh-source` patch:
+`--skip-build` does not run `pnpm install` in the source tree and does not invoke
+`build:official`. It still runs the profile half: `prepareSelection` installs profile dependencies,
+`applySelectedPatches` materializes the profile patch set, and `linkOfficialPackages` rebuilds the
+profile's `@deepseek-ai` scope.
 
-```ts
-if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
-  if (sourceFiles.length > 0) runPnpm(dshRoot, ['install', '--no-frozen-lockfile'], ...)
-  runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
+## Build marker
+
+A full apply writes `/opt/dsh-source/.dataops-official-build.json` after `build:official`
+succeeds:
+
+```json
+{
+  "sourceRevision": "<40-hex git HEAD>",
+  "patchsetDigest": "<sha256 over the selected source patch ids, files, base revisions and bytes>",
+  "builtAt": "<ISO-8601>"
 }
 ```
 
-The condition is on the *selection*, not on `pendingSourcePatchFiles`, so a second `apply` against
-an already-patched tree still rebuilds. `parseApplyArguments` (`apply.ts:859`) accepts only
-`--dsh-root`; there is no `--skip-build` and no profile-only command. A script-only split therefore
-cannot avoid the build; it would either duplicate `apply`'s profile work or silently ship stale
-`lib/` output.
+The digest is the same row list `scripts/apply-plus-preflight.sh` computes, sorted by patch id.
+`--skip-build` fails closed unless all four facts hold:
 
-The patch-set lock (`.dsh-plus/patchset.lock.json`) is written inside the profile directory, which
-is created in the same Docker layer as the build. A real two-stage split must copy that lock and the
-built source tree into the profile stage, and must prove the build matches the selected patch set.
+1. every selected source patch is already applied (the CLI marks them applied after a full run);
+2. the marker revision equals `git rev-parse HEAD`;
+3. the marker digest equals the digest of the patch files the installed distribution selects now;
+4. `apps/cli/lib/bin.js` and `packages/client/ui-chat/lib/client.js` exist.
 
-## Option A — `--skip-build` in the Plus CLI (recommended)
+The CLI writes the marker because it already owns the selection and the build; an external writer
+would have to duplicate the digest and could drift. `scripts/apply-plus-preflight.sh` stays the
+read-only check: it reports `skip-build-safe` only when the marker matches.
 
-This is the smallest change that preserves one owner for patch/profile semantics. It touches
-`packages/bundle/plus/src/apply.ts` and then `context/apply-plus.sh`; `context/apply-plus.sh` is
-mirrored, so the DataOps copy must change in the same commit or `check-parity.sh` goes red.
+`--skip-build` authenticates with the marker instead of re-probing each patch with `git apply`.
+The build's existing cleanup removes `tests/`, `docs/` and other paths that some patches touch, so
+per-patch reverse application cannot classify those patches after the source phase even though the
+built tree is exact. A re-run of the *full* apply on an already-cleaned image still fails for that
+reason; the staged entry avoids it by running `--phase source` before cleanup and `--phase profile`
+afterward with the marker.
 
-### 1. `apply.ts`
+## Script phases
 
-```diff
- interface ApplyArguments {
-   dshRoot: string
-   profileDirectory: string
-+  skipBuild: boolean
- }
+`context/apply-plus.sh` accepts `--phase full|source|profile`, `--skip-build`, and the environment
+forms `APPLY_PLUS_PHASE` and `APPLY_PLUS_SKIP_BUILD`. The default remains `full`, so the existing
+single-call semantics are unchanged.
 
- function applySelectedPatches(
-   profileDirectory: string,
-   dshRoot: string,
-   patches: readonly SelectedPatch[],
-   profileChanged: boolean,
-+  skipBuild: boolean,
- ): void {
-@@
-   if (materialized.patches.some(patch => patch.target.kind === 'dsh-source')) {
-     if (sourceFiles.length > 0) {
-       runPnpm(dshRoot, ['install', '--no-frozen-lockfile'], 'pnpm install after source patches')
-     }
--    runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
-+    if (skipBuild) {
-+      assertPrebuiltSource(dshRoot, materialized.patches)
-+    } else {
-+      runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
-+    }
-   }
- }
+- `source` runs the workspace setup, the source-level text patches, a full `dsh-plus apply`,
+  the compiled-bundle repair, and the build-only cleanup. It does not run the profile-only repairs.
+- `profile` runs the workspace setup, `dsh-plus apply --skip-build`, the compiled-bundle repair
+  (idempotent), the edition bundle restore, the lock assertion, and the slots flatten.
+- `full` runs both sets in the original order.
+
+## Docker stages
+
+`context/Dockerfile.plus-cli-src` now has:
+
+```text
+plus-inputs   Plus tarball metadata edits, global install, profile dependency rewrite
+  -> source-build   apply-plus.sh --phase source   (patches + build + marker + cleanup)
+  -> plus-build     apply-plus.sh --phase profile  (profile install/link + repairs)
+                    plus the rest of the existing layer
 ```
 
-`assertPrebuiltSource` checks the marker, the source revision, the patch-set digest, and the built
-entry points. The digest is the same one `scripts/apply-plus-preflight.sh` computes:
-
-```ts
-function assertPrebuiltSource(dshRoot: string, patches: readonly SelectedPatch[]): void {
-  const markerPath = resolve(dshRoot, '.dataops-official-build.json')
-  if (!existsSync(markerPath)) throw new Error('--skip-build needs ' + markerPath)
-  const marker = JSON.parse(readFileSync(markerPath, 'utf8')) as {
-    sourceRevision?: unknown
-    patchsetDigest?: unknown
-  }
-  const sourceRows = patches
-    .filter((patch): patch is SelectedSourcePatch => patch.target.kind === 'dsh-source')
-    .map(patch => ({
-      id: patch.id,
-      file: patch.file,
-      baseRevision: patch.target.baseRevision,
-      sha256: sha256File(patch.absoluteFile),
-    }))
-    .sort((left, right) => left.id.localeCompare(right.id))
-  const digest = sha256Text(JSON.stringify(sourceRows))
-  if (marker.patchsetDigest !== digest) throw new Error('--skip-build patch set differs from the prebuilt marker')
-  if (!existsSync(resolve(dshRoot, 'apps/cli/lib/bin.js'))) throw new Error('--skip-build: apps/cli/lib/bin.js is missing')
-}
-```
-
-`parseApplyArguments` becomes a loop that accepts the flag:
-
-```diff
--  for (let index = 1; index < argv.length; index += 2) {
--    const key = argv[index]
--    const value = argv[index + 1]
--    if (key !== '--dsh-root' || value === undefined) throw new Error('usage: ...')
--    dshRoot = resolve(value)
--  }
-+  let skipBuild = false
-+  for (let index = 1; index < argv.length; index += 1) {
-+    const key = argv[index]
-+    if (key === '--skip-build') { skipBuild = true; continue }
-+    const value = argv[index + 1]
-+    if (key !== '--dsh-root' || value === undefined) throw new Error('usage: ...')
-+    dshRoot = resolve(value)
-+    index += 1
-+  }
-   if (dshRoot === undefined) throw new Error('usage: ...')
--  return { dshRoot, profileDirectory: process.cwd() }
-+  return { dshRoot, profileDirectory: process.cwd(), skipBuild }
-```
-
-`runApply` passes `skipBuild` to `applySelectedPatches`.
-
-### 2. `apply-plus.sh`
-
-Accept `--skip-build`, write the marker after a successful full apply, and pass the flag through:
-
-```diff
--set -eux
-+set -eux
-+skip_build=0
-+case "${1:-}" in
-+  --skip-build) skip_build=1 ;;
-+  "") ;;
-+  *) echo "usage: apply-plus.sh [--skip-build]" >&2; exit 2 ;;
-+esac
-@@
--npm_config_registry="..." dsh-plus apply --dsh-root /opt/dsh-source
-+apply_args=(apply --dsh-root /opt/dsh-source)
-+[ "$skip_build" = "1" ] && apply_args+=(--skip-build)
-+npm_config_registry="..." dsh-plus "${apply_args[@]}"
-+
-+if [ "$skip_build" = "0" ]; then
-+  node /usr/local/lib/write-build-marker.mjs \
-+    --source /opt/dsh-source \
-+    --distribution /usr/local/lib/node_modules/@sparkelf/dsh-plus \
-+    --profile /opt/dsh-home/profiles/dataops-web
-+fi
-```
-
-`write-build-marker.mjs` reads `.dsh-plus/patchset.lock.json`, hashes each selected source patch
-file as above, runs `git -C /opt/dsh-source rev-parse HEAD`, and writes
-`{sourceRevision, patchsetDigest, builtAt}` atomically. Keeping the marker writer outside the
-tarball means a Plus release does not need a second CLI change.
-
-### 3. Docker layer split
-
-```dockerfile
-# stage 1: source tree, patches, official build, marker
-FROM source-deps AS source-build
-COPY ... (existing plus install inputs)
-RUN bash /usr/local/bin/apply-plus.sh
-# prune build-only paths here, while the same layer owns the deleted bytes
-
-# stage 2: profile, pins, post-apply fixes, no official build
-FROM source-build AS plus-build
-RUN bash /usr/local/bin/apply-plus.sh --skip-build
-```
-
-A pin-only change still invalidates stage 1 because the Plus tarball is a `COPY` input. Reaching
-the 5-minute target needs the patch packages extracted in an earlier stage keyed only by patch
-bytes, with stage 1 copying that directory instead of the whole tarball. That extraction step is a
-second change; measure it before claiming the target.
-
-## Option B — restate the target
-
-If the CLI change is not approved, the acceptance target must say: "`source-deps` hits; `apply`
-still runs." That is the current behavior and `scripts/apply-plus-preflight.sh` reports it as
-`full-build-required`. Do not claim a 5-minute pin-only rebuild in this state.
+The final stage keeps the name `plus-build`, so `docker build --target plus-build`, the bake
+`plus` target and `scripts/build-workspace-final.sh` keep their existing entry and tags. The new
+intermediate target is `source-build` in both the Dockerfile and `docker-bake.hcl`;
+`scripts/build-plus-staged.sh` builds the two stages separately and prints each stage's wall time.
 
 ## Acceptance
 
 ```bash
 cd images/workspace
 
-# 1. Current candidate: expect full-build-required, 23 source patches, 26 bundles.
-./scripts/apply-plus-preflight.sh --image dataops-ai-workspace-candidate:local --json /tmp/preflight.json
+# 1. A pre-G6 image: expect full-build-required and no marker.
+./scripts/apply-plus-preflight.sh --image <candidate> --json /tmp/preflight-before.json
 
-# 2. After the patch, rebuild the source stage and inspect the marker.
-docker run --rm --entrypoint sh <candidate> -c 'cat /opt/dsh-source/.dataops-official-build.json'
+# 2. After a full or source phase: the marker must match and the verdict must be skip-build-safe.
+./scripts/apply-plus-preflight.sh --image <source-build-image> --json /tmp/preflight-after.json
 
-# 3. Re-run apply with --skip-build in a disposable container; it must not invoke build:official.
-docker run --rm --entrypoint sh <candidate> -c 'bash /usr/local/bin/apply-plus.sh --skip-build'
-docker run --rm --entrypoint sh <candidate> -c 'grep -c "build:official" /tmp/apply.log || true'
+# 3. Profile phase: it must not invoke build:official or a source pnpm install.
+docker run --rm --entrypoint sh <source-build-image> -c \
+  'PATH=/tmp/pnpm-shim:$PATH bash /usr/local/bin/apply-plus.sh --phase profile'
 
-# 4. Negative: change one patch file's bytes, then --skip-build must fail with a digest mismatch.
-# 5. Default chain: build without the flag; the log must still contain the official build, and
-#    verify-runtime-paths.sh must pass with 26 bundles.
-
-# 6. Measure the pin-only path with a warm BuildKit cache; record stage time and `docker images`.
-time docker build --network host -f context/Dockerfile.plus-cli-src \
-  --build-arg BASE_IMAGE=<repo>:base-py312 ... context
+# 4. Negative: change one patch file's bytes; --skip-build must fail with a digest mismatch.
+# 5. Default chain: build without a phase flag; the log must still contain the official build and
+#    verify-runtime-paths.sh must pass with the same bundle count.
 ```
 
-A change is acceptable only when the default chain still builds from source, the negative marker
-test fails closed, and a pin-only rebuild is measured at or below 5 minutes. Until then the target
-stays unmeasured, as the gap record says.
+The pin-only target of five minutes is still unmeasured. A pin-only change edits the Plus tarball,
+which is a `COPY` input of the source stage, so the source stage re-runs even though the patch bytes
+are unchanged. Isolating patch bytes in a separate extraction stage is a second change; stage
+timings from `build-plus-staged.sh` are the evidence to decide whether to make it.

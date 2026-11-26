@@ -12,12 +12,14 @@ images/workspace/
 ├── inputs.lock.json           digests of the mirror and of the artifacts a build must supply
 ├── context/                   docker build context, mirrors infra/docker-workspace
 │   ├── Dockerfile             base layer (Node 26 + Python 3.12 + LibreOffice + Playwright)
-│   ├── Dockerfile.plus-cli-src  source-deps + plus-build
+│   ├── Dockerfile.plus-cli-src  plus-inputs + source-build + plus-build
 │   ├── Dockerfile.runtime-cli   runtime layer
-│   ├── apply-plus.sh          source patches, one official build, gates, profile install
+│   ├── apply-plus.sh          分阶段 source patch/构建与 profile 安装
+│   ├── runtime-prune.sh       可选 build-only 裁剪（RUNTIME_PRUNE=1）
 │   └── ...                    scripts and inputs copied by those three files
 ├── scripts/
 │   ├── build-workspace-final.sh  three-layer build entry
+│   ├── build-plus-staged.sh      source-build / plus-build 分阶段测量入口
 │   ├── prepare-inputs.sh         supply and verify the untracked build artifacts
 │   └── check-parity.sh           digest comparison against the DataOps source tree
 └── acceptance/
@@ -43,8 +45,10 @@ base            Dockerfile --target workspace-base
                 Python 3.12 + Node 26.13.1 + npm 12 + LibreOffice 25.8.7
                 + Playwright 1.57.0/Chromium r1200 + OfficeCLI + Python libraries
   -> source-deps  Dockerfile.plus-cli-src stage 1: unpack dsh-src.tar.gz, pnpm install
-  -> plus-build   stage 2: Plus tarball metadata edits, global install, apply-plus.sh
-                  (source patches -> one official build:official -> run-gates -> profile install)
+  -> plus-inputs  Plus tarball metadata edits and global install
+  -> source-build apply-plus.sh --phase source: patches -> one official build -> marker
+  -> plus-build   apply-plus.sh --phase profile: profile install/link, no rebuild
+                  (最终阶段保留原名称和原 tag)
   -> runtime      Dockerfile.runtime-cli: entrypoint, workspace gateway, dataops-dsh-service, sshd
   -> final-YYYYMMDD-HHMM, plus final and local aliases
 ```
@@ -74,6 +78,7 @@ cd images/workspace
 | `DSH_SOURCE_REGISTRY`、`DSH_PLUS_INSTALL_REGISTRY` | 源码安装与 Plus 安装使用的 npm 镜像 |
 | `DATAOPS_PROFILE_DEFAULTS` | Provider 目录：云端镜像用 `cordis.patch.yml`，自托管 arm 盒子用 `cordis.local-qwen.patch.yml` |
 | `SKIP_BASE=1` | DSH 单独升级时复用现有 `base-py312` 镜像 |
+| `RUNTIME_PRUNE=1` | 可选：在最终阶段裁剪 `RUNTIME-PRUNE.md` 列出的 build-only 路径；默认 `0` |
 | `HTTP_PROXY`、`HTTPS_PROXY`、`NO_PROXY` | 透传给 Plus 阶段 |
 
 ## 缓存
@@ -101,7 +106,7 @@ cd images/workspace
 | Plus 层增量 | 比 LibreOffice 迁入 base 前低 >= 700MB | plus 11.5GB，base 4.84GB |
 | 可写层 | < 50MB，测量前排除 `/tmp/dsh-workspace-changes-*` | 2.2GB，其中约 2.09GB 是运行期 `/tmp` |
 | 每用户 `/workspace` volume | < 2GB | 3.2GB |
-| 只改 pin 构建 | <= 5 分钟，`apply-plus.sh` 拆分前无法达到 | 未测 |
+| 只改 pin 构建 | <= 5 分钟；`--skip-build` 已实现，分阶段耗时仍未测 | 拆分已实现，pin-only 路径未测 |
 | 源码/patch 构建 | 热缓存 <= 15 分钟 | 未测 |
 | base 构建 | 热缓存 <= 25 分钟 | 未测 |
 | DSH ready | 热节点 10-15 秒，冷节点 30-60 秒 | 未测 |

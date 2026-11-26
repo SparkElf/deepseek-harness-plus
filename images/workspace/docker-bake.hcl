@@ -45,6 +45,10 @@ variable "DATAOPS_PROFILE_DEFAULTS" {
   default = "cordis.patch.yml"
 }
 
+variable "RUNTIME_PRUNE" {
+  default = "0"
+}
+
 variable "PLATFORMS" {
   default = "linux/amd64"
 }
@@ -82,6 +86,34 @@ target "base" {
   cache-to   = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/base,mode=max"] : []
 }
 
+target "source-build" {
+  context    = "./context"
+  dockerfile = "Dockerfile.plus-cli-src"
+  target     = "source-build"
+  # Intermediate stage: patches, official build and marker. Kept as a first-class target so a
+  # source-only rebuild can be built, inspected and cached without producing the final layer.
+  depends_on = ["base"]
+  tags       = ["${IMAGE_REPOSITORY}:source-build-${DSH_PLUS_VERSION}"]
+  platforms  = [PLATFORMS]
+  contexts = {
+    "workspace-web-gateway-protocol" = "./context/workspace-web-gateway-protocol"
+  }
+  args = {
+    BASE_IMAGE                = "${IMAGE_REPOSITORY}:base-py312"
+    DSH_PLUS_VERSION          = DSH_PLUS_VERSION
+    DSH_SOURCE_REVISION       = DSH_SOURCE_REVISION
+    DSH_SOURCE_REGISTRY       = DSH_SOURCE_REGISTRY
+    DSH_PLUS_INSTALL_REGISTRY = DSH_PLUS_INSTALL_REGISTRY
+    DATAOPS_PROFILE_DEFAULTS  = DATAOPS_PROFILE_DEFAULTS
+    RUNTIME_PRUNE             = "0"
+    HTTP_PROXY                = HTTP_PROXY
+    HTTPS_PROXY               = HTTPS_PROXY
+    NO_PROXY                  = NO_PROXY
+  }
+  cache-from = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/plus-source"] : []
+  cache-to   = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/plus-source,mode=max"] : []
+}
+
 target "plus" {
   context    = "./context"
   dockerfile = "Dockerfile.plus-cli-src"
@@ -102,6 +134,7 @@ target "plus" {
     DSH_SOURCE_REGISTRY       = DSH_SOURCE_REGISTRY
     DSH_PLUS_INSTALL_REGISTRY = DSH_PLUS_INSTALL_REGISTRY
     DATAOPS_PROFILE_DEFAULTS  = DATAOPS_PROFILE_DEFAULTS
+    RUNTIME_PRUNE             = RUNTIME_PRUNE
     HTTP_PROXY                = HTTP_PROXY
     HTTPS_PROXY               = HTTPS_PROXY
     NO_PROXY                  = NO_PROXY
