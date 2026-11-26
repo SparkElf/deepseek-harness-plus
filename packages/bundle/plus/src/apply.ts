@@ -9,10 +9,12 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import { readPatchSet, type PatchSetEntry } from './patch-set.ts'
 import { writeProfileCompatibility } from './manifest.ts'
@@ -22,6 +24,16 @@ import { satisfies, valid, validRange } from 'semver'
 import { parseDocument } from 'yaml'
 
 const FORMAT_VERSION = 1
+
+/** Marker proving the source tree was built from the currently selected source patch set. */
+const BUILD_MARKER = '.dataops-official-build.json'
+
+/** Contract `scripts/apply-plus-preflight.sh` reads before it recommends a skip-build run. */
+interface BuildMarker {
+  sourceRevision: string
+  patchsetDigest: string
+  builtAt: string
+}
 
 interface InstalledPackage {
   name: string
@@ -60,7 +72,8 @@ interface ParsedVariant {
   target: NpmTarget | SourceTarget
 }
 
-interface SelectedNpmPatch {
+/** One npm package patch selected for the installed graph. */
+export interface SelectedNpmPatch {
   id: string
   patchPackage: { name: string; version: string }
   file: string
@@ -68,7 +81,8 @@ interface SelectedNpmPatch {
   target: { kind: 'npm'; name: string; version: string }
 }
 
-interface SelectedSourcePatch {
+/** One official-source patch selected for the exact DSH checkout. */
+export interface SelectedSourcePatch {
   id: string
   patchPackage: { name: string; version: string }
   file: string
@@ -77,7 +91,8 @@ interface SelectedSourcePatch {
   alreadyApplied: boolean
 }
 
-type SelectedPatch = SelectedNpmPatch | SelectedSourcePatch
+/** A patch the installed distribution selects for this DSH version and package graph. */
+export type SelectedPatch = SelectedNpmPatch | SelectedSourcePatch
 
 function isSelectedNpmPatch(patch: SelectedPatch): patch is SelectedNpmPatch {
   return patch.target.kind === 'npm'
@@ -251,12 +266,64 @@ function preflightSourcePatches(root: string, files: readonly string[]): void {
   }
 }
 
-function requireSourceBase(root: string, baseRevision: string): string {
-  const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
-  if (checkoutRevision !== baseRevision) {
-    throw new Error('DSH checkout must be exact official base ' + baseRevision + ', found ' + checkoutRevision)
+/**
+ * Read the build marker a source phase left in the checkout.
+ * @param root - Official checkout that may carry the marker.
+ * @returns The validated marker, or `undefined` when the phase never wrote one.
+ */
+function readBuildMarker(root: string): BuildMarker | undefined {
+  const markerPath = resolve(root, BUILD_MARKER)
+  if (!existsSync(markerPath)) return undefined
+  const parsed: unknown = JSON.parse(readFileSync(markerPath, 'utf8'))
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(markerPath + ' must be a JSON object')
   }
-  return checkoutRevision
+  const marker = parsed as Record<string, unknown>
+  const sourceRevision = requireString(marker.sourceRevision, markerPath + ' sourceRevision')
+  if (!/^[0-9a-f]{40}$/.test(sourceRevision)) {
+    throw new Error(markerPath + ' sourceRevision must be a 40-hex commit id, found ' + sourceRevision)
+  }
+  return {
+    sourceRevision,
+    patchsetDigest: requireString(marker.patchsetDigest, markerPath + ' patchsetDigest'),
+    builtAt: requireString(marker.builtAt, markerPath + ' builtAt'),
+  }
+}
+
+/**
+ * Resolve the checkout revision the current phase may operate on.
+ *
+ * A full apply needs `.git` because it applies patches and builds in that checkout. A
+ * `--skip-build` phase may run after the source phase pruned `.git`; there the build marker is the
+ * only remaining record of the built revision, so it must name the distribution's official base.
+ *
+ * @param root - Official checkout the profile links into.
+ * @param baseRevision - Exact official base the installed distribution declares.
+ * @param skipBuild - Whether the caller runs the profile half only.
+ * @returns The checkout revision both halves agree on.
+ */
+function requireSourceBase(root: string, baseRevision: string, skipBuild: boolean): string {
+  if (existsSync(resolve(root, '.git'))) {
+    const checkoutRevision = requireString(git(root, ['rev-parse', 'HEAD']), 'DSH checkout revision')
+    if (checkoutRevision !== baseRevision) {
+      throw new Error('DSH checkout must be exact official base ' + baseRevision + ', found ' + checkoutRevision)
+    }
+    return checkoutRevision
+  }
+  if (!skipBuild) {
+    throw new Error('DSH checkout at ' + root + ' has no .git; run --phase source before a full apply')
+  }
+  const marker = readBuildMarker(root)
+  if (marker === undefined) {
+    throw new Error('DSH checkout at ' + root + ' has no .git and no ' + BUILD_MARKER
+      + '; run --phase source first')
+  }
+  if (marker.sourceRevision !== baseRevision) {
+    throw new Error('DSH checkout marker revision ' + marker.sourceRevision
+      + ' is not the official base ' + baseRevision)
+  }
+  console.log('[dsh-plus] checkout has no .git; the build marker authenticates ' + marker.sourceRevision)
+  return marker.sourceRevision
 }
 
 
@@ -338,6 +405,7 @@ function prepareSelection(
   distributionDirectory: string,
   profileDirectory: string,
   dshRoot: string,
+  skipBuild: boolean,
 ): {
   lock: Record<string, unknown>
   patches: SelectedPatch[]
@@ -345,6 +413,7 @@ function prepareSelection(
   runtimePackages: RuntimePackage[]
   profileDependencies: RuntimePackage[]
   allowBuilds: Record<string, boolean>
+  sourceRevision: string
 } {
   const distributionManifest = readJsonObject(resolve(distributionDirectory, 'package.json'), 'Plus distribution manifest')
   const distributionName = requireString(distributionManifest.name, 'Plus distribution name')
@@ -391,7 +460,7 @@ function prepareSelection(
   if (!satisfies(dshVersion, dshRange, { includePrerelease: true })) {
     throw new Error(distributionName + '@' + distributionVersion + ' requires DSH ' + dshRange + ', found ' + dshVersion)
   }
-  const checkoutRevision = requireSourceBase(dshRoot, baseRevision)
+  const checkoutRevision = requireSourceBase(dshRoot, baseRevision, skipBuild)
   // Legacy tarballs declare `dshPlus.patchPackages` (dshPatch carrier packages); the current
   // distribution declares `dshPlus.patchSet` with the patch files inside the Plus package.
   const variants = plus.patchPackages === undefined
@@ -411,17 +480,22 @@ function prepareSelection(
 
   const sourceStates = new Map<string, ReturnType<typeof sourcePatchState>>()
   const orderedGroups = [...groups].sort(([left], [right]) => left.localeCompare(right))
-  for (const [, variants] of orderedGroups) {
-    for (const variant of variants) {
-      if (variant.target.kind !== 'dsh-source'
-        || variant.target.baseRevision !== baseRevision
-        || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
-      const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
-      sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+  // `--skip-build` authenticates the source result with the build marker, not with per-patch
+  // reverse application: the build's own cleanup removes tests/docs that some patches touch, so
+  // `git apply --check` can no longer classify those patches even though the built tree is exact.
+  if (!skipBuild) {
+    for (const [, variants] of orderedGroups) {
+      for (const variant of variants) {
+        if (variant.target.kind !== 'dsh-source'
+          || variant.target.baseRevision !== baseRevision
+          || !satisfies(dshVersion, variant.dsh, { includePrerelease: true })) continue
+        const file = resolvePatchFile(variant.patchPackage.directory, variant.file)
+        sourceStates.set(file.absoluteFile, sourcePatchState(dshRoot, file.absoluteFile))
+      }
     }
+    const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
+    preflightSourcePatches(dshRoot, pendingSourceFiles)
   }
-  const pendingSourceFiles = [...sourceStates].flatMap(([file, state]) => state === 'pending' ? [file] : [])
-  preflightSourcePatches(dshRoot, pendingSourceFiles)
 
   writeProfileRequirements(profileDirectory, profileDependencySpecs, allowBuilds)
   writeProfileCompatibility(profileDirectory, compatibilityExemptions, dshVersion)
@@ -452,7 +526,7 @@ function prepareSelection(
           file: file.relativeFile,
           absoluteFile: file.absoluteFile,
           target: { kind: 'dsh-source', baseRevision },
-          alreadyApplied: sourceStates.get(file.absoluteFile) === 'applied',
+          alreadyApplied: skipBuild || sourceStates.get(file.absoluteFile) === 'applied',
         }]
       }
       const targetDirectory = variant.target.name in profileDependencySpecs ? profileDirectory : distributionDirectory
@@ -486,6 +560,7 @@ function prepareSelection(
     runtimePackages,
     profileDependencies,
     allowBuilds,
+    sourceRevision: checkoutRevision,
     lock: {
       formatVersion: FORMAT_VERSION,
       distribution: { name: distributionName, version: distributionVersion },
@@ -731,11 +806,117 @@ function pendingSourcePatchFiles(patches: readonly SelectedPatch[]): string[] {
     : [])
 }
 
+/**
+ * Digest of the source half of a patch selection.
+ *
+ * The row set matches `scripts/apply-plus-preflight.sh`: one row per selected `dsh-source`
+ * patch with its id, distribution-relative file, base revision, and payload bytes, sorted by
+ * id. Hashing the sorted JSON keeps the digest independent of selection order.
+ *
+ * @param patches - Selected patches, after or before materialization; payload bytes are equal.
+ * @returns Lowercase hex SHA-256 of the canonical row list.
+ */
+export function sourcePatchsetDigest(patches: readonly SelectedPatch[]): string {
+  const rows = patches
+    .filter((patch): patch is SelectedSourcePatch => patch.target.kind === 'dsh-source')
+    .map(patch => ({
+      id: patch.id,
+      file: patch.file,
+      baseRevision: patch.target.baseRevision,
+      sha256: createHash('sha256').update(readFileSync(patch.absoluteFile)).digest('hex'),
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id))
+  return createHash('sha256').update(JSON.stringify(rows)).digest('hex')
+}
+
+/**
+ * Write the build marker after `build:official` succeeds.
+ * @param dshRoot - Built official checkout.
+ * @param sourceRevision - Its `git rev-parse HEAD`, already checked against the distribution.
+ * @param patches - Selected patches whose source half the build now contains.
+ * @returns Absolute marker path.
+ */
+export function writeBuildMarker(
+  dshRoot: string,
+  sourceRevision: string,
+  patches: readonly SelectedPatch[],
+): string {
+  const path = resolve(dshRoot, BUILD_MARKER)
+  const marker: BuildMarker = {
+    sourceRevision,
+    patchsetDigest: sourcePatchsetDigest(patches),
+    builtAt: new Date().toISOString(),
+  }
+  const temporary = path + '.tmp'
+  writeFileSync(temporary, JSON.stringify(marker, undefined, 2) + '\n')
+  renameSync(temporary, path)
+  return path
+}
+
+/**
+ * Refuse `--skip-build` unless the checkout still carries the exact prebuilt result.
+ *
+ * Four facts have to agree: every selected source patch is already applied, the marker
+ * belongs to the checkout revision, the marker's digest covers the same patch bytes the
+ * distribution selects now, and the build entry points exist. Skipping any one of them
+ * would ship stale `lib/` output under a patch set that no longer matches it.
+ *
+ * When the source phase pruned `.git`, the marker is the only revision record left; the caller
+ * passes the revision it already resolved from that marker and the distribution base.
+ *
+ * @param dshRoot - Official checkout the profile links into.
+ * @param patches - Selected patches, materialized into the profile.
+ * @param pendingFiles - Selected source patch payloads git still reports as unapplied.
+ * @param expectedRevision - Revision `prepareSelection` verified against the official base.
+ */
+export function assertPrebuiltSource(
+  dshRoot: string,
+  patches: readonly SelectedPatch[],
+  pendingFiles: readonly string[],
+  expectedRevision?: string,
+): void {
+  if (pendingFiles.length > 0) {
+    throw new Error(
+      '--skip-build requires every selected source patch to be applied already; '
+      + String(pendingFiles.length) + ' still pending',
+    )
+  }
+  const marker = readBuildMarker(dshRoot)
+  if (marker === undefined) {
+    throw new Error('--skip-build needs ' + resolve(dshRoot, BUILD_MARKER) + ' from an earlier full apply')
+  }
+  const gitRevision = existsSync(resolve(dshRoot, '.git'))
+    ? requireString(git(dshRoot, ['rev-parse', 'HEAD']), 'built source revision')
+    : expectedRevision
+  if (gitRevision === undefined) {
+    throw new Error('--skip-build needs the checkout revision and ' + resolve(dshRoot, '.git') + ' is absent')
+  }
+  if (marker.sourceRevision !== gitRevision) {
+    throw new Error('--skip-build marker revision ' + marker.sourceRevision
+      + ' differs from checkout ' + gitRevision)
+  }
+  const digest = sourcePatchsetDigest(patches)
+  if (marker.patchsetDigest !== digest) {
+    throw new Error('--skip-build patch set differs from the prebuilt marker')
+  }
+  const entries = [
+    resolve(dshRoot, 'apps/cli/lib/bin.js'),
+    resolve(dshRoot, 'packages/client/ui-chat/lib/client.js'),
+  ]
+  const missing = entries.filter(entry => !existsSync(entry))
+  if (missing.length > 0) {
+    throw new Error('--skip-build prebuilt entry points are missing: ' + missing.join(', '))
+  }
+  console.log('[dsh-plus] skip-build verified ' + resolve(dshRoot, BUILD_MARKER) + ' (' + digest + ')')
+}
+
 function applySelectedPatches(
   profileDirectory: string,
   dshRoot: string,
   patches: readonly SelectedPatch[],
   profileChanged: boolean,
+  skipBuild: boolean,
+  sourceRevision: string,
 ): void {
   const materialized = materializePatchFiles(profileDirectory, patches)
   const workspacePath = resolve(profileDirectory, 'pnpm-workspace.yaml')
@@ -745,6 +926,13 @@ function applySelectedPatches(
     runPnpm(profileDirectory, ['install', '--no-frozen-lockfile'], 'pnpm install in Plus profile')
   }
   const sourceFiles = pendingSourcePatchFiles(materialized.patches)
+  if (skipBuild) {
+    // The source build belongs to the earlier phase. Applying a still-pending patch here or
+    // reinstalling the source tree would leave the marker describing different bytes than the
+    // `lib/` output the profile links, so both are refused instead of silently recomputed.
+    assertPrebuiltSource(dshRoot, materialized.patches, sourceFiles, sourceRevision)
+    return
+  }
   // Docker/overlay copy会使内容未变的文件stat失效；先刷新clean index项，脏文件仍由git apply判冲突。
   if (sourceFiles.length > 0) git(dshRoot, ['update-index', '--refresh'], true)
   for (const file of sourceFiles) git(dshRoot, ['apply', '--3way', file])
@@ -753,6 +941,8 @@ function applySelectedPatches(
       runPnpm(dshRoot, ['install', '--no-frozen-lockfile'], 'pnpm install after source patches')
     }
     runPnpm(dshRoot, ['run', 'build:official'], 'official DSH build after source patches')
+    const marker = writeBuildMarker(dshRoot, sourceRevision, materialized.patches)
+    console.log('[dsh-plus] wrote build marker ' + marker)
   }
 }
 
@@ -856,25 +1046,42 @@ function writeLock(profileDirectory: string, lock: Record<string, unknown>): str
   return path
 }
 
-function parseApplyArguments(argv: readonly string[]): { dshRoot: string; profileDirectory: string } {
-  if (argv[0] !== 'apply') throw new Error('usage: dsh-plus apply --dsh-root <official-dsh-root>')
+const APPLY_USAGE = 'usage: dsh-plus apply --dsh-root <official-dsh-root> [--skip-build]'
+
+function parseApplyArguments(argv: readonly string[]): {
+  dshRoot: string
+  profileDirectory: string
+  skipBuild: boolean
+} {
+  if (argv[0] !== 'apply') throw new Error(APPLY_USAGE)
   let dshRoot: string | undefined
-  for (let index = 1; index < argv.length; index += 2) {
+  let skipBuild = false
+  for (let index = 1; index < argv.length; index += 1) {
     const key = argv[index]
+    if (key === '--skip-build') {
+      skipBuild = true
+      continue
+    }
     const value = argv[index + 1]
-    if (key !== '--dsh-root' || value === undefined) throw new Error('usage: dsh-plus apply --dsh-root <official-dsh-root>')
+    if (key !== '--dsh-root' || value === undefined) throw new Error(APPLY_USAGE)
     dshRoot = resolve(value)
+    index += 1
   }
-  if (dshRoot === undefined) throw new Error('usage: dsh-plus apply --dsh-root <official-dsh-root>')
-  return { dshRoot, profileDirectory: process.cwd() }
+  if (dshRoot === undefined) throw new Error(APPLY_USAGE)
+  return { dshRoot, profileDirectory: process.cwd(), skipBuild }
 }
 
 /**
  * Apply the installed Plus distribution metadata from a DSH profile directory.
- * @param argv - Explicit `apply --dsh-root <path>` command arguments.
+ *
+ * A full run owns both phases: source patches, the official build and its marker, and the
+ * profile install/link. `--skip-build` runs the profile half only and verifies the marker a
+ * previous full run left in the checkout.
+ *
+ * @param argv - `apply --dsh-root <path>` plus optional `--skip-build`.
  */
 export function runApply(argv: readonly string[]): void {
-  const { dshRoot, profileDirectory } = parseApplyArguments(argv)
+  const { dshRoot, profileDirectory, skipBuild } = parseApplyArguments(argv)
   const profileManifest = readJsonObject(resolve(profileDirectory, 'package.json'), 'DSH profile manifest')
   const dependencies = requireObject(profileManifest.dependencies, 'DSH profile dependencies')
   if (dependencies['@sparkelf/dsh-plus'] === undefined) {
@@ -882,13 +1089,20 @@ export function runApply(argv: readonly string[]): void {
   }
   const distributionDirectory = dirname(createRequire(resolve(profileDirectory, 'package.json'))
     .resolve('@sparkelf/dsh-plus/package.json'))
-  const selection = prepareSelection(distributionDirectory, profileDirectory, dshRoot)
+  const selection = prepareSelection(distributionDirectory, profileDirectory, dshRoot, skipBuild)
   const profileChanged = writeProfileComposition(
     profileDirectory,
     selection.bundles,
     selection.runtimePackages,
   )
-  applySelectedPatches(profileDirectory, dshRoot, selection.patches, profileChanged)
+  applySelectedPatches(
+    profileDirectory,
+    dshRoot,
+    selection.patches,
+    profileChanged,
+    skipBuild,
+    selection.sourceRevision,
+  )
   linkOfficialPackages(profileDirectory, dshRoot)
   const installedProfileDependencies = requireObject(
     readJsonObject(resolve(profileDirectory, 'package.json'), 'DSH profile manifest').dependencies,

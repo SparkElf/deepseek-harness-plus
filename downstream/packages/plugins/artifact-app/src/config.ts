@@ -27,6 +27,18 @@ export interface Config {
   workspaceRoot: string
   /** Upstream timeout for one DataOps call. */
   requestTimeoutMs: number
+  /** Lifetime of one external login session (storageState + screenshot) in memory. */
+  externalSessionTtlMs: number
+  /** Maximum concurrent external login sessions; oldest sessions are evicted. */
+  externalMaxSessions: number
+  /** Overall budget for one Playwright login recipe. */
+  externalLoginTimeoutMs: number
+  /** Allow a headed browser when the user explicitly asks for it. */
+  externalHeadedEnabled: boolean
+  /** Playwright browser channel (for example `chrome`); empty uses the bundled browser. */
+  externalBrowserChannel: string
+  /** Admin-authored login recipes keyed by registry id; registry recipes take precedence. */
+  externalLoginRecipes: Record<string, unknown>
 }
 
 /** Schemastery parser for the artifact-app config. */
@@ -38,4 +50,10 @@ export const Config: z<Config> = z.object({
   injectRuntime: z.boolean().default(true),
   workspaceRoot: z.string().default('/workspace'),
   requestTimeoutMs: z.number().default(30_000),
+  externalSessionTtlMs: z.number().default(15 * 60_000),
+  externalMaxSessions: z.number().default(20),
+  externalLoginTimeoutMs: z.number().default(45_000),
+  externalHeadedEnabled: z.boolean().default(true),
+  externalBrowserChannel: z.string().default(''),
+  externalLoginRecipes: z.dict(z.any()).default({}),
 })

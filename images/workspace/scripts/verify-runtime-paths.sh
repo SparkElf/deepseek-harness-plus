@@ -14,20 +14,31 @@
 # It then prints the measured size of every path named in RUNTIME-PRUNE.md, so a prune change can
 # show what it would remove without deleting anything. Run it before and after a prune candidate.
 #
+# `--expect-pruned` additionally requires the optional runtime prune to have run: the
+# `.dataops-runtime-pruned` stamp must exist, every RUNTIME-PRUNE.md delete candidate must be
+# gone, and the `@deepseek-ai/website` link that prune leaves dangling is treated as known-inert.
+#
 # Usage:
 #   ./verify-runtime-paths.sh [--image <ref>] [--expect-dsh <version>] [--expect-plus <version>]
-#                            [--expect-bundles <count>]
+#                            [--expect-bundles <count>] [--expect-pruned]
 set -euo pipefail
 
 image="dataops-ai-workspace-candidate:local"
+container=""
 expect_dsh=""
 expect_plus=""
 expect_bundles=""
+expect_pruned=0
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --image)
       image="${2:?--image needs a value}"
+      container=""
+      shift
+      ;;
+    --container)
+      container="${2:?--container needs a value}"
       shift
       ;;
     --expect-dsh)
@@ -42,8 +53,11 @@ while [ "$#" -gt 0 ]; do
       expect_bundles="${2:?--expect-bundles needs a value}"
       shift
       ;;
+    --expect-pruned)
+      expect_pruned=1
+      ;;
     -h|--help)
-      sed -n '2,26p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '2,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -58,21 +72,40 @@ command -v docker >/dev/null 2>&1 || {
   echo "docker is required to inspect a runtime image" >&2
   exit 2
 }
-docker image inspect "$image" >/dev/null 2>&1 || {
-  echo "image not found: $image" >&2
-  exit 2
-}
+if [ -n "$container" ]; then
+  docker inspect -f '{{.State.Running}}' "$container" >/dev/null 2>&1 || {
+    echo "container not found: $container" >&2
+    exit 2
+  }
+  probe=(docker exec
+    -e "EXPECT_DSH=$expect_dsh"
+    -e "EXPECT_PLUS=$expect_plus"
+    -e "EXPECT_BUNDLES=$expect_bundles"
+    -e "EXPECT_PRUNED=$expect_pruned"
+    "$container" sh -c)
+  target="$container (container)"
+else
+  docker image inspect "$image" >/dev/null 2>&1 || {
+    echo "image not found: $image" >&2
+    exit 2
+  }
+  probe=(docker run --rm
+    -e "EXPECT_DSH=$expect_dsh"
+    -e "EXPECT_PLUS=$expect_plus"
+    -e "EXPECT_BUNDLES=$expect_bundles"
+    -e "EXPECT_PRUNED=$expect_pruned"
+    --entrypoint sh "$image" -c)
+  target="$image"
+fi
 
-echo "==> runtime path check: $image"
-docker run --rm \
-  -e EXPECT_DSH="$expect_dsh" \
-  -e EXPECT_PLUS="$expect_plus" \
-  -e EXPECT_BUNDLES="$expect_bundles" \
-  --entrypoint sh "$image" -c '
+echo "==> runtime path check: $target"
+"${probe[@]}" '
 set -eu
 profile=/opt/dsh-home/profiles/dataops-web
 source=/opt/dsh-source
 fail=0
+pruned=0
+[ -f "$source/.dataops-runtime-pruned" ] && pruned=1
 
 check_file() {
   if [ ! -e "$1" ]; then
@@ -134,6 +167,11 @@ known_inert() {
     "$profile/node_modules/@deepseek-ai/dsh-benchmarks" | \
       "$profile/node_modules/.bin/dsh-im" | \
       "$profile/node_modules/.bin/dsoffice") return 0 ;;
+    "$profile/node_modules/@deepseek-ai/website")
+      # Optional runtime prune deletes the linked website/ package; the link is inert.
+      [ "$pruned" -eq 1 ] && return 0
+      return 1
+      ;;
     *) return 1 ;;
   esac
 }
@@ -159,6 +197,36 @@ if [ "$unexpected" -ne 0 ]; then
   fail=1
 else
   echo "PASS profile symlinks resolve ($links checked, $dangling known-inert dangling)"
+fi
+
+if [ "${EXPECT_PRUNED:-0}" = "1" ]; then
+  if [ "$pruned" -ne 1 ]; then
+    echo "FAIL runtime prune stamp missing: $source/.dataops-runtime-pruned" >&2
+    fail=1
+  else
+    echo "INFO runtime prune stamp: $(cat "$source/.dataops-runtime-pruned")"
+  fi
+  for rel in .git .github snapshots scripts patches python website .gitlab-ci.yml .oxlintrc.json; do
+    if [ -e "$source/$rel" ]; then
+      echo "FAIL prune candidate still present: $source/$rel" >&2
+      fail=1
+    fi
+  done
+  src_dirs="$(find "$source/packages" -type d -name src -prune 2>/dev/null | wc -l)"
+  if [ "$src_dirs" -ne 0 ]; then
+    echo "FAIL prune left $src_dirs packages/**/src directories" >&2
+    fail=1
+  fi
+  tsbuildinfo="$(find "$source" -name '*.tsbuildinfo' -type f -not -path '*/node_modules/*' 2>/dev/null | wc -l)"
+  if [ "$tsbuildinfo" -ne 0 ]; then
+    echo "FAIL prune left $tsbuildinfo *.tsbuildinfo files" >&2
+    fail=1
+  fi
+  if [ "$fail" -eq 0 ]; then
+    echo "PASS runtime prune removed every declared build-only candidate"
+  fi
+elif [ "$pruned" -eq 1 ]; then
+  echo "INFO image was runtime-pruned; pass --expect-pruned to assert the candidate set"
 fi
 
 echo "==> sizes"

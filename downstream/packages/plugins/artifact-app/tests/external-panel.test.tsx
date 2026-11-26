@@ -150,4 +150,132 @@ describe('external cockpit panel', () => {
     expect(link.getAttribute('href')).toBe('https://cockpit.example/sales')
     expect(link.getAttribute('target')).toBe('_blank')
   })
+
+  it('selects a site credential, logs in headlessly and shows the screenshot', async () => {
+    const loginBodies: string[] = []
+    fetchMock(async (url, init) => {
+      if (url.pathname === '/dsh-artifact-app/external-cockpits') {
+        return jsonResponse({ items: [sales], total: 1 })
+      }
+      if (url.pathname.endsWith('/ext-1/credentials')) {
+        return jsonResponse({
+          cockpitId: 'ext-1',
+          credentialType: 'http',
+          siteOrigin: 'https://cockpit.example',
+          credentialServiceAvailable: true,
+          recipeAvailable: true,
+          recipeError: null,
+          headedEnabled: true,
+          credentials: [{
+            id: 'cred-1',
+            name: 'CRM 登录',
+            type: 'http',
+            authKind: 'basic',
+            username: 'alice',
+            origin: 'https://cockpit.example',
+            tags: [],
+            secretConfigured: true,
+          }],
+        })
+      }
+      if (url.pathname.endsWith('/ext-1/login')) {
+        loginBodies.push(String(init?.body ?? ''))
+        return jsonResponse({
+          ok: true,
+          sessionId: 'session-1234567890',
+          cockpitId: 'ext-1',
+          cockpitName: '销售驾驶舱',
+          credentialId: 'cred-1',
+          credentialName: 'CRM 登录',
+          mode: 'headless',
+          screenshotUrl: '/dsh-artifact-app/external-cockpits/ext-1/sessions/session-1234567890/screenshot?client=x',
+          expiresAt: new Date(Date.now() + 600_000).toISOString(),
+          stableUrl: 'https://cockpit.example/sales',
+        })
+      }
+      throw new Error('unexpected ' + url.pathname)
+    })
+
+    render(<ExternalCockpitPanel />)
+    await screen.findByText('销售驾驶舱')
+    fireEvent.click(screen.getByRole('button', { name: '登录并截图' }))
+    expect(await screen.findByText('CRM 登录')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '无头登录' }))
+
+    expect(await screen.findByText('已登录：销售驾驶舱')).toBeTruthy()
+    expect(screen.getByAltText('登录后的页面截图：销售驾驶舱')).toBeTruthy()
+    expect(screen.getByRole('link', { name: '打开原站' }).getAttribute('href')).toBe('https://cockpit.example/sales')
+    const body = JSON.parse(loginBodies[0] ?? '{}') as Record<string, unknown>
+    expect(body).toMatchObject({ credentialId: 'cred-1', mode: 'headless' })
+    expect(loginBodies[0]).not.toContain('password')
+  })
+
+  it('shows an MFA failure and retries with explicit headed mode', async () => {
+    const modes: string[] = []
+    fetchMock(async (url, init) => {
+      if (url.pathname === '/dsh-artifact-app/external-cockpits') {
+        return jsonResponse({ items: [sales], total: 1 })
+      }
+      if (url.pathname.endsWith('/ext-1/credentials')) {
+        return jsonResponse({
+          credentials: [{
+            id: 'cred-1',
+            name: 'CRM 登录',
+            type: 'http',
+            authKind: 'basic',
+            username: 'alice',
+            origin: 'https://cockpit.example',
+            tags: [],
+            secretConfigured: true,
+          }],
+          credentialServiceAvailable: true,
+          recipeAvailable: true,
+          headedEnabled: true,
+        })
+      }
+      if (url.pathname.endsWith('/ext-1/login')) {
+        const body = JSON.parse(String(init?.body ?? '{}')) as { mode?: string }
+        modes.push(body.mode ?? '')
+        if (modes.length === 1) {
+          return jsonResponse({
+            ok: false,
+            code: 'MFA_REQUIRED',
+            message: '目标站点要求多因素认证（MFA/短信/动态码）',
+            hint: '勾选有头模式后重试，并在浏览器窗口中完成 MFA。',
+            headedAvailable: true,
+          }, 409)
+        }
+        return jsonResponse({
+          ok: true,
+          sessionId: 'session-1234567890',
+          screenshotUrl: '/shot.png',
+          expiresAt: new Date(Date.now() + 600_000).toISOString(),
+          mode: 'headed',
+        })
+      }
+      throw new Error('unexpected ' + url.pathname)
+    })
+
+    render(<ExternalCockpitPanel />)
+    await screen.findByText('销售驾驶舱')
+    fireEvent.click(screen.getByRole('button', { name: '登录并截图' }))
+    await screen.findByText('CRM 登录')
+    fireEvent.click(screen.getByRole('button', { name: '无头登录' }))
+    expect(await screen.findByText(/MFA_REQUIRED/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '改用有头模式重试' }))
+    await waitFor(() => expect(modes).toEqual(['headless', 'headed']))
+    expect(await screen.findByText('已登录：销售驾驶舱')).toBeTruthy()
+  })
+
+  it('uses theme tokens for the screenshot stage and wraps actions in a 360-420px panel', async () => {
+    fetchMock(async () => jsonResponse({ items: [sales], total: 1 }))
+    render(<ExternalCockpitPanel />)
+    await screen.findByText('销售驾驶舱')
+    const css = Array.from(document.querySelectorAll('style')).map((node) => node.textContent ?? '').join('\n')
+    expect(css).not.toMatch(/background:\s*#000\b/iu)
+    expect(css).toContain('background: var(--dsw-alias-bg-base, #151517)')
+    expect(css).toContain('@media (max-width: 420px)')
+    expect(css).toContain('.dsh-xc__actions .dsh-xc__btn { flex: 1 1 auto; }')
+  })
+
 })

@@ -10,6 +10,7 @@ import { WorkbenchVault } from '@sparkelf/dsh-workbench-vault'
 import type {} from '@deepseek-ai/dsh-user-approval'
 import type { ToolDefinition } from '@deepseek-ai/dsh-tools'
 import { CredentialError, validationError } from './errors.ts'
+import { createCredentialHostService } from './service.ts'
 import { CredentialManagerStore } from './store.ts'
 import { CREDENTIAL_TEMPLATES } from './templates.ts'
 import { createCredentialTools } from './tools.ts'
@@ -17,6 +18,7 @@ import type { CredentialDraft, CredentialSecretInput } from './types.ts'
 
 export * from './types.ts'
 export * from './connectors.ts'
+export * from './service.ts'
 export { CREDENTIAL_TEMPLATES, defaultAuthKind, defaultConfigFor, describeEndpoint, templateFor } from './templates.ts'
 export { CredentialManagerStore, validateCredentialForTest } from './store.ts'
 export { createCredentialTools } from './tools.ts'
@@ -181,6 +183,10 @@ export function apply(ctx: CredentialContext, options: CredentialApplyOptions = 
       try { logger.info('[audit] dsh-credential-manager ' + JSON.stringify(event)) } catch { /* audit must not break the operation */ }
     },
   })
+
+  // Host-only seam for other plugins (for example the external cockpit login
+  // broker). It is never mounted on the HTTP API and never registered as a tool.
+  ctx.provide('credentialManager', createCredentialHostService(store))
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'prefix',

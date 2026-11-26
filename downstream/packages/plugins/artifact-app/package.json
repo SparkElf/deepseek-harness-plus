@@ -64,6 +64,8 @@
     "@deepseek-ai/dsh-skill": ">=0.1.7-rc.2",
     "@deepseek-ai/dsh-tools": ">=0.1.7-rc.2",
     "@deepseek-ai/dsh-user-approval": ">=0.1.7-rc.2",
+    "@deepseek-ai/schemastery": ">=3.18.2",
+    "playwright": ">=1.40.0",
     "react": ">=18.2.0 <20"
   },
   "devDependencies": {
@@ -76,11 +78,18 @@
     "@deepseek-ai/dsh-skill": "0.1.7-rc.2",
     "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
     "@deepseek-ai/dsh-user-approval": "0.1.7-rc.2",
+    "@deepseek-ai/schemastery": "3.18.2",
     "@types/node": "^22.0.0",
     "@types/react": "~18.3.1",
     "@types/react-dom": "^18.3.0",
+    "playwright": "1.62.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "tsdown": "^0.22.2"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
   }
 }

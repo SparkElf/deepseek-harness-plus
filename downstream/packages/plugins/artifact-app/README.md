@@ -1,6 +1,6 @@
 # @sparkelf/dsh-artifact-app
 
-DataOps 驾驶舱（Artifact App）在 DSH 右侧栏的入口：驾驶舱列表、沙箱查看器、HTML 文件预览、模板 / 组件 / 驾驶舱模型工具、外部驾驶舱注册表发现（M1）和 `artifact-app-authoring` 技能。
+DataOps 驾驶舱（Artifact App）在 DSH 右侧栏的入口：驾驶舱列表、沙箱查看器、HTML 文件预览、模板 / 组件 / 驾驶舱模型工具、外部驾驶舱注册表发现与 Host 登录（M1/M2）和 `artifact-app-authoring` 技能。
 
 ## 组成
 
@@ -16,6 +16,10 @@ DataOps 驾驶舱（Artifact App）在 DSH 右侧栏的入口：驾驶舱列表�
 | `GET /dsh-artifact-app/external-cockpits` | 外部驾驶舱注册表列表代理（search / tag / page / pageSize） |
 | `GET /dsh-artifact-app/external-cockpits/:id` | 外部驾驶舱详情代理 |
 | `POST /dsh-artifact-app/external-cockpits/:id/link` | 取稳定链接代理；只返回 HTTPS URL，不返回 ticket / Cookie |
+| `GET /dsh-artifact-app/external-cockpits/:id/credentials` | 按 `credential_type` + 站点 origin 列出 credential-manager 元数据；无 secret |
+| `POST /dsh-artifact-app/external-cockpits/:id/login` | Host 内 Playwright 登录；显式 `mode=headed` 才用有头；返回会话 id / 截图地址 |
+| `GET /dsh-artifact-app/external-cockpits/:id/sessions/:sessionId/screenshot` | 返回会话 PNG；会话按浏览器 client id 与 TTL 绑定 |
+| `DELETE /dsh-artifact-app/external-cockpits/:id/sessions/:sessionId` | 立即结束会话并清空 storageState / 截图 |
 
 ## 工具
 
@@ -68,7 +72,54 @@ POST /api/external-cockpits/:id/link
 - 后端返回体直接是对象（与 `/api/artifact-apps` 一致），不使用额外的 `{code,data}` 包装。
 - 若后端返回 401，插件沿用现有逻辑上报 `/integrations/dataops/auth-state` 的 `expired` 状态。
 
-M2（未实现）：凭据选择、Playwright / headless 登录、storageState TTL、launch ticket 消费、截图或实时查看器、headed 接管。本插件的 M1 工具和页面不会索取密码、Cookie 或 token，也不会把 launch ticket 回传给模型。
+## 外部驾驶舱（M2：凭据 + Host 登录 + 截图）
+
+M2 在 M1 的注册表发现之上增加一条最小闭环：
+
+```text
+用户点「登录并截图」
+→ 面板读取 /credentials（按 credential_type + 站点 origin 匹配）
+→ 用户选择凭据
+→ Host 从 credential-manager 的 Host-only service 读取 secret
+→ Playwright（默认 headless）新建隔离 context，执行 login recipe
+→ 成功：截图 + storageState（仅进程内存，TTL）→ 面板显示截图 / 打开原站
+→ 失败：MFA/验证码返回明确 code + headed 接管提示
+```
+
+### 登录 recipe
+
+Registry 详情可选返回 `loginRecipe`；否则使用插件配置 `externalLoginRecipes[<registry-id>]`（管理员在 cordis.yml 提供，模型和页面都不能写 recipe）：
+
+```json
+{
+  "version": 1,
+  "steps": [
+    { "action": "goto", "url": "{{url}}" },
+    { "action": "fill", "selector": "input[name=username]", "value": "{{username}}" },
+    { "action": "fill", "selector": "input[type=password]", "value": "{{password}}" },
+    { "action": "click", "selector": "button[type=submit]" },
+    { "action": "waitForURL", "pattern": "**/dashboard" }
+  ],
+  "success": { "selector": "[data-cockpit-ready]" },
+  "timeoutMs": 30000
+}
+```
+
+- 动作：`goto` / `fill` / `click` / `waitForSelector` / `waitForURL` / `wait`（`selector`、`url` 或 `ms` 之一）；
+- 占位符：`{{url}}`、`{{username}}`、`{{password}}`、`{{token}}`、`{{secret}}`、`{{secondary}}`；真实值只在 Host 内解析；
+- recipe 不允许任意 JS、任意 URL、控制字符或未闭合占位符；`goto` 只允许 `{{url}}` 或 allowlist 内的 HTTPS 绝对地址；
+- recipe 不是 secret 容器：管理员不要把密码/令牌写成字面量，凭据字段只用占位符。
+
+### 安全边界
+
+- 只接受注册表 id，不接受任意 URL；目标必须是 HTTPS，导航只允许 `allowedOrigins`（缺省为驾驶舱 origin）；
+- 每个登录新建 browser context；不共享 cookie jar；storageState / 截图只存 Host 内存，按 TTL 过期并可在面板「结束会话」立即清空；
+- 子资源只允许 HTTPS/WSS 与公网主机；loopback、私网、link-local、云元数据地址被拒绝；HTTP 一律拦截；
+- secret 不进入模型、页面、URL、日志或审计；审计只有 `cockpitId`、`credentialId`、模式、结果和耗时；
+- 默认 headless；`mode: "headed"` 必须由用户显式选择，且部署可用 `externalHeadedEnabled: false` 关闭；
+- 面板用随机 browser-session id 绑定会话；DSH Host 没有按用户主体验证的请求 seam，因此这不等同于多租户身份认证。
+
+M2 仍不包含：实时 CDP screencast、launch ticket 消费、DataOps 注册表写入 recipe 的 UI、MFA 的自动处理。M3 再评估实时查看与 headed 接管体验。
 
 ## 配置
 
@@ -84,6 +135,12 @@ M2（未实现）：凭据选择、Playwright / headless 登录、storageState T
         injectRuntime: true
         workspaceRoot: /workspace                   # html_path 的相对根
         requestTimeoutMs: 30000
+        externalSessionTtlMs: 900000                # 登录会话（截图/storageState）内存 TTL
+        externalMaxSessions: 20                     # 保留的会话上限，超出淘汰最旧
+        externalLoginTimeoutMs: 45000               # 单次 recipe 总预算
+        externalHeadedEnabled: true                 # false 时拒绝显式 headed
+        externalBrowserChannel: ''                  # 例如 chrome；空则用 Playwright 自带浏览器
+        externalLoginRecipes: {}                    # 可选：按 registry id 提供 M2 recipe
 ```
 
 ## 安全
@@ -93,11 +150,12 @@ M2（未实现）：凭据选择、Playwright / headless 登录、storageState T
 - 发布前校验 `window.artifactApp`、`artifactApp.ready()`、`data-slot="charts"`、无外链资源、≤ `htmlMaxBytes`；缺项返回 `TEMPLATE_CONTRACT_MISSING`。
 - 授权始终在 DataOps API：插件不复刻权限规则；技能按 `artifact-app:create` 披露。
 - 外部驾驶舱只接受注册表 id（`external.ts` 的 id 正则），拒绝 URL、路径和控制字符；所有目标链接只允许 `https:`。外部页面不使用 iframe，不用 Cookie，不把 ticket / secret 返回给模型。
+- M2 登录只从注册表详情或管理员配置读取 recipe；模型工具不新增登录入口，secret 不经过模型。Playwright 是可选 peer（`playwright` / `playwright-core`），未安装时返回 `BROWSER_UNAVAILABLE`，插件仍可加载。
 
 ## 开发
 
 ```bash
-npm test           # vitest：API mock、工具拒绝任意 URL / 非法 id、列表与空/错误态
+npm test           # vitest：API / 工具 / 面板 / broker（recipe、TTL、MFA、allowlist）/ 路由
 npm run build      # tsdown：lib/index.js + lib/client.js
 npm run typecheck
 ```

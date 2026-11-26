@@ -13,8 +13,9 @@
  *
  * Usage:
  *   node scripts/release-binding.mjs write --tag <repo>:<tag> [--path <file>] [--created-at <iso>]
+ *        [--build-entry <path>] [--pushed]
  *   node scripts/release-binding.mjs verify [--path <file>] [--image <tag>]
- *        [--require-inputs] [--require-image]
+ *        [--require-inputs] [--require-image] [--require-registry]
  *   node scripts/release-binding.mjs print [--path <file>]
  *
  * Environment:
@@ -23,6 +24,11 @@
  * The verifier recomputes the input digest only when the artifacts exist; a clean checkout can
  * still verify the structural contract and the recorded digests. `--require-inputs` turns a
  * missing artifact into a failure, and the build entry uses that form after a build.
+ *
+ * `--pushed` records registry evidence and is accepted only when Docker already stores a
+ * repo digest for the image's registry-qualified repository. A local image id is never promoted
+ * to a registry digest: without a registry-qualified push, omit the flag and the binding records
+ * the local repo digest with `pushed: false`.
  */
 import { createHash } from 'node:crypto'
 import { createReadStream, existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs'
@@ -78,6 +84,32 @@ function assertCandidateReference(tag) {
   }
   if (!CANDIDATE_PATTERN.test(repository)) {
     throw new BindingError(`refusing to bind ${repository}: the repository name does not carry "candidate"`)
+  }
+}
+
+/** Return the repository part of an image reference, dropping a trailing `:tag`. */
+function repositoryOf(tag) {
+  return tag.replace(/:[^/:]+$/, '')
+}
+
+/** True when the repository names a registry host, e.g. `registry.example.com/team/image`. */
+function isRegistryQualified(repository) {
+  const segments = repository.split('/')
+  if (segments.length < 2) return false
+  return segments[0] === 'localhost' || segments[0].includes('.') || segments[0].includes(':')
+}
+
+/** Split `<repo>@sha256:<hex>`; null for anything Docker did not record in repo-digest form. */
+function parseRepoDigest(value) {
+  const match = /^([^@\s]+)@sha256:([0-9a-f]{64})$/.exec(value)
+  return match === null ? null : { repository: match[1], hex: match[2] }
+}
+
+/** Fail unless a `--pushed` binding names a registry-qualified repository. */
+function assertRegistryReference(tag) {
+  const repository = repositoryOf(tag)
+  if (!isRegistryQualified(repository)) {
+    throw new BindingError(`--pushed needs a registry-qualified image reference, got: ${tag}`)
   }
 }
 
@@ -196,6 +228,25 @@ function inspectImage(tag) {
   }
 }
 
+/** Confirm a registry answers for an exact manifest digest through buildx imagetools. */
+function assertRegistryDigest(digest) {
+  let raw
+  try {
+    raw = execFileSync('docker', ['buildx', 'imagetools', 'inspect', digest, '--format', '{{json .Manifest}}'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const detail = error instanceof Error && 'stderr' in error ? String(error.stderr).trim() : String(error)
+    throw new BindingError(`registry digest ${digest} could not be confirmed: ${detail}`)
+  }
+  try {
+    JSON.parse(raw)
+  } catch {
+    throw new BindingError(`registry digest ${digest} returned unparsable manifest metadata`)
+  }
+}
+
 /** Fail when a required binding field is absent, empty, or the wrong primitive type. */
 function assertNonEmpty(value, label) {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -205,12 +256,27 @@ function assertNonEmpty(value, label) {
 }
 
 /** Build the binding object from the pinned locks, the supplied inputs, and one local image. */
-async function buildBinding({ tag, createdAt, aliases = [] }) {
+async function buildBinding({ tag, createdAt, aliases = [], buildEntry = 'scripts/build-workspace-final.sh', pushed = false }) {
   assertCandidateReference(tag)
+  if (pushed) assertRegistryReference(tag)
   const pins = readPins()
   const image = inspectImage(tag)
   const inputs = await computeInputs({ requireArtifacts: true })
-  const digest = image.repoDigests.length > 0 ? image.repoDigests[0] : image.imageId
+  const repository = repositoryOf(tag)
+  const imageIdHex = image.imageId.replace(/^sha256:/, '')
+  const localRepoDigest = image.repoDigests.find(entry => parseRepoDigest(entry)?.repository === repository) ?? null
+  const localDigestHex = localRepoDigest === null ? null : parseRepoDigest(localRepoDigest).hex
+  // Docker stores a repo digest for a locally built image too, but its digest equals the image id
+  // (a config digest). A registry manifest digest is a different value; only that counts as
+  // pushed evidence.
+  const registryRepoDigest = localDigestHex !== null && localDigestHex !== imageIdHex ? localRepoDigest : null
+  if (pushed && registryRepoDigest === null) {
+    throw new BindingError(
+      `${tag} has no registry repo digest (only ${localRepoDigest ?? 'no repo digest'}). Push the image first, `
+      + 'or omit --pushed to record the reproducible local digest with pushed: false',
+    )
+  }
+  const digest = pushed ? registryRepoDigest : (localRepoDigest ?? image.imageId)
   return {
     schemaVersion: 1,
     kind: 'workspace-image-release-binding',
@@ -221,18 +287,18 @@ async function buildBinding({ tag, createdAt, aliases = [] }) {
     plus: { ...pins.plus, tarballSha256: inputs.plusTarballSha256 },
     image: {
       ...image,
+      repository,
       aliases: [...new Set(aliases)].sort(),
+      localRepoDigest,
       digest,
-      // Docker reports a local `<repo>@sha256:<config>` pseudo-digest for an image that was never
-      // pushed. Record that fact instead of letting the field read as registry evidence.
-      digestSource: image.repoDigests.length > 0 ? 'repo-digest' : 'image-id',
-      digestKind: image.repoDigests.length > 0 ? 'local-repo-digest' : 'local-image-id',
-      pushed: false,
+      digestSource: pushed ? 'registry' : localRepoDigest === null ? 'image-id' : 'local-repo-digest',
+      digestKind: pushed ? 'registry-manifest-digest' : localRepoDigest === null ? 'local-image-id' : 'local-repo-digest',
+      pushed,
     },
     buildInputs: inputs,
     build: {
-      script: 'scripts/build-workspace-final.sh',
-      repository: tag.replace(/:[^/:]+$/, ''),
+      script: buildEntry,
+      repository,
       profileDefaults: process.env.DATAOPS_PROFILE_DEFAULTS ?? 'cordis.patch.yml',
     },
   }
@@ -277,8 +343,42 @@ function validateBinding(binding) {
     if (!/^(?:[^@\s]+@)?sha256:[0-9a-f]{64}$/.test(binding.image.digest)) throw new Error('not an image digest')
   }, 'image.digest')
   check(() => {
-    if (binding.image.pushed !== false) throw new Error('this writer only records unpushed local images')
+    if (binding.image.pushed !== true && binding.image.pushed !== false) throw new Error('must be a boolean')
   }, 'image.pushed')
+  check(() => {
+    const image = binding.image
+    const imageIdHex = image.imageId.replace(/^sha256:/, '')
+    if (image.pushed === true) {
+      const parsed = parseRepoDigest(image.digest)
+      if (parsed === null) throw new Error('image.digest is not a repo digest')
+      if (image.digestSource !== 'registry' || image.digestKind !== 'registry-manifest-digest') {
+        throw new Error('a pushed binding must use digestSource=registry and digestKind=registry-manifest-digest')
+      }
+      if (!isRegistryQualified(parsed.repository)) throw new Error('a pushed binding needs a registry-qualified repository')
+      if (typeof image.repository === 'string' && parsed.repository !== image.repository) {
+        throw new Error('registry digest repository does not match image.repository')
+      }
+      if (parsed.hex === imageIdHex) {
+        throw new Error('registry digest equals the local image id; this is not registry evidence')
+      }
+      if (typeof image.localRepoDigest === 'string' && parseRepoDigest(image.localRepoDigest) === null) {
+        throw new Error('image.localRepoDigest is not a repo digest')
+      }
+    } else {
+      if (image.digestSource === 'registry' || image.digestKind === 'registry-manifest-digest') {
+        throw new Error('an unpushed binding cannot carry registry digest evidence')
+      }
+      if (image.digestKind === 'local-image-id') {
+        if (image.digest !== image.imageId) throw new Error('local-image-id digest must equal image.imageId')
+      } else if (image.digestKind === 'local-repo-digest') {
+        const parsed = parseRepoDigest(image.digest)
+        if (parsed === null) throw new Error('image.digest is not a repo digest')
+        if (parsed.hex !== imageIdHex) throw new Error('a local repo digest must equal the image id (Docker config digest)')
+      } else {
+        throw new Error(`unsupported local digestKind: ${String(image.digestKind)}`)
+      }
+    }
+  }, 'image.digestEvidence')
   check(() => {
     if (!/^[0-9a-f]{40}$/.test(binding.source.revision)) throw new Error('not a 40-hex revision')
   }, 'source.revision')
@@ -346,6 +446,20 @@ function parseArguments(argv) {
         options.aliases = [...(options.aliases ?? []), next]
         index += 1
         break
+      case '--build-entry':
+        if (next === undefined) throw new BindingError('--build-entry needs a value')
+        if (!/^(?:scripts\/[\w.-]+|context\/[\w.-]+|docker-bake\.hcl)$/.test(next)) {
+          throw new BindingError(`--build-entry must name a repository build entry, got: ${next}`)
+        }
+        options.buildEntry = next
+        index += 1
+        break
+      case '--pushed':
+        options.pushed = true
+        break
+      case '--require-registry':
+        options.requireRegistry = true
+        break
       case '--require-inputs':
         options.requireInputs = true
         break
@@ -367,7 +481,9 @@ function usage() {
   process.stdout.write(
     'usage: release-binding.mjs <write|verify|print> [--tag <image>] [--path <file>]\n'
     + '       write  --tag <candidate-image-reference> [--alias <tag>]... [--created-at <iso>]\n'
-    + '       verify [--image <candidate-image-reference>] [--require-inputs] [--require-image]\n',
+    + '              [--build-entry <path>] [--pushed]\n'
+    + '       verify [--image <candidate-image-reference>] [--require-inputs] [--require-image]\n'
+    + '              [--require-registry]\n',
   )
 }
 
@@ -383,6 +499,8 @@ async function main() {
       tag: options.image,
       createdAt: options.createdAt ?? new Date().toISOString(),
       aliases: options.aliases,
+      buildEntry: options.buildEntry,
+      pushed: options.pushed === true,
     })
     const failures = validateBinding(binding)
     if (failures.length > 0) throw new BindingError(`refusing to write an invalid binding:\n  - ${failures.join('\n  - ')}`)
@@ -391,6 +509,7 @@ async function main() {
     process.stdout.write(`  source ${binding.source.revision}\n`)
     process.stdout.write(`  plus   ${binding.plus.name}@${binding.plus.version}\n`)
     process.stdout.write(`  image  ${binding.image.imageId} (${binding.image.digestSource} ${binding.image.digest})\n`)
+    process.stdout.write(`  pushed ${binding.image.pushed}${binding.image.pushed ? '' : `; local repo digest ${binding.image.localRepoDigest ?? 'not recorded'}`}\n`)
     process.stdout.write(`  inputs ${binding.buildInputs.digest} (${binding.buildInputs.vendorTarballCount} vendor tarballs, ${binding.buildInputs.contextFileCount} recipe files)\n`)
     return 0
   }
@@ -401,15 +520,30 @@ async function main() {
   const checkout = await validateAgainstCheckout(binding, { requireInputs: options.requireInputs === true })
   failures.push(...checkout.failures)
 
-  if (options.image !== undefined) {
-    const image = inspectImage(options.image)
+  const compareImage = (image, reference) => {
     if (image.imageId !== binding.image.imageId) {
-      failures.push(`image.imageId ${binding.image.imageId} != ${options.image} ${image.imageId}`)
+      failures.push(`image.imageId ${binding.image.imageId} != ${reference} ${image.imageId}`)
+      return
     }
+    if (typeof binding.image.localRepoDigest === 'string' && !image.repoDigests.includes(binding.image.localRepoDigest)) {
+      failures.push(`image.localRepoDigest ${binding.image.localRepoDigest} is no longer reported by docker for ${reference}`)
+    }
+  }
+  if (options.image !== undefined) {
+    compareImage(inspectImage(options.image), options.image)
   } else if (options.requireImage) {
-    const image = inspectImage(binding.image.tag)
-    if (image.imageId !== binding.image.imageId) {
-      failures.push(`image.imageId ${binding.image.imageId} != ${binding.image.tag} ${image.imageId}`)
+    compareImage(inspectImage(binding.image.tag), binding.image.tag)
+  }
+
+  if (options.requireRegistry) {
+    if (binding.image.pushed !== true) {
+      failures.push('--require-registry needs a binding with image.pushed true')
+    } else {
+      try {
+        assertRegistryDigest(binding.image.digest)
+      } catch (error) {
+        failures.push(error instanceof Error ? error.message : String(error))
+      }
     }
   }
 
@@ -424,6 +558,7 @@ async function main() {
   }
   process.stdout.write(
     `release binding ok: ${binding.image.tag} ${binding.image.digest}\n`
+    + `  pushed ${binding.image.pushed} (${binding.image.digestKind})\n`
     + `  inputs ${checkout.inputs.complete ? 'recomputed' : 'not present (structural check only)'}\n`,
   )
   return 0

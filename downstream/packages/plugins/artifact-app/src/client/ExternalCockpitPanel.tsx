@@ -1,10 +1,10 @@
 /**
  * External cockpit registry pane in the right-sidebar "驾驶舱" tab.
  *
- * M1 is discovery and stable links only: the list is proxied by this plugin's host,
- * links are requested per registry id, and every open uses a new window. No iframe,
- * cookie, credential, launch ticket or Playwright session is involved. M2 owns the
- * credential picker and the headless browser viewer.
+ * M1 discovery and stable links are proxied by this plugin's host; M2 adds a
+ * site-scoped credential picker, a one-shot Host login, and a screenshot viewer.
+ * The browser never receives a secret or storage state, and external pages never
+ * enter the cockpit iframe.
  *
  * @module client/ExternalCockpitPanel
  */
@@ -31,6 +31,74 @@ export interface ExternalCockpitItem {
 interface ExternalCockpitPage {
   items?: ExternalCockpitItem[]
   total?: number
+}
+
+/** Metadata-only credential choice returned by the Host credential seam. */
+export interface ExternalCredentialOption {
+  id: string
+  name: string
+  type: string
+  authKind: string
+  username: string | null
+  origin: string
+  tags: string[]
+  secretConfigured: boolean
+}
+
+interface ExternalCredentialsPayload {
+  cockpitId?: string
+  credentialType?: string
+  siteOrigin?: string | null
+  credentialServiceAvailable?: boolean
+  credentials?: ExternalCredentialOption[]
+  recipeAvailable?: boolean
+  recipeError?: string | null
+  headedEnabled?: boolean
+}
+
+interface ExternalLoginPayload {
+  ok?: boolean
+  sessionId?: string
+  cockpitId?: string
+  cockpitName?: string
+  credentialName?: string | null
+  mode?: 'headless' | 'headed'
+  screenshotUrl?: string
+  expiresAt?: string
+  stableUrl?: string | null
+  code?: string
+  message?: string
+  error?: string
+  hint?: string
+  headedAvailable?: boolean
+}
+
+interface ExternalSessionView {
+  cockpitId: string
+  cockpitName: string
+  sessionId: string
+  screenshotUrl: string
+  expiresAt: string
+  stableUrl: string | null
+  credentialName: string | null
+  mode: 'headless' | 'headed'
+}
+
+/** Browser-session id that binds Host sessions to this tab, not to a DSH principal. */
+const panelClientId = (): string => {
+  const key = 'dsh-external-cockpit-client'
+  try {
+    const existing = window.sessionStorage.getItem(key)
+    if (existing !== null && /^[A-Za-z0-9_-]{8,64}$/u.test(existing)) return existing
+    const created = typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID().replace(/-/gu, '')
+      : Math.random().toString(36).slice(2) + Date.now().toString(36)
+    window.sessionStorage.setItem(key, created)
+    return created
+  } catch {
+    // Private-mode storage can refuse writes; a per-render id still isolates one attempt.
+    return Math.random().toString(36).slice(2) + Date.now().toString(36)
+  }
 }
 
 /** Read the server's own error message, falling back to the HTTP status. */
@@ -93,11 +161,11 @@ const CSS = `
   padding: 0 6px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #7aaaff) 16%, transparent);
-  color: var(--dsw-alias-state-business-primary, #7aaaff);
+  color: color-mix(in srgb, var(--dsw-alias-state-business-primary, #7aaaff) 72%, var(--dsw-alias-label-primary, #f9fafb));
   font-size: 9px;
   font-weight: 600;
 }
-.dsh-xc__hint { font-size: 10px; color: var(--dsw-alias-label-caption, #81858c); }
+.dsh-xc__hint { font-size: 10px; color: var(--dsw-alias-label-secondary, #cfd3d6); }
 .dsh-xc__search { display: flex; align-items: center; gap: 6px; }
 .dsh-xc__input {
   flex: 1;
@@ -162,19 +230,19 @@ const CSS = `
   padding: 0 6px;
   border-radius: 999px;
   background: var(--dsw-alias-bg-layer-3, #353638);
-  color: var(--dsw-alias-label-caption, #81858c);
+  color: var(--dsw-alias-label-secondary, #cfd3d6);
   font-size: 9px;
 }
-.dsh-xc__pill.is-disabled { color: var(--dsw-alias-state-warn-primary, #f59e0b); }
+.dsh-xc__pill.is-disabled { color: color-mix(in srgb, var(--dsw-alias-state-warn-primary, #f59e0b) 82%, var(--dsw-alias-label-primary, #f9fafb)); }
 .dsh-xc__tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .dsh-xc__tag {
   padding: 1px 6px;
   border-radius: 4px;
   background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #7aaaff) 10%, transparent);
-  color: var(--dsw-alias-state-business-primary, #7aaaff);
+  color: color-mix(in srgb, var(--dsw-alias-state-business-primary, #7aaaff) 72%, var(--dsw-alias-label-primary, #f9fafb));
   font-size: 9px;
 }
-.dsh-xc__meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 9px; color: var(--dsw-alias-label-caption, #81858c); }
+.dsh-xc__meta { display: flex; flex-wrap: wrap; gap: 6px; font-size: 9px; color: var(--dsw-alias-label-secondary, #cfd3d6); }
 .dsh-xc__actions { display: flex; gap: 6px; margin-top: 2px; }
 .dsh-xc__state { padding: 22px 10px; text-align: center; font-size: 10px; line-height: 16px; color: var(--dsw-alias-label-caption, #81858c); }
 .dsh-xc__error {
@@ -185,7 +253,7 @@ const CSS = `
   border: 1px solid color-mix(in srgb, var(--dsw-alias-state-error-primary, #f25a5a) 35%, transparent);
   border-radius: 8px;
   background: color-mix(in srgb, var(--dsw-alias-state-error-primary, #f25a5a) 9%, transparent);
-  color: var(--dsw-alias-state-error-primary, #f25a5a);
+  color: color-mix(in srgb, var(--dsw-alias-state-error-primary, #f25a5a) 80%, var(--dsw-alias-label-primary, #f9fafb));
   font-size: 10px;
   line-height: 15px;
 }
@@ -212,6 +280,83 @@ const CSS = `
   font-size: 10px;
   text-align: center;
 }
+.dsh-xc__login {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 4px;
+  padding: 9px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(255,255,255,.12));
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1, #232324);
+}
+.dsh-xc__login-title { font-size: 11px; font-weight: 600; }
+.dsh-xc__creds { display: flex; flex-direction: column; gap: 5px; }
+.dsh-xc__cred {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 7px;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(255,255,255,.06));
+  border-radius: 6px;
+  cursor: pointer;
+}
+.dsh-xc__cred.is-selected {
+  border-color: var(--dsw-alias-state-business-primary, #7aaaff);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #7aaaff) 9%, transparent);
+}
+.dsh-xc__cred input { margin: 1px 0 0; }
+.dsh-xc__cred-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dsh-xc__cred-name { font-size: 10px; line-height: 14px; }
+.dsh-xc__cred-meta { font-size: 9px; line-height: 13px; color: var(--dsw-alias-label-secondary, #cfd3d6); }
+.dsh-xc__headed {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--dsw-alias-label-secondary, #cfd3d6);
+}
+.dsh-xc__session {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l2, rgba(255,255,255,.12));
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-layer-2, #2c2c2e);
+}
+.dsh-xc__shot {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border: 1px solid var(--dsw-alias-border-l1, rgba(255,255,255,.06));
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-base, #151517);
+}
+.dsh-xc__error-hint { font-size: 9px; line-height: 14px; opacity: .9; }
+.dsh-xc__linkbtn {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l3, rgba(255,255,255,.16));
+  border-radius: 7px;
+  color: var(--dsw-alias-label-primary, #f9fafb);
+  font-size: 10px;
+  text-decoration: none;
+}
+.dsh-xc__linkbtn:hover { background: var(--dsw-alias-interactive-bg-hover, rgba(255,255,255,.08)); }
+@media (max-width: 420px) {
+  .dsh-xc { padding: 8px; }
+  .dsh-xc__card { padding: 9px; }
+  .dsh-xc__card-top { min-width: 0; }
+  .dsh-xc__card-title { overflow-wrap: anywhere; }
+  .dsh-xc__meta, .dsh-xc__cred-meta, .dsh-xc__note, .dsh-xc__hint { overflow-wrap: anywhere; }
+  .dsh-xc__actions { flex-wrap: wrap; }
+  .dsh-xc__actions .dsh-xc__btn { flex: 1 1 auto; }
+}
 `
 
 /**
@@ -228,6 +373,22 @@ export function ExternalCockpitPanel({ reloadToken = 0 }: { reloadToken?: number
   const [busyId, setBusyId] = useState<string | null>(null)
   const [notice, setNotice] = useState('')
   const [fallback, setFallback] = useState<{ name: string; url: string } | null>(null)
+  const [loginFor, setLoginFor] = useState<ExternalCockpitItem | null>(null)
+  const [credentialPanel, setCredentialPanel] = useState<{
+    loading: boolean
+    error: string | null
+    credentials: ExternalCredentialOption[]
+    serviceAvailable: boolean
+    recipeAvailable: boolean
+    recipeError: string | null
+    headedEnabled: boolean
+    siteOrigin: string | null
+  } | null>(null)
+  const [selectedCredential, setSelectedCredential] = useState('')
+  const [headed, setHeaded] = useState(false)
+  const [loginBusy, setLoginBusy] = useState(false)
+  const [loginError, setLoginError] = useState<{ code: string; message: string; hint: string; headedAvailable: boolean } | null>(null)
+  const [session, setSession] = useState<ExternalSessionView | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -325,13 +486,151 @@ export function ExternalCockpitPanel({ reloadToken = 0 }: { reloadToken?: number
     }
   }
 
+  const startLogin = async (item: ExternalCockpitItem): Promise<void> => {
+    setLoginFor(item)
+    setLoginError(null)
+    setSelectedCredential('')
+    setHeaded(false)
+    setCredentialPanel({
+      loading: true,
+      error: null,
+      credentials: [],
+      serviceAvailable: true,
+      recipeAvailable: false,
+      recipeError: null,
+      headedEnabled: false,
+      siteOrigin: null,
+    })
+    try {
+      const response = await fetch(
+        '/dsh-artifact-app/external-cockpits/' + encodeURIComponent(item.id) + '/credentials',
+        {
+          headers: { accept: 'application/json', 'x-dsh-cockpit-client': panelClientId() },
+          cache: 'no-store',
+        },
+      )
+      if (!response.ok) throw new Error(await readErrorMessage(response))
+      const payload = await response.json() as ExternalCredentialsPayload
+      const credentials = Array.isArray(payload.credentials) ? payload.credentials : []
+      setCredentialPanel({
+        loading: false,
+        error: null,
+        credentials,
+        serviceAvailable: payload.credentialServiceAvailable !== false,
+        recipeAvailable: payload.recipeAvailable === true,
+        recipeError: typeof payload.recipeError === 'string' ? payload.recipeError : null,
+        headedEnabled: payload.headedEnabled === true,
+        siteOrigin: typeof payload.siteOrigin === 'string' ? payload.siteOrigin : null,
+      })
+      setSelectedCredential(credentials[0]?.id ?? '')
+    } catch (cause) {
+      setCredentialPanel({
+        loading: false,
+        error: cause instanceof Error ? cause.message : String(cause),
+        credentials: [],
+        serviceAvailable: false,
+        recipeAvailable: false,
+        recipeError: null,
+        headedEnabled: false,
+        siteOrigin: null,
+      })
+    }
+  }
+
+  const cancelLogin = (): void => {
+    if (loginBusy) return
+    setLoginFor(null)
+    setCredentialPanel(null)
+    setLoginError(null)
+  }
+
+  const submitLogin = async (item: ExternalCockpitItem, headedOverride?: boolean): Promise<void> => {
+    if (loginBusy) return
+    const useHeaded = headedOverride ?? headed
+    setLoginBusy(true)
+    setLoginError(null)
+    try {
+      const body: Record<string, unknown> = {
+        clientId: panelClientId(),
+        mode: useHeaded ? 'headed' : 'headless',
+      }
+      if (item.credentialType !== 'none' && selectedCredential !== '') body.credentialId = selectedCredential
+      const response = await fetch('/dsh-artifact-app/external-cockpits/' + encodeURIComponent(item.id) + '/login', {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+          'x-dsh-cockpit-client': panelClientId(),
+        },
+        body: JSON.stringify(body),
+        cache: 'no-store',
+      })
+      const payload = await response.json() as ExternalLoginPayload
+      if (!response.ok || payload.ok !== true) {
+        setLoginError({
+          code: typeof payload.code === 'string' ? payload.code : 'LOGIN_FAILED',
+          message: typeof payload.message === 'string'
+            ? payload.message
+            : typeof payload.error === 'string' ? payload.error : 'HTTP ' + String(response.status),
+          hint: typeof payload.hint === 'string' ? payload.hint : '',
+          headedAvailable: payload.headedAvailable === true,
+        })
+        return
+      }
+      if (typeof payload.sessionId !== 'string' || typeof payload.screenshotUrl !== 'string'
+        || typeof payload.expiresAt !== 'string') {
+        throw new Error('登录响应缺少会话信息')
+      }
+      setSession({
+        cockpitId: item.id,
+        cockpitName: item.name,
+        sessionId: payload.sessionId,
+        screenshotUrl: payload.screenshotUrl,
+        expiresAt: payload.expiresAt,
+        stableUrl: typeof payload.stableUrl === 'string' ? payload.stableUrl : null,
+        credentialName: typeof payload.credentialName === 'string' ? payload.credentialName : null,
+        mode: payload.mode === 'headed' ? 'headed' : 'headless',
+      })
+      setLoginFor(null)
+      setCredentialPanel(null)
+      setNotice('登录成功，已生成截图')
+    } catch (cause) {
+      setLoginError({
+        code: 'LOGIN_FAILED',
+        message: cause instanceof Error ? cause.message : String(cause),
+        hint: '',
+        headedAvailable: false,
+      })
+    } finally {
+      setLoginBusy(false)
+    }
+  }
+
+  const endSession = async (): Promise<void> => {
+    if (session === null) return
+    try {
+      await fetch(
+        '/dsh-artifact-app/external-cockpits/' + encodeURIComponent(session.cockpitId)
+          + '/sessions/' + encodeURIComponent(session.sessionId),
+        { method: 'DELETE', headers: { 'x-dsh-cockpit-client': panelClientId() }, cache: 'no-store' },
+      )
+    } catch {
+      // Clearing local state is still correct when the Host already expired the session.
+    }
+    setSession(null)
+    setNotice('已结束登录会话')
+  }
+
+  const remainingMinutes = (expiresAt: string): number =>
+    Math.max(0, Math.ceil((Date.parse(expiresAt) - Date.now()) / 60_000))
+
   return (
     <div className="dsh-xc">
       <style>{CSS}</style>
       <div className="dsh-xc__bar">
         <span className="dsh-xc__title">外部驾驶舱</span>
-        <span className="dsh-xc__badge">M1</span>
-        <span className="dsh-xc__hint">注册表发现 · 新窗口打开</span>
+        <span className="dsh-xc__badge">M2</span>
+        <span className="dsh-xc__hint">注册表发现 · Host 登录 · 截图</span>
       </div>
       <form className="dsh-xc__search" onSubmit={submit}>
         <input
@@ -345,7 +644,8 @@ export function ExternalCockpitPanel({ reloadToken = 0 }: { reloadToken?: number
         {query !== '' ? <button type="button" className="dsh-xc__btn" onClick={clearSearch}>清除</button> : null}
       </form>
       <div className="dsh-xc__note">
-        M1 只做注册表发现与稳定链接；凭据登录、Playwright 查看在 M2。外部站点不使用 iframe 嵌入，一律在新窗口打开。
+        M2：按站点 origin 列出匹配凭据，由 Host 在隔离的无头浏览器中执行登录 recipe 并返回截图。
+        密码、Cookie、storageState 不会进入页面、模型或日志；外部站点仍不使用 iframe 嵌入。
       </div>
 
       {loading ? <div className="dsh-xc__state" role="status">正在加载外部驾驶舱…</div> : null}
@@ -397,11 +697,135 @@ export function ExternalCockpitPanel({ reloadToken = 0 }: { reloadToken?: number
                     disabled={busyId === item.id}
                     onClick={() => void copy(item)}
                   >复制链接</button>
+                  <button
+                    type="button"
+                    className="dsh-xc__btn"
+                    data-action="login"
+                    disabled={busyId === item.id || !item.enabled}
+                    onClick={() => { if (loginFor?.id === item.id) cancelLogin(); else void startLogin(item) }}
+                  >{loginFor?.id === item.id ? '收起登录' : item.credentialType === 'none' ? '打开并截图' : '登录并截图'}</button>
                 </div>
+
+                {loginFor?.id === item.id && credentialPanel !== null ? (
+                  <div className="dsh-xc__login" data-external-login-panel={item.id}>
+                    <div className="dsh-xc__login-title">登录「{item.name}」并生成截图</div>
+                    {credentialPanel.loading ? <div className="dsh-xc__hint" role="status">正在读取匹配凭据…</div> : null}
+                    {credentialPanel.error !== null ? (
+                      <div className="dsh-xc__error" role="alert">
+                        <span>{credentialPanel.error}</span>
+                        <button type="button" className="dsh-xc__retry" onClick={() => void startLogin(item)}>重试</button>
+                      </div>
+                    ) : null}
+                    {!credentialPanel.loading && credentialPanel.error === null ? (
+                      <>
+                        {credentialPanel.siteOrigin !== null ? (
+                          <div className="dsh-xc__hint">站点 origin：{credentialPanel.siteOrigin}</div>
+                        ) : null}
+                        {credentialPanel.credentials.length > 0 ? (
+                          <div className="dsh-xc__creds" role="radiogroup" aria-label="选择登录凭据">
+                            {credentialPanel.credentials.map((credential) => (
+                              <label
+                                key={credential.id}
+                                className={'dsh-xc__cred' + (selectedCredential === credential.id ? ' is-selected' : '')}
+                              >
+                                <input
+                                  type="radio"
+                                  name={'external-credential-' + item.id}
+                                  value={credential.id}
+                                  checked={selectedCredential === credential.id}
+                                  onChange={() => setSelectedCredential(credential.id)}
+                                />
+                                <span className="dsh-xc__cred-main">
+                                  <span className="dsh-xc__cred-name">{credential.name}</span>
+                                  <span className="dsh-xc__cred-meta">
+                                    {credential.type} · {credential.authKind}
+                                    {' · '}{credential.username ?? '无用户名'}
+                                    {' · '}{credential.secretConfigured ? '密钥已配置' : '密钥未配置'}
+                                  </span>
+                                </span>
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="dsh-xc__hint">
+                            {item.credentialType === 'none'
+                              ? '该驾驶舱无需凭据，登录时只执行 recipe 并截图。'
+                              : credentialPanel.serviceAvailable
+                                ? '没有与站点 origin 匹配的已启用凭据，请先在右侧栏「凭据」页创建。'
+                                : '未安装 credential-manager，无法选择凭据。'}
+                          </div>
+                        )}
+                        {!credentialPanel.recipeAvailable ? (
+                          <div className="dsh-xc__error" role="alert">
+                            <span>{credentialPanel.recipeError ?? '该驾驶舱尚未配置登录 recipe。'}</span>
+                            <span className="dsh-xc__error-hint">由管理员在注册表或插件配置 externalLoginRecipes 中提供 recipe。</span>
+                          </div>
+                        ) : null}
+                        {credentialPanel.headedEnabled ? (
+                          <label className="dsh-xc__headed">
+                            <input type="checkbox" checked={headed} onChange={(event) => setHeaded(event.target.checked)} />
+                            有头模式（仅在 MFA/验证码需要人工接管时勾选）
+                          </label>
+                        ) : null}
+                        {loginError !== null ? (
+                          <div className="dsh-xc__error" role="alert">
+                            <span>{loginError.message}（{loginError.code}）</span>
+                            {loginError.hint !== '' ? <span className="dsh-xc__error-hint">{loginError.hint}</span> : null}
+                            {loginError.headedAvailable && !headed ? (
+                              <button
+                                type="button"
+                                className="dsh-xc__retry"
+                                disabled={loginBusy}
+                                onClick={() => { setHeaded(true); void submitLogin(item, true) }}
+                              >改用有头模式重试</button>
+                            ) : null}
+                          </div>
+                        ) : null}
+                        <div className="dsh-xc__actions">
+                          <button
+                            type="button"
+                            className="dsh-xc__btn is-primary"
+                            data-action="login-submit"
+                            disabled={loginBusy || credentialPanel.loading || credentialPanel.error !== null
+                              || !credentialPanel.recipeAvailable
+                              || (item.credentialType !== 'none' && selectedCredential === '')}
+                            onClick={() => void submitLogin(item)}
+                          >{loginBusy ? '正在登录…' : headed ? '有头登录' : '无头登录'}</button>
+                          <button type="button" className="dsh-xc__btn" disabled={loginBusy} onClick={cancelLogin}>取消</button>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
               </article>
             ))}
           </div>
         </>
+      ) : null}
+
+      {session !== null ? (
+        <section className="dsh-xc__session" aria-label="外部驾驶舱登录会话">
+          <div className="dsh-xc__bar">
+            <span className="dsh-xc__title">已登录：{session.cockpitName}</span>
+            <span className="dsh-xc__pill">{session.mode === 'headed' ? '有头' : '无头'}</span>
+            <span className="dsh-xc__pill">{remainingMinutes(session.expiresAt)} 分钟后过期</span>
+          </div>
+          <img
+            className="dsh-xc__shot"
+            src={session.screenshotUrl}
+            alt={'登录后的页面截图：' + session.cockpitName}
+          />
+          <div className="dsh-xc__meta">
+            <span>凭据：{session.credentialName ?? '无需凭据'}</span>
+            <span>截图与 storageState 仅保留在 Host 内存</span>
+          </div>
+          <div className="dsh-xc__actions">
+            {session.stableUrl !== null ? (
+              <a className="dsh-xc__linkbtn" href={session.stableUrl} target="_blank" rel="noreferrer noopener">打开原站</a>
+            ) : null}
+            <button type="button" className="dsh-xc__btn" onClick={() => void endSession()}>结束会话</button>
+          </div>
+        </section>
       ) : null}
 
       {fallback !== null ? (

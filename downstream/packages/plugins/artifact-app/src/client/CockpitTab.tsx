@@ -368,7 +368,7 @@ const CSS = `
   color: var(--dsw-alias-label-primary, #f9fafb);
   font-size: 10px;
   text-align: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,.28);
+  box-shadow: var(--dsw-elevation-prominent, 0 8px 24px rgba(0,0,0,.28));
   pointer-events: none;
 }
 .dsh-ac-viewer { display: flex; flex-direction: column; height: 100%; min-height: 0; }
@@ -446,6 +446,14 @@ const CSS = `
   background: color-mix(in srgb, var(--dsw-alias-state-success-primary, #22c55e) 12%, transparent);
   color: var(--dsw-alias-state-success-primary, #22c55e);
   font-size: 10px;
+}
+@media (max-width: 420px) {
+  .dsh-ac__head, .dsh-ac-viewer__head { padding: 8px 10px; }
+  .dsh-ac__body { padding: 8px; }
+  .dsh-ac__views { padding: 5px 8px; }
+  .dsh-ac__view { padding: 0 8px; }
+  .dsh-ac__actions { flex-wrap: wrap; }
+  .dsh-ac__actions .dsh-ac__btn { flex: 1 1 auto; }
 }
 `
 

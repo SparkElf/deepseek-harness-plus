@@ -5,21 +5,30 @@
 # second host can build the same three targets, share a registry cache, and select a platform
 # without re-implementing the build arguments.
 #
+# Each target reads the previous layer by tag, exactly like the shell entry. Bake has no ordering
+# between those tags: `depends_on` is a compose-file field and is ignored in this HCL. The `default`
+# group therefore contains only `runtime`; use scripts/build-workspace-bake.sh for the full
+# base -> plus -> runtime chain, or build the targets in that order yourself.
+#
 # Run from this directory:
 #
 #   docker buildx bake --print                       # resolve targets, build nothing
-#   docker buildx bake base                          # one target
-#   docker buildx bake                               # base -> plus -> runtime (group default)
+#   docker buildx bake --allow=network.host base --load
+#   docker buildx bake --allow=network.host runtime --load   # needs the base and plus tags
+#   scripts/build-workspace-bake.sh                  # full chain, sequential, writes the binding
+#
+# Every target sets `network = "host"` to match the shell entry's `docker build --network host`;
+# buildx requires the explicit `--allow=network.host` grant before it will run those containers.
 #
 # Defaults name the candidate repository. Nothing is pushed and no registry cache is used unless
 # REGISTRY_CACHE is set explicitly:
 #
-#   REGISTRY_CACHE=registry.example.com/dataops/workspace-cache docker buildx bake
+#   REGISTRY_CACHE=registry.example.com/dataops/workspace-cache scripts/build-workspace-bake.sh
 #
 # A registry cache writes cache metadata only; it does not push images. Pushing is a separate,
-# explicit output: `docker buildx bake --push` with a registry-qualified IMAGE_REPOSITORY. The
-# candidate binding in acceptance/release-binding.json is written by the shell entry, not by bake,
-# because bake has no post-build hook.
+# explicit output: `docker buildx bake --push` with a registry-qualified IMAGE_REPOSITORY. Bake has
+# no post-build hook, so the driver — not a bare target — writes the candidate binding; the shell
+# entry keeps its own acceptance/release-binding.json.
 
 variable "IMAGE_REPOSITORY" {
   default = "dataops-ai-workspace-candidate"
@@ -43,6 +52,10 @@ variable "DSH_PLUS_INSTALL_REGISTRY" {
 
 variable "DATAOPS_PROFILE_DEFAULTS" {
   default = "cordis.patch.yml"
+}
+
+variable "RUNTIME_PRUNE" {
+  default = "0"
 }
 
 variable "PLATFORMS" {
@@ -75,6 +88,7 @@ target "base" {
   target     = "workspace-base"
   tags       = ["${IMAGE_REPOSITORY}:base-py312"]
   platforms  = [PLATFORMS]
+  network    = "host"
   contexts = {
     "workspace-web-gateway-protocol" = "./context/workspace-web-gateway-protocol"
   }
@@ -82,11 +96,39 @@ target "base" {
   cache-to   = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/base,mode=max"] : []
 }
 
+target "source-build" {
+  context    = "./context"
+  dockerfile = "Dockerfile.plus-cli-src"
+  target     = "source-build"
+  # Intermediate stage: patches, official build and marker. Kept as a first-class target so a
+  # source-only rebuild can be built, inspected and cached without producing the final layer.
+  tags      = ["${IMAGE_REPOSITORY}:source-build-${DSH_PLUS_VERSION}"]
+  platforms = [PLATFORMS]
+  network   = "host"
+  contexts = {
+    "workspace-web-gateway-protocol" = "./context/workspace-web-gateway-protocol"
+  }
+  args = {
+    BASE_IMAGE                = "${IMAGE_REPOSITORY}:base-py312"
+    DSH_PLUS_VERSION          = DSH_PLUS_VERSION
+    DSH_SOURCE_REVISION       = DSH_SOURCE_REVISION
+    DSH_SOURCE_REGISTRY       = DSH_SOURCE_REGISTRY
+    DSH_PLUS_INSTALL_REGISTRY = DSH_PLUS_INSTALL_REGISTRY
+    DATAOPS_PROFILE_DEFAULTS  = DATAOPS_PROFILE_DEFAULTS
+    RUNTIME_PRUNE             = RUNTIME_PRUNE
+    HTTP_PROXY                = HTTP_PROXY
+    HTTPS_PROXY               = HTTPS_PROXY
+    NO_PROXY                  = NO_PROXY
+  }
+  cache-from = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/plus-source"] : []
+  cache-to   = REGISTRY_CACHE != "" ? ["type=registry,ref=${REGISTRY_CACHE}/plus-source,mode=max"] : []
+}
+
 target "plus" {
   context    = "./context"
   dockerfile = "Dockerfile.plus-cli-src"
-  # `depends_on` makes bake finish and load the base tag before this target resolves BASE_IMAGE.
-  depends_on = ["base"]
+  # BASE_IMAGE names the tag the `base` target produces; the caller must build that target first.
+  network = "host"
   tags = [
     "${IMAGE_REPOSITORY}:plus-cli-py312-${DSH_PLUS_VERSION}",
     "${IMAGE_REPOSITORY}:runtime-files",
@@ -113,9 +155,10 @@ target "plus" {
 target "runtime" {
   context    = "./context"
   dockerfile = "Dockerfile.runtime-cli"
-  depends_on = ["plus"]
-  tags       = ["${IMAGE_REPOSITORY}:final-bake"]
-  platforms  = [PLATFORMS]
+  # DSH_LAYER_IMAGE and DATAOPS_RUNTIME_FILES_IMAGE name tags the `plus` target produces.
+  network   = "host"
+  tags      = ["${IMAGE_REPOSITORY}:final-bake"]
+  platforms = [PLATFORMS]
   args = {
     DSH_LAYER_IMAGE              = "${IMAGE_REPOSITORY}:plus-cli-py312-${DSH_PLUS_VERSION}"
     DATAOPS_RUNTIME_FILES_IMAGE  = "${IMAGE_REPOSITORY}:runtime-files"

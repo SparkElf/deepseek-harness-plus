@@ -18,6 +18,9 @@ ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
 # The placeholder package an omitted capability is substituted with; the profile audit asserts
 # the installed manifest declares this name.
 ARG DSH_OMITTED_PACKAGE=@sparkelf/dsh-omitted
+# Optional runtime prune, default off. `1` deletes only the build-only candidates in
+# RUNTIME-PRUNE.md after the profile phase has finished; the source-build stage never prunes.
+ARG RUNTIME_PRUNE=0
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG NO_PROXY
@@ -107,7 +110,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sh
 # The source dependency tree is now complete. Everything below changes with the Plus
 # tarball or plugin pins; keeping it in a separate stage lets a pin-only rebuild reuse the
 # 2.66GB pnpm install above instead of reinstalling it.
-FROM source-deps AS plus-build
+FROM source-deps AS plus-inputs
 ARG DSH_PLUS_VERSION=0.2.9-alpha.104
 ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
 
@@ -230,14 +233,31 @@ RUN sed -i 's#https://cdn\.sheetjs\.com/xlsx-0\.20\.3/xlsx-0\.20\.3\.tgz#file:/o
  && grep -q 'file:/opt/dsh-vendor/xlsx-0.20.3.tgz' /opt/dsh-source/packages/client/ui-sidebar-documentpreview/package.json
 
 COPY apply-plus.sh /usr/local/bin/apply-plus.sh
+COPY runtime-prune.sh /usr/local/bin/runtime-prune.sh
 # The edition pins every plugin once, in the distribution's dependency table, and the profile
 # copies those pins. The three `sed` rewrites that used to align stale edition versions are gone
 # with the table that drifted. `apply-plus` remains the step that applies the reviewed source
 # patches and relinks the profile at the source builds it materializes.
+#
+# Two-stage split: the source half owns the patches, the official build and its marker; the
+# profile half reruns only the profile work and verifies that marker (`--skip-build`). The final
+# stage keeps the `plus-build` name, so the existing build entry and target are unchanged. A
+# source-only rebuild can stop at `--target source-build`; a profile-only rebuild starts there.
+FROM plus-inputs AS source-build
+ARG RUNTIME_PRUNE=0
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
     --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
     --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
-    bash /usr/local/bin/apply-plus.sh
+    RUNTIME_PRUNE="${RUNTIME_PRUNE}" \
+    bash /usr/local/bin/apply-plus.sh --phase source
+
+FROM source-build AS plus-build
+ARG DSH_PLUS_VERSION=0.2.9-alpha.104
+ARG DSH_PLUS_INSTALL_REGISTRY=https://mirrors.cloud.tencent.com/npm
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store,id=dsh-pnpm-store,sharing=shared \
+    --mount=type=cache,target=/root/.cache/pnpm,id=dsh-pnpm-meta,sharing=shared \
+    --mount=type=cache,target=/root/.npm,id=dsh-npm-cache,sharing=shared \
+    bash /usr/local/bin/apply-plus.sh --phase profile
 
 # `dsh-plus apply` rebuilds the profile's `@deepseek-ai` scope from the DSH CLI closure
 # (`materializeOfficialPackageScope` removes the directory and links the CLI's packages),

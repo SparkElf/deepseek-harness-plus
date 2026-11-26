@@ -12,12 +12,14 @@ images/workspace/
 ├── inputs.lock.json           digests of the mirror and of the artifacts a build must supply
 ├── context/                   docker build context, mirrors infra/docker-workspace
 │   ├── Dockerfile             base layer (Node 26 + Python 3.12 + LibreOffice + Playwright)
-│   ├── Dockerfile.plus-cli-src  source-deps + plus-build
+│   ├── Dockerfile.plus-cli-src  plus-inputs + source-build + plus-build
 │   ├── Dockerfile.runtime-cli   runtime layer
-│   ├── apply-plus.sh          source patches, one official build, gates, profile install
+│   ├── apply-plus.sh          phased source patches/build and profile install
+│   ├── runtime-prune.sh       optional build-only prune (RUNTIME_PRUNE=1)
 │   └── ...                    scripts and inputs copied by those three files
 ├── scripts/
 │   ├── build-workspace-final.sh  three-layer build entry
+│   ├── build-plus-staged.sh      source-build / plus-build measurement entry
 │   ├── prepare-inputs.sh         supply and verify the untracked build artifacts
 │   └── check-parity.sh           digest comparison against the DataOps source tree
 └── acceptance/
@@ -43,8 +45,10 @@ base            Dockerfile --target workspace-base
                 Python 3.12 + Node 26.13.1 + npm 12 + LibreOffice 25.8.7
                 + Playwright 1.57.0/Chromium r1200 + OfficeCLI + Python libraries
   -> source-deps  Dockerfile.plus-cli-src stage 1: unpack dsh-src.tar.gz, pnpm install
-  -> plus-build   stage 2: Plus tarball metadata edits, global install, apply-plus.sh
-                  (source patches -> one official build:official -> run-gates -> profile install)
+  -> plus-inputs  Plus tarball metadata edits and global install
+  -> source-build apply-plus.sh --phase source: patches -> one official build -> marker
+  -> plus-build   apply-plus.sh --phase profile: profile install/link, no rebuild
+                  (the final stage keeps the existing name and tags)
   -> runtime      Dockerfile.runtime-cli: entrypoint, workspace gateway, dataops-dsh-service, sshd
   -> final-YYYYMMDD-HHMM, plus final and local aliases
 ```
@@ -74,6 +78,7 @@ The script chains the layers by image ID, passes `--network host`, and writes `d
 | `DSH_SOURCE_REGISTRY`, `DSH_PLUS_INSTALL_REGISTRY` | npm mirrors for the source install and the Plus install |
 | `DATAOPS_PROFILE_DEFAULTS` | Provider catalog: `cordis.patch.yml` for the cloud image, `cordis.local-qwen.patch.yml` for the self-hosted arm box |
 | `SKIP_BASE=1` | Reuse the existing `base-py312` image for a DSH-only upgrade |
+| `RUNTIME_PRUNE=1` | Optional final-phase prune of the build-only paths in `RUNTIME-PRUNE.md`; default `0` |
 | `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` | Forwarded to the Plus stage |
 
 ## Cache
@@ -101,7 +106,7 @@ Measure sizes with one stated method: `docker images` visible size is the number
 | Plus layer delta | >= 700MB below the pre-LibreOffice-move build | 11.5GB plus, 4.84GB base |
 | Writable layer | < 50MB, measured after excluding `/tmp/dsh-workspace-changes-*` | 2.2GB, about 2.09GB of it runtime `/tmp` |
 | Per-user `/workspace` volume | < 2GB | 3.2GB |
-| Pin-only build | <= 5min, not reachable before `apply-plus.sh` is split | unmeasured |
+| Pin-only build | <= 5min; `--skip-build` is implemented, stage timings still unmeasured | split implemented, pin-only path unmeasured |
 | Source/patch build | <= 15min warm | unmeasured |
 | Base build | <= 25min warm | unmeasured |
 | DSH ready | 10-15s warm, 30-60s cold | unmeasured |
@@ -128,3 +133,8 @@ Measure sizes with one stated method: `docker images` visible size is the number
 ```
 
 The check compares every mirrored file by content and reports the six artifacts that must stay absent. Until B-10 deletes the DataOps build implementation, any change to a mirrored file has to land on both sides in the same change; the check is what makes that rule enforceable rather than aspirational.
+
+The G6/G7 files (`context/apply-plus.sh`, `context/Dockerfile.plus-cli-src`,
+`context/runtime-prune.sh`) are intentionally ahead of the DataOps mirror: the production build is
+not modified by this change. `check-parity.sh` reports those diffs until the same files are synced
+into `dataops/infra/docker-workspace`.
