@@ -179,7 +179,7 @@ describe('dataops_user_create', () => {
     expect(f.calls).toHaveLength(0)
   })
 
-  it('creates an enabled ordinary account with default roles and never returns the password', async () => {
+  it('creates an enabled ordinary account with default roles and returns the initial password once', async () => {
     const f = setup({
       '/api/system/users': {
         status: 201,
@@ -207,7 +207,7 @@ describe('dataops_user_create', () => {
       email: 'new.member@example.com',
       mobile: '13800000002',
       confirm: true,
-    }, f.exec) as { created: boolean; user: { id: string; enabled: boolean }; defaultRoles: string[]; credential: { mode: string }; directResourceGrants: number }
+    }, f.exec) as { created: boolean; user: { id: string; enabled: boolean }; defaultRoles: string[]; credential: { mode: string }; initialPassword: string; directResourceGrants: number }
 
     expect(f.approvals).toHaveLength(1)
     expect(f.approvals[0]!.toolName).toBe('dataops_user_create')
@@ -226,8 +226,8 @@ describe('dataops_user_create', () => {
     expect(value.user).toMatchObject({ id: 'u-new', enabled: true })
     expect(value.defaultRoles).toEqual(['应用人员', '初级权限', 'AI 工作区成员'])
     expect(value.directResourceGrants).toBe(0)
-    expect(value.credential.mode).toBe('admin_reset_required')
-    expect(JSON.stringify(value)).not.toContain(password)
+    expect(value.credential.mode).toBe('one_time_reveal')
+    expect(value.initialPassword).toBe(password)
     expect(f.audits.join('\n')).not.toContain(password)
   })
 })
