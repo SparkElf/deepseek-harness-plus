@@ -247,6 +247,32 @@ function assertRegistryDigest(digest) {
   }
 }
 
+/** Read the registry's manifest digest for a pushed tag and confirm it responds by repo digest. */
+function registryManifestDigest(repository, tag) {
+  let raw
+  try {
+    raw = execFileSync('docker', ['buildx', 'imagetools', 'inspect', tag, '--format', '{{json .Manifest}}'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+  } catch (error) {
+    const detail = error instanceof Error && 'stderr' in error ? String(error.stderr).trim() : String(error)
+    throw new BindingError(`${tag} has no registry manifest digest: ${detail}`)
+  }
+  let digest
+  try {
+    digest = JSON.parse(raw).digest
+  } catch {
+    throw new BindingError(`${tag} returned unparsable registry manifest metadata`)
+  }
+  if (typeof digest !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(digest)) {
+    throw new BindingError(`${tag} returned no sha256 manifest digest`)
+  }
+  const reference = `${repository}@${digest}`
+  assertRegistryDigest(reference)
+  return reference
+}
+
 /** Fail when a required binding field is absent, empty, or the wrong primitive type. */
 function assertNonEmpty(value, label) {
   if (typeof value !== 'string' || value.trim() === '') {
@@ -266,16 +292,11 @@ async function buildBinding({ tag, createdAt, aliases = [], buildEntry = 'script
   const imageIdHex = image.imageId.replace(/^sha256:/, '')
   const localRepoDigest = image.repoDigests.find(entry => parseRepoDigest(entry)?.repository === repository) ?? null
   const localDigestHex = localRepoDigest === null ? null : parseRepoDigest(localRepoDigest).hex
-  // Docker stores a repo digest for a locally built image too, but its digest equals the image id
-  // (a config digest). A registry manifest digest is a different value; only that counts as
-  // pushed evidence.
-  const registryRepoDigest = localDigestHex !== null && localDigestHex !== imageIdHex ? localRepoDigest : null
-  if (pushed && registryRepoDigest === null) {
-    throw new BindingError(
-      `${tag} has no registry repo digest (only ${localRepoDigest ?? 'no repo digest'}). Push the image first, `
-      + 'or omit --pushed to record the reproducible local digest with pushed: false',
-    )
-  }
+  // Docker stores a repo digest for a locally built image too. For a single-platform image that
+  // digest can equal the image id, so the registry must be asked directly rather than inferred
+  // from the local RepoDigests list. buildx imagetools returns the manifest/index digest that a
+  // registry actually stores, which is the release evidence we need.
+  const registryRepoDigest = pushed ? registryManifestDigest(repository, tag) : null
   const digest = pushed ? registryRepoDigest : (localRepoDigest ?? image.imageId)
   return {
     schemaVersion: 1,
@@ -357,9 +378,6 @@ function validateBinding(binding) {
       if (!isRegistryQualified(parsed.repository)) throw new Error('a pushed binding needs a registry-qualified repository')
       if (typeof image.repository === 'string' && parsed.repository !== image.repository) {
         throw new Error('registry digest repository does not match image.repository')
-      }
-      if (parsed.hex === imageIdHex) {
-        throw new Error('registry digest equals the local image id; this is not registry evidence')
       }
       if (typeof image.localRepoDigest === 'string' && parseRepoDigest(image.localRepoDigest) === null) {
         throw new Error('image.localRepoDigest is not a repo digest')
