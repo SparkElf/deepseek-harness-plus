@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "workspace-image-bake-build",
+  "generatedAt": "2026-11-27T09:49:54+08:00",
+  "repository": "dataops-ai-workspace-candidate",
+  "plusVersion": "0.2.9-alpha.106",
+  "cacheMode": "enabled",
+  "stages": [
+    {
+      "target": "base",
+      "image": "dataops-ai-workspace-candidate:base-py312",
+      "seconds": 0,
+      "reused": true,
+      "imageId": "sha256:5ae1bc4e0466a4acd6717a1f59bc5f46533aa4bb4216162b6f5c02fb5d9f71c5",
+      "sizeBytes": 1316006178,
+      "layers": 16,
+      "repoDigest": "dataops-ai-workspace-candidate@sha256:5ae1bc4e0466a4acd6717a1f59bc5f46533aa4bb4216162b6f5c02fb5d9f71c5"
+    },
+    {
+      "target": "plus",
+      "image": "dataops-ai-workspace-candidate:plus-cli-py312-0.2.9-alpha.106",
+      "seconds": 6,
+      "reused": false,
+      "imageId": "sha256:272b7d571b43cd4554b3ec05526a9065612a0e5e15f33ab77821fcbcadd78903",
+      "sizeBytes": 2795120868,
+      "layers": 85,
+      "repoDigest": "dataops-ai-workspace-candidate@sha256:272b7d571b43cd4554b3ec05526a9065612a0e5e15f33ab77821fcbcadd78903"
+    },
+    {
+      "target": "runtime",
+      "image": "dataops-ai-workspace-candidate:final-bake",
+      "seconds": 82,
+      "reused": false,
+      "imageId": "sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+      "sizeBytes": 2881378410,
+      "layers": 113,
+      "repoDigest": "dataops-ai-workspace-candidate@sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007"
+    }
+  ],
+  "totalSeconds": 92,
+  "final": {
+    "tag": "dataops-ai-workspace-candidate:final-bake",
+    "imageId": "sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+    "digest": "dataops-ai-workspace-candidate@sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+    "sizeBytes": 2881378410,
+    "layers": 113
+  },
+  "shellChain": {
+    "tag": "dataops-ai-workspace-candidate:final",
+    "imageId": "sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9",
+    "sizeBytes": 2909582424
+  },
+  "binding": {
+    "path": "/root/projects/deepseek-harness-plus/images/workspace/acceptance/release-binding-bake.json",
+    "written": true
+  }
+}
