@@ -1,0 +1,102 @@
+{
+  "name": "@sparkelf/dsh-quant",
+  "version": "0.91.0-sparkelf.14",
+  "description": "SparkElf-maintained fork of dsh-quant: AI-native & DSH-native quant toolkit — 59 tools across 6 pluggable domains (data/alpha/ML/risk/execution), one end-to-end PDAT→PET research pipeline. Fork adds A-share-correct annualization, cross-sectional IC, and unit-consistent win rates. Methods open, secrets internal.",
+  "license": "MIT",
+  "type": "module",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "quant",
+    "trading",
+    "technical-analysis",
+    "indicators",
+    "backtest"
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "mcp",
+    "docs",
+    "log",
+    "skill",
+    "tool-use",
+    "memory",
+    "rag",
+    "benchmark",
+    "eval",
+    "plan",
+    "README.md",
+    "NEWS.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
+    "demos",
+    "quant-history",
+    "quant-repo",
+    "plugin",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "cli"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test:unit": "tsx --test tests/*.spec.ts",
+    "test:loader": "tsx --test tests/loader-composition.spec.ts",
+    "test:verify": "tsx verify.ts",
+    "test": "npm run build && npm run typecheck && npm run test:unit",
+    "prepublishOnly": "npm run build && npm test",
+    "gen:tools": "tsx scripts/gen-tools-json.ts",
+    "typecheck": "tsc --noEmit",
+    "bench": "tsx benchmark/smoke.ts",
+    "test:cov": "node --experimental-test-coverage --import tsx --test tests/*.spec.ts"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.2.0-alpha.1",
+    "@deepseek-ai/dsh-tools": "^0.2.3-alpha.2",
+    "@deepseek-ai/dsh-system-prompt": "^0.2.3-alpha.2"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.2.0-alpha.1",
+    "@deepseek-ai/dsh-tools": "^0.2.3-alpha.2",
+    "@deepseek-ai/dsh-system-prompt": "^0.2.3-alpha.2",
+    "@deepseek-ai/cordis-plugin-loader": "^1.2.0-alpha.1",
+    "@deepseek-ai/cordis-plugin-include": "^1.2.0-alpha.1",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "bin": {
+    "dsh-quant": "./cli/main.mjs"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/forks/dsh-quant-plus"
+  },
+  "homepage": "https://github.com/SparkElf/dsh-quant-plus",
+  "bugs": {
+    "url": "https://github.com/SparkElf/dsh-quant-plus/issues"
+  }
+}

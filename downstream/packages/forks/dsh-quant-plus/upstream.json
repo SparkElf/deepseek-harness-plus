@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "repo": "SparkElf/dsh-quant-plus",
+  "ref": "refs/heads/main",
+  "commit": "803bd0b31c70609f46599b5e2ded0e5e4b5ac4fa",
+  "commitDate": "2026-10-28T23:16:49+08:00",
+  "version": "0.91.0-sparkelf.14",
+  "published": {
+    "registry": "npm",
+    "package": "@sparkelf/dsh-quant",
+    "version": "0.91.0-sparkelf.14"
+  },
+  "source": "git main at 803bd0b (0.91.0-sparkelf.13) with package.json from the published 0.91.0-sparkelf.14 tarball",
+  "sourceDeltas": [
+    "package.json: version 0.91.0-sparkelf.14",
+    "package.json: peer/dev cordis ^4.2.0-alpha.1, dsh-tools/dsh-system-prompt ^0.2.3-alpha.2, cordis plugins ^1.2.0-alpha.1"
+  ],
+  "notes": [
+    "GitHub main carries 0.91.0-sparkelf.13 and never received the .14 release commit.",
+    "The complete .14 npm tarball differs from .13 only in package.json, so the .13 source tree is the correct .14 source."
+  ]
+}

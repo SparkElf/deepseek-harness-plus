@@ -9,7 +9,11 @@
     "noEmit": false,
     "composite": false,
     "incremental": false,
-    "paths": {},
+    "paths": {
+      "@deepseek-ai/cordis": [
+        "./node_modules/@deepseek-ai/cordis"
+      ]
+    },
     "strict": false,
     "noUncheckedIndexedAccess": false,
     "exactOptionalPropertyTypes": false,

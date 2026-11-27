@@ -180,14 +180,15 @@ const commands = {
     if (JSON.stringify(profilePackage.dsh?.profile?.bundles) !== JSON.stringify(r.profile.bundles)) fail('profile package dsh.profile.bundles differs from release manifest')
     for (const [name, spec] of Object.entries(r.profileDependencies ?? {})) {
       const actual = profilePackage.dependencies?.[name]
-      const expected = r.localPackages?.[name]?.override === 'enabled' ? 'workspace:*' : spec
+      const local = r.localPackages?.[name] ?? Object.values(r.localPackages ?? {}).find((entry) => entry.profileName === name)
+      const expected = local?.override === 'enabled' ? (local.workspaceSpec ?? 'workspace:*') : spec
       if (actual !== expected) fail(`profile dependency ${name} is ${String(actual)}, expected ${expected}`)
     }
     const mismatches = []
     for (const [name, entry] of Object.entries(r.localPackages ?? {})) {
       if (!existsSync(join(root, entry.path))) fail(`local package ${name} path is missing: ${entry.path}`)
       const pkg = readJson(join(root, entry.path, 'package.json'))
-      if (pkg.name !== name || pkg.version !== entry.version) fail(`local package ${name} manifest drifted from release manifest`)
+      if (pkg.name !== (entry.packageName ?? name) || pkg.version !== entry.version) fail(`local package ${name} manifest drifted from release manifest`)
       if (entry.profilePinStatus === 'mismatch' && entry.override !== 'disabled') mismatches.push(`${name}: local ${entry.version}, profile ${entry.profileSpec}`)
     }
     if (mismatches.length) {
@@ -333,8 +334,8 @@ const commands = {
       fail('publish is fail-closed: use `publish --dry-run` to validate migrated artifacts; remote publication requires a separate release approval')
     }
     const { r } = assertConsistent()
-    const entries = r.packages?.plugins ?? []
-    if (!entries.length) fail('no migrated plugin packages to publish')
+    const entries = [...(r.packages?.plugins ?? []), ...(r.packages?.forks ?? [])]
+    if (!entries.length) fail('no migrated packages to publish')
     const failures = []
     for (const entry of entries) {
       const dir = join(root, entry.path)
