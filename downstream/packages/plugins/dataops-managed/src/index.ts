@@ -841,9 +841,9 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   const reviewApi = new ReviewApi(ctx, { baseUrl, credentialRef: config.credentialRef })
   reviewApiRef = reviewApi
   /**
-   * The portal brand, read without a credential.
+   * The workspace brand, read without a credential.
    *
-   * Both settings are public, so the shell can render the right name and logo before the
+   * The name and logo settings are public, so the shell can render the right identity before the
    * workspace has a DataOps session. The source owns the short cache; the route is a plain
    * same-origin read so a browser reload never reaches DataOps directly.
    */
