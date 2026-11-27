@@ -1,0 +1,280 @@
+/**
+ * The graph rail tree.
+ *
+ * Row metrics come from the Knowledge tree's `.entry` classes (imported by the
+ * component), so this file only adds the pieces a DOMAIN tree needs: the chevron
+ * gutter, the graph file glyph, the department/topic indentation, and the selected
+ * row fill. No new row rhythm is introduced.
+ */
+
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.scope {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* The chevron column sits BEFORE the 14px icon box, so a row's icon starts at the
+   same x for leaf and expandable rows while the triangle has its own gutter. */
+.chevron,
+.chevronPlaceholder {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.chevron > svg {
+  width: 12px;
+  height: 12px;
+}
+
+.rowActive,
+.rowActive:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  color: var(--dsw-alias-label-primary);
+}
+
+.graphGlyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.rowActive .graphGlyph {
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* A computed graph is a live view, not a stored folder. The two chips are part of
+   the row's identity; `OriginBadges` covers provenance and stays independent. */
+.computedBadges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+}
+
+.computedBadge,
+.readOnlyBadge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  height: 14px;
+  padding: 0 4px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 3px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.computedBadge {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 80%, var(--dsw-alias-label-primary));
+}
+
+.topicRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: color-mix(in srgb, var(--dsw-alias-label-tertiary) 80%, var(--dsw-alias-label-primary));
+  font: var(--dsw-font-xxs-12);
+  text-align: start;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.topicRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.topicActive,
+.topicActive:hover {
+  background: var(--dsw-alias-interactive-bg-hover-accent);
+  color: var(--dsw-alias-label-primary);
+}
+
+.topicGlyph {
+  flex: 0 0 auto;
+  width: 4px;
+  height: 4px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .7;
+}
+
+.topicName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.emptyRow {
+  margin: 2px 0 4px;
+  color: color-mix(in srgb, var(--dsw-alias-label-tertiary) 80%, var(--dsw-alias-label-primary));
+  font: var(--dsw-font-xxxs-11);
+}
+
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px;
+  color: color-mix(in srgb, var(--dsw-alias-label-tertiary) 80%, var(--dsw-alias-label-primary));
+  font: var(--dsw-font-xxs-12);
+}
+
+.emptyTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.detail {
+  margin: 0;
+  font: var(--dsw-font-xxxs-11);
+  overflow-wrap: anywhere;
+}
+
+.retry {
+  align-self: flex-start;
+  height: 26px;
+  padding: 0 10px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* ---- host explorer row (copied verbatim from
+   DSH-better-sidebar/src/client/sidebar.module.css) ----
+   The tree's own FileTree cannot take graph nodes (it fetches filesystem
+   levels), so the row contract is copied rather than wrapped: 28px, 12px type,
+   6px gap, 14px glyph, hover fill and the selected row's 2px inset accent bar.
+   The only local deviation is the 16px-per-level indent the reader asked for. */
+
+.explorerRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  font: var(--dsw-font-xxs-12);
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 4px;
+  animation: kg-row-in 150ms var(--ds-ease-in-out);
+}
+
+.explorerRow > svg {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+}
+
+.explorerRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.explorerRowSelected {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.explorerRowSelected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--dsw-alias-state-business-primary);
+}
+
+.explorerDir {
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.explorerName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Provenance chips sit between the name and the trailing count. The name keeps its
+   ellipsis; the chips keep their natural width so a redline badge is never the
+   thing that gets clipped. */
+.rowBadges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+.explorerTime {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.explorerRow:hover .explorerTime,
+.explorerRow:focus-within .explorerTime {
+  margin-left: 0;
+}
+
+@keyframes kg-row-in {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: none; }
+}

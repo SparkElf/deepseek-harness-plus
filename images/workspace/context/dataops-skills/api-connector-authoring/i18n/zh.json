@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "source": "manual"
+  },
+  "title": "接口连接器编写",
+  "description": "从接口文档（OpenAPI / Swagger / 接口说明）创建 API Connector 并导入为接口资源。",
+  "summary": "接口文档转连接器与接口资源的操作指南。"
+}

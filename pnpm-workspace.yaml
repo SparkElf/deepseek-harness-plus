@@ -1,6 +1,8 @@
 packages:
   - vendor/*
   - packages/*/*
+  - downstream/packages/*/*
+  - downstream/profiles/*
   - patches/npm/*
   # The Landlock launcher is developed with its harness consumers but keeps
   # its native build and publication scripts under native/system.

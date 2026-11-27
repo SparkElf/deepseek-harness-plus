@@ -1,0 +1,103 @@
+/*
+ * The reply button and the pending-quote bar.
+ *
+ * Both sit on official composers, so they inherit the composer's colour scheme rather than
+ * bringing their own: a solid fill here would read as a second accent beside the send button.
+ */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, inherit);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 120ms ease, background-color 120ms ease;
+}
+
+.button:hover {
+  opacity: 1;
+  background: var(--dsw-alias-bg-l2, rgb(255 255 255 / 8%));
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary, currentcolor);
+  outline-offset: 1px;
+}
+
+/*
+ * The bar is a sibling of the input, not an overlay: it must not cover the text the reader is
+ * typing, and it disappears the moment the reply is sent.
+ */
+.bar {
+  box-sizing: border-box;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  max-width: var(--dsh-chat-content-width, 100%);
+  margin: 0 auto 4px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-l2, rgb(255 255 255 / 4%));
+}
+
+/* A stretched column, so the accent matches the bar's height at any font size. */
+.mark {
+  flex: none;
+  align-self: stretch;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--dsw-alias-brand-primary, currentcolor);
+  opacity: 0.6;
+}
+
+.body {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-secondary, inherit);
+}
+
+.author {
+  flex: none;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+.dismiss {
+  flex: none;
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary, inherit);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dismiss:hover {
+  background: var(--dsw-alias-bg-l3, rgb(255 255 255 / 10%));
+  color: var(--dsw-alias-label-primary, inherit);
+}

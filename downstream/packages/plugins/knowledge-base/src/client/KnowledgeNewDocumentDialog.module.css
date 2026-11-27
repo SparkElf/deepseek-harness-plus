@@ -1,0 +1,70 @@
+/* The type chooser: three large targets, no form. */
+.modal {
+  width: min(760px, calc(100vw - 32px));
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.cards {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.card {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  gap: 12px;
+  min-height: 92px;
+  padding: 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-lg);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-2);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.iconPlate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 46px;
+  height: 46px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.cardText {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.cardTitle {
+  font: var(--dsw-font-xs-13);
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}

@@ -1,0 +1,8 @@
+- insert:
+    - id: query-result-analysis
+      name: '@sparkelf/dsh-query-result-analysis'
+      config:
+        readToolName: mcp__dataops__read_query_result
+        batchOutputMaxTokens: 1200
+        reduceOutputMaxTokens: 1600
+        reduceGroupSize: 8

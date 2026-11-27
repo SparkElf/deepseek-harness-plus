@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "sourceRepository": "SparkElf/dsh-plugins-plus",
+  "targetRepository": "SparkElf/deepseek-harness-plus",
+  "targetRoot": "downstream/packages/plugins",
+  "generatedAt": "2026-11-26T03:59:14.387Z",
+  "packages": [
+    {
+      "name": "@sparkelf/dsh-api-client",
+      "version": "0.5.3",
+      "sourcePath": "dsh-plugins-plus/packages/api-client",
+      "targetPath": "downstream/packages/plugins/api-client",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-artifact-app",
+      "version": "0.1.1",
+      "sourcePath": "dsh-plugins-plus/packages/artifact-app",
+      "targetPath": "downstream/packages/plugins/artifact-app",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-chart",
+      "version": "0.1.4",
+      "sourcePath": "dsh-plugins-plus/packages/chart",
+      "targetPath": "downstream/packages/plugins/chart",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated",
+      "blockedReason": "client slot/locale typings plus test harness imports an older cordis-plugin-loader/cosmokit API; requires real client and test-harness migration"
+    },
+    {
+      "name": "@sparkelf/dsh-credential-manager",
+      "version": "0.1.3",
+      "sourcePath": "dsh-plugins-plus/packages/credential-manager",
+      "targetPath": "downstream/packages/plugins/credential-manager",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-account",
+      "version": "0.2.0",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-account",
+      "targetPath": "downstream/packages/plugins/dataops-account",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-admin",
+      "version": "0.1.0",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-admin",
+      "targetPath": "downstream/packages/plugins/dataops-admin",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-im",
+      "version": "0.1.2",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-im",
+      "targetPath": "downstream/packages/plugins/dataops-im",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-integration",
+      "version": "0.1.4",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-integration",
+      "targetPath": "downstream/packages/plugins/dataops-integration",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-managed",
+      "version": "0.4.2",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-managed",
+      "targetPath": "downstream/packages/plugins/dataops-managed",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated",
+      "blockedReason": "Schemastery .volatile() has been removed in the current workspace; requires settings-persistence API migration, not just type casts"
+    },
+    {
+      "name": "@sparkelf/dsh-dataops-model-default",
+      "version": "0.1.0",
+      "sourcePath": "dsh-plugins-plus/packages/dataops-model-default",
+      "targetPath": "downstream/packages/plugins/dataops-model-default",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-group-chat",
+      "version": "0.5.12",
+      "sourcePath": "dsh-plugins-plus/packages/group-chat",
+      "targetPath": "downstream/packages/plugins/group-chat",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-image-hoist",
+      "version": "0.1.5",
+      "sourcePath": "dsh-plugins-plus/packages/image-hoist",
+      "targetPath": "downstream/packages/plugins/image-hoist",
+      "hasBuild": false,
+      "hasTests": true,
+      "status": "excluded",
+      "blockedReason": "source reconstructed from lib/*.js, but projection tests fail against the current DSH session fold; requires real projection API migration",
+      "excludedReason": "not in any shipped Plus profile; kept only for legacy image/hoist replay compatibility; source tree has no src, so it is archived with dsh-plugins-plus instead of migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-kb-citation",
+      "version": "0.1.6",
+      "sourcePath": "dsh-plugins-plus/packages/kb-citation",
+      "targetPath": "downstream/packages/plugins/kb-citation",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-knowledge-base",
+      "version": "0.6.3",
+      "sourcePath": "dsh-plugins-plus/packages/knowledge-base",
+      "targetPath": "downstream/packages/plugins/knowledge-base",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-mineru",
+      "version": "0.1.4",
+      "sourcePath": "dsh-plugins-plus/packages/mineru",
+      "targetPath": "downstream/packages/plugins/mineru",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-mobile-bridge",
+      "version": "0.2.18",
+      "sourcePath": "dsh-plugins-plus/packages/mobile-bridge",
+      "targetPath": "downstream/packages/plugins/mobile-bridge",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-mobile-bridge-server",
+      "version": "0.2.8",
+      "sourcePath": "dsh-plugins-plus/packages/mobile-bridge-server",
+      "targetPath": "downstream/packages/plugins/mobile-bridge-server",
+      "hasBuild": false,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-ocr",
+      "version": "0.1.0",
+      "sourcePath": "dsh-plugins-plus/packages/ocr",
+      "targetPath": "downstream/packages/plugins/ocr",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-office-viewer-fonts",
+      "version": "0.1.9",
+      "sourcePath": "dsh-plugins-plus/packages/office-viewer-fonts",
+      "targetPath": "downstream/packages/plugins/office-viewer-fonts",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated",
+      "blockedReason": "44MB font assets; asset inclusion policy must be decided before migration"
+    },
+    {
+      "name": "@sparkelf/dsh-officecli",
+      "version": "0.2.3",
+      "sourcePath": "dsh-plugins-plus/packages/officecli",
+      "targetPath": "downstream/packages/plugins/officecli",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-plugin-ping",
+      "version": "0.1.1",
+      "sourcePath": "dsh-plugins-plus/packages/ping",
+      "targetPath": "downstream/packages/plugins/ping",
+      "hasBuild": false,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-plugin-supervisor",
+      "version": "0.1.11",
+      "sourcePath": "dsh-plugins-plus/packages/supervisor",
+      "targetPath": "downstream/packages/plugins/supervisor",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-query-result-analysis",
+      "version": "0.1.4",
+      "sourcePath": "dsh-plugins-plus/packages/query-result-analysis",
+      "targetPath": "downstream/packages/plugins/query-result-analysis",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated",
+      "blockedReason": "TS2339/TS2322 against current DSH JsonValue types; needs source-level type migration"
+    },
+    {
+      "name": "@sparkelf/dsh-sql-workbench",
+      "version": "0.6.0",
+      "sourcePath": "dsh-plugins-plus/packages/sql-workbench",
+      "targetPath": "downstream/packages/plugins/sql-workbench",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated",
+      "blockedReason": "client slot/JSX typings and JsonValue driver types drift from DSH 0.2.x; needs source-level API migration"
+    },
+    {
+      "name": "@sparkelf/dsh-ssh-manager",
+      "version": "0.7.5",
+      "sourcePath": "dsh-plugins-plus/packages/ssh-manager",
+      "targetPath": "downstream/packages/plugins/ssh-manager",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-task-bus",
+      "version": "0.2.1",
+      "sourcePath": "dsh-plugins-plus/packages/task-bus",
+      "targetPath": "downstream/packages/plugins/task-bus",
+      "hasBuild": true,
+      "hasTests": false,
+      "status": "migrated"
+    },
+    {
+      "name": "@sparkelf/dsh-workbench-vault",
+      "version": "0.1.2",
+      "sourcePath": "dsh-plugins-plus/packages/workbench-vault",
+      "targetPath": "downstream/packages/plugins/workbench-vault",
+      "hasBuild": true,
+      "hasTests": true,
+      "status": "migrated"
+    }
+  ]
+}

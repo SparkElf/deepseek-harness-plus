@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "B-08 (images/workspace skeleton)",
+  "collectedAt": "2026-11-26T13:07:00+08:00",
+  "source": {
+    "repository": "dataops",
+    "commit": "e5c411e68e83cd3e03897af3c0a6cefca50d3e39",
+    "evidence": "dataops/docs/workspace-image-baseline-20261126.md"
+  },
+  "measurementRules": {
+    "dockerImages": "overlay2 visible size as reported by `docker images`; the design documents use this number",
+    "history": "sum of per-layer differential sizes from `docker history --no-trunc`",
+    "compressed": "`docker image inspect .Size`, close to the registry pull size",
+    "rule": "A candidate image must stay at or below the production row. The latest-build row is the soft target that proves the 2026-11-25 size reductions survive. Never compare the three columns to each other."
+  },
+  "images": [
+    {
+      "role": "production",
+      "tag": "dataops-ai-workspace:final-20261125-sdkfix",
+      "id": "6db8fb5b27d8",
+      "createdAt": "2026-11-25T03:43:05+08:00",
+      "dockerImagesGiB": 13.2,
+      "historyGiB": 10.07,
+      "compressedBytes": 3160902480,
+      "note": "running image of container dataops-ai-admin; hard floor for a candidate"
+    },
+    {
+      "role": "latest-build",
+      "tag": "dataops-ai-workspace:final-20261125-1524",
+      "aliases": ["dataops-ai-workspace:final", "dataops-ai-workspace:local"],
+      "id": "f92d9997705b",
+      "createdAt": "2026-11-25T15:44:41+08:00",
+      "dockerImagesGiB": 11.9,
+      "historyGiB": 8.97,
+      "compressedBytes": 2875396944,
+      "note": "carries the 2026-11-25 LibreOffice and prune changes; not deployed"
+    },
+    {
+      "role": "plus-layer",
+      "tag": "dataops-ai-workspace:plus-cli-py312-0.2.9-alpha.105",
+      "aliases": ["dataops-ai-workspace:runtime-files"],
+      "id": "109e6a8960cd",
+      "createdAt": "2026-11-25T15:40:03+08:00",
+      "dockerImagesGiB": 11.5,
+      "historyGiB": 8.75,
+      "compressedBytes": 2789199628
+    },
+    {
+      "role": "base-layer",
+      "tag": "dataops-ai-workspace:base-py312",
+      "aliases": ["dataops-ai-workspace:base-tdf"],
+      "id": "1188c04a457d",
+      "createdAt": "2026-11-25T15:20:53+08:00",
+      "dockerImagesGiB": 4.84,
+      "historyGiB": 3.53,
+      "compressedBytes": 1314588737
+    },
+    {
+      "role": "rollback",
+      "tag": "dataops-ai-workspace:final-20261124-0032",
+      "id": "d256c330e89e",
+      "createdAt": "2026-11-24T00:33:31+08:00",
+      "dockerImagesGiB": 12.9,
+      "historyGiB": null,
+      "compressedBytes": null
+    },
+    {
+      "role": "delivery",
+      "tag": "dataops-ai-workspace:delivery-20261123-amd64",
+      "id": "1c5b3d9f4045",
+      "createdAt": "2026-11-23T12:06:56+08:00",
+      "dockerImagesGiB": 12.9,
+      "historyGiB": null,
+      "compressedBytes": null
+    }
+  ],
+  "layersGiB": {
+    "production": [
+      { "layer": "source-deps pnpm install", "size": 2.6 },
+      { "layer": "apply-plus (patch + official build + gates + profile install)", "size": 1.68 },
+      { "layer": "Python packages", "size": 0.844 },
+      { "layer": "profile template copy", "size": 0.788 },
+      { "layer": "LibreOffice 25.8.7 (TDF extract)", "size": 0.736 },
+      { "layer": "base apt closure incl. Debian LibreOffice 7.4", "size": 0.651 },
+      { "layer": "Playwright Chromium", "size": 0.627 },
+      { "layer": "DSH source extract (/opt/dsh-source, keeps .git)", "size": 0.373 },
+      { "layer": "build-essential / cmake", "size": 0.292 },
+      { "layer": "playwright install-deps chromium", "size": 0.257 },
+      { "layer": "Node 26 runtime copied into Python base", "size": 0.173 },
+      { "layer": "npm install -g Plus tarball", "size": 0.166 },
+      { "layer": "openssh-server", "size": 0.137 },
+      { "layer": "COPY dsh-src.tar.gz", "size": 0.109 }
+    ],
+    "latestBuild": [
+      { "layer": "source-deps pnpm install", "size": 2.46 },
+      { "layer": "apply-plus", "size": 1.11 },
+      { "layer": "Python packages", "size": 0.839 },
+      { "layer": "profile template copy", "size": 0.788 },
+      { "layer": "LibreOffice 25.8.7 (apt TDF deb)", "size": 0.771 },
+      { "layer": "Playwright Chromium", "size": 0.627 },
+      { "layer": "DSH source extract", "size": 0.373 },
+      { "layer": "build-essential", "size": 0.291 },
+      { "layer": "base apt (Debian LibreOffice removed)", "size": 0.289 },
+      { "layer": "playwright install-deps", "size": 0.25 },
+      { "layer": "Node 26 runtime", "size": 0.173 },
+      { "layer": "openssh-server", "size": 0.137 },
+      { "layer": "Plus global install", "size": 0.125 },
+      { "layer": "COPY dsh-src.tar.gz", "size": 0.109 }
+    ]
+  },
+  "runtime": {
+    "node": "v26.13.1",
+    "npm": "12.0.2",
+    "python": "3.12.16",
+    "libreoffice": "25.8.7.3 30742500f2d3eb4366ac312fa33d3dcabdb3eba5",
+    "dsh": "0.2.3-alpha.2",
+    "plus": "0.2.9-alpha.105",
+    "dataopsManaged": "0.4.2",
+    "profileBundles": 26,
+    "cjkFonts": 19,
+    "serviceStatus": { "state": "running", "ready": true, "host": "127.0.0.1", "port": 3080, "profile": "dataops-web" },
+    "rssKb": { "dsh": 358392, "workspaceGateway": 44900 }
+  },
+  "container": {
+    "name": "dataops-ai-admin",
+    "image": "dataops-ai-workspace:final-20261125-sdkfix",
+    "volume": "dataops-ai-admin-dsh-run -> /workspace",
+    "writableLayerGiB": 2.2,
+    "writableLayerNote": "about 2.09GB of it is four /tmp/dsh-workspace-changes-* snapshots created at runtime; measure image content separately from runtime /tmp",
+    "workspaceVolumeGiB": 3.2,
+    "workspaceVolumeNote": "target is <2GB; active profile 804MB, runtime-connectors 354MB"
+  },
+  "targets": {
+    "writableLayer": "<50MB",
+    "workspaceVolume": "<2GB",
+    "buildPinOnly": "<=5min (not achievable before apply-plus is split)",
+    "buildSourcePatch": "<=15min warm cache",
+    "buildBase": "<=25min warm cache",
+    "plusLayerDelta": ">=700MB reduction from moving LibreOffice into base",
+    "runtimeImage": "2-4GB (design target, unmeasured)",
+    "readyWarm": "10-15s",
+    "readyCold": "30-60s"
+  },
+  "notMeasured": [
+    "full build duration (base -> plus -> runtime -> verify); historical 18-22 minutes",
+    "pin-only build duration and cache hit rate",
+    "source/patch build duration",
+    "base build duration",
+    "runtime-only build duration; historical 36 seconds",
+    "cold start to DSH ready=true",
+    "first pull plus start on a clean node",
+    "browser peak RSS and cgroup memory",
+    "registry digest; the images were never pushed",
+    "arm64 image",
+    "docker save tar size",
+    "verify-workspace-image.mjs result for 2026-11-26",
+    "per-layer build timing from a --progress=plain build"
+  ]
+}

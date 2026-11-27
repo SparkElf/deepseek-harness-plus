@@ -80,6 +80,8 @@ export function isOwnerAuthorizedRuntime(name: string): boolean {
  * Each entry documents why the store cannot answer.
  */
 const OVERRIDES: Record<string, { license?: string; repo?: string }> = {
+  '@anysearch/anysearch-dsh': { license: 'MIT', repo: 'https://github.com/anysearch-team/anysearch-dsh' },
+  ssh2: { license: 'MIT', repo: 'https://github.com/mscdex/ssh2' },
   // Rust workspaces publishing npm bins without `license` in package.json.
   'oxlint': { license: 'MIT', repo: 'https://github.com/oxc-project/oxc' },
   'oxlint-tsgolint': { license: 'MIT', repo: 'https://github.com/oxc-project/tsgolint' },
@@ -626,7 +628,7 @@ function collectPatched(): { spec: string; patch: string }[] {
 }
 
 /** SPDX identifiers this project may ship without further review. */
-const PERMISSIVE_LICENSES = new Set(['MIT', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0'])
+const PERMISSIVE_LICENSES = new Set(['MIT', 'MIT-0', 'ISC', 'BSD-2-Clause', 'BSD-3-Clause', 'Apache-2.0', '0BSD', 'Unlicense', 'CC0-1.0', 'BlueOak-1.0.0', 'Python-2.0'])
 
 /** Evaluate a parsed SPDX expression under the repository's license policy. */
 function isPermissiveSpdx(expression: ReturnType<typeof parseSpdx>): boolean {

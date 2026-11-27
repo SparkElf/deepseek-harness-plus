@@ -1,0 +1,81 @@
+/*
+ * The members box on the right sidebar's start guide.
+ *
+ * The guide wraps every box in its own fixed-width cell and styles nothing inside it, so this
+ * file owns the whole appearance. It mirrors the guide's own capsule closely — same width, radius,
+ * border, padding and type scale, both themes through the same `--dsw-*` aliases — because a
+ * replacement that looked different would read as a foreign control sitting among the product's
+ * own. The values below track the shipped capsule in `dsh-client-ui-sidebar-right`; if that moves,
+ * this should follow it rather than drift.
+ */
+
+/* One square tile in the guide grid, matching the shell's own entries: full cell, centered
+   column, 22px glyph over the title. Better-sidebar forces this geometry on every entry through
+   `[data-sidebar-right-guide]`; the replacement keeps the same values so it holds even when the
+   guide is rendered without that stylesheet. */
+.entry {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 12px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+
+.entry:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The glyph keeps a fixed column so every box in the guide lines up on its text, whether or not
+   it carries an icon. */
+.icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.text {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Both lines yield to the box's width: a long room name must not push the description past the
+   capsule's edge. */
+.title {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

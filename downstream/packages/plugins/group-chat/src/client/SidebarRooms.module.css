@@ -1,0 +1,897 @@
+/* Group-chat region of the left sidebar.
+   Values copied from ui-workspace's browsing region so the two read as one design system:
+   a 36px header, a 28px icon button, a 30px expanded search field, 32px rows, and DSH's
+   own `dsw` tokens. The group-chat region is the workspace region with grouping removed,
+   because a room is 1:1 with its session. */
+
+.root {
+  /* The workspace region does not hard-code its right edge: it steps in from the sidebar's
+     own inline padding by `--dsh-session-list-edge-inset`, which it defines here as that
+     same padding. Resolving the edge from the shell's token is what lets the two regions
+     agree for any theme, so this region defines the token identically. The scrollbar pair
+     is the workspace list's: its track is laid out inside the inline padding rather than
+     over the rows. */
+  --dsh-session-list-edge-inset: var(--dsh-sidebar-inline-padding, 12px);
+  --dsh-session-list-scrollbar-width: 5px;
+  --dsh-session-list-scrollbar-offset: 2px;
+  box-sizing: border-box;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The seat renders inside `sidebar.footer.action`, and the shell styles that container
+     as `display: flex` with the default row direction. A column child of a row container
+     is sized by its content unless it is told to grow, which left the header's trailing
+     actions parked beside the label instead of against the right edge. `flex: 1` plus
+     `min-width: 0` is what makes it span the full sidebar width. */
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  /* The height is set inline (defaulting to the floor) so the region never grows with its
+     rows: `footArea` does not shrink, and a dozen rooms used to push the workspace list far
+     up the sidebar. This `max-height` is only the pre-hydration placeholder. */
+  max-height: 20vh;
+  /* The grip is positioned against this box. */
+  position: relative;
+  /* No padding-right, where the workspace region's own root carries one. That root is
+     handed `regionArea`, which the shell widens 12px past the sidebar's content edge; this
+     region's seat (`footerActions`) already ends at that edge, because the shell applies
+     the inline padding to the column. Carrying the inset a second time here is exactly
+     what pulled this region's rows and header actions 12px left of the workspace's.
+     `.list` re-applies the inset from the outside instead, so both regions resolve their
+     rows to the same edge. */
+}
+
+/* ── resize grip on the top edge ───────────────────────────────────────────────── */
+
+/* Invisible until the region is hovered or the grip itself is focused: a permanent bar would
+   cost a row of list height to advertise a control most readers never use. The hit area is
+   taller than the visible line so it can be grabbed without precision. */
+.resizer {
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 6px;
+  z-index: 1;
+  cursor: row-resize;
+  background: transparent;
+  touch-action: none;
+}
+
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  border-radius: 1px;
+  background: var(--dsw-alias-border-l1, var(--dsw-alias-separator-primary));
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.root:hover .resizer::after,
+.resizer:focus-visible::after {
+  opacity: 1;
+}
+
+.resizer:focus-visible {
+  outline: none;
+}
+
+.resizer:focus-visible::after {
+  background: var(--dsw-alias-brand-primary, var(--dsw-alias-label-primary));
+  height: 2px;
+}
+
+/* ── header: copied from the workspace section header ─────────────────────────── */
+
+.sectionHeader {
+  box-sizing: border-box;
+  height: 36px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-bottom: 4px;
+  margin-right: -4px;
+  padding-left: 4px;
+  border-radius: var(--dsw-radius-md);
+  color: var(--dsw-alias-label-tertiary);
+  overflow: hidden;
+}
+
+/* The label is not a small caption: it inherits the sidebar's 14px and only differs from
+   the workspace label by its text. */
+.sectionLabel {
+  flex: none;
+  min-width: 0;
+  max-width: 45%;
+  overflow: hidden;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.searchSlot {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  max-width: 28px;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 0;
+}
+
+.searchSlotExpanded {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  /* The header bleeds 4px to the right so its icon buttons sit on the section edge; the field
+     has to give that back, or `width: 100%` inside it ends past the panel. */
+  padding-right: 4px;
+}
+
+.search,
+.searchExpanded {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  /* `flex: none`, not `flex: 1`: the slot is the flexing element, and a growing inner box
+     would stretch past the 28px button while collapsed. */
+  flex: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: text;
+  overflow: hidden;
+}
+
+.searchExpanded {
+  /* The box must stay inside the header: the previous `calc(100% + 4px)` with `margin-inline:
+     -2px` bled past the sidebar's right edge once the header's own negative margin was taken
+     into account, which showed up as the field hanging outside the panel. */
+  width: 100%;
+  height: 30px;
+  margin-inline: 0;
+  padding: 0 4px 0 0;
+  border: 0.5px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-md);
+  color: var(--dsw-alias-label-caption);
+}
+
+.iconButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.iconButton:focus-visible,
+.searchButton:focus-visible,
+.clearButton:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: -2px;
+}
+
+.searchButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.searchExpanded .searchButton {
+  width: 28px;
+  height: 30px;
+}
+
+.searchButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.searchExpanded .searchButton:hover {
+  background: 0 0;
+}
+
+.searchInput {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  outline: none;
+  background: 0 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+  /* Collapsed, the input is still mounted so the caret can move into it the moment the
+     box opens. `width: 0` alone leaves a sliver of the caret visible at the end of the
+     button, which reads as a stray glyph; opacity is what actually hides it. */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s var(--ds-ease-in-out);
+}
+
+.searchExpanded .searchInput {
+  opacity: 1;
+  pointer-events: auto;
+  margin-left: -2px;
+}
+
+.searchInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.clearButton {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.clearButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.headerActions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewWrap {
+  position: relative;
+  display: flex;
+}
+
+/* ── list ─────────────────────────────────────────────────────────────────────── */
+
+.listArea {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  /* These two mirrors are the workspace region's `.listArea`, and they are the other half
+     of the shared edge. `margin-left: -4px` plus `padding-left: 4px` lets the list paint
+     its hover fill and scrollbar 4px into the sidebar's left padding, so a row spans the
+     content box and hangs one 4px step to the left of it; `margin-right` widens the area
+     by the inset this region no longer spends on `.root`. Both are expressed with
+     `calc(-1 * …)` rather than a bare value because the inset is a theme token. */
+  margin-left: -4px;
+  margin-right: calc(-1 * var(--dsh-session-list-edge-inset));
+  padding-left: 4px;
+}
+
+.list {
+  min-height: 0;
+  max-height: 100%;
+  /* The workspace list's own three-part edge, which is what makes the two rows land on the
+     same pixel column. Its content is widened left past the sidebar padding (`margin-left`
+     and `padding-left`, matching `.listArea`) and its right edge is pulled *in* by the
+     three-part inset: `margin-right` cancels the area's outward widening so the scroll
+     container's right edge — where the scrollbar lives — sits at the sidebar content edge,
+     then `padding-right` steps the content back in by the inset minus the scrollbar track
+     it reserves. With no rule in the stylesheet this would fall back to a default-width
+     scrollbar and drift a pixel or two wider than the workspace rows. */
+  margin-left: -4px;
+  margin-right: var(--dsh-session-list-scrollbar-offset);
+  padding-left: 4px;
+  padding-right: calc(
+    var(--dsh-session-list-edge-inset) - var(--dsh-session-list-scrollbar-width) -
+      var(--dsh-session-list-scrollbar-offset)
+  );
+  padding-bottom: 8px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.flatList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flatList > * + * {
+  margin-top: 2px;
+}
+
+/* Row height and structure match the workspace's session row. */
+.sessionRow,
+.sessionRowSelected {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sessionRow:hover,
+.sessionRowSelected {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.rowIcon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Where a session row shows its relative time, a room row shows its size. */
+.time {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 17px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Unread badge: a pill in the row's trailing slot. It shares that slot with the member
+   count, so it is sized like one — the row must not reflow when a room gains unread. */
+.unread {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--dsw-alias-bg-layer-3, var(--dsw-alias-interactive-bg-hover));
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+/* A mention is the one case where the badge must win attention over the room name, so it
+   takes the accent fill and its foreground colour rather than the neutral surface. */
+.unreadMentioned {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--dsw-alias-state-business-primary);
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+}
+
+/* Copied from ui-workspace's `.emptyState`: a centred column with the glyph above the
+   copy. The workspace shows the same shape for "暂无会话", so an empty group-chat region
+   reads the same way rather than as a bare sentence. */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 80px;
+  padding: 0 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+}
+
+.emptyState > svg {
+  margin-bottom: 4px;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* Fades the last row out instead of drawing a scrollbar track, matching the workspace
+   list's own bottom fade. Its right edge stops at the inset rather than at the area's edge,
+   which is the same edge the workspace fade stops at: `.listArea` deliberately overhangs
+   the sidebar's inline padding so rows can, and the fade has to opt back out of it. */
+.fade {
+  position: absolute;
+  left: 0;
+  right: var(--dsh-session-list-edge-inset);
+  bottom: 0;
+  height: 24px;
+  background: linear-gradient(to bottom, transparent, var(--dsw-specific-sidebar-fill));
+  pointer-events: none;
+}
+
+/* ── menus ────────────────────────────────────────────────────────────────────── */
+
+/* The portal's positioning layer, in `document.body`. The menu itself is no longer
+   absolutely positioned inside the scrolling room list — a menu inside a scrolling box is
+   clipped at the box's edge, and the lower rooms lost their bottom entries. This layer
+   carries the row's viewport coordinates instead, so the menu escapes every clipping
+   ancestor while still appearing where the operator right-clicked. */
+.menuLayer {
+  position: fixed;
+  z-index: 60;
+  /* A menu taller than the viewport still has to be reachable: it scrolls rather than
+     running off the edge, which is what the flipped placement cannot fix by itself. */
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+}
+
+/* The trailing view menu stays absolutely positioned: its anchor (`.viewWrap`) sits in the
+   header, outside the scrolling list, so nothing clips it and the portal is unnecessary. */
+.menuInline {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  z-index: 30;
+}
+
+.menu {
+  position: relative;
+  min-width: 200px;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-specific-sidebar-fill));
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+}
+
+.menuHeading {
+  display: block;
+  padding: 4px 8px 2px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.check {
+  margin-left: auto;
+  color: var(--dsw-alias-state-business-primary);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The row and its context menu share a positioned wrapper: the menu is anchored to the
+   row rather than to the list, so a menu on a lower row does not open at the top. */
+.rowWrap {
+  position: relative;
+}
+
+/* The rename panel: a menu-sized card with room for a field and its two actions. */
+.menuRename {
+  box-sizing: border-box;
+  min-width: 240px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1, var(--dsw-specific-sidebar-fill));
+  box-shadow: 0 6px 20px rgb(0 0 0 / 18%);
+}
+
+/* The shared heading keeps the horizontal padding its menu rows align to; inside this panel
+   the padding is already on the card, so the title lines up with the field instead. */
+.menuRename .menuHeading {
+  padding: 0 0 6px;
+}
+
+/* The rename field sits inside the menu's own padding, so its width must count its border
+   and padding: as a content-box it overflowed the 200px menu by exactly its horizontal
+   padding and border, and the native ring ran past the panel's edge. */
+.menuInput {
+  box-sizing: border-box;
+  width: 100%;
+  margin: 2px 0 6px;
+  padding: 6px 8px;
+  border: 1px solid var(--dsw-alias-border-l4);
+  border-radius: var(--dsw-radius-sm);
+  /* The shell's base stylesheet sets a dark surface and light label, but the field still
+     inherits the platform appearance (a white ring on some builds) unless it is reset. */
+  appearance: none;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  outline: none;
+}
+
+.menuInput:focus-visible {
+  border-color: var(--dsw-alias-state-business-primary);
+}
+
+.menuInput::placeholder {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* The rename dialog's actions. A bare `.menuItem` reads as another menu row, so the last
+   step of the dialog looked like a list entry rather than the button that commits it. */
+.menuActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.menuConfirm {
+  box-sizing: border-box;
+  padding: 5px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-button-primary-fill);
+  color: var(--dsw-alias-label-primary-foreground);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.menuConfirm:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.menuConfirm:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.menuCancel {
+  box-sizing: border-box;
+  padding: 5px 12px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-sm);
+  background: 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  cursor: pointer;
+}
+
+.menuCancel:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.menuItem:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Discovery: rooms this account could join. Separated from the joined list by a hairline
+   rather than a heading alone, so the two answers never read as one list. */
+.discoverSection {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--dsw-alias-border-l3);
+}
+
+.discoverHeading {
+  margin: 0 0 4px;
+  padding: 0 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.discoverRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.discoverRow:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+/* The name yields space to the button: a long room name must not push Join out of reach. */
+.discoverName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.discoverMeta {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.joinButton {
+  flex: none;
+  padding: 2px 10px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-state-business-primary);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.joinButton:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.joinButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── leave confirmation ───────────────────────────────────────────────────────── */
+
+/* The confirmation is an ordinary modal; only its body needs the dialog family's column
+   rhythm, because two lines and an error would otherwise sit flush against each other. */
+.leaveBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.leaveCopy {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+/* The room being left is named, not implied: two rooms can share a near-identical name and
+   the menu row the operator clicked is no longer on screen. */
+.leaveRoomName {
+  /* No padding or fill: a tinted block indented itself relative to the paragraph above and read
+     as a stray chip. The target room is part of the sentence, so it aligns with it and only the
+     weight changes to make the name itself findable. */
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 14px;
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
+
+.leaveRoomName strong {
+  font-weight: 600;
+}
+
+.leaveError {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary, #f85149);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* A destructive confirmation is the one button in this plugin whose colour carries meaning:
+   the Button primitive has no danger variant, so it borrows the error colour directly. White
+   text on red, per the platform's own destructive-action convention. */
+.leaveConfirmDanger {
+  /* Destructive fill. The primitive's `primary` variant sets its own background *and* colour,
+     so this class rides on the `ghost` variant, where the primitive sets only `color` and these
+     rules can replace it. */
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* Both selectors are single-class rules on the same element, so only declaration order would
+   decide the winner; repeating the name makes this rule win outright. */
+.leaveConfirmDanger.leaveConfirmDanger {
+  color: var(--dsw-alias-label-primary);
+}
+
+.leaveConfirmDanger:hover:not(:disabled) {
+  background: var(--dsw-alias-state-error-primary);
+  filter: brightness(1.08);
+}
+
+.leaveConfirmDanger:disabled {
+  opacity: 0.5;
+}
+
+/* ── message hits, shown under the same header search ────────────────────────── */
+
+.hitList {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 45%;
+  margin-bottom: 4px;
+  overflow-y: auto;
+}
+
+.hitHint {
+  margin: 2px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.hit {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.hit:hover,
+.hit:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.hitHead {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.hitRoom {
+  flex: none;
+  font-weight: 500;
+}
+
+.hitAuthor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.hitText {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  line-height: 16px;
+}
+
+.mark {
+  padding: 0;
+  border-radius: 2px;
+  background: var(--dsw-alias-bg-brand-weak, rgb(255 214 102 / 35%));
+  color: inherit;
+  font-weight: 600;
+}
+
+/* The collapsed rail's stand-in for the room list: one icon, no rows.
+
+   The rail is as narrow as the shell's icon column, so the control is a square button
+   centred in it rather than a row with a label. It is the region's only affordance when
+   collapsed, which is why it exists at all -- rendering nothing made a whole feature
+   invisible. */
+.railButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: 4px auto;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.railButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.railButton:focus-visible {
+  outline: 1px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}

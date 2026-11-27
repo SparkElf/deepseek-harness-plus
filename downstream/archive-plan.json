@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "policy": "archive, never delete; only after the acceptance conditions hold",
+  "repositories": [
+    {
+      "name": "SparkElf/dsh-plugins-plus",
+      "condition": "26 packages migrated, image smoke includes the generated profile",
+      "status": "archived",
+      "evidence": "26 packages migrated; GitHub archive confirmed isArchived:true at 2026-11-27; repository remains recoverable by an administrator",
+      "archivedAt": "2026-11-27T08:15:00Z"
+    },
+    {
+      "name": "SparkElf/DSH-better-sidebar",
+      "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
+    },
+    {
+      "name": "SparkElf/dsh-genui",
+      "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
+    },
+    {
+      "name": "SparkElf/dsh-quant-plus",
+      "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
+    },
+    {
+      "name": "SparkElf/dsh-sql-workbench",
+      "condition": "monorepo 0.6.0 is the only source",
+      "status": "archived",
+      "reason": "monorepo 0.6.0 is the only source; G13 clean-clone final image acceptance passed 91/91",
+      "evidence": "monorepo 0.6.0 is the only source; G13 clean-clone final acceptance 91/91; GitHub archive confirmed isArchived:true",
+      "archivedAt": "2026-11-27T08:18:00Z"
+    }
+  ]
+}

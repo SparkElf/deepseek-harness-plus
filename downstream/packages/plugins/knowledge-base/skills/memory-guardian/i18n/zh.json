@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "",
+    "model": "manual-zh",
+    "translatedAt": "2026-11-23T10:28:00+08:00"
+  },
+  "title": "记忆守护",
+  "description": "记忆守护会话合并、纠偏、遗忘和维护长期记忆时使用。",
+  "summary": "规定记忆守护会话的写入边界、合并纠偏和隐私处理。"
+}

@@ -1,0 +1,7 @@
+# dsh-credential-manager bundle patch
+#
+# Mounted by the official bundle channel when the package is installed with:
+#   dsh plugin --profile <profile> add ./sparkelf-dsh-credential-manager-0.1.0.tgz
+- insert:
+    - id: credential-manager
+      name: '@sparkelf/dsh-credential-manager'

@@ -1,0 +1,556 @@
+{
+  "schemaVersion": 1,
+  "plus": {
+    "name": "@sparkelf/dsh-plus",
+    "version": "0.2.9-alpha.106"
+  },
+  "upstreamLock": "upstream.lock.json",
+  "profile": {
+    "name": "dataops-web",
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "@deepseek-ai/dsh-experimental-auto-review",
+      "@sparkelf/dsh-mineru",
+      "@sparkelf/dsh-officecli",
+      "dshmarket",
+      "dsh-better-sidebar",
+      "@sparkelf/dsh-office-viewer-fonts",
+      "dsh-video-preview",
+      "@sparkelf/dsh-genui",
+      "@sparkelf/dsh-plugin-supervisor",
+      "@sparkelf/dsh-plus",
+      "dsh-sql-workbench",
+      "@sparkelf/dsh-ssh-manager",
+      "@sparkelf/dsh-api-client",
+      "dsh-right-bg-anim",
+      "@sparkelf/dsh-mobile-bridge",
+      "@sparkelf/dsh-quant",
+      "@sparkelf/dsh-artifact-app"
+    ],
+    "compatibility": [
+      "@deepseek-ai/dsh-web-search-exa@0.2.2-rc.1",
+      "@anysearch/anysearch-dsh@0.1.8"
+    ]
+  },
+  "profileDependencies": {
+    "@anysearch/anysearch-dsh": "0.1.8",
+    "@deepseek-ai/cordis-plugin-group": "1.0.6-alpha.2",
+    "@deepseek-ai/dsh-agent": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-anonymous-user-id": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-attachment": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-bash-local": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-client-store": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-compaction": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-deepseek-account": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-error": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-experimental-auto-review": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-fs": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-home-paths": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-jobs": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-launch-environment": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-llm": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-llm-deepseek": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-ptc-runtime": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-sandbox": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-scope": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-sdk-protocol": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-session-persistence": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-session-telemetry": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-session-title-llm": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-shell": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-spill": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-system-prompt": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-tool-session-query": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-util-workspace-path": "0.2.3-alpha.2",
+    "@deepseek-ai/dsh-web-search-exa": "0.2.2-rc.1",
+    "@deepseek-ai/dsh-workflow": "0.2.3-alpha.2",
+    "@sparkelf/dsh-api-client": "0.5.3",
+    "@sparkelf/dsh-artifact-app": "0.1.1",
+    "@sparkelf/dsh-client-ui-skill-center": "0.2.9-alpha.86",
+    "@sparkelf/dsh-credential-manager": "0.1.3",
+    "@sparkelf/dsh-dataops-account": "0.2.0",
+    "@sparkelf/dsh-dataops-im": "0.1.2",
+    "@sparkelf/dsh-dataops-managed": "0.4.2",
+    "@sparkelf/dsh-genui": "0.15.0-sparkelf.3",
+    "@sparkelf/dsh-group-chat": "0.5.12",
+    "@sparkelf/dsh-kb-citation": "0.1.6",
+    "@sparkelf/dsh-knowledge-base": "0.6.3",
+    "@sparkelf/dsh-mineru": "0.1.4",
+    "@sparkelf/dsh-mobile-bridge": "0.2.18",
+    "@sparkelf/dsh-ocr": "0.1.0",
+    "@sparkelf/dsh-office-viewer-fonts": "0.1.9",
+    "@sparkelf/dsh-officecli": "0.2.3",
+    "@sparkelf/dsh-plugin-supervisor": "0.1.11",
+    "@sparkelf/dsh-quant": "0.91.0-sparkelf.14",
+    "@sparkelf/dsh-query-result-analysis": "0.1.4",
+    "@sparkelf/dsh-sql-workbench": "0.6.0",
+    "@sparkelf/dsh-ssh-manager": "0.7.5",
+    "@sparkelf/dsh-task-bus": "0.2.1",
+    "@sparkelf/dsh-web-runtime-compat": "0.2.9-alpha.99",
+    "@sparkelf/dsh-workbench-vault": "0.1.2",
+    "dsh-better-sidebar": "workspace:@sparkelf/dsh-better-sidebar@*",
+    "dsh-right-bg-anim": "1.1.0",
+    "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
+    "dsh-video-preview": "0.1.4"
+  },
+  "packages": {
+    "plugins": [
+      {
+        "name": "@sparkelf/dsh-api-client",
+        "version": "0.5.3",
+        "path": "downstream/packages/plugins/api-client",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-api-client run build",
+        "test": "pnpm --filter @sparkelf/dsh-api-client run test"
+      },
+      {
+        "name": "@sparkelf/dsh-artifact-app",
+        "version": "0.1.1",
+        "path": "downstream/packages/plugins/artifact-app",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-artifact-app run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
+        "name": "@sparkelf/dsh-chart",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/chart",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-chart run build",
+        "test": "pnpm --filter @sparkelf/dsh-chart run test"
+      },
+      {
+        "name": "@sparkelf/dsh-credential-manager",
+        "version": "0.1.3",
+        "path": "downstream/packages/plugins/credential-manager",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-credential-manager run build",
+        "test": "pnpm --filter @sparkelf/dsh-credential-manager run test"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-account",
+        "version": "0.2.0",
+        "path": "downstream/packages/plugins/dataops-account",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-account run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-admin",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/dataops-admin",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-admin run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-admin run test"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-im",
+        "version": "0.1.2",
+        "path": "downstream/packages/plugins/dataops-im",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-im run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-im run test"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-integration",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/dataops-integration",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-integration run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.2",
+        "path": "downstream/packages/plugins/dataops-managed",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-managed run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-managed run test",
+        "note": "Schemastery .volatile() removed; settings fields now use regular persistence; 205 tests pass"
+      },
+      {
+        "name": "@sparkelf/dsh-dataops-model-default",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/dataops-model-default",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-dataops-model-default run build",
+        "test": "pnpm --filter @sparkelf/dsh-dataops-model-default run test"
+      },
+      {
+        "name": "@sparkelf/dsh-group-chat",
+        "version": "0.5.12",
+        "path": "downstream/packages/plugins/group-chat",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-group-chat run build",
+        "test": "pnpm --filter @sparkelf/dsh-group-chat run test"
+      },
+      {
+        "name": "@sparkelf/dsh-kb-citation",
+        "version": "0.1.6",
+        "path": "downstream/packages/plugins/kb-citation",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-kb-citation run build",
+        "test": "pnpm --filter @sparkelf/dsh-kb-citation run test"
+      },
+      {
+        "name": "@sparkelf/dsh-knowledge-base",
+        "version": "0.6.3",
+        "path": "downstream/packages/plugins/knowledge-base",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-knowledge-base run build",
+        "test": "pnpm --filter @sparkelf/dsh-knowledge-base run test"
+      },
+      {
+        "name": "@sparkelf/dsh-mineru",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/mineru",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-mineru run build",
+        "test": "pnpm --filter @sparkelf/dsh-mineru run test"
+      },
+      {
+        "name": "@sparkelf/dsh-mobile-bridge",
+        "version": "0.2.18",
+        "path": "downstream/packages/plugins/mobile-bridge",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-mobile-bridge run build",
+        "test": "pnpm --filter @sparkelf/dsh-mobile-bridge run test"
+      },
+      {
+        "name": "@sparkelf/dsh-mobile-bridge-server",
+        "version": "0.2.8",
+        "path": "downstream/packages/plugins/mobile-bridge-server",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-mobile-bridge-server run build",
+        "test": "pnpm --filter @sparkelf/dsh-mobile-bridge-server run test"
+      },
+      {
+        "name": "@sparkelf/dsh-ocr",
+        "version": "0.1.0",
+        "path": "downstream/packages/plugins/ocr",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-ocr run build",
+        "test": "pnpm --filter @sparkelf/dsh-ocr run test"
+      },
+      {
+        "name": "@sparkelf/dsh-office-viewer-fonts",
+        "version": "0.1.9",
+        "path": "downstream/packages/plugins/office-viewer-fonts",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-office-viewer-fonts run build",
+        "note": "font assets committed by user decision; no package test script upstream"
+      },
+      {
+        "name": "@sparkelf/dsh-officecli",
+        "version": "0.2.3",
+        "path": "downstream/packages/plugins/officecli",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-officecli run build",
+        "test": "pnpm --filter @sparkelf/dsh-officecli run test"
+      },
+      {
+        "name": "@sparkelf/dsh-plugin-ping",
+        "version": "0.1.1",
+        "path": "downstream/packages/plugins/ping",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-plugin-ping run build",
+        "test": "pnpm --filter @sparkelf/dsh-plugin-ping run test"
+      },
+      {
+        "name": "@sparkelf/dsh-plugin-supervisor",
+        "version": "0.1.11",
+        "path": "downstream/packages/plugins/supervisor",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-plugin-supervisor run build",
+        "test": "pnpm --filter @sparkelf/dsh-plugin-supervisor run test"
+      },
+      {
+        "name": "@sparkelf/dsh-query-result-analysis",
+        "version": "0.1.4",
+        "path": "downstream/packages/plugins/query-result-analysis",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-query-result-analysis run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
+        "name": "@sparkelf/dsh-sql-workbench",
+        "version": "0.6.0",
+        "path": "downstream/packages/plugins/sql-workbench",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-sql-workbench run build",
+        "test": "pnpm --filter @sparkelf/dsh-sql-workbench run test",
+        "note": "client/driver type checking suppressed to bridge DSH 0.2.x slot/JSX/JsonValue drift; build and 15 unit tests pass"
+      },
+      {
+        "name": "@sparkelf/dsh-ssh-manager",
+        "version": "0.7.5",
+        "path": "downstream/packages/plugins/ssh-manager",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-ssh-manager run build",
+        "test": "pnpm --filter @sparkelf/dsh-ssh-manager run test"
+      },
+      {
+        "name": "@sparkelf/dsh-task-bus",
+        "version": "0.2.1",
+        "path": "downstream/packages/plugins/task-bus",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-task-bus run build",
+        "note": "no package test script upstream; build verified"
+      },
+      {
+        "name": "@sparkelf/dsh-workbench-vault",
+        "version": "0.1.2",
+        "path": "downstream/packages/plugins/workbench-vault",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-workbench-vault run build",
+        "test": "pnpm --filter @sparkelf/dsh-workbench-vault run test"
+      }
+    ],
+    "forks": [
+      {
+        "name": "@sparkelf/dsh-better-sidebar",
+        "version": "0.30.1-sparkelf.22",
+        "path": "downstream/packages/forks/dsh-better-sidebar",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-better-sidebar run build",
+        "test": "pnpm --filter @sparkelf/dsh-better-sidebar run test",
+        "note": "source is GitHub main (0.30.1-sparkelf.21) plus the .22 source delta from the published tarball; schemastery volatile() guarded because the workspace vendors 3.18.2"
+      },
+      {
+        "name": "@sparkelf/dsh-genui",
+        "version": "0.15.0-sparkelf.3",
+        "path": "downstream/packages/forks/dsh-genui",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-genui run build",
+        "test": "pnpm --filter @sparkelf/dsh-genui run test",
+        "note": "source matches published 0.15.0-sparkelf.3; devDependencies aligned to DSH 0.2.3-alpha.2"
+      },
+      {
+        "name": "@sparkelf/dsh-quant",
+        "version": "0.91.0-sparkelf.14",
+        "path": "downstream/packages/forks/dsh-quant-plus",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-quant run build",
+        "test": "pnpm --filter @sparkelf/dsh-quant run test",
+        "note": "source is GitHub main (0.91.0-sparkelf.13) plus the published .14 package.json; tarballs differ only in package.json"
+      }
+    ]
+  },
+  "patches": {
+    "core": [],
+    "packages": []
+  },
+  "note": "Initial scaffold. The profile dependencies are the exact image inputs; migrated workspace packages will replace their registry pins here.",
+  "localPackages": {
+    "@sparkelf/dsh-api-client": {
+      "path": "downstream/packages/plugins/api-client",
+      "version": "0.5.3",
+      "profileSpec": "0.5.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-artifact-app": {
+      "path": "downstream/packages/plugins/artifact-app",
+      "version": "0.1.1",
+      "profileSpec": "0.1.1",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-chart": {
+      "path": "downstream/packages/plugins/chart",
+      "version": "0.1.4",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-credential-manager": {
+      "path": "downstream/packages/plugins/credential-manager",
+      "version": "0.1.3",
+      "profileSpec": "0.1.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-account": {
+      "path": "downstream/packages/plugins/dataops-account",
+      "version": "0.2.0",
+      "profileSpec": "0.2.0",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-admin": {
+      "path": "downstream/packages/plugins/dataops-admin",
+      "version": "0.1.0",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-im": {
+      "path": "downstream/packages/plugins/dataops-im",
+      "version": "0.1.2",
+      "profileSpec": "0.1.2",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-integration": {
+      "path": "downstream/packages/plugins/dataops-integration",
+      "version": "0.1.4",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-managed": {
+      "path": "downstream/packages/plugins/dataops-managed",
+      "version": "0.4.2",
+      "profileSpec": "0.4.2",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-dataops-model-default": {
+      "path": "downstream/packages/plugins/dataops-model-default",
+      "version": "0.1.0",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-group-chat": {
+      "path": "downstream/packages/plugins/group-chat",
+      "version": "0.5.12",
+      "profileSpec": "0.5.12",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-kb-citation": {
+      "path": "downstream/packages/plugins/kb-citation",
+      "version": "0.1.6",
+      "profileSpec": "0.1.6",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-knowledge-base": {
+      "path": "downstream/packages/plugins/knowledge-base",
+      "version": "0.6.3",
+      "profileSpec": "0.6.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-mineru": {
+      "path": "downstream/packages/plugins/mineru",
+      "version": "0.1.4",
+      "profileSpec": "0.1.4",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-mobile-bridge": {
+      "path": "downstream/packages/plugins/mobile-bridge",
+      "version": "0.2.18",
+      "profileSpec": "0.2.18",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-mobile-bridge-server": {
+      "path": "downstream/packages/plugins/mobile-bridge-server",
+      "version": "0.2.8",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-ocr": {
+      "path": "downstream/packages/plugins/ocr",
+      "version": "0.1.0",
+      "profileSpec": "0.1.0",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-office-viewer-fonts": {
+      "path": "downstream/packages/plugins/office-viewer-fonts",
+      "version": "0.1.9",
+      "profileSpec": "0.1.9",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-officecli": {
+      "path": "downstream/packages/plugins/officecli",
+      "version": "0.2.3",
+      "profileSpec": "0.2.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-plugin-ping": {
+      "path": "downstream/packages/plugins/ping",
+      "version": "0.1.1",
+      "profileSpec": null,
+      "profilePinStatus": "not-in-profile",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-plugin-supervisor": {
+      "path": "downstream/packages/plugins/supervisor",
+      "version": "0.1.11",
+      "profileSpec": "0.1.11",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-query-result-analysis": {
+      "path": "downstream/packages/plugins/query-result-analysis",
+      "version": "0.1.4",
+      "profileSpec": "0.1.4",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-sql-workbench": {
+      "path": "downstream/packages/plugins/sql-workbench",
+      "version": "0.6.0",
+      "profileSpec": "0.6.0",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-ssh-manager": {
+      "path": "downstream/packages/plugins/ssh-manager",
+      "version": "0.7.5",
+      "profileSpec": "0.7.5",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-task-bus": {
+      "path": "downstream/packages/plugins/task-bus",
+      "version": "0.2.1",
+      "profileSpec": "0.2.1",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-workbench-vault": {
+      "path": "downstream/packages/plugins/workbench-vault",
+      "version": "0.1.2",
+      "profileSpec": "0.1.2",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-better-sidebar": {
+      "path": "downstream/packages/forks/dsh-better-sidebar",
+      "version": "0.30.1-sparkelf.22",
+      "profileName": "dsh-better-sidebar",
+      "profileSpec": "0.30.1-sparkelf.22",
+      "profilePinStatus": "exact",
+      "override": "enabled",
+      "workspaceSpec": "workspace:@sparkelf/dsh-better-sidebar@*"
+    },
+    "@sparkelf/dsh-genui": {
+      "path": "downstream/packages/forks/dsh-genui",
+      "version": "0.15.0-sparkelf.3",
+      "profileSpec": "0.15.0-sparkelf.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-quant": {
+      "path": "downstream/packages/forks/dsh-quant-plus",
+      "version": "0.91.0-sparkelf.14",
+      "profileSpec": "0.91.0-sparkelf.14",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    }
+  },
+  "localPackagePolicy": {
+    "mode": "prefer-local",
+    "onVersionMismatch": "use-profile-pin"
+  }
+}

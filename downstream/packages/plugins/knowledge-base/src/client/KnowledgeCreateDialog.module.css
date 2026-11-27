@@ -1,0 +1,480 @@
+/*
+ * The create/upload dialog's styles.
+ *
+ * Chrome, buttons and inputs are the primitives' own (`Modal`, `Button`, `Input`), so
+ * their colours and type steps already follow the active theme. What lives here is the
+ * form layout the primitives do not know about: the label/field/error stack, the
+ * breadcrumb bar, and the file list.
+ *
+ * No hardcoded font sizes and no colour literals: a type step comes from
+ * `font: var(--dsw-font-*)`, ink from `--dsw-alias-label-*`.
+ */
+
+/* The dialog body: fields stacked with one step between them. */
+.dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* One labelled control: label, control, then its own hint or error underneath. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fieldLabel {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.fieldHint {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+/* An inline refusal: the field is usable, the value is not. */
+.fieldError {
+  color: var(--dsw-alias-state-error-primary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+/* The composed target restated in full under the two controls that make it up. */
+.summary {
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  word-break: break-all;
+}
+
+/* ── destination picker ───────────────────────────────────────────────────────── */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+/* Root button, then one crumb per level, wrapping when the path is deep. */
+.pickerBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.crumbWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crumbSep {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.crumb {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  cursor: pointer;
+}
+
+.crumb:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The last crumb is where the reader already is; it states the position rather than
+   offering to go there again. */
+.crumb:disabled {
+  color: var(--dsw-alias-label-primary);
+  cursor: default;
+}
+
+/* The chosen directory, spelled out: the breadcrumb shows the shape, this shows the
+   value that will be written. */
+.pickerPath {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+
+.pickerPathLabel {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.pickerPathValue {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-12);
+  font-family: var(--dsw-font-markdown-code);
+}
+
+/* Subdirectories of the shown level, scrolling rather than growing the dialog. */
+.pickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.pickerMuted {
+  margin: 0;
+  padding: 6px 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.pickerRow {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: none;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+  text-align: start;
+  cursor: pointer;
+}
+
+.pickerRow:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ── upload ───────────────────────────────────────────────────────────────────── */
+
+.fileInput {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* One row per chosen file: its own relative name, and where it will land. */
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 132px;
+  overflow-y: auto;
+}
+
+.fileRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fileName {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.fileTarget {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-family: var(--dsw-font-markdown-code);
+}
+
+
+/* ── upload drop zone and queue ───────────────────────────────────────────────── */
+
+.modal {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+}
+
+.visuallyHiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 152px;
+  padding: 18px;
+  border: 1px dashed var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+
+.dropzone:hover,
+.dropzone:focus-visible,
+.dropzone[data-active='true'] {
+  border-color: var(--dsw-alias-state-business-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  outline: none;
+}
+
+.dropzoneTitle {
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+.dropzoneHint {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.uploadSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.uploadList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.uploadRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 7px 8px;
+  border-radius: var(--dsw-radius-sm);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.uploadName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.uploadSize {
+  flex: 0 0 auto;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+.removeFile {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-base-strong-16);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeFile:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+/* ── two-step upload layout and folder-only tree ─────────────────────────────── */
+
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+.step[data-active='true'] {
+  color: var(--dsw-alias-label-primary);
+  font-weight: 600;
+}
+
+.stepLine {
+  flex: 0 0 42px;
+  height: 1px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.uploadLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.uploadLayout[data-empty='true'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.uploadLayout[data-empty='true'] .uploadQueue {
+  display: none;
+}
+
+.uploadQueue {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  min-height: 152px;
+  padding: 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.uploadQueue .uploadList {
+  max-height: 220px;
+}
+
+.tree {
+  max-height: 300px;
+  overflow: auto;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+}
+
+.treeChildren {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 30px;
+  border-radius: var(--dsw-radius-sm);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.treeRow:hover,
+.treeRow[data-selected='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.treeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  cursor: pointer;
+}
+
+.treeName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: inherit;
+  font: var(--dsw-font-xxs-12);
+  text-align: left;
+  cursor: pointer;
+}
+
+.treeName:hover,
+.treeName:focus-visible {
+  background: var(--dsw-alias-interactive-bg-hover);
+  outline: none;
+}
+
+.treeMuted {
+  margin: 0;
+  padding: 4px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+/*
+ * The upload destination tree borrows the explorer's rows (see
+ * KnowledgeFileTree). Only the mount-root row and the extraction notice are local;
+ * row height, indentation, folder glyphs, hover and selected fills come from the
+ * explorer's own styles.
+ */
+.tree {
+  max-height: 320px;
+  overflow: auto;
+}
+
+.treeNotice {
+  margin: 4px 0 0;
+  padding: 4px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}

@@ -1,0 +1,774 @@
+/**
+ * Unit tests for the Side Chat transcript mapping (src/client/sidechat-
+ * transcript.ts): the seed cut at session/end-seed, context-injection rows
+ * (plugin-stamped sources and the legacy boundary-prefix blob), chunk
+ * streaming accumulation superseded by assembled messages, tool call/result
+ * pairing, and orphan failed results.
+ */
+import { describe, expect, it } from 'vitest'
+import { createToolResultMessage, ToolCallId } from '@deepseek-ai/dsh-llm'
+import type { SidebarHistoryEntry, SidebarSessionEvent } from '../src/context-types.ts'
+import { SIDE_BOUNDARY_PREFIX, SIDE_BOUNDARY_PROMPT, SIDE_INJECTION_SOURCE_KIND } from '../src/sidechat-core.ts'
+import {
+  formatDurationMs,
+  formatTokens,
+  toolArgsSummary,
+  transcriptRows,
+  sidechatRowKey,
+  type SidechatTranscriptRow,
+} from '../src/client/sidechat-transcript.ts'
+
+/** One history entry (event + optional view). */
+function entry(event: SidebarSessionEvent): SidebarHistoryEntry {
+  return { event }
+}
+
+/** One log event fixture. Surface-eligible events carry their required
+ *  `surfaceOp: 'append'` marker, exactly like the live pipeline appends them. */
+function ev(type: string, seq: number, data: Record<string, unknown> = {}): SidebarSessionEvent {
+  const event: SidebarSessionEvent = { type, seq, time: seq * 1000, data }
+  if (type === 'user/message' || type === 'assistant/message' || type === 'tool/result') {
+    return { ...event, surfaceOp: 'append' } as SidebarSessionEvent
+  }
+  return event
+}
+
+function textBlocks(...texts: string[]): unknown[] {
+  return texts.map(text => ({ type: 'text', text }))
+}
+
+/** One 0.1.6-era tool/result message (user role, nested `tool-result` wrapper). */
+function legacyResultMessage(callId: string, text: string, isError = false): Record<string, unknown> {
+  return {
+    role: 'user',
+    source: { kind: 'tool', callId },
+    content: [{ type: 'tool-result', toolCallId: callId, isError, content: textBlocks(text) }],
+  }
+}
+
+/** One 0.1.7 tool/result message (tool role, blocks + `isError` on the message). */
+function toolRoleResultMessage(callId: string, text: string, isError = false): Record<string, unknown> {
+  return {
+    role: 'tool',
+    source: { kind: 'tool', callId },
+    toolCallId: callId,
+    content: textBlocks(text),
+    isError,
+  }
+}
+
+describe('transcriptRows', () => {
+  it('cuts the inherited seed at the last tagged end-seed and renders the boundary as an injection row', () => {
+    const entries = [
+      entry(ev('user/message', 0, { content: textBlocks('inherited'), source: { kind: 'user' } })),
+      entry(ev('session/end-seed', 1, { inherited: true })),
+      entry(ev('user/message', 2, { content: textBlocks(`${SIDE_BOUNDARY_PREFIX}\n\nmode`), source: { kind: SIDE_INJECTION_SOURCE_KIND } })),
+      entry(ev('user/message', 3, { content: textBlocks('the side question'), source: { kind: 'user' } })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toEqual([
+      { kind: 'injection', seq: 2, text: `${SIDE_BOUNDARY_PREFIX}\n\nmode` },
+      { kind: 'user', seq: 3, text: 'the side question' },
+    ])
+  })
+
+  it('splits the LEGACY wrapped first message (boundary + question in one user row) at the boundary prompt', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, {
+        content: textBlocks(`${SIDE_BOUNDARY_PROMPT}\n\nthe first question`),
+        source: { kind: 'user' },
+      })),
+      entry(ev('user/message', 2, { content: textBlocks('follow-up'), source: { kind: 'user' } })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toEqual([
+      { kind: 'injection', seq: 1, text: SIDE_BOUNDARY_PROMPT },
+      { kind: 'user', seq: 1, text: 'the first question' },
+      { kind: 'user', seq: 2, text: 'follow-up' },
+    ])
+  })
+
+  it('renders any plugin-sourced context message as an injection row, boundary prefix or not', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('runtime context'), source: { kind: 'plugin:other-plugin' } })),
+      entry(ev('user/message', 2, { content: textBlocks('q'), source: { kind: 'user' } })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toEqual([
+      { kind: 'injection', seq: 1, text: 'runtime context' },
+      { kind: 'user', seq: 2, text: 'q' },
+    ])
+  })
+
+  it('accumulates live deltas per block and supersedes them on settle', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('q'), source: { kind: 'user' } })),
+      entry(ev('turn/start', 2, { turn: 1 })),
+      entry(ev('step/start', 3, { turn: 1, step: 1 })),
+      entry(ev('assistant/live-chunk', 4, { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'Hel' } })),
+      entry(ev('assistant/live-chunk', 5, { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'lo' } })),
+      entry(ev('assistant/live-chunk', 6, { turn: 1, step: 1, chunk: { type: 'reasoning-delta', index: 1, text: 'think' } })),
+    ]
+    const rows = transcriptRows(entries)
+    const assistant = rows.find(row => row.kind === 'assistant') as Extract<SidechatTranscriptRow, { kind: 'assistant' }>
+    expect(assistant.text).toBe('Hello')
+    expect(assistant.settled).toBe(false)
+    const reasoning = rows.find(row => row.kind === 'reasoning') as Extract<SidechatTranscriptRow, { kind: 'reasoning' }>
+    expect(reasoning.text).toBe('think')
+  })
+
+  it('replaces streaming rows with the settled assistant message', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('q'), source: { kind: 'user' } })),
+      entry(ev('turn/start', 2, { turn: 1 })),
+      entry(ev('step/start', 3, { turn: 1, step: 1 })),
+      entry(ev('assistant/live-chunk', 4, { turn: 1, step: 1, chunk: { type: 'text-delta', index: 0, text: 'par' } })),
+      entry(ev('assistant/message', 5, { turn: 1, step: 1, message: { content: textBlocks('final answer') } })),
+    ]
+    const rows = transcriptRows(entries)
+    const assistants = rows.filter(row => row.kind === 'assistant')
+    expect(assistants).toHaveLength(1)
+    expect(assistants[0]).toMatchObject({ kind: 'assistant', text: 'final answer', settled: true })
+  })
+
+  it('pairs tool calls with results and marks failures', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('step/start', 2, { turn: 1, step: 1 })),
+      entry(ev('tool/call', 3, { turn: 1, step: 1, callId: 'c1', name: 'read', arguments: '{"path":"a"}' })),
+      // The shape 0.1.7 writes: tool role, result blocks and `isError` at the
+      // message's own top level (no `tool-result` wrapper).
+      entry(ev('tool/result', 4, {
+        turn: 1,
+        step: 1,
+        message: toolRoleResultMessage('c1', 'denied', true),
+        error: { name: 'EACCES', code: 'EACCES' },
+      })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toHaveLength(1)
+    const tool = rows[0]
+    expect(tool).toMatchObject({
+      kind: 'tool',
+      name: 'read',
+      args: '{"path":"a"}',
+      resultText: 'denied',
+      failed: true,
+      executing: false,
+    })
+  })
+
+  it('reads the tool/result message dsh-llm actually produces (producer round-trip)', () => {
+    const message = createToolResultMessage({
+      callId: ToolCallId('c1'),
+      // A literal block array: the producer takes real ContentBlocks, not the
+      // loose `unknown[]` the log fixtures above are written with.
+      content: [{ type: 'text', text: 'produced output' }],
+      isError: false,
+    })
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('tool/call', 1, { callId: 'c1', name: 'bash', arguments: '{"command":"ls"}' })),
+      entry(ev('tool/result', 2, { message: message as unknown as Record<string, unknown> })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'tool', name: 'bash', resultText: 'produced output', executing: false })
+  })
+
+  it('reads a LEGACY 0.1.6-era tool result wrapper (historical logs keep that shape)', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('step/start', 2, { turn: 1, step: 1 })),
+      entry(ev('tool/call', 3, { turn: 1, step: 1, callId: 'c1', name: 'read', arguments: '{"path":"a"}' })),
+      entry(ev('tool/result', 4, {
+        turn: 1,
+        step: 1,
+        message: legacyResultMessage('c1', 'legacy denied', true),
+        error: { name: 'EACCES', code: 'EACCES' },
+      })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'tool', name: 'read', resultText: 'legacy denied', failed: true })
+  })
+
+  it('keeps a call executing until its result lands and surfaces orphan failures', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('step/start', 2, { turn: 1, step: 1 })),
+      entry(ev('tool/call', 3, { turn: 1, step: 1, callId: 'c1', name: 'bash', arguments: '{}' })),
+    ]
+    let rows = transcriptRows(entries)
+    expect(rows[0]).toMatchObject({ kind: 'tool', executing: true })
+
+    // Orphan failed result outside the fetched window still surfaces.
+    const orphan = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('tool/result', 1, {
+        turn: 1,
+        step: 1,
+        message: toolRoleResultMessage('gone', 'boom', true),
+        error: { name: 'X', code: 'X' },
+      })),
+    ]
+    rows = transcriptRows(orphan)
+    expect(rows[0]).toMatchObject({ kind: 'tool', failed: true, resultText: 'boom' })
+  })
+})
+
+describe('failure rows', () => {
+  it('renders a turn/end error through the reason message', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('turn/end', 2, { turn: 1, reason: { kind: 'error', error: { message: 'provider exploded', code: 'X' } } })),
+    ]
+    const rows = transcriptRows(entries)
+    // The visible failure comes first, the turn's duration tail after it.
+    expect(rows[0]).toEqual({ kind: 'error', seq: 2, text: 'provider exploded' })
+    expect(rows[1]).toMatchObject({ kind: 'turnSummary', seq: 2 })
+  })
+
+  it('falls back to a string rendering when the reason carries no message', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/end', 1, { turn: 1, reason: { kind: 'error' } })),
+    ]
+    // Never blank, never a thrown mapping.
+    expect(transcriptRows(entries)[0]).toEqual({ kind: 'error', seq: 1, text: '[object Object]' })
+  })
+
+  it('renders a failed assistant/attempt from its terminal finish chunk', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('assistant/attempt', 2, {
+        turn: 1,
+        step: 1,
+        stream: [
+          { type: 'text-chunks', time0: 0, index: 0, dt: [], texts: ['partial'] },
+          // The adapter-failure shape dsh-llm's `adapterFailureChunk` writes.
+          { type: 'chunk', time: 1, chunk: { type: 'finish', reason: { kind: 'error', failure: { message: 'quota exceeded', code: 'QUOTA' } } } },
+        ],
+      })),
+    ]
+    expect(transcriptRows(entries)[0]).toEqual({ kind: 'error', seq: 2, text: 'quota exceeded' })
+  })
+
+  it('renders ONE error row when the failed attempt is followed by its turn/end', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('assistant/attempt', 2, {
+        turn: 1,
+        step: 1,
+        stream: [{ type: 'chunk', time: 1, chunk: { type: 'finish', reason: { kind: 'error', failure: { message: 'quota exceeded', code: 'QUOTA' } } } }],
+      })),
+      // The agent loop repeats the same failure as the turn's own reason: the
+      // attempt's row already covers it.
+      entry(ev('turn/end', 3, { turn: 1, reason: { kind: 'error', error: { message: 'quota exceeded', code: 'QUOTA' } } })),
+    ]
+    const errors = transcriptRows(entries).filter(row => row.kind === 'error')
+    expect(errors).toEqual([{ kind: 'error', seq: 2, text: 'quota exceeded' }])
+  })
+
+  it('renders nothing for an attempt that finished without an error', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('assistant/attempt', 1, {
+        turn: 1,
+        step: 1,
+        stream: [{ type: 'chunk', time: 1, chunk: { type: 'finish', reason: { kind: 'stop' } } }],
+      })),
+    ]
+    expect(transcriptRows(entries)).toEqual([])
+  })
+
+  it('keeps an error row\'s identity across pulls (reuse pass)', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/end', 1, { turn: 1, reason: { kind: 'error', error: { message: 'boom' } } })),
+    ]
+    const first = transcriptRows(entries)
+    const second = transcriptRows(entries, first)
+    expect(second[0]).toBe(first[0])
+  })
+})
+
+describe('user row identity', () => {
+  it('carries the durable message id and leaves older logs without one', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { id: 'msg-1', content: textBlocks('the question'), source: { kind: 'user' } })),
+      entry(ev('user/message', 2, { content: textBlocks('a legacy row'), source: { kind: 'user' } })),
+    ]
+    expect(transcriptRows(entries)).toEqual([
+      { kind: 'user', seq: 1, text: 'the question', messageId: 'msg-1' },
+      { kind: 'user', seq: 2, text: 'a legacy row' },
+    ])
+  })
+})
+
+describe('turnSummary rows', () => {
+  it('emits one tail row per turn: envelope-time duration + last-input/summed-output usage', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('assistant/message', 2, { turn: 1, step: 1, message: { content: textBlocks('a') }, usage: { inputTokens: 100, outputTokens: 40 } })),
+      entry(ev('assistant/message', 3, { turn: 1, step: 2, message: { content: textBlocks('b') }, usage: { inputTokens: 160, outputTokens: 30 } })),
+      entry(ev('turn/end', 4, { turn: 1, reason: 'completed' })),
+    ]
+    const rows = transcriptRows(entries)
+    expect(rows.at(-1)).toEqual({ kind: 'turnSummary', seq: 4, inputTokens: 160, outputTokens: 70, durationMs: 3000 })
+  })
+
+  it('keeps a duration-only tail without usage and a usage-only tail without a turn/start', () => {
+    const cancelled = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 2, { turn: 1 })),
+      entry(ev('turn/end', 7, { turn: 1, reason: 'cancelled' })),
+    ]
+    expect(transcriptRows(cancelled).at(-1)).toEqual({ kind: 'turnSummary', seq: 7, durationMs: 5000 })
+
+    const seedCutStart = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('assistant/message', 2, { turn: 1, step: 1, message: { content: textBlocks('a') }, usage: { inputTokens: 10, outputTokens: 5 } })),
+      entry(ev('turn/end', 3, { turn: 1, reason: 'completed' })),
+    ]
+    expect(transcriptRows(seedCutStart).at(-1)).toEqual({ kind: 'turnSummary', seq: 3, inputTokens: 10, outputTokens: 5 })
+  })
+
+  it('skips the tail entirely when nothing is computable', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/end', 1, { turn: 1, reason: 'completed' })),
+    ]
+    expect(transcriptRows(entries)).toEqual([])
+  })
+})
+
+describe('tool cards', () => {
+  const callRow = (seq: number, name: string, args: string): SidebarHistoryEntry =>
+    entry(ev('tool/call', seq, { turn: 1, step: 1, callId: `c${seq}`, name, arguments: args }))
+
+  const resultRow = (seq: number, callId: string, text: string, extra: Record<string, unknown> = {}): SidebarHistoryEntry =>
+    entry(ev('tool/result', seq, {
+      turn: 1,
+      step: 1,
+      // The 0.1.7 first-class tool-role message shape.
+      message: toolRoleResultMessage(callId, text),
+      ...extra,
+    }))
+
+  const toolRow = (entries: readonly SidebarHistoryEntry[]) => {
+    const rows = transcriptRows(entries)
+    expect(rows).toHaveLength(1)
+    return rows[0] as Extract<SidechatTranscriptRow, { kind: 'tool' }>
+  }
+
+  it('derives the call-time terminal card for bash and refines output/exit from the result marker', () => {
+    const row = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'bash', '{"command":"echo hi","workdir":"/w"}'),
+      resultRow(2, 'c1', 'hi\n[exit code: 3]'),
+    ])
+    expect(row.card).toEqual({ type: 'terminal', command: 'echo hi', cwd: '/w', output: 'hi', exitCode: 3 })
+  })
+
+  it('recovers the signal pill and defaults a marker-less settle to exit code 0', () => {
+    const signaled = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'bash', '{"command":"x"}'),
+      resultRow(2, 'c1', 'boom\n[killed by signal: SIGKILL]'),
+    ])
+    expect(signaled.card).toEqual({ type: 'terminal', command: 'x', output: 'boom', signal: 'SIGKILL' })
+
+    const clean = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'bash', '{"command":"x"}'),
+      resultRow(2, 'c1', 'ok'),
+    ])
+    expect(clean.card).toEqual({ type: 'terminal', command: 'x', output: 'ok', exitCode: 0 })
+  })
+
+  it('skips the terminal card for background bash and drops it on failed results', () => {
+    const background = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'bash', '{"command":"x","run_in_background":true}'),
+    ])
+    expect(background.card).toBeUndefined()
+
+    const failed = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'bash', '{"command":"x"}'),
+      resultRow(2, 'c1', 'denied', { error: { name: 'EACCES', code: 'EACCES' } }),
+    ])
+    expect(failed.card).toBeUndefined()
+  })
+
+  it('derives literal diff cards for edit/write calls and refines from the result meta hunks', () => {
+    const edit = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'edit', '{"file_path":"/a.ts","old_string":"x","new_string":"y"}'),
+    ])
+    expect(edit.card).toEqual({ type: 'diff', diffs: [{ path: '/a.ts', oldText: 'x', newText: 'y' }] })
+
+    const write = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'write', '{"file_path":"/new.ts","content":"body"}'),
+    ])
+    expect(write.card).toEqual({ type: 'diff', diffs: [{ path: '/new.ts', oldText: null, newText: 'body' }] })
+
+    const refined = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'edit', '{"file_path":"/a.ts","old_string":"x","new_string":"y"}'),
+      resultRow(2, 'c1', 'ok', { meta: { diffs: [{ path: '/a.ts', oldText: 'x\nctx', newText: 'y\nctx' }] } }),
+    ])
+    expect(refined.card).toEqual({ type: 'diff', diffs: [{ path: '/a.ts', oldText: 'x\nctx', newText: 'y\nctx' }] })
+
+    const malformed = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'edit', '{"file_path":"/a.ts","old_string":"x","new_string":"y"}'),
+      resultRow(2, 'c1', 'ok', { meta: { diffs: [{ path: 7, oldText: 'x', newText: 'y' }] } }),
+    ])
+    // Malformed meta declines to the call-time literal card, never throws.
+    expect(malformed.card).toEqual({ type: 'diff', diffs: [{ path: '/a.ts', oldText: 'x', newText: 'y' }] })
+  })
+
+  it('builds the read card from the result line-window meta and declines malformed windows', () => {
+    const read = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'read', '{"path":"/a.ts","offset":2,"limit":2}'),
+      resultRow(2, 'c1', 'window text', {
+        meta: { path: '/a.ts', offset: 2, lines: [{ number: 2, text: 'b' }, { number: 3, text: 'c' }], totalLines: 5, lang: 'ts' },
+      }),
+    ])
+    expect(read.card).toEqual({
+      type: 'read',
+      label: '/a.ts',
+      lines: [{ number: 2, text: 'b' }, { number: 3, text: 'c' }],
+      totalLines: 5,
+      lang: 'ts',
+    })
+
+    const nonMonotonic = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'read', '{"path":"/a.ts"}'),
+      resultRow(2, 'c1', 'window text', {
+        meta: { path: '/a.ts', offset: 1, lines: [{ number: 3, text: 'c' }, { number: 2, text: 'b' }], totalLines: 5 },
+      }),
+    ])
+    expect(nonMonotonic.card).toBeUndefined()
+  })
+
+  it('leaves unknown tools on the generic row', () => {
+    const row = toolRow([
+      entry(ev('session/end-seed', 0)),
+      callRow(1, 'todo_write', '{"todos":[]}'),
+    ])
+    expect(row.card).toBeUndefined()
+  })
+})
+
+describe('present deliverables rows', () => {
+  /** The `present` tool's arguments: paths relative to the session cwd. */
+  const PRESENT_ARGS = JSON.stringify({
+    files: [
+      { path: 'report.pdf', description: 'the report' },
+      { path: 'chart.png' },
+    ],
+  })
+  /** The authoritative event copy: absolute paths + model descriptions. */
+  const EVENT_FILES = [
+    { path: '/p/report.pdf', description: 'event copy' },
+    { path: '/p/chart.png', description: 'the chart' },
+  ]
+
+  const seed = entry(ev('session/end-seed', 0))
+
+  const presentCall = (seq: number, callId = 'cp', args = PRESENT_ARGS): SidebarHistoryEntry =>
+    entry(ev('tool/call', seq, { turn: 1, step: 1, callId, name: 'present', arguments: args }))
+
+  const presentResult = (
+    seq: number,
+    callId = 'cp',
+    text = 'Presented /p/report.pdf',
+    extra: Record<string, unknown> = {},
+  ): SidebarHistoryEntry =>
+    entry(ev('tool/result', seq, { turn: 1, step: 1, message: toolRoleResultMessage(callId, text), ...extra }))
+
+  const presentedEvent = (seq: number, callId = 'cp', files: readonly unknown[] = EVENT_FILES): SidebarHistoryEntry =>
+    entry(ev('deliverables/presented', seq, { turn: 1, callId, files }))
+
+  it('keeps the card when the present result succeeds (the result row stays hidden)', () => {
+    expect(transcriptRows([seed, presentCall(1), presentResult(2)])).toEqual([
+      { kind: 'deliverables', seq: 1, callId: 'cp', files: [{ path: 'report.pdf', description: 'the report' }, { path: 'chart.png' }] },
+    ])
+  })
+
+  it('replaces the card with the generic failed tool row when the present call fails (M1a)', () => {
+    // The tool ran and reported an error (FS_NOT_FOUND and friends): nothing
+    // was delivered, so the successful-looking card must give way to the
+    // generic failed row — and the error text must not be dropped.
+    const rows = transcriptRows([
+      seed,
+      presentCall(1),
+      presentResult(2, 'cp', 'ENOENT: report.pdf', { error: { name: 'FS_NOT_FOUND', code: 'FS_NOT_FOUND' } }),
+    ])
+    expect(rows).toEqual([{
+      kind: 'tool',
+      seq: 1,
+      name: 'present',
+      failed: true,
+      args: PRESENT_ARGS,
+      resultText: 'ENOENT: report.pdf',
+      executing: false,
+    }])
+  })
+
+  it('omits an empty result text on the failed present row', () => {
+    const rows = transcriptRows([
+      seed,
+      presentCall(1),
+      presentResult(2, 'cp', '', { error: { name: 'FS_NOT_FOUND', code: 'FS_NOT_FOUND' } }),
+    ])
+    expect(rows).toEqual([{
+      kind: 'tool',
+      seq: 1,
+      name: 'present',
+      failed: true,
+      args: PRESENT_ARGS,
+      executing: false,
+    }])
+  })
+
+  it('keeps ONE event card when the event precedes a malformed present call', () => {
+    const malformed = presentCall(2, 'cp', JSON.stringify({ files: [{ path: 7 }] }))
+    expect(transcriptRows([seed, presentedEvent(1), malformed])).toEqual([
+      { kind: 'deliverables', seq: 1, callId: 'cp', files: EVENT_FILES },
+    ])
+  })
+
+  it('keeps ONE card when the presented event precedes its call (event-first, M1b)', () => {
+    // The events route caps the window's head, so the authoritative event can
+    // be served before (or without) the call it belongs to.
+    expect(transcriptRows([seed, presentedEvent(1), presentCall(2)])).toEqual([
+      { kind: 'deliverables', seq: 1, callId: 'cp', files: EVENT_FILES },
+    ])
+  })
+
+  it('keeps ONE card when the presented event follows its call (event data authoritative)', () => {
+    const call = presentCall(1, 'cp', JSON.stringify({ files: [{ path: 'from-args.pdf', description: 'args copy' }] }))
+    expect(transcriptRows([seed, call, presentedEvent(2)])).toEqual([
+      { kind: 'deliverables', seq: 1, callId: 'cp', files: EVENT_FILES },
+    ])
+  })
+
+  it('renders an event-only delivery whose call row is outside the window', () => {
+    expect(transcriptRows([seed, presentedEvent(1)])).toEqual([
+      { kind: 'deliverables', seq: 1, callId: 'cp', files: EVENT_FILES },
+    ])
+  })
+
+  it('updates the SAME card when a second presented event names one callId', () => {
+    const rows = transcriptRows([
+      seed,
+      presentCall(1),
+      presentedEvent(2),
+      presentedEvent(3, 'cp', [{ path: '/p/final.pdf' }]),
+    ])
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'deliverables', seq: 1, callId: 'cp' })
+    expect((rows[0] as Extract<SidechatTranscriptRow, { kind: 'deliverables' }>).files).toEqual([{ path: '/p/final.pdf' }])
+  })
+
+  it('cuts inherited present calls and deliveries with the fork seed', () => {
+    const rows = transcriptRows([
+      presentCall(0, 'c-seed'),
+      presentedEvent(1, 'c-seed', [{ path: '/p/inherited.pdf' }]),
+      entry(ev('session/end-seed', 2, { inherited: true })),
+      presentedEvent(3, 'c-own', [{ path: '/p/own.pdf' }]),
+    ])
+    expect(rows).toEqual([{ kind: 'deliverables', seq: 3, callId: 'c-own', files: [{ path: '/p/own.pdf' }] }])
+  })
+
+  it('leaves malformed or empty call files on the generic tool row', () => {
+    for (const args of [JSON.stringify({ files: [] }), JSON.stringify({ files: [{ path: 7 }] })]) {
+      expect(transcriptRows([seed, presentCall(1, 'cp', args)])).toEqual([
+        { kind: 'tool', seq: 1, name: 'present', failed: false, args, executing: true },
+      ])
+    }
+  })
+
+  it('re-adopts a deliverables card across pulls and rebuilds it when its files change', () => {
+    const entries = [seed, presentCall(1), presentedEvent(2)]
+    const first = transcriptRows(entries)
+    const second = transcriptRows(entries, first)
+    expect(second).toEqual(first)
+    expect(second[0]).toBe(first[0])
+
+    const changed = transcriptRows([...entries, presentedEvent(3, 'cp', [{ path: '/p/final.pdf' }])], first)
+    expect(changed).toHaveLength(1)
+    expect(changed[0]).not.toBe(first[0])
+  })
+})
+
+describe('usage formatting', () => {
+  it('formatTokens mirrors the main conversation K/M compaction', () => {
+    expect(formatTokens(517)).toBe('517')
+    expect(formatTokens(999)).toBe('999')
+    expect(formatTokens(1_234)).toBe('1.2K')
+    expect(formatTokens(12_234)).toBe('12.2K')
+    expect(formatTokens(122_345)).toBe('122K')
+    expect(formatTokens(1_234_567)).toBe('1.2M')
+  })
+
+  it('formatDurationMs mirrors the main conversation s / m+s cadence', () => {
+    expect(formatDurationMs(0)).toBe('0s')
+    expect(formatDurationMs(500)).toBe('0.5s')
+    expect(formatDurationMs(45_200)).toBe('45.2s')
+    expect(formatDurationMs(61_000)).toBe('1m1s')
+    expect(formatDurationMs(162_000)).toBe('2m42s')
+  })
+})
+
+describe('toolArgsSummary', () => {
+  it('picks the most identifying string field', () => {
+    expect(toolArgsSummary('{"command":"ls -la","timeout":1000}')).toBe('ls -la')
+    expect(toolArgsSummary('{"file_path":"/a/b.ts","old_string":"x"}')).toBe('/a/b.ts')
+    expect(toolArgsSummary('{"pattern":"foo","path":"/repo"}')).toBe('/repo')
+  })
+
+  it('flattens and truncates raw text when no known key parses', () => {
+    expect(toolArgsSummary('{"custom":"v"}')).toBe('{"custom":"v"}')
+    expect(toolArgsSummary('not json at all')).toBe('not json at all')
+    expect(toolArgsSummary(`{"command":"${'x'.repeat(200)}"`)).toHaveLength(80)
+    expect(toolArgsSummary(`{"command":"${'x'.repeat(200)}"`)).toMatch(/…$/)
+  })
+
+  it('reads empty for missing or blank input', () => {
+    expect(toolArgsSummary(undefined)).toBe('')
+    expect(toolArgsSummary('{"command":"   "}')).toBe('{"command":" "}')
+  })
+})
+
+describe('transcriptRows row reuse (the poll-to-poll identity pass)', () => {
+  it('re-adopts the previous poll\'s row objects wherever content is unchanged', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('the side question'), source: { kind: 'user' } })),
+      entry(ev('assistant/message', 2, { message: { content: textBlocks('the answer') } })),
+    ]
+    const first = transcriptRows(entries)
+    const second = transcriptRows(entries, first)
+    expect(second).toEqual(first)
+    // Settled rows keep their object identity (fresh references defeat the
+    // downstream memo and re-render the whole transcript every 2s poll).
+    expect(second[1]).toBe(first[1])
+    expect(second[2]).toBe(first[2])
+  })
+
+  it('rebuilds changed rows and everything past the change', () => {
+    const before = transcriptRows([
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('q'), source: { kind: 'user' } })),
+    ])
+    const after = transcriptRows([
+      entry(ev('session/end-seed', 0)),
+      entry(ev('user/message', 1, { content: textBlocks('q'), source: { kind: 'user' } })),
+      entry(ev('user/message', 2, { content: textBlocks('q2'), source: { kind: 'user' } })),
+    ], before)
+    expect(after).toHaveLength(2)
+    expect(after[0]).toBe(before[0])
+    expect(after[1]).not.toBe(before[1])
+    expect(after[1]).toMatchObject({ kind: 'user', seq: 2, text: 'q2' })
+  })
+
+  it('never re-adopts a row whose rendered fields changed (tool result lands)', () => {
+    const call = entry(ev('tool/call', 1, { callId: 'c1', name: 'bash', arguments: '{"command":"ls"}' }))
+    const before = transcriptRows([entry(ev('session/end-seed', 0)), call])
+    expect(before[0]).toMatchObject({ kind: 'tool', executing: true })
+    const result = entry(ev('tool/result', 2, {
+      message: { source: { callId: 'c1' }, content: [{ type: 'tool-result', content: [{ type: 'text', text: 'out' }] }] },
+    }))
+    const after = transcriptRows([entry(ev('session/end-seed', 0)), call, result], before)
+    expect(after[0]).not.toBe(before[0])
+    expect(after[0]).toMatchObject({ kind: 'tool', executing: false, resultText: 'out' })
+  })
+})
+
+describe('transcriptRows row reuse (newer row kinds)', () => {
+  it('re-adopts settled turnSummary rows (token usage tail)', () => {
+    const entries = [
+      entry(ev('session/end-seed', 0)),
+      entry(ev('turn/start', 1, { turn: 1 })),
+      entry(ev('turn/end', 2, { turn: 1, reason: 'completed' })),
+    ]
+    const first = transcriptRows(entries)
+    const summary = first.find(row => row.kind === 'turnSummary')
+    expect(summary).toBeDefined()
+    const second = transcriptRows(entries, first)
+    expect(second[second.length - 1]).toBe(summary)
+  })
+
+  it('re-adopts a tool row whose card landed (executing flip forces the rebuild)', () => {
+    const call = entry(ev('tool/call', 1, { callId: 'c1', name: 'bash', arguments: '{"command":"ls"}' }))
+    const before = transcriptRows([entry(ev('session/end-seed', 0)), call])
+    expect(before[0]).toMatchObject({ kind: 'tool', executing: true })
+    const result = entry(ev('tool/result', 2, {
+      message: { source: { callId: 'c1' }, content: [{ type: 'tool-result', content: [{ type: 'text', text: 'out\n[exit 0]' }] }] },
+    }))
+    const after = transcriptRows([entry(ev('session/end-seed', 0)), call, result], before)
+    expect(after[0]).not.toBe(before[0])
+    expect(after[0]).toMatchObject({ kind: 'tool', executing: false })
+  })
+})
+
+
+describe('sidechat content-block identity', () => {
+  it('keeps original indexes through text, skipped, empty and reasoning blocks', () => {
+    const rows = transcriptRows([entry(ev('assistant/message', 17, { message: { content: [
+      { type: 'text', text: 'first' },
+      { type: 'image', url: 'synthetic' },
+      { type: 'text', text: '' },
+      null,
+      { type: 'text', text: 'second' },
+      { type: 'reasoning', text: 'reason one' },
+      { type: 'reasoning', text: 'reason two' },
+    ] } }))])
+    expect(rows.map(row => 'contentBlockIndex' in row ? row.contentBlockIndex : undefined)).toEqual([0, 4, 5, 6])
+    expect(rows.map(sidechatRowKey)).toEqual(['assistant:17:0', 'assistant:17:4', 'reasoning:17:5', 'reasoning:17:6'])
+    expect(new Set(rows.map(sidechatRowKey)).size).toBe(rows.length)
+  })
+
+  it('does not reuse a prior row when its block index changed', () => {
+    const first = transcriptRows([entry(ev('assistant/message', 17, { message: { content: textBlocks('same text') } }))])
+    const changed = transcriptRows([entry(ev('assistant/message', 17, { message: { content: [null, ...textBlocks('same text')] } }))], first)
+    expect(changed[0]).not.toBe(first[0])
+    expect(changed[0]).toMatchObject({ contentBlockIndex: 1 })
+    const unchanged = transcriptRows([entry(ev('assistant/message', 17, { message: { content: [null, ...textBlocks('same text')] } }))], changed)
+    expect(unchanged[0]).toBe(changed[0])
+  })
+
+  it('keeps missing and invalid streaming block indexes unavailable rather than guessing zero', () => {
+    for (const index of [undefined, -1, 0.5, '0']) {
+      const rows = transcriptRows([entry(ev('assistant/live-chunk', 20, { turn: 1, step: 1,
+        chunk: { type: 'text-delta', text: 'incomplete', ...(index === undefined ? {} : { index }) },
+      }))])
+      expect(rows[0]).toMatchObject({ kind: 'assistant', settled: false })
+      expect(rows[0]).not.toHaveProperty('contentBlockIndex')
+    }
+    const rows = transcriptRows([entry(ev('assistant/live-chunk', 20, { turn: 1, step: 1,
+      chunk: { type: 'text-delta', text: 'incomplete', index: 3 },
+    }))])
+    expect(rows[0]).toMatchObject({ contentBlockIndex: 3, settled: false })
+  })
+})

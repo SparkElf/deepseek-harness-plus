@@ -1,0 +1,3 @@
+- insert:
+    - id: office-viewer-fonts
+      name: '@sparkelf/dsh-office-viewer-fonts'

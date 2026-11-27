@@ -1,0 +1,17 @@
+# OCR bundle patch: mount the Host half so the skill registers and the settings relay
+# answers, and the Client half so the settings panel appears.
+#
+# The panel is the only surface with a write path: it shows the shared MinerU address and,
+# for a super administrator, offers the two distribution actions. Nothing here polls or
+# reconciles -- a value changes only when one of those buttons is pressed.
+#
+# `baseUrl` is the DataOps backend origin. The browser cannot call `/api/ocr/*` itself (its
+# credential is an httpOnly cookie, and those routes want a bearer), so this Host relays the
+# four calls. Empty means "not configured": the panel then reports that the backend address
+# is missing instead of failing a request the caller cannot diagnose.
+- insert:
+    - id: ocr
+      name: '@sparkelf/dsh-ocr'
+      config:
+        baseUrl: !!js process.env.DATAOPS_AI_WORKSPACE_BACKEND_BASE_URL
+        credentialRef: DATAOPS_ACCESS_TOKEN

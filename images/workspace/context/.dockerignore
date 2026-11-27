@@ -1,0 +1,6 @@
+# Placeholder notes exist so `COPY vendor/` and `COPY officecli-bin/` resolve in a clean clone.
+# They are build-context documentation, not image content: the original DataOps context carries
+# no such file, and copying them would make the mirrored image differ from its source.
+README.md
+vendor/README.md
+officecli-bin/README.md

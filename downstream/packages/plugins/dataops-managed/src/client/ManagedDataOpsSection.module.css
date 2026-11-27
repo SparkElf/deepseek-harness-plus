@@ -1,0 +1,136 @@
+/* The DataOps settings column: one heading, a connection state, and the cards this
+ * workspace's DataOps connection owns. Geometry and type follow the platform's own
+ * settings sections so a card here reads as one more section, not a panel bolted on:
+ * 13px/22px body, 18px/600 section title, 13px/600 card headings, and the shared
+ * settings-card fill and stroke tokens. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 720px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 22px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 0.5px solid var(--dsw-alias-settings-card-stroke);
+  border-radius: var(--dsw-radius-xl);
+  background: var(--dsw-alias-settings-card-fill);
+}
+
+.heading {
+  margin: 0;
+  font-size: 13px;
+  line-height: 22px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.label {
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.meta {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* Two ceilings side by side where the column is wide enough, stacked where it is
+ * not: the pair is one decision, so they stay adjacent in either arrangement. */
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 0 16px;
+}
+
+/* The field primitive separates a stack of fields with a rule above every field but the
+ * first, matching on adjacent siblings. Each ceiling therefore sits in its own wrapper: in
+ * columns that rule would draw across one column only and read as a stray line, and a
+ * wrapper leaves the rule no sibling to match. */
+.fields > div {
+  min-width: 0;
+}
+
+.fields input {
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* A refusal sits opposite the action it belongs to, where a corrected value replaces it. */
+.refusal {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-error-primary);
+}
+
+
+.reviewHint {
+  margin: 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.reviewRows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 30px;
+}
+
+.reviewActions {
+  display: flex;
+  justify-content: flex-end;
+}

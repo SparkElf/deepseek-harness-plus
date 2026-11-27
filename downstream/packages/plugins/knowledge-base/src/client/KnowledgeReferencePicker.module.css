@@ -1,0 +1,90 @@
+/*
+ * The `@`-mention session picker's styles.
+ *
+ * Everything here is layout only: the dialog chrome, the search field and the
+ * selectable rows are the primitives' own (`Modal`, `Input`, `MenuItemButton`),
+ * so their colours and type steps already follow the active theme. This module
+ * adds the two things the primitives do not know about -- the row's title/meta
+ * split and the scroll bound on a long session list.
+ *
+ * No hardcoded font sizes and no colour literals: a type step comes from
+ * `font: var(--dsw-font-*)`, ink from `--dsw-alias-label-*`.
+ */
+
+/* The dialog body: one column, so the search field, the row list and the error
+   line read top to bottom without any of them measuring the others. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* A long catalog scrolls inside the dialog rather than growing it past the
+   viewport. 46vh keeps the modal's own header and footer visible while still
+   showing roughly eight rows on a laptop. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+/* One row's label and trailing timestamp.
+   `MenuItemButton` renders its children as a single label cell, so the split is
+   made here: the name takes the room and the timestamp keeps its own width. */
+.rowName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowWhen {
+  flex: 0 0 auto;
+  margin-inline-start: 12px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The hint under "new conversation" is supporting copy, not a value, so it sits
+   a step below the row's own type size. */
+
+/* Both empty states are sentences, centred in the list's own area: an empty
+   list that collapses to zero height reads as a rendering bug. */
+.empty {
+  padding: 20px 8px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* The failure line is the only thing in the dialog allowed to be red, because
+   it is the only thing that means "the click did not do what you asked". */
+.error {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* The footer is a single dismiss action. */
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* The dialog body slot. The modal frame draws the border and title; this only owns
+   the scrolling viewport, so it must not add its own padding or the list would sit
+   inset from the header rule. */
+.content {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}

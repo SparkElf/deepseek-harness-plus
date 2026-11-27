@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "repo": "SparkElf/dsh-genui",
+  "ref": "refs/heads/main",
+  "commit": "5dcce64b9cc68244118171eb87b376c19fe26b11",
+  "commitDate": "2026-11-05T12:19:54+08:00",
+  "version": "0.15.0-sparkelf.3",
+  "published": {
+    "registry": "npm",
+    "package": "@sparkelf/dsh-genui",
+    "version": "0.15.0-sparkelf.3"
+  },
+  "source": "git main at 5dcce64 (release 0.15.0-sparkelf.3); published tarball package.json is identical"
+}

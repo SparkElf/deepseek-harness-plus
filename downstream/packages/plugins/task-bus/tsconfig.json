@@ -1,0 +1,23 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "node",
+      "react"
+    ],
+    "composite": false,
+    "incremental": false,
+    "paths": {}
+  },
+  "include": [
+    "src/**/*",
+    "tests/**/*"
+  ]
+}

@@ -1,0 +1,70 @@
+/* Searchable picker. The list floats over the dialog body rather than pushing it, so the
+   dialog does not jump in height while the operator types. */
+
+.box {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-sm);
+  /* Opaque rather than translucent: the dialog body scrolls behind this, and text showing
+     through a candidate row is worse than losing the blur. */
+  background: var(--dsw-alias-bg-base, var(--dsw-alias-interactive-bg-hover));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 24%);
+}
+
+.row,
+.rowActive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  line-height: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* The highlight follows the pointer as well as the arrow keys, so only one row is ever
+   marked and both input methods share the same visual language. */
+.rowActive {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secondary {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+}
+
+.note {
+  margin: 6px 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 17px;
+}

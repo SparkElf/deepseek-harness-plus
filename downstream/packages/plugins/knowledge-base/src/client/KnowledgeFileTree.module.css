@@ -1,0 +1,38 @@
+/**
+ * The wrapper around the borrowed explorer.
+ *
+ * It exists so the plugin has one element it owns above the explorer's rows: the star
+ * and the row context menu are applied from outside (`useRowDecoration`), since the
+ * explorer exposes neither as a prop. The wrapper must not change the tree's own layout,
+ * so it carries no padding, border or height of its own -- a full-width box that lets the
+ * explorer lay itself out exactly as it did before.
+ */
+.treeFrame {
+  display: block;
+  min-width: 0;
+}
+
+/*
+ * The upload destination picker reuses the explorer's rows but needs one extra state:
+ * the directory the next upload will land in. The explorer's multi-select fill is the
+ * right visual language; the attribute is painted by `useRowDecoration`, since the
+ * borrowed explorer owns the row element.
+ */
+.treeFrame [data-kb-selected='true'] {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+/*
+ * The host's fs tree does not put mtime on every row. `useRowTimes` reads it from
+ * KB_API.list and `useRowDecoration` inserts this span where the explorer's own
+ * `.explorerTime` sits, so file rows keep the sidebar's date column.
+ */
+.treeFrame [data-kb-mtime] {
+  flex: none;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

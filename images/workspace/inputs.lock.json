@@ -1,0 +1,516 @@
+{
+  "schemaVersion": 1,
+  "description": "Digest lock for the mirrored workspace build context and for the artifacts a build must supply. scripts/prepare-inputs.sh materializes the untracked artifacts from a DataOps checkout, the tracked seed/ directory, or public sources and verifies the vendor digests below; scripts/check-parity.sh re-derives the mirrored half against the DataOps source tree. The G6/G7 files listed in divergedFromDataOps are intentionally ahead of the DataOps mirror; their digests describe this repository, not the DataOps commit in source.commit.",
+  "source": {
+    "repository": "dataops",
+    "path": "infra/docker-workspace",
+    "commit": "e5c411e68e83cd3e03897af3c0a6cefca50d3e39",
+    "capturedAt": "2026-11-26"
+  },
+  "mirrored": [
+    {
+      "path": "context/.dockerignore",
+      "bytes": 329,
+      "sha256": "07df635acda06887fb50f48cd7bbdde440b1457eb85cfff92a626346537d6ba0"
+    },
+    {
+      "path": "context/Dockerfile",
+      "bytes": 26799,
+      "sha256": "413bbee83b7a99f570a843df45c1b6829c82bb900c16c3eab35fce6c9905003a"
+    },
+    {
+      "path": "context/Dockerfile.plus-cli-src",
+      "bytes": 45580,
+      "sha256": "3aad7fbb5f7243b5c8bc9ddee0effbe1d0064e81a847ba5fe00ffabe015694cc"
+    },
+    {
+      "path": "context/Dockerfile.runtime-cli",
+      "bytes": 18905,
+      "sha256": "0fc4b5eba4e2d7c8944d4b65b25ca0cd633e0b2063e3adb0190bfcd6b32b5197"
+    },
+    {
+      "path": "context/README.md",
+      "bytes": 1047,
+      "sha256": "64e4b76f1f4c56fb44c2efdbb161d5545fde721b5bc390e349dbb88d67d2fa07"
+    },
+    {
+      "path": "context/alias-font.py",
+      "bytes": 4257,
+      "sha256": "aa97e6e225240ace467eaaf3eea59696325c1dc5176ff1d07271e8aabef67ed1"
+    },
+    {
+      "path": "context/alias-font.txt",
+      "bytes": 1508,
+      "sha256": "32ed87e90a824422a545d779cad9a7216f8e84abf82e8893a697f099b94a190f"
+    },
+    {
+      "path": "context/apply-plus.sh",
+      "bytes": 15944,
+      "sha256": "421d33861e1764a87cbb8e855c909cb552aa1136f39fddd11906bd4e458579bd"
+    },
+    {
+      "path": "context/cleanup-obsolete-managed-skills.mjs",
+      "bytes": 12417,
+      "sha256": "0ac2f35577ebb011cfe9c0d84929f2e626b93b02ec86cedce52efa6fd55c7933"
+    },
+    {
+      "path": "context/dataops-dsh-embedded.patch.yml",
+      "bytes": 11578,
+      "sha256": "06e77dfaec1a4840390aacd2819eaa65bb2fc190c8256c8f55d27f1151948d16"
+    },
+    {
+      "path": "context/dataops-required-plugins.json",
+      "bytes": 851,
+      "sha256": "babcb1dc37e3e1f7d0f3cb6015479c5ad7f95d00f43aaa21ee48b42aba0e396b"
+    },
+    {
+      "path": "context/dataops-skills/.progress.json",
+      "bytes": 166,
+      "sha256": "b158fdaa2f0712da5dad7faa5431a0b72b6a384ddf26758ebb524b3cdc1d7cf1"
+    },
+    {
+      "path": "context/dataops-skills/README.md",
+      "bytes": 931,
+      "sha256": "4bfd0058789f9db6b8dc18c1b63682c99e1eda5ceca25bcd093c40bd17f90729"
+    },
+    {
+      "path": "context/dataops-skills/api-connector-authoring/i18n/zh.json",
+      "bytes": 276,
+      "sha256": "e7118c3d9060ae9e15b36e2f3d4752a2f77e635363ac783d8e1505e406e40aff"
+    },
+    {
+      "path": "context/dataops-skills/browser/i18n/zh.json",
+      "bytes": 367,
+      "sha256": "f07f073a8500b845632a2a6981e13de19a2315b6cdd98d9cd9d52739fa150edd"
+    },
+    {
+      "path": "context/dataops-skills/dataops-collect/SKILL.md",
+      "bytes": 8125,
+      "sha256": "3095b7a729f97f77d79007f988de566aad4e467484c1ea590833363321c39606"
+    },
+    {
+      "path": "context/dataops-skills/dataops-collect/i18n/zh.json",
+      "bytes": 240,
+      "sha256": "323d0c848adbb6e03bea25f3b0fda8d0fc25229a5fd3e810625d557784e7da53"
+    },
+    {
+      "path": "context/dataops-skills/dataops-collect/references/append.md",
+      "bytes": 5814,
+      "sha256": "3047db6e60a02181eab3284997bfcb3977282917ddbe15a37710bc4f2ec49ad4"
+    },
+    {
+      "path": "context/dataops-skills/dataops-collect/references/execution.md",
+      "bytes": 6370,
+      "sha256": "295cd8f5f9228362e553f0a2075be1a9433a940f0b5d8ece813704de7f2bab4a"
+    },
+    {
+      "path": "context/dataops-skills/dataops-collect/references/plan-schema.md",
+      "bytes": 6099,
+      "sha256": "d8a765c4b5af4a7168db65af75677ec51947cafe3e3447bc28b8ac437f582e7e"
+    },
+    {
+      "path": "context/dataops-skills/dataops-query/i18n/zh.json",
+      "bytes": 642,
+      "sha256": "84720730a464ce731b0ac5ac0ebef3c5e74d504b0406d423b7dc99363fdf096f"
+    },
+    {
+      "path": "context/dataops-skills/genui/i18n/zh.json",
+      "bytes": 625,
+      "sha256": "ea6d43872cf508abb43020dfcfd615a75b1d4dc3290a113c69985c2f04721003"
+    },
+    {
+      "path": "context/dataops-skills/i18n/.progress.json",
+      "bytes": 166,
+      "sha256": "b158fdaa2f0712da5dad7faa5431a0b72b6a384ddf26758ebb524b3cdc1d7cf1"
+    },
+    {
+      "path": "context/dataops-skills/knowledge-base/i18n/zh.json",
+      "bytes": 336,
+      "sha256": "f7db30d49cda494215d82493b2309879c33bc381030b22aa727922f623d0556f"
+    },
+    {
+      "path": "context/dataops-skills/memory/i18n/zh.json",
+      "bytes": 338,
+      "sha256": "6f9ae23456cfb869ff903d6b4cdd754e004a8f17c03726ea2911ed8e543fc4bd"
+    },
+    {
+      "path": "context/dataops-skills/prefect-script-authoring/i18n/zh.json",
+      "bytes": 228,
+      "sha256": "48f72d89bec2159ab4cb9f54916db2bbe40f75e8246470936b41cc531d473fc1"
+    },
+    {
+      "path": "context/dataops-skills/skill-provisioning/i18n/zh.json",
+      "bytes": 223,
+      "sha256": "900f554117caf6d3d50dbc6e2ddfda9d9acf93734ca0abfb6dcaf169c43fb79d"
+    },
+    {
+      "path": "context/dataops_dsh_service.py",
+      "bytes": 92417,
+      "sha256": "ae4fc0706eaeec85479d41ca048faad8f0d204f2fcdc98bd804fff14fa36c735"
+    },
+    {
+      "path": "context/dataops_workspace_entrypoint.sh",
+      "bytes": 5442,
+      "sha256": "a481bf6fb01b9960284ebfe4c9b457b6f37b487d6efe2b756d55598a1884038c"
+    },
+    {
+      "path": "context/dataops_workspace_helper.py",
+      "bytes": 9206,
+      "sha256": "c1ce233dc585b0358d3b4845fa5859be5885e68629746ede48ccfb0889139400"
+    },
+    {
+      "path": "context/disable-sidebar-plugin-manager.py",
+      "bytes": 6165,
+      "sha256": "e727bd3725a13d55a8ba584ed17a122edd232a213f3adab8bb59b17b9bf73792"
+    },
+    {
+      "path": "context/host-panel-patches.sh",
+      "bytes": 19905,
+      "sha256": "bdd848bb53e15da40b4cd5662de01bb1c7f3d6ea6265249cd3d02e2e88415cdc"
+    },
+    {
+      "path": "context/officecli-bin/README.md",
+      "bytes": 928,
+      "sha256": "349a69750a0c8b6183602e706928b6c28f4a09e1617e2facffdc59cc38320dfd"
+    },
+    {
+      "path": "context/officecli-bin/SHA256SUMS",
+      "bytes": 174,
+      "sha256": "71164293c3a28b293bf245cc7c90a4e2088f25c0c2e176e809bfd4c3d4c94a3d"
+    },
+    {
+      "path": "context/officecli/README.md",
+      "bytes": 3270,
+      "sha256": "a110808b987028f0db64d46fb5552b08f117cf5c10637b445d1060310e099111"
+    },
+    {
+      "path": "context/officecli/bin/officecli-create",
+      "bytes": 3796,
+      "sha256": "a0d4943ff607148b16e5a1e3606afc794c9a59b558619cd4c8b178b2b2320cc8"
+    },
+    {
+      "path": "context/officecli/build-style-packs.mjs",
+      "bytes": 18095,
+      "sha256": "0c9184155f1ec66b8991a6925ded0ef9d8992ec6b284a6076c4e840d62b66873"
+    },
+    {
+      "path": "context/officecli/check-style-packs.mjs",
+      "bytes": 11430,
+      "sha256": "df2d9493056dab27dfd305656d2cf1fd9d87043d516074b8e809a1af5f1bdab2"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-2012/pack.json",
+      "bytes": 1528,
+      "sha256": "e82e1ec5fb5347d8be35a50a1768e3cc36b2445b0aad0e759f635921107a381a"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-2012/template.docx",
+      "bytes": 7524,
+      "sha256": "a5e8f781995ac92f1ecca1dc77f8edd0032cb4f90fa9f6e6f5697bdc63f6e16f"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-letter/pack.json",
+      "bytes": 1327,
+      "sha256": "dabb45a4cca4476856b707aa85d834e4c7768bdad1f4b1e597148dc8a6b42516"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-letter/template.docx",
+      "bytes": 7708,
+      "sha256": "c9f2ae30c16860bbe43194116aaa683d04187894fa7efe8ef2ba51ab110565e8"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-minutes/pack.json",
+      "bytes": 1181,
+      "sha256": "16dddc573ab4dea4a7e2b767897a7a36776951883713f6126f87b58d7ddaa0b6"
+    },
+    {
+      "path": "context/officecli/style-packs/gbt9704-minutes/template.docx",
+      "bytes": 7713,
+      "sha256": "427a87ae6334713824eeeb44dad828c992e472cc14d2a2b606e641b0b69f6b2b"
+    },
+    {
+      "path": "context/officecli/style-packs/red-header/pack.json",
+      "bytes": 807,
+      "sha256": "8609ca0945e847ecfb9bd5649c34737b04ccf58d59fcbb61f40ec98ac75e560a"
+    },
+    {
+      "path": "context/officecli/style-packs/red-header/template.docx",
+      "bytes": 7772,
+      "sha256": "f71c2563bb495e4517bfa613be76e9f9e71b9a36bbbfe674736871a7ed008a5c"
+    },
+    {
+      "path": "context/patch-approval-allow.mjs",
+      "bytes": 5464,
+      "sha256": "997c9feea4b96b06f1e4cc4e67f76eb0630df59bc9d224ca0bb608c57e2c1389"
+    },
+    {
+      "path": "context/persist-mss-clamp.sh",
+      "bytes": 5410,
+      "sha256": "8348d005b5411dd6e0037f438c156cc46dabe20e7bb6b8c18f851173d2c1ad7b"
+    },
+    {
+      "path": "context/pin-plus-plugins.mjs",
+      "bytes": 6745,
+      "sha256": "2e8676551abced87aa6543eb90e2083865641bdb51d199f647af3564a5cec712"
+    },
+    {
+      "path": "context/platform-sidecars/package-lock.json",
+      "bytes": 4760,
+      "sha256": "86c2e568bbcb8c6e0b7654328cbb060dd96202768cf96ade897528ddd8d6c0d8"
+    },
+    {
+      "path": "context/platform-sidecars/package.json",
+      "bytes": 222,
+      "sha256": "e211cd7fd1335dc3567988986ce2535f502be5431324190b4918ebbaa8c31c1c"
+    },
+    {
+      "path": "context/platform-sidecars/workspace-platform-sidecars.mjs",
+      "bytes": 2026,
+      "sha256": "0f0294c71fdb779e4f4fa6cda234678dcdad54f44225efd1e73d6354d6d23078"
+    },
+    {
+      "path": "context/platform-sidecars/workspace-sdk-gateway.mjs",
+      "bytes": 9733,
+      "sha256": "cd86f1a0117ced8f5ec35a776af60f663cb7be493c8a2cd025f9114ebc649065"
+    },
+    {
+      "path": "context/platform-sidecars/workspace-web-gateway-agent.mjs",
+      "bytes": 16904,
+      "sha256": "6e4f1a90944b357ca9fc7a007722868ac962fb31c11c2a5b364a1729529a2483"
+    },
+    {
+      "path": "context/profile-defaults/cordis.local-qwen.patch.yml",
+      "bytes": 18347,
+      "sha256": "f3c2a52266b25898f3cdb6aba98ef1f47c8dce693de97f268a4c2bc2526f77f9"
+    },
+    {
+      "path": "context/profile-defaults/cordis.local-qwen38.patch.yml",
+      "bytes": 18502,
+      "sha256": "453beb07354bbc44e2131a4c797fe022d53af92b3567e19d92ef8b61347d9bad"
+    },
+    {
+      "path": "context/profile-defaults/cordis.patch.yml",
+      "bytes": 30985,
+      "sha256": "c315881426c7d644bada81b2d35b2db90fed34ee3796e4856f9b706fb6800d0d"
+    },
+    {
+      "path": "context/profile-defaults/plugin-pins.json",
+      "bytes": 1900,
+      "sha256": "613fb690f040ebdf7670d6a9253d8954f4a7f76f729f7a675d324cda3832aa62"
+    },
+    {
+      "path": "context/profile-variants/im-test/cordis.patch.yml",
+      "bytes": 1013,
+      "sha256": "98cffb1a9bf76a30dafc4f555f71094e96801ab51520969e742d9222fd93bff5"
+    },
+    {
+      "path": "context/profile-variants/im-test/variant.json",
+      "bytes": 1364,
+      "sha256": "6a8351ea6b91353934100e589b30e096bdd943c05fa006ad61563ceaa7e4ff7b"
+    },
+    {
+      "path": "context/prune-inactive-runtime-packages.py",
+      "bytes": 4823,
+      "sha256": "1981d74af996b8e64df1c2d145fbfbdc7adf6f68e12abbd3f9c8ddcf87791599"
+    },
+    {
+      "path": "context/relabel-font.py",
+      "bytes": 3725,
+      "sha256": "d31d7a318178018f851b2134d11149ae15cc44d234f4b86c954640e25ff940c6"
+    },
+    {
+      "path": "context/relabel-font.txt",
+      "bytes": 741,
+      "sha256": "87951f37b759588913083cac6ac51c5de8bae8ba2885aed77ea410150d0d8391"
+    },
+    {
+      "path": "context/remove-profile-plugin.mjs",
+      "bytes": 1783,
+      "sha256": "2306d1b7d5eef57fa4d1964e704fbc231654e0c5db4d5db8bfb9379c602a2b16"
+    },
+    {
+      "path": "context/rewrite-profile-deps.mjs",
+      "bytes": 4484,
+      "sha256": "cb348725474a32b6189c1cc5bf519277e93d61805d5ebe1293282e432bdc0c41"
+    },
+    {
+      "path": "context/vendor/README.md",
+      "bytes": 1603,
+      "sha256": "69ddf15378b7a7f9d017bb59a1d429c3a264731ef67de53ceaf518f1e30fc7ac"
+    },
+    {
+      "path": "context/verify-font-names.py",
+      "bytes": 2025,
+      "sha256": "8262ca18c01c7d98493309ca4c6a6a61e19fe0e9c99dee2929062b4174377fee"
+    }
+  ],
+  "contextArtifacts": [
+    {
+      "path": "context/dsh-src.tar.gz",
+      "bytes": 112053351,
+      "sha256": "beb376256251c96ce4bc725c847b5dbf7a57f0aa3cc4bb707894bc8e1a192c41",
+      "tracked": false,
+      "required": true,
+      "supply": "prepare-inputs.sh copies this DataOps artifact on the fast path; --public fetches DSH_SOURCE_REVISION=4b399c39a6d1479cd84ca591b4d7c88e24d38a96 and verifies git rev-parse HEAD instead of these bytes"
+    },
+    {
+      "path": "context/sparkelf-dsh-plus-0.2.9-alpha.106.tgz",
+      "bytes": 172286,
+      "sha256": "ace3c930d8d4587d4568bc03becf164d138bf7fb685639c1f13d02f4a5d83194",
+      "tracked": false,
+      "required": true,
+      "supply": "prepare-inputs.sh runs pnpm --filter @sparkelf/dsh-plus pack on this workspace; Dockerfile.plus-cli-src checks the package version, not these bytes"
+    },
+    {
+      "path": "context/officecli-bin/officecli-linux-x64",
+      "bytes": 35349925,
+      "sha256": "e8bfe04f670139f526fe4e81f11acc1bc8629e421a20c5ba7a6e25f7a54a31f7",
+      "tracked": true,
+      "required": false,
+      "supply": "DataOps officecli-bin/, or omit and let the engine stage download it"
+    },
+    {
+      "path": "context/officecli-bin/officecli-linux-arm64",
+      "bytes": 34766343,
+      "sha256": "f90c734722fd2f41ae76e72878329f033ed36c132aa741ec44dc3827066c55b9",
+      "tracked": true,
+      "required": false,
+      "supply": "DataOps officecli-bin/, or omit and let the engine stage download it"
+    },
+    {
+      "path": "context/platform-sidecars/workspace-gateway.mjs",
+      "bytes": 2327,
+      "sha256": "8bb74de4a6249d5b51bcf60512c3bb7bab48c13cdfd06f5a21122b6218d7afab",
+      "tracked": false,
+      "required": true,
+      "supply": "untracked in DataOps; must be committed before a clean clone can build (gap G2)"
+    },
+    {
+      "path": "build-context/workspace-web-gateway-protocol/index.js",
+      "bytes": 4926,
+      "sha256": "a80ca729aa94f26737b7ac0fc439bc51f10a706815e8668098d830690cd7824e",
+      "tracked": true,
+      "required": true,
+      "supply": "DataOps packages/workspace-web-gateway-protocol, passed as --build-context (gap G3)"
+    },
+    {
+      "path": "build-context/workspace-web-gateway-protocol/index.d.ts",
+      "bytes": 2217,
+      "sha256": "61d0fa9611d8159a3f070ae2ad6617a102f63824b899b75fd293ef7e6dcd42bd",
+      "tracked": true,
+      "required": true,
+      "supply": "DataOps packages/workspace-web-gateway-protocol, passed as --build-context (gap G3)"
+    },
+    {
+      "path": "build-context/workspace-web-gateway-protocol/package.json",
+      "bytes": 227,
+      "sha256": "79de8da3a387962f824cb1840d0f30baff88632a7d9b0c02abdab730ec6ad0ee",
+      "tracked": true,
+      "required": true,
+      "supply": "DataOps packages/workspace-web-gateway-protocol, passed as --build-context (gap G3)"
+    }
+  ],
+  "vendorTarballs": [
+    {
+      "path": "context/vendor/xlsx-0.20.3.tgz",
+      "bytes": 2412635,
+      "sha256": "275220ad69ba7721886e274d3a635ef5b04a9404cf0019f631bc19b8faa05c2a",
+      "md5": "5ab9436a1aabeae822c3ed26dd1465d9",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:80-83 (COPY, md5 gate and lockfile rewrite)",
+      "seedPath": "seed/xlsx-0.20.3.tgz",
+      "seedOrigin": "dataops/infra/docker-workspace/vendor/xlsx-0.20.3.tgz",
+      "source": {
+        "kind": "repo-seed",
+        "fallback": {
+          "kind": "cdn-repack",
+          "url": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+          "upstreamSha256": "8dc73fc3b00203e72d176e85b50938627c7b086e607c682e8d3c22c02bb99fe8",
+          "recipe": "unpack; replace package/LICENSE with a hardlink to package/dist/LICENSE; chmod 0600 files and 0711 package/bin/xlsx.njs; npm pack --ignore-scripts"
+        }
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz",
+      "bytes": 5661567,
+      "sha256": "0f8c41c38b0bfaf744c9866e7766d3d5ce444cfa0ac4eb87997d7479c4abb9b4",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:121-125 and Dockerfile.runtime-cli:22-26",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-better-sidebar",
+        "version": "0.30.1-sparkelf.22",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-better-sidebar/-/dsh-better-sidebar-0.30.1-sparkelf.22.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz",
+      "bytes": 335773,
+      "sha256": "39b256ebb6f746709b5d244d32743a90a223d89845c55bdd44d4d0f4bbec4a02",
+      "required": true,
+      "requiredBy": "Dockerfile.plus-cli-src:130-133",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.2",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-managed/-/dsh-dataops-managed-0.4.2.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz",
+      "bytes": 320358,
+      "sha256": "7b7cc90aa9d5f239703654a485b8dcaa0a41f1a4e9bfeda4acd6bde8ce6ba63d",
+      "required": true,
+      "requiredBy": "Dockerfile.runtime-cli:29-32",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-managed",
+        "version": "0.4.1",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-managed/-/dsh-dataops-managed-0.4.1.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-dataops-im-0.1.2.tgz",
+      "bytes": 90891,
+      "sha256": "2953bd9afbd2c26bf9ba27a3883af1e413e9bfeb668cd5e3fa3f0e330f24cfec",
+      "required": true,
+      "requiredBy": "context/profile-defaults/plugin-pins.json (tarball pin consumed by pin-plus-plugins.mjs)",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-dataops-im",
+        "version": "0.1.2",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-dataops-im/-/dsh-dataops-im-0.1.2.tgz"
+      }
+    },
+    {
+      "path": "context/vendor/sparkelf-dsh-group-chat-0.5.12.tgz",
+      "bytes": 247342,
+      "sha256": "ac37935d1f739563af6ff88f02353912876c9be8773d1345ec56d33eefad80b8",
+      "required": true,
+      "requiredBy": "context/profile-defaults/plugin-pins.json (tarball pin consumed by pin-plus-plugins.mjs)",
+      "source": {
+        "kind": "npm",
+        "package": "@sparkelf/dsh-group-chat",
+        "version": "0.5.12",
+        "url": "https://registry.npmjs.org/@sparkelf/dsh-group-chat/-/dsh-group-chat-0.5.12.tgz"
+      }
+    }
+  ],
+  "divergedFromDataOps": [
+    {
+      "path": "context/apply-plus.sh",
+      "reason": "G6 phased apply (source/profile); DataOps production build intentionally not modified by B-03b."
+    },
+    {
+      "path": "context/Dockerfile.plus-cli-src",
+      "reason": "G6 plus-inputs/source-build/plus-build split; DataOps production build intentionally not modified by B-03b."
+    }
+  ],
+  "monorepoContextFiles": [
+    {
+      "path": "context/runtime-prune.sh",
+      "bytes": 5667,
+      "sha256": "3bad9218425de3ae8c7bb7996f719d6fba48a3c12eb6bf10cbc73e583db16bc6"
+    }
+  ]
+}

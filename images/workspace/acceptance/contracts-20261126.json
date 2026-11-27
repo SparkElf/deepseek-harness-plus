@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "task": "B-03/B-09b workspace image contracts",
+  "createdAt": "2026-11-26T20:51:20+08:00",
+  "productionSwitch": false,
+  "releaseBinding": {
+    "path": "acceptance/release-binding.json",
+    "status": "verified",
+    "sourceRevision": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+    "plusVersion": "0.2.9-alpha.106",
+    "imageId": "sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9",
+    "digest": "dataops-ai-workspace-candidate@sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9",
+    "digestKind": "local-repo-digest",
+    "pushed": false,
+    "sizeBytes": 2909582424,
+    "inputsDigest": "b3f10b4cb779bd32c0bc73e58fa0fe97206628cc6dbf7f41766fd3ce6eba1ad0",
+    "contextDigest": "2016c50cfd7f39640e7538bb42a9ea235bbe58929acf175a12eca559d0358e05",
+    "vendorTarballCount": 12,
+    "recipeFileCount": 71
+  },
+  "bake": {
+    "file": "docker-bake.hcl",
+    "status": "definition-validated",
+    "command": "docker buildx bake -f docker-bake.hcl --print base plus runtime",
+    "defaultRepository": "dataops-ai-workspace-candidate",
+    "targets": [
+      "base",
+      "plus",
+      "runtime"
+    ],
+    "registryCacheDefault": "",
+    "pushByDefault": false,
+    "realBuildMeasured": null,
+    "reason": "A base build is about 25 minutes and 4.85GB; the definition was validated without building."
+  },
+  "applySplit": {
+    "preflight": "scripts/apply-plus-preflight.sh",
+    "plan": "APPLY-SPLIT.md",
+    "status": "preflight-only",
+    "verdict": "full-build-required",
+    "sourcePatches": 23,
+    "patchsetDigest": "4fe0eb89e38f8b0aead4ca3c2b0d2f3fe6c6764973efede4463d389b42c387c2",
+    "skipBuildImplemented": false,
+    "reason": "runApply rebuilds whenever a source patch is selected; the flag belongs to packages/bundle/plus and the mirrored apply-plus.sh.",
+    "pinOnlyBuildSeconds": null
+  },
+  "runtimePaths": {
+    "script": "scripts/verify-runtime-paths.sh",
+    "status": "passed",
+    "image": "dataops-ai-workspace-candidate:local",
+    "profileSymlinks": 461,
+    "packageLinks": 397,
+    "vendorLinks": 9,
+    "nativeLinks": 6,
+    "appLinks": 6,
+    "knownInertDangling": 3,
+    "unexpectedDangling": 0,
+    "bundles": 26,
+    "sizes": {
+      "dshSource": "2.4G",
+      "dshSourceNodeModules": "2.1G",
+      "dshSourceGit": "54M",
+      "profile": "805M",
+      "template": "805M",
+      "packagesSrc": "33MB"
+    },
+    "pruneExecuted": false,
+    "pruneCandidatesApproxMB": 124
+  },
+  "acceptance": {
+    "command": "node acceptance/verify-workspace-image.mjs --image dataops-ai-workspace-candidate:local",
+    "status": "pass",
+    "failures": 0,
+    "log": "acceptance/candidate-acceptance-20261126.log",
+    "checks": "all sections green; final line: the image boots, serves, and omits what it must"
+  },
+  "missingAcceptanceHelpersFixed": [
+    "acceptance/dataops-required-plugins.mjs",
+    "acceptance/dataops-required-plugins.json",
+    "acceptance/plugins-not-mounted.sh"
+  ]
+}

@@ -1,0 +1,522 @@
+/**
+ * Skill plaza section.
+ *
+ * The section reuses the skill center's own measurements -- the same centred column, group
+ * heading, card surface, and card width -- so it reads as another group on that page rather
+ * than a panel bolted onto it. Every colour comes from the shared alias tokens.
+ */
+
+.section {
+  /* A slot renders inside the page, so the page's own `> *` rule does not reach this section and
+     it would otherwise start at the padding edge while the skill rows above sit in the centred
+     column. Restating that column here keeps both left edges on one line. */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+}
+
+/* The group's size, as the skill center's own group headings state theirs. */
+.titleCount {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* A section-level state line: same size and colour as the page's own, so a plaza that cannot
+   load reads as one more group rather than a differently-styled panel. */
+.status {
+  margin: 0;
+  padding: 20px 0;
+  font-size: 13px;
+  line-height: 20px;
+  text-align: center;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.departmentBar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.departmentLabel {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.departmentSelect {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.departmentSelect:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 1px;
+}
+
+.notice {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-state-business-primary);
+}
+
+/* The same track as the skill center's grid above, so a card here is the same width as a card
+   there and the two halves of this page read as one list. */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  align-items: stretch;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  min-width: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-self: stretch;
+  padding: 12px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 10px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 28px;
+}
+
+.cardIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.cardTitle {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mine {
+  flex: none;
+}
+
+.cardDesc {
+  min-height: 36px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.cardMarks {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 6px;
+  min-height: 20px;
+}
+
+/* Flat, borderless, and the same fill as the skill center's own labels. #ECF1FC is the
+   product's label fill, which the shared alias set does not carry. */
+.mark {
+  padding: 2px 7px;
+  border: 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 14%, var(--dsw-alias-bg-layer-1));
+  color: var(--dsw-alias-state-business-primary);
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* The card's controls, on the bottom edge with the detail button last. */
+.cardEnd {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+/* The detail button takes the card's bottom-right corner. */
+.detailButton {
+  margin-left: auto;
+}
+
+/* The opened facts, label over value, read in the card's own dialog. */
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+/* The dialog widens past the shared confirm width, as the create form does. */
+.dialog {
+  width: min(560px, 100%);
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detailLabel {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-caption);
+}
+
+/* The skill body is arbitrary text, so it wraps and keeps its own line breaks. */
+.detailValue {
+  margin: 0;
+  max-height: 160px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* The empty state holds the same frame as a row glyph so the section keeps its rhythm with no
+   rows to show, and states what would fill it instead of trailing off. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 16px 32px;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 14px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.emptyText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+/* ── Review overlay ───────────────────────────────────────────────────── */
+
+.headRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.headRow .title {
+  flex: none;
+}
+
+.demoTag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--dsw-alias-state-warn-secondary);
+  color: var(--dsw-alias-state-warn-primary);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--dsw-alias-border-l1);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--dsw-alias-label-primary);
+}
+
+.tabActive {
+  color: var(--dsw-alias-state-business-primary);
+  border-bottom-color: var(--dsw-alias-state-business-primary);
+  font-weight: 500;
+}
+
+.tabCount {
+  padding: 0 4px;
+  border-radius: 7px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.tagTop {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 16px;
+}
+
+.sharedTag {
+  padding: 2px 7px;
+  border-radius: 4px;
+  /* Solid dark green with white text: AA in both themes, unlike the pale secondary pair. */
+  background: #0E6B3A;
+  color: #FFFFFF;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.pendingTag {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #7A4A00;
+  color: #FFFFFF;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.rejectedTag {
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #A8231B;
+  color: #FFFFFF;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 600;
+}
+
+.reviewButton {
+  margin-left: auto;
+}
+
+.reviewNote {
+  margin: 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--dsw-alias-state-error-primary);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, var(--dsw-alias-bg-layer-1));
+  color: var(--dsw-alias-label-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.auditDialog {
+  width: min(640px, calc(100vw - 32px));
+}
+
+.audit {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.auditFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.risk {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--dsw-alias-border-l1);
+  border-radius: 6px;
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.riskHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.riskEmpty,
+.riskFailed {
+  margin: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.riskFailed {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.riskSummary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.riskScore {
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.severity {
+  padding: 0 5px;
+  border-radius: 3px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font-size: 10px;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.severity[data-severity='high'],
+.severity[data-severity='critical'] {
+  background: var(--dsw-alias-state-error-secondary);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.severity[data-severity='medium'] {
+  background: var(--dsw-alias-state-warn-secondary);
+  color: var(--dsw-alias-state-warn-primary);
+}
+
+.findings {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.findingText {
+  flex-basis: 100%;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.findingHint {
+  flex-basis: 100%;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.noteField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.noteField textarea {
+  min-height: 64px;
+  padding: 7px 9px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 5px;
+  background: var(--dsw-alias-bg-base);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  resize: vertical;
+}
+
+.reviewError {
+  margin: 0;
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 11px;
+}

@@ -1,0 +1,62 @@
+/**
+ * Provenance badges for graph rows, topic rows and document rows.
+ *
+ * Each badge is a chip with a quiet tinted field. The tint carries the category
+ * (AI / reviewed / redline) while the word carries the meaning, so the badges stay
+ * legible when the host switches to its dark palette.
+ */
+
+.badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  vertical-align: middle;
+}
+
+.badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  box-sizing: border-box;
+  height: 16px;
+  padding: 0 5px;
+  border: 0.5px solid var(--dsw-alias-border-l2);
+  border-radius: 4px;
+  background: var(--dsw-alias-bg-layer-2);
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: default;
+}
+
+/* AI provenance: the business accent, not an error. */
+.origin {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--dsw-alias-state-business-primary) 80%, var(--dsw-alias-label-primary));
+}
+
+/* Reviewed/approved: a positive state. */
+.reviewStatus {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-success-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--dsw-alias-state-success-primary) 80%, var(--dsw-alias-label-primary));
+}
+
+/* Redline: the strongest state; it is a policy, not a suggestion. */
+.authority {
+  border-color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 40%, transparent);
+  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 10%, transparent);
+  color: color-mix(in srgb, var(--dsw-alias-state-error-primary) 85%, var(--dsw-alias-label-primary));
+}
+
+/* A 28px tree row has no room for full chip metrics; keep the words, shrink the box. */
+.compact .badge {
+  height: 14px;
+  padding: 0 4px;
+  border-radius: 3px;
+  letter-spacing: -0.01em;
+}

@@ -1,0 +1,26 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "lib/types",
+    "composite": false,
+    "incremental": false,
+    "paths": {
+      "@deepseek-ai/cordis": [
+        "./node_modules/@deepseek-ai/cordis"
+      ]
+    },
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ]
+}

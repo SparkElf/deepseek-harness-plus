@@ -1,0 +1,12 @@
+# DataOps administration skill bundle patch.
+#
+# This package registers ONE bundled skill and nothing else: there is no browser half
+# and no client bundle, so this row has no `dsh.client` counterpart in package.json.
+# Mounting it makes `SKILL.md` and `scripts/dataops-admin.mjs` reachable from the skill
+# catalog; the model then drives the script from the instructions in the document.
+#
+# Without this row the files install into the profile but no provider registers them,
+# so the skill center never lists them -- a failure with no error message anywhere.
+- insert:
+    - id: dataops-admin
+      name: '@sparkelf/dsh-dataops-admin'

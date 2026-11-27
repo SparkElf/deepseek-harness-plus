@@ -1,0 +1,367 @@
+/*
+ * The progress notification button and its panel.
+ *
+ * The button sits in the panel header's action row, so it borrows that row's own sizes
+ * and only contributes the glyph box and the badge. The panel is a `Modal` sized in
+ * `ch`-free pixels because a file name is what has to fit: 640px is roughly twice the
+ * width the old side strip had, which is the whole reason this moved.
+ */
+
+/* The bell: a square hit area the size of the header's other icon buttons. */
+.bell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-sm);
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  cursor: pointer;
+}
+
+.bell:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.bell:focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: -2px;
+}
+
+/* The unread badge: bottom-right, as an unread count is drawn everywhere.
+   It is positioned against the button, not the glyph, so it stays put when the icon
+   weight changes. */
+.badge {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--dsw-alias-state-error-primary);
+  color: var(--dsw-alias-bg-layer-1);
+  font: var(--dsw-font-xxxs-strong-11);
+  font-variant-numeric: tabular-nums;
+  line-height: 14px;
+  text-align: center;
+  /* The ring separates the badge from whatever is behind it without a second element. */
+  box-shadow: 0 0 0 1.5px var(--dsw-alias-bg-layer-1);
+  pointer-events: none;
+}
+
+/* The panel. Its width is fixed rather than content-driven: a long file name must wrap
+   inside the row instead of stretching the dialog past the viewport. */
+.dialog {
+  width: 640px;
+  max-width: calc(100vw - 48px);
+}
+
+.dialogContent {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  /* Bounded so a 200-task batch scrolls inside the panel instead of growing past the
+     viewport. The reader can always reach the close button. */
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* The numeric summary. Two pairs of label + fraction, separated by a rule: the reader
+   reading "2/5" does not need a sentence around it. */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+.summaryItem {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.summaryLabel {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+}
+
+.summaryValue {
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-base-strong-16);
+  font-variant-numeric: tabular-nums;
+}
+
+/* One group (uploads, extractions). */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  /* Space between cards: they are separate objects, not rows of one list. */
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One task, as a card.
+   TWO ROWS: [icon] name … badge / path. The badge is the last child of row one and never
+   shrinks, which is what pins it to the right edge; the path gets its own row so it cannot
+   compete with the name for width. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 11px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-2);
+  border: 0.5px solid var(--dsw-alias-border-l2);
+}
+
+/* Row one: icon, name, badge. */
+.cardRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+/* The name takes the free width and ellipsises. `min-width: 0` is what allows a flex item
+   to shrink below its content width, which an ellipsis requires. */
+.cardName {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-xxs-strong-12);
+}
+
+/* Timestamp: quiet metadata before the stage badge. */
+.cardTime {
+  flex: none;
+  color: var(--dsw-alias-label-caption);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Row two: the destination. Secondary ink, its own line, and it truncates rather than
+   wrapping the card to three lines. */
+.cardPath {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  /* Aligned with the name, past the icon. */
+  padding-left: 23px;
+}
+
+.cardActions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 2px;
+}
+
+/* The status badge. Colour carries the state; the words carry the detail. `flex: none`
+   keeps it on the right edge no matter how long the name is. */
+.badgeDone,
+.badgeFailed,
+.badgeBusy {
+  flex: none;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font: var(--dsw-font-xxxs-strong-11);
+  white-space: nowrap;
+}
+
+.badgeDone {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-state-success-primary);
+}
+
+.badgeFailed {
+  background: var(--dsw-alias-interactive-bg-hover-danger);
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.badgeBusy {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-secondary);
+}
+
+/* The in-flight bar.
+   DETERMINATE when the browser reports bytes sent (the normal case: the body has a known
+   length), and a sliding indeterminate fill when it does not. A percentage is never
+   invented for an unknown total. */
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.progressTrack {
+  position: relative;
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .08);
+  overflow: hidden;
+}
+
+/* The determinate fill: its width is set inline from the reported percentage. */
+.progressFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--dsw-alias-brand-primary), var(--dsw-alias-state-business-primary));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--dsw-alias-brand-primary) 45%, transparent);
+  transition: width 120ms linear;
+}
+
+.progressRow[data-stage='done'] .progressFill {
+  background: var(--dsw-alias-state-success-primary);
+  box-shadow: none;
+}
+
+.progressFillFailed {
+  background: var(--dsw-alias-state-error-primary);
+  box-shadow: none;
+}
+
+/* The unknown-total fill: a short bar sliding across the track. */
+.progressFillIndeterminate {
+  position: absolute;
+  inset-block: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: var(--dsw-alias-brand-primary);
+  animation: cardProgress 1.1s ease-in-out infinite;
+}
+
+@keyframes cardProgress {
+  0% { left: -40%; }
+  100% { left: 100%; }
+}
+
+/* Tabular figures so the number does not jitter the layout as it climbs. */
+.progressPercent {
+  flex: none;
+  min-width: 38px;
+  text-align: right;
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Reduced motion: hold the indeterminate fill still instead of sliding it. */
+@media (prefers-reduced-motion: reduce) {
+  .progressFillIndeterminate {
+    animation: none;
+    left: 30%;
+  }
+}
+
+/* The failure reason takes the whole width in the secondary ink: it is the one thing a
+   reader must read to decide whether retrying helps. */
+.cardReason {
+  color: var(--dsw-alias-label-secondary);
+  font: var(--dsw-font-xxxs-11);
+  overflow-wrap: anywhere;
+}
+
+/* The unedited reason under the readable one. Dimmer than `cardReason` because it is
+   evidence for an operator, not the sentence a reader acts on. */
+.cardRawReason {
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxxs-11);
+  overflow-wrap: anywhere;
+}
+
+/* Nothing queued: the panel is still reachable (the reader clicked the bell), so it says
+   so rather than showing an empty frame. */
+.empty {
+  margin: 0;
+  padding: 12px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font: var(--dsw-font-xxs-12);
+}
+
+/* Footer: clear-history on the left, close on the right. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Headless dialog chrome: title + ratio share a baseline, the close button stays 24px. */
+.dialogShell {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+}
+
+.dialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dialogTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.dialogTitle {
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font: var(--dsw-font-base-strong-16);
+}
+
+.titleRatio {
+  color: #8ea6c6;
+  font-size: 12px;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dialogClose {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dialogClose:hover {
+  background: rgba(255, 255, 255, .06);
+  color: var(--dsw-alias-label-primary);
+}

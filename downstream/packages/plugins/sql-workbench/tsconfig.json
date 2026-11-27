@@ -1,0 +1,34 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2023",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "jsx": "react-jsx",
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "types": [
+      "node"
+    ],
+    "composite": false,
+    "incremental": false,
+    "paths": {},
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitOverride": false
+  },
+  "include": [
+    "src",
+    "tests",
+    "tsdown.config.ts"
+  ]
+}

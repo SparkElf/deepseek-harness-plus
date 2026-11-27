@@ -1,0 +1,148 @@
+#!/bin/sh
+# officecli-create — create a DOCX from an OfficeCLI style-pack template.
+#
+# OfficeCLI has no native global style-pack or default-template switch; this wrapper is the
+# supported entry point. It copies a blank, fully-styled template and leaves editing to the
+# ordinary `officecli` commands on the same file path.
+#
+# Usage:
+#   officecli-create <file.docx> [--style-pack <name>] [--force]
+#   officecli-create --list
+#
+# Environment:
+#   OFFICECLI_STYLE_PACKS_DIR  default /opt/officecli/style-packs
+#   OFFICECLI_DEFAULT_STYLE_PACK  default gbt9704-2012
+set -eu
+
+PACKS_DIR="${OFFICECLI_STYLE_PACKS_DIR:-/opt/officecli/style-packs}"
+DEFAULT_PACK="${OFFICECLI_DEFAULT_STYLE_PACK:-gbt9704-2012}"
+
+usage() {
+  cat <<'EOF'
+Usage: officecli-create <file.docx> [--style-pack <name>] [--force]
+       officecli-create --list
+
+Create a DOCX from an OfficeCLI style-pack template.
+Default style pack: gbt9704-2012 (GB/T 9704-2012 党政机关公文格式).
+EOF
+}
+
+list_packs() {
+  if [ ! -d "$PACKS_DIR" ]; then
+    echo "style-pack directory not found: $PACKS_DIR" >&2
+    exit 1
+  fi
+  for dir in "$PACKS_DIR"/*; do
+    [ -d "$dir" ] || continue
+    [ -f "$dir/template.docx" ] || continue
+    name="$(basename "$dir")"
+    title=""
+    if [ -f "$dir/pack.json" ] && command -v jq >/dev/null 2>&1; then
+      title="$(jq -r '.title // empty' "$dir/pack.json" 2>/dev/null || true)"
+    fi
+    if [ -n "$title" ]; then
+      printf '%s\t%s\n' "$name" "$title"
+    else
+      printf '%s\n' "$name"
+    fi
+  done
+}
+
+file=""
+pack="$DEFAULT_PACK"
+force=0
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --list)
+      list_packs
+      exit 0
+      ;;
+    --style-pack)
+      [ $# -ge 2 ] || { echo "error: --style-pack requires a value" >&2; exit 2; }
+      pack="$2"
+      shift 2
+      ;;
+    --style-pack=*)
+      pack="${1#*=}"
+      shift
+      ;;
+    --packs-dir)
+      [ $# -ge 2 ] || { echo "error: --packs-dir requires a value" >&2; exit 2; }
+      PACKS_DIR="$2"
+      shift 2
+      ;;
+    --force)
+      force=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      echo "error: unknown option: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+    *)
+      if [ -n "$file" ]; then
+        echo "error: unexpected extra argument: $1" >&2
+        exit 2
+      fi
+      file="$1"
+      shift
+      ;;
+  esac
+done
+
+if [ -z "$file" ]; then
+  echo "error: output file is required" >&2
+  usage >&2
+  exit 2
+fi
+
+case "$file" in
+  *.docx) ;;
+  *)
+    echo "error: officecli-create only writes .docx files; use officecli create for xlsx/pptx" >&2
+    exit 2
+    ;;
+esac
+
+template="$PACKS_DIR/$pack/template.docx"
+if [ ! -f "$template" ]; then
+  echo "error: unknown style pack '$pack' (template missing: $template)" >&2
+  echo "available style packs:" >&2
+  list_packs >&2 || true
+  exit 1
+fi
+
+if [ -e "$file" ] && [ "$force" -ne 1 ]; then
+  echo "error: file exists: $file (pass --force to overwrite)" >&2
+  exit 1
+fi
+
+# A live OfficeCLI resident holds the old document in memory; its next save would write that
+# content back over the fresh template. Release it before replacing the file (best effort:
+# there may be no resident, or no file yet).
+if [ -z "${OFFICECLI_BIN:-}" ]; then
+  for candidate in \
+    /opt/dsh-plus/node_modules/@officecli/officecli/vendor/officecli \
+    /opt/dataops-dsh-profile-template/node_modules/@officecli/officecli/vendor/officecli \
+    /usr/local/lib/dataops/officecli-engine; do
+    if [ -x "$candidate" ]; then
+      OFFICECLI_BIN="$candidate"
+      break
+    fi
+  done
+fi
+if [ -n "${OFFICECLI_BIN:-}" ] && [ -x "$OFFICECLI_BIN" ]; then
+  "$OFFICECLI_BIN" close "$file" >/dev/null 2>&1 || true
+fi
+
+dir="$(dirname "$file")"
+[ -d "$dir" ] || mkdir -p "$dir"
+rm -f "$file"
+cp "$template" "$file"
+echo "Created: $file (style-pack: $pack)"

@@ -1,0 +1,95 @@
+{
+  "name": "@sparkelf/dsh-artifact-app",
+  "version": "0.1.1",
+  "description": "DataOps cockpit artifacts in the DSH right sidebar: templates, render host, SSE open bridge and model tools.",
+  "type": "module",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "default": "./lib/client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-primitives"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "lib/client.js",
+    "lib/client.js.map",
+    "cordis.patch.yml",
+    "skills/artifact-app-authoring/SKILL.md",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run tests"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/artifact-app"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.4",
+    "@deepseek-ai/dsh-client-locale": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-credentials": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-skill": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-tools": ">=0.1.7-rc.2",
+    "@deepseek-ai/dsh-user-approval": ">=0.1.7-rc.2",
+    "@deepseek-ai/schemastery": ">=3.18.2",
+    "playwright": ">=1.40.0",
+    "react": ">=18.2.0 <20"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "4.0.4",
+    "@deepseek-ai/dsh-client-locale": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-client-ui-slots": "0.2.1-rc.2",
+    "@deepseek-ai/dsh-credentials": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-skill": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-tools": "0.1.7-rc.2",
+    "@deepseek-ai/dsh-user-approval": "0.1.7-rc.2",
+    "@deepseek-ai/schemastery": "3.18.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "~18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "playwright": "1.62.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsdown": "^0.22.2"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  }
+}

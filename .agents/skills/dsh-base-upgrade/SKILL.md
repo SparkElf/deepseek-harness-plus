@@ -166,6 +166,13 @@ verified separately; a green host does not prove the container.
 - A promotion that reports HTTP 200 is not a promotion. Check `dsh-session`, `dsh-tools`, and
   `dsh-host-webserver` versions, as `dsh-promote-deployment` requires.
 
+- **MCP client reads `ctx.root` without inject.** On 0.2.3/Cordis 4.2,
+  `@sparkelf/dsh-plugin-mcp-credentials` (and the official `mcp-client`) throws
+  "cannot get property root without inject" at `ctx.plugin(McpClient, ...)`. The browser-bridge
+  connector then stays `phase=error` while the backend/Companion look healthy. Use
+  `scopeOf(ctx) ?? ctx` as the duplicate-serverName owner, publish the plugin, and pin it.
+  Details: `dataops/docs/pitfalls-build-and-deploy.md` §88.
+
 ## 0.2.3 deployment pitfalls (learned 2026-11-24)
 
 - **Browser auth is required.** `dsh web` prints `?token=`; a bare `/` answers 401 with

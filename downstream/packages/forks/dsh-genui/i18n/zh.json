@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "sourceHash": "8ceacb9dc6c3020c7147218a0a0ad9c37632d1b4",
+    "model": "deepseek-v4.1-flash",
+    "translatedAt": "2026-10-15T16:39:16.164Z"
+  },
+  "title": "GenUI 组件规范",
+  "description": "用 dsh-ui 围栏内联渲染结构化交互 UI，适用于要点、强调、对比、流程、步骤、状态、数据、演示和交互。所有用户可见文本保持对话语言。",
+  "summary": "规定通过 dsh-ui 围栏在回答中内联输出可交互组件的 JSON 规范，涵盖布局、展示、图表、交互等组件类型、字段与用法，并维护对话语言与用户可见文本。"
+}

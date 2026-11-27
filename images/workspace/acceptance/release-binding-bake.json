@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "kind": "workspace-image-release-binding",
+  "createdAt": "2026-11-27T01:49:53.354Z",
+  "productionSwitch": false,
+  "candidateOnly": true,
+  "source": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness.git",
+    "revision": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96",
+    "tag": "dsh-v0.2.3-alpha.2"
+  },
+  "plus": {
+    "name": "@sparkelf/dsh-plus",
+    "version": "0.2.9-alpha.106",
+    "tarballSha256": "743f8d194fb8ed3e429353d2c66ccdbdcdf7292cafbf147ea0f13bc206260d47"
+  },
+  "image": {
+    "tag": "dataops-ai-workspace-candidate:final-bake",
+    "imageId": "sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+    "repoDigests": [
+      "dataops-ai-workspace-candidate@sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007"
+    ],
+    "sizeBytes": 2881378410,
+    "createdAt": "2026-11-27T01:49:31.007026057Z",
+    "repository": "dataops-ai-workspace-candidate",
+    "aliases": [],
+    "localRepoDigest": "dataops-ai-workspace-candidate@sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+    "digest": "dataops-ai-workspace-candidate@sha256:9546d6b99b99536f0b04319c4fca87ac565244695be4a395915ddb063fbcc007",
+    "digestSource": "local-repo-digest",
+    "digestKind": "local-repo-digest",
+    "pushed": false
+  },
+  "buildInputs": {
+    "complete": true,
+    "inputsLockSha256": "7b6bc80b230ef41990da74487724e01deeea55dae13289ef48efd5d95a1fd7f8",
+    "dshSourceTarballSha256": "beb376256251c96ce4bc725c847b5dbf7a57f0aa3cc4bb707894bc8e1a192c41",
+    "plusTarballSha256": "743f8d194fb8ed3e429353d2c66ccdbdcdf7292cafbf147ea0f13bc206260d47",
+    "vendorTarballs": [
+      {
+        "path": "context/vendor/anysearch-anysearch-dsh-0.1.8.tgz",
+        "sha256": "11a27b02ca77b73b512613e62cec14753681acaa7042b3794113f3f840c300bf"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.21.tgz",
+        "sha256": "fb0f284ae3d2747899ace5021dee530bba88fe007bdcdf159f7e7d5e0f2f3403"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-better-sidebar-0.30.1-sparkelf.22.tgz",
+        "sha256": "0f8c41c38b0bfaf744c9866e7766d3d5ce444cfa0ac4eb87997d7479c4abb9b4"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-im-0.1.0.tgz",
+        "sha256": "d7559df61e62dabad3402b322dfd89527391e305ffef15a6a8f4139a7614e628"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-im-0.1.1.tgz",
+        "sha256": "c65028a38cb1181266077f47981595462e0fbcf92a8d6b4f5bf062dd53721668"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-im-0.1.2.tgz",
+        "sha256": "2953bd9afbd2c26bf9ba27a3883af1e413e9bfeb668cd5e3fa3f0e330f24cfec"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-managed-0.3.54.tgz",
+        "sha256": "4d3808524c6234f95bfa9c3bff289069a4ae2d1df4a5f6133ab4b4ff24cbb58c"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.1.tgz",
+        "sha256": "7b7cc90aa9d5f239703654a485b8dcaa0a41f1a4e9bfeda4acd6bde8ce6ba63d"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-dataops-managed-0.4.2.tgz",
+        "sha256": "39b256ebb6f746709b5d244d32743a90a223d89845c55bdd44d4d0f4bbec4a02"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-group-chat-0.5.12.tgz",
+        "sha256": "ac37935d1f739563af6ff88f02353912876c9be8773d1345ec56d33eefad80b8"
+      },
+      {
+        "path": "context/vendor/sparkelf-dsh-office-viewer-fonts-0.1.9.tgz",
+        "sha256": "6e521995ca4d69c9311150b0c65b925df8670c1cb62f6ae3a9a28eb32b326c2e"
+      },
+      {
+        "path": "context/vendor/xlsx-0.20.3.tgz",
+        "sha256": "275220ad69ba7721886e274d3a635ef5b04a9404cf0019f631bc19b8faa05c2a"
+      }
+    ],
+    "contextDigest": "78576ee8dd9da8daa4bb71fafdd8a5d73f2b6d2067c4f2fc6612f42dad4d797d",
+    "digest": "41b6e60de4f452695632785b426f85bfef2adef253b89e0ce99aa33904815cdf",
+    "vendorTarballCount": 12,
+    "contextFileCount": 72
+  },
+  "build": {
+    "script": "scripts/build-workspace-bake.sh",
+    "repository": "dataops-ai-workspace-candidate",
+    "profileDefaults": "cordis.patch.yml"
+  }
+}

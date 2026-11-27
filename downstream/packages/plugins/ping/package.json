@@ -1,0 +1,32 @@
+{
+  "name": "@sparkelf/dsh-plugin-ping",
+  "version": "0.1.1",
+  "type": "module",
+  "description": "Connectivity smoke plugin for DeepSeek Harness: registers /ping, replies pong without a model call.",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "dependencies": {
+    "@deepseek-ai/cordis": "^4.0.4"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/index.js",
+    "lib/index.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/ping"
+  }
+}

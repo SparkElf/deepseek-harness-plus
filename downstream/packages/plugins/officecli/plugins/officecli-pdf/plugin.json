@@ -1,0 +1,13 @@
+{
+  "name": "officecli-pdf",
+  "version": "0.1.0",
+  "protocol": 1,
+  "kinds": ["exporter"],
+  "extensions": [".pdf"],
+  "runtime": "other",
+  "idle_timeout_seconds": { "default": 120, "verbs": { "export": 660 } },
+  "supports": ["from:docx", "from:xlsx", "from:pptx"],
+  "description": "Exports DOCX/XLSX/PPTX to PDF through the DSH officeKit convert bridge (LibreOffice).",
+  "license": "MIT",
+  "limits": { "maxFileSizeMb": 100 }
+}

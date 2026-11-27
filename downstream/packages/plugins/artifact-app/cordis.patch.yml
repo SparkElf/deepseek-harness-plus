@@ -1,0 +1,3 @@
+- insert:
+    - id: artifact-app
+      name: '@sparkelf/dsh-artifact-app'

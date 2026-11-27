@@ -1,0 +1,3 @@
+- insert:
+    - id: chart
+      name: '@sparkelf/dsh-chart'

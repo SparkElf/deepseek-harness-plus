@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-26",
+  "source": "images/workspace build-workspace-final.sh 0.2.9-alpha.106",
+  "productionSwitch": false,
+  "images": [
+    {
+      "tag": "dataops-ai-workspace-candidate:base-py312",
+      "id": "sha256:f1df081bbad7227203b33e852f2c1c3499a160c86aee89c2c1fd2e6854d8626e",
+      "sizeBytes": 1316006178,
+      "repoDigests": [
+        "dataops-ai-workspace-candidate@sha256:f1df081bbad7227203b33e852f2c1c3499a160c86aee89c2c1fd2e6854d8626e"
+      ],
+      "created": "2026-11-26T06:27:36.553178171Z"
+    },
+    {
+      "tag": "dataops-ai-workspace-candidate:plus-cli-py312-0.2.9-alpha.106",
+      "id": "sha256:e35a002df712641ddb67dfbb1ea0bd04384322c45d6df91ab8e36445fad2fa0f",
+      "sizeBytes": 2821941464,
+      "repoDigests": [
+        "dataops-ai-workspace-candidate@sha256:e35a002df712641ddb67dfbb1ea0bd04384322c45d6df91ab8e36445fad2fa0f"
+      ],
+      "created": "2026-11-26T06:59:15.928776181Z"
+    },
+    {
+      "tag": "dataops-ai-workspace-candidate:local",
+      "id": "sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9",
+      "sizeBytes": 2909582424,
+      "repoDigests": [
+        "dataops-ai-workspace-candidate@sha256:aec6ff25db3d7d5c163812b06643f907c407ece415e2aa51e04433b192b805c9"
+      ],
+      "created": "2026-11-26T07:05:17.352788014Z"
+    }
+  ]
+}

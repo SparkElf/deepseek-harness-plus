@@ -1,0 +1,29 @@
+@sparkelf/dsh-officecli
+Copyright 2026 SparkElf
+
+This product bundles skill instructions derived from OfficeCLI.
+
+OfficeCLI
+Copyright iOfficeAI
+https://github.com/iOfficeAI/OfficeCLI
+Licensed under the Apache License, Version 2.0 (see LICENSE-APACHE-2.0).
+
+Source: @officecli/officecli 1.0.162, the `skills/` payload installed by
+`officecli skills install <name> codex` for:
+word, excel, pptx, word-form, morph-ppt, pitch-deck, academic-paper,
+data-dashboard, financial-model.
+
+Changes from the upstream skills:
+- Skill identifiers use the official CLI names (`word`, `excel`, `pptx`, …)
+  instead of the `officecli-` file prefix.
+- A Wanxiang delivery section was added to every skill: GB/T 9704-2012 for
+  Chinese Word documents (title 方正小标宋简体 22 pt black, Heading 1 SimHei
+  16 pt black, body FangSong_GB2312 16 pt), and enterprise template / brand
+  rules for Excel and PowerPoint (微软雅黑, #2563EB, no default Calibri, no
+  rainbow palettes).
+- The upstream install instructions were replaced with the workspace-provided
+  `officecli` / `officecli-create` tools.
+- Cross-skill references were renamed to the new skill identifiers.
+
+The binary itself is not vendored here; `@officecli/officecli` remains an
+Apache-2.0 dependency installed from npm.

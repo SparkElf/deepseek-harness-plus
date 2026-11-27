@@ -1,0 +1,31 @@
+{
+  "$comment": [
+    "Declarative overlay for the DSH profile variant `im-test`.",
+    "",
+    "The image installs the connector under /opt/dsh-im and the admin wrapper in the default",
+    "template; this manifest is merged into a fresh copy of that template by",
+    "dataops_dsh_service.py when a workspace starts with DATAOPS_DSH_PROFILE=im-test and",
+    "DATAOPS_DSH_PROFILE_VARIANT=im-test. It adds the connector package link the wrapper's",
+    "connector mode imports and pins that package's version; it adds no bundle row of its own.",
+    "",
+    "`@sparkelf/dsh-dataops-im` applies `@xmanrui/dsh-im` itself in connector mode, so the",
+    "variant must NOT also mount the connector as a separate bundle: a second apply would",
+    "register the same tools twice. The default 25-row bundle list is the whole list.",
+    "",
+    "`dshImVersion` is the single pin for the experiment; the image build installs exactly",
+    "that version, fails when npm resolves another one, and includes the installed package",
+    "manifest in the variant marker so a version bump re-assembles existing volumes."
+  ],
+  "name": "im-test",
+  "dshImVersion": "5.10.0",
+  "dependencies": {
+    "@xmanrui/dsh-im": "5.10.0"
+  },
+  "bundles": [],
+  "linkPackages": [
+    {
+      "name": "@xmanrui/dsh-im",
+      "path": "/opt/dsh-im/node_modules/@xmanrui/dsh-im"
+    }
+  ]
+}

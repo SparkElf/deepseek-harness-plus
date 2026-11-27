@@ -1,0 +1,18 @@
+# Downstream monorepo scaffold
+
+This directory is the migration target for the DSH Plus downstream workspace.
+
+```text
+upstream.lock.json    official DSH tag/revision
+release-manifest.json exact Plus/profile image inputs
+packages/plugins/     first-party SparkElf plugins (to be migrated)
+packages/forks/       maintained third-party forks (to be migrated)
+patches/core/         official-source-only patches
+patches/packages/     single-package patches (pnpm patchedDependencies)
+profiles/dataops-web/ DataOps web profile composition (generated from release-manifest.json)
+tools/downstream.mjs  sync/build-packages/apply/verify/image/publish entry point
+```
+
+Run `node downstream/tools/downstream.mjs profile` to deploy the profile and `node downstream/tools/downstream.mjs doctor` to check clean-fork prerequisites.
+
+Current status: migration (26 migrated, 1 excluded, 0 blocked). The lock, release manifest, governance verify, package build, `apply` delegation, generated profile, and local smoke image are real; package migration is 26/27 plus 1 excluded legacy package; release-manifest.localPackages identifies the workspace overrides the image builder must prefer; `verify --strict-local` rejects only active local/profile pin mismatches; packages marked `override=disabled` keep the registry pin; the publish --dry-run validates migrated artifacts; remote publish remains fail-closed. See `PLUS-MONOREPO-GOVERNANCE.md` and `BUILD.md`.

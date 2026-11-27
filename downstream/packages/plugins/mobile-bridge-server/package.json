@@ -1,0 +1,48 @@
+{
+  "name": "@sparkelf/dsh-mobile-bridge-server",
+  "version": "0.2.8",
+  "type": "module",
+  "description": "Multi-user bridge server connecting mobile browsers to local DeepSeek Harness instances through outbound tunnels.",
+  "license": "MIT",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "bin": {
+    "dsh-mobile-bridge-server": "src/index.ts"
+  },
+  "files": [
+    "src/deepseek-logo.svg",
+    "src/index.ts",
+    "src/phone.ts",
+    "src/server.ts",
+    "src/store.ts",
+    "src/wechat-scheme.ts",
+    "src/wechat.ts",
+    "LICENSE",
+    "QR_SCANNER_LICENSE",
+    "THIRD_PARTY_NOTICES.md",
+    "ZXING_CPP_LICENSE",
+    "ZXING_WASM_LICENSE"
+  ],
+  "dependencies": {
+    "nodemailer": "9.0.5",
+    "qr-scanner": "1.4.2",
+    "ws": "^8.18.0",
+    "zxing-wasm": "3.1.3"
+  },
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/mobile-bridge-server"
+  }
+}

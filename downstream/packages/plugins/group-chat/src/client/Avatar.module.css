@@ -1,0 +1,76 @@
+/*
+ * Member pictures.
+ *
+ * The palette is deliberately not varied per person: DataOps draws every account's avatar the
+ * same way — a solid blue circle with white initials, 30px across — and this component is the
+ * only place the workspace reproduces a DataOps person. A per-account tint here would show the
+ * same colleague in two colours, one on the portal and another inside a room, which reads as two
+ * different products rather than one. The room list, the roster and the invite picker all draw
+ * through here for the same reason.
+ *
+ * Sizes are the only variation, and they exist because the surfaces differ in density rather
+ * than in meaning: a full roster row can afford the portal's own 30px, while a message header
+ * sits above a bubble and needs the smaller step.
+ */
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  /* Initials are the common case, so the type is sized for the circle rather than the other
+     way round. */
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  /* The portal's exact colour, not merely its role: DataOps draws this circle with `var(--blue)`,
+     which is `#2563eb`, and the workspace must show the same colleague in the same colour.
+     `--dsw-static-blue-600` is that same value in the shell's own palette, so the two stay equal
+     without this file hard-coding a hex the theme would not follow. The semantic alias
+     (`--dsw-alias-state-business-primary`) was tried first and rejected: in the dark theme it
+     resolves to `#7aaaff`, a noticeably lighter blue, which made the same person look different
+     in the two places. */
+  /* Literal white rather than a token: the shell's palette defines no white role, and inventing
+     a fallback chain for one constant would read as if a theme could change it. The portal uses
+     the same literal. */
+  color: #fff;
+  background: var(--dsw-static-blue-600, #2563eb);
+  user-select: none;
+}
+
+/* The portal's own avatar size, so a member drawn in a roster row is the same object a reader
+   sees beside their name on the DataOps pages. */
+.md {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+  line-height: 30px;
+}
+
+/* One step down for the message header, where the circle sits above a bubble rather than in a
+   row of its own. */
+.sm {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  line-height: 24px;
+}
+
+/* The initials sit underneath and the picture is layered over them. */
+.stack {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.over {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+
+img.avatar {
+  object-fit: cover;
+  background: none;
+}

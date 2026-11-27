@@ -1,0 +1,8 @@
+{
+  "name": "officecli-pdf",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OfficeCLI PDF exporter sidecar (CommonJS; the extensionless entry is launched through this package boundary).",
+  "type": "commonjs",
+  "license": "MIT"
+}

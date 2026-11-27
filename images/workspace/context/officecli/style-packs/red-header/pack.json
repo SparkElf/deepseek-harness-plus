@@ -1,0 +1,25 @@
+{
+  "name": "red-header",
+  "title": "红头文件（GB/T 9704-2012 + 红头元素）",
+  "description": "在 gbt9704-2012 基线上增加发文机关标志、发文字号、红色分隔线、版记样式；正文与标题仍为黑色。",
+  "basedOn": "gbt9704-2012",
+  "template": "template.docx",
+  "extraStyles": {
+    "FawenJiguan": {
+      "description": "发文机关标志，二号方正小标宋，红色",
+      "color": "FF0000"
+    },
+    "FawenZihao": {
+      "description": "发文字号，三号仿宋，居中，黑色",
+      "color": "000000"
+    },
+    "HongXian": {
+      "description": "红色分隔线段落，下边框 2.25pt 红色",
+      "color": "FF0000"
+    },
+    "BanJi": {
+      "description": "版记，四号仿宋，上下黑色边框",
+      "color": "000000"
+    }
+  }
+}
