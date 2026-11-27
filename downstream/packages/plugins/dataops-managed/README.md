@@ -12,7 +12,7 @@
 
 DataOps设置中的“应用万相品牌”默认开启，并在本机浏览器中持久化。开启时，侧栏、折叠导航、新会话欢迎页、浏览器标题和favicon使用万相数据平台品牌；关闭后立即恢复DSH官方品牌。欢迎页四单元Logo在支持hover且未启用减少动态效果时播放轻微的等距展开动画。
 
-品牌名与Logo跟随门户的公开设置`platform/brand_name`、`platform/brand_logo`，Host通过`/integrations/dataops/branding`读取并做短缓存；工作区启动时读取，之后定时与重新可见时刷新，门户保存新品牌后无需刷新页面。门户未配置或读取失败时回退到内置默认品牌；自定义Logo为图片时替代内联魔方，否则继续使用跟随主题的内联魔方。
+工作区名称跟随`platform/workspace_brand_name`，Logo跟随`platform/brand_logo`；门户自己的`platform/brand_name`只用于门户页面，不决定工作区名称。Host通过`/integrations/dataops/branding`读取并做短缓存；工作区启动时读取，之后定时与重新可见时刷新，门户保存新品牌后无需刷新页面。工作区名缺失或读取失败时回退内置默认「万相AI中台」，不回退门户名；自定义Logo为图片时替代内联魔方，否则继续使用跟随主题的内联魔方。
 
 ### 模型体验
 
@@ -38,7 +38,7 @@ Install this package only in a DataOps-managed profile. Standalone DSH deploymen
 
 The Apply Wanxiang branding setting defaults on and persists in the local browser. When enabled, the sidebar, collapsed rail, New Session welcome view, document title, and favicon use the Wanxiang Data Platform identity; disabling it immediately restores the official DSH identity. The four-unit welcome mark animates a subtle isometric expansion only on hover-capable devices when reduced motion is not requested.
 
-The name and logo follow the portal's public `platform/brand_name` and `platform/brand_logo` settings, read through the Host's `/integrations/dataops/branding` route with a short cache. The workspace reads them on startup and refreshes periodically and when it becomes visible again, so a portal save lands without a page refresh. When the portal has no brand, or the read fails, the built-in default brand stays in place; a custom image logo replaces the inline mark, while the default keeps the theme-aware inline mark.
+The workspace name follows `platform/workspace_brand_name` and the logo follows `platform/brand_logo`; the portal's own `platform/brand_name` only names portal pages and never renames the workspace. The Host reads them through `/integrations/dataops/branding` with a short cache. The workspace reads them on startup and refreshes periodically and when it becomes visible again, so a portal save lands without a page refresh. An unset workspace name, or a failed read, falls back to the built-in 万相AI中台 default rather than the portal name; a custom image logo replaces the inline mark, while the default keeps the theme-aware inline mark.
 
 ### Model Experience
 

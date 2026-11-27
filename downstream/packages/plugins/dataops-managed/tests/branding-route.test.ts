@@ -107,9 +107,10 @@ describe('branding route', () => {
     await rm(directory, { recursive: true, force: true })
   })
 
-  it('answers the portal brand from the two public settings', async () => {
+  it('answers the AI workspace brand from the three public settings', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: URL | string) => {
       const url = String(input)
+      if (url.endsWith('/platform/workspace_brand_name')) return answer('星海 AI 工作区')
       if (url.endsWith('/platform/brand_name')) return answer('星海数据中台')
       if (url.endsWith('/platform/brand_logo')) return answer('data:image/png;base64,AAAA')
       return answer(null)
@@ -125,7 +126,7 @@ describe('branding route', () => {
 
     expect(written[0]?.status).toBe(200)
     expect(JSON.parse(written[0]!.body)).toEqual({
-      name: '星海数据中台',
+      name: '星海 AI 工作区',
       logo: 'data:image/png;base64,AAAA',
     })
   })
@@ -133,7 +134,7 @@ describe('branding route', () => {
   it('resolves a portal-relative logo against the browser-facing origin', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: URL | string) => {
       const url = String(input)
-      if (url.endsWith('/platform/brand_name')) return answer('星海数据中台')
+      if (url.endsWith('/platform/workspace_brand_name')) return answer('星海 AI 工作区')
       if (url.endsWith('/platform/brand_logo')) return answer('/brands/custom.png')
       return answer(null)
     }))
@@ -146,7 +147,7 @@ describe('branding route', () => {
     await route!.handler({ method: 'GET' }, response)
 
     expect(JSON.parse(written[0]!.body)).toEqual({
-      name: '星海数据中台',
+      name: '星海 AI 工作区',
       logo: 'http://portal.test:8080/brands/custom.png',
     })
   })

@@ -1,21 +1,22 @@
 /**
- * The portal brand the workspace shell mirrors.
+ * The workspace brand the shell mirrors.
  *
- * DataOps owns the brand in two public settings, `platform/brand_name` and
- * `platform/brand_logo`. They are public because the workspace renders its shell before — and
- * without — a DataOps session, so this module deliberately carries no credential and never asks
- * for one. A deployment that has not set either key keeps the shell's own default.
+ * DataOps owns two names and one shared logo. `platform/brand_name` names the portal, while the
+ * workspace renders `platform/workspace_brand_name` and `platform/brand_logo`. All three are
+ * public because the workspace renders its shell before — and without — a DataOps session, so
+ * this module deliberately carries no credential and never asks for one. A deployment that has
+ * not set a key keeps the shell's own default.
  */
 
 /** One brand the shell can render. */
 export interface WorkspaceBranding {
-  /** Platform name shown in the wordmark and the browser title. */
+  /** AI workspace name shown in the wordmark and the browser title. */
   name: string
   /** Inline image data URL or an absolute path; empty asks the shell for its inline mark. */
   logo: string
 }
 
-/** The name the workspace has always shown when DataOps has no brand of its own. */
+/** The name the workspace has always shown when DataOps has no workspace brand of its own. */
 export const DEFAULT_WORKSPACE_BRAND_NAME = '万相AI中台'
 
 /** Brand used when DataOps is unreachable, unconfigured, or answers with an unusable value. */
@@ -24,9 +25,11 @@ export const DEFAULT_WORKSPACE_BRANDING: WorkspaceBranding = {
   logo: '',
 }
 
-/** Public setting that carries the platform name. */
+/** Public setting that carries the portal name; the workspace does not render it. */
 export const BRAND_NAME_SETTING_PATH = '/api/system/settings/public/platform/brand_name'
-/** Public setting that carries the platform logo. */
+/** Public setting that carries the AI workspace name. */
+export const WORKSPACE_BRAND_NAME_SETTING_PATH = '/api/system/settings/public/platform/workspace_brand_name'
+/** Public setting that carries the logo both surfaces share. */
 export const BRAND_LOGO_SETTING_PATH = '/api/system/settings/public/platform/brand_logo'
 
 /** How long one successful read serves later requests before asking DataOps again. */
@@ -146,7 +149,7 @@ async function readPublicSetting(
 }
 
 /**
- * Short-lived read-through cache over the two public brand settings.
+ * Short-lived read-through cache over the public brand settings.
  *
  * The shell asks on startup and then periodically; a ten-second window keeps a page reload
  * from adding a database read while still letting an administrator's save reach an open
@@ -176,12 +179,15 @@ export class WorkspaceBrandingSource {
     if (this.cached !== undefined && this.cached.expiresAt > now) return this.cached.value
     const fetcher = this.options.fetcher ?? fetch
     try {
-      const [name, logo] = await Promise.all([
+      // The portal name is read with the other two settings so the public brand surface either
+      // answers as a whole or falls back as a whole; the workspace never borrows that name.
+      const [, workspaceName, logo] = await Promise.all([
         readPublicSetting(this.baseUrl, BRAND_NAME_SETTING_PATH, fetcher),
+        readPublicSetting(this.baseUrl, WORKSPACE_BRAND_NAME_SETTING_PATH, fetcher),
         readPublicSetting(this.baseUrl, BRAND_LOGO_SETTING_PATH, fetcher),
       ])
       const value: WorkspaceBranding = {
-        name: normalizeWorkspaceBrandName(name),
+        name: normalizeWorkspaceBrandName(workspaceName),
         logo: normalizeWorkspaceBrandLogo(logo),
       }
       this.cached = { value, expiresAt: now + BRANDING_CACHE_TTL_MS }
