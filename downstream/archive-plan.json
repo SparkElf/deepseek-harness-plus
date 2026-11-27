@@ -12,20 +12,23 @@
     {
       "name": "SparkElf/DSH-better-sidebar",
       "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
-      "status": "ready",
-      "evidence": "monorepo package builds at 0.30.1-sparkelf.22; profile uses workspace:@sparkelf/dsh-better-sidebar@* instead of the npm alias"
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
     },
     {
       "name": "SparkElf/dsh-genui",
       "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
-      "status": "ready",
-      "evidence": "monorepo package builds at 0.15.0-sparkelf.3; profile uses workspace:*"
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
     },
     {
       "name": "SparkElf/dsh-quant-plus",
       "condition": "fork builds/publishes from the monorepo and the profile stops using the tarball/alias",
-      "status": "ready",
-      "evidence": "monorepo package builds at 0.91.0-sparkelf.14; profile uses workspace:*"
+      "status": "archived",
+      "evidence": "migrated into downstream/packages/forks; 29-package build and publish dry-run passed; GitHub isArchived=true",
+      "archivedAt": "2026-11-27T10:48:00Z"
     },
     {
       "name": "SparkElf/dsh-sql-workbench",
