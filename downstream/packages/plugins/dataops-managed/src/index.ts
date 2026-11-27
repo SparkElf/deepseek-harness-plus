@@ -22,6 +22,7 @@ import {
 } from './settings-sync.ts'
 import { SkillPlaza, readLocalSkills } from './skill-plaza.ts'
 import { ReviewApi } from './review-api.ts'
+import { resolveWorkspaceBrandLogo, WorkspaceBrandingSource } from './branding.ts'
 import { AiToolManager } from './tool-manager.ts'
 import {
   AI_TOOL_ACCESS,
@@ -95,6 +96,9 @@ export const RBAC_PATH = '/integrations/dataops/rbac'
 export const REVIEW_SETTINGS_PATH = '/integrations/dataops/review-settings'
 /** Department CRUD bridge (task-67). */
 export const DEPARTMENTS_PATH = '/integrations/dataops/departments'
+
+/** Same-origin route the workspace shell uses to read the portal's brand. */
+export const BRANDING_PATH = '/integrations/dataops/branding'
 
 /** Same-origin route the Settings panel uses to read and change this workspace's limits. */
 export const WORKSPACE_LIMITS_PATH = '/integrations/dataops/workspace-limits'
@@ -836,6 +840,30 @@ export async function apply(ctx: Context, config: Config): Promise<void> {
   skillPlazaRef = skillPlaza
   const reviewApi = new ReviewApi(ctx, { baseUrl, credentialRef: config.credentialRef })
   reviewApiRef = reviewApi
+  /**
+   * The portal brand, read without a credential.
+   *
+   * Both settings are public, so the shell can render the right name and logo before the
+   * workspace has a DataOps session. The source owns the short cache; the route is a plain
+   * same-origin read so a browser reload never reaches DataOps directly.
+   */
+  const branding = new WorkspaceBrandingSource(baseUrl)
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: BRANDING_PATH,
+    handler: async (request, response) => {
+      if ((request.method ?? 'GET').toUpperCase() !== 'GET') {
+        response.writeHead(405, { allow: 'GET', 'content-length': '0' })
+        response.end()
+        return
+      }
+      const current = await branding.read()
+      writeJson(response, 200, {
+        name: current.name,
+        logo: resolveWorkspaceBrandLogo(current.logo, config.webBaseUrl),
+      })
+    },
+  }), 'dataops-managed: portal branding route')
   // One workspace-local fan-out for "open the DataOps resource tab". The model tool publishes
   // here; the client half is the only code that calls betterSidebar.openTab.
   const resourceTabHub = new OpenResourceHub(ctx.logger)

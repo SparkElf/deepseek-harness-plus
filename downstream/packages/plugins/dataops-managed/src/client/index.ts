@@ -8,6 +8,7 @@ import type {} from '@sparkelf/dsh-client-ui-skill-center/client'
 import { ManagedDataOpsSection } from './ManagedDataOpsSection.tsx'
 import { SkillPlazaSection } from './SkillPlazaSection.tsx'
 import { installWanxiangBranding } from './install-branding.tsx'
+import { wanxiangBrandPreference } from './brand-store.ts'
 import { ReloginPrompt, type ReloginPromptProps } from './ReloginPrompt.tsx'
 import { PermissionCenterSection } from './PermissionCenterSection.tsx'
 import { PermissionCenterIcon } from './PermissionCenterIcon.tsx'
@@ -143,7 +144,10 @@ export function apply(ctx: ClientContext): void {
       if (interactive === null) return
       const className = typeof interactive.className === 'string' ? interactive.className : ''
       if (!/brand|logo/i.test(className)) return
-      if (!/万相AI中台|Wanxiang AI/i.test((interactive.textContent ?? '').trim())) return
+      const text = (interactive.textContent ?? '').trim()
+      // The portal may rename the platform, so match the live name before the legacy fallback.
+      const brandName = wanxiangBrandPreference.getSnapshot().name
+      if (!text.includes(brandName) && !/万相AI中台|Wanxiang AI/i.test(text)) return
       event.preventDefault()
       event.stopPropagation()
       window.parent.postMessage({ type: 'dataops:return-to', version: 1 }, '*')
