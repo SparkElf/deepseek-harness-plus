@@ -30,9 +30,10 @@
     {
       "name": "SparkElf/dsh-sql-workbench",
       "condition": "monorepo 0.6.0 is the only source",
-      "status": "ready",
+      "status": "archived",
       "reason": "monorepo 0.6.0 is the only source; G13 clean-clone final image acceptance passed 91/91",
-      "evidence": "downstream/packages/plugins/sql-workbench; /tmp/plus-clean-g13 acceptance-fix.log 91 ok / 0 failed"
+      "evidence": "monorepo 0.6.0 is the only source; G13 clean-clone final acceptance 91/91; GitHub archive confirmed isArchived:true",
+      "archivedAt": "2026-11-27T08:18:00Z"
     }
   ]
 }
