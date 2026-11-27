@@ -1,8 +1,7 @@
 import type { CSSProperties } from 'react'
+import { wanxiangBrandPreference, type WanxiangBranding } from './brand-store.ts'
 import css from './WanxiangBrand.module.css'
 
-/** User-visible platform name shared by the header wordmark and its accessible name. */
-const BRAND_NAME = '万相AI中台'
 const HARNESS_PATHS = [
   {
     "d": "M132.848 8.93205H134.08V16.137H132.848V8.93205ZM136.5 8.93205H137.732V16.137H136.5V8.93205ZM133.365 13.024V11.99H137.193V13.024H133.365Z",
@@ -34,8 +33,11 @@ const HARNESS_PATHS = [
   }
 ] as const
 
-interface MarkProps {
+/** Props shared by the inline mark and its custom-logo replacement. */
+export interface MarkProps {
+  /** Square edge of the mark in CSS pixels; the inline mark keeps its 54:58 ratio. */
   size: number
+  /** Extra class applied beside the component's own. */
   className?: string | undefined
 }
 
@@ -55,8 +57,32 @@ function Cube({ transform, className }: { transform: string; className: string }
   )
 }
 
-/** Four linked data units; its ink follows the host surface through currentColor. */
-export function WanxiangMark({ size, className, animated = false }: MarkProps & { animated?: boolean }) {
+/**
+ * Four linked data units, replaced by the portal's custom logo when one is configured.
+ *
+ * The inline mark keeps following the host surface through `currentColor`; a custom image is
+ * rendered as supplied so a coloured portal logo stays coloured in both themes.
+ * @param props - Size, class, animation, and an optional logo override.
+ * @returns The custom image, or the inline SVG mark.
+ */
+export function WanxiangMark({
+  size,
+  className,
+  animated = false,
+  logo = wanxiangBrandPreference.getSnapshot().logo,
+}: MarkProps & { animated?: boolean; logo?: string | undefined }) {
+  if (logo !== '') {
+    return (
+      <img
+        src={logo}
+        width={size}
+        height={(size * 58) / 54}
+        className={classes(css.mark, css.logoMark, className)}
+        alt=""
+        aria-hidden="true"
+      />
+    )
+  }
   return (
     <svg
       width={size}
@@ -77,22 +103,30 @@ export function WanxiangMark({ size, className, animated = false }: MarkProps & 
 /**
  * Platform wordmark rendered as text.
  *
- * It used to be glyph artwork for the previous platform name, which cannot express the new
- * name without redrawing every path. Text keeps the visible header, the accessible name, and
- * the browser title on one string, and inherits the host's CJK font stack through `font-family`.
+ * Text keeps the visible header, the accessible name, and the browser title on one string, and
+ * inherits the host's CJK font stack through `font-family`. The name comes from the portal's
+ * public `platform/brand_name` setting, defaulting to the workspace's own name.
+ * @param props - Height, accessible naming, class, and an optional name override.
+ * @returns The wordmark span.
  */
-export function WanxiangWordmark({ height, accessible = false, className }: {
+export function WanxiangWordmark({
+  height,
+  accessible = false,
+  className,
+  name = wanxiangBrandPreference.getSnapshot().name,
+}: {
   height: number
   accessible?: boolean
   className?: string | undefined
+  name?: string | undefined
 }) {
   return (
     <span
       className={classes(css.wordmark, className)}
       style={{ fontSize: height }}
-      {...(accessible ? { role: 'img' as const, 'aria-label': BRAND_NAME } : {})}
+      {...(accessible ? { role: 'img' as const, 'aria-label': name } : {})}
     >
-      {BRAND_NAME}
+      {name}
     </span>
   )
 }
@@ -115,12 +149,31 @@ export function HarnessBadge({ height = 14 }: { height?: number }) {
   )
 }
 
-/** Expanded-sidebar brand name plus the unchanged official HARNESS badge. */
-export function WanxiangSidebarName() {
-  return <span className={css.sidebarName}><WanxiangWordmark height={16} /><HarnessBadge height={14} /></span>
+/**
+ * Expanded-sidebar brand name plus the unchanged official HARNESS badge.
+ * @param props - Optional name override, used by the live slot wrapper and tests.
+ * @returns The sidebar brand row.
+ */
+export function WanxiangSidebarName({
+  name = wanxiangBrandPreference.getSnapshot().name,
+}: Partial<Pick<WanxiangBranding, 'name'>> = {}) {
+  return (
+    <span className={css.sidebarName}>
+      <WanxiangWordmark height={16} name={name} />
+      <HarnessBadge height={14} />
+    </span>
+  )
 }
 
-/** Welcome-page logo with four-unit hover motion. */
-export function WanxiangHeroMark({ size, className }: MarkProps) {
-  return <WanxiangMark size={size} className={className} animated />
+/**
+ * Welcome-page logo with four-unit hover motion.
+ * @param props - Size, class, and an optional custom logo.
+ * @returns The mark, animated when the inline SVG is used.
+ */
+export function WanxiangHeroMark({
+  size,
+  className,
+  logo = wanxiangBrandPreference.getSnapshot().logo,
+}: MarkProps & { logo?: string | undefined }) {
+  return <WanxiangMark size={size} className={className} logo={logo} animated />
 }

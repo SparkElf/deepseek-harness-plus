@@ -5,6 +5,11 @@
   color: inherit;
 }
 
+/* Custom portal logos keep their own colour in both themes; contain them in the mark box. */
+.logoMark {
+  object-fit: contain;
+}
+
 .animatedMark { cursor: pointer; }
 
 .mark g {

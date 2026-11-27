@@ -6,11 +6,19 @@ import {
   WanxiangWordmark,
 } from '../src/client/WanxiangBrand.tsx'
 import {
+  DEFAULT_WANXIANG_BRANDING,
   setWanxiangBrandEnabled,
+  setWanxiangBranding,
   wanxiangBrandPreference,
 } from '../src/client/brand-store.ts'
+import { brandDocumentTitle } from '../src/client/install-branding.tsx'
 
-afterEach(() => { setWanxiangBrandEnabled(true) })
+const CUSTOM_LOGO = 'data:image/png;base64,iVBORw0KGgo='
+
+afterEach(() => {
+  setWanxiangBrandEnabled(true)
+  setWanxiangBranding(DEFAULT_WANXIANG_BRANDING)
+})
 
 describe('Wanxiang managed branding', () => {
   it('declares four linked SVG units without a text element', () => {
@@ -40,8 +48,36 @@ describe('Wanxiang managed branding', () => {
     expect(wordmark.props['aria-label']).toBe('万相AI中台')
   })
 
+  it('uses the custom portal name in the wordmark and document title', () => {
+    setWanxiangBranding({ name: '星海数据中台' })
+    const wordmark = WanxiangWordmark({ height: 16 })
+    const accessible = WanxiangWordmark({ height: 16, accessible: true })
+    expect(wordmark.props.children).toBe('星海数据中台')
+    expect(accessible.props['aria-label']).toBe('星海数据中台')
+    expect(brandDocumentTitle('星海数据中台')).toBe('星海数据中台 Harness')
+  })
+
+  it('prefers a custom logo image and keeps the size box', () => {
+    setWanxiangBranding({ logo: CUSTOM_LOGO })
+    const mark = WanxiangMark({ size: 24 })
+    expect(mark.type).toBe('img')
+    expect(mark.props.src).toBe(CUSTOM_LOGO)
+    expect(mark.props.width).toBe(24)
+    expect(mark.props.height).toBe((24 * 58) / 54)
+    expect(mark.props['aria-hidden']).toBe('true')
+  })
+
+  it('falls back to the inline mark for an unusable logo value', () => {
+    setWanxiangBranding({ logo: 'javascript:alert(1)' })
+    const mark = WanxiangMark({ size: 24 })
+    expect(mark.type).toBe('svg')
+    expect(mark.props.viewBox).toBe('0 0 54 58')
+  })
+
   it('defaults on and notifies every preference transition', () => {
     expect(wanxiangBrandPreference.getSnapshot().enabled).toBe(true)
+    expect(wanxiangBrandPreference.getSnapshot().name).toBe('万相AI中台')
+    expect(wanxiangBrandPreference.getSnapshot().logo).toBe('')
     const listener = vi.fn()
     const unsubscribe = wanxiangBrandPreference.subscribe(listener)
     setWanxiangBrandEnabled(false)
@@ -50,5 +86,17 @@ describe('Wanxiang managed branding', () => {
     setWanxiangBrandEnabled(true)
     expect(listener).toHaveBeenCalledTimes(2)
     unsubscribe()
+  })
+
+  it('keeps live branding while the brand toggle is off', () => {
+    setWanxiangBranding({ name: '星海数据中台', logo: CUSTOM_LOGO })
+    setWanxiangBrandEnabled(false)
+    expect(wanxiangBrandPreference.getSnapshot()).toMatchObject({
+      enabled: false,
+      name: '星海数据中台',
+      logo: CUSTOM_LOGO,
+    })
+    setWanxiangBrandEnabled(true)
+    expect(WanxiangMark({ size: 24 }).type).toBe('img')
   })
 })
