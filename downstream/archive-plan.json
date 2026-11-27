@@ -5,8 +5,9 @@
     {
       "name": "SparkElf/dsh-plugins-plus",
       "condition": "26 packages migrated, image smoke includes the generated profile",
-      "status": "ready",
-      "evidence": "release-manifest.json migrated=26; image --smoke http=401"
+      "status": "archived",
+      "evidence": "26 packages migrated; GitHub archive confirmed isArchived:true at 2026-11-27; repository remains recoverable by an administrator",
+      "archivedAt": "2026-11-27T08:15:00Z"
     },
     {
       "name": "SparkElf/DSH-better-sidebar",
