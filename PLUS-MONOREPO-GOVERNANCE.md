@@ -1,6 +1,6 @@
 # DSH Plus Monorepo 治理设计
 
-状态：设计已确认，实施待启动
+状态：已实施完成（2026-11-27）
 目标仓库：`SparkElf/deepseek-harness-plus`
 来源：从 `dataops/docs/design-workspace-image-profile-storage.md` §11 拆出，作为后续仓库治理的独立设计文档。
 
@@ -258,3 +258,16 @@ pnpm downstream image
 - `downstream` 工具可完成 sync/build/apply/verify/image；
 - 文档/技能中无旧路径和过时流程；
 - clean fork 复现镜像成功。
+
+
+## 实施结果（2026-11-27）
+
+- `downstream/upstream.lock.json` + `downstream/release-manifest.json` + root `pnpm-lock.yaml` are the source of truth.
+- `downstream/tools/downstream.mjs` implements sync, build-packages, apply, verify, image-plan, profile, image, publish (dry-run), doctor and archive.
+- 26 plugins + 3 forks are migrated workspace packages; profile pins use `workspace:*` for local packages.
+- `build-packages`: 29/29 PASS; `verify --strict-local`: PASS; `publish --dry-run`: 29 packages ready.
+- Clean-clone image G13: 11.8GB / acceptance 91/91.
+- Bake image G8: final-bake 2.88GB / 113 layers / acceptance PASS.
+- Production workspace switched to `dataops-ai-workspace-clean-g13:final`; rollback image `final-20261125-sdkfix` retained.
+- Local OCI registry binding: `pushed:true`, `registry-manifest-digest`, `--require-registry` PASS.
+- All five legacy repositories archived (reversible): dsh-plugins-plus, DSH-better-sidebar, dsh-genui, dsh-quant-plus, dsh-sql-workbench.
