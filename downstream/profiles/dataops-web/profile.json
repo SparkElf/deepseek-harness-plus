@@ -49,6 +49,9 @@
     "@sparkelf/dsh-sql-workbench": "downstream/packages/plugins/sql-workbench",
     "@sparkelf/dsh-ssh-manager": "downstream/packages/plugins/ssh-manager",
     "@sparkelf/dsh-task-bus": "downstream/packages/plugins/task-bus",
-    "@sparkelf/dsh-workbench-vault": "downstream/packages/plugins/workbench-vault"
+    "@sparkelf/dsh-workbench-vault": "downstream/packages/plugins/workbench-vault",
+    "@sparkelf/dsh-better-sidebar": "downstream/packages/forks/dsh-better-sidebar",
+    "@sparkelf/dsh-genui": "downstream/packages/forks/dsh-genui",
+    "@sparkelf/dsh-quant": "downstream/packages/forks/dsh-quant-plus"
   }
 }

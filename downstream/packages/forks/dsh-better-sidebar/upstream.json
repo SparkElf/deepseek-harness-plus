@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "repo": "SparkElf/DSH-better-sidebar",
+  "ref": "refs/heads/main",
+  "commit": "3b2a8ded762b78719853aed5e6d7b907ce015006",
+  "commitDate": "2026-11-18T11:42:22+08:00",
+  "version": "0.30.1-sparkelf.22",
+  "published": {
+    "registry": "npm",
+    "package": "@sparkelf/dsh-better-sidebar",
+    "version": "0.30.1-sparkelf.22"
+  },
+  "source": "git main at 3b2a8de (0.30.1-sparkelf.21) plus the two source files published in the 0.30.1-sparkelf.22 npm tarball",
+  "sourceDeltas": [
+    "src/context-types.ts: optional connection.admit() for DSH 0.2.3",
+    "src/index.ts: prefer connection.admit() over requestRejection() when present"
+  ],
+  "notes": [
+    "GitHub main carries 0.30.1-sparkelf.21 and never received the .22 version bump or release commit.",
+    "The .22 npm tarball is byte-identical to the .21 repository except those two source files and the version field; the build configuration comes from the repository."
+  ]
+}

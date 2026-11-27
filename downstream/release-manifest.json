@@ -89,7 +89,7 @@
     "@sparkelf/dsh-task-bus": "0.2.1",
     "@sparkelf/dsh-web-runtime-compat": "0.2.9-alpha.99",
     "@sparkelf/dsh-workbench-vault": "0.1.2",
-    "dsh-better-sidebar": "npm:@sparkelf/dsh-better-sidebar@0.30.1-sparkelf.22",
+    "dsh-better-sidebar": "workspace:@sparkelf/dsh-better-sidebar@*",
     "dsh-right-bg-anim": "1.1.0",
     "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
     "dsh-video-preview": "0.1.4"
@@ -307,7 +307,35 @@
         "test": "pnpm --filter @sparkelf/dsh-workbench-vault run test"
       }
     ],
-    "forks": []
+    "forks": [
+      {
+        "name": "@sparkelf/dsh-better-sidebar",
+        "version": "0.30.1-sparkelf.22",
+        "path": "downstream/packages/forks/dsh-better-sidebar",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-better-sidebar run build",
+        "test": "pnpm --filter @sparkelf/dsh-better-sidebar run test",
+        "note": "source is GitHub main (0.30.1-sparkelf.21) plus the .22 source delta from the published tarball; schemastery volatile() guarded because the workspace vendors 3.18.2"
+      },
+      {
+        "name": "@sparkelf/dsh-genui",
+        "version": "0.15.0-sparkelf.3",
+        "path": "downstream/packages/forks/dsh-genui",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-genui run build",
+        "test": "pnpm --filter @sparkelf/dsh-genui run test",
+        "note": "source matches published 0.15.0-sparkelf.3; devDependencies aligned to DSH 0.2.3-alpha.2"
+      },
+      {
+        "name": "@sparkelf/dsh-quant",
+        "version": "0.91.0-sparkelf.14",
+        "path": "downstream/packages/forks/dsh-quant-plus",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-quant run build",
+        "test": "pnpm --filter @sparkelf/dsh-quant run test",
+        "note": "source is GitHub main (0.91.0-sparkelf.13) plus the published .14 package.json; tarballs differ only in package.json"
+      }
+    ]
   },
   "patches": {
     "core": [],
@@ -494,6 +522,29 @@
       "path": "downstream/packages/plugins/workbench-vault",
       "version": "0.1.2",
       "profileSpec": "0.1.2",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-better-sidebar": {
+      "path": "downstream/packages/forks/dsh-better-sidebar",
+      "version": "0.30.1-sparkelf.22",
+      "profileName": "dsh-better-sidebar",
+      "profileSpec": "0.30.1-sparkelf.22",
+      "profilePinStatus": "exact",
+      "override": "enabled",
+      "workspaceSpec": "workspace:@sparkelf/dsh-better-sidebar@*"
+    },
+    "@sparkelf/dsh-genui": {
+      "path": "downstream/packages/forks/dsh-genui",
+      "version": "0.15.0-sparkelf.3",
+      "profileSpec": "0.15.0-sparkelf.3",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-quant": {
+      "path": "downstream/packages/forks/dsh-quant-plus",
+      "version": "0.91.0-sparkelf.14",
+      "profileSpec": "0.91.0-sparkelf.14",
       "profilePinStatus": "exact",
       "override": "enabled"
     }
