@@ -31,7 +31,7 @@ CLI 直接写 profile 的 `package.json`。不再生成单独的 standalone 发�
 ## 当前应用
 
 - **allow 审批。** `dsh-user-approval` 接受该策略，`dsh-permission-presets` 在 preset schema 里接受它，base bundle 能把 full access 映射到它。为某个部署选择 `danger-full-access: approval: allow` 是 profile 策略（DataOps），不是 Plus 默认。
-- **image hoist 回放。** `compaction-image-offload` 宽容地重放依赖投影的位置，`session-query` 用挂载的 projection 重放；两者都是对任意插件 projection 的通用支持。`@sparkelf/dsh-image-hoist` 写入 `image/hoist` 行，继续作为自研插件。
+- **image hoist 回放。** `compaction-image-offload` 宽容地重放依赖投影的位置，`session-query` 用挂载的 projection 重放；两者都是对任意插件 projection 的通用支持。`@sparkelf/dsh-image-hoist` 曾作为自研插件写入 `image/hoist` 行；因所有出货 profile 都未启用，现已[退役](../simplification/2026-11-28-retire-dsh-image-hoist.md)。
 - **中转站兼容。** `llm-pi-ai` 的 route option 和 Models 复选框是 adapter 能力。为某条具体 gateway route 打开它是用户或部署配置。
 - **工作流广场。** `ui-schedule` 声明 `schedule.manager.tabs` 子 slot，并在有插件贡献时渲染 tab；广场内容与工作流属于 `knowledge-base`，当前实现就在那里。
 - **知识库右栏。** `ui-sidebar-right` 和 `ui-layout` 提供通用的“panel 可以请求右栏和 reader 布局”能力；`knowledge-base` 声明该需求，并拥有 reader 联动。

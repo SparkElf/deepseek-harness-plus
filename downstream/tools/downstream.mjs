@@ -300,7 +300,7 @@ const commands = {
       console.log(`image cache: ${cacheKey} (refreshed)`)
     }
     cpSync(join(root, 'downstream/image/Dockerfile'), join(context, 'Dockerfile'))
-    for (const name of ['dsh-plugin-backup', 'dsh-image-hoist']) {
+    for (const name of ['dsh-plugin-backup']) {
       cpSync(join(root, 'packages/bundle/plus/node_modules/@sparkelf', name), join(context, name), { recursive: true, dereference: true })
     }
     execFileSync('docker', ['build', '-t', tag, context], { cwd: root, stdio: 'inherit' })

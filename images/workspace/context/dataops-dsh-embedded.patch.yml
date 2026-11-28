@@ -81,20 +81,6 @@
   config:
     welcomeNoticeVersion: '2026-09-28.1'
 
-# Some OpenAI-compatible routes advertise image input but cannot read the array form of
-# `function_call_output.output`. They price a tool result's image as one base64 text run and
-# answer a plausible wrong number instead of failing, and the model never sees the picture: a
-# 502 KB PNG measured 466,303 prompt tokens on such a route against 991 when the same bytes
-# ride on the user message. The plugin moves those images onto the nearest preceding user
-# message in the model-visible projection, leaving the durable log on the tool result. Only
-# the routes named below are affected; a workspace on an upstream that reads the array form
-# keeps its current behavior because this list is empty.
-- insert:
-    - id: image-hoist
-      name: '@sparkelf/dsh-image-hoist'
-      config:
-        providers: []
-
 # A workspace is provisioned for one user on their own machine, so the sandbox that guards the
 # first session against a wrong path costs more than it protects: the user sees an approval
 # prompt on ordinary work and has to change the mode before the workspace is usable.
