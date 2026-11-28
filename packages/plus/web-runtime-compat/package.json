@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-web-runtime-compat",
   "description": "Provide the pre-0.2.3 webRuntime service from webStartup for third-party bundles that still inject it",
-  "version": "0.2.9-alpha.99",
+  "version": "0.2.9-alpha.107",
   "publishConfig": {
     "access": "public"
   },

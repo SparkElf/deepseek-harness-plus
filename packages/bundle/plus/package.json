@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plus",
   "description": "DeepSeek Harness Plus official-base Web distribution profile and ranged compatibility patchset",
-  "version": "0.2.9-alpha.106",
+  "version": "0.2.9-alpha.107",
   "publishConfig": {
     "access": "public"
   },
@@ -69,7 +69,7 @@
         "dsh-sql-workbench",
         "@sparkelf/dsh-ssh-manager",
         "@sparkelf/dsh-api-client",
-        "dsh-right-bg-anim",
+        "@sparkelf/dsh-right-bg-anim",
         "@sparkelf/dsh-mobile-bridge",
         "@sparkelf/dsh-quant",
         "@sparkelf/dsh-artifact-app"
@@ -89,7 +89,6 @@
         "dsh-better-sidebar": "npm:@sparkelf/dsh-better-sidebar@0.30.1-sparkelf.22",
         "@sparkelf/dsh-office-viewer-fonts": "0.1.9",
         "dsh-video-preview": "0.1.4",
-        "dsh-right-bg-anim": "1.1.0",
         "@sparkelf/dsh-mobile-bridge": "0.2.18",
         "@sparkelf/dsh-quant": "0.91.0-sparkelf.14",
         "@sparkelf/dsh-task-bus": "0.2.1",
@@ -137,7 +136,8 @@
         "@deepseek-ai/dsh-tool-session-query": "0.2.3-alpha.2",
         "@sparkelf/dsh-dataops-im": "0.1.2",
         "@deepseek-ai/dsh-error": "0.2.3-alpha.2",
-        "@sparkelf/dsh-web-runtime-compat": "0.2.9-alpha.99"
+        "@sparkelf/dsh-web-runtime-compat": "0.2.9-alpha.99",
+        "@sparkelf/dsh-right-bg-anim": "1.1.0"
       },
       "allowBuilds": {
         "@deepseek-ai/dsh-subprocess-local": true,
@@ -550,7 +550,7 @@
           "@sparkelf/dsh-sql-workbench",
           "@sparkelf/dsh-ssh-manager",
           "@sparkelf/dsh-api-client",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-mobile-bridge",
           "@sparkelf/dsh-quant",
           "@sparkelf/dsh-artifact-app"
@@ -564,7 +564,7 @@
           "@sparkelf/dsh-api-client",
           "@sparkelf/dsh-office-viewer-fonts",
           "dsh-video-preview",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-mobile-bridge",
           "@sparkelf/dsh-quant",
           "@sparkelf/dsh-genui",
@@ -592,7 +592,7 @@
           "@sparkelf/dsh-sql-workbench",
           "@sparkelf/dsh-ssh-manager",
           "@sparkelf/dsh-api-client",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-dataops-managed",
           "@sparkelf/dsh-query-result-analysis",
           "@sparkelf/dsh-better-sidebar",
@@ -617,7 +617,7 @@
           "@sparkelf/dsh-plugin-supervisor",
           "@sparkelf/dsh-ssh-manager",
           "@sparkelf/dsh-workbench-vault",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-task-bus",
           "@sparkelf/dsh-credential-manager",
           "@sparkelf/dsh-dataops-account",
@@ -653,7 +653,7 @@
           "dsh-sql-workbench",
           "@sparkelf/dsh-ssh-manager",
           "@sparkelf/dsh-api-client",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-artifact-app",
           "@sparkelf/dsh-dataops-managed",
           "@sparkelf/dsh-query-result-analysis",
@@ -676,7 +676,7 @@
           "@sparkelf/dsh-api-client",
           "dsh-better-sidebar",
           "@sparkelf/dsh-office-viewer-fonts",
-          "dsh-right-bg-anim",
+          "@sparkelf/dsh-right-bg-anim",
           "@sparkelf/dsh-task-bus",
           "@deepseek-ai/dsh-experimental-auto-review",
           "@sparkelf/dsh-genui",

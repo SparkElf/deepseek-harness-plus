@@ -1,7 +1,7 @@
 {
   "name": "@sparkelf/dsh-plugin-mcp-credentials",
   "description": "Official MCP client replacement with credential-backed Streamable HTTP Bearer authentication",
-  "version": "0.2.9-alpha.106",
+  "version": "0.2.9-alpha.107",
   "publishConfig": {
     "access": "public"
   },
