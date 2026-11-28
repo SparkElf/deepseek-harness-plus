@@ -1,0 +1,20 @@
+{
+  "id": "dsh-right-bg-anim",
+  "version": "1.1.0",
+  "main": "./lib/index.js",
+  "description": "仅保留官方首页主题的背景动画：只在新会话的主内容区渲染，不影响侧边栏，其他 UI 全部保持官方。",
+  "client": {
+    "main": "./lib/client.js",
+    "inject": [
+      "@deepseek-ai/dsh-client-ui-slots",
+      "@deepseek-ai/dsh-client-ui-settings-general"
+    ]
+  },
+  "engines": {
+    "dsh": ">=0.1.0-rc.1"
+  },
+  "contributes": {
+    "tools": [],
+    "skills": []
+  }
+}

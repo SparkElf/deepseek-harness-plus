@@ -367,7 +367,7 @@ function main(): void {
 
   let planned: PlannedVersion[]
   let sharedVersion: string | undefined
-  if (family.id === 'dsh') {
+  if (family.id === 'dsh' || family.id === 'plus') {
     const request = positionals[0]
     if (request === undefined) throw new Error('usage: release:dsh <major|minor|patch|x.y.z>')
     if (values.prerelease !== undefined) {

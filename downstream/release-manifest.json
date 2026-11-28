@@ -23,7 +23,7 @@
       "dsh-sql-workbench",
       "@sparkelf/dsh-ssh-manager",
       "@sparkelf/dsh-api-client",
-      "dsh-right-bg-anim",
+      "@sparkelf/dsh-right-bg-anim",
       "@sparkelf/dsh-mobile-bridge",
       "@sparkelf/dsh-quant",
       "@sparkelf/dsh-artifact-app"
@@ -90,9 +90,9 @@
     "@sparkelf/dsh-web-runtime-compat": "0.2.9-alpha.99",
     "@sparkelf/dsh-workbench-vault": "0.1.2",
     "dsh-better-sidebar": "workspace:@sparkelf/dsh-better-sidebar@*",
-    "dsh-right-bg-anim": "1.1.0",
     "dsh-sql-workbench": "npm:@sparkelf/dsh-sql-workbench@0.5.4-sparkelf.1",
-    "dsh-video-preview": "0.1.4"
+    "dsh-video-preview": "0.1.4",
+    "@sparkelf/dsh-right-bg-anim": "1.1.0"
   },
   "packages": {
     "plugins": [
@@ -305,6 +305,14 @@
         "status": "migrated",
         "build": "pnpm --filter @sparkelf/dsh-workbench-vault run build",
         "test": "pnpm --filter @sparkelf/dsh-workbench-vault run test"
+      },
+      {
+        "name": "@sparkelf/dsh-right-bg-anim",
+        "version": "1.1.0",
+        "path": "downstream/packages/plugins/dsh-right-bg-anim",
+        "status": "migrated",
+        "build": "pnpm --filter @sparkelf/dsh-right-bg-anim run build",
+        "note": "promoted from the standalone dsh-right-bg-anim npm package; no package test script"
       }
     ],
     "forks": [
@@ -545,6 +553,13 @@
       "path": "downstream/packages/forks/dsh-quant-plus",
       "version": "0.91.0-sparkelf.14",
       "profileSpec": "0.91.0-sparkelf.14",
+      "profilePinStatus": "exact",
+      "override": "enabled"
+    },
+    "@sparkelf/dsh-right-bg-anim": {
+      "path": "downstream/packages/plugins/dsh-right-bg-anim",
+      "version": "1.1.0",
+      "profileSpec": "1.1.0",
       "profilePinStatus": "exact",
       "override": "enabled"
     }

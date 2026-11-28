@@ -84,7 +84,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@opentelemetry/resources`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@opentelemetry/sdk-logs`](https://github.com/open-telemetry/opentelemetry-js) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
-| [`@sparkelf/dsh-image-hoist`](https://github.com/SparkElf/dsh-plugins-plus) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
@@ -103,7 +102,6 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`compression`](https://github.com/expressjs/compression) | MIT |
 | [`diff`](https://github.com/kpdecker/jsdiff) | BSD-3-Clause |
 | [`dompurify`](https://github.com/cure53/DOMPurify) | (MPL-2.0 OR Apache-2.0) |
-| [`dsh-right-bg-anim`](https://github.com/forestlightelf/dsh-right-bg-anim) | MIT |
 | [`dsh-sql-workbench`](https://github.com/SparkElf/dsh-sql-workbench) | MIT |
 | [`dsh-video-preview`](https://github.com/zemul/dsh-video-preview) | MIT |
 | [`dshmarket`](https://github.com/dsh-market/dsh-market) | MIT |

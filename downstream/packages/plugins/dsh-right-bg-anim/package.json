@@ -1,0 +1,55 @@
+{
+  "name": "@sparkelf/dsh-right-bg-anim",
+  "version": "1.1.0",
+  "type": "module",
+  "description": "DSH 装饰插件：仅在新会话的主内容区（侧边栏右侧）渲染透明流体薄膜与弹性网格，支持玻璃/调制双模式与明暗主题自适应，其他 UI 全部保持官方。",
+  "license": "MIT",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "dsh.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-ui-settings-general"
+      ]
+    }
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "deepseek",
+    "dsh-plugin",
+    "theme",
+    "background"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SparkElf/deepseek-harness-plus.git",
+    "directory": "downstream/packages/plugins/dsh-right-bg-anim"
+  },
+  "author": "SparkElf",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

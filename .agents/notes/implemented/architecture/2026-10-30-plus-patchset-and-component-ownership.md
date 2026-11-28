@@ -31,7 +31,7 @@ The CLI writes the profile's `package.json` directly. There is no separately gen
 ## Current applications
 
 - **`allow` approval.** `dsh-user-approval` accepts the policy, `dsh-permission-presets` accepts it in the preset schema, and the base bundle can map full access to it. Choosing `danger-full-access: approval: allow` for a deployment is profile policy (DataOps), not a Plus default.
-- **Image hoist replay.** `compaction-image-offload` replays projection-dependent positions leniently and `session-query` replays with the mounted projections; both are generic support for any plugin-owned projection. `@sparkelf/dsh-image-hoist` writes the `image/hoist` rows and stays a self-developed plugin.
+- **Image hoist replay.** `compaction-image-offload` replays projection-dependent positions leniently and `session-query` replays with the mounted projections; both are generic support for any plugin-owned projection. `@sparkelf/dsh-image-hoist` wrote the `image/hoist` rows as a self-developed plugin and has since been [retired](../simplification/2026-11-28-retire-dsh-image-hoist.md) because no shipped profile enabled it.
 - **Relay compatibility.** The `llm-pi-ai` route option and its Models checkbox are adapter capability. Enabling it for a particular gateway route is user or deployment configuration.
 - **Workflow plaza.** `ui-schedule` declares the `schedule.manager.tabs` child slot and renders the tab when a plugin contributes; the plaza content and its workflows belong to `knowledge-base`, where they are implemented today.
 - **Knowledge right bar.** `ui-sidebar-right` and `ui-layout` provide the generic "a panel may request the right bar and a reader layout" capability; `knowledge-base` declares that need and owns the reader linkage.
