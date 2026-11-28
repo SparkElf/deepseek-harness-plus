@@ -1912,6 +1912,8 @@ importers:
         specifier: ^0.22.2
         version: 0.22.2(oxc-resolver@11.20.0)(publint@0.3.21)(tsx@4.22.4)(typescript@6.0.3)(unrun@0.2.39)
 
+  downstream/packages/plugins/dsh-right-bg-anim: {}
+
   downstream/packages/plugins/group-chat:
     dependencies:
       '@deepseek-ai/schemastery':

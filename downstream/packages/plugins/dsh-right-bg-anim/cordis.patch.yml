@@ -1,0 +1,5 @@
+# DSH bundle patch: the profile merges this layer automatically once the package
+# is listed in dsh.profile.bundles.
+- insert:
+    - id: dsh-right-bg-anim
+      name: '@sparkelf/dsh-right-bg-anim'
